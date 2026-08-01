@@ -28,6 +28,9 @@
         <li><a href="#qa-11-11"><span class="toc-number">11.11</span>消息队列 Kafka 高可用与 Exactly-Once</a></li>
         <li><a href="#qa-11-12"><span class="toc-number">11.12</span>API 网关限流熔断与灰度发布</a></li>
         <li><a href="#qa-11-13"><span class="toc-number">11.13</span>分布式任务调度设计与选型</a></li>
+        <li><a href="#qa-11-14"><span class="toc-number">11.14</span>Elasticsearch 倒排索引、分片与集群架构</a></li>
+        <li><a href="#qa-11-15"><span class="toc-number">11.15</span>gRPC + Protobuf 高性能通信原理</a></li>
+        <li><a href="#qa-11-16"><span class="toc-number">11.16</span>Nacos 与 Apollo 配置中心选型</a></li>
       </ol>
     </aside>
 
@@ -40,15 +43,15 @@
         <h1 class="chapter-title">中间件与工程化</h1>
         <p class="chapter-subtitle">jBPM→Activiti→Flowable→Camunda 的工作流引擎演进、硬编码→脚本→规则引擎→决策引擎的业务规则演进、OAuth1.0→2.0→2.1 的授权演进、Session→JWT→双Token 的认证演进、Jenkins→GitLab CI→GitOps(ArgoCD) 的 CI/CD 演进、日志→APM→OpenTelemetry→eBPF 的可观测性演进：直击 BPMN 2.0 执行原理、QLExpress/Drools 选型、授权码+PKCE、双 Token 续期、Java Agent 字节码增强、TraceId 透传、OTel Collector、混沌工程稳态假设</p>
         <div class="chapter-meta">
-          <span>题目数：13</span>
+          <span>题目数：16</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×5</span>
+          <span>高级开发 ×6</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×3</span>
+          <span>架构级 ×4</span>
           <span class="meta-divider">|</span>
-          <span>专家级 ×2</span>
+          <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：260 分钟</span>
+          <span>预计复习：320 分钟</span>
         </div>
       </div>
 
@@ -2116,6 +2119,447 @@ DegradeRule rule = <span class="kw">new</span> DegradeRule(<span class="str">"or
         </div>
       </div>
 
+      <!-- ============================================================ -->
+      <!-- Q11.14 Elasticsearch 倒排索引、分片与集群架构？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-11-14" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">11.14</div>
+          <div class="qa-question">Elasticsearch 倒排索引、分片与集群架构？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对<strong>"搜索引擎为何不能直接用 MySQL 的 LIKE/B+树，而要设计独立的倒排索引与分布式架构"</strong>的理解。核心回答三个问题：① ES 为何用<strong>倒排索引（Inverted Index）</strong>而非 B+树——前者按词项定位文档，O(1) 级命中，后者按主键范围扫描，全文检索需全表扫描；② 如何<strong>平衡全文检索与结构化查询</strong>——倒排索引负责分词检索，Doc Values 列式存储负责排序/聚合；③ 分布式<strong>分片（Shard）</strong>如何保证水平扩展——路由公式 hash(routing) % number_of_primary_shards 将文档固定到主分片，Primary/Replica 副本保证高可用。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Lucene（1999，Doug Cutting）</strong>：单机全文检索库，提供倒排索引、分词、布尔查询能力，但本身无分布式、无 HTTP 接口，需嵌入 Java 应用。</p>
+            <p><strong>Solr（2004，基于 Lucene）</strong>：在 Lucene 之上封装企业级搜索服务，提供 HTTP 接口、Schema 管理、主从复制，成为企业搜索主流，但分布式扩展能力较弱（早期 SolrCloud 较晚才成熟）。</p>
+            <p><strong>Elasticsearch（2010，Shay Banon）</strong>：同样基于 Lucene，但从一开始就为<strong>分布式设计</strong>——内置集群发现、分片自动路由、副本高可用、REST + JSON 接口，开箱即用，迅速取代 Solr 成为主流。</p>
+            <p><strong>ES 7.x/8.x（2019—至今）</strong>：引入<strong>向量检索（dense_vector + KNN）</strong>支撑语义搜索、SQL 查询接口、安全默认开启（TLS + 认证）、新类型组件提高聚合性能，向"搜索 + 分析 + 向量数据库"综合体演进。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    L["Lucene 1.x<br/>单机全文检索库<br/>(1999)"] --> S["Solr<br/>企业级搜索<br/>HTTP+主从(2004)"]
+    S --> E["Elasticsearch<br/>原生分布式<br/>REST+JSON(2010)"]
+    E --> V["ES 7.x/8.x<br/>向量检索 KNN<br/>SQL/语义搜索(2019+)"]
+    style E fill:#dbeafe,stroke:#2563eb
+    style V fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 11.14-1 搜索引擎演进：Lucene → Solr → Elasticsearch → 向量化</div>
+            </div>
+
+            <p><strong>演进驱动力</strong>：① <strong>分布式水平扩展</strong>——单机 Lucene 无法支撑 PB 级数据，ES 用分片+副本解决；② <strong>开箱即用</strong>——从 Solr 的繁琐 Schema 配置到 ES 的动态 Mapping + REST 接口；③ <strong>实时性</strong>——从 Solr 的近实时（NRT）到 ES 的 1 秒 Refresh；④ <strong>AI 时代向量检索</strong>——传统倒排索引无法做语义相似度，dense_vector + KNN 补齐语义搜索能力。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>倒排索引三要素</strong>：</p>
+            <ul>
+              <li><strong>Term Dictionary（词项字典）</strong>：分词后的所有词项排序存储，支持二分查找定位。内存中放不下时落到磁盘。</li>
+              <li><strong>Term Index（FST 压缩）</strong>：用 <strong>FST（Finite State Transducer）</strong>压缩 Term Dictionary 的前缀/后缀，常驻内存，O(len) 定位词项在字典中的位置，极大降低内存占用。</li>
+              <li><strong>Posting List（倒排表）</strong>：每个词项对应的文档 ID 列表，用 <strong>Frame of Reference（FOR）</strong>压缩 + <strong>Roaring Bitmap</strong>做联合查询，支持 skip 跳转加速。</li>
+            </ul>
+            <p><strong>Segment 不可变 + 写入三阶段</strong>：Lucene 把索引切成多个<strong>不可变 Segment</strong>。写入先写内存 Buffer + Translog，<strong>Refresh（默认 1s）</strong>把 Buffer 生成新 Segment 进 Page Cache 可被搜到（近实时），<strong>Flush</strong>把 Segment 落盘并清空 Translog（持久化），<strong>Merge</strong>后台把小 Segment 合并成大 Segment 减少段数量与删除标记。</p>
+
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Elasticsearch（倒排索引）</th><th>MySQL（B+树索引）</th></tr></thead>
+              <tbody>
+                <tr><td>索引结构</td><td>Term→DocID 倒排，按词项定位</td><td>B+树，按主键/字段值范围扫描</td></tr>
+                <tr><td>全文检索</td><td>分词后 O(1) 命中，天然支持</td><td>LIKE '%xx%' 全表扫描，无法走索引</td></tr>
+                <tr><td>实时性</td><td>近实时（Refresh 1s 可见）</td><td>强实时（事务提交即可见）</td></tr>
+                <tr><td>事务</td><td>无 ACID，仅单文档级</td><td>完整 ACID 事务</td></tr>
+                <tr><td>扩展性</td><td>分片水平扩展，PB 级</td><td>垂直扩展为主，分库分表复杂</td></tr>
+                <tr><td>聚合排序</td><td>Doc Values 列式存储高效</td><td>覆盖索引/临时表</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>分片与路由</strong>：索引被拆为 N 个主分片（Primary），每个主分片可有 R 个副本（Replica）。文档路由公式：<code class="inline-code">shard = hash(routing) % number_of_primary_shards</code>，默认 routing 用文档 _id。主分片数<strong>创建后不可变</strong>（因为路由公式依赖它），扩容只能靠 reindex 新建索引。</p>
+            <p><strong>集群角色（ES 7.9+）</strong>：</p>
+            <ul>
+              <li><strong>Master</strong>：维护集群元数据（索引/分片分配），不存数据，需奇数个防脑裂。</li>
+              <li><strong>Data Node</strong>：存储 Segment、执行 CRUD 与查询，资源消耗大户。</li>
+              <li><strong>Coordinating Node</strong>：接收请求、分发到分片、汇总结果（路由 + Gather/Reduce）。</li>
+              <li><strong>Ingest Node</strong>：写入前对文档做预处理（管道 enrich/转换）。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring Data Elasticsearch 整合示例</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// 1. 文档映射：@Document 指定索引名与分片数</span>
+<span class="ann">@Document</span>(indexName = <span class="str">"product"</span>, shards = 3, replicas = 1)
+<span class="kw">public</span> <span class="type">class</span> <span class="type">ProductDoc</span> {
+    <span class="ann">@Id</span>
+    <span class="kw">private</span> <span class="type">String</span> id;
+    <span class="ann">@Field</span>(type = <span class="type">FieldType</span>.Text, analyzer = <span class="str">"ik_max_word"</span>)
+    <span class="kw">private</span> <span class="type">String</span> name;          <span class="com">// 分词全文检索</span>
+    <span class="ann">@Field</span>(type = <span class="type">FieldType</span>.Keyword)
+    <span class="kw">private</span> <span class="type">String</span> category;     <span class="com">// 不分词，用于聚合/精确匹配</span>
+    <span class="ann">@Field</span>(type = <span class="type">FieldType</span>.Double)
+    <span class="kw">private</span> <span class="type">Double</span> price;        <span class="com">// 排序/范围查询</span>
+}
+
+<span class="com">// 2. 继承 ElasticsearchRepository 即可获得 CRUD</span>
+<span class="kw">public</span> <span class="type">interface</span> <span class="type">ProductRepository</span> <span class="kw">extends</span> <span class="type">ElasticsearchRepository</span>&lt;<span class="type">ProductDoc</span>, <span class="type">String</span>&gt; {
+    <span class="type">Page</span>&lt;<span class="type">ProductDoc</span>&gt; <span class="fn">findByCategory</span>(<span class="type">String</span> category, <span class="type">Pageable</span> pageable);
+}
+
+<span class="com">// 3. 深度分页用 search_after 替代 from+size，避免 OOM</span>
+<span class="type">NativeSearchQuery</span> query = <span class="kw">new</span> <span class="type">NativeSearchQueryBuilder</span>()
+    .<span class="fn">withQuery</span>(<span class="type">QueryBuilders</span>.<span class="fn">matchQuery</span>(<span class="str">"name"</span>, <span class="str">"手机"</span>))
+    .<span class="fn">withSort</span>(<span class="type">SortBuilders</span>.<span class="fn">fieldSort</span>(<span class="str">"price"</span>).<span class="fn">order</span>(<span class="type">SortOrder</span>.ASC))
+    .<span class="fn">withSearchAfter</span>(<span class="type">Collections</span>.<span class="fn">singletonList</span>(lastPrice)) <span class="com">// 上一页最后一条的排序值</span>
+    .<span class="fn">build</span>();
+</code></pre></div>
+
+            <p><strong>索引设计要点</strong>：① <strong>分片数估算</strong>——单分片建议 30~50GB，分片数 = 数据量GB / 30 向上取整，过小导致段碎片、过大导致查询扇出多；② <strong>Mapping 禁用动态推断</strong>——生产环境 <code class="inline-code">"dynamic": "strict"</code>，避免脏字段污染 Mapping；③ <strong>Keyword vs Text</strong>——需聚合/排序/精确匹配用 Keyword，全文检索用 Text + 分词器；④ <strong>深度分页</strong>——<code class="inline-code">from + size</code> 协调节点需拉取 from+size 条数据排序，超过 10000 默认拒绝，用 <strong>search_after</strong>（基于排序值游标）或 <strong>Scroll</strong>（快照遍历）替代。</p>
+
+            <div class="callout callout-tip">
+              <div class="callout-title">最佳实践</div>
+              <ul>
+                <li><strong>冷热分离</strong>：热数据放 SSD Data Node，冷数据迁移到 HDD 节点（ILM 策略自动 rollover）。</li>
+                <li><strong>别名零停机切换</strong>：索引用别名对外暴露，reindex 新索引后原子切换别名，实现 Mapping 变更零停机。</li>
+                <li><strong>分片数宁少勿多</strong>：每个分片都有开销，小索引（&lt;1GB）用 1 个分片即可，过度分片浪费资源。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：ES 为何是"近实时"而非"实时"，Refresh 默认 1 秒的设计权衡是什么？</strong></p>
+            <p>写入先到内存 Buffer，此时搜不到。<strong>Refresh</strong> 把 Buffer 生成新 Segment 进操作系统 Page Cache（无需 fsync 落盘），文档即可被检索，默认 1 秒一次。设计权衡：Refresh 越频繁，Segment 越多，查询时要合并更多段、Merge 压力越大；Refresh 越慢，数据可见性延迟越高。1 秒是搜索场景"准实时 + 写入吞吐"的折中。对写入吞吐优先的日志场景可调大（如 30s），对可见性敏感可调小或手动 <code class="inline-code">refresh=false</code> 写完后主动调一次。</p>
+            <p><strong>追问 2：写入数据如何保证不丢？Translog 与 Flush 的关系？</strong></p>
+            <p>写入同时写内存 Buffer 与 <strong>Translog</strong>（Write-Ahead Log，落盘 fsync）。Refresh 只让数据可搜但不落盘。当 Translog 达到阈值（默认 512MB）或定时触发 <strong>Flush</strong>：把内存 Buffer 生成 Segment 并 fsync 落盘，清空 Translog。即使 Refresh 后的 Page Cache 数据因宕机丢失，重启后也能用 Translog 重放未 Flush 的写入，保证数据不丢。因此 <strong>Translog 的 fsync 策略</strong>（每次写/每 5s/请求结束）决定数据可靠性级别。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>分片数设错无法改</strong>：主分片数创建后不可变（路由公式依赖），扩容只能 reindex 新索引。务必按数据量预估，或用别名+reindex 方案预留变更能力。</li>
+                <li><strong>深度分页 OOM</strong>：from + size 超过 index.max_result_window（默认 10000）报错，强改大会让协调节点拉取海量数据排序撑爆内存。应改用 search_after。</li>
+                <li><strong>Mapping 动态推断失控</strong>：第一条文档字段类型被推断后不可改，脏数据（如数字变字符串）导致后续写入失败。生产必须 strict 模式 + 预定义 Mapping。</li>
+                <li><strong>集群脑裂（Split-Brain）</strong>：旧版 Master 选举配置不当导致双 Master。ES 7.0+ 自动管理选举 quorum（discovery.seed_hosts），但节点数仍建议奇数并合理设置 voting 配置。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q11.15 gRPC + Protobuf 高性能通信原理？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-11-15" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">11.15</div>
+          <div class="qa-question">gRPC + Protobuf 高性能通信原理？<span class="difficulty difficulty-expert">专家级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对<strong>"微服务间高性能通信为何要绕开 REST/JSON"</strong>的底层理解。核心回答三个问题：① 为何 <strong>Protobuf 比 JSON 快</strong>——二进制紧凑编码（varint + field tag），无需分隔符与引号，解析是字段定位而非文本解析；② <strong>HTTP/2 多路复用如何降延迟</strong>——单 TCP 连接并发多个请求流，HPACK 头压缩消除冗余；③ <strong>gRPC 四种调用模式</strong>的适用场景——Unary 一元、Server Stream 服务端流、Client Stream 客户端流、Bidi 双向流，分别对应普通 RPC、大结果推送、批量上报、实时双向交互。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>CORBA / SOAP（2000 年前后）</strong>：早期 RPC 方案，基于 IIOP/SOAP 协议，重量级、强耦合、跨语言麻烦（需 IDL + 复杂中间件），逐步被淘汰。</p>
+            <p><strong>REST / JSON（2010 年代主流）</strong>：轻量、可读性好、跨语言、与 HTTP/1.1 天然契合，成为互联网标配。但 JSON 文本解析慢、Header 冗余、HTTP/1.1 单连接一次一请求（队头阻塞），性能瓶颈明显。</p>
+            <p><strong>gRPC（2015，Google 开源）</strong>：基于 <strong>HTTP/2 + Protobuf</strong>，定位高性能通用 RPC 框架。多语言 Stub 自动生成、双向流、强类型契约，迅速成为云原生服务间通信首选（CNCF 项目大量采用）。</p>
+            <p><strong>gRPC-Web / Connect（2018+）</strong>：浏览器原生不支持 HTTP/2 Trailer，gRPC-Web 通过代理转译让前端可调 gRPC；Buf Connect 重新设计协议，更贴合 HTTP 语义，降低网关复杂度。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    C["CORBA/SOAP<br/>重量级 RPC<br/>强耦合(2000)"] --> R["REST/JSON<br/>轻量但低效<br/>HTTP/1.1(2010)"]
+    R --> G["gRPC<br/>HTTP/2+Protobuf<br/>多路复用(2015)"]
+    G --> W["gRPC-Web/Connect<br/>浏览器支持<br/>网关友好(2018+)"]
+    style G fill:#dbeafe,stroke:#2563eb
+    style W fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 11.15-1 RPC 演进：CORBA/SOAP → REST/JSON → gRPC → gRPC-Web</div>
+            </div>
+
+            <p><strong>演进驱动力</strong>：① <strong>性能</strong>——微服务化后调用链路变长，JSON+HTTP/1.1 的文本解析与队头阻塞成为瓶颈；② <strong>跨语言契约</strong>——微服务多语言并存，需要 IDL 生成强类型 Stub；③ <strong>流式场景</strong>——实时音视频、推送、批量上报需要双向流，REST 的请求-响应模型无法表达；④ <strong>云原生生态</strong>——Envoy/Istio 原生支持 gRPC，成为 Service Mesh 的事实通信协议。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>Protobuf 二进制编码</strong>：每个字段用 <code class="inline-code">(field_number &lt;&lt; 3) | wire_type</code> 的 tag 标识，值用 <strong>varint</strong>（变长整数，小数字 1 字节）编码。无字段名、无引号、无分隔符，体积比 JSON 小 30%~50%，解析只需按 tag 跳读，无需文本 tokenize。</p>
+            <p><strong>HTTP/2 三大加速</strong>：① <strong>多路复用（Multiplexing）</strong>——单 TCP 连接并发多个 Stream，每个请求一个 Stream ID，彻底解决 HTTP/1.1 队头阻塞；② <strong>HPACK 头压缩</strong>——静态表 + 动态表 + Huffman 编码，重复 Header 只传索引；③ <strong>Server Push / 流优先级</strong>——可主动推送、按优先级调度帧。</p>
+            <p><strong>gRPC 四种调用模式</strong>：</p>
+            <ul>
+              <li><strong>Unary（一元）</strong>：一请求一响应，等同普通 RPC，适合大多数业务调用。</li>
+              <li><strong>Server Streaming</strong>：一请求多响应，服务端分批发送，适合大结果集分页、订阅推送。</li>
+              <li><strong>Client Streaming</strong>：多请求一响应，客户端批量上传，适合埋点上报、批量写入。</li>
+              <li><strong>Bidirectional Streaming</strong>：双向流，适合实时聊天、协同编辑、双向心跳。</li>
+            </ul>
+
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>gRPC</th><th>REST/JSON</th><th>Dubbo</th></tr></thead>
+              <tbody>
+                <tr><td>传输协议</td><td>HTTP/2</td><td>HTTP/1.1 为主</td><td>TCP（Dubbo 协议）</td></tr>
+                <tr><td>序列化</td><td>Protobuf（二进制）</td><td>JSON（文本）</td><td>Hessian2/Protobuf</td></tr>
+                <tr><td>流式支持</td><td>四种模式原生支持</td><td>无（需 SSE/WebSocket）</td><td>有限</td></tr>
+                <tr><td>跨语言</td><td>多语言 Stub 生成</td><td>天然跨语言</td><td>Java 为主</td></tr>
+                <tr><td>浏览器</td><td>需 gRPC-Web 代理</td><td>原生支持</td><td>不支持</td></tr>
+                <tr><td>生态</td><td>Envoy/Istio 原生</td><td>通用</td><td>阿里系生态</td></tr>
+              </tbody>
+            </table>
+            <p><strong>Stub 生成</strong>：通过 <code class="inline-code">protoc</code> 编译 .proto 文件，生成各语言的客户端 Stub（序列化 + HTTP/2 调用封装）与服务端接口基类，调用方像调本地方法一样发起远程调用，屏蔽网络细节。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>1. Protobuf IDL 定义（.proto）</strong>：</p>
+            <div class="code-block"><pre><code><span class="kw">syntax</span> = <span class="str">"proto3"</span>;
+<span class="kw">package</span> order.v1;
+<span class="kw">option</span> java_package = <span class="str">"com.example.order.api"</span>;
+<span class="kw">option</span> java_multiple_files = <span class="kw">true</span>;
+
+<span class="kw">service</span> OrderService {
+  <span class="com">// Unary：创建订单</span>
+  <span class="kw">rpc</span> CreateOrder(CreateOrderRequest) <span class="kw">returns</span> (CreateOrderResponse);
+  <span class="com">// Server Stream：查询订单流水</span>
+  <span class="kw">rpc</span> StreamOrders(StreamOrdersRequest) <span class="kw">returns</span> (<span class="kw">stream</span> OrderRecord);
+}
+
+<span class="kw">message</span> CreateOrderRequest {
+  <span class="type">string</span> user_id = 1;
+  <span class="type">string</span> product_id = 2;
+  <span class="type">int32</span> quantity = 3;
+}
+<span class="kw">message</span> CreateOrderResponse {
+  <span class="type">string</span> order_id = 1;
+  <span class="type">bool</span> success = 2;
+}
+</code></pre></div>
+
+            <p><strong>2. protobuf-maven-plugin 生成 Stub</strong>：pom 引入 <code class="inline-code">protobuf-maven-plugin</code> + <code class="inline-code">protoc</code> 二进制，<code class="inline-code">mvn generate-sources</code> 自动生成 Java 类。再配合 <strong>grpc-spring-boot-starter</strong>（如 LogNet 或 yidongnan），用 <code class="ann">@GrpcService</code> 暴露服务、<code class="ann">@GrpcClient</code> 注入客户端。</p>
+            <p><strong>3. 拦截器（日志/鉴权/追踪）</strong>：</p>
+            <div class="code-block"><pre><code><span class="kw">public</span> <span class="type">class</span> <span class="type">AuthServerInterceptor</span> <span class="kw">implements</span> <span class="type">ServerInterceptor</span> {
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> &lt;<span class="type">ReqT</span>, <span class="type">RespT</span>&gt; <span class="type">ServerCall</span>.<span class="type">Listener</span>&lt;<span class="type">ReqT</span>&gt; <span class="fn">interceptCall</span>(
+            <span class="type">ServerCall</span>&lt;<span class="type">ReqT</span>, <span class="type">RespT</span>&gt; call, <span class="type">Metadata</span> headers,
+            <span class="type">ServerCallHandler</span>&lt;<span class="type">ReqT</span>, <span class="type">RespT</span>&gt; next) {
+        <span class="type">String</span> token = headers.<span class="fn">get</span>(<span class="type">Metadata</span>.<span class="type">Key</span>.<span class="fn">of</span>(<span class="str">"authorization"</span>, <span class="type">Metadata</span>.<span class="type">ASCII_STRING_MARSHALLER</span>));
+        <span class="kw">if</span> (token == <span class="kw">null</span> || !<span class="fn">verify</span>(token)) {
+            call.<span class="fn">close</span>(<span class="type">Status</span>.<span class="type">UNAUTHENTICATED</span>.<span class="fn">withDescription</span>(<span class="str">"token无效"</span>), <span class="kw">new</span> <span class="type">Metadata</span>());
+            <span class="kw">return</span> <span class="kw">new</span> <span class="type">ServerCall</span>.<span class="type">Listener</span>&lt;<span class="type">ReqT</span>&gt;() {};
+        }
+        <span class="com">// 注入 traceId 到 MDC，串联链路追踪</span>
+        <span class="type">MDC</span>.<span class="fn">put</span>(<span class="str">"traceId"</span>, headers.<span class="fn">get</span>(<span class="type">TRACE_KEY</span>));
+        <span class="kw">return</span> next.<span class="fn">startCall</span>(call, headers);
+    }
+}
+</code></pre></div>
+
+            <div class="callout callout-tip">
+              <div class="callout-title">最佳实践</div>
+              <ul>
+                <li><strong>对外用 REST/gRPC-Web，对内用 gRPC</strong>：浏览器与第三方难直连 gRPC，通过网关转译，内部服务间全 gRPC。</li>
+                <li><strong>统一 Stub 工程管理</strong>：.proto 放独立 api 仓库，CI 生成各语言包发布制品库，避免协议散落。</li>
+                <li><strong>必设超时与降级</strong>：gRPC 默认无超时，流式调用不设 deadline 会永久挂起，必须配 deadline + 熔断。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Protobuf 如何保证向后/向前兼容？</strong></p>
+            <p>Protobuf 靠<strong>字段编号</strong>而非字段名定位，兼容规则：① 新增字段用新编号，旧客户端忽略未知字段（unknown fields 保留），向前兼容；② 删除字段需保留编号不复用（用 reserved 标记），避免新旧端误读；③ 字段类型需兼容（如 int32→int64 可放宽，反过来会截断）；④ proto3 默认字段 optional，无法区分"未设"与"默认值"，需显式 optional 才能判断是否赋值。核心：编号是契约的稳定锚点，改名不影响。</p>
+            <p><strong>追问 2：gRPC 是长连接，如何做负载均衡？</strong></p>
+            <p>HTTP/2 长连接使传统 L4 负载均衡（每次请求重新建连）失效。方案分两层：① <strong>客户端侧 LB（内置）</strong>——gRPC 提供 pick_first（默认连一个）与 round_robin 策略，客户端直接从解析到的多个后端地址轮询，无中间代理层延迟低；② <strong>服务端代理 LB（Envoy xDS）</strong>——客户端只连 Envoy，Envoy 通过 xDS 动态获取后端实例并做加权/最少连接调度，配合健康检查与熔断，是 Service Mesh 的标准做法。注意 DNS 缓存会导致实例上下线感知延迟，生产用 xDS 主动推送。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>改字段编号导致不兼容</strong>：编号一旦发布即不可改，复用已删编号会让新旧端解析出错误数据。删除字段必须 reserved。</li>
+                <li><strong>流式调用不设超时</strong>：Server/Client Stream 无 deadline 时连接挂起不释放，积压导致连接池耗尽。必须用 withDeadline。</li>
+                <li><strong>无网关层难以调试</strong>：gRPC 二进制不可读，curl 无法直接调用。需部署 grpcurl/Postman 或 gRPC-Web 网关，否则线上排查困难。</li>
+                <li><strong>大消息体撑爆帧</strong>：Protobuf 默认单消息 4MB 上限，传大文件应改用 Client Stream 分块，而非调大限制。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q11.16 Nacos 与 Apollo 配置中心选型？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-11-16" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">11.16</div>
+          <div class="qa-question">Nacos 与 Apollo 配置中心选型？<span class="difficulty difficulty-senior">高级开发</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对<strong>"配置中心到底要解决什么问题，以及不同实现的架构权衡"</strong>的理解。核心回答：配置中心要解决<strong>动态推送、灰度发布、版本回滚、多环境隔离</strong>四大诉求，告别改配置要重启应用的痛点。Nacos 与 Apollo 的架构差异在于<strong>推送机制</strong>（Apollo 纯长轮询 vs Nacos 长轮询 + UDP 混合）与<strong>一致性模型</strong>（Nacos 同时支持 AP/CP，Apollo 强一致）。长轮询是"客户端定时拉 + 服务端 hold 住连接有变更才立即返回"的折中方案，平衡实时性与连接成本。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>阶段 1：properties 硬编码 / 配置文件随包发布</strong>。配置改一次发一次版，环境间配置靠 profile 切换，无法动态调整。</p>
+            <p><strong>阶段 2：DB 配置表 + 应用定时拉取</strong>。配置入库，应用启动加载 + 定时轮询。解决了发版问题，但实时性差、无推送、无灰度。</p>
+            <p><strong>阶段 3：ZooKeeper 强一致配置</strong>。利用 ZK 的 Watch 机制做配置变更通知，实时性好、强一致。但 ZK 运维复杂、CP 模型在配置场景过重（配置更关注可用性而非强一致）。</p>
+            <p><strong>阶段 4：Apollo（携程 2016 开源）</strong>。专为配置中心设计，<strong>长轮询</strong>推送 + 多环境 + 灰度发布 + 版本回滚，管理后台完善，Java 生态成熟。</p>
+            <p><strong>阶段 5：Nacos（阿里 2018 开源）</strong>。配置中心 + 注册中心二合一，<strong>长轮询 + UDP 推送</strong>混合降低延迟，支持 AP/CP 切换，与 Spring Cloud Alibaba 深度整合，云原生首选。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    P["properties<br/>硬编码/随包发布"] --> D["DB 配置表<br/>定时轮询拉取"]
+    D --> Z["ZooKeeper<br/>Watch 通知<br/>强一致(2010s)"]
+    Z --> A["Apollo<br/>长轮询+灰度+回滚<br/>(2016)"]
+    Z --> N["Nacos<br/>长轮询+UDP<br/>AP/CP(2018)"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style N fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 11.16-1 配置中心演进：硬编码 → DB → ZK → Apollo/Nacos</div>
+            </div>
+
+            <p><strong>演进驱动力</strong>：① <strong>动态推送</strong>——配置变更秒级生效无需重启；② <strong>灰度与回滚</strong>——配置也要像代码一样可灰度、可回滚、可审计；③ <strong>多环境隔离</strong>——Dev/Test/Prod 配置分离，避免误连；④ <strong>运维简化</strong>——ZK 太重，需要更轻量、专注配置的方案；⑤ <strong>注册配置合一</strong>——Nacos 把配置与发现合并，减少组件数量。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>Apollo 长轮询机制</strong>：客户端定时（默认 1s 检测）向 Config Server 发起长轮询请求，服务端<strong>hold 住连接</strong>：若有配置变更立即返回变更的 namespace 列表，客户端再拉取具体配置内容；若无变更则保持连接到超时（默认 60s）后返回，客户端立即发下一次请求。本质是"服务端有变更才返回 + 客户端持续保活"，兼顾实时性与连接复用。</p>
+            <p><strong>Nacos 长轮询 + UDP 混合</strong>：客户端同样长轮询，但服务端在配置变更时除通过长轮询返回外，还<strong>额外发 UDP 包</strong>给客户端做"快速通知"，客户端收到 UDP 立即主动拉取。UDP 用于降低延迟（毫秒级感知），长轮询作为 UDP 丢失时的兜底，二者互补。</p>
+            <p><strong>配置灰度发布</strong>：按 <strong>IP 维度</strong>或<strong>标签维度</strong>指定部分实例先生效新配置，验证无误再全量推送。Apollo 内置灰度规则引擎，Nacos 通过命名空间 + 分组 + DataId 组合实现类似隔离。</p>
+            <p><strong>多环境隔离</strong>：Apollo 用 <strong>Env（DEV/FAT/UAT/PRO）+ Cluster（机房）+ Namespace</strong> 三级隔离；Nacos 用<strong>命名空间（Namespace）+ 分组（Group）+ DataId</strong> 三级隔离，命名空间天然对应环境。</p>
+            <p><strong>Nacos AP/CP 切换</strong>：</p>
+            <ul>
+              <li><strong>临时实例（AP）</strong>：客户端靠心跳维持，实例下线心跳超时自动剔除，AP 优先可用性，适合注册中心场景。</li>
+              <li><strong>永久实例（CP）</strong>：服务端主动探测，实例信息持久化，变更走 <strong>Raft 协议</strong>强一致，适合需要精确一致的场景。</li>
+            </ul>
+
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Nacos</th><th>Apollo</th></tr></thead>
+              <tbody>
+                <tr><td>定位</td><td>配置 + 注册中心二合一</td><td>专注配置中心</td></tr>
+                <tr><td>推送机制</td><td>长轮询 + UDP 混合</td><td>纯长轮询</td></tr>
+                <tr><td>一致性</td><td>AP/CP 可切换</td><td>强一致（DB）</td></tr>
+                <tr><td>多环境</td><td>Namespace 隔离</td><td>Env + Cluster 隔离</td></tr>
+                <tr><td>灰度发布</td><td>命名空间+分组模拟</td><td>内置灰度规则引擎</td></tr>
+                <tr><td>管理后台</td><td>简洁</td><td>完善（版本/审计/权限）</td></tr>
+                <tr><td>生态</td><td>Spring Cloud Alibaba</td><td>Spring Cloud Config 兼容</td></tr>
+                <tr><td>运维</td><td>单组件轻量</td><td>Config/Admin/Portal 多角色</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring Cloud Alibaba Nacos Config 动态刷新示例</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// 1. bootstrap.yml 声明 Nacos 配置源</span>
+spring:
+  cloud:
+    nacos:
+      config:
+        server-addr: <span class="str">${NACOS_ADDR}</span>
+        namespace: <span class="str">${NACOS_NS}</span>      <span class="com"># 命名空间=环境隔离</span>
+        group: <span class="str">ORDER_GROUP</span>
+        data-id: order-service.yaml
+        refresh-enabled: <span class="kw">true</span>
+
+<span class="com">// 2. @RefreshScope + @Value 实现配置热更新</span>
+<span class="ann">@RefreshScope</span>
+<span class="ann">@Component</span>
+<span class="kw">public</span> <span class="type">class</span> <span class="type">OrderConfig</span> {
+    <span class="ann">@Value</span>(<span class="str">"${order.timeout:3000}"</span>)
+    <span class="kw">private</span> <span class="type">int</span> timeout;        <span class="com">// Nacos 改了 order.timeout，这里自动刷新</span>
+
+    <span class="ann">@Value</span>(<span class="str">"${order.retry:3}"</span>)
+    <span class="kw">private</span> <span class="type">int</span> retry;
+}
+
+<span class="com">// 3. 监听配置变更事件，做自定义逻辑</span>
+<span class="ann">@Component</span>
+<span class="kw">public</span> <span class="type">class</span> <span class="type">ConfigChangeListener</span> {
+    <span class="ann">@EventListener</span>
+    <span class="kw">public</span> <span class="type">void</span> <span class="fn">onChange</span>(<span class="type">RefreshScopeRefreshedEvent</span> event) {
+        <span class="com">// 如重建线程池、刷新本地缓存等</span>
+    }
+}
+</code></pre></div>
+
+            <p><strong>配置加密（Jasypt）</strong>：敏感配置（数据库密码、密钥）用 <strong>Jasypt</strong> 加密后存入 Nacos，客户端用密钥解密。Nacos 也内置配置加密插件（AES），在 DataId 标记 cipher- 前缀自动加解密。</p>
+            <p><strong>版本管理与回滚</strong>：Apollo 内置历史版本，一键回滚到任意历史配置并记录操作人；Nacos 2.x 后也支持配置历史与回滚（保留 30 天），生产务必开启审计。变更前在测试命名空间验证，灰度后再全量。</p>
+
+            <div class="callout callout-tip">
+              <div class="callout-title">最佳实践</div>
+              <ul>
+                <li><strong>配置与代码同管</strong>：配置文件随代码进 Git，CI 同步到配置中心，保证可追溯。</li>
+                <li><strong>敏感配置加密</strong>：密码/密钥禁止明文，用 Jasypt 或 Nacos 加密插件，密钥走环境变量注入。</li>
+                <li><strong>灰度先行</strong>：高危配置先灰度单台实例，观察无异常再全量推送。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Nacos 为何能同时支持 AP 和 CP？</strong></p>
+            <p>Nacos 区分<strong>临时实例与永久实例</strong>。临时实例由客户端发心跳保活，心跳断开即剔除，走 <strong>Distro 协议（AP）</strong>——各节点独立处理写请求再异步同步，优先可用性，适合服务注册（实例频繁上下线，临时不一致可接受）。永久实例由服务端主动探测，走 <strong>Raft 协议（CP）</strong>——写需多数派确认，强一致，适合数据库等持久化服务的注册。一套系统两种协议按实例类型分治，是 Nacos 的设计亮点。</p>
+            <p><strong>追问 2：配置中心与 K8s ConfigMap 如何取舍？</strong></p>
+            <p>ConfigMap 是 K8s 原生的配置卷，改 ConfigMap 后 Pod 挂载的文件会更新（但应用需自行 watch 或重启才能感知），优势是<strong>无额外组件、与 K8s 深度集成</strong>。配置中心优势在于<strong>动态推送（无需重启）、灰度发布、多环境统一管理、跨集群</strong>。取舍：纯 K8s 环境且配置变更少、可接受滚动重启，用 ConfigMap 足够；需要秒级动态生效、灰度、跨 K8s/非 K8s 混合部署，用配置中心。二者也可结合：ConfigMap 放启动参数，配置中心放运行期动态配置。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>配置全量拉取导致大对象</strong>：单个 DataId 塞几十 KB 配置，每次刷新全量拉取浪费带宽。应按职责拆分多个 DataId，按需加载。</li>
+                <li><strong>长轮询连接数过多</strong>：客户端实例多时，长轮询占用大量连接与线程，需服务端调优连接池或引入 UDP 快速通知减负。</li>
+                <li><strong>无版本管理无法回滚</strong>：直接改配置出错却回不去。务必开启历史版本与审计，关键配置变更走审批流程。</li>
+                <li><strong>namespace/group 混用</strong>：环境隔离与业务分组混在一个维度，导致配置串环境。应 namespace 严格对应环境，group 对应业务线。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="chapter-10-microservice-cloud.html" class="nav-prev">&#8592; 第 10 篇 微服务与云原生</a>
@@ -2142,6 +2586,9 @@ DegradeRule rule = <span class="kw">new</span> DegradeRule(<span class="str">"or
         <li><span class="src-title">CNCF OpenTelemetry Documentation / OTLP Protocol Specification. — API/SDK/Collector 三层解耦、Exemplar 三支柱关联</span></li>
         <li><span class="src-title">Netflix Chaos Monkey / ChaosBlade Documentation / Chaos Mesh Documentation (CNCF). — 混沌工程四原则、稳态假设、爆炸半径控制</span></li>
         <li><span class="src-title">eBPF Documentation / Pixie / Cilium Tetragon. — eBPF 内核级无侵入监控、与 OTel 融合趋势</span></li>
+        <li><span class="src-title">Elasticsearch: The Definitive Guide / Lucene Documentation. — 倒排索引、Segment Merge、FST、分片路由</span></li>
+        <li><span class="src-title">gRPC Documentation / Protocol Buffers Language Guide / HTTP/2 RFC 7540. — Protobuf 编码、HTTP/2 多路复用、四种调用模式</span></li>
+        <li><span class="src-title">Nacos Documentation / Apollo Configuration Center Guide. — 长轮询、UDP 推送、灰度发布、AP/CP 切换</span></li>
       </ol>
     </div>
   </footer>

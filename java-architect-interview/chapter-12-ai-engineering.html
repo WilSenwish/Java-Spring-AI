@@ -25,6 +25,10 @@
         <li><a href="#qa-12-8"><span class="toc-number">12.8</span>LLM 应用质量评估与监控</a></li>
         <li><a href="#qa-12-9"><span class="toc-number">12.9</span>LLM 应用成本优化与工程实践</a></li>
         <li><a href="#qa-12-10"><span class="toc-number">12.10</span>多模态 LLM 与未来趋势</a></li>
+        <li><a href="#qa-12-11"><span class="toc-number">12.11</span>Spring AI Alibaba Graph 编排与阿里云生态</a></li>
+        <li><a href="#qa-12-12"><span class="toc-number">12.12</span>AgentScope-Java Agentic 框架与 ReAct 范式</a></li>
+        <li><a href="#qa-12-13"><span class="toc-number">12.13</span>LangChain4j AiServices 与多模型集成</a></li>
+        <li><a href="#qa-12-14"><span class="toc-number">12.14</span>LangGraph4j StateGraph 图编排与 MultiAgent</a></li>
       </ol>
     </aside>
 
@@ -37,15 +41,15 @@
         <h1 class="chapter-title">AI 工程与实践</h1>
         <p class="chapter-subtitle">Spring 生态从 Web 到 AI 应用的演进、关键词→语义→RAG→Agentic RAG 的检索演进、Prompt→Few-shot→CoT→ReAct→Agent 的推理演进、单次调用→Function Calling→Agent→Multi-Agent 的自主性演进、GPT-4→Claude→开源→多模型路由的选型演进、单模态→多模态→具身智能的形态演进：直击 Spring AI 架构、RAG 七环节优化、HNSW/IVF 向量索引、分块策略、ReAct/Plan-and-Execute、MCP 协议、RAGAS 评估、语义缓存、多模态融合</p>
         <div class="chapter-meta">
-          <span>题目数：10</span>
+          <span>题目数：14</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×1</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×5</span>
+          <span>架构级 ×7</span>
           <span class="meta-divider">|</span>
-          <span>专家级 ×4</span>
+          <span>专家级 ×6</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：230 分钟</span>
+          <span>预计复习：320 分钟</span>
         </div>
       </div>
 
@@ -1417,6 +1421,725 @@ flowchart LR
         </div>
       </div>
 
+      <!-- ============================================================ -->
+      <!-- Q12.11 Spring AI Alibaba Graph 编排与阿里云生态集成？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-12-11" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">12.11</div>
+          <div class="qa-question">Spring AI Alibaba Graph 编排与阿里云生态集成？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>"国产 Spring AI 生态如何把通用框架与云厂商能力深度结合"</strong> 的架构判断。核心要回答三个问题：Spring AI Alibaba 为什么基于 Spring AI 而非另起炉灶（生态复用 vs 重复造轮子）？Graph 编排解决什么问题（LLM 调用从线性链到 DAG 工作流的跃迁）？阿里云生态集成的工程价值在哪（百炼/Nacos/Higress/ARMS 一体化）？这是 2026 年架构师在国产化 AI 选型中绕不开的题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring AI Alibaba 的三层架构演进</strong>：从"调通一个模型"到"编排复杂 Agent 工作流"，能力层层叠加。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    L1["第一层: Augmented LLM<br/>Spring AI 基础 + 通义千问<br/>(2024)"] --> L2["第二层: Graph<br/>轻量级 DAG 工作流编排<br/>(2025)"]
+    L2 --> L3["第三层: Agent Framework<br/>ReactAgent/Supervisor/Handoffs<br/>(2026 GA)"]
+    style L1 fill:#dbeafe,stroke:#2563eb
+    style L2 fill:#dcfce7,stroke:#059669
+    style L3 fill:#f3e8ff,stroke:#7c3aed
+              </div>
+              <div class="chart-caption">图 12.11-1 Spring AI Alibaba 三层架构演进：Augmented LLM → Graph → Agent Framework</div>
+            </div>
+
+            <p><strong>第一阶段：Augmented LLM（2024）</strong>。基于 Spring AI 1.0 的 ChatModel/EmbeddingModel/VectorStore 抽象，接入通义千问（Qwen）系列模型。这层解决"<strong>模型可用</strong>"——国内开发者无需自封装 HTTP 调用，Starter 引入即用百炼平台模型。本质是 Spring AI 的<strong>国产模型适配层</strong>。</p>
+            <p><strong>第二阶段：Graph 编排（2025）</strong>。当应用从"单次问答"走向"多步骤工作流"（先检索→再推理→再调工具→再生成），线性 Chain 不够用了。Graph 提供<strong>轻量级 DAG 工作流编排运行时</strong>——节点（Node）封装工具/Agent/LLM 调用，边（Edge）定义状态流转与条件路由，支持并行执行与状态管理。这层解决"<strong>流程可编排</strong>"。</p>
+            <p><strong>第三阶段：Agent Framework（2026 年 5 月 GA，10k+ Star）</strong>。在 Graph 之上提供高层 Agent 模式——ReactAgent（ReAct 推理行动循环）、Supervisor（监督者分配任务）、Handoffs（Agent 间任务交接）。配套 JManus（通用智能体模板）、DataAgent（数据分析 Agent）等生产级模板。这层解决"<strong>Agent 可自治</strong>"。</p>
+            <p><strong>演进驱动力</strong>：① <strong>生态复用</strong>——不重复造 Spring AI 已有的抽象，在其上叠加编排与云集成；② <strong>复杂度治理</strong>——Agent 工作流复杂度爆炸，需 DAG 编排而非硬编码 if-else；③ <strong>云原生一体化</strong>——把阿里云基础设施（模型服务/注册中心/网关/监控）与框架深度绑定，降低企业落地门槛。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>Graph DAG 工作流核心模型</strong>：Graph 把 AI 应用拆解为<strong>有向无环图（DAG）</strong>——节点是计算单元（LLM 调用/工具执行/子 Agent），边是状态流转（含条件路由），整体由运行时调度执行。关键能力：① <strong>条件路由</strong>——根据节点输出决定走哪条边（如检索结果置信度高→直接生成，低→换关键词重检索）；② <strong>并行执行</strong>——多个无依赖节点 fan-out 并行，fan-in 汇聚结果；③ <strong>状态管理</strong>——图的共享状态在节点间传递，支持累加/覆盖/自定义归约策略。</p>
+            <p><strong>预置 Agent 模式</strong>：框架内置四种常用编排模式，避免从零搭建 DAG：</p>
+            <table class="compare-table">
+              <thead><tr><th>Agent 模式</th><th>结构</th><th>适用场景</th><th>特点</th></tr></thead>
+              <tbody>
+                <tr><td>SequentialAgent</td><td>Agent 串行链</td><td>固定流水线（翻译→摘要→审核）</td><td>简单确定，上一步输出即下一步输入</td></tr>
+                <tr><td>ParallelAgent</td><td>Agent 并行 + 汇聚</td><td>多视角分析（同时用多个模型分析）</td><td>低延迟，结果需融合策略</td></tr>
+                <tr><td>RoutingAgent</td><td>条件路由分发</td><td>意图识别后分流（客服/技术/售后）</td><td>灵活分流，需准确路由判断</td></tr>
+                <tr><td>LoopAgent</td><td>循环迭代优化</td><td>自我反思改进（写稿→评审→改稿）</td><td>质量递进，需防死循环</td></tr>
+              </tbody>
+            </table>
+            <p><strong>阿里云深度集成四件套</strong>：</p>
+            <ul>
+              <li><strong>百炼模型服务</strong>：通义千问/Qwen-VL/Qwen-Audio 统一 API 接入，支持模型微调与评测，Starter 配置 <code class="inline-code">spring.ai.dashscope.api-key</code> 即用。</li>
+              <li><strong>Nacos MCP Registry</strong>：把 MCP 工具注册到 Nacos，Agent 通过服务发现动态获取工具列表，工具可跨应用复用——类似"<strong>工具的注册中心</strong>"。</li>
+              <li><strong>Higress AI 网关</strong>：在网关层做多模型路由/限流/灰度/Token 计费/内容安全过滤，应用层只调网关统一入口，屏蔽后端模型差异。</li>
+              <li><strong>ARMS 可观测</strong>：LLM 调用链 Trace 采集（Token 消耗/延迟/错误率），Graph 节点级耗时可视化，AI 应用接入阿里云监控体系。</li>
+            </ul>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Spring AI Alibaba</th><th>Spring AI</th><th>LangChain4j</th></tr></thead>
+              <tbody>
+                <tr><td>定位</td><td>Spring AI 国产化增强 + 云集成</td><td>通用 AI 应用框架</td><td>LangChain Java 移植</td></tr>
+                <tr><td>编排能力</td><td>Graph DAG + Agent 模式</td><td>ChatClient + Advisor 链</td><td>Chain/AiServices</td></tr>
+                <tr><td>模型生态</td><td>通义优先 + 兼容主流</td><td>OpenAI/Anthropic/Ollama</td><td>30+ 模型适配</td></tr>
+                <tr><td>企业集成</td><td>百炼/Nacos/Higress/ARMS 深度绑定</td><td>Spring 全家桶原生</td><td>框架中立(Quarkus/Micronaut)</td></tr>
+                <tr><td>学习曲线</td><td>需了解阿里云产品体系</td><td>Spring 开发者最低</td><td>低，API 直观</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>简历关联：车辆租赁 + Spring AI Alibaba Graph</strong>。用 Graph 编排一个智能定损 Agent：节点1（Qwen-VL 识别车辆损伤）→ 条件边（损伤严重？）→ 节点2A（轻伤自动报价）/ 节点2B（重伤转人工 + 调用定损 API）→ 节点3（生成定损单）。通义模型经百炼接入，工具服务注册到 Nacos MCP Registry。</p>
+            <div class="code-block"><pre><code><span class="com">// Spring AI Alibaba Graph 编排 DSL 示例</span>
+<span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="type">DamageGraphConfig</span> {
+
+    <span class="com">// 定义节点: 每个节点封装一个 AI 调用或工具执行</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">Node</span> <span class="fn">detectDamageNode</span>(<span class="type">ChatClient</span> chatClient) {
+        <span class="kw">return</span> <span class="type">Node</span>.<span class="fn">of</span>(<span class="str">"detect"</span>, state -&gt; {
+            <span class="type">String</span> <span class="var">image</span> = state.<span class="fn">get</span>(<span class="str">"carImage"</span>);
+            <span class="type">String</span> <span class="var">result</span> = chatClient.<span class="fn">prompt</span>()
+                .user(<span class="str">"识别车辆损伤: "</span> + image)
+                .<span class="fn">call</span>().<span class="fn">content</span>();
+            state.<span class="fn">put</span>(<span class="str">"damageResult"</span>, result);
+            <span class="kw">return</span> state;
+        });
+    }
+
+    <span class="com">// 条件边: 根据损伤程度路由</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">Edge</span> <span class="fn">severityRouter</span>() {
+        <span class="kw">return</span> <span class="type">Edge</span>.<span class="fn">conditional</span>(<span class="str">"detect"</span>, state -&gt; {
+            <span class="type">String</span> <span class="var">r</span> = state.<span class="fn">get</span>(<span class="str">"damageResult"</span>);
+            <span class="kw">return</span> r.<span class="fn">contains</span>(<span class="str">"重伤"</span>) ? <span class="str">"manualReview"</span> : <span class="str">"autoQuote"</span>;
+        });
+    }
+
+    <span class="com">// 组装 Graph 工作流</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">Graph</span> <span class="fn">damageGraph</span>(<span class="type">Node</span> detect, <span class="type">Node</span> quote,
+                              <span class="type">Node</span> review, <span class="type">Node</span> generate) {
+        <span class="kw">return</span> <span class="type">Graph</span>.<span class="fn">builder</span>()
+            .<span class="fn">addNode</span>(detect).<span class="fn">addNode</span>(quote)
+            .<span class="fn">addNode</span>(review).<span class="fn">addNode</span>(generate)
+            .<span class="fn">addEdge</span>(<span class="str">"detect"</span>, <span class="str">"autoQuote"</span>)      <span class="com">// 轻伤路径</span>
+            .<span class="fn">addEdge</span>(<span class="str">"detect"</span>, <span class="str">"manualReview"</span>)   <span class="com">// 重伤路径</span>
+            .<span class="fn">addEdge</span>(<span class="str">"autoQuote"</span>, <span class="str">"generate"</span>)
+            .<span class="fn">addEdge</span>(<span class="str">"manualReview"</span>, <span class="str">"generate"</span>)
+            .<span class="fn">start</span>(<span class="str">"detect"</span>).<span class="fn">end</span>(<span class="str">"generate"</span>)
+            .<span class="fn">build</span>();
+    }
+}</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">最佳实践</div>
+              <p>落地 Spring AI Alibaba 四要点：① <strong>Graph 优先于硬编码</strong>——多步骤 AI 流程用 Graph DSL 声明，而非 if-else 串联，可视化可调试；② <strong>百炼做模型入口</strong>——通义模型走百炼统一 API，配额/计费/微调一站式；③ <strong>工具注册到 Nacos</strong>——MCP 工具注册 Nacos MCP Registry，跨应用复用 + 动态发现；④ <strong>用生产级模板起步</strong>——JManus/DataAgent 是经过验证的 Agent 模板，在其上定制而非从零搭建。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Graph 编排与传统工作流引擎（Activiti/Flowable）的边界在哪？</strong></p>
+            <p>两者都是流程编排但<strong>本质不同</strong>。Activiti 是<strong>业务流程引擎</strong>——面向审批/订单等确定性业务流，节点是人工任务或固定服务调用，流程定义稳定、强调持久化/回退/补偿/人工审批。Graph 是<strong>AI 工作流编排</strong>——节点是 LLM 调用或 Agent 决策，流程是<strong>数据驱动 + 条件路由</strong>的，同一输入可能走不同路径（因为 LLM 输出不确定），强调并行/状态共享/低延迟而非持久化审批。边界判断：<strong>确定性业务流用 Activiti，AI 驱动的智能流程用 Graph</strong>。两者也可协作——Activiti 编排业务主流程，在"智能决策"节点调用 Graph 执行 AI 子流程。</p>
+            <p><strong>追问 2：阿里云深度绑定是否带来厂商锁定风险？如何规避？</strong></p>
+            <p>风险客观存在：百炼模型 API、Nacos MCP Registry、Higress 网关均为阿里云专有。但 Spring AI Alibaba 通过<strong>两层缓解</strong>锁定：① <strong>开源协议</strong>——框架本身 Apache 2.0 开源，核心 Graph/Agent 抽象不依赖云服务，可脱离阿里云运行；② <strong>Spring AI 兼容层</strong>——底层遵循 Spring AI 的 ChatModel/VectorStore 接口规范，切换到其他模型只需换 Starter。规避策略：<strong>面向接口编程</strong>（注入 ChatModel 而非具体 DashScopeChatModel）、<strong>云能力做适配层封装</strong>（Nacos/Higress 调用抽接口，可替换为 Eureka/Spring Cloud Gateway）、<strong>核心数据不锁云</strong>（向量库可选 PgVector 而非阿里云专属）。核心判断：用云的<strong>便利性</strong>但保留<strong>可替换性</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>Graph 过度复杂难调试</strong>：节点过多（10+）、嵌套子图太深，出问题无法定位。应控制图规模，复杂流程拆为多个子 Graph 独立调试。</li>
+                <li><strong>忽略节点幂等性</strong>：Graph 运行时可能重试节点，若节点有副作用（写库/发消息）不幂等，重试导致重复执行。工具节点必须设计幂等。</li>
+                <li><strong>状态管理无持久化</strong>：Graph 状态默认在内存，进程崩溃丢失全部进度。长流程必须接 Checkpoint 持久化存储。</li>
+                <li><strong>盲目用 LoopAgent</strong>：循环 Agent 不设最大迭代数，LLM 反复"反思改进"不收敛，烧 Token 不止。</li>
+                <li><strong>云能力直接硬编码</strong>：业务代码直接调 Nacos/Higress SDK，丢失可替换性。云能力应封装适配层。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q12.12 AgentScope-Java Agentic 框架与 ReAct 范式？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-12-12" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">12.12</div>
+          <div class="qa-question">AgentScope-Java Agentic 框架与 ReAct 范式？<span class="difficulty difficulty-expert">专家级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>"Agent 如何通过 ReAct 范式实现自主决策，以及安全沙箱为何是生产级前提"</strong> 的深度理解。核心要回答：AgentScope-Java 与 LangChain4j 的定位差异（Agent 优先 vs 链优先）？ReAct（Reason + Act）循环如何让 Agent 在"推理-行动-观察"中自主逼近目标？安全沙箱为何是 Agent 执行不可信代码的必要前提？这是专家级 Agent 架构设计的核心题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>自主 Agent 的范式演进</strong>：从论文理论到生产级框架，Agent 经历了多轮迭代。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    P["ReAct 论文<br/>Yao et al. 2022<br/>理论框架"] --> A["AutoGPT<br/>自主 Agent 尝试<br/>2023"]
+    A --> L["LangChain Agent<br/>工具调用<br/>2023-2024"]
+    L --> S["AgentScope<br/>阿里通义实验室<br/>Python 28k Star"]
+    S --> J["AgentScope-Java 1.0<br/>2025年12月<br/>企业级 Java Agent"]
+    style P fill:#dbeafe,stroke:#2563eb
+    style S fill:#dcfce7,stroke:#059669
+    style J fill:#f3e8ff,stroke:#7c3aed
+              </div>
+              <div class="chart-caption">图 12.12-1 自主 Agent 演进：ReAct 论文 → AutoGPT → LangChain Agent → AgentScope → AgentScope-Java</div>
+            </div>
+
+            <p><strong>ReAct 论文（2022，Yao et al.）</strong>：首次提出 <strong>Reason + Act 交替循环</strong>——LLM 先"思考"（Thought：分析当前状态决定下一步）再"行动"（Action：调用工具），观察结果（Observation）后继续思考。打破了纯推理（CoT）无法获取外部信息、纯行动（Function Calling）缺乏规划的局限。</p>
+            <p><strong>AutoGPT（2023）</strong>：首个"完全自主"Agent 尝试——给定高层目标，Agent 自主规划+执行+反思。但暴露了早期问题：死循环、上下文爆炸、无安全约束、成本失控。证明了自主 Agent 的潜力与风险。</p>
+            <p><strong>LangChain Agent（2023-2024）</strong>：把 ReAct 工程化——AgentExecutor 管理推理循环、Tools 注册机制、记忆管理。但 LangChain 的 Agent 是链式框架的附属，非独立 Agent 运行时。</p>
+            <p><strong>AgentScope（阿里通义实验室）</strong>：专为 Agentic AI 设计的独立框架。Python 版 28k Star，2025 年 12 月发布 Java 1.0。核心差异：<strong>四层架构</strong>把可视化调试、安全沙箱、Agent 内核、模型适配分层解耦，是生产级 Agent 运行时而非简单的链式调用库。</p>
+            <p><strong>四层架构演进</strong>：</p>
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    S["Studio 层<br/>可视化调试/Trace/回放"] --> R["Runtime 层<br/>安全沙箱 K8s/Docker"]
+    R --> C["Core 层<br/>ReActAgent + Tool + Memory + RAG + Hook"]
+    C --> M["Model 层<br/>通义/GPT/Claude/DeepSeek"]
+    style S fill:#dbeafe,stroke:#2563eb
+    style R fill:#fef3c7,stroke:#d97706
+    style C fill:#dcfce7,stroke:#059669
+    style M fill:#f3e8ff,stroke:#7c3aed
+              </div>
+              <div class="chart-caption">图 12.12-2 AgentScope 四层架构：Studio → Runtime → Core → Model</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>ReAct 循环核心机制</strong>：Agent 的执行是一个 <strong>Thought → Action → Observation → Thought</strong> 的迭代闭环。</p>
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    T["Thought<br/>推理:分析状态<br/>决定下一步"] -->|执行| AC["Action<br/>行动:调用工具<br/>或返回答案"]
+    AC -->|返回| O["Observation<br/>观察:工具结果<br/>进入上下文"]
+    O -->|继续| T
+    T -->|完成| F["Final Answer"]
+    style T fill:#dbeafe,stroke:#2563eb
+    style AC fill:#dcfce7,stroke:#059669
+    style O fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 12.12-3 ReAct 循环：Thought → Action → Observation → 循环</div>
+            </div>
+            <p><strong>Thought</strong>：LLM 基于当前问题 + 已有观察，推理"下一步该做什么"——这是<strong>规划能力</strong>的体现，与纯 Function Calling（模型直接输出工具调用，无显式推理）不同。Thought 让 Agent 的决策过程<strong>可追溯、可调试</strong>。</p>
+            <p><strong>Action</strong>：根据 Thought 选择并调用工具（搜索/计算/查库/API 调用），或判断已完成直接输出答案。工具注册后 Agent 自主选择，而非业务代码硬编码调用顺序。</p>
+            <p><strong>Observation</strong>：工具返回结果进入 Agent 上下文，作为下一轮 Thought 的输入。多轮积累形成<strong>渐进式问题求解</strong>。</p>
+            <p><strong>四层架构解析</strong>：</p>
+            <ul>
+              <li><strong>Studio 层（可视化）</strong>：Web UI 可视化编排 Agent、查看 Thought 链/工具调用/Token 消耗、支持 Trace 回放调试——Agent 的"IDE"。</li>
+              <li><strong>Runtime 层（安全沙箱）</strong>：Agent 执行代码/工具的隔离运行时，基于 K8s/Docker 提供三种沙箱——<strong>GUI 沙箱</strong>（浏览器/桌面操作隔离）、<strong>文件系统沙箱</strong>（代码执行隔离）、<strong>Android 模拟器</strong>（移动端操作隔离）。这是生产级 Agent 的<strong>安全底座</strong>。</li>
+              <li><strong>Core 层（Agent 内核）</strong>：ReActAgent（推理行动循环）+ Tool（工具注册/调度）+ Memory（短/长期记忆）+ RAG（知识检索）+ Hook（生命周期钩子，支持人工介入）。</li>
+              <li><strong>Model 层（模型适配）</strong>：通义千问/GPT/Claude/DeepSeek 统一适配，切换模型不改 Agent 逻辑。</li>
+            </ul>
+            <p><strong>A2A（Agent-to-Agent）协议 + Nacos 服务发现</strong>：AgentScope 支持多 Agent 协作——每个 Agent 可注册为 A2A 服务，通过 Nacos 发现其他 Agent 并发起协作请求。这是<strong>Agent 微服务化</strong>——Agent 像微服务一样独立部署、注册、发现、调用。</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>AgentScope-Java</th><th>LangChain4j</th><th>Spring AI Agent</th></tr></thead>
+              <tbody>
+                <tr><td>核心范式</td><td>ReAct 循环优先</td><td>Chain + AiServices</td><td>ChatClient + Advisor</td></tr>
+                <tr><td>自主性</td><td>高（自主规划+执行+反思）</td><td>中（需编排链驱动）</td><td>中低（Advisor 拦截为主）</td></tr>
+                <tr><td>安全沙箱</td><td>内置（K8s/Docker 多沙箱）</td><td>无内置沙箱</td><td>无内置沙箱</td></tr>
+                <tr><td>多 Agent</td><td>A2A 协议 + Nacos 发现</td><td>需自行编排</td><td>Graph 编排</td></tr>
+                <tr><td>实时介入</td><td>Hook 机制支持人工介入</td><td>无原生支持</td><td>Advisor 可拦截</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>简历关联：车辆租赁 + AgentScope ReAct Agent</strong>。构建一个"智能租车顾问"Agent——用户说"下周去三亚出差需要车"，Agent 自主推理：Thought（需要查车型+查库存+查价格）→ Action（调库存系统）→ Observation（SUV 有库存）→ Thought（需算价格）→ Action（调计费系统）→ 最终推荐。不可信的代码生成（用户自定义规则脚本）放入文件系统沙箱执行。</p>
+            <div class="code-block"><pre><code><span class="com">// AgentScope-Java ReAct Agent 示例</span>
+<span class="kw">public class</span> <span class="type">RentAdvisorAgent</span> {
+
+    <span class="kw">private final</span> <span class="type">ReActAgent</span> agent;
+
+    <span class="kw">public</span> <span class="type">RentAdvisorAgent</span>(<span class="type">ChatClient</span> chatClient) {
+        <span class="kw">this</span>.agent = <span class="type">ReActAgent</span>.<span class="fn">builder</span>(chatClient)
+            <span class="com">// 注册工具: Agent 自主选择调用</span>
+            .<span class="fn">tool</span>(<span class="type">Tool</span>.<span class="fn">of</span>(<span class="str">"searchInventory"</span>,
+                <span class="str">"根据城市和车型查询库存"</span>,
+                <span class="kw">this</span>::<span class="fn">searchInventory</span>))
+            .<span class="fn">tool</span>(<span class="type">Tool</span>.<span class="fn">of</span>(<span class="str">"calcPrice"</span>,
+                <span class="str">"计算租车费用"</span>,
+                <span class="kw">this</span>::<span class="fn">calcPrice</span>))
+            <span class="com">// 记忆管理: 保留多轮对话上下文</span>
+            .<span class="fn">memory</span>(<span class="kw">new</span> <span class="type">ConversationMemory</span>(<span class="num">20</span>))
+            <span class="com">// 安全约束: 防死循环</span>
+            .<span class="fn">maxIterations</span>(<span class="num">10</span>)
+            .<span class="fn">maxTokenCost</span>(<span class="num">50000</span>)
+            <span class="com">// Hook: 关键决策点支持人工介入</span>
+            .<span class="fn">hook</span>(<span class="type">Hook</span>.<span class="fn">beforeAction</span>(ctx -&gt; {
+                <span class="kw">if</span> (ctx.<span class="fn">action</span>().<span class="fn">contains</span>(<span class="str">"退款"</span>)) {
+                    <span class="kw">return</span> <span class="type">HookResult</span>.<span class="fn">requireApproval</span>();
+                }
+                <span class="kw">return</span> <span class="type">HookResult</span>.<span class="fn">proceed</span>();
+            }))
+            .<span class="fn">build</span>();
+    }
+
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">advise</span>(<span class="type">String</span> userNeed) {
+        <span class="com">// Agent 自主推理-行动-观察循环</span>
+        <span class="type">AgentResult</span> <span class="var">result</span> = agent.<span class="fn">run</span>(userNeed);
+        <span class="kw">return</span> result.<span class="fn">answer</span>();
+    }
+
+    <span class="com">// 工具方法: 查库存</span>
+    <span class="kw">private</span> <span class="type">String</span> <span class="fn">searchInventory</span>(<span class="type">String</span> city, <span class="type">String</span> carType) {
+        <span class="kw">return</span> inventoryService.<span class="fn">query</span>(city, carType);
+    }
+}</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">最佳实践</div>
+              <p>AgentScope 落地四要点：① <strong>必设安全边界</strong>——maxIterations + maxTokenCost + 超时三重熔断，防止 Agent 死循环烧钱；② <strong>不可信代码入沙箱</strong>——用户脚本/LLM 生成代码必须入 Runtime 沙箱执行，禁止直接在宿主运行；③ <strong>关键操作加 Hook</strong>——涉及资金/数据修改的工具调用加 beforeAction 审批钩子；④ <strong>Thought 链要落 Trace</strong>——Studio 记录每轮 Thought/Action/Observation，出问题可回放定位。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：ReAct 与 Plan-and-Execute 范式如何取舍？</strong></p>
+            <p>两种范式解决"Agent 如何完成任务"的不同思路。<strong>ReAct</strong> 是<strong>实时推理</strong>——每一步都基于当前观察动态决策，灵活适应不确定性，但每步都调 LLM 推理成本高、且可能"走一步看一步"缺乏全局视野。<strong>Plan-and-Execute</strong> 是<strong>预先规划</strong>——先让 LLM 生成完整计划（步骤列表），再逐步执行，规划与执行分离，执行阶段可用轻量模型降本，但计划僵化、环境变化时需重新规划。取舍原则：<strong>环境不确定/需动态调整用 ReAct（如开放问答/探索式分析），任务可预先分解/追求成本效率用 Plan-and-Execute（如固定 ETL/批量处理）</strong>。混合模式最优：先 Plan 生成大纲，每步用 ReAct 细化执行，兼顾全局规划与局部灵活。</p>
+            <p><strong>追问 2：Agent 死循环如何检测与熔断？</strong></p>
+            <p>死循环是 ReAct Agent 最高频故障——Agent 反复调用同一工具或在两个状态间振荡。三层防护：① <strong>硬性熔断</strong>——maxIterations（最大循环次数，通常 5-15）、maxTokenCost（Token 消耗上限）、timeout（单次执行超时），任一触发即终止并返回当前最佳结果；② <strong>振荡检测</strong>——记录最近 N 步的 Action 签名，若连续重复相同 Action 且 Observation 无变化，判定为振荡主动中断；③ <strong>收敛判断</strong>——若连续多轮 Observation 无新增有效信息（可用 embedding 相似度判断），提示 Agent"信息已充分请输出答案"。生产环境三者叠加使用。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>无工具调用上限</strong>：不设 maxIterations，Agent 在"搜索-再搜索"中死循环，Token 消耗失控。必须设硬性上限。</li>
+                <li><strong>沙箱逃逸风险</strong>：LLM 生成的代码直接在宿主 JVM 执行，恶意/错误代码可访问文件系统/网络。不可信代码必须入 Runtime 沙箱。</li>
+                <li><strong>Agent 上下文爆炸</strong>：每轮 Observation 都进上下文，长对话 Token 溢出。需用 Memory 做摘要/滑动窗口/记忆分层。</li>
+                <li><strong>工具描述不清</strong>：工具的 description 模糊，Agent 选错工具或不知道何时用。工具描述要包含用途、参数、返回格式。</li>
+                <li><strong>忽视 Thought 链可观测</strong>：不落 Trace，Agent 出错无法定位是哪步推理偏了。Thought 链是 Agent 的"日志"。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q12.13 LangChain4j AiServices 与多模型集成？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-12-13" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">12.13</div>
+          <div class="qa-question">LangChain4j AiServices 与多模型集成？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>"Java 生态如何用声明式抽象降低 AI 应用开发门槛"</strong> 的架构理解。核心要回答三个问题：LangChain4j 为什么选择 Java 而非让开发者直接用 Python LangChain（Java 企业级 AI 应用的工程需求）？AiServices 接口代理抽象的核心价值是什么（声明式 vs 命令式，类比 MyBatis Mapper）？框架中立（同时支持 Spring Boot/Quarkus/Micronaut）的工程意义？这是架构师做多框架选型与集成时的关键题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>LangChain 生态的跨语言演进</strong>：从 Python 原生到 Java 工程化移植。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    LC["LangChain<br/>Python 2022<br/>AI 应用框架起源"] --> L4J["LangChain4j<br/>2023 Java 移植<br/>非官方绑定"]
+    L4J --> V08["0.x 系列<br/>模型适配 + RAG<br/>逐步完善"]
+    V08 --> V1["1.0+ (2024-2025)<br/>AiServices + 混合检索<br/>框架中立"]
+    V1 --> V111["1.11.0 (2025)<br/>Hybrid Search<br/>Rerank RRF 融合"]
+    style LC fill:#dbeafe,stroke:#2563eb
+    style L4J fill:#dcfce7,stroke:#059669
+    style V111 fill:#f3e8ff,stroke:#7c3aed
+              </div>
+              <div class="chart-caption">图 12.13-1 LangChain4j 演进：Python LangChain → Java 移植 → AiServices → 混合检索</div>
+            </div>
+
+            <p><strong>LangChain（Python，2022）</strong>：Harrison Chase 创建，首个系统化的 LLM 应用框架——Chain（链式调用）、Agent（工具调用）、Memory（记忆）、Retrieval（检索）四大模块。迅速成为 Python AI 应用开发事实标准，但<strong>绑定 Python 生态</strong>，Java 企业应用无法直接受益。</p>
+            <p><strong>LangChain4j（2023 Java 移植）</strong>：受 LangChain 启发的 Java 实现（非官方移植，独立设计 API）。核心理念：<strong>把 LangChain 的核心能力用 Java 惯用方式重新表达</strong>——AiServices 声明式接口替代 Python 的 Chain、强类型 POJO 替代 dict、Java 注解替代 Python 装饰器。解决了"<strong>Java 企业应用也想用 LangChain 式 AI 开发</strong>"的刚需。</p>
+            <p><strong>0.x 系列（2023-2024）</strong>：逐步完善模型适配（OpenAI/Anthropic/Ollama/通义）、向量存储（Elasticsearch/Pinecone/Weaviate）、RAG 全流程。AiServices 接口代理模式定型——类似 MyBatis Mapper，定义接口加注解即可获得 AI 服务实现。</p>
+            <p><strong>1.0+ → 1.11.0（2025）</strong>：引入 <strong>Hybrid Search（混合检索）</strong>——向量检索 + 全文检索 + RRF（Reciprocal Rank Fusion）融合排序，显著提升 RAG 检索质量。框架中立设计定型——同时提供 Spring Boot/Quarkus/Micronaut Starter，不绑定特定框架。</p>
+            <p><strong>演进驱动力</strong>：① <strong>Java 企业级需求</strong>——大量企业用 Java/Spring 构建 AI 应用，需要 Java 原生 AI 框架而非跨语言调用 Python；② <strong>声明式抽象</strong>——AiServices 把"拼 Prompt + 调模型 + 解析响应"压缩为接口注解，像写 Mapper 一样写 AI 服务；③ <strong>多模型中立</strong>——企业多模型混用（GPT 做主力/Ollama 做本地/通义做国产备选），需统一适配层。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>AiServices 接口代理：MyBatis Mapper 思想在 AI 领域的复刻</strong>。AiServices 是 LangChain4j 的核心抽象——你定义一个 Java 接口，框架用动态代理生成实现类，自动完成"Prompt 构建 → 模型调用 → 响应解析"全流程。</p>
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    I["Java 接口<br/>+ @SystemMessage<br/>+ @UserMessage"] -->|动态代理| P["Prompt 构建<br/>拼接 System/User"]
+    P --> M["ChatModel 调用<br/>OpenAI/通义/Ollama"]
+    M --> R["响应解析<br/>String/POJO/TokenStream"]
+    style I fill:#dbeafe,stroke:#2563eb
+    style M fill:#dcfce7,stroke:#059669
+    style R fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 12.13-2 AiServices 接口代理：接口 → 动态代理 → Prompt → 模型 → 解析</div>
+            </div>
+            <p><strong>核心注解</strong>：<code class="inline-code">@SystemMessage</code> 定义系统人设（角色/规则），<code class="inline-code">@UserMessage</code> 定义用户提示模板（支持 <code class="inline-code">{{变量}}</code> 占位符），<code class="inline-code">@MemoryId</code> 绑定会话记忆，<code class="inline-code">@Tool</code> 标记可被 Agent 调用的工具方法。返回类型支持 String（纯文本）、POJO（自动 JSON 反序列化）、TokenStream（流式输出）。</p>
+            <p><strong>30+ 模型适配</strong>：通过 <code class="inline-code">ChatLanguageModel</code> 统一接口适配 OpenAI/Anthropic/Ollama/通义千问/Gemini/DeepSeek/智谱等 30+ 模型。切换模型只换 Starter 依赖 + 配置，接口代码不变——与 Spring AI 的 ChatModel 抽象理念一致。</p>
+            <p><strong>20+ 向量存储</strong>：<code class="inline-code">EmbeddingStore</code> 统一接口适配 Elasticsearch/Pinecone/Weaviate/Qdrant/PgVector/Milvus/Chroma/Redis 等。配套 <code class="inline-code">EmbeddingModel</code> 适配各厂商 Embedding 服务。</p>
+            <p><strong>混合检索（Hybrid Search）核心原理</strong>：单一向量检索在"精确关键词匹配"场景弱（如产品型号/人名），单一全文检索在"语义近邻"场景弱。Hybrid Search 把两者结果用 <strong>RRF（Reciprocal Rank Fusion）</strong> 算法融合——对每个文档取其在两路检索中的排名倒数之和作为最终得分，<code class="inline-code">RRF(d) = Σ 1/(k + rank_i(d))</code>（k 通常取 60）。RRF 无需调权重、对分数尺度不敏感，是混合检索的主流融合策略。</p>
+            <p><strong>RAG 全套组件</strong>：<code class="inline-code">EmbeddingStore</code>（向量存取）→ <code class="inline-code">EmbeddingStoreContentRetriever</code>（检索器）→ <code class="inline-code">ContentRetriever</code>（抽象接口）→ <code class="inline-code">EasyRAG</code>（一行代码开箱即用 RAG）。从底层组件到开箱即用，覆盖不同定制深度需求。</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>LangChain4j</th><th>Spring AI</th></tr></thead>
+              <tbody>
+                <tr><td>模型适配数</td><td>30+（最丰富）</td><td>10+（主流覆盖）</td></tr>
+                <tr><td>向量存储</td><td>20+（最丰富）</td><td>10+（主流覆盖）</td></tr>
+                <tr><td>RAG 能力</td><td>EasyRAG 开箱即用 + 混合检索</td><td>QuestionAnswerAdvisor</td></tr>
+                <tr><td>Agent</td><td>AI Services + Tools（轻量）</td><td>ChatClient + Advisor + Graph</td></tr>
+                <tr><td>记忆管理</td><td>ChatMemory（窗口/消息列表）</td><td>ChatMemory + Advisor</td></tr>
+                <tr><td>框架中立</td><td>是（Spring/Quarkus/Micronaut）</td><td>否（Spring 专属）</td></tr>
+                <tr><td>社区活跃</td><td>GitHub 7k+ Star，社区活跃</td><td>Spring 官方背书</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>简历关联：车辆租赁 + LangChain4j AiServices</strong>。用 AiServices 声明式接口实现智能客服——定义 <code class="inline-code">RentAssistant</code> 接口，<code class="inline-code">@SystemMessage</code> 设定"你是租车顾问"人设，<code class="inline-code">@UserMessage</code> 模板引用用户输入，返回 <code class="inline-code">RentSuggestion</code> POJO 自动解析。RAG 用混合检索（Elasticsearch 全文 + PgVector 向量 + RRF 融合）检索合同条款。</p>
+            <div class="code-block"><pre><code><span class="com">// LangChain4j AiServices 声明式接口示例</span>
+<span class="kw">public interface</span> <span class="type">RentAssistant</span> {
+
+    <span class="com">// @SystemMessage: 系统人设 (角色 + 规则)</span>
+    <span class="kw">@SystemMessage</span>(<span class="str">"""
+        你是专业租车顾问。根据用户需求推荐车型。
+        规则: 1.优先推荐库存充足的车 2.说明日租金 3.给出取车建议
+        """</span>)
+    <span class="com">// @UserMessage: 用户提示模板, {{it}} 占位符注入参数</span>
+    <span class="kw">@UserMessage</span>(<span class="str">"用户需求: {{it}}，请推荐合适的车型"</span>)
+    <span class="type">RentSuggestion</span> <span class="fn">recommend</span>(<span class="type">String</span> userNeed);
+
+    <span class="com">// 流式输出: 返回 TokenStream 逐 token 推送</span>
+    <span class="kw">@UserMessage</span>(<span class="str">"详细解释 {{carModel}} 的保险条款"</span>)
+    <span class="type">TokenStream</span> <span class="fn">explainInsurance</span>(<span class="type">String</span> carModel);
+}
+
+<span class="com">// RAG 混合检索配置</span>
+<span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="type">RagConfig</span> {
+
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">ContentRetriever</span> <span class="fn">hybridRetriever</span>(
+            <span class="type">EmbeddingStore</span> vectorStore,
+            <span class="type">EmbeddingModel</span> embeddingModel) {
+
+        <span class="com">// 向量检索: 语义近邻</span>
+        <span class="type">EmbeddingStoreContentRetriever</span> <span class="var">vectorRetriever</span> =
+            <span class="type">EmbeddingStoreContentRetriever</span>.<span class="fn">builder</span>()
+                .<span class="fn">embeddingStore</span>(vectorStore)
+                .<span class="fn">embeddingModel</span>(embeddingModel)
+                .<span class="fn">maxResults</span>(<span class="num">10</span>)
+                .<span class="fn">build</span>();
+
+        <span class="com">// 全文检索 + RRF 融合 → Hybrid Search</span>
+        <span class="kw">return</span> <span class="type">HybridSearchContentRetriever</span>.<span class="fn">builder</span>()
+                .<span class="fn">vectorRetriever</span>(vectorRetriever)
+                .<span class="fn">fullTextRetriever</span>(fullTextRetriever)
+                .<span class="fn">fusionAlgorithm</span>(<span class="kw">new</span> <span class="type">RRFFusionAlgorithm</span>(<span class="num">60</span>))
+                .<span class="fn">build</span>();
+    }
+
+    <span class="com">// 组装 AiServices: 接口 + 模型 + RAG + 记忆</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">RentAssistant</span> <span class="fn">rentAssistant</span>(
+            <span class="type">ChatLanguageModel</span> model,
+            <span class="type">ContentRetriever</span> retriever,
+            <span class="type">ChatMemory</span> memory) {
+        <span class="kw">return</span> <span class="type">AiServices</span>.<span class="fn">builder</span>(<span class="type">RentAssistant</span>.<span class="kw">class</span>)
+                .<span class="fn">chatLanguageModel</span>(model)
+                .<span class="fn">contentRetriever</span>(retriever)  <span class="com">// 注入 RAG</span>
+                .<span class="fn">chatMemory</span>(memory)
+                .<span class="fn">tools</span>(rentTools)            <span class="com">// 注入 @Tool 工具</span>
+                .<span class="fn">build</span>();
+    }
+}</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">最佳实践</div>
+              <p>LangChain4j 落地四要点：① <strong>AiServices 优先于命令式调用</strong>——声明式接口把 Prompt/解析/记忆封装，业务代码只调接口方法；② <strong>RAG 用混合检索</strong>——向量 + 全文 + RRF 融合，比纯向量检索召回率高 20%+；③ <strong>返回类型按需选</strong>——结构化数据用 POJO，长文本用 TokenStream 流式，调试用 String；④ <strong>与 Spring Boot 集成用社区 Starter</strong>——<code class="inline-code">langchain4j-spring-boot-starter</code> 提供自动配置，与 Spring 体系无缝衔接。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：LangChain4j 与 Spring AI 如何协同使用？</strong></p>
+            <p>两者并非互斥，可<strong>分层协作</strong>。推荐分工：<strong>Spring AI 管基础设施</strong>——用 Spring AI 的自动配置管理 ChatModel/VectorStore Bean、用 Advisor 链做通用横切（日志/限流/缓存/敏感词）、用 Spring Boot Actuator 做可观测；<strong>LangChain4j 管复杂链</strong>——用 AiServices 声明式接口定义 AI 服务、用混合检索做 RAG、用 Tools 做 Agent。协同方式：把 LangChain4j 的 <code class="inline-code">ChatLanguageModel</code> 适配为 Spring AI 的 <code class="inline-code">ChatModel</code>（或反过来），让 Spring AI 的 ChatClient 能调 LangChain4j 适配的模型。实际项目常见做法：<strong>Spring AI 做主框架，LangChain4j 做特定模块（如 RAG 混合检索）的增强库</strong>，取长补短。</p>
+            <p><strong>追问 2：框架中立（支持 Quarkus/Micronaut）是否增加适配成本？</strong></p>
+            <p>框架中立的代价是<strong>不能深度依赖特定框架特性</strong>。Spring AI 可以直接用 Spring 的 Bean 生命周期/AOP/Actuator/配置体系，而 LangChain4j 必须保持框架无关——核心库不依赖任何 IoC 容器，各框架的集成都通过独立 Starter 实现（<code class="inline-code">langchain4j-spring-boot-starter</code> / <code class="inline-code">langchain4j-quarkus</code>）。适配成本体现在：① <strong>配置抽象</strong>——需自定义配置加载而非直接用 <code class="inline-code">@ConfigurationProperties</code>；② <strong>依赖注入</strong>——核心库手动管理依赖，Starter 层才接入各框架 DI；③ <strong>功能取舍</strong>——不能用 Spring AOP 做横切，需自己实现拦截机制。但收益是<strong>覆盖更广的 Java 生态</strong>（Quarkus 原生镜像/Micronaut 云原生场景），对开源框架而言值得。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>AiServices 返回类型不当</strong>：该用 POJO 却返回 String 再手动解析 JSON，丢失类型安全与自动解析能力。按需选 String/POJO/TokenStream。</li>
+                <li><strong>模型适配层版本漂移</strong>：LangChain4j 适配 OpenAI/通义的 SDK 版本与模型 API 版本不一致，导致接口变更报错。锁定适配层版本，升级前测兼容。</li>
+                <li><strong>混合检索未调权重</strong>：RRF 默认 k=60 盲用，向量与全文结果质量差异大时效果差。需根据业务调 k 值或换加权融合。</li>
+                <li><strong>EasyRAG 滥用</strong>：EasyRAG 开箱即用但定制性差，生产环境需用 ContentRetriever 自定义检索策略（分块/过滤/重排）。</li>
+                <li><strong>忽视 TokenStream 背压</strong>：流式输出不处理背压，消费者慢时内存堆积。需用响应式流控或限制缓冲区。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q12.14 LangGraph4j StateGraph 图编排与 MultiAgent？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-12-14" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">12.14</div>
+          <div class="qa-question">LangGraph4j StateGraph 图编排与 MultiAgent？<span class="difficulty difficulty-expert">专家级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>"如何用图结构表达复杂 Agent 工作流与多 Agent 协作"</strong> 的深度理解。核心要回答三个问题：LangGraph4j 与 LangChain4j 的分工（图编排 vs 链式调用）？StateGraph 如何用"节点-边-状态"三元组表达分支/循环/并行？MultiAgent 编排的三种模式（Supervisor/Hierarchical/Network）各自适用什么场景？这是专家级 Agent 架构与复杂工作流设计的核心题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>从简单 Chain 到 Graph 编排的演进</strong>：当 Agent 工作流从线性走向非线性，链式模型不够用了。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    C1["简单 Chain<br/>Prompt → LLM<br/>线性调用"] --> C2["复杂 Chain<br/>LLM + Tool + RAG<br/>仍线性串联"]
+    C2 --> G["StateGraph<br/>节点-边-状态<br/>分支/循环/并行"]
+    G --> MA["MultiAgent<br/>多 Agent 图协作<br/>Supervisor/Network"]
+    style C1 fill:#dbeafe,stroke:#2563eb
+    style G fill:#dcfce7,stroke:#059669
+    style MA fill:#f3e8ff,stroke:#7c3aed
+              </div>
+              <div class="chart-caption">图 12.14-1 编排演进：简单 Chain → 复杂 Chain → StateGraph → MultiAgent</div>
+            </div>
+
+            <p><strong>LangChain 的 Chain 局限</strong>：早期 LangChain 用 Chain 串联 LLM 调用——SequentialChain 顺序执行、RouterChain 条件分发。但 Chain 本质是<strong>线性或树形</strong>的，无法表达<strong>循环</strong>（Agent 反思重试）、<strong>并行</strong>（多路同时检索）、<strong>状态共享</strong>（多节点读写同一上下文）。复杂 Agent 工作流需要图结构。</p>
+            <p><strong>LangGraph（Python，2024）</strong>：LangChain 团队推出的图编排引擎，引入<strong>节点-边-状态</strong>三元组模型——节点是计算单元、边是流转关系、状态是共享黑板。支持条件边（分支）、循环（迭代）、并行（fan-out/fan-in）、检查点（Checkpoint 持久化）。迅速成为 Python Agent 编排主流。</p>
+            <p><strong>LangGraph4j（Java 移植）</strong>：受 Python LangGraph 启发的 Java 实现，移植 StateGraph 核心模型。与 LangChain4j 形成<strong>分工</strong>——LangChain4j 提供 AI 基础能力（模型/向量/RAG/AiServices），LangGraph4j 提供图编排能力（StateGraph/MultiAgent/Checkpoint）。两者可独立使用，也可组合——LangGraph4j 的节点内调 LangChain4j 的 AiServices。</p>
+            <p><strong>StateGraph 核心模型</strong>：</p>
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    subgraph SG ["StateGraph 三要素"]
+        N["Node 节点<br/>计算单元<br/>LLM/Tool/Agent"] --> E["Edge 边<br/>流转关系<br/>固定/条件/循环"]
+        E --> ST["State 状态<br/>共享黑板<br/>读写/归约"]
+        ST --> N
+    end
+    style N fill:#dbeafe,stroke:#2563eb
+    style E fill:#dcfce7,stroke:#059669
+    style ST fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 12.14-2 StateGraph 三要素：Node（节点）→ Edge（边）→ State（状态）</div>
+            </div>
+            <p><strong>演进驱动力</strong>：① <strong>非线性复杂度</strong>——Agent 需要"试错重试""多路并行""条件分支"等非线性流程，链式模型表达不了；② <strong>状态管理</strong>——多步骤/多 Agent 需共享上下文，图的状态黑板模型天然适合；③ <strong>可恢复性</strong>——长流程需要断点续跑，图的检查点机制支持状态序列化与恢复。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>StateGraph 三要素详解</strong>：</p>
+            <ul>
+              <li><strong>节点（Node）</strong>：图中的计算单元，接收状态、执行逻辑、返回状态更新。节点可以是 LLM 调用、工具执行、子 Agent、甚至子 Graph（嵌套）。每个节点是一个 <code class="inline-code">Function&lt;State, State&gt;</code>。</li>
+              <li><strong>边（Edge）</strong>：节点间的流转关系。三种类型——<strong>固定边</strong>（A 执行完必定到 B）、<strong>条件边</strong>（根据状态判断走 B 还是 C，是分支决策的核心）、<strong>循环边</strong>（B 回到 A，用于迭代优化/ReAct 循环）。</li>
+              <li><strong>状态（State）</strong>：图执行期间的共享数据，类似"黑板模式"。状态是一个 Map，节点可读可写。关键设计是<strong>归约策略</strong>——当多个节点并行写同一 key 时，定义如何合并（覆盖/累加/取并集），避免并发写冲突。</li>
+            </ul>
+            <p><strong>四种核心编排模式</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>模式</th><th>图结构</th><th>原理</th><th>适用</th></tr></thead>
+              <tbody>
+                <tr><td>条件分支</td><td>条件边分流</td><td>节点输出决定走哪条边</td><td>意图路由/分级处理</td></tr>
+                <tr><td>循环迭代</td><td>回环边</td><td>不满足终止条件则回到前序节点</td><td>自我反思/ReAct/质量优化</td></tr>
+                <tr><td>并行 fan-out/fan-in</td><td>一分多 + 多合一</td><td>无依赖节点并行执行后汇聚</td><td>多视角分析/多源检索</td></tr>
+                <tr><td>检查点续跑</td><td>节点间插入 Checkpoint</td><td>每节点执行后序列化状态</td><td>长流程/人工审批/故障恢复</td></tr>
+              </tbody>
+            </table>
+            <p><strong>MultiAgent 三种编排模式</strong>：</p>
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    subgraph SUP ["Supervisor 监督模式"]
+        S1["Supervisor<br/>分配任务"] --> SA1["Agent A"]
+        S1 --> SA2["Agent B"]
+        SA1 --> S1
+        SA2 --> S1
+    end
+    subgraph HIE ["Hierarchical 层级模式"]
+        H1["Top Agent"] --> H2["Mid Agent 1"]
+        H1 --> H3["Mid Agent 2"]
+        H2 --> H4["Worker A"]
+        H3 --> H5["Worker B"]
+    end
+    subgraph NET ["Network 网络模式"]
+        N1["Agent A"] &lt;--&gt; N2["Agent B"]
+        N2 &lt;--&gt; N3["Agent C"]
+        N1 &lt;--&gt; N3
+    end
+    style S1 fill:#dbeafe,stroke:#2563eb
+    style H1 fill:#dcfce7,stroke:#059669
+    style N1 fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 12.14-3 MultiAgent 三模式：Supervisor（监督）/ Hierarchical（层级）/ Network（网络）</div>
+            </div>
+            <p><strong>Supervisor（监督者）</strong>：一个 Supervisor Agent 统一接收任务，拆分后分派给专业 Agent 执行，结果汇总回 Supervisor 决定下一步。控制流清晰、易调试，但 Supervisor 是瓶颈。适合<strong>任务可明确拆分</strong>的场景。</p>
+            <p><strong>Hierarchical（层级）</strong>：树形结构——顶层 Agent 做战略规划，中层 Agent 做战术分解，底层 Worker Agent 做具体执行。每层只与上下层通信，适合<strong>复杂任务多层分解</strong>（如"做市场分析"→"收集数据+竞品分析+趋势预测"→各子任务再细分）。</p>
+            <p><strong>Network（网络）</strong>：Agent 间自由通信协作，无中心控制。最灵活但最难控制——可能死锁/振荡/通信爆炸。适合<strong>探索式/开放式协作</strong>，生产环境慎用。</p>
+            <p><strong>检查点（Checkpoint）与 Human-in-the-Loop</strong>：StateGraph 在每个节点执行后可保存 Checkpoint（状态快照序列化到存储）。作用：① <strong>断点续跑</strong>——流程中断后从最近 Checkpoint 恢复，不重头开始；② <strong>Human-in-the-Loop</strong>——在关键节点暂停等待人工审批/修改后继续；③ <strong>回放调试</strong>——从任意 Checkpoint 重放后续流程。</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>LangGraph4j</th><th>Spring AI Alibaba Graph</th><th>AgentScope</th></tr></thead>
+              <tbody>
+                <tr><td>编排模型</td><td>StateGraph（节点-边-状态）</td><td>Graph DAG</td><td>ReAct 循环 + A2A</td></tr>
+                <tr><td>状态管理</td><td>共享黑板 + 归约策略</td><td>节点间状态传递</td><td>Agent Memory</td></tr>
+                <tr><td>持久化</td><td>Checkpoint 序列化</td><td>需自行接存储</td><td>Runtime 持久化</td></tr>
+                <tr><td>多 Agent</td><td>Supervisor/Hierarchical/Network</td><td>Supervisor/Handoffs</td><td>A2A 协议</td></tr>
+                <tr><td>调试</td><td>Checkpoint 回放</td><td>ARMS Trace</td><td>Studio 可视化</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>简历关联：车辆租赁 + LangGraph4j MultiAgent</strong>。构建一个"租赁风控 MultiAgent"——Supervisor 接收用户租车申请，分派给：Agent A（身份核验：调征信 API）、Agent B（历史行为分析：查过往订单）、Agent C（车辆风险评估：查车型事故率）。三者并行执行（fan-out），结果汇聚回 Supervisor（fan-in），Supervisor 综合判断是否通过。关键节点加 Checkpoint 支持人工复核。</p>
+            <div class="code-block"><pre><code><span class="com">// LangGraph4j StateGraph 构建示例: 风控审批图</span>
+<span class="kw">public class</span> <span class="type">RiskControlGraph</span> {
+
+    <span class="kw">public</span> <span class="type">StateGraph</span>&lt;<span class="type">Map</span>&lt;<span class="type">String</span>, <span class="type">Object</span>&gt;&gt; <span class="fn">build</span>() {
+
+        <span class="com">// 节点1: Supervisor 分派任务 (fan-out)</span>
+        <span class="type">Node</span> <span class="var">supervisor</span> = <span class="type">Node</span>.<span class="fn">of</span>(<span class="str">"supervisor"</span>, state -&gt; {
+            state.<span class="fn">put</span>(<span class="str">"tasks"</span>, <span class="type">List</span>.<span class="fn">of</span>(<span class="str">"identity"</span>, <span class="str">"behavior"</span>, <span class="str">"vehicleRisk"</span>));
+            <span class="kw">return</span> state;
+        });
+
+        <span class="com">// 节点2A/2B/2C: 三个风控 Agent 并行执行</span>
+        <span class="type">Node</span> <span class="var">identityCheck</span> = <span class="type">Node</span>.<span class="fn">of</span>(<span class="str">"identity"</span>, state -&gt; {
+            state.<span class="fn">put</span>(<span class="str">"identityScore"</span>, creditService.<span class="fn">verify</span>(state.<span class="fn">get</span>(<span class="str">"userId"</span>)));
+            <span class="kw">return</span> state;
+        });
+        <span class="type">Node</span> <span class="var">behaviorCheck</span> = <span class="type">Node</span>.<span class="fn">of</span>(<span class="str">"behavior"</span>, state -&gt; {
+            state.<span class="fn">put</span>(<span class="str">"behaviorScore"</span>, orderService.<span class="fn">analyze</span>(state.<span class="fn">get</span>(<span class="str">"userId"</span>)));
+            <span class="kw">return</span> state;
+        });
+        <span class="type">Node</span> <span class="var">vehicleRisk</span> = <span class="type">Node</span>.<span class="fn">of</span>(<span class="str">"vehicleRisk"</span>, state -&gt; {
+            state.<span class="fn">put</span>(<span class="str">"riskScore"</span>, riskService.<span class="fn">assess</span>(state.<span class="fn">get</span>(<span class="str">"carModel"</span>)));
+            <span class="kw">return</span> state;
+        });
+
+        <span class="com">// 节点3: 结果汇聚 + 综合判断 (fan-in)</span>
+        <span class="type">Node</span> <span class="var">decide</span> = <span class="type">Node</span>.<span class="fn">of</span>(<span class="str">"decide"</span>, state -&gt; {
+            <span class="kw">double</span> <span class="var">total</span> = <span class="type">Stream</span>.<span class="fn">of</span>(
+                state.<span class="fn">get</span>(<span class="str">"identityScore"</span>),
+                state.<span class="fn">get</span>(<span class="str">"behaviorScore"</span>),
+                state.<span class="fn">get</span>(<span class="str">"riskScore"</span>)
+            ).<span class="fn">mapToDouble</span>(d -&gt; d).<span class="fn">average</span>().<span class="fn">orElse</span>(<span class="num">0</span>);
+            state.<span class="fn">put</span>(<span class="str">"approved"</span>, total &gt; <span class="num">0.7</span>);
+            <span class="kw">return</span> state;
+        });
+
+        <span class="com">// 组装图: 条件分支 + 循环 + 检查点</span>
+        <span class="kw">return</span> <span class="type">StateGraph</span>.<span class="fn">builder</span>()
+            .<span class="fn">addNode</span>(supervisor)
+            .<span class="fn">addNode</span>(identityCheck)
+            .<span class="fn">addNode</span>(behaviorCheck)
+            .<span class="fn">addNode</span>(vehicleRisk)
+            .<span class="fn">addNode</span>(decide)
+            <span class="com">// fan-out: supervisor 并行分发到三个 Agent</span>
+            .<span class="fn">addEdge</span>(<span class="str">"supervisor"</span>, <span class="str">"identity"</span>)
+            .<span class="fn">addEdge</span>(<span class="str">"supervisor"</span>, <span class="str">"behavior"</span>)
+            .<span class="fn">addEdge</span>(<span class="str">"supervisor"</span>, <span class="str">"vehicleRisk"</span>)
+            <span class="com">// fan-in: 三个 Agent 汇聚到 decide</span>
+            .<span class="fn">addEdge</span>(<span class="str">"identity"</span>, <span class="str">"decide"</span>)
+            .<span class="fn">addEdge</span>(<span class="str">"behavior"</span>, <span class="str">"decide"</span>)
+            .<span class="fn">addEdge</span>(<span class="str">"vehicleRisk"</span>, <span class="str">"decide"</span>)
+            <span class="com">// 条件边: 不通过则循环回 supervisor 补充材料</span>
+            .<span class="fn">addConditionalEdge</span>(<span class="str">"decide"</span>, state -&gt;
+                <span class="type">Boolean</span>.<span class="fn">TRUE</span>.<span class="fn">equals</span>(state.<span class="fn">get</span>(<span class="str">"approved"</span>))
+                    ? <span class="str">"__END__"</span> : <span class="str">"supervisor"</span>)
+            <span class="com">// 检查点: 每节点后持久化, 支持断点续跑</span>
+            .<span class="fn">checkpointSaver</span>(<span class="kw">new</span> <span class="type">RedisCheckpointSaver</span>())
+            .<span class="fn">maxIterations</span>(<span class="num">3</span>)  <span class="com">// 防死循环</span>
+            .<span class="fn">build</span>();
+    }
+}</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">最佳实践</div>
+              <p>LangGraph4j 落地四要点：① <strong>状态设计要精简</strong>——State 只存必要字段，大对象用引用（ID），避免序列化慢；② <strong>循环必设 maxIterations</strong>——条件回环边不设上限会死循环，加最大迭代数 + 超时双保险；③ <strong>长流程必加 Checkpoint</strong>——Redis/DB 持久化状态，进程崩溃可恢复，关键节点支持 Human-in-the-Loop 暂停审批；④ <strong>MultiAgent 优先 Supervisor 模式</strong>——有中心控制易调试，Network 模式生产环境慎用。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：循环图如何防止死循环？</strong></p>
+            <p>循环边（回环到前序节点）是 StateGraph 的强大能力（支持 ReAct/反思/迭代优化），但也带来死循环风险。三层防护：① <strong>maxIterations 限制</strong>——图的编译期设置最大循环次数（如 5-10），超过即强制终止返回当前结果，这是硬性兜底；② <strong>超时熔断</strong>——单次图执行设总超时（如 60s），超时中断；③ <strong>收敛检测</strong>——在条件边上加收敛判断逻辑，如"连续两轮状态变化小于阈值"则终止循环。此外，<strong>循环边应伴随状态变化</strong>——如果回环后状态无任何改变，说明循环无意义，应在条件边判断并跳出。生产环境三者叠加，maxIterations 是最后防线。</p>
+            <p><strong>追问 2：StateGraph 如何实现持久化与断点续跑？</strong></p>
+            <p>核心是 <strong>Checkpoint 机制</strong>。CheckpointSaver 是可插拔接口，实现有内存（测试用）/Redis/关系数据库（生产用）。工作原理：① <strong>序列化</strong>——每个节点执行后，把当前 State 完整序列化（JSON/二进制）存入 CheckpointSaver，记录 thread_id（会话标识）+ checkpoint_id（节点标识）+ state 快照；② <strong>恢复</strong>——给定 thread_id，从 Saver 加载最新 Checkpoint，反序列化为 State 对象，从该节点继续执行后续图；③ <strong>Human-in-the-Loop</strong>——在指定节点前设置中断点，图执行到该节点暂停（状态已持久化），等待人工修改 State 或审批后，从 Checkpoint 恢复继续。关键约束：<strong>State 对象必须可序列化</strong>（实现 Serializable 或可 JSON 化），不可序列化的资源（数据库连接/文件句柄）用引用替代。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>状态对象过大</strong>：把完整文档/大 JSON 塞进 State，每节点序列化开销巨大。State 只存必要字段，大对象存外部用 ID 引用。</li>
+                <li><strong>无检查点无法恢复</strong>：长流程不配 CheckpointSaver，进程崩溃全部重来。生产环境必须接 Redis/DB 持久化。</li>
+                <li><strong>MultiAgent 通信开销过大</strong>：Network 模式下 Agent 间频繁通信，Token 消耗与延迟爆炸。优先 Supervisor 模式，控制通信频率。</li>
+                <li><strong>循环无终止条件</strong>：条件回环边只判断"是否完成"不判断"是否收敛"，导致空转。加 maxIterations + 收敛检测双保险。</li>
+                <li><strong>并行写状态冲突</strong>：fan-out 多节点同时写同一 State key 未定义归约策略，数据丢失。并行写需定义 merge 函数（累加/覆盖/取并集）。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="chapter-11-middleware-engineering.html" class="nav-prev">&#8592; 第 11 篇 中间件与工程化</a>
@@ -1444,6 +2167,10 @@ flowchart LR
         <li><span class="src-title">RAGAS Documentation / Es et al. "RAGAS: Automated Evaluation of RAG" (2023). — 忠实度/相关性/上下文精确率/召回率指标</span></li>
         <li><span class="src-title">LangSmith / Langfuse / Arize Phoenix Documentation. — LLM 应用可观测性、Trace 采集、漂移监控</span></li>
         <li><span class="src-title">Brohan et al. "RT-2: Vision-Language-Action Models" (Google DeepMind, 2023). — VLA 模型、动作 token 化、具身智能</span></li>
+        <li><span class="src-title">Spring AI Alibaba Documentation (1.0 GA, 2026). — Graph 编排、三层架构、百炼/Nacos/Higress/ARMS 集成</span></li>
+        <li><span class="src-title">AgentScope-Java Documentation (1.0, 2025). — ReAct 范式、四层架构、安全沙箱、A2A 协议</span></li>
+        <li><span class="src-title">LangChain4j Documentation (1.11.0). — AiServices、30+ 模型适配、混合检索、框架中立</span></li>
+        <li><span class="src-title">LangGraph4j Documentation. — StateGraph、节点-边-状态模型、MultiAgent、检查点</span></li>
       </ol>
     </div>
   </footer>
