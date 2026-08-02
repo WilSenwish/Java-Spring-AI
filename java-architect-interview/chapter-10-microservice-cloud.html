@@ -75,7 +75,7 @@
           <div class="qa-layer-body">
             <p><strong>起源：硬编码 IP → DNS + 负载均衡（LVS/Nginx）</strong>。早期单体与集群用 DNS 解析 + 反向代理做流量分发，变更需人工改配置，无法支撑服务的动态上下线。</p>
             <p><strong>ZooKeeper（2008，Yahoo→Apache）</strong>：通用分布式协调服务，基于 ZAB 共识（CP）。用临时顺序节点实现服务注册（客户端断开会话则节点消失）。Kafka 早期、Dubbo 2.x 默认用 ZK 做注册中心。问题：<strong>注册中心场景下"可用性比强一致更重要"</strong>——Leader 选举期间集群不可写，注册中心不可用会引发服务发现雪崩。</p>
-            <p><strong>Eureka（2012，Netflix）</strong>：专为服务注册设计的 <strong>AP 系统</strong>。去中心化对等节点，Peer-to-Peer 复制，允许分区内各节点数据不一致；客户端 30s 心跳 + 自我保护模式。Spring Cloud Netflix 1.x 时代的事实标准。Eureka 2.x 开发中止后逐渐式微。</p>
+            <p><strong>Eureka（2012，Netflix）</strong>：专为服务注册设计的 <strong>AP 系统</strong>。去中心化对等节点，Peer-to-Peer 复制，允许分区内各节点数据不一致；客户端 30s 心跳 + 自我保护模式。Spring Cloud Netflix 1.x 时代的事实标准。（Eureka 2.x 开发中止，Spring Cloud Netflix 时代已过，当前推荐 Nacos 作为注册发现与配置中心）Eureka 1.x 作为演进历史对比保留。</p>
             <p><strong>etcd（2013，CoreOS）/ Consul（2014，HashiCorp）</strong>：均 CP（Raft）。etcd 是 K8s 的元数据存储底座，通用 KV，可做注册中心但非其设计目标；Consul 集服务发现 + KV 配置 + 健康检查 + 多数据中心于一体，功能丰富但生态偏运维侧。</p>
             <p><strong>Nacos（2018，阿里）</strong>：同时支持 <strong>AP（默认，Distro 协议）与 CP（Raft 协议）</strong>按需切换，临时实例走 AP、持久实例走 CP；并将<strong>注册中心与配置中心合二为一</strong>。Spring Cloud Alibaba 标配，国产化主流。</p>
             <p><strong>趋势：Service Mesh 时代，注册发现下沉到 Sidecar</strong>。Istio 通过 Pilot 从 K8s API Server、Consul、Nacos 等多种来源订阅服务端点，经 xDS 协议下发到 Envoy，应用代码完全无感知。注册发现从"应用 SDK 职责"演变为"平台能力"。</p>
@@ -214,8 +214,8 @@ spring:
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Nginx（2004）</strong>：反向代理 + 负载均衡，高性能但偏静态配置，非业务网关，常作为网关前置的流量层。</p>
-            <p><strong>Zuul 1.x（2013，Netflix）</strong>：Spring Cloud Netflix 早期标配。基于 Servlet 同步阻塞模型，每请求一线程，filter 链可扩展。简单易用，但高并发下线程膨胀，性能受限。</p>
-            <p><strong>Zuul 2.x（2018）</strong>：Netty 异步非阻塞重写，性能大幅提升。但 Netflix 内部使用为主，社区未广泛普及，Spring 官方未集成。</p>
+            <p><strong>Zuul 1.x（2013，Netflix）</strong>：Spring Cloud Netflix 早期标配。基于 Servlet 同步阻塞模型，每请求一线程，filter 链可扩展。简单易用，但高并发下线程膨胀，性能受限。（已废弃：Spring Cloud Netflix 已停更，基于 Servlet 同步阻塞、高并发线程膨胀，当前推荐 Spring Cloud Gateway / APISIX）</p>
+            <p><strong>Zuul 2.x（2018）</strong>：Netty 异步非阻塞重写，性能大幅提升。但 Netflix 内部使用为主，社区未广泛普及，Spring 官方未集成，非社区主流方案，国内基本不采用。</p>
             <p><strong>Spring Cloud Gateway（2017）</strong>：基于 <strong>WebFlux + Netty 异步非阻塞</strong>，Route（Predicate + Filter）模型清晰，取代 Zuul 1.x 成为 Spring Cloud 主推网关。与 Spring 生态深度集成。</p>
             <p><strong>Kong（2015）</strong>：基于 OpenResty（Nginx + Lua），高性能插件化，API 管理能力强，多用于 APIM 平台。</p>
             <p><strong>APISIX（2019，Apache）</strong>：基于 OpenResty/NGINX，<strong>动态路由（不重启生效）</strong>，etcd 存储配置，插件生态丰富，云原生网关新贵。Higress（阿里，2022）基于 Envoy，Java/Wasm 插件，与 Service Mesh 同源。</p>
@@ -260,14 +260,14 @@ flowchart LR
               <div class="chart-caption">图 10.2-1 API 网关 Filter 链与核心职责</div>
             </div>
 
-            <p><strong>同步阻塞 vs 异步非阻塞</strong>：Zuul 1.x 每请求占用一个 Servlet 线程，后端慢则线程堆积；Gateway/APISIX 用少量 EventLoop 线程处理海量连接，后端慢仅占用连接不占线程，吞吐高数倍。这是网关演进的<strong>性能动机</strong>。</p>
+            <p><strong>同步阻塞 vs 异步非阻塞</strong>：Zuul 1.x（已停更）每请求占用一个 Servlet 线程，后端慢则线程堆积；Gateway/APISIX 用少量 EventLoop 线程处理海量连接，后端慢仅占用连接不占线程，吞吐高数倍。这是网关演进的<strong>性能动机</strong>。</p>
 
             <p><strong>动态路由</strong>：Gateway 默认配置静态（配置文件加载），需自实现 <code class="inline-code">DynamicRouteLocator</code> + 配置中心监听实现动态刷新；APISIX 配置存 etcd，秒级动态生效无需重启。动态路由是<strong>运维动机</strong>。</p>
 
             <table class="compare-table">
               <thead><tr><th>网关</th><th>底层模型</th><th>动态路由</th><th>生态</th><th>适用场景</th></tr></thead>
               <tbody>
-                <tr><td>Zuul 1.x</td><td>Servlet 同步阻塞</td><td>弱</td><td>Spring Cloud Netflix（停更）</td><td>老项目维护</td></tr>
+                <tr><td>Zuul 1.x（已废弃）</td><td>Servlet 同步阻塞</td><td>弱</td><td>Spring Cloud Netflix（停更）</td><td>老项目维护，替代：Spring Cloud Gateway / APISIX</td></tr>
                 <tr><td>Spring Cloud Gateway</td><td>WebFlux + Netty 异步</td><td>需自实现</td><td>Spring Cloud 原生</td><td>Spring 体系首选</td></tr>
                 <tr><td>Kong</td><td>OpenResty + Lua</td><td>支持</td><td>插件丰富，APIM 强</td><td>API 管理平台</td></tr>
                 <tr><td>APISIX</td><td>OpenResty + etcd</td><td>原生动态</td><td>云原生，插件多</td><td>高性能云原生网关</td></tr>
@@ -338,7 +338,7 @@ flowchart LR
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>网关里写业务逻辑</strong>：网关只做横切，业务下沉到服务，否则网关变单体瓶颈。</li>
-                <li><strong>同步阻塞网关扛高并发</strong>：Zuul 1.x 每请求一线程，后端慢即线程池打满。</li>
+                <li><strong>同步阻塞网关扛高并发</strong>：Zuul 1.x（已停更）每请求一线程，后端慢即线程池打满。</li>
                 <li><strong>动态路由不刷新</strong>：改配置要重启网关，失去动态性。</li>
                 <li><strong>跨域/TraceId 未透传</strong>：网关未注入 TraceId 或被 CORS 拦截，全链路追踪断链。</li>
                 <li><strong>网关成为新单点</strong>：单实例或无 LB 兜底，网关宕机全站不可用。</li>
@@ -368,7 +368,7 @@ flowchart LR
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>限流算法演进</strong>：计数器（固定窗口，临界点双倍流量问题）→ 滑动窗口（细分子窗口平滑）→ 漏桶（恒定速率出水，平滑输出）→ 令牌桶（按速率发令牌，桶可累积，允许突发）。本质是对"<strong>时间窗口内请求量</strong>"的不同近似与权衡。</p>
-            <p><strong>Hystrix（2012，Netflix）</strong>：熔断器状态机（Closed/Open/Half-Open）+ <strong>线程池/信号量隔离</strong> + 熔断后 fallback。Spring Cloud Netflix 1.x 标配。2018 年宣布停止开发，进入维护模式。</p>
+            <p><strong>Hystrix（2012，Netflix）</strong>：熔断器状态机（Closed/Open/Half-Open）+ <strong>线程池/信号量隔离</strong> + 熔断后 fallback。Spring Cloud Netflix 1.x 标配。2018 年宣布停止开发进入维护模式（线程池隔离开销大、不支持热点参数限流），当前推荐 Resilience4j / Sentinel。</p>
             <p><strong>Resilience4j（2016）</strong>：Netflix 官方推荐的 Hystrix 替代品。基于函数式编程 + Vavr 库，模块化设计（CircuitBreaker / RateLimiter / Bulkhead / Retry / TimeLimiter / Cache）。<strong>轻量无依赖</strong>，与 Spring Boot 2.x+ 函数式风格契合。</p>
             <p><strong>Sentinel（2017，阿里）</strong>：以<strong>流量为切入点</strong>，限流/熔断/系统自适应保护（基于 Load1/CPU/RT）/热点参数限流。控制台实时规则推送，Spring Cloud Alibaba 标配。国内最流行。</p>
             <p><strong>趋势</strong>：流量治理与 Service Mesh Sidecar 融合（Envoy 自带熔断/限流，Istio 配置），应用无感知；开源生态转向 Sentinel + Mesh Sidecar 双层防护。</p>
@@ -455,7 +455,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             <p><strong>追问 1：单机限流 vs 集群限流如何选？</strong></p>
             <p>单机限流保护自身节点，无中心依赖、性能高，适合<strong>保护单实例不被压垮</strong>。集群限流控全局总量（如全局限 1000 QPS），需 Token Server/Redis，有网络开销与单点风险。实践：网关层集群限流控总量 + 服务层单机限流保节点。</p>
             <p><strong>追问 2：Hystrix 为何被淘汰？Resilience4j/Sentinel 强在哪？</strong></p>
-            <p>Hystrix 线程池隔离开销大（每依赖一线程池）、已停更、不支持热点参数限流。Resilience4j 轻量函数式、模块化；Sentinel 流量视角更全（热点参数、系统自适应、集群限流）+ 控制台实时推送。Sentinel 在国内生态最完善。</p>
+            <p>Hystrix 线程池隔离开销大（每依赖一线程池）、2018 年宣布停止开发进入维护模式、不支持热点参数限流。Resilience4j 轻量函数式、模块化；Sentinel 流量视角更全（热点参数、系统自适应、集群限流）+ 控制台实时推送。Sentinel 在国内生态最完善。</p>
           </div>
         </div>
 
@@ -527,7 +527,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
               </tbody>
             </table>
 
-            <p><strong>K8s 控制平面</strong>：API Server（唯一入口）+ etcd（状态存储，Raft）+ Scheduler（调度 Pod 到节点）+ Controller Manager（副本/节点/端点等控制循环）+ Kubelet（节点代理）+ Kube-proxy（Service 转发，iptables/ipvs）。</p>
+            <p><strong>K8s 控制平面</strong>：API Server（唯一入口）+ etcd（状态存储，Raft）+ Scheduler（调度 Pod 到节点）+ Controller Manager（副本/节点/端点等控制循环）+ Kubelet（节点代理）+ Kube-proxy（Service 转发，早期 userspace 模式已废弃，当前推荐 iptables/ipvs 模式）。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">

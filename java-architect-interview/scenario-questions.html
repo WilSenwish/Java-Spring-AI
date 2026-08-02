@@ -295,7 +295,7 @@
     </div>
     <div class="qa-layer" data-layer="scenario">
       <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某头部电商平台年度大促秒杀活动，核心商品（如旗舰手机）库存 1000 件，预约用户 500 万，活动开启瞬间峰值 QPS 达 120 万，是日常峰值（1.2 万 QPS）的 100 倍。要求：下单成功率 99.99%、绝不超卖、页面响应 P99 &lt; 200ms、活动结束后 10 分钟内完成库存对账。系统部署在阿里云杭州、北京双 Region，MySQL 8.0 主从集群 + Redis 6.2 Cluster + RocketMQ 4.9。</p></div>
+      <div class="qa-layer-body"><p>某头部电商平台年度大促秒杀活动，核心商品（如旗舰手机）库存 1000 件，预约用户 500 万，活动开启瞬间峰值 QPS 达 120 万，是日常峰值（1.2 万 QPS）的 100 倍。要求：下单成功率 99.99%、绝不超卖、页面响应 P99 &lt; 200ms、活动结束后 10 分钟内完成库存对账。系统部署在阿里云杭州、北京双 Region，MySQL 8.0 主从集群 + Redis 6.2 Cluster + RocketMQ 5.x（5.x 引入 Proxy 收口访问、Controller 模式原生主备切换与 Pop 消费，削峰异步落库等核心能力向下兼容 4.x）。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
       <div class="qa-layer-title">核心挑战</div>
@@ -1129,7 +1129,7 @@
     </div>
     <div class="qa-layer" data-layer="principle">
       <div class="qa-layer-title">分析框架</div>
-      <div class="qa-layer-body"><p>雪崩本质是<strong>资源耗尽级联</strong>：下游慢→上游线程阻塞→上游线程池满→上游不可用→逐层向上。治理三道防线：<strong>熔断降级</strong>（Sentinel/Hystrix，异常率/RT 超阈值自动熔断走降级）、<strong>线程池隔离</strong>（不同下游独立线程池，避免相互拖累）、<strong>限流</strong>（入口限流防止过载）。排查用<strong>链路追踪</strong>（SkyWalking/Zipkin）还原调用拓扑，定位最慢节点。</p></div>
+      <div class="qa-layer-body"><p>雪崩本质是<strong>资源耗尽级联</strong>：下游慢→上游线程阻塞→上游线程池满→上游不可用→逐层向上。治理三道防线：<strong>熔断降级</strong>（Sentinel/Resilience4j，异常率/RT 超阈值自动熔断走降级；Hystrix 已停止维护，仅作演进对比）、<strong>线程池隔离</strong>（不同下游独立线程池，避免相互拖累）、<strong>限流</strong>（入口限流防止过载）。排查用<strong>链路追踪</strong>（SkyWalking/Zipkin）还原调用拓扑，定位最慢节点。</p></div>
     </div>
     <div class="qa-layer" data-layer="practice">
       <div class="qa-layer-title">解决方案</div>
@@ -1812,7 +1812,7 @@
           <li><strong>空值缓存 TTL 过长</strong>：空值缓存设 30 分钟，期间该商品上架后仍返回空。规避：空值 TTL 设短（60s），或商品上架时主动删除空值缓存 key。</li>
           <li><strong>缓存预热批量设置相同 TTL</strong>：批量预热 10 万 key 全部 TTL=1800s，30 分钟后同时过期引发雪崩。规避：TTL = base + random(0, maxRandom)，打散过期时间。</li>
           <li><strong>布隆过滤器更新延迟</strong>：新增商品后 DB 已写入但布隆过滤器未更新，导致新商品查不到。规避：布隆过滤器更新必须与 DB 写入在同一事务后异步触发（MQ），并设短延迟（1-2s）兜底重查。</li>
-          <li><strong>仅依赖缓存无降级</strong>：Redis 集群整体故障时应用完全不可用。规避：必须配置熔断降级（Sentinel/Hystrix），Redis 不可用时降级返回本地缓存或默认数据，而非全部穿透到 DB。</li>
+          <li><strong>仅依赖缓存无降级</strong>：Redis 集群整体故障时应用完全不可用。规避：必须配置熔断降级（Sentinel/Resilience4j，Hystrix 已停止维护仅作演进对比），Redis 不可用时降级返回本地缓存或默认数据，而非全部穿透到 DB。</li>
         </ul>
       </div>
     </div>
@@ -3849,7 +3849,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
         <p><strong>接入层</strong>：CDN 承接静态资源，Nginx + Spring Cloud Gateway 做流量入口，Sentinel 滑动窗口限流（下单接口单机 5000 QPS，超出快速失败），网关层做租户/UA 维度黑白名单与防刷（令牌桶 10 QPS/用户）。WAF 拦截恶意爬虫与刷单。同城双活单元化部署，按 uid 路由到对应单元，单元内自包含。</p>
         <p><strong>应用层</strong>：订单服务集群 200+ 实例，库存服务独立部署（物理隔离避免相互影响）。库存预扣走 Redis Cluster（Lua 原子脚本），订单创建走 RocketMQ 异步落库（消费者批量入库）。下单主链路：网关→订单服务→Redis 预扣库存→生成订单号→返回待支付，全程 &lt; 50ms。支付成功后通过 MQ 驱动库存确认扣减、物流发货、积分发放。二级缓存：Caffeine 本地缓存（商品/用户基础信息）+ Redis 分布式缓存，命中率 &gt; 95%。</p>
         <p><strong>数据层</strong>：MySQL 订单表按 user_id 分 1024 库 × 4 表，库存表按 sku_id 分库。Redis Cluster 16 分片存预扣库存。Elasticsearch 承担订单搜索。TiDB 兜底对账与历史数据归档。binlog 通过 Canal 同步到 ES 与数仓。</p>
-        <p><strong>容灾方案</strong>：同城双活（A/B 机房各承载 50%，故障切换 RTO &lt; 1min）+ 异地灾备（异步复制）。Redis 预扣失败降级为 DB 限流扣减（牺牲性能保一致）。MQ 集群三节点同步刷盘，宕机自动主从切换。全链路 Sentry + SkyWalking 监控，故障自愈（Hystrix/Resilience4j 熔断）。</p>
+        <p><strong>容灾方案</strong>：同城双活（A/B 机房各承载 50%，故障切换 RTO &lt; 1min）+ 异地灾备（异步复制）。Redis 预扣失败降级为 DB 限流扣减（牺牲性能保一致）。MQ 集群三节点同步刷盘，宕机自动主从切换。全链路 Sentry + SkyWalking 监控，故障自愈（Resilience4j 熔断，Hystrix 已停止维护仅作演进对比）。</p>
         <div class="mermaid-container">
           <div class="mermaid">sequenceDiagram
     participant U as 用户

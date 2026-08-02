@@ -490,7 +490,7 @@
           <div class="epq-section-title">核心要点</div>
           <ul class="epq-kp-list">
             <li>@EnableAutoConfiguration 通过 @Import(AutoConfigurationImportSelector.class) 加载 META-INF/spring.factories 中 EnableAutoConfiguration 键对应的配置类列表</li>
-            <li>Spring Boot 2.7+ 支持 META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports 新配置方式，spring.factories 已标记废弃</li>
+            <li>Spring Boot 2.7+ 引入 META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports 新配置方式，spring.factories 中自动配置类条目自 2.7 起标记废弃，Spring Boot 3.0 起完全移除，新项目应统一使用 AutoConfiguration.imports</li>
             <li>@Conditional 家族控制条件装配：@ConditionalOnClass、@ConditionalOnMissingBean、@ConditionalOnProperty 等</li>
             <li>自动配置类通常标注 @AutoConfiguration（替代 @Configuration），并指定 after/before 顺序</li>
             <li>spring-boot-autoconfigure 模块包含所有官方 Starter 的自动配置类</li>
@@ -502,7 +502,7 @@
           <p>自动配置的入口是 <code class="inline-code">@SpringBootApplication</code>，它组合了 <code class="inline-code">@EnableAutoConfiguration</code>。<code class="inline-code">AutoConfigurationImportSelector</code> 实现 <code class="inline-code">DeferredImportSelector</code>，在所有用户配置类处理完毕后再执行，确保用户 Bean 优先。</p>
           <p>加载流程：</p>
           <ol>
-            <li>从所有依赖jar包的 META-INF/spring.factories 读取 EnableAutoConfiguration 全类名列表</li>
+            <li>从所有依赖jar包的 META-INF/spring.factories 读取 EnableAutoConfiguration 全类名列表（Spring Boot 3.0 起改为读取 AutoConfiguration.imports 文件）</li>
             <li>使用 SpringFactoriesLoader 加载，去重后得到候选配置类</li>
             <li>排除 @EnableAutoConfiguration 的 exclude/excludeName 指定的类</li>
             <li>通过 @Conditional 条件过滤，只有条件匹配的类才会被注册</li>
@@ -945,7 +945,7 @@
           <div class="epq-section-title">核心要点</div>
           <ul class="epq-kp-list">
             <li>Serial：单线程 STW，适合客户端和小应用；Parallel：多线程 STW，吞吐量优先，JDK 8 默认</li>
-            <li>CMS：并发低停顿，初始标记→并发标记→重新标记→并发清理，但内存碎片、浮动垃圾、并发模式失败</li>
+            <li>CMS：并发低停顿，初始标记→并发标记→重新标记→并发清理，但内存碎片、浮动垃圾、并发模式失败（已废弃：JDK 9 标记废弃、JDK 14 移除，当前推荐 G1/ZGC/Shenandoah）</li>
             <li>G1：Region 化堆（1~32MB），优先回收垃圾最多的 Region，可预测停顿时间（默认 200ms），JDK 9+ 默认</li>
             <li>ZGC：染色指针（Colored Pointers）、读屏障、并发整理，STW &lt; 10ms，支持 TB 级堆，JDK 15+ 生产可用</li>
             <li>Shenandoah：与 ZGC 类似，但由 RedHat 开发，更早进入 OpenJDK，也是低延迟并发收集器</li>
@@ -954,7 +954,7 @@
 
         <div class="epq-section">
           <div class="epq-section-title">详细解答</div>
-          <p><strong>CMS（Concurrent Mark Sweep）</strong> 的设计目标是低停顿：初始标记（STW，标记 GC Roots 直接引用）→ 并发标记（与用户线程并行遍历对象图）→ 重新标记（STW，修正并发期间的变动）→ 并发清理（回收垃圾）。但 CMS 有三个致命缺陷：</p>
+          <p><strong>CMS（Concurrent Mark Sweep）</strong> 的设计目标是低停顿：初始标记（STW，标记 GC Roots 直接引用）→ 并发标记（与用户线程并行遍历对象图）→ 重新标记（STW，修正并发期间的变动）→ 并发清理（回收垃圾）。但 CMS 有三个致命缺陷（注：CMS 已于 JDK 9 标记废弃、JDK 14 正式移除，以下缺陷分析仅作演进历史对比，当前生产推荐 G1/ZGC/Shenandoah）：</p>
           <ul>
             <li>内存碎片：使用标记-清除算法，不压缩，长期运行后老年代碎片严重，可能触发 Full GC</li>
             <li>浮动垃圾：并发清理期间用户线程继续产生垃圾，需预留空间，若预留不足则 Concurrent Mode Failure，退化为 Serial Old</li>
@@ -1059,7 +1059,7 @@
             <li>密钥交换：ECDHE（临时椭圆曲线 Diffie-Hellman）生成临时密钥对，每次会话密钥不同</li>
             <li>前向安全（Forward Secrecy）：即使服务器私钥泄露，历史会话也无法解密，因为会话密钥由临时 ECDHE 生成</li>
             <li>证书链验证：客户端从服务器证书逐级验证到受信根 CA，检查有效期、域名、证书吊销状态（OCSP）</li>
-            <li>TLS 1.3 废弃了 RSA 密钥交换和大量旧密码套件（如 CBC、MD5、SHA-1），仅保留 AEAD 算法</li>
+            <li>TLS 1.3 废弃了 RSA 密钥交换（无前向安全）和大量旧密码套件（如 CBC、MD5、SHA-1），仅保留 AEAD 算法</li>
           </ul>
         </div>
 
@@ -1597,7 +1597,7 @@
         <div class="epq-section">
           <div class="epq-section-title">高频追问</div>
           <ul class="epq-fu-list">
-            <li><span class="q">Q: Sentinel 与 Hystrix 的区别？</span><span class="a">A: Sentinel 支持流量控制、热点限流、系统保护，基于滑动窗口实时统计；Hystrix 仅支持熔断降级，基于线程池隔离，已停止维护。</span></li>
+            <li><span class="q">Q: Sentinel 与 Hystrix 的区别？</span><span class="a">A: Sentinel 支持流量控制、热点限流、系统保护，基于滑动窗口实时统计；Hystrix 仅支持熔断降级，基于线程池隔离，自 2018 年起停更、已停止维护（不推荐新项目使用，当前主流替代为 Resilience4j / Sentinel，此处仅作历史对比）。</span></li>
             <li><span class="q">Q: 集群限流如何实现？</span><span class="a">A: 嵌入 Token Server 模式，各客户端向 Token Server 申请配额；或独立 Token Server 部署，支持 HA 集群。适合多实例共享全局限流阈值。</span></li>
           </ul>
         </div>
@@ -2212,7 +2212,7 @@
           <ul class="epq-kp-list">
             <li>策略模式（Strategy）：定义算法族，分别封装，让它们可互相替换。Spring 的 Resource、Comparator 都是策略模式。适合消除大量 if-else 分支</li>
             <li>工厂模式：简单工厂（一个工厂方法创建多种产品）、工厂方法（每个产品对应一个工厂类）、抽象工厂（产品族）。Spring 的 BeanFactory 是工厂模式的典型应用</li>
-            <li>观察者模式（Observer）：定义对象间的一对多依赖，当一个对象状态改变时，所有依赖者自动收到通知。JDK 的 Observable/Observer（已废弃）、Spring 的 ApplicationEvent、消息队列都是观察者扩展</li>
+            <li>观察者模式（Observer）：定义对象间的一对多依赖，当一个对象状态改变时，所有依赖者自动收到通知。JDK 的 Observable/Observer（JDK 9 起已废弃，推荐 Flow API / Project Reactor 替代）、Spring 的 ApplicationEvent、消息队列都是观察者扩展</li>
             <li>责任链模式（Chain of Responsibility）：将请求沿处理链传递，每个处理器决定是否处理或转交。Servlet Filter、Dubbo Filter、Sentinel SlotChain 均使用此模式</li>
             <li>模板方法模式（Template Method）：定义算法骨架，子类重写特定步骤。Spring 的 JdbcTemplate、RestTemplate、AbstractController 都是模板方法的应用</li>
           </ul>

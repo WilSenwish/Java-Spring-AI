@@ -969,7 +969,7 @@ slave_parallel_type = LOGICAL_CLOCK</code></pre></div>
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察<strong>数据库高可用架构的选型决策能力</strong>：各方案（MHA、Orchestrator、MGR、MGC、云 RDS、NewSQL）的原理、优劣、适用场景，以及故障切换、脑裂防范、数据丢失风险评估。本质是<strong>在 RPO（数据丢失量）、RTO（恢复时间）、复杂度、成本之间权衡</strong>。架构师需根据业务对一致性与可用性的要求选型，并设计配套的监控、切换、演练机制。</p>
+            <p>这道题考察<strong>数据库高可用架构的选型决策能力</strong>：各方案（MHA【已停止维护，仅作历史对比】、Orchestrator、MGR、MGC、云 RDS、NewSQL）的原理、优劣、适用场景，以及故障切换、脑裂防范、数据丢失风险评估。本质是<strong>在 RPO（数据丢失量）、RTO（恢复时间）、复杂度、成本之间权衡</strong>。架构师需根据业务对一致性与可用性的要求选型，并设计配套的监控、切换、演练机制。</p>
           </div>
         </div>
 
@@ -977,7 +977,7 @@ slave_parallel_type = LOGICAL_CLOCK</code></pre></div>
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>主从 + 手动切换</strong>：早期方案，主库故障人工选从库提升。RTO 长（依赖人），易出错。</p>
-            <p><strong>MHA（Master High Availability，2010s）</strong>：Perl 脚本的故障切换管理器，监控主库，故障时从多个从库选最新的提升为新主，尽量补齐其他从库缺失的 binlog。广泛使用但<strong>已多年未维护</strong>，逐渐被替代。</p>
+            <p><strong>MHA（Master High Availability，2010s，已停止维护）</strong>：Perl 脚本的故障切换管理器，监控主库，故障时从多个从库选最新的提升为新主，尽量补齐其他从库缺失的 binlog。广泛使用但<strong>已多年未维护</strong>（Perl 实现，无官方维护，仅作高可用演进的历史方案保留对比），<strong>当前推荐 MGR（MySQL Group Replication）/ Orchestrator 替代</strong>——MGR 提供原生强一致，Orchestrator 适合灵活拓扑的半同步切换场景。</p>
             <p><strong>Orchestrator（GitHub 出品）</strong>：Go 实现的拓扑管理器，支持复杂拓扑发现、手动/自动故障切换、优雅切换。比 MHA 更活跃、功能更强，但仍基于异步/半同步复制，<strong>不解决数据强一致</strong>。</p>
             <p><strong>MGR（Group Replication，8.0+）</strong>：官方基于 Paxos 变种（XCom）的<strong>强一致复制组</strong>，多数节点写成功才提交。单主模式（默认，自动选主）或多主模式。原生高可用 + 强一致，无需外部管理器。</p>
             <p><strong>InnoDB Cluster</strong>：MySQL 官方完整高可用方案 = MGR + MySQL Router（读写分离路由）+ MySQL Shell（管理）。官方推荐的一体化方案。</p>
@@ -994,7 +994,7 @@ slave_parallel_type = LOGICAL_CLOCK</code></pre></div>
               <thead><tr><th>方案</th><th>一致性</th><th>RPO</th><th>RTO</th><th>复杂度</th><th>适用场景</th></tr></thead>
               <tbody>
                 <tr><td>主从+手动</td><td>最终</td><td>可能丢</td><td>分钟级</td><td>低</td><td>非核心/测试</td></tr>
-                <tr><td>MHA</td><td>最终</td><td>尽力补齐</td><td>30s-数分钟</td><td>中（Perl，停止维护）</td><td>存量系统</td></tr>
+                <tr><td>MHA（已废弃，替代：MGR/Orchestrator）</td><td>最终</td><td>尽力补齐</td><td>30s-数分钟</td><td>中（Perl，停止维护）</td><td>仅存量系统，不再新建</td></tr>
                 <tr><td>Orchestrator</td><td>最终</td><td>尽力补齐</td><td>秒-分钟</td><td>中（活跃）</td><td>中大规模，需灵活拓扑</td></tr>
                 <tr><td>半同步+切换工具</td><td>较强</td><td>降级时可能丢</td><td>秒级</td><td>中</td><td>金融一般场景</td></tr>
                 <tr><td>MGR / InnoDB Cluster</td><td>强一致（多数派）</td><td>0（多数存活）</td><td>秒级自动</td><td>高</td><td>强一致要求高</td></tr>

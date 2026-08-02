@@ -67,7 +67,7 @@
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>手工 new Thread（JDK 1.0）</strong>：每次任务新建线程，创建/销毁开销大，无上限易耗尽资源，无法复用。Doug Lea 在 JSR-166 之前就指出这是并发编程的首要反模式。</p>
-            <p><strong>Executor 框架（JDK 5，2004）</strong>：引入 <code class="inline-code">ThreadPoolExecutor</code>，将"任务提交"与"执行策略"解耦，线程池成为一等公民。同期 <code class="inline-code">Executors</code> 工具类提供 newFixedThreadPool/newCachedThreadPool 等快捷工厂。</p>
+            <p><strong>Executor 框架（JDK 5，2004）</strong>：引入 <code class="inline-code">ThreadPoolExecutor</code>，将"任务提交"与"执行策略"解耦，线程池成为一等公民。同期 <code class="inline-code">Executors</code> 工具类提供 newFixedThreadPool/newCachedThreadPool 等快捷工厂（注：阿里 Java 开发规约禁止使用这些快捷工厂方法，因 newFixedThreadPool/newSingleThreadExecutor 内部用无界队列、newCachedThreadPool 最大线程数为 Integer.MAX_VALUE，存在 OOM 风险，推荐手动构造 <code class="inline-code">ThreadPoolExecutor</code> 显式声明有界队列与最大线程数）。</p>
             <p><strong>参数动态化（美团 2016+）</strong>：静态参数难以应对流量波动，美团在《Java 线程池实现原理及其在美团业务中的实践》中提出基于配置中心的<strong>动态调参方案</strong>——将核心/最大线程数、队列容量暴露为可热更新字段，setCorePoolSize 等方法本身是 public 支持运行时修改。</p>
             <p><strong>Virtual Threads（JDK 21，2023）</strong>：对 IO 密集场景，<code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 几乎消除"线程数调优"问题——每个任务一个虚拟线程，由 JVM 调度到少量载体线程。这使传统线程池调优的适用范围收窄到 CPU 密集场景，是并发治理的范式转移。</p>
           </div>
@@ -1071,7 +1071,7 @@ flowchart TB
           <div class="qa-layer-body">
             <p><strong>非结构化并发（new Thread / Executor）</strong>：任务提交后生命周期与提交者解耦，子任务可逃逸——提交者已返回，子任务仍在跑；子任务异常无人接；取消无法传播到子任务。这是"fire-and-forget"模型的根本缺陷。</p>
             <p><strong>CompletableFuture（部分结构化）</strong>：allOf/anyOf 提供了组合，但仍是"扁平"的——异常需手动 exceptionally，取消需手动传播，且子任务的子任务仍可逃逸。没有"作用域"概念。</p>
-            <p><strong>结构化并发（JDK 21+ Preview）</strong>：借鉴 Erlang/Go 的设计哲学，把并发任务组织成树——<strong>父任务等待所有子任务，子任务的生命周期不超出父作用域</strong>。作用域退出时所有未完成子任务自动取消，异常自动传播。这是"作用域化"思维在并发的应用，与 try-with-resources 对资源的作用一致。</p>
+            <p><strong>结构化并发（JDK 21+ Preview）</strong>：借鉴 Erlang/Go 的设计哲学，把并发任务组织成树——<strong>父任务等待所有子任务，子任务的生命周期不超出父作用域</strong>。作用域退出时所有未完成子任务自动取消，异常自动传播。这是"作用域化"思维在并发的应用，与 try-with-resources 对资源的作用一致。（注：截至 JDK 24 仍为 Preview API，需 <code class="inline-code">--enable-preview</code> 启用，API 可能调整，不建议生产使用。）</p>
             <p><strong>未来</strong>：Scoped Values + Structured Concurrency + Virtual Threads 构成 JDK 并发的"新三件套"，目标是让百万级并发也具备命令式代码的可读性与正确性保证。当前 Preview，API 可能调整，但方向已定。</p>
           </div>
         </div>

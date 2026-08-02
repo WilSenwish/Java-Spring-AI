@@ -61,7 +61,7 @@
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察 GC 的<strong>两个根基</strong>：一是"如何判断对象存活"（可达性分析 + GC Roots），二是"如何回收死亡对象"（标记-清除 / 复制 / 标记-整理三种基础算法各自的代价）。它是所有 GC 收集器（CMS/G1/ZGC）的认知地基——后续所有收集器都是在这三种算法上的工程组合与并发化改造。</p>
+            <p>这道题考察 GC 的<strong>两个根基</strong>：一是"如何判断对象存活"（可达性分析 + GC Roots），二是"如何回收死亡对象"（标记-清除 / 复制 / 标记-整理三种基础算法各自的代价）。它是所有 GC 收集器（含已淘汰的 CMS，以及 G1/ZGC）的认知地基——后续所有收集器都是在这三种算法上的工程组合与并发化改造。</p>
           </div>
         </div>
 
@@ -111,7 +111,7 @@ graph TD
               <div class="chart-caption">图 2.1-1 GC Roots 可达性分析：不可达对象（含环形引用、孤岛）将被回收</div>
             </div>
 
-            <p><strong>三不可达对象的三次标记</strong>：真正回收前需经过<strong>两次标记</strong>。第一次标记后，筛选出有必要执行 <code class="inline-code">finalize()</code> 的对象（重写了且未被调用过），放入 F-Queue，由 Finalizer 线程执行；finalize() 执行中若重新建立与 Root 的引用链则"自救"成功，否则第二次标记后回收。<strong>finalize() 已被官方明确不推荐</strong>（JDK 18+ 默认禁用 Finalizer，JEP 421），应用 Cleaner/try-with-resources 替代。</p>
+            <p><strong>三不可达对象的三次标记</strong>：真正回收前需经过<strong>两次标记</strong>。第一次标记后，筛选出有必要执行 <code class="inline-code">finalize()</code> 的对象（重写了且未被调用过），放入 F-Queue，由 Finalizer 线程执行；finalize() 执行中若重新建立与 Root 的引用链则"自救"成功，否则第二次标记后回收。<strong>finalize() 已被官方明确不推荐</strong>（JEP 421 于 JDK 18 标记为 Deprecation for Removal，已不推荐使用），应使用 Cleaner / try-with-resources 替代。</p>
 
             <p><strong>三种 GC 算法本质权衡</strong>：</p>
             <div class="compare-table">
@@ -125,7 +125,7 @@ graph TD
                   <tr><td>空间代价</td><td>低（不需额外空间）</td><td>高（浪费 50%，需存活区）</td><td>低</td></tr>
                   <tr><td>时间代价</td><td>中（清除快但碎片导致分配慢）</td><td>低（复制快，存活少时高效）</td><td>高（需移动对象并更新引用）</td></tr>
                   <tr><td>移动对象</td><td>不移动</td><td>移动</td><td>移动</td></tr>
-                  <tr><td>典型应用</td><td>CMS 老年代</td><td>新生代（Serial/ParNew）</td><td>Parallel Scavenge 老年代 / Full GC</td></tr>
+                  <tr><td>典型应用</td><td>CMS 老年代（CMS 已 JDK14 移除）</td><td>新生代（Serial/ParNew）</td><td>Parallel Scavenge 老年代 / Full GC</td></tr>
                 </tbody>
               </table>
             </div>
@@ -167,7 +167,7 @@ graph TD
             <p>用<strong>记忆集（Remembered Set）</strong>记录"哪些老年代 Region 引用了新生代对象"，Minor GC 时只扫描这些 Region 而非全堆。HotSpot 用<strong>卡表（Card Table）</strong>实现：堆按 512B 切成 Card，老年代写引用时通过写屏障把对应 Card 标脏，GC 时只扫描脏 Card。G1 进一步为每个 Region 维护 RSet，记录"谁引用了我"，支持 Region 级独立回收。</p>
 
             <p><strong>追问 3：为什么新生代用复制算法而老年代不用？</strong></p>
-            <p>新生代存活率低（约 2%），复制代价小且无碎片；老年代存活率高（90%+），复制代价等于拷贝大半个堆，且老年代没有额外空间做担保。所以老年代只能用标记-清除（CMS，快但有碎片）或标记-整理（Parallel，慢但无碎片）。</p>
+            <p>新生代存活率低（约 2%），复制代价小且无碎片；老年代存活率高（90%+），复制代价等于拷贝大半个堆，且老年代没有额外空间做担保。所以老年代只能用标记-清除（CMS，快但有碎片；CMS 已淘汰，JDK 14 移除，当前推荐 G1/ZGC）或标记-整理（Parallel，慢但无碎片）。</p>
           </div>
         </div>
 
@@ -180,7 +180,7 @@ graph TD
                 <li><strong>把 GC Roots 答成"堆中的根对象"</strong>：GC Roots 恰恰是<strong>堆外</strong>的引用起点（栈、本地方法栈、方法区），不是堆内对象。</li>
                 <li><strong>误以为复制算法浪费"一半"内存</strong>：HotSpot 新生代用 Eden:S0:S1=8:1:1，实际可用空间是 90%，仅浪费 10%。但若 Survivor 太小放不下存活对象会触发"空间分配担保"，直接晋升老年代。</li>
                 <li><strong>忽略安全点（Safepoint）</strong>：可达性分析必须在安全点进行，长时间循环（counted loop）可能延迟进入安全点导致 STW 时间超预期（JIT 会对 counted loop 优化插入安全点）。</li>
-                <li><strong>混淆"标记-清除"与"标记-整理"</strong>：CMS 是标记-清除（有碎片），Parallel Old 是标记-整理（无碎片），选错会导致 G1 Full GC 时碎片问题。</li>
+                <li><strong>混淆"标记-清除"与"标记-整理"</strong>：CMS（已淘汰）是标记-清除（有碎片），Parallel Old 是标记-整理（无碎片），选错会导致 G1 Full GC 时碎片问题。</li>
               </ul>
             </div>
           </div>
@@ -288,7 +288,7 @@ graph TD
 
             <div class="callout callout-deep">
               <div class="callout-title">读屏障的本质</div>
-              <p>ZGC 与 Shenandoah 的关键技术是<strong>读屏障</strong>（不同于 CMS/G1 的写屏障）。读屏障在每次对象字段访问时插入一段 JIT 生成的代码，检查对象是否已被移动、是否需转发。这会带来约 5-10% 的吞吐损失，但换来了"移动对象无需 STW"的能力，是低延迟的根本所在。</p>
+              <p>ZGC 与 Shenandoah 的关键技术是<strong>读屏障</strong>（不同于 CMS/G1 的写屏障；CMS 已 JDK14 移除）。读屏障在每次对象字段访问时插入一段 JIT 生成的代码，检查对象是否已被移动、是否需转发。这会带来约 5-10% 的吞吐损失，但换来了"移动对象无需 STW"的能力，是低延迟的根本所在。</p>
             </div>
           </div>
         </div>
@@ -302,7 +302,7 @@ graph TD
               <li><strong>4GB ~ 32GB</strong>：G1 是默认选择，停顿目标 100-200ms，调优成熟。</li>
               <li><strong>32GB ~ 16TB</strong>：ZGC 或 Shenandoah，停顿 &lt;10ms 且不随堆增长。</li>
               <li><strong>延迟敏感（金融交易/游戏/广告竞价）</strong>：ZGC（JDK21+ Generational ZGC），P99 停顿可压到 1ms 内。</li>
-              <li><strong>JDK 版本约束</strong>：JDK 8 只能用 CMS/G1（且 CMS 已废弃），JDK 11+ 推荐 G1 或 ZGC（实验），JDK 17+ ZGC 生产可用，JDK 21+ 优先 Generational ZGC。</li>
+              <li><strong>JDK 版本约束</strong>：JDK 8 只能用 CMS/G1（CMS 已于 JDK 9 标记废弃、JDK 14 正式移除，当前推荐 G1/ZGC/Shenandoah），JDK 11+ 推荐 G1 或 ZGC（实验），JDK 17+ ZGC 生产可用，JDK 21+ 优先 Generational ZGC。</li>
             </ul>
 
             <div class="callout callout-tip">
@@ -363,7 +363,7 @@ graph TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>JDK 8 时代</strong>：默认 Parallel Scavenge + Parallel Old（吞吐优先），生产普遍手动切 CMS 或 G1。参数体系围绕 <code class="inline-code">-Xmn</code>（新生代大小）、<code class="inline-code">-XX:NewRatio</code>、<code class="inline-code">-XX:SurvivorRatio</code> 等<strong>分代比例</strong>调优。</p>
+            <p><strong>JDK 8 时代</strong>：默认 Parallel Scavenge + Parallel Old（吞吐优先），生产普遍手动切 CMS 或 G1（CMS 已于 JDK 9 废弃、JDK 14 移除，当前推荐 G1/ZGC）。参数体系围绕 <code class="inline-code">-Xmn</code>（新生代大小）、<code class="inline-code">-XX:NewRatio</code>、<code class="inline-code">-XX:SurvivorRatio</code> 等<strong>分代比例</strong>调优。</p>
             <p><strong>JDK 9-16</strong>：默认 G1，参数重心转向 <code class="inline-code">-XX:MaxGCPauseMillis</code>、<code class="inline-code">-XX:G1HeapRegionSize</code>、<code class="inline-code">-XX:InitiatingHeapOccupancyPercent</code>（IHOP）。分代比例参数对 G1 影响弱化（Region 动态归属）。</p>
             <p><strong>JDK 17-21</strong>：容器感知默认开启，<code class="inline-code">-XX:MaxRAMPercentage</code> 取代写死 <code class="inline-code">-Xmx</code>。ZGC/Shenandoah 成为低延迟选项，参数极简（<code class="inline-code">-XX:+UseZGC</code> 即可，几乎自调优）。<strong>JDK 21 引入 Generational ZGC</strong>（<code class="inline-code">-XX:+ZGenerational</code>）。</p>
             <p><strong>未来趋势</strong>：参数向"少而精"演进，GC 自调优（Adaptive IHOP、ZGC 动态阈值）成为主流，人工调优重心从"调 GC 参数"转向"调应用分配模式 + 选择合适 GC"。</p>
@@ -408,7 +408,7 @@ graph TD
     START([JVM 参数规划]) --> V{JDK 版本?}
     V -- "JDK 8" --> H1{堆大小?}
     H1 -- "&lt;4GB" --> P1[Parallel GC<br/>或手动 G1]
-    H1 -- "4-32GB" --> P2[G1<br/>CMS 已废弃勿用]
+    H1 -- "4-32GB" --> P2[G1<br/>CMS 已 JDK9 废弃/JDK14 移除 勿用]
     V -- "JDK 11/17" --> H2{延迟需求?}
     H2 -- "吞吐优先" --> P3[Parallel 或 G1]
     H2 -- "均衡" --> P4[G1 默认]
@@ -496,7 +496,7 @@ graph TD
                 <li><strong>不设 MaxMetaspaceSize</strong>：动态代理/热部署场景元空间无限增长，最终容器 OOM Killed（不是 Java OOM，是 cgroup kill）。</li>
                 <li><strong>盲目调小 MaxGCPauseMillis</strong>：会让 G1 陷入"频繁小回收 + 堆堆积 + FullGC"的恶性循环。</li>
                 <li><strong>忽略 -XX:+ExitOnOutOfMemoryError</strong>：OOM 后进程僵死不退出，K8s 不会重启，业务持续不可用。</li>
-                <li><strong>把 JDK8 的 CMS 参数照搬到 G1</strong>：如 <code class="inline-code">-XX:CMSInitiatingOccupancyFraction</code> 对 G1 无效。</li>
+                <li><strong>把 JDK8 的 CMS 参数照搬到 G1</strong>：CMS 已于 JDK 14 移除，其参数如 <code class="inline-code">-XX:CMSInitiatingOccupancyFraction</code> 对 G1 无效。</li>
               </ul>
             </div>
           </div>
@@ -679,7 +679,7 @@ graph TD
               <li><strong>老年代空间不足</strong>：晋升过快（Survivor 太小 / 大对象直接进老年代 / 频繁 Minor GC 晋升）。</li>
               <li><strong>元空间不足</strong>：动态生成类过多（CGLIB/ASM），触发 Full GC 卸载类。Metaspace 持续上涨。</li>
               <li><strong>System.gc()</strong>：业务代码显式调用，默认触发 Full GC。</li>
-              <li><strong>CMS Concurrent Mode Failure</strong>：CMS 并发回收跟不上分配速度，退化为 Serial Old（JDK14 前的 CMS 特有）。</li>
+              <li><strong>CMS Concurrent Mode Failure</strong>：CMS（JDK 14 已移除）并发回收跟不上分配速度，退化为 Serial Old（JDK14 前的 CMS 特有）。</li>
               <li><strong>空间分配担保失败</strong>：Minor GC 前检查老年代连续空间是否够容纳所有新生代对象，不够则 Full GC。</li>
               <li><strong>G1 的 Humongous 分配失败 / Evacuation Failure</strong>：大对象超过 Region 一半进 Humongous Region，回收不及时；或转移时 Survivor/Old 不够。</li>
               <li><strong>RSet 退化</strong>：G1 下跨 Region 引用过多导致 RSet 维护成本爆炸。</li>
@@ -730,7 +730,7 @@ graph TD
                   <tr><th>收集器</th><th>FullGC 主因</th><th>关键调优参数</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>CMS</td><td>Concurrent Mode Failure / 碎片</td><td><code>-XX:CMSInitiatingOccupancyFraction</code>、<code>-XX:+UseCMSCompactAtFullCollection</code></td></tr>
+                  <tr><td>CMS（JDK14 移除）</td><td>Concurrent Mode Failure / 碎片</td><td><code>-XX:CMSInitiatingOccupancyFraction</code>、<code>-XX:+UseCMSCompactAtFullCollection</code></td></tr>
                   <tr><td>G1</td><td>Humongous 分配 / Evacuation Failure</td><td><code>-XX:G1HeapRegionSize</code>（增大减少大对象）、<code>-XX:InitiatingHeapOccupancyPercent</code>（下调提前 Mixed GC）、<code>-XX:G1ReservePercent</code></td></tr>
                   <tr><td>ZGC</td><td>极少（设计目标）</td><td><code>-XX:ZAllocationSpikeTolerance</code>（分配突增容忍度）</td></tr>
                   <tr><td>Parallel</td><td>老年代满 / 担保失败</td><td><code>-XX:MaxGCPauseMillis</code>、<code>-XX:GCTimeRatio</code>（吞吐比）</td></tr>
@@ -808,7 +808,7 @@ graph TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>选型趋势</strong>：从"分代比例精调"（JDK8 时代调 NewRatio/SurvivorRatio）转向"选对 GC + 调停顿目标"（G1/ZGC 时代）。JDK 8 默认 Parallel、JDK 9-20 默认 G1、JDK 21+ 仍默认 G1 但 ZGC 分代版成为低延迟首选。整体趋势是<strong>选型简化</strong>：小堆用 Parallel/G1，大堆或低延迟用 ZGC，CMS 已退出历史舞台。</p>
+            <p><strong>选型趋势</strong>：从"分代比例精调"（JDK8 时代调 NewRatio/SurvivorRatio）转向"选对 GC + 调停顿目标"（G1/ZGC 时代）。JDK 8 默认 Parallel、JDK 9-20 默认 G1、JDK 21+ 仍默认 G1 但 ZGC 分代版成为低延迟首选。整体趋势是<strong>选型简化</strong>：小堆用 Parallel/G1，大堆或低延迟用 ZGC，CMS 已于 JDK 9 废弃、JDK 14 正式移除，退出历史舞台。</p>
           </div>
         </div>
 
@@ -838,7 +838,7 @@ graph TD
             <ul>
               <li><strong>吞吐 vs 延迟权衡</strong>：Parallel 吞吐最高但停顿大；ZGC 停顿最低但吞吐折损 5-10%；G1 居中。批处理选吞吐，交互式选延迟。</li>
               <li><strong>堆大小与停顿解耦</strong>：G1 在 32GB+ 停顿会失控（Region 多、RSet 大）；ZGC/Shenandoah 停顿与堆解耦，大堆必选。</li>
-              <li><strong>JDK 版本约束</strong>：JDK 8 无 ZGC（仅有 G1/CMS），JDK 11 ZGC 实验，JDK 15+ ZGC 生产，JDK 21+ Generational ZGC。</li>
+              <li><strong>JDK 版本约束</strong>：JDK 8 无 ZGC（仅有 G1/CMS，CMS 已 JDK14 移除），JDK 11 ZGC 实验，JDK 15+ ZGC 生产，JDK 21+ Generational ZGC。</li>
             </ul>
           </div>
         </div>

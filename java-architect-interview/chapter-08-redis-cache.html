@@ -69,8 +69,8 @@
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>早期 Redis 2.x~3.x：基础五类型 + 简单编码</strong>。String 底层 int/embstr/raw；List 用 ziplist（小）或 linkedlist（大）；Hash/Set/Zset 用 ziplist 或 hashtable/skiplist。痛点：ziplist 的连锁更新（cascade update）问题——中间元素扩张导致后续所有元素 prevlen 字段级联修改，最坏 O(n²)。</p>
-            <p><strong>Redis 4.0：List 引入 quicklist</strong>——双向链表 + 每节点一个 ziplist，兼顾内存紧凑与修改效率，替代纯 linkedlist。Redis 5.0 引入 Stream（借鉴 Kafka 消费组模型）。</p>
+            <p><strong>早期 Redis 2.x~3.x：基础五类型 + 简单编码</strong>。String 底层 int/embstr/raw；List 用 ziplist（小，已废弃：Redis 7.0 起全面退役，替代：listpack，消除连锁更新问题）或 linkedlist（大）；Hash/Set/Zset 用 ziplist（同上已废弃）或 hashtable/skiplist。痛点：ziplist 的连锁更新（cascade update）问题——中间元素扩张导致后续所有元素 prevlen 字段级联修改，最坏 O(n²)。</p>
+            <p><strong>Redis 4.0：List 引入 quicklist</strong>——双向链表 + 每节点一个 ziplist（Redis 7.0 起节点内部改用 listpack），兼顾内存紧凑与修改效率，替代纯 linkedlist。Redis 5.0 引入 Stream（借鉴 Kafka 消费组模型）。</p>
             <p><strong>Redis 7.0：ziplist 全面退役，引入 listpack</strong>。listpack 取消了 prevlen 字段，每个元素只存自身长度，从根本上<strong>消除连锁更新</strong>。Hash/Set/Zset 的小数据编码从 ziplist 切换为 listpack，List 的 quicklist 内部也从 ziplist 替换为 listpack（quicklist->listpack）。</p>
             <p><strong>趋势</strong>：① 编码持续向"紧凑 + 无连锁更新"演进，listpack 之后社区在探索 listpack 是否可承载更大容量；② 类型语义融合数据库能力——Stream 补齐消息队列、Bitmap 补齐位图统计、HyperLogLog 补齐基数去重；③ Redis 7.4+ 引入 <code class="inline-code">Hash field expiration</code>（hexpire）、8.0 计划中的 vector set（向量检索），向多模数据库演进。</p>
           </div>
@@ -96,7 +96,7 @@
             </table>
 
             <p><strong>ziplist → listpack 的根本差异</strong>：</p>
-            <p>ziplist 每个元素结构：<code class="inline-code">[prevlen][encoding][data]</code>，prevlen 记录前一节点长度用于反向遍历。当中间节点扩张使 prevlen 从 1 字节变 5 字节时，后继节点的 prevlen 都需重算——<strong>连锁更新</strong>，极端情况 O(n²)。</p>
+            <p>ziplist（已废弃：Redis 7.0 起，替代：listpack）每个元素结构：<code class="inline-code">[prevlen][encoding][data]</code>，prevlen 记录前一节点长度用于反向遍历。当中间节点扩张使 prevlen 从 1 字节变 5 字节时，后继节点的 prevlen 都需重算——<strong>连锁更新</strong>，极端情况 O(n²)。</p>
             <p>listpack 结构：<code class="inline-code">[encoding][data][backlen]</code>，backlen 记录自身长度用于反向遍历。修改节点只影响自身，<strong>无连锁更新</strong>。这是 Redis 7.0 的关键底层优化。</p>
 
             <p><strong>Zset 的 skiplist+hashtable 双结构</strong>：hashtable 提供 O(1) 的 member→score 查找，skiplist 提供 O(logN) 的按 score 范围查询。两者共享元素节点指针，不重复存储数据。跳表为何不用红黑树？跳表实现更简单、范围查询天然支持（链表顺指针走）、并发友好（局部锁）。</p>
@@ -164,7 +164,7 @@
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Redis 早期（2.x 前）：仅 RDB</strong>。BGSAVE 通过 fork 子进程 + COW（Copy-On-Write）写时复制生成全量二进制快照。优点：文件紧凑、恢复快、fork 后子进程异步不影响主进程。缺点：两次 BGSAVE 之间崩溃会丢失该窗口所有写入；fork 大内存实例阻塞（详见深度追问）。</p>
-            <p><strong>Redis 2.x：引入 AOF</strong>。追加记录每条写命令到 appendonly.aof。优点：数据丢失少（取决于 appendfsync）。缺点：文件膨胀、恢复慢（重放全量命令）。引入 AOF 重写（BGREWRITEAOF）压缩历史命令——只保留最终状态。</p>
+            <p><strong>Redis 2.x：引入 AOF</strong>。追加记录每条写命令到 appendonly.aof（单文件 AOF，已废弃：Redis 7.0 起被多文件 AOF 替代，即 manifest + base + incr）。优点：数据丢失少（取决于 appendfsync）。缺点：文件膨胀、恢复慢（重放全量命令）。引入 AOF 重写（BGREWRITEAOF）压缩历史命令——只保留最终状态。</p>
             <p><strong>Redis 4.0：混合持久化（aof-use-rdb-preamble）</strong>。AOF 重写时，前半段写 RDB 全量快照、后半段追加增量 AOF 命令。加载时先加载 RDB（快）再重放增量 AOF（少）。结合 RDB 的恢复速度与 AOF 的数据完整性，<strong>成为生产推荐配置</strong>。</p>
             <p><strong>Redis 7.0：AOF 改为多文件（manifest + base + incr）</strong>。base.rdb 是基础快照，incr.aof 是增量日志，manifest.aofmanifest 管理文件清单。重写不再覆盖单文件，而是生成新 base + 清空 incr，避免重写期间崩溃损坏原文件。<strong>趋势</strong>：持久化向"RDB 快照 + AOF 增量"的混合模式统一，7.x 的多文件 AOF 提升了原子性与可维护性。</p>
           </div>
@@ -226,7 +226,7 @@ appendonly <span class="kw">yes</span>
 appendfsync everysec
 auto-aof-rewrite-percentage <span class="num">100</span>
 auto-aof-rewrite-min-size <span class="num">64mb</span>
-aof-use-rdb-preamble <span class="kw">yes</span>   <span class="com"># 4.0+ 混合持久化</span>
+aof-use-rdb-preamble <span class="kw">yes</span>   <span class="com"># 4.0+ 混合持久化（Redis 7.0 起配合多文件 AOF：base 用 RDB 快照 + incr 增量日志）</span>
 
 <span class="com"># 同时保留 RDB 作为冷备（定期 BGSAVE 拷贝到对象存储）</span>
 save <span class="num">900</span> <span class="num">1</span>

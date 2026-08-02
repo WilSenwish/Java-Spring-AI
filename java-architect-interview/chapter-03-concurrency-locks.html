@@ -221,7 +221,7 @@ sequenceDiagram
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-body">
-            <p>这道题考察对 synchronized 在 JVM 层"自适应优化"的理解——从无竞争到高竞争，JVM 如何在<strong>偏向锁 → 轻量级锁 → 重量级锁</strong>三级之间升级，以在"锁开销"与"竞争处理"间取得动态平衡。本质是 HotSpot 团队对"绝大多数锁在整个生命周期内不会出现竞争"这一经验的工程化利用。</p>
+            <p>这道题考察对 synchronized 在 JVM 层"自适应优化"的理解——从无竞争到高竞争，JVM 如何在<strong>轻量级锁 → 重量级锁</strong>两级之间升级（JDK 15 起偏向锁已废弃，JEP 374，锁状态由 5 种简化为 4 种，现升级路径为：无锁 → 轻量级锁 → 重量级锁），以在"锁开销"与"竞争处理"间取得动态平衡。本质是 HotSpot 团队对"绝大多数锁在整个生命周期内不会出现竞争"这一经验的工程化利用。</p>
           </div>
         </div>
 
@@ -246,7 +246,7 @@ sequenceDiagram
                 </thead>
                 <tbody>
                   <tr><td>无锁</td><td>hash(31) + age(4) + biased(1) + 01</td><td>刚创建，未加锁</td></tr>
-                  <tr><td>偏向锁</td><td>threadId(54) + epoch(2) + age(4) + 1(1) + 01</td><td>首次被某线程获取（JDK15 前默认开启）</td></tr>
+                  <tr><td>偏向锁（已废弃：JDK 15 JEP 374 移除，锁状态由 5 种简化为 4 种）</td><td>threadId(54) + epoch(2) + age(4) + 1(1) + 01</td><td>首次被某线程获取（仅 JDK 15 前默认开启，历史状态）</td></tr>
                   <tr><td>轻量级锁</td><td>指向栈中锁记录的指针(62) + 00</td><td>多线程交替进入，无真正竞争</td></tr>
                   <tr><td>重量级锁</td><td>指向 ObjectMonitor 的指针(62) + 10</td><td>自旋失败，真正竞争</td></tr>
                   <tr><td>GC 标记</td><td>空 + 11</td><td>GC 期间标记用</td></tr>
@@ -269,12 +269,12 @@ graph TD
     style D fill:#fef3c7,stroke:#d97706
     style E fill:#fee,stroke:#dc2626
               </div>
-              <div class="chart-caption">图 3.2-1 synchronized 锁升级流程（JDK15 偏向锁废弃后从轻量级锁起步）</div>
+              <div class="chart-caption">图 3.2-1 synchronized 锁升级流程（含历史偏向锁路径；JDK 15 起偏向锁废弃 JEP 374，现升级路径为：无锁 → 轻量级锁 → 重量级锁）</div>
             </div>
 
             <p><strong>三级锁的核心机制</strong>：</p>
             <ul>
-              <li><strong>偏向锁（Biased Locking）</strong>：对象头记录持有线程 ID，同线程再次进入只需 CAS 比较 threadId，无需任何同步操作。一旦出现第二个线程竞争，偏向撤销并升级。</li>
+              <li><strong>偏向锁（Biased Locking）（已废弃：JDK 15 JEP 374 移除，synchronized 回归「轻量级锁 + 重量级锁」两级）</strong>：对象头记录持有线程 ID，同线程再次进入只需 CAS 比较 threadId，无需任何同步操作。一旦出现第二个线程竞争，偏向撤销并升级。以下为历史机制描述，JDK 15+ 不再参与锁升级。</li>
               <li><strong>轻量级锁</strong>：在线程栈帧创建 Lock Record，CAS 把 Mark Word 复制到 Lock Record（Displaced Mark Word），并尝试把对象头指向 Lock Record。成功则获得锁，失败则自旋重试。适合"多线程交替进入，但无真正同时竞争"的场景。</li>
               <li><strong>重量级锁</strong>：自旋超过阈值（自适应自旋）仍未获得锁，升级为重量级锁，通过 ObjectMonitor 调用 OS mutex（Linux futex）将线程阻塞在内核态，进入 EntryList 队列等待唤醒。</li>
             </ul>
@@ -334,7 +334,7 @@ graph TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>偏向锁启动延迟</strong>：JDK15 前 JVM 启动 4 秒后才启用偏向锁（-XX:BiasedLockingStartupDelay=4000），短生命周期测试看不到偏向锁。</li>
+                <li><strong>偏向锁启动延迟（历史行为，JDK 15 起偏向锁已废弃 JEP 374，此项不再适用）</strong>：JDK15 前 JVM 启动 4 秒后才启用偏向锁（-XX:BiasedLockingStartupDelay=4000），短生命周期测试看不到偏向锁。</li>
                 <li><strong>误以为锁会自动降级</strong>：升级到重量级锁后基本不降级，长期持锁对象建议替换为新的锁对象。</li>
                 <li><strong>锁字符串/Integer 缓存对象</strong>：会导致跨业务撞锁，引发诡异死锁或性能问题。</li>
                 <li><strong>认为 synchronized 性能差而一律用 ReentrantLock</strong>：JDK6 后这是过时认知，无竞争场景 synchronized 经 JVM 优化后性能更好。</li>
@@ -742,7 +742,7 @@ sequenceDiagram
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：为什么 JDK6 后 synchronized 性能能反超 ReentrantLock？</strong></p>
-            <p>因为 synchronized 是<strong>JVM 内置</strong>，HotSpot 可做深度优化：① 锁消除（逃逸分析后消除无竞争锁）；② 锁粗化（合并相邻加锁）；③ 偏向锁/轻量级锁自适应升级；④ JIT 可内联 monitorenter/exit 并做激进优化。而 ReentrantLock 的 lock/unlock 是普通 Java 方法调用，JIT 无法消除，每次都有方法调用开销。无竞争场景下 synchronized 的"零开销"优势明显。</p>
+            <p>因为 synchronized 是<strong>JVM 内置</strong>，HotSpot 可做深度优化：① 锁消除（逃逸分析后消除无竞争锁）；② 锁粗化（合并相邻加锁）；③ 轻量级锁自适应升级（偏向锁 JDK 15 已废弃 JEP 374，现仅轻量级锁/重量级锁两级）；④ JIT 可内联 monitorenter/exit 并做激进优化。而 ReentrantLock 的 lock/unlock 是普通 Java 方法调用，JIT 无法消除，每次都有方法调用开销。无竞争场景下 synchronized 的"零开销"优势明显。</p>
 
             <p><strong>追问 2：StampedLock 为什么不可重入？</strong></p>
             <p>StampedLock 的设计目标是"读多写少的高吞吐"，重入需要记录持有者线程与重入次数，会增加每次读锁的开销（违背乐观读零开销初衷）。若同线程递归调用需要读锁，必须自己用 ThreadLocal 维护 stamp 链，或退回 ReentrantReadWriteLock。这是设计上的刻意取舍。</p>
@@ -883,7 +883,7 @@ graph TB
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：JDK8 为什么用 synchronized 而不是 ReentrantLock 锁桶？</strong></p>
-            <p>① synchronized 在 JDK6 优化后无竞争场景开销极小（偏向锁/轻量级锁），而 ReentrantLock 即使无竞争也有方法调用与 AQS 入队开销；② synchronized 是 JVM 内置，JIT 可做锁消除/粗化等深度优化；③ ReentrantLock 需要额外内存（AQS 队列），每个桶一个 ReentrantLock 内存开销大；④ synchronized 自动释放，不会因异常泄漏锁。综合权衡，单桶锁 synchronized 是更优选择。</p>
+            <p>① synchronized 在 JDK6 优化后无竞争场景开销极小（轻量级锁；偏向锁 JDK 15 已废弃 JEP 374），而 ReentrantLock 即使无竞争也有方法调用与 AQS 入队开销；② synchronized 是 JVM 内置，JIT 可做锁消除/粗化等深度优化；③ ReentrantLock 需要额外内存（AQS 队列），每个桶一个 ReentrantLock 内存开销大；④ synchronized 自动释放，不会因异常泄漏锁。综合权衡，单桶锁 synchronized 是更优选择。</p>
 
             <p><strong>追问 2：扩容时多线程如何协作？</strong></p>
             <p>扩容时通过 sizeCtl 的低 16 位记录参与扩容的线程数。每个线程通过 <code class="inline-code">transferIndex</code> 原子认领一段桶（stride，默认 16），从后往前迁移。迁移完的桶放置 ForwardingNode（hash=MOVED），put 遇到 ForwardingNode 会调用 helpTransfer 协助扩容，get 遇到则转发到新表。这种"边扩容边服务请求"的设计让扩容不阻塞读写。</p>

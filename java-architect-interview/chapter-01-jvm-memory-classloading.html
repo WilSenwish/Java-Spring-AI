@@ -68,7 +68,7 @@
           <div class="qa-layer-body">
             <p><strong>JDK 1.0 ~ 1.1（1996-1997）</strong>：内存区域划分原始，堆不分代，方法区概念尚未明确，GC 只有 Serial。</p>
             <p><strong>JDK 1.2（1998）</strong>：引入分代收集理论，堆被划分为新生代（Eden + 2 个 Survivor）与老年代，弱/软/虚引用体系建立。</p>
-            <p><strong>JDK 1.6（2006）</strong>：方法区由"永久代（PermGen）"实现，字符串常量池位于永久代中。<code class="inline-code">-XX:MaxPermSize</code> 成为高频调优参数，但永久代大小固定、易 OOM 成为痛点。</p>
+            <p><strong>JDK 1.6（2006）</strong>：方法区由"永久代（PermGen）"实现，字符串常量池位于永久代中。<code class="inline-code">-XX:MaxPermSize</code>（JDK 8 已随永久代移除，现使用 <code class="inline-code">-XX:MaxMetaspaceSize</code>）成为高频调优参数，但永久代大小固定、易 OOM 成为痛点。</p>
             <p><strong>JDK 1.7（2011）</strong>：符号引用、静态变量移出永久代；字符串常量池从永久代迁移到堆中（仍部分保留）。这是永久代废除的前奏。</p>
             <p><strong>JDK 1.8（2014）</strong>：<strong>彻底移除永久代</strong>，方法区改由本地内存的"元空间（Metaspace）"实现。类元数据只受本地内存上限约束，解决了永久代易溢出的问题。</p>
             <p><strong>JDK 10（2018）</strong>：引入容器感知（<code class="inline-code">-XX:+UseContainerSupport</code>），JVM 自动识别 cgroup 内存限制，避免容器内 OOM Killed。</p>
@@ -529,7 +529,7 @@ graph LR
                   <tr><td>4. 线程启动规则</td><td>Thread.start() happens-before 该线程的所有操作</td></tr>
                   <tr><td>5. 线程终止规则</td><td>线程所有操作 happens-before Thread.join() 返回</td></tr>
                   <tr><td>6. 中断规则</td><td>Thread.interrupt() 调用 happens-before 被中断线程检测到中断</td></tr>
-                  <tr><td>7. 终结器规则</td><td>对象构造完成 happens-before 其 finalize() 开始</td></tr>
+                  <tr><td>7. 终结器规则</td><td>对象构造完成 happens-before 其 finalize() 开始（注：finalize() 已不推荐，JEP 421，JDK 18+ 默认禁用，使用 Cleaner / try-with-resources 替代）</td></tr>
                   <tr><td>8. 传递性</td><td>A happens-before B，B happens-before C，则 A happens-before C</td></tr>
                 </tbody>
               </table>
@@ -893,7 +893,7 @@ graph TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察 <strong>强/软/弱/虚四种引用</strong>的语义差异、GC 回收时机、以及 ReferenceQueue 机制。核心是理解"引用强度递减"如何让开发者精细控制对象生命周期，支撑缓存、资源清理（Finalizer/Cleaner）、ThreadLocal 等场景。这也是理解 ThreadLocal 内存泄漏、DirectByteBuffer 回收的前置知识。</p>
+            <p>考察 <strong>强/软/弱/虚四种引用</strong>的语义差异、GC 回收时机、以及 ReferenceQueue 机制。核心是理解"引用强度递减"如何让开发者精细控制对象生命周期，支撑缓存、资源清理（Finalizer 已不推荐，JEP 421，JDK 18+ 默认禁用，使用 Cleaner / try-with-resources 替代）、ThreadLocal 等场景。这也是理解 ThreadLocal 内存泄漏、DirectByteBuffer 回收的前置知识。</p>
           </div>
         </div>
 
@@ -903,7 +903,7 @@ graph TD
             <p><strong>JDK 1.2（1998）</strong>：引入 <code class="inline-code">java.lang.ref</code> 包，定义强/软/弱/虚四种引用与 ReferenceQueue，Java 成为首个提供细粒度引用控制的主流语言。</p>
             <p><strong>JDK 1.2-1.8</strong>：Finalizer 机制（<code class="inline-code">finalize()</code>）依赖虚引用思想，但 Finalizer 线程优先级低、执行不确定、可能复活对象，成为长期痛点。SoftReference 被广泛用于内存敏感缓存（如 Guava 的 softKeys/softValues）。</p>
             <p><strong>JDK 9（2017）</strong>：<code class="inline-code">finalize()</code> 被标记 Deprecated，引入 <code class="inline-code">java.lang.ref.Cleaner</code>（JEP 282）作为替代，基于 PhantomReference + ReferenceQueue，更安全（不在 finalize 上下文中复活对象）、可控（可指定线程）。</p>
-            <p><strong>JDK 18（2022）</strong>：<code class="inline-code">finalize()</code> 默认禁用（ForRemoval），强制迁移到 Cleaner。Finalizer 的 4 个主要问题（不确定、复活、时延、安全）被 Cleaner 根治。</p>
+            <p><strong>JDK 18（2022，JEP 421）</strong>：<code class="inline-code">finalize()</code> 默认禁用（ForRemoval），强制迁移到 Cleaner。Finalizer 的 4 个主要问题（不确定、复活、时延、安全）被 Cleaner 根治。</p>
             <p><strong>未来趋势</strong>：Cleaner 成为资源释放标准；Valhalla 值类型引入"无引用"对象（inline type 不参与引用体系，生命周期完全栈式管理）；GraalVM Native Image 中 Reference 处理更简化。</p>
           </div>
         </div>

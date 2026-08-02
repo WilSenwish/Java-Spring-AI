@@ -101,7 +101,7 @@ flowchart TD
               <div class="chart-caption">图 6.1-1 自动配置加载流程：加载候选 → 去重 → 排序 → 条件过滤 → 注册 BeanDefinition</div>
             </div>
 
-            <p><strong>2.x 的 spring.factories 格式</strong>（Properties 风格，多类名逗号分隔）：</p>
+            <p><strong>2.x 的 spring.factories 格式</strong>（Properties 风格，多类名逗号分隔；已废弃：Spring Boot 3.0 起该 key 标记废弃，AOT 不支持且启动告警，替代：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports）：</p>
             <div class="code-block"><pre><code><span class="com"># META-INF/spring.factories</span>
 <span class="var">org.springframework.boot.autoconfigure.EnableAutoConfiguration</span>=\
   com.example.RedisAutoConfiguration,\
@@ -335,7 +335,7 @@ mvn -Pnative native:build    <span class="com"># 构建 + 运行测试(在 Nativ
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>早期（Boot 1.x）</strong>：Starter 与 autoconfigure 耦合在一个 jar，配置类直接用 <code class="inline-code">@Configuration</code>，声明写在 <code class="inline-code">spring.factories</code>。问题：用户只要功能不要某默认 Bean 时，难以剥离。</p>
+            <p><strong>早期（Boot 1.x）</strong>：Starter 与 autoconfigure 耦合在一个 jar，配置类直接用 <code class="inline-code">@Configuration</code>，声明写在 <code class="inline-code">spring.factories</code>（已废弃：Spring Boot 3.0 起标记废弃，替代：AutoConfiguration.imports）。问题：用户只要功能不要某默认 Bean 时，难以剥离。</p>
             <p><strong>Boot 2.x 规范成熟</strong>：官方确立"<strong>双模块分离</strong>"——<code class="inline-code">xxx-spring-boot-autoconfigure</code>（含配置类与条件逻辑）+ <code class="inline-code">xxx-spring-boot-starter</code>（空 jar，只依赖 autoconfigure + 必需第三方库）。引入 <code class="inline-code">@ConfigurationProperties</code> + <code class="inline-code">@ConfigurationPropertiesValidation</code> 做配置校验，<code class="inline-code">@AutoConfigureBefore/After</code> 控制顺序。</p>
             <p><strong>Boot 3.x（2022）</strong>：① 自动配置类用 <code class="inline-code">@AutoConfiguration</code> 替代 <code class="inline-code">@Configuration</code>（语义更明确，且支持 <code class="inline-code">before/after/beforeName/afterName</code> 属性）；② 声明迁移到 <code class="inline-code">AutoConfiguration.imports</code>；③ 必须 AOT 友好——避免运行期反射扫描、动态类加载，保证 Starter 能用于 Native Image。</p>
             <p><strong>趋势</strong>：Starter 设计向"声明式 + 构建期可分析"演进，第三方 Starter 越来越注重提供 Native Image metadata（<code class="inline-code">reflect-config.json</code>、<code class="inline-code">resource-config.json</code>），降低用户迁移成本。</p>
@@ -469,7 +469,7 @@ com.example.mylib.MyLibAutoConfiguration</code></pre></div>
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Spring Security 3.x（XML 时代）</strong>：安全配置全靠 <code class="inline-code">&lt;http&gt;</code>、<code class="inline-code">&lt;authentication-manager&gt;</code> 等 XML 标签，配置冗长且不类型安全。过滤器链由 XML 解析生成，开发者难以直观看到链路。</p>
-            <p><strong>Spring Security 4.x-5.x（DSL 时代）</strong>：引入 <code class="inline-code">@EnableWebSecurity</code> + <code class="inline-code">WebSecurityConfigurerAdapter</code>，用 <code class="inline-code">configure(HttpSecurity)</code> 方法链式配置：<code class="inline-code">http.authorizeRequests().antMatchers("/admin").hasRole("ADMIN")</code>。配置可读性大幅提升，但仍是<strong>匿名内部类 + 方法链</strong>风格，且 <code class="inline-code">WebSecurityConfigurerAdapter</code> 是抽象类需继承，扩展受限。</p>
+            <p><strong>Spring Security 4.x-5.x（DSL 时代）</strong>：引入 <code class="inline-code">@EnableWebSecurity</code> + <code class="inline-code">WebSecurityConfigurerAdapter</code>（已废弃：Spring Security 6.x 已删除该类，替代：@Bean SecurityFilterChain 链式配置），用 <code class="inline-code">configure(HttpSecurity)</code> 方法链式配置：<code class="inline-code">http.authorizeRequests().antMatchers("/admin").hasRole("ADMIN")</code>（antMatchers 已废弃，替代：requestMatchers）。配置可读性大幅提升，但仍是<strong>匿名内部类 + 方法链</strong>风格，且 <code class="inline-code">WebSecurityConfigurerAdapter</code> 是抽象类需继承，扩展受限。</p>
             <p><strong>Spring Security 5.2+（Lambda DSL）</strong>：DSL 全面支持 Lambda，<code class="inline-code">http.authorizeRequests(req -&gt; req.antMatchers("/admin").hasRole("ADMIN"))</code>，更简洁。同时 <code class="inline-code">antMatchers</code> 标记废弃，逐步用 <code class="inline-code">requestMatchers</code> 替代。</p>
             <p><strong>Spring Security 6.x / Boot 3.x（2022，无 Adapter 时代）</strong>：关键演进——<strong>废弃 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong>，改为 <code class="inline-code">@Bean</code> 声明 <code class="inline-code">SecurityFilterChain</code>：<code class="inline-code">http.securityMatcher("/api/**").authorizeHttpRequests(auth -&gt; auth.anyRequest().authenticated())</code>。原因：① 函数式配置更利于多链组合（一个应用可有多条 <code class="inline-code">SecurityFilterChain</code>）；② 去继承更符合组合优于继承原则；③ <code class="inline-code">authorizeRequests</code> 也被 <code class="inline-code">authorizeHttpRequests</code> 取代（新授权管理器 <code class="inline-code">AuthorizationManager</code> 替代 <code class="inline-code">AccessDecisionManager</code>，更灵活）。</p>
             <p><strong>趋势</strong>：向 One-Time Token 登录、Passkey/WebAuthn、OAuth 2.1 标准化靠拢；与 Spring Authorization Server 深度整合；DSL 继续简化。</p>
@@ -596,7 +596,7 @@ flowchart TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>Spring 生态的范式跃迁</strong>：Spring MVC（2009）统一了 Web 请求处理 → Spring Data（2011）统一了数据访问 → Spring Cloud（2014）统一了微服务治理 → <strong>Spring AI（2024 GA）统一了 AI 应用开发</strong>。每一次都是用"<strong>统一抽象 + 可插拔实现 + 自动配置</strong>"模式降维整合一个新领域。</p>
+            <p><strong>Spring 生态的范式跃迁</strong>：Spring MVC（2009）统一了 Web 请求处理 → Spring Data（2011）统一了数据访问 → Spring Cloud（2014）统一了微服务治理 → <strong>Spring AI（2025 1.0 GA）统一了 AI 应用开发</strong>。每一次都是用"<strong>统一抽象 + 可插拔实现 + 自动配置</strong>"模式降维整合一个新领域。</p>
             <p><strong>Spring AI 0.8（2023 里程碑）</strong>：首批抽象落地——<code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code> 接口、OpenAI 实现、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。仅支持同步调用，API 较底层，需手动拼 Prompt。</p>
             <p><strong>Spring AI 1.0 M（2024）</strong>：引入 <code class="inline-code">ChatClient</code> 高层 Fluent API（类似 RestClient/WebClient 风格），<code class="inline-code">Advisor</code> 链（前置/后置拦截，支持 RAG/日志/重试），Structured Output（JSON 反序列化为 POJO），Function Calling 声明式注册。同步/流式/异步全支持。</p>
             <p><strong>Spring AI 1.0 GA（2025）+ MCP 支持</strong>：支持 Model Context Protocol（Anthropic 主导的标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排（<code class="inline-code">ChatClientAgent</code>）逐步落地。</p>

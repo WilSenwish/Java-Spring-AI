@@ -509,7 +509,7 @@ flowchart TD
                 <li><strong>用错距离度量</strong>：模型用余弦训练却用 L2 索引（未归一化时结果错乱），需对齐模型训练度量或先归一化。</li>
                 <li><strong>不评测召回率</strong>：未与暴力检索对比，HNSW/IVF 实际召回率可能只有 70%，应离线建 ground truth 评测。</li>
                 <li><strong>ef_search/nprobe 设太小</strong>：追求速度把召回率拉胯，应按业务精度要求调参。</li>
-                <li><strong>中文用英文 Embedding</strong>：text-embedding-ada-002 中文表现差，中文场景换 bge-m3/Qwen-Embedding。</li>
+                <li><strong>中文用英文 Embedding</strong>：text-embedding-ada-002（已废弃：OpenAI 第一代 Embedding，中文表现差，2026 推荐 bge-m3 / text-embedding-3 / text-embedding-v3（通义）等替代）中文场景换 bge-m3/Qwen-Embedding。</li>
                 <li><strong>忽视向量更新</strong>：换了 Embedding 模型但没重建索引，新旧维度不一致直接报错或召回错乱。</li>
                 <li><strong>把向量库当关系库</strong>：向量检索是近似的、无事务的，不能替代 MySQL 做精确查询。</li>
               </ul>
@@ -616,7 +616,7 @@ parentStore.put(parentId, parentChunk);  <span class="com">// 生成用</span></
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：块大小到底定多少合适？有黄金值吗？</strong></p>
-            <p>没有放之四海的黄金值，取决于<strong>文档类型与 Embedding 模型最大输入</strong>。经验区间：FAQ/短问答用 128-256 tokens（一个问题一个块）；通用文档 300-500 tokens；长篇技术文档 500-800 tokens。Embedding 模型有最大输入限制（bge-m3 支持 8K，ada-002 支持 8K），块不能超过此限。正确做法：<strong>建一个评测集（问题+正确文档），用不同块大小跑召回率曲线</strong>，选召回率拐点。块大小还影响生成——块越大塞进 Prompt 的块数越少，需平衡。</p>
+            <p>没有放之四海的黄金值，取决于<strong>文档类型与 Embedding 模型最大输入</strong>。经验区间：FAQ/短问答用 128-256 tokens（一个问题一个块）；通用文档 300-500 tokens；长篇技术文档 500-800 tokens。Embedding 模型有最大输入限制（bge-m3 支持 8K，ada-002 支持 8K；ada-002 为 OpenAI 第一代已废弃 Embedding，2026 推荐 bge-m3 / text-embedding-3 / text-embedding-v3（通义）等替代，此处仅作演进对比），块不能超过此限。正确做法：<strong>建一个评测集（问题+正确文档），用不同块大小跑召回率曲线</strong>，选召回率拐点。块大小还影响生成——块越大塞进 Prompt 的块数越少，需平衡。</p>
             <p><strong>追问 2：父子分块如何实现？存储与检索怎么关联？</strong></p>
             <p>实现：原文档先切成<strong>父块</strong>（大，如 800 tokens），每个父块再切成<strong>子块</strong>（小，如 200 tokens）。子块入向量库（带 <code class="inline-code">parentId</code> 元数据），父块存文档库（KV/关系库）。检索时：① 向量检索召回子块 top-k；② 按子块 <code class="inline-code">parentId</code> 去重取对应父块；③ 父块送 Prompt 生成。变体：<strong>Sentence Window</strong>——检索单句，送生成时扩展为前后 N 句窗口。核心都是"<strong>检索粒度小、生成粒度大</strong>"，解耦两个环节的不同需求。</p>
           </div>
@@ -1308,7 +1308,7 @@ flowchart TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>全用旗舰模型</strong>：简单任务也用 GPT-4，成本爆炸，应分级路由。</li>
+                <li><strong>全用旗舰模型</strong>：简单任务也用 GPT-4，成本爆炸——全用旗舰模型是成本反模式，应按场景分级路由（简单任务用小模型/开源模型，复杂任务用旗舰模型）。</li>
                 <li><strong>无成本埋点</strong>：不知钱花哪，应埋点 Token/成本按场景统计。</li>
                 <li><strong>语义缓存误命中</strong>：相似但不同义问题返回错答案，阈值与 TTL 要调。</li>
                 <li><strong>RAG 塞太多片段</strong>：top-10 全塞，输入 Token 爆炸，应 top-3+Rerank。</li>

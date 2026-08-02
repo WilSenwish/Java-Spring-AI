@@ -383,7 +383,7 @@ flowchart LR
 
             <p><strong>HTTP/1.0（1996）</strong>：每个请求独立 TCP 连接，三次握手开销大，无法复用。</p>
             <p><strong>HTTP/1.1（1997，RFC 2616）</strong>：引入<strong>持久连接</strong>（Connection: keep-alive，默认开启）、<strong>管道化</strong>（Pipelining，允许连续发请求不等待响应）、<strong>分块传输</strong>（Chunked Transfer）、<strong>Host 头</strong>（支持虚拟主机）。但管道化有响应顺序依赖，未被广泛实现；浏览器仍限制同域名 6-8 个并发连接。</p>
-            <p><strong>HTTP/2（2015，RFC 7540）</strong>：Google SPDY 标准化。核心创新：<strong>二进制分帧</strong>（替代文本报文）、<strong>多路复用</strong>（单连接并发多请求）、<strong>头部压缩 HPACK</strong>、<strong>Server Push</strong>。但所有流共享一个 TCP 连接，<strong>TCP 层丢包会阻塞所有流</strong>（TCP 队头阻塞）。</p>
+            <p><strong>HTTP/2（2015，RFC 7540）</strong>：Google SPDY 标准化。核心创新：<strong>二进制分帧</strong>（替代文本报文）、<strong>多路复用</strong>（单连接并发多请求）、<strong>头部压缩 HPACK</strong>、<strong>Server Push</strong>（已废弃：HTTP/3 已移除 Server Push，命中率低、缓存复杂，推荐用 Preload / Link 头替代）。但所有流共享一个 TCP 连接，<strong>TCP 层丢包会阻塞所有流</strong>（TCP 队头阻塞）。</p>
             <p><strong>HTTP/3（2022，RFC 9114）</strong>：基于 QUIC（UDP 之上实现可靠传输）。QUIC 把"连接"从四元组（源 IP/端口+目的 IP/端口）解耦为<strong>连接 ID</strong>，网络切换（WiFi↔4G）不断连；每个流独立拥塞控制与丢包恢复，<strong>彻底消除队头阻塞</strong>；支持 0-RTT/1-RTT 握手；头部压缩升级为 QPACK。</p>
             <p><strong>演进驱动力</strong>：从"<strong>连接复用</strong>"（HTTP/1.1）到"<strong>连接内并发</strong>"（HTTP/2）到"<strong>无阻塞+连接迁移</strong>"（HTTP/3），每一步都在降低延迟、提升连接鲁棒性，适应移动互联网与实时交互场景。</p>
           </div>
@@ -406,7 +406,7 @@ flowchart LR
                 <tr><td>握手延迟</td><td>1-RTT + TCP 握手</td><td>1-RTT + TCP 握手 + TLS</td><td>0-RTT/1-RTT（QUIC 内含 TLS）</td></tr>
                 <tr><td>连接迁移</td><td>四元组变则断</td><td>四元组变则断</td><td>连接 ID 不变不断</td></tr>
                 <tr><td>头部压缩</td><td>无（gzip 压 body）</td><td>HPACK（静态+动态表）</td><td>QPACK（避免队头阻塞）</td></tr>
-                <tr><td>Server Push</td><td>无</td><td>有（实际少用）</td><td>移除（WebTransport 替代）</td></tr>
+                <tr><td>Server Push</td><td>无</td><td>有（实际少用）</td><td>移除（推荐 Preload / Link 头替代）</td></tr>
               </tbody>
             </table>
 
@@ -506,9 +506,9 @@ flowchart LR
               <div class="chart-caption">图 13.4-1 TLS 协议演进：1.0→1.1→1.2→1.3</div>
             </div>
 
-            <p><strong>TLS 1.0/1.1（已废弃）</strong>：基于 SSL 3.0，存在 BEAST、POODLE、RC4 弱点，主流浏览器 2020 起禁用。</p>
+            <p><strong>TLS 1.0/1.1（已废弃）</strong>：基于 SSL 3.0，存在 BEAST、POODLE、RC4 弱点，主流浏览器 2020 起禁用，当前推荐 TLS 1.3。</p>
             <p><strong>TLS 1.2（2008，当前兼容主流）</strong>：支持 AEAD 加密（AES-GCM）、SHA-256/384、灵活的密码套件协商。完整握手需 2-RTT（TCP 1-RTT + TLS 1-RTT = 共 3-RTT 才能发应用数据）。</p>
-            <p><strong>TLS 1.3（2018，RFC 8446）</strong>：最大变革是<strong>握手简化</strong>——把协商轮次从 2-RTT 降到 1-RTT，重连可 0-RTT；废除 RSA 密钥交换（仅支持前向安全的 ECDHE）；密码套件从几十种精简到 5 种（减少攻击面）；加密更多握手字段（除 ClientHello 外几乎全部加密）。</p>
+            <p><strong>TLS 1.3（2018，RFC 8446）</strong>：最大变革是<strong>握手简化</strong>——把协商轮次从 2-RTT 降到 1-RTT，重连可 0-RTT；废除 RSA 密钥交换（无前向安全，仅支持前向安全的 ECDHE）及大量旧密码套件（CBC/MD5/SHA-1，仅保留 AEAD）；密码套件从几十种精简到 5 种（减少攻击面）；加密更多握手字段（除 ClientHello 外几乎全部加密）。</p>
             <p><strong>演进驱动力</strong>：① <strong>延迟敏感</strong>——移动互联网要求首包极致快，1-RTT/0-RTT 直接提升用户体验；② <strong>安全加固</strong>——RSA 无 PFS，泄露私钥可解密历史流量，必须淘汰；③ <strong>减少攻击面</strong>——TLS 1.2 的密码套件太多，很多已不安全，1.3 大刀阔斧精简。</p>
           </div>
         </div>
@@ -560,7 +560,7 @@ sequenceDiagram
             <p><strong>OCSP Stapling</strong>：传统 OCSP 需客户端额外发请求查证书是否吊销，增加延迟。OCSP Stapling 让服务器定期向 CA 查询 OCSP 响应并<strong>在 TLS 握手时附带</strong>，客户端直接验证，省一次往返。</p>
 
             <p><strong>前向安全（Perfect Forward Secrecy, PFS）</strong>：</p>
-            <p>传统 RSA 密钥交换中，Pre-Master Secret 用服务器公钥加密传输。若服务器私钥未来泄露，攻击者可解密所有历史流量。<strong>ECDHE（临时椭圆曲线 Diffie-Hellman）密钥交换</strong>每次握手生成临时密钥对，会话密钥派生后临时密钥即丢弃。即使私钥泄露，也无法推算历史会话密钥——<strong>保护的是"过去"</strong>。</p>
+            <p>传统 RSA 密钥交换（TLS 1.3 已废弃，无前向安全）中，Pre-Master Secret 用服务器公钥加密传输。若服务器私钥未来泄露，攻击者可解密所有历史流量。<strong>ECDHE（临时椭圆曲线 Diffie-Hellman）密钥交换</strong>每次握手生成临时密钥对，会话密钥派生后临时密钥即丢弃。即使私钥泄露，也无法推算历史会话密钥——<strong>保护的是"过去"</strong>。</p>
           </div>
         </div>
 
@@ -794,8 +794,8 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>Netty 版本演进</strong>：</p>
             <p><strong>Netty 2.x（2004）</strong>：JBoss 内部项目，基于 Java NIO，API 粗糙。</p>
-            <p><strong>Netty 3.x（2008）</strong>：独立于 JBoss，引入 Channel、ChannelPipeline、ChannelHandler 核心抽象。但存在 inbound/outbound 概念混淆、线程模型不够清晰的问题。</p>
-            <p><strong>Netty 4.x（2013）</strong>：重大重构——统一 EventLoop（取代 3.x 的 ChannelFactory+Boss/Worker 分离）、引入 ByteBuf（替代 ByteBuffer）、简化 Handler 接口（ChannelInboundHandler/ChannelOutboundHandler 分离清晰）。成为业界标准，RocketMQ、Dubbo、gRPC、Elasticsearch 均基于 Netty 4。</p>
+            <p><strong>Netty 3.x（2008，已淘汰）</strong>：独立于 JBoss，引入 Channel、ChannelPipeline、ChannelHandler 核心抽象。但存在 inbound/outbound 概念混淆、线程模型不够清晰的问题，当前主流为 4.1.x。</p>
+            <p><strong>Netty 4.x（2013）</strong>：重大重构——统一 EventLoop（取代 3.x 的 ChannelFactory+Boss/Worker 分离，该模型已废弃）、引入 ByteBuf（替代 ByteBuffer）、简化 Handler 接口（ChannelInboundHandler/ChannelOutboundHandler 分离清晰）。成为业界标准，RocketMQ、Dubbo、gRPC、Elasticsearch 均基于 Netty 4。</p>
             <p><strong>Netty 5.x（暂缓）</strong>：曾计划统一 Buffer API、优化内存管理，但因改动大、收益不确定，官方已搁置，4.x 持续演进（当前 4.1.x）。</p>
             <p><strong>演进驱动力</strong>：从"NIO 编程太复杂"到"事件驱动+责任链+内存池"的工程化封装，Netty 把 Java NIO 的底层细节（epoll bug、半包粘包、ByteBuffer 限制）全部屏蔽，让开发者聚焦业务。</p>
           </div>
@@ -931,7 +931,7 @@ ch.pipeline()
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Netty 内存管理演进</strong>：</p>
-            <p><strong>Netty 3.x</strong>：使用 JDK ByteBuffer 或自定义 ChannelBuffer，无统一内存池，高并发下 GC 压力大。</p>
+            <p><strong>Netty 3.x（已淘汰）</strong>：使用 JDK ByteBuffer 或自定义 ChannelBuffer，无统一内存池，高并发下 GC 压力大，当前主流为 Netty 4.1。</p>
             <p><strong>Netty 4.0（2013）</strong>：引入 ByteBuf 统一抽象，提供 Unpooled（非池化）与 Pooled（池化）两种分配器。PoolArena 借鉴 jemalloc 思想，解决堆外内存管理问题。</p>
             <p><strong>Netty 4.1（当前主流）</strong>：优化 PoolArena 的并发分配（每个线程绑定 PoolThreadCache 减少锁竞争）、引入 Tiny/Small 分类、完善内存泄漏检测（ResourceLeakDetector）。</p>
             <p><strong>演进驱动力</strong>：堆外内存不受 JVM GC 管理，手动 malloc/free 易泄漏且分配慢；jemalloc 思想（按大小分档、线程缓存、伙伴系统）被引入 Netty，实现"GC 无关+高吞吐+低碎片"的内存管理。</p>
