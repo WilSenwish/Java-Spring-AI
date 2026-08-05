@@ -84,13 +84,13 @@
               <div class="mermaid">
 flowchart TD
     A["@SpringBootApplication 启动"] --> B["@EnableAutoConfiguration"]
-    B --> C["@Import(AutoConfigurationImportSelector)"]
-    C --> D["selectImports() 触发"]
-    D --> E["getAutoConfigurationEntry()"]
-    E --> F["1. 加载候选配置类<br/>2.x: SpringFactoriesLoader 读 spring.factories<br/>3.x: ImportCandidates 读 AutoConfiguration.imports"]
-    F --> G["2. 去重 deduplication"]
-    G --> H["3. 排序 AutoConfigureOrder/Before/After"]
-    H --> I["4. 过滤 @Conditional 条件评估"]
+    B --> C["@Import（AutoConfigurationImportSelector）"]
+    C --> D["selectImports（） 触发"]
+    D --> E["getAutoConfigurationEntry（）"]
+    E --> F["1、加载候选配置类<br/>2.x: SpringFactoriesLoader 读 spring.factories<br/>3.x: ImportCandidates 读 AutoConfiguration.imports"]
+    F --> G["2、去重 deduplication"]
+    G --> H["3、排序 AutoConfigureOrder/Before/After"]
+    H --> I["4、过滤 @Conditional 条件评估"]
     I --> J{"条件满足?"}
     J -- 是 --> K["注册该配置类为 BeanDefinition"]
     J -- 否 --> L["排除该配置类"]
@@ -210,11 +210,11 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
               <div class="mermaid">
 flowchart LR
     subgraph Build [构建期 AOT 处理]
-        B1["1. 启动 ApplicationContext 到 BeanDefinition 注册后<br/>但不实例化 Bean"]
-        B2["2. SpringAOTProcessor 分析 BeanFactory"]
-        B3["3. 评估 @Conditional 并冻结结果"]
-        B4["4. 为每个 Bean 生成实例化代码<br/>(替代运行期反射)"]
-        B5["5. 生成 GraalVM 元数据<br/>(反射/资源/代理 hint)"]
+        B1["1、启动 ApplicationContext 到 BeanDefinition 注册后<br/>但不实例化 Bean"]
+        B2["2、SpringAOTProcessor 分析 BeanFactory"]
+        B3["3、评估 @Conditional 并冻结结果"]
+        B4["4、为每个 Bean 生成实例化代码<br/>（替代运行期反射）"]
+        B5["5、生成 GraalVM 元数据<br/>（反射/资源/代理 hint）"]
         B1 --> B2 --> B3 --> B4 --> B5
     end
     subgraph Run [运行期]
@@ -349,12 +349,12 @@ mvn -Pnative native:build    <span class="com"># 构建 + 运行测试(在 Nativ
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TD
-    subgraph Starter ["mylib-spring-boot-starter (空 jar)"]
-        S1["pom 依赖:<br/>mylib-spring-boot-autoconfigure<br/>+ mylib-core (第三方库)"]
+    subgraph Starter ["mylib-spring-boot-starter （空 jar）"]
+        S1["pom 依赖:<br/>mylib-spring-boot-autoconfigure<br/>+ mylib-core （第三方库）"]
     end
-    subgraph Auto ["mylib-spring-boot-autoconfigure (核心)"]
+    subgraph Auto ["mylib-spring-boot-autoconfigure （核心）"]
         A1["MyLibAutoConfiguration<br/>@AutoConfiguration + @ConditionalOnClass"]
-        A2["MyLibProperties<br/>@ConfigurationProperties(prefix=mylib)"]
+        A2["MyLibProperties<br/>@ConfigurationProperties（prefix=mylib）"]
         A3["默认 Bean: MyLibClient<br/>@ConditionalOnMissingBean + @Bean"]
         A4["META-INF/spring/...AutoConfiguration.imports"]
         A1 --> A2
@@ -485,16 +485,16 @@ com.example.mylib.MyLibAutoConfiguration</code></pre></div>
               <div class="mermaid">
 flowchart TD
     A["HTTP 请求"] --> B["Servlet 容器 FilterChain"]
-    B --> C["DelegatingFilterProxy<br/>(桥接 Servlet 与 Spring)"]
-    C --> D["FilterChainProxy<br/>(名为 springSecurityFilterChain)"]
-    D --> E{"遍历 SecurityFilterChain<br/>matches(request)?"}
+    B --> C["DelegatingFilterProxy<br/>（桥接 Servlet 与 Spring）"]
+    C --> D["FilterChainProxy<br/>（名为 springSecurityFilterChain）"]
+    D --> E{"遍历 SecurityFilterChain<br/>matches（request）?"}
     E -- 匹配 --> F["执行该链的过滤器序列"]
     E -- 不匹配 --> G["尝试下一条链"]
     F --> F1["SecurityContextPersistenceFilter<br/>加载/清理 SecurityContext"]
-    F1 --> F2["UsernamePasswordAuthenticationFilter<br/>处理表单登录(POST /login)"]
+    F1 --> F2["UsernamePasswordAuthenticationFilter<br/>处理表单登录（POST /login）"]
     F2 --> F3["BasicAuthenticationFilter<br/>处理 HTTP Basic"]
-    F3 --> F4["...其他过滤器(CSRF/CORS/Logout)"]
-    F4 --> F5["AuthorizationFilter(6.x)<br/>授权检查"]
+    F3 --> F4["...其他过滤器（CSRF/CORS/Logout）"]
+    F4 --> F5["AuthorizationFilter（6.x）<br/>授权检查"]
     F5 --> F6["剩余 Servlet 过滤器 + Controller"]
     style D fill:#dbeafe,stroke:#2563eb
     style F2 fill:#fef3c7,stroke:#d97706
@@ -616,22 +616,22 @@ flowchart TD
         APP["业务 ChatClient 调用 + Advisor 链"]
     end
     subgraph L3 ["Spring AI 高层 API"]
-        CC["ChatClient (Fluent API)<br/>prompt().user().call().content()"]
-        ADV["Advisor 链<br/>(前置/后置拦截:RAG/日志/重试/记忆)"]
-        SO["Structured Output<br/>entity(Class) → POJO"]
+        CC["ChatClient （Fluent API）<br/>prompt（）.user（）.call（）.content（）"]
+        ADV["Advisor 链<br/>（前置/后置拦截:RAG/日志/重试/记忆）"]
+        SO["Structured Output<br/>entity（Class） → POJO"]
         CC --> ADV
         ADV --> SO
     end
     subgraph L2 ["Spring AI 模型抽象"]
-        CM["ChatModel<br/>call(Prompt)/stream(Prompt)"]
-        EM["EmbeddingModel<br/>embed(List&lt;String&gt;)"]
+        CM["ChatModel<br/>call（Prompt）/stream（Prompt）"]
+        EM["EmbeddingModel<br/>embed（List&lt;String&gt;）"]
         VS["VectorStore<br/>add/delete/similaritySearch"]
         FC["Function Calling<br/>@Bean Function 注册"]
     end
     subgraph L1 ["可插拔实现"]
         OAI["OpenAI"]
         ANT["Anthropic"]
-        OLL["Ollama(本地)"]
+        OLL["Ollama（本地）"]
         QW["通义千问/智谱"]
         PGV["PgVector/Redis/Chroma/Milvus"]
     end
@@ -1113,13 +1113,13 @@ spring:
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TD
-    E["Controller 抛出异常"] --> R1["1. ExceptionHandlerExceptionResolver<br/>处理 @ExceptionHandler(最高优先级)"]
+    E["Controller 抛出异常"] --> R1["1、ExceptionHandlerExceptionResolver<br/>处理 @ExceptionHandler（最高优先级）"]
     R1 -- 匹配到 --> H1["@ControllerAdvice 的 @ExceptionHandler 方法处理"]
-    R1 -- 未匹配 --> R2["2. ResponseStatusExceptionResolver<br/>处理 @ResponseStatus 注解"]
+    R1 -- 未匹配 --> R2["2、ResponseStatusExceptionResolver<br/>处理 @ResponseStatus 注解"]
     R2 -- 匹配到 --> H2["按注解 status/code 返回"]
-    R2 -- 未匹配 --> R3["3. DefaultHandlerExceptionResolver<br/>处理 Spring 标准异常"]
+    R2 -- 未匹配 --> R3["3、DefaultHandlerExceptionResolver<br/>处理 Spring 标准异常"]
     R3 -- 匹配到 --> H3["如 NoSuchRequestHandlingMethodException → 404"]
-    R3 -- 未匹配 --> F["交给容器 /error 端点(Boot 默认错误页)"]
+    R3 -- 未匹配 --> F["交给容器 /error 端点（Boot 默认错误页）"]
     style R1 fill:#dbeafe,stroke:#2563eb
     style H1 fill:#dcfce7,stroke:#059669
               </div>
