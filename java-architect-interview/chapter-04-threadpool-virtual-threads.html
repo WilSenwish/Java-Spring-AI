@@ -218,14 +218,14 @@ f.<span class="fn">set</span>(queue, <span class="num">5000</span>);            
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TD
-    A[提交任务 execute] --> B{当前线程数 < corePoolSize?}
-    B -- 是 --> C[创建核心线程执行任务]
-    B -- 否 --> D[尝试入队 workQueue]
-    D --> E{入队成功?}
-    E -- 是 --> F[等待空闲线程领取]
-    E -- 否 --> G{当前线程数 < maximumPoolSize?}
-    G -- 是 --> H[创建非核心线程执行任务]
-    G -- 否 --> I[触发拒绝策略 handler.rejectedExecution]
+    A["提交任务 execute"] --> B{"当前线程数 < corePoolSize?"}
+    B -- 是 --> C["创建核心线程执行任务"]
+    B -- 否 --> D["尝试入队 workQueue"]
+    D --> E{"入队成功?"}
+    E -- 是 --> F["等待空闲线程领取"]
+    E -- 否 --> G{"当前线程数 < maximumPoolSize?"}
+    G -- 是 --> H["创建非核心线程执行任务"]
+    G -- 否 --> I["触发拒绝策略 handler.rejectedExecution"]
     C --> J[任务执行完成]
     F --> K[空闲线程从队列领取]
     H --> J
@@ -265,12 +265,12 @@ flowchart TD
               <div class="mermaid">
 stateDiagram-v2
     [*] --> RUNNING : new ThreadPoolExecutor
-    RUNNING --> SHUTDOWN : shutdown()
-    RUNNING --> STOP : shutdownNow()
-    SHUTDOWN --> STOP : shutdownNow()
+    RUNNING --> SHUTDOWN : shutdown
+    RUNNING --> STOP : shutdownNow
+    SHUTDOWN --> STOP : shutdownNow
     SHUTDOWN --> TIDYING : 队列空且工作线程为0
     STOP --> TIDYING : 工作线程为0
-    TIDYING --> TERMINATED : terminated() 钩子执行完
+    TIDYING --> TERMINATED : terminated 钩子执行完
     TERMINATED --> [*]
     note right of RUNNING: 接收新任务 + 处理队列任务
     note right of SHUTDOWN: 不接收新任务 + 处理队列剩余任务
@@ -382,7 +382,7 @@ flowchart LR
     end
     subgraph Thread 对象
         T["Thread"]
-        TLM["ThreadLocalMap<br/>table: Entry[]"]
+        TLM["ThreadLocalMap<br/>table: Entry 数组"]
     end
     subgraph Entry 结构
         E["Entry<br/>Key: WeakReference&lt;ThreadLocal&gt;<br/>Value: Object (强引用)"]
@@ -512,12 +512,12 @@ flowchart LR
               <div class="mermaid">
 timeline
     title Java 并发模型六代演进
-    JDK 1.0 (1996) : Thread / Runnable : 一切皆平台线程，OS 调度，1:1 映射
-    JDK 5 (2004) : Executor 框架 : 线程池化，任务与执行策略解耦
-    JDK 7 (2011) : ForkJoinPool : 工作窃取，分治任务模型
-    JDK 8 (2014) : CompletableFuture : 链式异步编排，回调组合
-    JDK 21 (2023) : Virtual Threads : 轻量级线程，同步写法异步性能
-    JDK 21+ (Preview) : Structured Concurrency : 父子任务生命周期绑定
+    JDK 1.0 : 1996 : Thread / Runnable : 一切皆平台线程，OS 调度，1:1 映射
+    JDK 5 : 2004 : Executor 框架 : 线程池化，任务与执行策略解耦
+    JDK 7 : 2011 : ForkJoinPool : 工作窃取，分治任务模型
+    JDK 8 : 2014 : CompletableFuture : 链式异步编排，回调组合
+    JDK 21 : 2023 : Virtual Threads : 轻量级线程，同步写法异步性能
+    JDK 21+ Preview : Structured Concurrency : 父子任务生命周期绑定
               </div>
               <div class="chart-caption">图 4.4-1 Java 并发模型六代演进：从 OS 线程到结构化并发</div>
             </div>
@@ -559,11 +559,11 @@ timeline
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TD
-    subgraph 载体线程 Carrier Threads (ForkJoinPool)
+    subgraph CarrierThreads ["载体线程 Carrier Threads (ForkJoinPool)"]
         C1[Carrier-1]
         C2[Carrier-2]
     end
-    subgraph 虚拟线程 Virtual Threads (百万级)
+    subgraph VirtualThreads ["虚拟线程 Virtual Threads (百万级)"]
         V1[VT-A 执行中]
         V2[VT-B 阻塞 IO]
         V3[VT-C 等待锁]
