@@ -732,10 +732,17 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
     redisTemplate.<span class="fn">convertAndSend</span>(<span class="str">"cache:evict"</span>, key); <span class="com">// 广播删L1</span>
 }
 
-<span class="com">// 4. 各实例订阅广播清本地</span>
-<span class="kw">@RedisListener</span>(channel = <span class="str">"cache:evict"</span>)
-<span class="kw">public</span> <span class="kw">void</span> <span class="fn">onEvict</span>(<span class="type">String</span> key) {
-    caffeine.<span class="fn">invalidate</span>(key);
+<span class="com">// 4. 各实例订阅广播清本地（配置 RedisMessageListenerContainer）</span>
+<span class="kw">@Bean</span>
+<span class="kw">public</span> <span class="type">RedisMessageListenerContainer</span> <span class="fn">container</span>(
+        <span class="type">RedisConnectionFactory</span> factory) {
+    <span class="type">RedisMessageListenerContainer</span> c = <span class="kw">new</span> <span class="type">RedisMessageListenerContainer</span>();
+    c.<span class="fn">setConnectionFactory</span>(factory);
+    c.<span class="fn">addMessageListener</span>((message, pattern) -&gt; {
+        <span class="type">String</span> key = <span class="kw">new</span> <span class="type">String</span>(message.<span class="fn">getBody</span>(), <span class="type">StandardCharsets</span>.UTF_8);
+        caffeine.<span class="fn">invalidate</span>(key);       <span class="com">// 清本地 L1 缓存</span>
+    }, <span class="kw">new</span> <span class="type">ChannelTopic</span>(<span class="str">"cache:evict"</span>));
+    <span class="kw">return</span> c;
 }</code></pre></div>
 
             <p><strong>热点探测集成</strong>：超热 key（如秒杀商品）即使 L2 也扛不住单分片读。用 JD hotkey 或自研热点探测——滑动窗口统计访问频次超阈值的 key，自动推送到所有实例 L1 并延长 TTL。业务无感知，热 key 自动本地化。</p>

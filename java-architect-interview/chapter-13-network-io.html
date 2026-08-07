@@ -25,6 +25,7 @@
         <li><a href="#qa-13-8"><span class="toc-number">13.8</span>零拷贝技术深度：sendfile、mmap、DMA</a></li>
         <li><a href="#qa-13-9"><span class="toc-number">13.9</span>WebSocket 握手、心跳与断线重连设计</a></li>
         <li><a href="#qa-13-10"><span class="toc-number">13.10</span>DNS 解析原理与智能调度</a></li>
+        <li><a href="#qa-13-11"><span class="toc-number">13.11</span>io_uring 异步 IO 与 Loom</a></li>
       </ol>
     </aside>
 
@@ -44,11 +45,11 @@
         <h1 class="chapter-title">网络与高性能 IO</h1>
         <p class="chapter-subtitle">从 OSI 七层到 TCP/IP 四层到 QUIC 的协议演进、从 BIO 到 NIO 到 AIO 的 IO 模型演进、从 HTTP/1.1 到 HTTP/2 到 HTTP/3 的 Web 协议演进、从轮询到长轮询到 SSE 到 WebSocket 的实时通信演进、从传统拷贝到 sendfile 到 mmap 到 DMA 的数据传输演进：直击 TCP 状态机与拥塞控制、TLS 握手与证书链、Java NIO Selector/Reactor、Netty EventLoop/Pipeline/ByteBuf 池化、零拷贝实现、WebSocket 长连接设计、DNS 智能调度与 HTTPDNS</p>
         <div class="chapter-meta">
-          <span>题目数：10</span>
+          <span>题目数：11</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×6</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×3</span>
+          <span>架构级 ×4</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
@@ -1449,6 +1450,100 @@ $ dig www.example.com | grep "ANSWER SECTION" -A 2</code></pre></div>
                 <li><strong>忽视 Local DNS 缓存</strong>：修改 DNS 记录后，全球生效需等待旧 TTL 过期，紧急切换可提前调低 TTL（提前量 = 原 TTL）。</li>
                 <li><strong>把 DNS 当健康检查</strong>：DNS 轮询返回多 IP 但不感知节点健康，需客户端或 LB 做 failover。</li>
                 <li><strong>认为 DNSSEC 能防劫持</strong>：DNSSEC 只防篡改（签名验证失败则拒绝），不防劫持（攻击者直接返回假 IP，无签名，客户端若无 DNSSEC 验证则无法识别）。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q13.11 Linux io_uring 异步 IO 接口与 JDK Project Loom 的关系 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-13-11" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">13.11</div>
+          <div class="qa-question">Linux io_uring 异步 IO 接口与 JDK Project Loom 的关系？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>Linux IO 模型从"事件驱动"到"完成驱动"演进</strong> 的底层理解，以及 Java 生态对它的跟进节奏。核心要回答清楚四点：① io_uring 的核心设计（SQ/CQ 环形队列）与 epoll 事件驱动模型的本质差异；② io_uring 比 epoll 快在哪里；③ JDK Project Loom（虚拟线程）底层到底用的是 epoll 还是 io_uring；④ Java 生态何时能原生吃到 io_uring 的红利。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Linux 异步 IO 接口演进</strong>：select（1024 fd 上限、O(n) 遍历）→ poll（无 fd 上限但仍 O(n)）→ epoll（O(1) 事件通知、C10K 时代主力）→ io_uring（Linux 5.1，2019，共享内存环形队列、零拷贝、完成驱动，面向 C10M）。</p>
+            <p><strong>Java 侧演进</strong>：BIO（一连接一线程）→ NIO（Selector 基于 epoll，Reactor 模式）→ Netty（多路复用 + EventLoop）→ <strong>Project Loom / JDK 21 虚拟线程</strong>（用同步阻塞写法承载海量并发，底层调度器仍依赖 epoll 的 <code class="inline-code">EPollSelectorImpl</code>）→ <strong>未来</strong>：JDK 社区探索对 io_uring 的原生支持（Project Loom 早期曾评估 io_uring，当前主线仍走 epoll），第三方 netty-incubator-transport-io_uring 已提供实验性封装。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>io_uring 核心设计：两个共享内存环形队列</strong>。Submission Queue（SQ）+ Completion Queue（CQ），用户态与内核态共享同一块内存。</p>
+            <ul>
+              <li><strong>SQE（Submission Queue Entry）</strong>：用户态把 IO 请求（如读文件、建立连接）写入 SQ，内核消费。</li>
+              <li><strong>CQE（Completion Queue Entry）</strong>：IO 完成后内核把结果写入 CQ，用户态轮询 CQ 获取结果。</li>
+              <li><strong>共享内存零拷贝</strong>：SQE/CQE 通过 mmap 共享，提交和完成都不需要拷贝请求结构，也无需每次系统调用传参。</li>
+              <li><strong>io_uring_enter</strong>：唯一的系统调用入口，批量提交 SQE 并等待 CQE；SQ 非空时可不调用，由内核轮询消费。</li>
+            </ul>
+            <p><strong>两种工作模式</strong>：① 中断模式（默认）——内核完成 IO 后通过 CQ 通知；② 轮询模式（IOPOLL）——内核主动轮询 SQ（适合 NVMe 等高速块设备，延迟最低但空耗 CPU）。还可注册 Buffer Ring（Provided Buffers）预先注册缓冲区，进一步减少运行时分配。</p>
+            <p><strong>与 epoll 的本质对比</strong>：epoll 是<strong>事件驱动</strong>——告诉你"fd 就绪了"，你还得自己调 read/write 把数据搬完（仍可能阻塞、仍需系统调用）；io_uring 是<strong>完成驱动</strong>——你只管提交"帮我读这块数据"，完成时数据已在缓冲区，全程可彻底异步、零系统调用（轮询模式下）。io_uring 把"就绪通知 + 数据搬运"合一，省去了 epoll 就绪后再 read 的那次系统调用和可能的阻塞。</p>
+            <p><strong>JDK 虚拟线程的真相</strong>：JDK 21 虚拟线程在 IO 阻塞时会被调度器 unmount，底层靠 <code class="inline-code">Selector</code>（Linux 上是 <code class="inline-code">EPollSelectorImpl</code>，基于 epoll）监听就绪事件，就绪后重新 mount 执行。所以虚拟线程<strong>本质仍是 epoll 事件驱动</strong>，只是把异步回调的复杂度封装成了同步阻塞的写法——它并不直接使用 io_uring。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>高级开发视角</strong>：了解 io_uring 的存在与原理即可。Netty 通过 <code class="inline-code">netty-incubator-transport-io_uring</code> 模块提供实验性支持，底层用 JNI 直接调用 <code class="inline-code">liburing</code> 或裸 <code class="inline-code">io_uring_setup/io_uring_enter</code> 系统调用，可替换默认的 NioEventLoop（epoll）。使用时注意：模块仍在 incubator，API 不稳定；要求内核 ≥ 5.1（轮询模式等特性需更高版本）。</p>
+            <div class="code-block"><pre><code><span class="com">// Netty io_uring 实验性用法（incubator 模块）</span>
+<span class="type">EventLoopGroup</span> <span class="var">group</span> = <span class="kw">new</span> <span class="type">IOUringEventLoopGroup</span>(<span class="num">4</span>);
+<span class="kw">try</span> {
+    <span class="type">ServerBootstrap</span> <span class="var">b</span> = <span class="kw">new</span> <span class="type">ServerBootstrap</span>()
+        .<span class="fn">group</span>(group)
+        .<span class="fn">channel</span>(<span class="type">IOUringServerSocketChannel</span>.<span class="kw">class</span>)
+        .<span class="fn">childHandler</span>(<span class="kw">new</span> <span class="type">MyInitializer</span>());
+    <span class="type">ChannelFuture</span> <span class="var">f</span> = b.<span class="fn">bind</span>(<span class="num">8080</span>).<span class="fn">sync</span>();
+    f.<span class="fn">channel</span>().<span class="fn">closeFuture</span>().<span class="fn">sync</span>();
+} <span class="kw">finally</span> {
+    group.<span class="fn">shutdownGracefully</span>();
+}
+<span class="com">// 注意：仅 Linux 内核 5.1+ 可用；生产前需压测对比 epoll 的实际收益</span>
+</code></pre></div>
+            <p><strong>架构师视角</strong>：选型时关注三点：① <strong>io_uring vs epoll 性能对比</strong>——在高并发短连接、海量文件 IO、NVMe 存储场景 io_uring 优势明显（系统调用数和上下文切换大幅减少），但普通网络业务、连接数适中时 epoll 已足够，差距不大；② <strong>Java 采纳路线</strong>——主线 JDK 短期内不会原生切换到 io_uring，虚拟线程 + epoll 已能满足绝大多数高并发场景；重度依赖 io_uring 的可走 Netty incubator 或 JNI 自封装；③ <strong>虚拟线程是否替代异步 IO</strong>——虚拟线程用同步写法降低编程复杂度，吞吐上接近回调式异步，但极端高并发（百万连接 + 密集 IO）下 io_uring 的完成驱动模型仍有结构优势，二者不互斥，未来可叠加。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">选型建议</div>
+              <p>普通业务网络服务：JDK 21 虚拟线程 / Netty NIO（epoll）已足够，无需追新。存储密集型、网关代理、数据库引擎等对 IO 延迟极致敏感的场景：可评估 Netty io_uring transport，但必须锁定内核版本、做好压测和回退到 epoll 的开关。生产环境不要把 incubator 模块当稳定依赖。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：io_uring 比 epoll 快在哪里？</strong></p>
+            <p>三点结构性优势：① <strong>系统调用更少</strong>——epoll 就绪后仍需 read/write 系统调用完成数据搬运，io_uring 提交后内核异步完成，轮询模式下连 io_uring_enter 都可省；② <strong>共享内存零拷贝</strong>——SQE/CQE 走 mmap，请求结构不在用户态和内核态间复制；③ <strong>完成驱动</strong>——epoll 是"就绪通知"，就绪到完成中间还有一次用户态发起的读，io_uring 是"完成通知"，数据直接就位。但在连接数不多、IO 不密集时，这些优势被日常开销淹没，差距不明显。</p>
+            <p><strong>追问 2：JDK 虚拟线程底层用 epoll 还是 io_uring？</strong></p>
+            <p>用 epoll。JDK 21 在 Linux 上的虚拟线程调度依赖 <code class="inline-code">EPollSelectorImpl</code>（基于 epoll）。虚拟线程在 IO 阻塞时被 unmount，由 epoll 监听就绪事件，就绪后重新 mount。Project Loom 早期曾评估过 io_uring，但考虑到内核版本兼容性（io_uring 需 5.1+）、稳定性和跨平台一致性，主线最终选择 epoll 作为底层多路复用器。所以"虚拟线程用了 io_uring"是常见误解。</p>
+            <p><strong>追问 3：io_uring 是否会取代 epoll？</strong></p>
+            <p>短期不会，长期会共存分工。epoll 是网络 IO 的事实标准，内核成熟、生态完善、跨发行版无版本门槛；io_uring 在存储、高密度网络、内核 5.1+ 环境下有性能优势但依赖新内核。大量存量服务器和容器内核版本未必达标，且网络中间件（如 Nginx、Redis）已深度优化 epoll。更可能的趋势是：网络通用场景 epoll 为主，存储和极致性能场景 io_uring 渗透，二者在内核侧长期并存，应用层按场景选型。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>混淆 io_uring 默认模式与轮询模式（IOPOLL）</strong>：默认中断模式靠 CQ 通知完成，不空耗 CPU；IOPOLL 模式内核主动轮询 SQ，延迟最低但持续吃 CPU，仅适合 NVMe 等高速块设备。两者适用场景完全不同，不能混为一谈。</li>
+                <li><strong>误以为 JDK 已原生支持 io_uring</strong>：JDK 21 虚拟线程底层仍用 epoll，主线 JDK 没有原生 io_uring 支持。要用 io_uring 得靠 Netty incubator 模块或 JNI 自封装，别在面试或选型里说"JDK 21 用了 io_uring"。</li>
+                <li><strong>忽略 io_uring 的内核版本要求</strong>：io_uring 自 Linux 5.1 引入，但 SQPOLL、Buffer Ring 等高级特性需要更高内核版本（5.6+/5.13+）。生产部署前必须核对宿主机/容器内核版本，否则运行时报 ENOSYS。</li>
+                <li><strong>混淆事件驱动（epoll）与完成驱动（io_uring）</strong>：epoll 告诉你"fd 就绪"，你还得自己 read；io_uring 告诉你"IO 已完成"，数据已在缓冲区。把 io_uring 当成"另一个 epoll"来用，会错失它完成驱动的核心价值。</li>
               </ul>
             </div>
           </div>

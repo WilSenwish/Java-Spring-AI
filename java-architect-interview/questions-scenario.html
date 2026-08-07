@@ -207,6 +207,7 @@
           <li><a href="#s29"><span class="toc-number">S29</span>千万级消息推送</a></li>
           <li><a href="#s30"><span class="toc-number">S30</span>数据迁移零停机</a></li>
           <li><a href="#s55"><span class="toc-number">S55</span>跨境电商平台全球多租户架构</a></li>
+          <li><a href="#s56"><span class="toc-number">S56</span>支付链路一致性保障</a></li>
         </ol>
       </div>
         <div class="toc-group">
@@ -1715,7 +1716,7 @@
       <div class="qa-layer-title">解决方案</div>
       <div class="qa-layer-body">
         <p><strong>接入层</strong>：在应用入口引入请求合法性校验——商品 ID 格式校验（正整数、长度范围），非法 ID 直接拒绝。接入布隆过滤器（Redisson RBloomFilter，预计元素 1 亿，误判率 0.01%），所有请求先查布隆过滤器，不存在则直接返回空，不查缓存和 DB。布隆过滤器通过 Canal 监听 DB 变更异步更新。</p>
-        <p><strong>应用层</strong>：缓存击穿采用双重保障——① 互斥锁：缓存未命中时用 Redis SETNX 获取分布式锁（TTL=10s），仅持锁线程回源 DB 重建缓存，其余线程等待 50ms 后重试缓存；② 逻辑过期：热点 key 不设置物理 TTL，value 中嵌入 expireAt 字段，过期后异步线程重建，期间返回旧数据（ sacri 近似一致换可用）。缓存雪崩——TTL 加随机偏移（base TTL + random(0, 300s)），避免批量同时过期。</p>
+        <p><strong>应用层</strong>：缓存击穿采用双重保障——① 互斥锁：缓存未命中时用 Redis SETNX 获取分布式锁（TTL=10s），仅持锁线程回源 DB 重建缓存，其余线程等待 50ms 后重试缓存；② 逻辑过期：热点 key 不设置物理 TTL，value 中嵌入 expireAt 字段，过期后异步线程重建，期间返回旧数据（牺牲近似一致换可用）。缓存雪崩——TTL 加随机偏移（base TTL + random(0, 300s)），避免批量同时过期。</p>
         <p><strong>数据层</strong>：多级缓存架构——L1 本地缓存（Caffeine，TTL=60s，maxSize=10000）→ L2 Redis 集群（TTL=30min+随机）→ L3 DB。DB 层配置 HikariCP 连接池（maximumPoolSize=50）+ Sentinel 熔断（慢调用比例阈值 0.5，RT 500ms），DB 过载时熔断返回降级数据。空值缓存：DB 查询为空时缓存空标记（key:null，TTL=60s），防止同一不存在 key 反复穿透。</p>
         <table class="compare-table">
           <thead><tr><th>方案</th><th>优点</th><th>缺点</th></tr></thead>
@@ -5068,7 +5069,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
         <ul class="followup-list">
           <li><div class="followup-q">追问1：WAF 被绕过怎么办？如何验证 WAF 规则的有效性？</div><div class="followup-a">WAF 基于规则匹配存在绕过风险（如编码绕过、分块传输、HPP 参数污染）。应对策略：一是 WAF 仅作为第一道防线，不作为唯一防线，应用层必须独立防护；二是定期用 OWASP ZAP/Burp Suite 进行绕过测试；三是开启 WAF 日志审计，对拦截事件做回溯分析持续优化规则。</div></li>
           <li><div class="followup-q">追问2：富文本编辑器场景下 XSS 如何防护？既允许 HTML 又要防注入。</div><div class="followup-a">使用白名单净化而非黑名单过滤。推荐 OWASP Java HtmlSanitizer，配置允许的标签和属性白名单（如 p/br/strong/a[href]/img[src]），移除所有事件属性（onclick/onerror）和 javascript: 协议。输出时仍需按 HTML 上下文编码，CSP 头配置 script-src 限制脚本来源。</div></li>
-          <li><div class="followup-q">追问3：CSRF Token 在分布式 Session 下如何同步？</div><div class="followup-a">两种方案：一是使用 CookieCsrfTokenRepository（Spring Security 默认），Token 存在 Cookie 中无需服务端存储，但需配合 SameSite 属性防泄露；二是使用 Redis 存储	Token，分布式 Session 下共享。推荐方案一，无状态且性能更好，注意 Cookie 设置 HttpOnly=false（前端需读取）+ Secure=true + SameSite=Lax。</div></li>
+          <li><div class="followup-q">追问3：CSRF Token 在分布式 Session 下如何同步？</div><div class="followup-a">两种方案：一是使用 CookieCsrfTokenRepository（Spring Security 默认），Token 存在 Cookie 中无需服务端存储，但需配合 SameSite 属性防泄露；二是使用 Redis 存储 Token，分布式 Session 下共享。推荐方案一，无状态且性能更好，注意 Cookie 设置 HttpOnly=false（前端需读取）+ Secure=true + SameSite=Lax。</div></li>
           <li><div class="followup-q">追问4：SSRF 防护中 DNS Rebinding 攻击如何防御？</div><div class="followup-a">DNS Rebinding 指首次 DNS 解析返回公网 IP 通过校验，第二次解析返回内网 IP。防御方案：一是在 URL 校验阶段解析 IP 后，直接使用 IP 发起请求（绕过二次 DNS 解析）；二是使用自定义 DnsResolver 缓存解析结果；三是请求库禁用重定向或对重定向目标重新校验。</div></li>
         </ul>
       </div>
@@ -6408,6 +6409,99 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
           <li><strong>选择 Copy-on-Write 但写入延迟高</strong>：Copy-on-Write 更新需重写整个文件，延迟高。更新频繁的场景应选 Merge-on-Read（Hudi MOR / Iceberg v2），读取时合并增量日志。</li>
           <li><strong>未做分区演化导致历史查询失败</strong>：业务分区字段从 day 改为 hour 时，历史数据仍按 day 存储。Iceberg 的 hidden partitioning 可解决此问题，但需提前规划。</li>
           <li><strong>元数据无治理导致数据沼泽</strong>：只建湖不做治理，5PB 数据会变成无人敢用的数据沼泽。必须配套血缘、质量、生命周期管理工具。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qa-card" id="s56" data-difficulty="architect">
+    <div class="qa-header">
+      <div class="qa-badge">S56</div>
+      <div class="qa-question">支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构<span class="difficulty difficulty-architect">架构级</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">分布式事务</span>
+      <span class="scenario-tag">对账系统</span>
+      <span class="scenario-tag">幂等</span>
+      <span class="scenario-tag">清结算</span>
+      <span class="scenario-tag">资金安全</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某支付平台日交易额过亿，日均交易笔数千万级（峰值 QPS 数万），需保证支付链路最终一致性，T+1 对账准确率 99.99%。链路横跨订单、库存、账户、风控、通道等多个子系统，任一环节失败都可能导致"钱货两失"或"重复扣款"。要求在保证资金绝对安全（防重复支付、防超卖、防透支）的前提下，实现高并发收银与 T+1 全量对账，并支持清结算的 T+0/T+1 灵活选型。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 支付链路跨服务一致性：创建订单→扣库存→扣余额→记流水需跨多个微服务原子完成；② 异常补偿与幂等：网络超时/重试导致的重复支付、掉单如何兜底；③ 对账系统设计：T+1 全量对账如何在亿级明细中找出差异并自动修复，准确率达 99.99%；④ 清结算架构：商户资金 T+1 结算与渠道 T+0 清算如何衔接；⑤ 资金安全：防重复支付、防超卖、防账户透支，任何一笔都不能错。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用"分布式事务 + 本地消息表 + 定时对账"的三层保障体系：<strong>第一层实时保障</strong>用 Saga/TCC 分布式事务保证链路最终一致；<strong>第二层可靠投递</strong>用本地消息表 + MQ 保证跨服务消息不丢不重；<strong>第三层兜底校验</strong>用定时对账（全量 + 差异 + 实时三级）发现并修复前两层漏掉的异常。三层叠加实现"宁可慢对账，不可错一分钱"的资金安全底线。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 支付链路（Saga 编排式）</strong>：用 Saga 编排器顺序执行 CreateOrder→DeductStock→DeductBalance→RecordFlow→NotifyChannel，每步带补偿动作（CancelOrder→RestoreStock→RefundBalance→ReverseFlow）。短事务（如扣余额）用 TCC 强化一致性，长链路用 Saga 保证最终一致。</p>
+        <p><strong>2. 幂等设计（Token + 分布式锁 + 状态机）</strong>：收银台下发一次性 Token，支付请求带 Token 校验防重复提交；Redis 分布式锁防并发重复扣款；订单状态机（INIT→PAYING→PAID→FAILED）用乐观锁 CAS 推进，非法状态转移直接拒绝。</p>
+        <p><strong>3. 对账系统（三级体系）</strong>：① 全量对账——T+1 拉取平台流水与渠道/银行账单逐笔比对；② 差异对账——对全量对账筛出的长款/短款做二次核验；③ 实时对账——支付成功即时与通道回执比对，秒级发现异常。</p>
+        <p><strong>4. 清结算</strong>：日终批处理按商户维度汇总待结算金额，T+1 批量出款；对 VIP 商户走实时清算（T+0），通过垫资账户 + 风控额度控制敞口。</p>
+        <p><strong>5. 异常处理</strong>：补偿队列（本地消息表驱动）自动重试失败步骤，重试耗尽转人工兜底工单，所有资金动作留痕可审计。</p>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="code">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code><span class="com">// Saga 编排式支付：每步执行 + 补偿动作，保证最终一致性</span>
+<span class="kw">public</span> <span class="type">PaymentResult</span> <span class="fn">pay</span>(<span class="type">PaymentRequest</span> req) {
+    <span class="com">// 幂等校验：Token + 状态机双重防护</span>
+    <span class="type">String</span> lockKey = <span class="str">"pay:lock:"</span> + req.<span class="fn">getPaymentId</span>();
+    <span class="kw">return</span> redisLock.<span class="fn">tryLock</span>(lockKey, <span class="num">5</span>, <span class="type">TimeUnit</span>.SECONDS, () -&gt; {
+        <span class="type">Order</span> order = orderService.<span class="fn">checkAndCas</span>(req.<span class="fn">getOrderId</span>(),
+                <span class="type">OrderStatus</span>.INIT, <span class="type">OrderStatus</span>.PAYING); <span class="com">// 状态机 CAS</span>
+        <span class="kw">if</span> (order == <span class="kw">null</span>) <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">duplicated</span>(); <span class="com">// 重复支付拦截</span>
+
+        <span class="type">SagaOrchestrator</span> saga = <span class="kw">new</span> <span class="type">SagaOrchestrator</span>(req)
+            .<span class="fn">step</span>(<span class="str">"deductStock"</span>,    stockSvc::deduct,     stockSvc::restore)
+            .<span class="fn">step</span>(<span class="str">"deductBalance"</span>,  accountSvc::debit,    accountSvc::refund)
+            .<span class="fn">step</span>(<span class="str">"recordFlow"</span>,    flowSvc::record,      flowSvc::reverse)
+            .<span class="fn">step</span>(<span class="str">"notifyChannel"</span>,  channelSvc::dispatch, channelSvc::cancel);
+        <span class="type">SagaResult</span> r = saga.<span class="fn">execute</span>(); <span class="com">// 任一步失败自动反向补偿</span>
+
+        <span class="kw">if</span> (r.<span class="fn">isSuccess</span>()) {
+            orderService.<span class="fn">cas</span>(order.<span class="fn">getId</span>(), <span class="type">OrderStatus</span>.PAYING, <span class="type">OrderStatus</span>.PAID);
+            <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">success</span>(r.<span class="fn">getTradeNo</span>());
+        }
+        orderService.<span class="fn">cas</span>(order.<span class="fn">getId</span>(), <span class="type">OrderStatus</span>.PAYING, <span class="type">OrderStatus</span>.FAILED);
+        <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">fail</span>(r.<span class="fn">getError</span>());
+    });
+}
+
+<span class="com">// 本地消息表：扣款与下游通知同库事务提交，保证最终一致</span>
+<span class="com">@Transactional</span>
+<span class="kw">public</span> <span class="kw">void</span> <span class="fn">debitAndEnqueue</span>(<span class="type">PaymentRequest</span> req) {
+    accountMapper.<span class="fn">debit</span>(req.<span class="fn">getUserId</span>(), req.<span class="fn">getAmount</span>());   <span class="com">// 扣余额</span>
+    messageMapper.<span class="fn">insert</span>(<span class="kw">new</span> <span class="type">LocalMessage</span>(req.<span class="fn">getPaymentId</span>(), <span class="str">"PAY_NOTIFY"</span>));
+    <span class="com">// 定时任务扫描 message 表投递 MQ，失败重试至确认，保证不丢不重</span>
+}</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">追问1：支付掉单（用户已付款但订单仍 INIT/PAYING）如何处理？</div><div class="followup-a">掉单根因是支付通道异步回调丢失或本服务宕机。处理三段式：① 主动查询——支付超时（如 30s）后定时任务调用通道"查单接口"主动核对订单状态；② 状态推进——查到已支付则补推状态机至 PAID 并补偿下游，查到未支付则触发关单/退款；③ 兜底对账——T+1 全量对账再核对一遍，确保无遗漏。核心是"不要依赖回调，主动查单兜底"。</div></li>
+          <li><div class="followup-q">追问2：对账发现差异后的自动修复流程？</div><div class="followup-a">差异分长款（平台有流水、渠道无）和短款（渠道有、平台无）。流程：① 差异落表进入待处理队列；② 自动核验——拉取通道原始凭证二次比对，排除时间窗、批次切分导致的假差异；③ 确认差异后按类型自动修复——长款触发冲正/挂账，短款触发补单/人工确认；④ 修复后回写对账结果并标记闭环。无法自动修复的转人工工单，所有修复动作可审计可回溯。</div></li>
+          <li><div class="followup-q">追问3：清结算 T+0 与 T+1 如何选型？</div><div class="followup-a">T+1 是默认方案：渠道 T+1 清算后商户 T+1 结算，平台零垫资、零敞口，适合中小商户。T+0（实时清算）适合 VIP/大商户的资金周转需求，但平台需垫资，存在渠道违约风险，必须配垫资账户 + 风控额度 + 商户资质审核。选型权衡三要素：商户资金周转诉求、平台垫资成本与风控能力、渠道清算节奏。通常 T+0 限量开放给优质商户，T+1 兜底大众。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>忽略网络超时导致的重复支付</strong>：只防用户重复点击（前端禁用按钮），不防网络超时重试。支付请求超时后客户端重试，服务端若不做幂等就会重复扣款。必须 Token + 状态机 + 分布式锁三重防护。</li>
+          <li><strong>对账只做总账不做明细</strong>：只对"平台总额 = 渠道总额"就认为无误，但总账相等不代表每笔一致（可能 A 多 B 少恰好抵消）。必须逐笔明细对账，再辅以总额校验作为快速预筛。</li>
+          <li><strong>幂等只做 Token 不做状态机校验</strong>：Token 仅防同一请求重复提交，但回调、查单、重试都可能绕过 Token 携带。状态机 CAS（INIT→PAYING→PAID）才是兜底，非法状态转移一律拒绝，确保一笔订单只会被成功支付一次。</li>
         </ul>
       </div>
     </div>

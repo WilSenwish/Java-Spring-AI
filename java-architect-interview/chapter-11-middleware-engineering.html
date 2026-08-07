@@ -31,6 +31,8 @@
         <li><a href="#qa-11-14"><span class="toc-number">11.14</span>Elasticsearch 倒排索引、分片与集群架构</a></li>
         <li><a href="#qa-11-15"><span class="toc-number">11.15</span>gRPC + Protobuf 高性能通信原理</a></li>
         <li><a href="#qa-11-16"><span class="toc-number">11.16</span>Nacos 与 Apollo 配置中心选型</a></li>
+        <li><a href="#qa-11-17"><span class="toc-number">11.17</span>可观测性三支柱与 OpenTelemetry</a></li>
+        <li><a href="#qa-11-18"><span class="toc-number">11.18</span>数据库迁移 Flyway/Liquibase</a></li>
       </ol>
     </aside>
 
@@ -49,11 +51,11 @@
         <h1 class="chapter-title">中间件与工程化</h1>
         <p class="chapter-subtitle">jBPM→Activiti→Flowable→Camunda 的工作流引擎演进、硬编码→脚本→规则引擎→决策引擎的业务规则演进、OAuth1.0→2.0→2.1 的授权演进、Session→JWT→双Token 的认证演进、Jenkins→GitLab CI→GitOps(ArgoCD) 的 CI/CD 演进、日志→APM→OpenTelemetry→eBPF 的可观测性演进：直击 BPMN 2.0 执行原理、QLExpress/Drools 选型、授权码+PKCE、双 Token 续期、Java Agent 字节码增强、TraceId 透传、OTel Collector、混沌工程稳态假设</p>
         <div class="chapter-meta">
-          <span>题目数：16</span>
+          <span>题目数：18</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×6</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×4</span>
+          <span>架构级 ×6</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
@@ -2560,6 +2562,300 @@ spring:
                 <li><strong>长轮询连接数过多</strong>：客户端实例多时，长轮询占用大量连接与线程，需服务端调优连接池或引入 UDP 快速通知减负。</li>
                 <li><strong>无版本管理无法回滚</strong>：直接改配置出错却回不去。务必开启历史版本与审计，关键配置变更走审批流程。</li>
                 <li><strong>namespace/group 混用</strong>：环境隔离与业务分组混在一个维度，导致配置串环境。应 namespace 严格对应环境，group 对应业务线。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card" id="qa-11-17" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">11.17</div>
+          <div class="qa-question">可观测性三支柱（Metrics/Traces/Logs）与 OpenTelemetry 实践？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>考察对可观测性三支柱(Metrics/Traces/Logs)统一关联、OpenTelemetry 标准、TraceId 跨线程/跨服务透传的理解。核心回答：<strong>可观测性(Observability)区别于监控(Monitoring)</strong>——监控只能发现"预设的已知问题"(阈值告警)，而可观测性通过三支柱的关联分析，回答"为什么出问题、还有哪些未知问题"。三支柱必须通过 <code class="inline-code">TraceId</code> 统一关联形成闭环，OpenTelemetry(CNCF)提供了标准化的 API/SDK/Collector/OTLP 协议，解决厂商锁定与生态碎片化。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>阶段 1：传统监控(Monitoring)</strong>。Nagios/Zabbix 基于阈值告警，覆盖已知失败模式，无法应对分布式系统的未知故障组合。</p>
+            <p><strong>阶段 2：可观测性(Observability)概念引入</strong>。源自控制论——"通过系统外部输出推断内部状态"，强调从多维数据中探索未知问题，而非仅依赖预设规则。</p>
+            <p><strong>阶段 3：Google Dapper(2010)</strong>。Dapper 论文奠定分布式追踪理论基础——Span 树 + TraceId 串联跨服务调用链，工业级落地。</p>
+            <p><strong>阶段 4：标准分裂(2015-2019)</strong>。OpenTracing(CNCF，纯 API 规范)与 OpenCensus(Google，API+SDK 实现)并存，生态碎片化，客户端多套集成成本高。</p>
+            <p><strong>阶段 5：OpenTelemetry 合并(2019，CNCF)</strong>。两项目合并统一 API+SDK+Collector+OTLP 协议，成为 CNCF 仅次于 Kubernetes 的第二大项目，实现厂商无关、后端可切换。</p>
+            <p><strong>阶段 6：生态深度融合(2023+)</strong>。Spring Boot 3.2+ 内置 Micrometer Tracing(桥接 OTel/Brave)；OTLP 成为事实标准；JDK 21 虚拟线程带来 ThreadLocal 上下文传播新挑战(虚拟线程海量并发，ThreadLocal 内存与 GC 压力需关注)。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>Metrics(指标)</strong>：聚合数值，低成本高吞吐，适合告警与趋势分析。</p>
+            <ul>
+              <li>Counter(单调递增：请求数/错误数)、Gauge(瞬时值：连接数/队列长度)、Histogram(分布：RT 分位 P99)、Summary(客户端计算分位)</li>
+              <li>Prometheus exposition(pull 模型)；<strong>Exemplar</strong> 在指标数据点中嵌入 TraceId，实现 Metrics→Traces 跳转</li>
+            </ul>
+            <p><strong>Traces(追踪)</strong>：Span 树形结构，还原请求在分布式系统中的完整路径。</p>
+            <ul>
+              <li>TraceId(全局唯一 128bit) / SpanId(64bit) / ParentSpanId(建立父子关系)</li>
+              <li>采样(Sampling)：避免全量采集导致存储爆炸</li>
+            </ul>
+            <p><strong>Logs(日志)</strong>：结构化日志(JSON 格式)，携带 TraceId/SpanId 字段，实现 Logs→Traces 跳转。</p>
+            <p><strong>OpenTelemetry 架构分层</strong>：API(应用编程接口，无实现) → SDK(配置与实现) → Exporter(导出到后端) → Collector(独立部署，接收/处理/转发)。</p>
+            <p><strong>Context/Baggage 传播</strong>：Context 携带 TraceId/SpanId；Baggage 携带业务自定义 KV(如 userId)；跨服务通过 W3C TraceContext HTTP Header(<code class="inline-code">traceparent</code>)传播；进程内通过 ThreadLocal + MDC(SLF4J) 自动注入日志。</p>
+
+            <div class="code-block"><pre><code><span class="com">// OTel Java Agent 零侵入启动(无需改业务代码)</span>
+<span class="com">// java -javaagent:opentelemetry-javaagent.jar \</span>
+<span class="com">//   -Dotel.service.name=order-service \</span>
+<span class="com">//   -Dotel.exporter.otlp.endpoint=http://otel-collector:4317 \</span>
+<span class="com">//   -Dotel.traces.sampler=parentbased_traceidratio \</span>
+<span class="com">//   -Dotel.traces.sampler.arg=0.1 \</span>
+<span class="com">//   -jar app.jar</span>
+
+<span class="com">// Micrometer 自定义业务指标</span>
+<span class="kw">@Service</span>
+<span class="kw">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="type">OrderMetrics</span> {
+    <span class="kw">private final</span> <span class="type">MeterRegistry</span> registry;
+
+    <span class="com">// Counter: 订单创建数(按渠道标签)</span>
+    <span class="kw">public void</span> <span class="fn">recordOrder</span>(<span class="type">String</span> channel, <span class="kw">boolean</span> success) {
+        registry.<span class="fn">counter</span>(<span class="str">"order.create.total"</span>,
+                <span class="str">"channel"</span>, channel,
+                <span class="str">"result"</span>, success ? <span class="str">"success"</span> : <span class="str">"fail"</span>)
+            .<span class="fn">increment</span>();
+    }
+
+    <span class="com">// Timer: 订单处理耗时(自动关联 Exemplar -&gt; Trace)</span>
+    <span class="kw">public void</span> <span class="fn">recordProcessTime</span>(<span class="type">String</span> channel, <span class="kw">long</span> millis) {
+        registry.<span class="fn">timer</span>(<span class="str">"order.process.duration"</span>,
+                <span class="str">"channel"</span>, channel)
+            .<span class="fn">record</span>(millis, <span class="type">TimeUnit</span>.MILLISECONDS);
+    }
+}</code></pre></div>
+
+            <p><strong>跨线程上下文传播(核心难点)</strong>：线程池中 ThreadLocal 上下文丢失导致 TraceId 断链，必须用 OTel <code class="inline-code">Context.wrap()</code> 包装任务。</p>
+
+            <div class="code-block"><pre><code><span class="com">// 问题: 线程池中 ThreadLocal 上下文丢失, TraceId 断链</span>
+<span class="com">// 方案: OTel Context.wrap() 自动捕获并透传上下文</span>
+
+<span class="kw">@Service</span>
+<span class="kw">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="type">OrderAsyncService</span> {
+    <span class="kw">private final</span> <span class="type">Executor</span> executor;
+
+    <span class="com">// 错误: 直接提交, TraceId 丢失, 日志无 TraceId</span>
+    <span class="kw">public void</span> <span class="fn">wrongSubmit</span>(<span class="type">Long</span> orderId) {
+        executor.<span class="fn">execute</span>(() -> {
+            <span class="com">// MDC 为空, 日志 TraceId 缺失</span>
+            log.<span class="fn">info</span>(<span class="str">"处理订单 {}"</span>, orderId);
+        });
+    }
+
+    <span class="com">// 正确: Context.wrap() 包装 Runnable</span>
+    <span class="kw">public void</span> <span class="fn">correctSubmit</span>(<span class="type">Long</span> orderId) {
+        <span class="type">Runnable</span> task = <span class="type">Context</span>.current().<span class="fn">wrap</span>(() -> {
+            <span class="com">// TraceId 自动透传, MDC 已注入, 日志可关联</span>
+            log.<span class="fn">info</span>(<span class="str">"处理订单 {}"</span>, orderId);
+        });
+        executor.<span class="fn">execute</span>(task);
+    }
+
+    <span class="com">// 虚拟线程(JDK 21): OTel 1.32+ 自动支持</span>
+    <span class="kw">public void</span> <span class="fn">virtualThreadSubmit</span>(<span class="type">Long</span> orderId) {
+        <span class="type">Thread</span>.<span class="fn">startVirtualThread</span>(
+            <span class="type">Context</span>.current().<span class="fn">wrap</span>(
+                () -> log.<span class="fn">info</span>(<span class="str">"虚拟线程处理 {}"</span>, orderId)
+            )
+        );
+    }
+}</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>高级开发</strong>：</p>
+            <ul>
+              <li>Spring Boot Actuator + Micrometer 自动暴露 <code class="inline-code">/actuator/prometheus</code>，零配置采集 JVM/HTTP 指标</li>
+              <li>OTel Java Agent(-javaagent) 零代码改动自动埋点：HTTP/JDBC/Redis/Kafka 自动追踪</li>
+              <li>结构化日志：Spring Boot 3.2+ 自动将 TraceId 注入 MDC，日志 JSON 格式输出(Logstash encoder)</li>
+            </ul>
+            <p><strong>架构师</strong>：</p>
+            <ul>
+              <li><strong>平台选型</strong>：开源自建(Prometheus+Grafana+Tempo/Loki，成本低可控) vs SaaS(Datadog，开箱即用但贵) vs 云厂商(阿里云 ARMS，深度集成云资源)</li>
+              <li><strong>采样策略</strong>：高 QPS 链路 Head Sampling(入口概率采样 1%)降开销；关键链路 Tail Sampling(全量采集后在 Collector 按错误/慢调用筛选保留)</li>
+              <li><strong>eBPF 零侵入观测</strong>(Cilium/Hubble)：内核层网络流量观测，无需应用改造</li>
+              <li><strong>SLO 告警基于 SLI</strong>：定义服务等级指标(可用率/延迟 P99/错误率)，多窗口多燃烧率告警(避免抖动误报)</li>
+            </ul>
+
+            <p><strong>Tail Sampling Collector 配置(保留错误与慢调用)</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># otel-collector: Tail Sampling 保留错误与慢调用 Trace</span>
+processors:
+  tail_sampling:
+    decision_wait: 30s        <span class="com"># 缓冲 30s 等待完整 Trace</span>
+    policies:
+      <span class="com"># 保留所有错误请求的 Trace</span>
+      - name: error-status
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      <span class="com"># 保留慢调用(大于 2s)</span>
+      - name: slow-trace
+        type: latency
+        latency:
+          threshold_ms: 2000
+      <span class="com"># 10% 采样其余(基线覆盖)</span>
+      - name: baseline
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：TraceId 如何在跨线程(线程池/虚拟线程)场景下透传？</strong></p>
+            <p>核心问题是 <code class="inline-code">ThreadLocal</code> 上下文不会自动传递到新线程。解决方案：① OTel 提供 <code class="inline-code">Context.current().wrap(Runnable)</code> 包装任务，在提交时捕获当前 Context，执行时恢复；② Spring 的 <code class="inline-code">TaskDecorator</code> 可装饰线程池统一处理；③ 虚拟线程(JDK 21)同样需要 wrap，OTel 1.32+ 已适配，但需注意虚拟线程数量巨大时 ThreadLocal 的内存开销；④ Spring Boot 3.2+ 的 Micrometer Tracing 自动处理 <code class="inline-code">@Async</code> 场景，但手动线程池仍需显式 wrap。</p>
+            <p><strong>追问 2：OpenTelemetry 的 Head Sampling vs Tail Sampling 有什么区别？</strong></p>
+            <p><strong>Head Sampling(头部采样)</strong>：在请求入口(Trace 起点)立即按概率决定是否采样，一旦不采样则后续所有 Span 都不生成。优点是开销极小(下游零埋点)；缺点是无法根据"是否出错/是否慢"决策——错误请求可能被提前丢弃。<strong>Tail Sampling(尾部采样)</strong>：所有 Span 全量采集传到 Collector，Collector 缓冲完整 Trace 后(等待 decision_wait)，根据策略(错误状态/延迟/属性)决定是否保留。优点是能精准保留错误与慢调用；缺点是需要 Collector 缓冲内存、有延迟。生产实践：入口用低比例 Head Sampling 降流量 + Collector Tail Sampling 保留异常 Trace。</p>
+            <p><strong>追问 3：Metrics 和 Traces 如何关联(Exemplar)？</strong></p>
+            <p>Prometheus Exemplar 机制：Histogram/Counter 的数据点可附带一个 TraceId 引用。当 Micrometer 记录指标时，OTel SDK 自动将当前 Span 的 TraceId 作为 Exemplar 嵌入。在 Grafana 中点击指标图表上的 Exemplar 点，可直接跳转到 Tempo/Jaeger 查看该请求的完整 Trace——实现从"指标异常(如 P99 飙升)"到"具体请求链路"的下钻分析。这是三支柱联动的关键纽带。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>混淆监控与可观测性</strong>：认为接入 Prometheus 就是可观测性。监控只看已知指标阈值，可观测性强调三支柱关联探索未知问题，缺少 Trace/Log 关联等于退化为监控。</li>
+                <li><strong>忽略采样导致存储爆炸</strong>：全量采集 Trace，高 QPS 下存储成本线性增长。必须设计采样策略(Head + Tail)，按错误/慢调用优先保留。</li>
+                <li><strong>ThreadLocal 上下文在线程池中丢失</strong>：直接向线程池提交任务不 wrap Context，导致异步链路 TraceId 断链，无法排查异步问题。</li>
+                <li><strong>MDC 在异步场景未清理导致 TraceId 串流</strong>：线程池复用线程，上一个任务的 MDC 未清理，下一个任务继承错误的 TraceId，日志关联到错误的请求。OTel wrap 会自动 save/restore，但自定义 MDC 操作需注意清理。</li>
+                <li><strong>只采集不告警</strong>：部署了完整采集链路但没有 SLO 告警，出问题靠用户反馈。必须基于 SLI 定义 SLO 告警，让系统主动预警。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q11.18 数据库版本化管理与迁移：Flyway vs Liquibase 的工程实践？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-11-18" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">11.18</div>
+          <div class="qa-question">数据库版本化管理与迁移：Flyway vs Liquibase 的工程实践？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对<strong>数据库 Schema 版本化管理</strong>的工程化理解。核心要回答：① 数据库 Schema 与应用代码一样需要<strong>版本化、可追溯、可回滚</strong>，手动改表是"运维黑箱"——谁改了什么、何时改的、为什么改全凭口头记忆，环境间不一致是线上事故高发源；② <strong>CI/CD 集成迁移</strong>把 Schema 变更纳入流水线，与应用代码同节奏发布，实现"代码与 Schema 一起演进、一起审计"；③ <strong>回滚策略</strong>的难点在于"代码可回滚但 Schema 难回滚"——删列容易加列难，DROP 后数据不可逆，需用<strong>向前兼容迁移</strong>而非依赖 schema 回滚；④ <strong>多环境一致性</strong>（dev/staging/prod）靠同一套迁移脚本保证，避免"本地能跑线上报错"。理解关键：数据库迁移工具的本质是<strong>把 Schema 变更从 DBA 手工操作变成代码化的、可评审、可重放的第一类工程制品</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>手动 SQL 脚本阶段</strong>：DBA 维护一堆 <code class="inline-code">.sql</code> 文件，靠 Wiki/邮件传递执行顺序，环境间靠"人肉同步"。问题：执行顺序乱、脚本可能被改、无人记录"哪些已执行"，线上经常"少跑一个脚本"导致表结构不一致。</p>
+            <p><strong>Liquibase（2006）</strong>：最早的 Java 生态数据库迁移框架，用 <strong>XML/YAML/JSON Changeset</strong> 描述变更，跨数据库方言（同一 changeset 可生成不同数据库的 SQL）。核心创新：用 <code class="inline-code">DATABASECHANGELOG</code> 表记录已执行 changeset，支持 <code class="inline-code">preconditions</code>（前置校验）与 <code class="inline-code">rollback</code> 标签（显式回滚）。偏向 DBA/跨库场景。</p>
+            <p><strong>Flyway（2010）</strong>：<strong>SQL-first</strong> 哲学——迁移脚本就是纯 SQL 文件（<code class="inline-code">V1__init.sql</code>、<code class="inline-code">V2__add_column.sql</code>），用版本号控制顺序，<code class="inline-code">flyway_schema_history</code> 表记录执行历史 + <strong>checksum 校验</strong>防篡改。简单直观，开发者友好，成为 Spring Boot 默认集成。</p>
+            <p><strong>Spring Boot 集成（Flyway 默认）</strong>：Spring Boot 内置 Flyway auto-configuration，应用启动自动执行迁移，把"数据库准备"与应用启动绑定，实现<strong>应用自包含的 Schema 管理</strong>。Liquibase 同样可一键集成。</p>
+            <p><strong>GitOps 式数据库 DevOps</strong>：迁移脚本纳入 Git 仓库，PR 评审 Schema 变更，CI 流水线自动执行迁移与测试，把数据库变更从"运维工单"变成"代码评审流程"，与基础设施即代码(IaC)理念统一。</p>
+            <p><strong>2025 声明式 Schema 管理（Atlas/SchemaHero）</strong>：从"指令式迁移"（写 ALTER 语句）演进到"<strong>声明式 Schema</strong>"——用 HCL/YAML 描述目标 Schema 状态，工具自动 diff 计算迁移 SQL（类似 Terraform 管理 infra）。Atlas 还支持<strong>迁移安全检查</strong>（检测破坏性 DDL、锁表风险），把"危险迁移"挡在合并前。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>1. Flyway 核心</strong>：① <strong>版本化 SQL 文件</strong>——命名 <code class="inline-code">V{版本号}__{描述}.sql</code>（如 <code class="inline-code">V1__init.sql</code>→<code class="inline-code">V2__add_column.sql</code>），按版本号顺序执行；② <strong>checksum 校验</strong>——已执行脚本记录 checksum，再次启动比对，<strong>脚本被修改则 checksum 不匹配报错</strong>（防止偷偷改历史脚本破坏一致性）；③ <strong>repair 机制</strong>——<code class="inline-code">flyway repair</code> 修正历史表中的 checksum（用于"故意修改已执行脚本"的合法场景，慎用）；④ <strong>Baseline</strong>——对已有数据库设定基线版本（<code class="inline-code">baselineVersion</code>），只执行基线之后的迁移，避免对存量库全量重跑。Flyway 还有 <code class="inline-code">Repeatable</code>（<code class="inline-code">R__</code> 前缀，视图/存储过程每次 checksum 变化重跑）和 <code class="inline-code">Undo</code>（Teams 付费版）。</p>
+            <p><strong>2. Liquibase 核心</strong>：① <strong>changeset + xml/yaml</strong>——用结构化格式描述变更（<code class="inline-code">&lt;createTable&gt;</code>/<code class="inline-code">&lt;addColumn&gt;</code>），可跨数据库生成方言 SQL；② <strong>preconditions</strong>——执行前校验（如表存在才执行、列不存在才加），增强幂等性；③ <strong>rollback 标签</strong>——显式定义回滚逻辑（<code class="inline-code">&lt;rollback&gt;&lt;dropColumn.../&gt;&lt;/rollback&gt;</code>），部分操作支持自动回滚（createTable→dropTable）；④ <strong>diff 工具</strong>——对比两库 Schema 差异并生成 changeset，便于存量库导入。Liquibase 用 <code class="inline-code">DATABASECHANGELOG</code>/<code class="inline-code">DATABASECHANGELOGLOCK</code> 表管理状态。</p>
+            <p><strong>3. 迁移策略</strong>：① <strong>向前兼容迁移（Forward-compatible）</strong>：Schema 只做加法（加列、加表、加索引），新代码兼容旧 Schema，回滚代码即可、Schema 不动——<strong>生产推荐</strong>；② <strong>向后兼容迁移（Backward-compatible）</strong>：新 Schema 兼容旧代码（如删列前先停止双写），允许新旧代码共存发布。<strong>核心原则：代码可回滚，Schema 尽量不回滚</strong>，靠向前兼容设计避免回滚 schema 的灾难。</p>
+            <p><strong>4. Expand-Contract 模式</strong>：处理破坏性变更（删列/改类型）的安全分步法——<strong>Expand</strong>（加新列/新表，新旧并存）→ <strong>Migrate</strong>（双写新旧列 + 后台迁数据）→ <strong>Switch</strong>（读切到新列）→ <strong>Contract</strong>（确认无读旧列后删旧列）。每步独立发布、可回滚，<strong>中间状态任何一步都兼容</strong>，实现零停机变更。</p>
+            <p><strong>5. 零停机迁移</strong>：大表 DDL 会锁表（如 MySQL <code class="inline-code">ALTER TABLE</code> 加列在 5.6 前是全表锁）。策略：① MySQL 8.0 Instant DDL（加列/加索引部分支持秒级）；② <strong>pt-online-schema-change（pt-osc）/ gh-ost</strong>：创建影子表 + 触发器/binlog 同步增量，后台分批拷贝数据，最后 rename 切换，全程不阻塞读写；③ 分批 UPDATE 大表数据避免长事务。</p>
+
+            <p><strong>Spring Boot 集成 Flyway 与迁移脚本规范</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># application.yml —— Flyway 配置（Spring Boot 自动装配）</span>
+spring:
+  flyway:
+    enabled: <span class="kw">true</span>
+    locations: classpath:db/migration          <span class="com"># 迁移脚本目录</span>
+    baseline-on-migrate: <span class="kw">true</span>                 <span class="com"># 存量库首次迁移自动建基线</span>
+    baseline-version: <span class="str">0</span>                       <span class="com"># 基线版本，0 表示从头执行</span>
+    validate-on-migrate: <span class="kw">true</span>                 <span class="com"># 启动校验 checksum</span>
+    out-of-order: <span class="kw">false</span>                       <span class="com"># 禁止乱序执行</span>
+
+<span class="com">-- db/migration/V1__init_schema.sql —— 初始表结构</span>
+CREATE TABLE <span class="type">t_order</span> (
+    id          BIGINT       PRIMARY KEY AUTO_INCREMENT,
+    user_id     BIGINT       NOT NULL,
+    amount      DECIMAL(12,2) NOT NULL,
+    status      VARCHAR(32)  NOT NULL,
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_order_user ON <span class="type">t_order</span>(user_id);
+
+<span class="com">-- db/migration/V2__add_remark_column.sql —— 向前兼容：只加列，不删改</span>
+ALTER TABLE <span class="type">t_order</span> ADD COLUMN remark VARCHAR(255) NULL;  <span class="com"># 允许 NULL，旧代码不写此列不受影响</span>
+
+<span class="com">-- db/migration/V3__expand_contract_step1_expand.sql —— Expand 阶段：加新列</span>
+ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NULL;  <span class="com"># 新列存"分"，与 amount 并存</span></code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>高级开发</strong>：① <strong>Spring Boot 集成 Flyway/Liquibase 配置</strong>——<code class="inline-code">spring.flyway.*</code>/<code class="inline-code">spring.liquibase.*</code> 一键启用，脚本放 <code class="inline-code">src/main/resources/db/migration</code>，应用启动自动迁移；② <strong>迁移脚本编写规范</strong>——版本号严格递增（<code class="inline-code">V{yyyyMMddHHmm}__desc.sql</code> 时间戳命名避免多人协作版本冲突），每个脚本只做一件事且幂等，<strong>禁止修改已执行脚本</strong>（改了 checksum 报错），新需求新增脚本而非改旧的。</p>
+            <p><strong>架构师决策</strong>：</p>
+            <p>① <strong>CI/CD 管道集成迁移</strong>：迁移脚本随代码 PR 评审，CI 阶段在临时库执行迁移 + 跑集成测试验证 Schema 正确；部署阶段<strong>先执行迁移再发应用</strong>（迁移作为独立 Pipeline Step），避免应用启动与迁移并发冲突。生产建议<strong>迁移与应用解耦部署</strong>——DBA/CI 单独执行迁移，应用启动只校验不迁移（<code class="inline-code">flyway.enabled=false</code> + 预检）。</p>
+            <p>② <strong>多环境迁移策略（dev/staging/prod）</strong>：同一套脚本跨环境，靠 <code class="inline-code">profile</code> 区分配置（如 prod 关闭 <code class="inline-code">clean</code> 防误删）。staging 必须用与 prod 同等量级数据验证迁移性能（大表加索引在 staging 跑通再去 prod）。<strong>prod 迁移必须有 rollback plan 与执行窗口</strong>。</p>
+            <p>③ <strong>回滚策略：代码回滚但 Schema 不回滚</strong>——靠<strong>向前兼容设计</strong>保证代码回滚后旧代码仍兼容新 Schema（加列用 NULL/默认值，新代码写新列、旧代码忽略）。破坏性变更（删列）走 Expand-Contract 多版本分步，<strong>绝不依赖工具的 rollback 标签回滚生产 Schema</strong>（数据不可逆）。真正兜底是<strong>备份 + 时间点恢复(PITR)</strong>。</p>
+            <p>④ <strong>大规模表迁移（Online DDL/pt-osc）</strong>：千万级大表 DDL 不能用普通 <code class="inline-code">ALTER</code>（锁表风险）。MySQL 8.0 优先用 Instant DDL；不支持的应用 <strong>gh-ost/pt-osc</strong> 在线改表，配合 <code class="inline-code">--chunk-size</code> 控制拷贝速率。迁移脚本里只写 DDL 语句，<strong>实际执行由 DBA 用工具在维护窗口操作</strong>，Flyway 记录已执行（<code class="inline-code">flyway repair</code> 同步状态）。</p>
+            <p>⑤ <strong>迁移审计与合规</strong>：<code class="inline-code">flyway_schema_history</code>/<code class="inline-code">DATABASECHANGELOG</code> 表本身就是审计日志（谁、何时、执行了什么 SQL）。金融/合规场景要求所有 Schema 变更可追溯，迁移脚本进 Git + PR 评审 + 执行记录表，满足审计要求。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">架构决策红线</div>
+              <p>数据库迁移的第一原则是<strong>可逆性与兼容性优先于便捷性</strong>。① <strong>生产 Schema 变更默认向前兼容</strong>（只加不删），破坏性变更走 Expand-Contract 分步发布；② <strong>迁移脚本一旦合并不改</strong>，新需求新加脚本，靠版本号保证顺序；③ <strong>生产迁移独立于应用启动</strong>，CI/CD 单独 Step 执行 + 人工审批窗口；④ <strong>大表 DDL 必须评估锁表风险</strong>，用 gh-ost/pt-osc 而非裸 ALTER。把"删列"当原子操作的设计，迟早在线上丢数据。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Flyway 的 checksum 失败如何处理？</strong></p>
+            <p>checksum 失败意味着<strong>历史执行记录的脚本内容与当前脚本文件不一致</strong>——有人修改了已执行的迁移脚本。这是 Flyway 的一致性保护机制，启动会直接报错阻止应用启动。处理步骤：① <strong>判断是否故意修改</strong>——若是合法修改（如修正脚本注释/格式），执行 <code class="inline-code">flyway repair</code>，它会用当前文件 checksum 更新 <code class="inline-code">flyway_schema_history</code> 表，使记录与新文件一致；② <strong>若是误改</strong>——应 Git 回退脚本到原始版本（保持 checksum 一致），而非 repair，因为修改已执行脚本可能破坏多环境一致性；③ <strong>生产环境 repair 需审批</strong>——repair 会改历史表，必须在 DBA 确认后执行。<strong>最佳实践：已执行脚本视为不可变</strong>，新需求一律新增版本号脚本，从源头避免 checksum 冲突。</p>
+            <p><strong>追问 2：零停机添加 NOT NULL 列怎么做？</strong></p>
+            <p>直接 <code class="inline-code">ALTER TABLE ADD COLUMN col NOT NULL</code> 在多数数据库会因"已有行无默认值"而锁表或失败。零停机分步法（Expand-Contract 思想）：① <strong>第一步加可空列</strong>：<code class="inline-code">ALTER TABLE t ADD COLUMN col VARCHAR(32) NULL</code>（不锁表/秒级，旧行 NULL）；② <strong>第二步回填数据</strong>：分批 UPDATE 把已有行的 col 填默认值（<code class="inline-code">WHERE col IS NULL LIMIT 1000</code> 循环），避免长事务；③ <strong>第三步加默认值与非空约束</strong>：先 <code class="inline-code">ALTER TABLE t MODIFY COLUMN col VARCHAR(32) NOT NULL DEFAULT 'N'</code>（MySQL 8.0 Instant DDL 可秒级，或用 gh-ost）；④ <strong>第四步应用代码改为强制写该列</strong>。整个过程每步独立发布可回滚，<strong>核心是先加可空列避开 NOT NULL 的全表重写</strong>。也可直接用 <code class="inline-code">ADD COLUMN col VARCHAR(32) NOT NULL DEFAULT 'N'</code>（MySQL 8.0 Instant DDL 支持带默认值的 NOT NULL 加列秒级完成），但仍建议分步以兼容低版本与复杂场景。</p>
+            <p><strong>追问 3：Flyway 和 Liquibase 如何选型？</strong></p>
+            <p>核心差异在<strong>迁移描述方式</strong>与<strong>目标用户</strong>。① <strong>Flyway（SQL-first）</strong>：迁移就是纯 SQL，开发者写熟悉的 SQL 即可，简单直观、学习成本低、与 DBA 现有 SQL 脚本无缝衔接；缺点是跨数据库需为每种方言写不同脚本，回滚需手写 Undo 脚本（付费版）。<strong>适合单一数据库、开发者主导、Spring Boot 项目</strong>（Spring Boot 默认集成）。② <strong>Liquibase（XML/YAML changeset）</strong>：用结构化 changeset 描述变更，自动生成各数据库方言 SQL，<strong>跨数据库能力强</strong>；支持 preconditions 前置校验、显式 rollback 标签、diff 工具存量导入；缺点是 XML 学习成本高、与纯 SQL 习惯不同。<strong>适合需支持多种数据库、DBA 深度参与、有复杂回滚/审计需求</strong>的场景（如商业产品交付多客户多种 DB）。选型口诀：<strong>单库 + 开发者主导选 Flyway；多库 + DBA 主导选 Liquibase</strong>。两者都能满足大部分需求，团队熟悉度是重要决策因素。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>迁移脚本不可逆（没有回滚计划）</strong>：直接写 <code class="inline-code">DROP COLUMN</code>/<code class="inline-code">DROP TABLE</code>，执行后数据永久丢失，代码回滚时 Schema 已不兼容。生产破坏性变更必须走 Expand-Contract 分步，且每步有前向兼容兜底，<strong>绝不依赖工具回滚</strong>，靠备份 + 向前兼容设计保证可逆。</li>
+                <li><strong>生产环境直接执行破坏性 DDL</strong>：在应用启动时让 Flyway 自动执行大表 <code class="inline-code">ALTER</code>，触发长时间锁表导致服务不可用。生产大表 DDL 必须用 gh-ost/pt-osc 在维护窗口由 DBA 操作，迁移与应用部署解耦，不能裸跑普通 ALTER。</li>
+                <li><strong>迁移脚本中使用数据库特定语法</strong>：在需跨库的项目里用 MySQL 特有语法（<code class="inline-code">AUTO_INCREMENT</code>/<code class="inline-code">ENGINE=InnoDB</code>），导致在 PostgreSQL/Oracle 执行失败。跨库场景应用 Liquibase changeset 或为每种库写方言脚本，避免硬编码特定语法。</li>
+                <li><strong>忽略迁移的执行顺序与并发控制</strong>：多人同时新增脚本用了冲突版本号，或多个应用实例同时启动并发执行迁移。Flyway/Liquibase 靠锁表（<code class="inline-code">flyway_schema_history</code> 行锁/<code class="inline-code">DATABASECHANGELOGLOCK</code>）串行化，但版本号冲突需靠时间戳命名 + PR 评审规范避免，<strong>禁止乱序执行</strong>（<code class="inline-code">out-of-order=false</code>）。</li>
+                <li><strong>Expand-Contract 步骤缺失导致中间状态不兼容</strong>：删列与代码切换在同一次发布，发布中途旧代码读到已删列报错。必须严格分多版本：先 Expand（加新列）发布→双写迁数据发布→切读发布→Contract（删旧列）发布，<strong>每步中间状态都兼容新旧代码</strong>，压缩步骤等于在线上裸奔。</li>
+                <li><strong>修改已执行的迁移脚本</strong>：为"修个 typo"改动已合入的脚本，导致 checksum 不匹配启动失败，且破坏多环境一致性。已执行脚本视为不可变，修正应新增脚本，或经审批后 <code class="inline-code">repair</code>。</li>
               </ul>
             </div>
           </div>

@@ -25,6 +25,7 @@
         <li><a href="#qa-3-8"><span class="toc-number">3.8</span>Java 并发集合与使用场景</a></li>
         <li><a href="#qa-3-9"><span class="toc-number">3.9</span>ForkJoinPool 分治与工作窃取</a></li>
         <li><a href="#qa-3-10"><span class="toc-number">3.10</span>线程安全计数器实现</a></li>
+        <li><a href="#qa-3-11"><span class="toc-number">3.11</span>Disruptor 无锁队列</a></li>
       </ol>
     </aside>
 
@@ -43,11 +44,11 @@
         <h1 class="chapter-title">并发编程与锁机制</h1>
         <p class="chapter-subtitle">从 JMM 内存屏障到 AQS 同步器框架：理解锁的演进哲学、CAS 无锁编程与高并发计数器的性能边界</p>
         <div class="chapter-meta">
-          <span>题目数：10</span>
+          <span>题目数：11</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×1</span>
+          <span>架构级 ×2</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
@@ -415,7 +416,7 @@ graph LR
 <span class="com">// 2. addWaiter: CAS 把当前线程封装成 Node 加入队尾</span>
 <span class="com">// 3. acquireQueued: 前驱是 head 时再次 tryAcquire；否则 park 阻塞</span>
 <span class="kw">final boolean</span> <span class="fn">acquireQueued</span>(<span class="type">Node</span> node, <span class="kw">int</span> arg) {
-    <span class="kw">boolean</span> failed = <span class="kw">true</span>;
+    <span class="kw">boolean</span> failed = <span class="kw">true</span>, interrupted = <span class="kw">false</span>;
     <span class="kw">try</span> {
         <span class="kw">for</span> (;;) {
             <span class="type">Node</span> p = node.<span class="var">predecessor</span>();
@@ -423,11 +424,11 @@ graph LR
                 <span class="fn">setHead</span>(node);
                 p.<span class="var">next</span> = <span class="kw">null</span>; <span class="com">// help GC</span>
                 failed = <span class="kw">false</span>;
-                <span class="kw">return false</span>;
+                <span class="kw">return</span> interrupted;
             }
             <span class="kw">if</span> (<span class="fn">shouldParkAfterFailedAcquire</span>(p, node) &amp;&amp;
                 <span class="fn">parkAndCheckInterrupt</span>())
-                <span class="kw">throw new</span> <span class="type">InterruptedException</span>();
+                interrupted = <span class="kw">true</span>;  <span class="com">// acquire 不抛异常，仅记录中断状态</span>
         }
     } <span class="kw">finally</span> { <span class="kw">if</span> (failed) <span class="fn">cancelAcquire</span>(node); }
 }
@@ -572,7 +573,6 @@ sequenceDiagram
     Note over V: V 又变回 A（但经历了 B）
     T1->>V: CAS(A → C) 成功
     Note over T1: 以为 V 没变过, 实际经历了 A→B→A
-    style T1 fill:#fee2e2,stroke:#dc2626
               </div>
               <div class="chart-caption">图 3.4-1 ABA 问题：值"看似没变"实则经历了中间状态</div>
             </div>
@@ -1439,6 +1439,160 @@ graph TB
                 <li><strong>AtomicLong 高并发计数</strong>：32+ 线程下 CAS 乒乓严重，应换 LongAdder。</li>
                 <li><strong>忘记 @Contended 需开启参数</strong>：用户自定义类用 @Contended 需加 <code class="inline-code">-XX:-RestrictContended</code>，否则注解不生效。</li>
                 <li><strong>误以为 synchronized 最简单就最慢</strong>：低并发（&lt;4 线程）下 synchronized 经 JIT 优化（锁消除/偏向）后与 AtomicLong 接近，不必过度优化。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q3.11 Disruptor 无锁队列的设计原理与高性能实现？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-3-11" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">3.11</div>
+          <div class="qa-question">Disruptor 无锁队列的设计原理与高性能实现？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>Disruptor 是 LMAX 交易所开发的高性能内存消息组件，本质是一个<strong>基于环形数组（RingBuffer）+ 序列号（Sequence）协调的无锁/低锁消息传递框架</strong>，单线程吞吐可达千万级 TPS。本题考察四个核心设计：① <strong>RingBuffer</strong> 如何用定长环形数组 + 位运算实现 O(1) 寻址；② <strong>Sequence 与 Sequence Barrier</strong> 如何在不加锁的前提下协调生产者-消费者依赖关系；③ <strong>缓存行填充（Cache Line Padding）</strong> 如何消除伪共享（False Sharing）；④ <strong>单生产者无锁、多生产者 CAS</strong> 的并发模型。架构师需理解它"用数组预分配 + 序列号屏障替代锁"的设计哲学，以及在日志异步写入、事件分发场景中对比 BlockingQueue 的性能优势来源。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>LMAX 团队开发</strong>：LMAX 交易所为追求极低延迟交易系统，自研 Disruptor，<strong>2011 年开源</strong>。其设计动机源于 ArrayBlockingQueue 的性能痛点——锁竞争、对象分配、缓存行伪共享。</li>
+              <li><strong>ArrayBlockingQueue 痛点</strong>：① 用 <code class="inline-code">ReentrantLock</code> 串行化 put/take，高并发下锁竞争严重；② 队列 head/tail/count 等相邻字段共享缓存行导致伪共享；③ 对象在堆上流动，引发 GC。</li>
+              <li><strong>RingBuffer + Sequence 设计</strong>：用定长环形数组预分配 Event 对象（零运行时分配），生产者/消费者各自维护 Sequence 序号，通过序列比较判断可读写位置，单生产者场景完全无锁。</li>
+              <li><strong>单生产者-多消费者模型</strong>：Disruptor 支持菱形依赖（消费者间可串行/并行/菱形编排），通过 Sequence Barrier 统一协调，避免锁。</li>
+              <li><strong>JDK 8 引入 @Contended</strong>：Disruptor 早期手动填充 7 个 long 字段实现缓存行填充，JDK 8 起 <code class="inline-code">@Contended</code> 注解（需 <code class="inline-code">-XX:-RestrictContended</code>）提供了标准化方案。</li>
+              <li><strong>JDK 9 VarHandle 增强</strong>：提供了更细粒度的内存屏障操作（acquire/release/opaque），Disruptor 3.x 后续版本可基于 VarHandle 替代 Unsafe 实现松散读写。</li>
+              <li><strong>与 Project Loom 虚拟线程对比</strong>：虚拟线程解决"阻塞线程太多"问题，适合 IO 密集；Disruptor 解决"线程间消息传递太慢"问题，适合 CPU 密集的低延迟流水线。两者正交，可组合使用（虚拟线程消费 Disruptor 事件）。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>1. RingBuffer（环形数组）</strong>：固定大小的数组（大小必须为 2 的幂，<code class="inline-code">2^n</code>），预分配所有 Event 槽位。生产者写 <code class="inline-code">sequence &amp; (size - 1)</code> 处的槽位（位运算代替取模，O(1)），消费者读对应槽位。<strong>关键</strong>：数组预分配后 Event 对象常驻，生产者只更新字段不 new 对象，<strong>零运行时分配、零 GC 压力</strong>。</p>
+
+            <p><strong>2. Sequence（序列号）</strong>：Disruptor 的核心协调原语，本质是一个 <code class="inline-code">volatile long</code> 加缓存行填充。生产者/消费者各持一个 Sequence，<strong>单调递增</strong>。位置计算 <code class="inline-code">index = sequence &amp; (size - 1)</code>。单生产者场景下生产者 Sequence 无竞争，直接用普通 long + StoreStore 屏障即可；多生产者场景用 CAS 争用槽位。</p>
+
+            <p><strong>3. 缓存行填充（Cache Line Padding）消除伪共享</strong>：CPU 缓存行通常 64 字节，若两个独立变量（如生产者 cursor 与消费者 sequence）落在同一缓存行，一个线程修改变量 A 会使另一线程的变量 B 缓存失效，导致<strong>伪共享（False Sharing）</strong>。Disruptor 在 Sequence 前后填充 7 个 long（共 56 字节 + 8 字节 value = 64 字节），让 value 独占缓存行。JDK 8+ 可用 <code class="inline-code">@Contended</code> 替代手工填充。</p>
+
+            <p><strong>4. 单生产者 vs 多生产者</strong>：</p>
+            <ul>
+              <li><strong>单生产者（SingleProducerSequencer）</strong>：无任何 CAS，生产者独占写 cursor，仅用 <code class="inline-code">volatile</code> + putOrderedLong（松散写）发布，吞吐最高。</li>
+              <li><strong>多生产者（MultiProducerSequencer）</strong>：每个生产者用 CAS 抢占 sequence 槽位，写入数据后再用 <code class="inline-code">setAvailable</code> 标记该槽位可用（基于可用标志位数组），消费者只读已标记可用的槽位，保证可见性。</li>
+            </ul>
+
+            <p><strong>5. Sequence Barrier（序列屏障）协调消费者依赖</strong>：每个消费者通过 Sequence Barrier 感知其上游（依赖的消费者 + 生产者）的进度。消费者只能消费 <code class="inline-code">min(上游 sequence)</code> 之前的数据，从而实现<strong>菱形依赖无锁编排</strong>——例如"消费者 A → 消费者 B 串行"、"A/B 并行 → C 汇聚"，全部通过 Sequence 比较完成，无锁。</p>
+
+            <p><strong>6. BatchEventProcessor 批处理与 WaitStrategy</strong>：消费者默认用 BatchEventProcessor 循环拉取事件，一次处理从 <code class="inline-code">sequence+1</code> 到可用上限的所有事件（批量）。<strong>WaitStrategy</strong> 决定消费者等待新事件时的策略：</p>
+            <ul>
+              <li><strong>BlockingStrategy</strong>：基于 Lock + Condition，CPU 友好但延迟高（~微秒级切换）。</li>
+              <li><strong>SleepingStrategy</strong>：自旋 → Thread.yield → LockSupport.parkNanos 渐进，平衡 CPU 与延迟。</li>
+              <li><strong>YieldingStrategy</strong>：自旋 + Thread.yield，低延迟但吃 CPU。</li>
+              <li><strong>BusySpinStrategy</strong>：纯自旋，最低延迟但 100% 占满 CPU，适合绑核场景。</li>
+            </ul>
+
+            <div class="code-block"><pre><code><span class="com">// Disruptor DSL API 基本用法：单生产者 + 多消费者菱形依赖</span>
+<span class="kw">import</span> com.lmax.disruptor.*;
+<span class="kw">import</span> com.lmax.disruptor.dsl.*;
+
+<span class="com">// 1. 定义事件载体（预分配，复用对象，零 GC）</span>
+<span class="kw">class</span> <span class="type">LogEvent</span> {
+    <span class="kw">long</span> sequence;
+    <span class="type">String</span> message;
+    <span class="kw">long</span> timestamp;
+
+    <span class="kw">void</span> <span class="fn">set</span>(<span class="kw">long</span> seq, <span class="type">String</span> msg) {
+        <span class="kw">this</span>.sequence = seq;
+        <span class="kw">this</span>.message = msg;
+        <span class="kw">this</span>.timestamp = <span class="type">System</span>.<span class="fn">currentTimeMillis</span>();
+    }
+}
+
+<span class="com">// 2. 事件工厂（启动时预分配 RingBuffer 所有槽位）</span>
+<span class="type">EventFactory</span>&lt;<span class="type">LogEvent</span>&gt; factory = <span class="type">LogEvent</span>::<span class="kw">new</span>;
+
+<span class="com">// 3. 构造 Disruptor：RingBuffer 大小必须是 2^n，单生产者</span>
+<span class="type">Disruptor</span>&lt;<span class="type">LogEvent</span>&gt; disruptor = <span class="kw">new</span> <span class="type">Disruptor</span>&lt;&gt;(
+    factory, <span class="num">1024</span>, <span class="type">DaemonThreadBuilder</span>.<span class="fn">build</span>(),
+    <span class="type">ProducerType</span>.SINGLE, <span class="kw">new</span> <span class="type">BlockingWaitStrategy</span>());
+
+<span class="com">// 4. 消费者：批量处理事件</span>
+<span class="type">EventHandler</span>&lt;<span class="type">LogEvent</span>&gt; handlerA = (event, seq, endOfBatch) -&gt; {
+    <span class="type">System</span>.out.<span class="fn">println</span>(event.sequence + <span class="str">": "</span> + event.message);
+};
+
+<span class="com">// 菱形依赖：handlerA 与 handlerB 并行 → handlerC 汇聚</span>
+disruptor.<span class="fn">handleEventsWith</span>(handlerA, handlerB)
+         .<span class="fn">then</span>(handlerC);
+disruptor.<span class="fn">start</span>();
+
+<span class="com">// 5. 单生产者发布事件（复用槽位对象，不 new）</span>
+<span class="kw">long</span> seq = disruptor.<span class="fn">next</span>();          <span class="com">// 申请下一个可写序号</span>
+<span class="kw">try</span> {
+    <span class="type">LogEvent</span> event = disruptor.<span class="fn">get</span>(seq);  <span class="com">// 取预分配的对象</span>
+    event.<span class="fn">set</span>(seq, <span class="str">"log message"</span>);
+} <span class="kw">finally</span> {
+    disruptor.<span class="fn">publish</span>(seq);           <span class="com">// 必须发布，否则阻塞后续生产者</span>
+}</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>高级开发层</strong>：</p>
+            <ul>
+              <li><strong>Disruptor DSL API 使用</strong>：通过 <code class="inline-code">Disruptor</code> 构造器指定 EventFactory、RingBuffer 大小（2^n）、ProducerType（SINGLE/MULTI）、WaitStrategy，用 <code class="inline-code">handleEventsWith</code>/<code class="inline-code">then</code> 编排消费者依赖。</li>
+              <li><strong>EventHandler 实现</strong>：实现 <code class="inline-code">EventHandler&lt;T&gt;</code> 的 <code class="inline-code">onEvent</code>，注意事件对象是复用的，处理完不要持有引用（下次会被生产者覆盖）。</li>
+              <li><strong>生产者-消费者模式</strong>：<code class="inline-code">next()</code> 申请序号 → <code class="inline-code">get(seq)</code> 取对象填充 → <code class="inline-code">publish(seq)</code> 发布。务必保证 publish 执行（异常也用 finally 发布）。</li>
+              <li><strong>WaitStrategy 选型</strong>：低延迟用 BusySpin/Yielding（绑核），通用用 Sleeping，省 CPU 用 Blocking。</li>
+            </ul>
+
+            <p><strong>架构师层</strong>：</p>
+            <ul>
+              <li><strong>日志异步写入</strong>：Log4j2 AsyncLogger 底层即 Disruptor，相比 AsyncAppender（ArrayBlockingQueue）吞吐高 10x+ 且延迟稳定，是 Disruptor 最成功的落地。</li>
+              <li><strong>事件分发/限流场景选型</strong>：网关/交易系统的事件流水线、订单处理管线，用 Disruptor 编排"接收 → 校验 → 风控 → 落库"的菱形流水线，单线程每环无锁，延迟可压到微秒级。</li>
+              <li><strong>vs BlockingQueue 性能对比</strong>：Disruptor 比 ArrayBlockingQueue/LinkedBlockingQueue 快 10x~100x，来源是：① 无锁（单生产者）/低 CAS（多生产者）替代 ReentrantLock；② 数组预分配零 GC；③ 缓存行填充消除伪共享；④ 批量消费减少协调开销。</li>
+              <li><strong>内存预分配减少 GC</strong>：RingBuffer 启动时预分配 size 个 Event 对象常驻老年代，运行时只更新字段，对象不进入新生代，几乎无 GC 停顿——这是低延迟系统的关键。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Disruptor 为什么比 BlockingQueue 快？</strong></p>
+            <p>四个维度的叠加优势：① <strong>无锁/低锁</strong>——单生产者无任何 CAS，多生产者只在抢序号时 CAS（且只一次），而 ArrayBlockingQueue 的 put/take 用同一把 ReentrantLock 串行化，高并发下上下文切换严重；② <strong>零 GC</strong>——RingBuffer 预分配复用对象，生产者只更新字段，而 BlockingQueue 每次 put 都可能触发对象在堆上流动与 GC；③ <strong>消除伪共享</strong>——Disruptor 的 Sequence 用缓存行填充隔离，ArrayBlockingQueue 的 putIndex/takeIndex/count/items 相邻字段易落同缓存行产生伪共享；④ <strong>批量消费</strong>——消费者一次处理到可用上限的所有事件，减少协调次数，BlockingQueue 每次只取一个。</p>
+
+            <p><strong>追问 2：多生产者场景如何保证消息有序？</strong></p>
+            <p>多生产者下<strong>整体有序无法保证</strong>（多个生产者并发抢序号，谁先抢到谁先写），但能保证<strong>单条消息的生产-消费顺序</strong>与<strong>按 sequence 单调递增的消费可见性</strong>。机制：多生产者用 CAS 抢占 sequence 后写入数据，但消费者只读 <code class="inline-code">setAvailable</code> 标记过的槽位。若 sequence=5 的槽位先写完但 sequence=4 未标记 available，消费者会停在 4 不前进，避免读到未完成的数据。若业务要求全局有序，必须<strong>单生产者</strong>（上游加锁/单线程分发），Disruptor 的多生产者模式本身不保证生产顺序。</p>
+
+            <p><strong>追问 3：Disruptor 在日志框架（Log4j2 AsyncLogger）中的应用？</strong></p>
+            <p>Log4j2 的 AsyncLogger 用 Disruptor 作为底层队列，应用线程调用 <code class="inline-code">logger.info()</code> 时将 LogEvent 投入 RingBuffer 后立即返回（微秒级），后台单线程消费并写磁盘/Appender。相比 Logback 的 AsyncAppender（基于 ArrayBlockingQueue），AsyncLogger 在 32 线程下吞吐高 10x+，且 P99 延迟更稳定。配置 <code class="inline-code">AsyncLoggerContextSelector</code> 即可启用。这是 Disruptor"单生产者-单消费者 + 预分配 + 无锁"模型的最佳实践——日志生产者多但每次操作极轻，Disruptor 让业务线程几乎不被日志 IO 阻塞。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>误以为 Disruptor 完全无锁</strong>：单生产者模式确实无锁无 CAS，但<strong>多生产者模式仍需 CAS</strong> 争用序号。不要想当然认为所有场景都"零争用"。</li>
+                <li><strong>忽略 RingBuffer 大小必须是 2^n</strong>：Disruptor 强制要求 size 为 2 的幂（位运算 <code class="inline-code">seq &amp; (size-1)</code> 寻址）。传入非 2^n 会抛异常，且大小需根据峰值积压预估，过小导致生产者被消费者拖慢阻塞。</li>
+                <li><strong>混淆 BatchEventProcessor 和 WorkProcessor</strong>：BatchEventProcessor 是"每个消费者独立 Sequence，可并行处理同一批事件"（发布订阅）；WorkProcessor 是"多个 Worker 共享一个 Sequence 池，每个事件只被一个 Worker 处理"（工作分发）。选错会导致事件被重复处理或漏处理。</li>
+                <li><strong>误用 WaitStrategy 导致 CPU 空转</strong>：BusySpinStrategy 在没有事件时 100% 占满 CPU，非绑核场景用它会拖垮整机；通用场景应用 SleepingStrategy 或 BlockingStrategy，只有极致低延迟且已绑核才用 BusySpin。</li>
+                <li><strong>持有 Event 引用</strong>：Event 对象是复用的，onEvent 处理后不能将其存入集合或异步引用，否则会被生产者下次覆盖，导致数据错乱。</li>
               </ul>
             </div>
           </div>

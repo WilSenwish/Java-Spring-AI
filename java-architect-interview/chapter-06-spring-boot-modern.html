@@ -25,6 +25,7 @@
         <li><a href="#qa-6-8"><span class="toc-number">6.8</span>配置加载机制与优先级</a></li>
         <li><a href="#qa-6-9"><span class="toc-number">6.9</span>全局异常处理设计</a></li>
         <li><a href="#qa-6-10"><span class="toc-number">6.10</span>Spring Validation 数据校验</a></li>
+        <li><a href="#qa-6-11"><span class="toc-number">6.11</span>Spring Security 6 与 OAuth2</a></li>
       </ol>
     </aside>
 
@@ -43,11 +44,11 @@
         <h1 class="chapter-title">Spring Boot 与现代框架</h1>
         <p class="chapter-subtitle">从自动配置 SPI 到 AOT/GraalVM Native Image：理解 spring.factories→AutoConfiguration.imports 演进、JIT→AOT→Native 编译范式转移、Spring Security 过滤器链、Spring AI 架构与 Spring 生态从 Web 到 AI 的演进</p>
         <div class="chapter-meta">
-          <span>题目数：10</span>
+          <span>题目数：11</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×2</span>
+          <span>架构级 ×3</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
@@ -1361,6 +1362,132 @@ flowchart TD
                 <li><strong>自定义校验器校验 null</strong>：与 @NotNull 职责重叠，且 null 时返回 false 会导致 @NotBlank 场景重复报错，应放行 null。</li>
                 <li><strong>两类异常只处理一种</strong>：只处理 MethodArgumentNotValidException，方法级校验失败抛 ConstraintViolationException 走兜底，前端收不到友好提示。</li>
                 <li><strong>Boot 3 包名未迁移</strong>：仍 import javax.validation，编译报错，必须改 jakarta.validation。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q6.11 Spring Security 6 的安全架构与 OAuth2 实践？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-6-11" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">6.11</div>
+          <div class="qa-question">Spring Security 6 的安全架构与 OAuth2 实践？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>Spring Security 6 安全架构</strong>与 <strong>OAuth2/JWT 工程落地</strong>的体系化理解。核心要回答四个层面：① <code class="inline-code">SecurityFilterChain</code> 过滤器链模型如何取代旧的 <code class="inline-code">WebSecurityConfigurerAdapter</code>；② <strong>OAuth2 授权码模式 + PKCE</strong> 的完整流程与适用场景；③ <strong>JWT 无状态认证</strong>与 <strong>Session 有状态认证</strong>的选型权衡；④ 微服务下 Token 传递、网关统一鉴权与 Token 吊销策略。理解关键在于：Spring Security 本质是一条<strong>可编排的过滤器链</strong>，认证（你是谁）与授权（你能做什么）是两个解耦阶段，OAuth2 解决的是<strong>跨域委托授权</strong>，JWT 解决的是<strong>无状态凭证自包含</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring Security 4（2014）</strong>：XML 配置为主，<code class="inline-code">&lt;http&gt;</code> 命名空间声明式配置，<code class="inline-code">WebSecurityConfigurerAdapter</code> 引入 Java Config 但仍需继承重写。功能完整但配置繁琐、扩展性差。</p>
+            <p><strong>Spring Security 5（2017）</strong>：<code class="inline-code">WebSecurityConfigurerAdapter</code> 成为主流，<code class="inline-code">configure(HttpSecurity)</code> 重写成为标准姿势。5.0 引入 OAuth2 客户端支持（<code class="inline-code">spring-security-oauth2</code>，后废弃），5.2+ 重写为 <code class="inline-code">spring-security-oauth2-client</code>/<code class="inline-code">-resource-server</code>，引入 <code class="inline-code">oauth2Login()</code>。</p>
+            <p><strong>Spring Security 6 / Spring Boot 3（2022）</strong>：<strong>强制移除 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong>，全面改为 <strong>Lambda DSL</strong>（<code class="inline-code">http.csrf(c -&gt; c.disable())</code>）；<code class="inline-code">SecurityFilterChain</code> 声明为 Bean；<code class="inline-code">WebSecurityCustomizer</code> 取代 <code class="inline-code">web.ignoring()</code>；包名 <code class="inline-code">javax.servlet</code> → <code class="inline-code">jakarta.servlet</code>。</p>
+            <p><strong>OAuth2 Authorization Server（Spring 官方）</strong>：原 <code class="inline-code">spring-security-oauth</code>（社区版）停止维护，Spring 官方推出 <code class="inline-code">spring-authorization-server</code>（1.0 于 2022 GA），支持 Authorization Code/Client Credentials/Device Code/Refresh Token，PKCE 内置。</p>
+            <p><strong>Spring Boot 3.2+（2023）</strong>：OAuth2 客户端/资源服务器 Starter 自动配置进一步简化，<code class="inline-code">spring.security.oauth2.resourceserver.jwt</code> 一行配置接入 JWT 资源服务器；One-Time Token Login、Passkey 等新特性加入。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>1. SecurityFilterChain 过滤器链</strong>：Spring Security 的核心是一条由 <code class="inline-code">Filter</code> 组成的链。<code class="inline-code">DelegatingFilterProxy</code>（Servlet 容器注册）→ <code class="inline-code">FilterChainProxy</code>（Spring Bean）→ 匹配到的 <code class="inline-code">SecurityFilterChain</code> → 依次执行 <code class="inline-code">SecurityContextPersistenceFilter</code>、<code class="inline-code">UsernamePasswordAuthenticationFilter</code>、<code class="inline-code">AuthorizationFilter</code> 等约 15 个过滤器。6.x 中 <code class="inline-code">FilterSecurityInterceptor</code> 被 <code class="inline-code">AuthorizationFilter</code> 取代，授权逻辑前置。可声明多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">securityMatcher</code> 顺序匹配，<strong>顺序决定优先级</strong>。</p>
+            <p><strong>2. 认证核心组件</strong>：<code class="inline-code">AuthenticationManager</code>（认证入口，委托给 <code class="inline-code">ProviderManager</code> → <code class="inline-code">AuthenticationProvider</code>）→ <code class="inline-code">UserDetailsService</code>/<code class="inline-code">UserDetails</code>（加载用户）→ <code class="inline-code">PasswordEncoder</code>（BCrypt 校验）→ <code class="inline-code">SecurityContext</code>（存入 <code class="inline-code">SecurityContextHolder</code>，6.x 默认 <code class="inline-code">DeferredSecurityContext</code> 异步优化）。</p>
+            <p><strong>3. OAuth2 授权码模式 + PKCE</strong>：用户访问客户端 → 重定向到授权服务器登录 → 授权服务器返回 <code class="inline-code">code</code>（带 <code class="inline-code">redirect_uri</code>）→ 客户端用 <code class="inline-code">code</code> + <code class="inline-code">client_secret</code>（机密客户端）换 <code class="inline-code">access_token</code> → 用 token 访问资源服务器。<strong>PKCE</strong>（Proof Key for Code Exchange）为公开客户端（SPA/移动端）增加一层：客户端先生成 <code class="inline-code">code_verifier</code>（随机串）→ 算 <code class="inline-code">code_challenge</code>（S256 哈希）随授权请求发出 → 换 token 时带 <code class="inline-code">code_verifier</code>，授权服务器校验哈希匹配，防止授权码被截获后冒用。</p>
+            <p><strong>4. JWT 无状态认证</strong>：资源服务器用 <code class="inline-code">NimbusJwtDecoder</code>（<code class="inline-code">JwtDecoder</code> 实现）验签（RSA/EC 公钥或 JWK Set URI），验签通过后 <code class="inline-code">JwtAuthenticationConverter</code> 将 claims 转为 <code class="inline-code">Authentication</code>。<code class="inline-code">JwtEncoder</code> 用私钥签发。<strong>JWT 是签名（防篡改）非加密（claims 明文）</strong>。</p>
+            <p><strong>5. 方法级安全</strong>：<code class="inline-code">@EnableMethodSecurity</code>（6.x 取代 <code class="inline-code">@EnableGlobalMethodSecurity</code>）开启，<code class="inline-code">@PreAuthorize</code>/<code class="inline-code">@PostAuthorize</code> 用 SpEL 做权限判断，底层 AOP 代理拦截。</p>
+
+            <p><strong>SecurityFilterChain 配置示例（6.x Lambda DSL + JWT 资源服务器）</strong>：</p>
+            <div class="code-block"><pre><code><span class="kw">@Configuration</span>
+<span class="kw">@EnableWebSecurity</span>
+<span class="kw">@EnableMethodSecurity</span>  <span class="com">// 6.x 取代 @EnableGlobalMethodSecurity，默认开启 @PreAuthorize</span>
+<span class="kw">public class</span> <span class="type">SecurityConfig</span> {
+
+    <span class="com">// 1. 安全过滤器链：6.x 改为 Bean，不再继承 Adapter</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">SecurityFilterChain</span> <span class="fn">securityFilterChain</span>(<span class="type">HttpSecurity</span> http) <span class="kw">throws</span> <span class="type">Exception</span> {
+        <span class="kw">return</span> http
+            <span class="com">// Lambda DSL：6.x 唯一支持的写法</span>
+            .<span class="fn">csrf</span>(csrf -&gt; csrf.<span class="fn">disable</span>())          <span class="com">// 无状态 API 关闭 CSRF（CSRF 防的是 Cookie 伪造）</span>
+            .<span class="fn">sessionManagement</span>(s -&gt; s.<span class="fn">sessionCreationPolicy</span>(<span class="type">SessionCreationPolicy</span>.STATELESS))
+            .<span class="fn">authorizeHttpRequests</span>(auth -&gt; auth
+                .<span class="fn">requestMatchers</span>(<span class="str">"/public/**"</span>, <span class="str">"/login"</span>).<span class="fn">permitAll</span>()
+                .<span class="fn">requestMatchers</span>(<span class="str">"/admin/**"</span>).<span class="fn">hasRole</span>(<span class="str">"ADMIN"</span>)
+                .<span class="fn">anyRequest</span>().<span class="fn">authenticated</span>()
+            )
+            <span class="com">// JWT 资源服务器：验签用 JWK Set URI（授权服务器公钥）</span>
+            .<span class="fn">oauth2ResourceServer</span>(o -&gt; o.<span class="fn">jwt</span>(<span class="type">JwtConfigurer</span>::<span class="fn">jwt</span>))
+            .<span class="fn">build</span>();
+    }
+
+    <span class="com">// 2. JWT 解码器：从授权服务器拉取 JWK Set 验签</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">JwtDecoder</span> <span class="fn">jwtDecoder</span>() {
+        <span class="kw">return</span> <span class="type">NimbusJwtDecoder</span>.<span class="fn">withJwkSetUri</span>(<span class="str">"https://auth.example.com/.well-known/jwks.json"</span>).<span class="fn">build</span>();
+    }
+
+    <span class="com">// 3. 密码编码器：BCrypt，strength 建议 10~12</span>
+    <span class="kw">@Bean</span>
+    <span class="kw">public</span> <span class="type">PasswordEncoder</span> <span class="fn">passwordEncoder</span>() {
+        <span class="kw">return new</span> <span class="type">BCryptPasswordEncoder</span>();
+    }
+}
+
+<span class="com">// 方法级权限：SpEL，6.x 默认启用</span>
+<span class="kw">@Service</span>
+<span class="kw">public class</span> <span class="type">OrderService</span> {
+    <span class="kw">@PreAuthorize</span>(<span class="str">"hasRole('ADMIN') or #dto.userId == authentication.principal.id"</span>)
+    <span class="kw">public</span> <span class="type">Order</span> <span class="fn">update</span>(<span class="type">OrderDTO</span> dto) { ... }
+}</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>高级开发</strong>：① <strong>SecurityFilterChain 配置</strong>——按 Lambda DSL 声明 Bean，区分公开/认证/角色接口；② <strong>OAuth2 Login 集成</strong>——<code class="inline-code">oauth2Login()</code> 接入 GitHub/Google，自动处理授权码交换与用户信息拉取；③ <strong>JWT 签发与验证</strong>——授权服务器用 <code class="inline-code">JWKSource</code> 签发，资源服务器用 <code class="inline-code">NimbusJwtDecoder</code> 验签，自定义 <code class="inline-code">JwtAuthenticationConverter</code> 映射权限。</p>
+            <p><strong>架构师</strong>：</p>
+            <p>① <strong>无状态 vs 有状态认证选型</strong>：单体/管理后台用 Session（CSRF 防护天然、踢人即时）；微服务/API 网关用 JWT（无状态、易水平扩展）。混合方案：网关 Session + 内部服务 JWT。</p>
+            <p>② <strong>微服务 Token 传递与网关统一鉴权</strong>：网关（Spring Cloud Gateway）统一验签，下游服务通过 <code class="inline-code">X-User-Id</code>/<code class="inline-code">X-User-Roles</code> 头接收已认证身份（<strong>网关到服务网络隔离</strong>，防止绕过）。或令牌透传，各服务自行验签（去中心化但重复）。</p>
+            <p>③ <strong>OAuth2 Authorization Server 搭建</strong>：用 <code class="inline-code">spring-authorization-server</code>，配置 <code class="inline-code">RegisteredClientRepository</code>（客户端注册）、<code class="inline-code">JWKSource</code>（RSA 密钥对）、<code class="inline-code">AuthorizationServerSettings</code>。生产环境密钥用 KMS/Vault 管理，支持密钥轮转。</p>
+            <p>④ <strong>Token 刷新与吊销策略</strong>：access_token 短期（15~30 分钟）+ refresh_token 长期（7~30 天）；吊销用<strong>黑名单/版本号</strong>（Redis 记录 jti），或<strong>短 TTL + 宽限期</strong>容忍；refresh_token 一次性使用（rotation）防重放。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">架构选型要点</div>
+              <p>无状态 JWT 适合<strong>读多写少、可容忍短期吊销延迟</strong>的 API；有状态 Session 适合<strong>强吊销、即时踢人</strong>的后台系统。微服务下推荐"<strong>网关统一验签 + 下游透传身份头</strong>"，避免每个服务重复验签造成性能与一致性负担。Token 切勿放 <code class="inline-code">localStorage</code>（XSS 可窃取），优先 <code class="inline-code">HttpOnly Cookie</code>（配 SameSite 防 CSRF）。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：JWT 为什么不能主动吊销？如何实现？</strong></p>
+            <p>JWT 设计为<strong>无状态自包含</strong>，签发后服务端不存副本，到期前一直有效——这是无状态的代价。实现吊销的方案：① <strong>黑名单</strong>：Redis 存被吊销的 <code class="inline-code">jti</code>（JWT ID），资源服务器验签后多查一次 Redis（破坏纯无状态，但 TTL 内有效）；② <strong>短 TTL + Refresh Token</strong>：access_token 设 15 分钟，吊销时让 refresh_token 失效，最迟 15 分钟后失效；③ <strong>Token 版本号</strong>：用户/会话维度维护版本，JWT 中带 <code class="inline-code">ver</code> claim，改密码/踢人时版本+1，旧 token 失效；④ <strong>introspection（RFC 7662）</strong>：资源服务器每次请求问授权服务器 token 是否有效（参考令牌，完全有状态）。生产推荐"短 TTL + 黑名单关键场景（登出/改密）"组合。</p>
+            <p><strong>追问 2：PKCE 解决了什么问题？</strong></p>
+            <p>PKCE 解决<strong>公开客户端（无法安全保存 client_secret 的 SPA/移动 App）授权码被截获</strong>的问题。传统授权码模式靠 <code class="inline-code">client_secret</code> 防止 code 被截获后冒用，但 SPA/原生 App 无法安全存储 secret（反编译/前端可见）。PKCE 流程：客户端生成随机 <code class="inline-code">code_verifier</code>，算 <code class="inline-code">code_challenge = BASE64URL(SHA256(verifier))</code>，授权请求带 challenge → 换 token 时带 verifier → 授权服务器校验 <code class="inline-code">SHA256(verifier) == challenge</code>。攻击者截获 code 也拿不到 verifier，无法换 token。<strong>OAuth 2.1 强制所有客户端使用 PKCE</strong>，Spring Authorization Server 默认开启。</p>
+            <p><strong>追问 3：Spring Security 6 为什么废弃 WebSecurityConfigurerAdapter？</strong></p>
+            <p>① <strong>继承重写耦合度高</strong>：Adapter 要求继承并重写 <code class="inline-code">configure(HttpSecurity)</code>，父类方法签名/默认行为成为 API 契约，改动易破坏向后兼容；② <strong>多安全链配置笨拙</strong>：一个 Adapter 实例只对应一条链，多链需多个 Bean 或 <code class="inline-code">@Order</code>，语义不清；③ <strong>组件化演进方向</strong>：6.x 全面走 <strong>Bean + Lambda DSL</strong>，<code class="inline-code">SecurityFilterChain</code> 直接声明为 Bean，配置即组装，更符合 Spring Boot 自动装配哲学；④ <strong>移除"默认开启"的隐式行为</strong>：Adapter 隐式启用一堆过滤器，新方式显式声明，行为可预测。本质是从"<strong>继承扩展</strong>"转向"<strong>组合配置</strong>"，降低耦合、提升可测试性。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>误以为 JWT 是加密</strong>：JWT 默认只签名（JWS，防篡改），payload 是 Base64URL 明文，敏感信息（密码/身份证）不能放 claim；要加密须用 JWE，复杂且少见。</li>
+                <li><strong>忽略 Token 过期与刷新机制</strong>：只配 access_token，到期后 401 全屏；或 refresh_token 永不过期形成永久凭证。应 access 短期 + refresh 长期 + rotation。</li>
+                <li><strong>SecurityFilterChain 顺序错误导致绕过</strong>：多条链按声明顺序匹配，把宽泛的 <code class="inline-code">anyRequest</code> 链放前面会吞掉后面的精确匹配；或 <code class="inline-code">securityMatcher</code> 写错导致 <code class="inline-code">/api/**</code> 命中放行链。务必用 <code class="inline-code">@Order</code> 显式排序并自测。</li>
+                <li><strong>混淆 OAuth2 认证与授权</strong>：OAuth2 最初是<strong>授权委托</strong>协议（让第三方代为访问资源），用 OAuth2 做"登录认证"是 OIDC（OpenID Connect）的职责（在 access_token 外加 id_token）。直接用 access_token 当登录凭证存在安全隐患。</li>
+                <li><strong>放行静态资源仍走安全链</strong>：6.x 应用 <code class="inline-code">web.ignoring()</code> 的资源应改用 <code class="inline-code">WebSecurityCustomizer</code> Bean，否则每个静态请求都进 FilterChainProxy 增加开销。</li>
               </ul>
             </div>
           </div>

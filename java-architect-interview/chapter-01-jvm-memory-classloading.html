@@ -23,6 +23,7 @@
         <li><a href="#qa-1-6"><span class="toc-number">1.6</span>直接内存与 NIO</a></li>
         <li><a href="#qa-1-7"><span class="toc-number">1.7</span>引用类型与 GC 回收</a></li>
         <li><a href="#qa-1-8"><span class="toc-number">1.8</span>JDK 9 模块系统与类加载</a></li>
+        <li><a href="#qa-1-9"><span class="toc-number">1.9</span>JIT 编译器 C1/C2/GraalVM</a></li>
       </ol>
     </aside>
 
@@ -41,11 +42,11 @@
         <h1 class="chapter-title">JVM 内存与类加载</h1>
         <p class="chapter-subtitle">从运行时数据区到模块化类加载：理解 JVM 内存模型的演进、第一性原理与工程边界</p>
         <div class="chapter-meta">
-          <span>题目数：8</span>
+          <span>题目数：9</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×5</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×2</span>
+          <span>架构级 ×3</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
@@ -78,7 +79,8 @@
             <p><strong>JDK 1.7（2011）</strong>：符号引用、静态变量移出永久代；字符串常量池从永久代迁移到堆中（仍部分保留）。这是永久代废除的前奏。</p>
             <p><strong>JDK 1.8（2014）</strong>：<strong>彻底移除永久代</strong>，方法区改由本地内存的"元空间（Metaspace）"实现。类元数据只受本地内存上限约束，解决了永久代易溢出的问题。</p>
             <p><strong>JDK 10（2018）</strong>：引入容器感知（<code class="inline-code">-XX:+UseContainerSupport</code>），JVM 自动识别 cgroup 内存限制，避免容器内 OOM Killed。</p>
-            <p><strong>JDK 17 LTS / JDK 21 LTS</strong>：元空间进一步优化（JEP 387 弹性元空间，可归还内存给操作系统）；ZGC/Shenandoah 支持大堆与低延迟，堆内存管理从"固定分代"走向"弹性 Region"。</p>
+            <p><strong>JDK 16</strong>：JEP 387 弹性元空间（Elastic Metaspace），元空间可归还内存给操作系统，解决早期元空间只增不减的问题。</p>
+            <p><strong>JDK 17 LTS / JDK 21 LTS</strong>：继承弹性元空间等优化；ZGC/Shenandoah 支持大堆与低延迟，堆内存管理从"固定分代"走向"弹性 Region"。</p>
             <p><strong>未来趋势</strong>：内存模型向"弹性化、容器原生"演进，元空间可动态伸缩并归还，堆 Region 化（G1/ZGC）使分代边界模糊化，配合 GraalVM Native Image 将运行时内存占用从百 MB 级压到十 MB 级。</p>
           </div>
         </div>
@@ -1147,6 +1149,145 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
                 <li><strong>误以为反射限制只影响 JDK 内部</strong>：任何命名模块未 opens 的包，反射都被拒绝，包括第三方库模块。</li>
                 <li><strong>混淆 exports 与 opens</strong>：exports 是编译期+运行期可见（普通访问），opens 是反射可见（setAccessible），两者独立。</li>
                 <li><strong>误以为 JPMS 支持多版本</strong>：同一模块名在一个 ModuleLayer 中只能有一个版本，依赖冲突需靠分层或回到 OSGi。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- Q1.9 JVM JIT 编译器（C1/C2/GraalVM）的工作原理与调优？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-1-9" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">1.9</div>
+          <div class="qa-question">JVM JIT 编译器（C1/C2/GraalVM）的工作原理与调优？<span class="difficulty difficulty-architect">架构级</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>JVM 的 JIT（Just-In-Time）编译器是"运行时将热点字节码编译为本地机器码"的核心机制，本质是用<strong>编译时间换执行时间</strong>、用<strong>内存（CodeCache）换 CPU</strong>。本题考察四个维度：① <strong>分层编译（Tiered Compilation）</strong>如何用 C1/C2 两个编译器协同平衡启动速度与峰值吞吐；② <strong>C1 与 C2 优化器的能力差异</strong>（C1 求快、C2 求极致）；③ <strong>CodeCache 管理</strong>与编译产物回收；④ <strong>GraalVM 编译器</strong>作为 C2 的替代方案（JVMCI 接口）如何用 Java 重写 JIT。架构师必须理解"解释执行 → JIT 编译 → 激进优化 → 逆优化（Deoptimization）"的完整生命周期，以及 JIT 与 AOT（Native Image）的本质权衡。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p>JVM 编译技术的发展是一条"从纯解释到混合编译、再到多编译器协同、再到 AOT"的演进线：</p>
+            <ul>
+              <li><strong>纯解释器（Interpreter）</strong>：早期 JVM 全部解释执行，启动快但峰值慢，每次执行都要重新翻译字节码。</li>
+              <li><strong>C1 编译器（Client Compiler）</strong>：快速编译、轻量优化，追求低延迟启动，代表早期 Client 模式 VM。</li>
+              <li><strong>C2 编译器（Server Compiler）</strong>：慢编译、激进优化（循环展开/锁消除/向量化），追求峰值吞吐，代表 Server 模式 VM。早期 Client 与 Server 模式需用户手动选择。</li>
+              <li><strong>分层编译（Tiered Compilation）</strong>：JDK 6 引入实验性，<strong>JDK 8 默认开启</strong>，让 C1 先编译热点、收集 Profile，再交给 C2 做激进优化，兼顾启动与峰值。JDK 10 起分层编译成为不可关闭的默认行为。</li>
+              <li><strong>AOT 编译（JEP 295）</strong>：JDK 9 引入 <code class="inline-code">jaotc</code> 工具，将类预编译为本地代码缩短启动时间，但未能广泛使用，JDK 17 被移除。</li>
+              <li><strong>GraalVM JIT（JEP 317）</strong>：JDK 10 实验性引入，通过 JVMCI 接口用纯 Java 实现的 Graal 编译器替代 C2，支持更激进的优化（如部分逃逸分析）。</li>
+              <li><strong>GraalVM Native Image</strong>：基于闭世界分析的 AOT 方案，启动毫秒级、内存占用极低，适合 Serverless/微服务。</li>
+              <li><strong>JDK 21+ GraalVM GA</strong>：Oracle 官方将 GraalVM 编译器作为独立组件正式发布，JDK 24（JEP 483）将 Graal JIT 转正为生产可用，标志着 JIT 编译器从 C/C++ 实现向 Java 实现的迁移完成。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>1. 热点探测（Hot Spot Detection）</strong>：JIT 不会编译所有代码，只编译"热点"。HotSpot 用两种计数器——<strong>方法调用计数器</strong>（方法被调用次数）和<strong>回边计数器</strong>（循环回边次数）。当计数器超过阈值（<code class="inline-code">-XX:CompileThreshold</code>，分层编译下此参数作用被弱化），触发 JIT 编译。这是"把 90% 时间花在 10% 代码上"的工程体现。</p>
+
+            <p><strong>2. C1 与 C2 的优化级别差异</strong>：</p>
+            <ul>
+              <li><strong>C1（Client Compiler）</strong>：快速编译，编译耗时短，做简单优化——<strong>方法内联（Inlining）</strong>、<strong>逃逸分析（Escape Analysis）与标量替换</strong>、简单窥孔优化。不收集或只收集轻量 Profile。</li>
+              <li><strong>C2（Server Compiler）</strong>：慢编译，编译耗时长但生成代码质量高，做激进优化——<strong>循环展开（Loop Unrolling）</strong>、<strong>锁消除/锁粗化（Lock Elision/Coarsening）</strong>、<strong>向量化（Vectorization/SIMD）</strong>、<strong>分支频率预测</strong>、基于 Profile 的虚方法内联（CHA 分析）。C2 的 Sea-of-Nodes IR 支持更激进的优化。</li>
+            </ul>
+
+            <p><strong>3. 分层编译的 5 个编译层次（Tiered Compilation Levels）</strong>：</p>
+            <ul>
+              <li><strong>Tier 0</strong>：解释器执行，同时采集 Profile（方法调用计数、回边计数、参数类型）。</li>
+              <li><strong>Tier 1</strong>：C1 编译，<strong>不采集</strong> Profile，用于"快速但不需要再观察"的简单方法。</li>
+              <li><strong>Tier 2</strong>：C1 编译，采集<strong>轻量级</strong> Profile（仅方法调用与回边计数）。</li>
+              <li><strong>Tier 3</strong>：C1 编译，采集<strong>完整</strong> Profile（含分支频率、参数类型、虚方法目标），这是通往 C2 的过渡层。</li>
+              <li><strong>Tier 4</strong>：C2 编译，基于 Tier 3 采集的 Profile 做最激进优化，达到峰值性能。</li>
+            </ul>
+            <p>典型路径：<code class="inline-code">Tier 0 → Tier 3（C1 + 完整 Profile）→ Tier 4（C2）</code>。当 C2 编译队列满或 CodeCache 紧张时，方法可能停留在 Tier 3 不再升级。</p>
+
+            <p><strong>4. CodeCache（代码缓存）</strong>：JIT 编译产物（本地机器码）存放于 CodeCache，独立于 Java 堆。默认大小 JDK 8 约 240MB，可通过 <code class="inline-code">-XX:ReservedCodeCacheSize</code> 调整。CodeCache 由 CodeHeap 分段管理（non-profiled / profiled / non-nmethod 段）。当 CodeCache 接近满时，JVM 会<strong>停止 C2 编译</strong>甚至<strong>逆优化（Deoptimization）</strong>已编译代码回退到解释执行，性能断崖式下降。</p>
+
+            <p><strong>5. On-Stack Replacement（OSR）</strong>：方法正在执行中（通常在长循环里）被替换为编译后的版本，无需等方法退出重新进入。OSR 使长循环也能享受 JIT 优化，但 OSR 版本的入口质量通常比普通编译版本差（因为要从循环中间状态切入）。</p>
+
+            <p><strong>6. 逃逸分析与标量替换</strong>：C1/C2 分析对象是否"逃逸"出方法/线程。若对象不逃逸，则<strong>标量替换</strong>——将对象拆解为标量字段直接用寄存器/栈存储，对象不在堆上分配，零 GC 压力。这是"<code class="inline-code">new</code> 了却没进堆"的根本原因。</p>
+
+            <div class="code-block"><pre><code><span class="com">// 查看方法被 JIT 编译的过程：分层层次、是否内联、是否逆优化</span>
+<span class="com">// 启动参数: java -XX:+PrintCompilation -XX:+UnlockDiagnosticVMOptions</span>
+<span class="com">//          -XX:+PrintInlining YourApp</span>
+<span class="com">//</span>
+<span class="com">// PrintCompilation 输出格式示例（每列含义）：</span>
+<span class="com">//   134  4       b  com.demo.Foo::hotLoop (24 bytes)</span>
+<span class="com">//    ^  ^       ^  ^</span>
+<span class="com">//    |  |       |  方法签名</span>
+<span class="com">//    |  |       b=阻塞编译 s=OSR n=safepoint %=逆优化 !=有异常处理</span>
+<span class="com">//    |  Tier 层次（0~4，4=C2）</span>
+<span class="com">//    编译任务序号</span>
+
+<span class="com">// 逃逸分析示例：对象不逃逸，被标量替换，堆上零分配</span>
+<span class="kw">public class</span> <span class="type">EscapeAnalysisDemo</span> {
+    <span class="kw">static class</span> <span class="type">Point</span> {
+        <span class="kw">int</span> x, y;
+        <span class="type">Point</span>(<span class="kw">int</span> x, <span class="kw">int</span> y) { <span class="kw">this</span>.x = x; <span class="kw">this</span>.y = y; }
+    }
+
+    <span class="com">// Point 对象未逃逸出方法，C2 标量替换后等价于直接用 int x,y</span>
+    <span class="kw">public int</span> <span class="fn">distance</span>(<span class="kw">int</span> a, <span class="kw">int</span> b) {
+        <span class="type">Point</span> p = <span class="kw">new</span> <span class="type">Point</span>(a, b);
+        <span class="kw">return</span> p.x * p.x + p.y * p.y;  <span class="com">// 堆上 0 分配，零 GC</span>
+    }
+}</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>高级开发层</strong>：</p>
+            <ul>
+              <li><strong>查看编译日志</strong>：<code class="inline-code">-XX:+PrintCompilation</code> 观察哪些方法被编译、编译到哪个 Tier、是否逆优化；<code class="inline-code">-XX:+UnlockDiagnosticVMOptions -XX:+PrintInlining</code> 查看内联决策（too big / hot / already compiled）。</li>
+              <li><strong>CodeCache 调优</strong>：默认 <code class="inline-code">-XX:ReservedCodeCacheSize=240m</code>，大型应用或大量动态生成代码（如反射/CGlib）可调到 256m~512m。监控 <code class="inline-code">jstat -compiler &lt;pid&gt;</code> 与 <code class="inline-code">CodeCache 'non-profiled nmethods'</code> 使用率。</li>
+              <li><strong>关闭/开启分层编译</strong>：<code class="inline-code">-XX:-TieredCompilation</code> 关闭后只走 C2（启动慢、峰值略高，适合长时间运行且不在乎启动的服务）；现代应用默认开启分层编译即可。</li>
+              <li><strong>GraalVM JIT 启用</strong>：JDK 10+ 通过 <code class="inline-code">-XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler</code> 启用 Graal 作为顶层编译器（替代 C2）。</li>
+            </ul>
+
+            <p><strong>架构师层</strong>：</p>
+            <ul>
+              <li><strong>GraalVM Native Image 选型</strong>：Serverless/CLI/微服务启动敏感场景选 Native Image（毫秒级启动、低内存），但要接受<strong>无 JIT 运行时优化、反射需配置、动态代理受限、首次构建慢（几分钟）</strong>等代价。长跑型服务（&gt; 几分钟预热）仍用传统 JIT 更优。</li>
+              <li><strong>JIT vs AOT 权衡</strong>：JIT 有运行时 Profile 加持、可激进优化与逆优化，峰值高；AOT 启动快、可预测、无预热，但无法利用运行时信息、优化保守。<strong>关键判断</strong>：服务生命周期短（&lt; 预热时间）选 AOT，生命周期长选 JIT。</li>
+              <li><strong>CodeCache 溢出排查</strong>：症状为性能突降（C2 停止编译 + 批量 deopt）。排查：jcmd 查 CodeCache 段使用率，定位是否大量 Lambda/动态类产生编译产物，必要时扩容或排查反射滥用。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：为什么分层编译比纯 C2 更快启动？</strong></p>
+            <p>纯 C2 模式下，方法必须积累足够热度才触发编译，而 C2 编译耗时长，启动阶段大量方法停留在解释执行，峰值来得慢。分层编译先用 C1（编译速度快 5~10 倍）快速把热点编译为质量"够用"的本地码，让应用尽早脱离解释执行；同时 C1 采集完整 Profile，等热度足够再交给 C2 做激进优化。这样<strong>启动期由 C1 主导（快出码），稳态期由 C2 主导（高质量码）</strong>，两者衔接使启动时间和峰值吞吐都优于纯 C2。</p>
+
+            <p><strong>追问 2：GraalVM JIT 能否完全替代 C2？</strong></p>
+            <p>趋势上是，但当前仍有取舍。Graal（JVMCI 编译器）用 Java 实现，优化更激进（如部分逃逸分析 Partial Escape Analysis 强于 C2），且可维护性更好。但代价是：① 编译本身更慢（Java 写的编译器运行在 JVM 上，编译开销大），需要更长预热；② 需要额外引入 Graal 模块，体积增大；③ 极少数 C2 特有优化（如某些机器特定的 intrinsics）Graal 尚未完全覆盖。JDK 24（JEP 483）将 Graal JIT 正式转为生产可用，未来会逐步成为默认顶层编译器，但短期内 C2 仍是稳定默认。</p>
+
+            <p><strong>追问 3：CodeCache 满了会怎样？</strong></p>
+            <p>CodeCache 接近满时触发<strong>分段降级</strong>：首先停止 Tier 4（C2）编译，只保留 C1 编译；继续紧张则停止所有 JIT 编译，新热点只能解释执行；最严重时触发<strong>批量逆优化（Sweep）</strong>——已编译的代码被标记为"not entrant"甚至"zombie"，方法回退到解释执行，性能断崖式下降（TPS 可能掉 50%+）。排查：<code class="inline-code">jcmd &lt;pid&gt; Compiler.CodeCache</code> 看各段使用率，<code class="inline-code">-XX:+PrintCodeCache</code> 看启动后占用。根因多为大量动态生成类（反射/CGlib/Lambda）产生海量编译产物，需扩容 CodeCache 或减少动态代码生成。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>误以为 JIT 会编译所有代码</strong>：JIT 只编译热点（方法调用/回边计数超阈值），非热点代码始终解释执行。冷代码永不编译，所以"微基准"必须预热才有效。</li>
+                <li><strong>混淆 C1 和 C2 的优化级别</strong>：C1 只做内联/逃逸分析等轻量优化，C2 才做循环展开/向量化/锁消除。关掉分层编译（纯 C1）会丢失向量化等关键优化，峰值下降明显。</li>
+                <li><strong>忽略 CodeCache 大小导致 deopt</strong>：CodeCache 溢出会停止 C2 编译甚至批量逆优化，性能断崖下降。大型应用默认 240MB 可能不够，需监控并按需扩容。</li>
+                <li><strong>误以为 GraalVM Native Image 不需要 JIT</strong>：Native Image 是 AOT，确实无运行时 JIT，但这意味着<strong>无法做基于运行时 Profile 的激进优化</strong>，峰值性能常低于 JIT 模式，且反射/动态代理需提前配置。</li>
+                <li><strong>误以为 -XX:CompileThreshold 能精确控制编译</strong>：分层编译下该参数只是间接因素，实际编译受编译队列、CodeCache、采样抖动影响，不是"调用 N 次必编译"的硬阈值。</li>
               </ul>
             </div>
           </div>
