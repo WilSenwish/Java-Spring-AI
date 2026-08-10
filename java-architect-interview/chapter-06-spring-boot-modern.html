@@ -604,9 +604,9 @@ flowchart TD
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Spring 生态的范式跃迁</strong>：Spring MVC（2009）统一了 Web 请求处理 → Spring Data（2011）统一了数据访问 → Spring Cloud（2014）统一了微服务治理 → <strong>Spring AI（2025 1.0 GA）统一了 AI 应用开发</strong>。每一次都是用"<strong>统一抽象 + 可插拔实现 + 自动配置</strong>"模式降维整合一个新领域。</p>
-            <p><strong>Spring AI 0.8（2023 里程碑）</strong>：首批抽象落地——<code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code> 接口、OpenAI 实现、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。仅支持同步调用，API 较底层，需手动拼 Prompt。</p>
+            <p><strong>Spring AI 0.8（2023 里程碑）</strong>：首批抽象落地——<code class="inline-code">ChatClient</code>/<code class="inline-code">EmbeddingClient</code> 接口（后更名为 <code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code>）、OpenAI 实现、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。仅支持同步调用，API 较底层，需手动拼 Prompt。</p>
             <p><strong>Spring AI 1.0 M（2024）</strong>：引入 <code class="inline-code">ChatClient</code> 高层 Fluent API（类似 RestClient/WebClient 风格），<code class="inline-code">Advisor</code> 链（前置/后置拦截，支持 RAG/日志/重试），Structured Output（JSON 反序列化为 POJO），Function Calling 声明式注册。同步/流式/异步全支持。</p>
-            <p><strong>Spring AI 1.0 GA（2025）+ MCP 支持</strong>：支持 Model Context Protocol（Anthropic 主导的标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排（<code class="inline-code">ChatClientAgent</code>）逐步落地。</p>
+            <p><strong>Spring AI 1.0 GA（2025）+ MCP 支持</strong>：支持 Model Context Protocol（Anthropic 主导的标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排能力（<code class="inline-code">ChatClientAgent</code> [规划中]）逐步落地。</p>
             <p><strong>趋势</strong>：向 Agentic AI 演进——多 Agent 协作、长记忆（Long-term Memory）、工具自主编排；与 Spring Boot AOT/Native 集成优化冷启动；多模态（图像/音频/视频）统一抽象。</p>
           </div>
         </div>
@@ -704,7 +704,7 @@ flowchart TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Spring AI 的 Function Calling 如何让 LLM 调用 Java 方法？</strong></p>
-            <p>原理：① 用 <code class="inline-code">@Bean Function&lt;Req,Resp&gt;</code> 注册 Java 方法为工具；② <code class="inline-code">ChatClient</code> 调用时把函数 schema（参数类型/描述）随请求发给 LLM；③ LLM 判断需要调用工具时，返回 <code class="inline-code">tool_call</code>（函数名 + 参数 JSON）；④ Spring AI 拦截该响应，用 Jackson 反序列化参数，反射调用对应 <code class="inline-code">Function</code> Bean，把返回值作为 tool result 再发一轮请求；⑤ LLM 基于工具结果生成最终回答。整个过程对开发者透明，只需 <code class="inline-code">.functions("getWeather")</code> 声明可用工具。这是 Agent 能力的基础——LLM 决策调用哪个工具，Spring AI 执行。</p>
+            <p>原理：① 用 <code class="inline-code">@Bean Function&lt;Req,Resp&gt;</code> 注册 Java 方法为工具；② <code class="inline-code">ChatClient</code> 调用时把函数 schema（参数类型/描述）随请求发给 LLM；③ LLM 判断需要调用工具时，返回 <code class="inline-code">tool_call</code>（函数名 + 参数 JSON）；④ Spring AI 拦截该响应，用 Jackson 反序列化参数，反射调用对应 <code class="inline-code">Function</code> Bean，把返回值作为 tool result 再发一轮请求；⑤ LLM 基于工具结果生成最终回答。整个过程对开发者透明，只需 <code class="inline-code">.tools("getWeather")</code> 声明可用工具。这是 Agent 能力的基础——LLM 决策调用哪个工具，Spring AI 执行。</p>
             <p><strong>追问 2：Spring AI 与 LangChain4j 如何选型？</strong></p>
             <p>两者定位相似但生态不同：<strong>Spring AI</strong> 是 Spring 官方，与 Spring Boot/Cloud/AOT 深度整合，自动配置成熟，适合已用 Spring 技术栈的团队，长期更稳；<strong>LangChain4j</strong> 是 LangChain 的 Java 移植，社区活跃、功能更新快（Agent/AI Service 领先），适合追求前沿特性、不在意 Spring 强绑定的团队。2026 年趋势是 Spring AI 在企业级整合与稳定性上占优，LangChain4j 在 Agent 创新上领先，架构师选型应结合团队技术栈与功能需求，而非盲目追新。</p>
           </div>

@@ -78,7 +78,7 @@
 flowchart LR
     A["回调地狱<br/>（Callback Hell）<br/>嵌套难以组合"] --> B["Future<br/>（JDK 5）<br/>单向、阻塞 get"]
     B --> C["CompletableFuture<br/>（JDK 8）<br/>可组合、链式"]
-    C --> D["Reactive Streams<br/>（JSR 9 / 1.0.4）<br/>背压协议"]
+    C --> D["Reactive Streams<br/>（JDK 9 / 1.0.4）<br/>背压协议"]
     D --> E["Reactor 3.x<br/>Mono/Flux<br/>Spring 默认实现"]
     E --> F["Virtual Threads<br/>（JDK 21）<br/>同步代码风格"]
     style A fill:#fee2e2,stroke:#dc2626
@@ -752,9 +752,9 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>Virtual Threads 调度机制</strong>：虚拟线程由 JVM 调度器（<code class="inline-code">ForkJoinPool</code> 共享池，载体线程数=CPU 核数）管理。当虚拟线程执行<strong>阻塞操作</strong>（IO/<code class="inline-code">BlockingQueue.take()</code>）时，JVM 把它的栈帧从载体线程 unmount（卸载），载体线程立即运行下一个虚拟线程；阻塞就绪后 JVM 把栈帧 mount（装载）回某载体线程恢复执行。<strong>关键：阻塞调用不占 OS 线程</strong>，这就是"同步代码、异步效率"的原理。</p>
 
-            <p><strong>Pinning（载体线程固定）问题</strong>：这是 Virtual Threads 的核心陷阱。当虚拟线程在 <code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时，<strong>无法 unmount</strong>，载体线程被固定（pinned），退化为传统阻塞——此时虚拟线程与 OS 线程 1:1 绑定，失去并发优势。JDK 21 中 <code class="inline-code">synchronized</code> 导致的 pinning 仍未完全解决（JDK 24 计划修复）。<strong>解决方案</strong>：用 <code class="inline-code">ReentrantLock</code> 替代 <code class="inline-code">synchronized</code>，<code class="inline-code">ReentrantLock.lock()</code> 阻塞时虚拟线程可正常 unmount。检测方法：<code class="inline-code">-Djdk.tracePinnedThreads=full</code>。</p>
+            <p><strong>Pinning（载体线程固定）问题</strong>：这是 Virtual Threads 的核心陷阱。当虚拟线程在 <code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时，<strong>无法 unmount</strong>，载体线程被固定（pinned），退化为传统阻塞——此时虚拟线程与 OS 线程 1:1 绑定，失去并发优势。JDK 21 中 <code class="inline-code">synchronized</code> 导致的 pinning 仍未完全解决（JDK 24 已修复）。<strong>解决方案</strong>：用 <code class="inline-code">ReentrantLock</code> 替代 <code class="inline-code">synchronized</code>，<code class="inline-code">ReentrantLock.lock()</code> 阻塞时虚拟线程可正常 unmount。检测方法：<code class="inline-code">-Djdk.tracePinnedThreads=full</code>。</p>
 
-            <p><strong>结构化并发（Structured Concurrency，JEP 453 预览）</strong>：<code class="inline-code">StructuredTaskScope</code> 让并发任务的父子关系显式化——父任务等待所有子任务完成，子任务异常可取消兄弟任务，避免任务泄漏。这是配合 Virtual Threads 的并发编排 API，让并发代码更安全可维护。</p>
+            <p><strong>结构化并发（Structured Concurrency，JEP 453 起多次预览，最新 JEP 499/505）</strong>：<code class="inline-code">StructuredTaskScope</code> 让并发任务的父子关系显式化——父任务等待所有子任务完成，子任务异常可取消兄弟任务，避免任务泄漏。这是配合 Virtual Threads 的并发编排 API，让并发代码更安全可维护。</p>
 
             <p><strong>三种并发模型全维度对比</strong>：</p>
             <table class="compare-table">

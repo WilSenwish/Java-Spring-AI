@@ -552,7 +552,7 @@ unclean.leader.election.enable=<span class="kw">false</span>  <span class="com">
             <p><strong>追问 1：Kafka 的 Exactly-Once 如何实现？真的不丢不重吗？</strong></p>
             <p>Kafka 的 Exactly-Once 限定在"Kafka 内部"——生产端幂等+事务保证跨分区原子写、消费端 read_committed 只读已提交。但"消费-处理外部系统（如DB）-生产Kafka"的端到端 Exactly-Once 需配合事务外系统（如 Kafka Connect 的 sink 任务用 DB 事务 + offset 提交原子化）。跨外部系统的端到端 Exactly-Once 难以保证，常退化为 At-Least-Once + 消费幂等。</p>
             <p><strong>追问 2：消费者 rebalance 为何慢？如何优化？</strong></p>
-            <p>rebalance 需协调所有消费者重新分配分区，期间消费暂停（Stop-The-World）。优化：① 增大 session.timeout.ms 与 max.poll.interval.mx 避免误判离线；② 减少分区数；③ 用 StickyAssignor（粘性分配）减少迁移量；④ Kafka 2.4+ Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区。Pulsar 用"独占订阅+Broker 端游标"避免 rebalance。</p>
+            <p>rebalance 需协调所有消费者重新分配分区，期间消费暂停（Stop-The-World）。优化：① 增大 session.timeout.ms 与 max.poll.interval.ms 避免误判离线；② 减少分区数；③ 用 StickyAssignor（粘性分配）减少迁移量；④ Kafka 2.4+ Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区。Pulsar 用"独占订阅+Broker 端游标"避免 rebalance。</p>
           </div>
         </div>
 
@@ -1141,7 +1141,7 @@ flowchart LR
             <p><strong>RocketMQ 事务消息实现"可靠投递+本地事务原子"</strong>：</p>
             <div class="code-block"><pre><code><span class="com">// 1. 发送半消息(对消费者不可见)</span>
 <span class="type">TransactionMQProducer</span> producer = <span class="kw">new</span> <span class="type">TransactionMQProducer</span>(group);
-producer.<span class="fn">setTransactionListener</span>(<span class="kw">new</span> <span class="type">TransactionListener</span>() {
+producer.<span class="fn">setTransactionListener</span>(<span class="kw">new</span> <span class="type">TransactionListener</span>() {  <span class="com">// 注：RocketMQ 4.7.0+ 已废弃，推荐使用 setTransactionChecker + TransactionChecker</span>
     <span class="annotation">@Override</span>
     <span class="kw">public</span> <span class="type">LocalTransactionState</span> <span class="fn">executeLocalTransaction</span>(<span class="type">Message</span> msg, <span class="type">Object</span> arg) {
         <span class="com">// 执行本地事务(扣库存等)</span>

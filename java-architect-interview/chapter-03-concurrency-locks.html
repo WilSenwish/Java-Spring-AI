@@ -76,7 +76,7 @@
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>早期 Java 内存模型（JDK 1.4 之前）</strong>：volatile 语义较弱，只在 32 位读写上保证可见性，对 64 位 long/double 的读写甚至不保证原子性（允许拆成两次 32 位操作）。这导致跨线程读取 long 可能读到"半值"，是早期多线程程序的隐患。</p>
-            <p><strong>JSR-133 语义增强（JDK 5，2004）</strong>：Doug Lea 主导重写 JMM，明确 volatile 的 happens-before 语义——volatile 写 happens-before 后续的 volatile 读。这一改动让 volatile 成为真正可用的轻量同步原语，DCL（双重检查锁定）单例才得以正确工作。</p>
+            <p><strong>JSR-133 语义增强（JDK 5，2004）</strong>：Doug Lea 等人主导重写 JMM，明确 volatile 的 happens-before 语义——volatile 写 happens-before 后续的 volatile 读。这一改动让 volatile 成为真正可用的轻量同步原语，DCL（双重检查锁定）单例才得以正确工作。</p>
             <p><strong>JDK 9 VarHandle（2017）</strong>：引入 <code class="inline-code">VarHandle</code> 提供更细粒度的内存访问模式（PLAIN/OPAQUE/RELEASE/ACQUIRE/VOLATILE），允许开发者精确控制内存屏障的强度，比 volatile 更灵活。这是 Java 向"显式内存模型"演进的一步，对标 C++ 的 std::atomic。</p>
             <p><strong>未来趋势</strong>：随着 Virtual Threads（JDK 21）让并发规模从千级跃升到百万级，volatile 的轻量可见性保证仍是不可替代的；但在更高维度上，结构化并发与响应式模型正在减少"手动 volatile + CAS"的直接使用，开发者更倾向于用高层抽象（Flow、CompletableFuture）而非裸内存语义。</p>
           </div>
@@ -228,7 +228,7 @@ sequenceDiagram
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-body">
-            <p>这道题考察对 synchronized 在 JVM 层"自适应优化"的理解——从无竞争到高竞争，JVM 如何在<strong>轻量级锁 → 重量级锁</strong>两级之间升级（JDK 15 起偏向锁已废弃，JEP 374，锁状态由 5 种简化为 4 种，现升级路径为：无锁 → 轻量级锁 → 重量级锁），以在"锁开销"与"竞争处理"间取得动态平衡。本质是 HotSpot 团队对"绝大多数锁在整个生命周期内不会出现竞争"这一经验的工程化利用。</p>
+            <p>这道题考察对 synchronized 在 JVM 层"自适应优化"的理解——从无竞争到高竞争，JVM 如何在<strong>轻量级锁 → 重量级锁</strong>两级之间升级（JDK 15 起偏向锁已废弃，JEP 374，锁状态由 4 种简化为 3 种，现升级路径为：无锁 → 轻量级锁 → 重量级锁），以在"锁开销"与"竞争处理"间取得动态平衡。本质是 HotSpot 团队对"绝大多数锁在整个生命周期内不会出现竞争"这一经验的工程化利用。</p>
           </div>
         </div>
 
@@ -253,7 +253,7 @@ sequenceDiagram
                 </thead>
                 <tbody>
                   <tr><td>无锁</td><td>hash(31) + age(4) + biased(1) + 01</td><td>刚创建，未加锁</td></tr>
-                  <tr><td>偏向锁（已废弃：JDK 15 JEP 374 移除，锁状态由 5 种简化为 4 种）</td><td>threadId(54) + epoch(2) + age(4) + 1(1) + 01</td><td>首次被某线程获取（仅 JDK 15 前默认开启，历史状态）</td></tr>
+                  <tr><td>偏向锁（已废弃：JDK 15 JEP 374 禁用并废弃，锁状态由 4 种简化为 3 种）</td><td>threadId(54) + epoch(2) + age(4) + 1(1) + 01</td><td>首次被某线程获取（仅 JDK 15 前默认开启，历史状态）</td></tr>
                   <tr><td>轻量级锁</td><td>指向栈中锁记录的指针(62) + 00</td><td>多线程交替进入，无真正竞争</td></tr>
                   <tr><td>重量级锁</td><td>指向 ObjectMonitor 的指针(62) + 10</td><td>自旋失败，真正竞争</td></tr>
                   <tr><td>GC 标记</td><td>空 + 11</td><td>GC 期间标记用</td></tr>
@@ -281,7 +281,7 @@ graph TD
 
             <p><strong>三级锁的核心机制</strong>：</p>
             <ul>
-              <li><strong>偏向锁（Biased Locking）（已废弃：JDK 15 JEP 374 移除，synchronized 回归「轻量级锁 + 重量级锁」两级）</strong>：对象头记录持有线程 ID，同线程再次进入只需 CAS 比较 threadId，无需任何同步操作。一旦出现第二个线程竞争，偏向撤销并升级。以下为历史机制描述，JDK 15+ 不再参与锁升级。</li>
+              <li><strong>偏向锁（Biased Locking）（已废弃：JDK 15 JEP 374 禁用并废弃，synchronized 回归「轻量级锁 + 重量级锁」两级）</strong>：对象头记录持有线程 ID，同线程再次进入只需 CAS 比较 threadId，无需任何同步操作。一旦出现第二个线程竞争，偏向撤销并升级。以下为历史机制描述，JDK 15+ 不再参与锁升级。</li>
               <li><strong>轻量级锁</strong>：在线程栈帧创建 Lock Record，CAS 把 Mark Word 复制到 Lock Record（Displaced Mark Word），并尝试把对象头指向 Lock Record。成功则获得锁，失败则自旋重试。适合"多线程交替进入，但无真正同时竞争"的场景。</li>
               <li><strong>重量级锁</strong>：自旋超过阈值（自适应自旋）仍未获得锁，升级为重量级锁，通过 ObjectMonitor 调用 OS mutex（Linux futex）将线程阻塞在内核态，进入 EntryList 队列等待唤醒。</li>
             </ul>
@@ -495,7 +495,7 @@ graph LR
             <p>纯自旋在锁持有时间长时会浪费大量 CPU，尤其在核数有限时。AQS 采用"自旋入队（CAS 加节点）+ park 等待"混合策略——入队失败的少数次自旋后立即 park，把 CPU 让给持有锁的线程，整体吞吐优于纯自旋。但若锁持有时间极短（几纳秒），park 的系统调用开销反而成为瓶颈，这种场景 StampedLock 的乐观读更合适。</p>
 
             <p><strong>追问 3：AQS 的性能瓶颈在哪？</strong></p>
-            <p>高并发下，<strong>所有线程争抢同一个 head 指针的 CAS</strong>（入队）和 state 的 CAS（抢锁）会形成热点。这是 AQS 的固有限制——单 state 单队列无法横向扩展。LongAdder 的 Cell[] 分段思路可以借鉴到计数场景，但互斥锁的"排他性"使得分段锁在锁场景收益有限（ConcurrentHashMap 的分段锁已证明这点，JDK8 后退回 synchronized 单锁）。</p>
+            <p>高并发下，<strong>所有线程争抢同一个 head 指针的 CAS</strong>（入队）和 state 的 CAS（抢锁）会形成热点。这是 AQS 的固有限制——单 state 单队列无法横向扩展。LongAdder 的 Cell[] 分段思路可以借鉴到计数场景，但互斥锁的"排他性"使得分段锁在锁场景收益有限（ConcurrentHashMap 的分段锁已证明这点，JDK8 后退回 synchronized 桶级锁）。</p>
           </div>
         </div>
 

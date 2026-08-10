@@ -595,7 +595,7 @@ flowchart TD
 
             <p><strong>pinning（钉扎）问题——最大陷阱</strong>：并非所有阻塞都能触发 unmount。以下情况虚拟线程会<strong>钉扎</strong>在载体线程上，无法释放，退化为平台线程行为：</p>
             <ul>
-              <li><strong>synchronized 块/方法内的阻塞</strong>：synchronized 持有的是 monitor，JVM 当前实现无法在持锁期间 unmount（栈中存了 monitor 状态）。JDK 21 仍存在，JEP 491（JDK 24）计划修复。</li>
+              <li><strong>synchronized 块/方法内的阻塞</strong>：synchronized 持有的是 monitor，JVM 当前实现无法在持锁期间 unmount（栈中存了 monitor 状态）。JDK 21 仍存在，JEP 491（JDK 24）已修复。</li>
               <li><strong>本地方法（JNI）或 Foreign Function 中的阻塞</strong>：JVM 无法接管 native 栈。</li>
               <li><strong>文件 IO（部分）</strong>：旧 FileInputStream 阻塞读可能 pinning。</li>
             </ul>
@@ -773,7 +773,7 @@ spring:
             <p>虚拟线程让"等待连接"不再占线程，但<strong>连接本身仍是稀缺资源</strong>。HikariCP 的 maximumPoolSize 仍是数据库能承受的连接数（通常 10~30），不能因为虚拟线程百万级就把连接池调大——瓶颈会转移到数据库。虚拟线程的价值是"线程等连接时不浪费载体线程"，而非"打开更多连接"。</p>
 
             <p><strong>追问 3：synchronized 是 Spring Boot 落地虚拟线程的主要障碍吗？</strong></p>
-            <p>是高频障碍之一。Spring 框架本身已大量替换 synchronized 为 ReentrantLock 以适配虚拟线程，但<strong>第三方库</strong>（如某些 JDBC 驱动、Redis 客户端、序列化库）内部的 synchronized 在 IO 路径上会导致 pinning。落地前必须用 tracePinnedThreads 全链路压测，识别并升级或替换问题库。JEP 491（JDK 24）将移除 synchronized pinning 限制，是彻底解法。</p>
+            <p>是高频障碍之一。Spring 框架本身已大量替换 synchronized 为 ReentrantLock 以适配虚拟线程，但<strong>第三方库</strong>（如某些 JDBC 驱动、Redis 客户端、序列化库）内部的 synchronized 在 IO 路径上会导致 pinning。落地前必须用 tracePinnedThreads 全链路压测，识别并升级或替换问题库。JEP 491（JDK 24）已移除 synchronized pinning 限制，是彻底解法。</p>
           </div>
         </div>
 
@@ -900,7 +900,7 @@ spring:
             <p>异常会沿链向下传播，直到遇到 exceptionally/handle/whenComplete。未处理的异常在 join 时以 CompletionException 包装抛出，get 时以 ExecutionException 包装。若链中无任何异常处理且不 join，异常会被<strong>静默吞掉</strong>（仅记录到内部结果）——这是常见坑，务必在链尾加 whenComplete 记录日志。</p>
 
             <p><strong>追问 3：CompletableFuture 与 Reactor Mono 的本质区别？</strong></p>
-            <p>CompletableFuture 是"热"的——创建即开始执行，结果只能取一次。Mono 是"冷"的——定义了数据流，subscribe 才执行，可多次订阅。Mono 支持背压（虽然单值场景不明显）、操作符融合、与流式 Flux 统一。CompletableFuture 表达力弱但简单，Mono 表达力强但复杂。在虚拟线程时代，简单场景两者都可被同步代码替代。</p>
+            <p>CompletableFuture 是"热"的——创建即开始执行，计算只执行一次。Mono 是"冷"的——定义了数据流，subscribe 才执行，可多次订阅。Mono 支持背压（虽然单值场景不明显）、操作符融合、与流式 Flux 统一。CompletableFuture 表达力弱但简单，Mono 表达力强但复杂。在虚拟线程时代，简单场景两者都可被同步代码替代。</p>
           </div>
         </div>
 
