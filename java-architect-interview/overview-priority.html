@@ -1,0 +1,3433 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>等级 × 优先级 总览 · Java 架构师面试</title>
+  <link rel="stylesheet" href="assets/design-system.css" />
+  <style>
+    /* 总览页专属样式 */
+    .ov-hero {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-md) var(--space-md);
+      text-align: center;
+    }
+    .ov-hero .ov-back {
+      display: inline-block;
+      margin-bottom: var(--space-sm);
+      padding: 4px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+    }
+    .ov-hero .ov-back:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .ov-hero h1 {
+      font-size: 2.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-xs);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .ov-hero .ov-subtitle {
+      font-size: 1.02rem;
+      color: var(--muted);
+      max-width: 720px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* 统计概览 */
+    .ov-stats {
+      max-width: 1100px;
+      margin: 0 auto var(--space-lg);
+      padding: 0 var(--space-md);
+    }
+    .ov-stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: var(--space-sm);
+      margin-bottom: var(--space-sm);
+    }
+    .ov-stat {
+      background: var(--bg2);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-xs);
+      text-align: center;
+      border-top: 3px solid var(--rule);
+    }
+    .ov-stat-num {
+      font-family: var(--font-mono);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+    .ov-stat-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+      letter-spacing: 0.02em;
+    }
+    .ov-stat-total { border-top-color: var(--accent2); }
+    .ov-stat-total .ov-stat-num { color: var(--accent2); }
+    .ov-stat-p0 { border-top-color: var(--danger); }
+    .ov-stat-p0 .ov-stat-num { color: var(--danger); }
+    .ov-stat-p1 { border-top-color: var(--warn); }
+    .ov-stat-p1 .ov-stat-num { color: var(--warn); }
+    .ov-stat-p2 { border-top-color: var(--accent); }
+    .ov-stat-p2 .ov-stat-num { color: var(--accent); }
+    .ov-stat-p3 { border-top-color: var(--muted); }
+    .ov-stat-p3 .ov-stat-num { color: var(--muted); }
+    .ov-stat-expert { border-top-color: var(--accent2); }
+    .ov-stat-expert .ov-stat-num { color: var(--accent2); }
+    .ov-stat-architect { border-top-color: var(--accent2); }
+    .ov-stat-architect .ov-stat-num { color: var(--accent2); }
+    .ov-stat-senior { border-top-color: var(--accent); }
+    .ov-stat-senior .ov-stat-num { color: var(--accent); }
+
+    /* 快速导航 */
+    .ov-nav {
+      max-width: 1100px;
+      margin: 0 auto var(--space-lg);
+      padding: 0 var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      justify-content: center;
+    }
+    .ov-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--bg2);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+    }
+    .ov-nav-btn:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-sm);
+    }
+    .ov-nav-btn .priority {
+      margin-left: 0;
+    }
+    .ov-nav-cnt {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: #fff;
+      padding: 1px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--rule);
+    }
+
+    /* 分组 */
+    .ov-groups {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 var(--space-md) var(--space-xl);
+    }
+    .ov-group {
+      margin-bottom: var(--space-xl);
+    }
+    .ov-group-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--ink);
+      padding-bottom: var(--space-xs);
+      margin-bottom: var(--space-md);
+      border-bottom: 2px solid var(--rule);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .ov-group-title .priority {
+      margin-left: 0;
+      font-size: 0.82rem;
+    }
+    .ov-group-body {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+    .ov-subgroup {
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .ov-subgroup-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--bg2);
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ov-subgroup-title::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--accent2);
+    }
+    .ov-items {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 题项 */
+    .ov-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: 10px var(--space-md);
+      text-decoration: none;
+      color: var(--ink);
+      border-bottom: 1px solid var(--rule);
+      transition: background 0.15s ease;
+      line-height: 1.5;
+    }
+    .ov-item:last-child {
+      border-bottom: none;
+    }
+    .ov-item:hover {
+      background: rgba(37, 99, 235, 0.04);
+    }
+    .ov-src {
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      min-width: 52px;
+      text-align: center;
+    }
+    .ov-src-ch {
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+    .ov-src-ep {
+      background: rgba(5, 150, 105, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(5, 150, 105, 0.2);
+    }
+    .ov-src-sc {
+      background: rgba(124, 58, 237, 0.1);
+      color: var(--accent2);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+    }
+    .ov-num {
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--muted);
+      min-width: 40px;
+    }
+    .ov-title {
+      flex: 1;
+      font-size: 0.95rem;
+      color: var(--ink);
+      word-break: break-word;
+    }
+    .ov-badges {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ov-badges .priority {
+      margin-left: 0;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .ov-hero h1 { font-size: 1.6rem; }
+      .ov-hero .ov-subtitle { font-size: 0.92rem; }
+      .ov-stats-row {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .ov-stat-num { font-size: 1.25rem; }
+      .ov-item {
+        flex-wrap: wrap;
+        padding: 10px var(--space-sm);
+      }
+      .ov-title {
+        order: 4;
+        width: 100%;
+        font-size: 0.9rem;
+      }
+      .ov-badges {
+        order: 3;
+        margin-left: auto;
+      }
+      .ov-nav-btn { font-size: 0.82rem; padding: 6px 12px; }
+    }
+    @media (max-width: 480px) {
+      .ov-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 返回顶部进度条占位（复用设计系统风格） -->
+  <section class="ov-hero">
+    <a href="index.html" class="ov-back">← 返回首页</a>
+    <h1>等级 × 优先级 总览</h1>
+    <p class="ov-subtitle">
+      全站 300 道面试题的「优先级排序总览」。按 <strong>P0 → P3</strong> 优先级、再按
+      <strong>专家级 → 架构级 → 高级</strong> 等级排序，助你快速定位高频核心考点。
+      点击任一题项可跳转至原题详情。
+    </p>
+  </section>
+
+  <!-- 统计概览 -->
+  <div class="ov-stats">
+<div class="ov-stats-row">
+<div class="ov-stat ov-stat-total"><div class="ov-stat-num">300</div><div class="ov-stat-label">题目总数</div></div>
+<div class="ov-stat ov-stat-p0"><div class="ov-stat-num">93</div><div class="ov-stat-label">P0</div></div>
+<div class="ov-stat ov-stat-p1"><div class="ov-stat-num">123</div><div class="ov-stat-label">P1</div></div>
+<div class="ov-stat ov-stat-p2"><div class="ov-stat-num">80</div><div class="ov-stat-label">P2</div></div>
+<div class="ov-stat ov-stat-p3"><div class="ov-stat-num">4</div><div class="ov-stat-label">P3</div></div>
+</div>
+<div class="ov-stats-row">
+<div class="ov-stat ov-stat-expert"><div class="ov-stat-num">42</div><div class="ov-stat-label">专家级</div></div>
+<div class="ov-stat ov-stat-architect"><div class="ov-stat-num">135</div><div class="ov-stat-label">架构级</div></div>
+<div class="ov-stat ov-stat-senior"><div class="ov-stat-num">123</div><div class="ov-stat-label">高级开发</div></div>
+<div class="ov-stat "><div class="ov-stat-num">191</div><div class="ov-stat-label">章节题</div></div>
+<div class="ov-stat "><div class="ov-stat-num">46</div><div class="ov-stat-label">八股文</div></div>
+<div class="ov-stat "><div class="ov-stat-num">63</div><div class="ov-stat-label">场景题</div></div>
+</div>
+  </div>
+
+  <!-- 优先级快速导航 -->
+  <nav class="ov-nav">
+      <a href="#group-p0" class="ov-nav-btn priority-p0">P0 必考核心 <span class="ov-nav-cnt">93</span></a>
+      <a href="#group-p1" class="ov-nav-btn priority-p1">P1 高频重点 <span class="ov-nav-cnt">123</span></a>
+      <a href="#group-p2" class="ov-nav-btn priority-p2">P2 进阶补充 <span class="ov-nav-cnt">80</span></a>
+      <a href="#group-p3" class="ov-nav-btn priority-p3">P3 扩展了解 <span class="ov-nav-cnt">4</span></a>
+  </nav>
+
+  <!-- 主体分组 -->
+  <main class="ov-groups">
+    <section class="ov-group" id="group-p0">
+      <h2 class="ov-group-title"><span class="priority priority-p0">P0</span> 必考核心 · 93 题</h2>
+      <div class="ov-group-body">
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">专家级 · 8 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-2">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-2</span>
+        <span class="ov-title">三级缓存如何解决循环依赖？为何需要三级？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-2">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-2</span>
+        <span class="ov-title">MVCC 如何实现 RC 和 RR 两种隔离级别？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-5">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-5</span>
+        <span class="ov-title">Redisson 分布式锁如何实现可重入与看门狗？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-2">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-2</span>
+        <span class="ov-title">分布式事务的 2PC/3PC/TCC/Seata AT/SAGA 原理与选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-6">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-6</span>
+        <span class="ov-title">Spring AI 的 Function Calling 如何让 LLM 调用工具？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-20">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-20</span>
+        <span class="ov-title">Prompt 注入/越狱/数据泄露防护：AI 安全纵深如何构建？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s03">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">03</span>
+        <span class="ov-title">春晚红包系统设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s27">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">27</span>
+        <span class="ov-title">电商订单全链路设计：高并发下的下单、支付、库存、物流一致性方案</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">架构级 · 43 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-3">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-3</span>
+        <span class="ov-title">JVM 参数如何设置？年轻代/老年代/GC 如何选？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-5">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-5</span>
+        <span class="ov-title">线上 FullGC 频繁如何排查与调优？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-4">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-4</span>
+        <span class="ov-title">Virtual Threads(Java 21)如何重构并发模型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-4">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-4</span>
+        <span class="ov-title">Redo Log、Undo Log 与 Binlog 如何协同保证 ACID？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-4">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-4</span>
+        <span class="ov-title">缓存与数据库一致性如何保证？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-1">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-1</span>
+        <span class="ov-title">CAP 定理的证明与 BASE 理论如何指导实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-3">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-3</span>
+        <span class="ov-title">分布式锁的三种实现(Redis/ZK/数据库)对比？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-4">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-4</span>
+        <span class="ov-title">Kafka 如何保证高吞吐、可靠投递与消息顺序？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-6">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-6</span>
+        <span class="ov-title">分布式 ID 生成方案如何选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-9">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-9</span>
+        <span class="ov-title">消息队列如何保证可靠投递与顺序？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-4">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-4</span>
+        <span class="ov-title">容器化与 Kubernetes 如何部署 Java 应用？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-11">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-11</span>
+        <span class="ov-title">微服务间数据一致性如何保证？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-11">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-11</span>
+        <span class="ov-title">消息队列 Kafka 的高可用架构与 Exactly-Once 语义如何保证？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-12">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-12</span>
+        <span class="ov-title">API 网关的核心设计（限流、熔断、灰度发布）？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-1">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-1</span>
+        <span class="ov-title">Spring AI 的核心架构与整合模式？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-2">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-2</span>
+        <span class="ov-title">RAG 检索增强生成的完整流程与各环节优化？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-18">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-18</span>
+        <span class="ov-title">RAG 召回率低与幻觉的生产级治理：检索质量、Grounding、引用溯源如何落地？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-19">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-19</span>
+        <span class="ov-title">LLM 调用限流/熔断/降级/超时治理：模型服务抖动如何不拖垮主链路？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-24">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-24</span>
+        <span class="ov-title">Agent 工具调用失败/死循环/超预算治理：自主调用的资损风险如何防？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-27">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-27</span>
+        <span class="ov-title">Token 成本爆炸治理：语义缓存/分级路由/上下文裁剪如何落地？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-5">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-5</span>
+        <span class="ov-title">Java NIO 核心原理：Selector、Channel、Buffer 如何协同工作？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-6">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-6</span>
+        <span class="ov-title">Netty 线程模型与 ChannelPipeline 设计哲学？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-8">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-8</span>
+        <span class="ov-title">零拷贝技术深度：sendfile、mmap、DMA 在 Java 中的实现？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-15-reactive.html#qa-15-1">
+        <span class="ov-src ov-src-ch">第15篇</span>
+        <span class="ov-num">15-1</span>
+        <span class="ov-title">Project Reactor 核心原理与背压机制？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-15-reactive.html#qa-15-2">
+        <span class="ov-src ov-src-ch">第15篇</span>
+        <span class="ov-num">15-2</span>
+        <span class="ov-title">Spring WebFlux vs Spring Web MVC 如何选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-09">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">09</span>
+        <span class="ov-title">Redis 缓存一致性：Cache Aside、延迟双删、Canal 订阅 binlog</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-10">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">10</span>
+        <span class="ov-title">分布式事务：2PC/TCC/SAGA/Seata AT 原理对比与生产选型</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-13">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">13</span>
+        <span class="ov-title">Kafka 高性能原理：顺序写、页缓存、零拷贝、批量压缩、分区并发</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-14">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">14</span>
+        <span class="ov-title">JVM GC 算法演进：Serial → Parallel → CMS → G1 → ZGC/Shenandoah 对比</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-20">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">20</span>
+        <span class="ov-title">Spring AI RAG：文档分块、Embedding、向量检索、重排序、落地边界</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-40">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">40</span>
+        <span class="ov-title">高并发系统架构设计：限流降级、缓存架构、数据库扩展、异步化与无状态化</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s01">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">01</span>
+        <span class="ov-title">百万 QPS 秒杀系统设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s05">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">05</span>
+        <span class="ov-title">热点账户高并发扣款</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s07">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">07</span>
+        <span class="ov-title">跨服务分布式事务方案</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s09">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">09</span>
+        <span class="ov-title">微服务雪崩排查与治理</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s31">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">31</span>
+        <span class="ov-title">异地多活架构设计：核心交易系统如何实现 RTO&lt;1min、RPO=0 的跨城容灾</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s32">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">32</span>
+        <span class="ov-title">全链路限流熔断降级体系：200+ 微服务如何防御大促级联雪崩</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s56">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">56</span>
+        <span class="ov-title">支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s57">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">57</span>
+        <span class="ov-title">AI 客服系统 RAG 幻觉致客诉的线上止血与根治</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s59">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">59</span>
+        <span class="ov-title">Agent 工具调用死循环导致资损的应急与防护</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s60">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">60</span>
+        <span class="ov-title">向量库十亿级数据零停机迁移方案</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s61">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">61</span>
+        <span class="ov-title">多模型供应商故障下的 AI 服务高可用</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s62">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">62</span>
+        <span class="ov-title">RAG 知识库投毒/越狱攻击的安全应急</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">高级开发 · 42 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-1">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-1</span>
+        <span class="ov-title">JVM 运行时数据区如何划分？各区域作用与 OOM 场景？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-3">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-3</span>
+        <span class="ov-title">类加载机制与双亲委派模型为何被设计成这样？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-5">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-5</span>
+        <span class="ov-title">内存溢出(OOM)与内存泄漏的区别与排查？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-1">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-1</span>
+        <span class="ov-title">GC Roots 可达性分析与三种 GC 算法的本质权衡？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-4">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-4</span>
+        <span class="ov-title">线上 CPU 100% 如何快速定位与解决？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-2">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-2</span>
+        <span class="ov-title">synchronized 的锁升级过程是怎样的？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-6">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-6</span>
+        <span class="ov-title">ConcurrentHashMap 的并发安全如何保证？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-1">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-1</span>
+        <span class="ov-title">线程池 7 个参数如何调优？拒绝策略如何选？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-2">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-2</span>
+        <span class="ov-title">线程池的工作流程与状态流转？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-1">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-1</span>
+        <span class="ov-title">Spring IoC 容器的启动流程与 Bean 生命周期？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-3">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-3</span>
+        <span class="ov-title">Spring AOP 的 JDK 动态代理与 CGLIB 如何选择？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-4">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-4</span>
+        <span class="ov-title">@Transactional 的 7 种传播行为与失效场景？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-1">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-1</span>
+        <span class="ov-title">Spring Boot 自动配置的 SPI 机制如何工作？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-1">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-1</span>
+        <span class="ov-title">InnoDB 的 B+树索引为何比 B树更适合数据库？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-3">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-3</span>
+        <span class="ov-title">InnoDB 的行锁/间隙锁/临键锁如何工作？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-1">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-1</span>
+        <span class="ov-title">Redis 的 5+3 种数据结构与应用场景？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-3">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-3</span>
+        <span class="ov-title">缓存穿透/击穿/雪崩的区别与解决方案？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-5">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-5</span>
+        <span class="ov-title">消息积压 1000 万条如何紧急处理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-8">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-8</span>
+        <span class="ov-title">接口幂等设计如何实现？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-1">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-1</span>
+        <span class="ov-title">微服务架构的服务注册发现与配置中心如何选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-2">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-2</span>
+        <span class="ov-title">API 网关在微服务中的核心职责？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-3">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-3</span>
+        <span class="ov-title">高并发系统的限流算法与熔断降级策略？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-2">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-2</span>
+        <span class="ov-title">TCP 三次握手与四次挥手完整状态机？TIME_WAIT 与 CLOSE_WAIT 根因？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-3">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-3</span>
+        <span class="ov-title">HTTP/1.1 vs HTTP/2 vs HTTP/3 核心差异与选型依据？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-14-databases.html#qa-14-1">
+        <span class="ov-src ov-src-ch">第14篇</span>
+        <span class="ov-num">14-1</span>
+        <span class="ov-title">MongoDB 文档模型、分片与事务如何协同？BSON、分片键、副本集与多文档事务的底层机制？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-02">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">02</span>
+        <span class="ov-title">HashMap 底层：扩容机制、hash 扰动、链表转红黑树、并发死链</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-03">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">03</span>
+        <span class="ov-title">ConcurrentHashMap 1.7 vs 1.8：Segment 到 CAS+synchronized 的演进</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-04">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">04</span>
+        <span class="ov-title">JMM 内存模型：volatile/synchronized/final 的内存语义与 happens-before</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-07">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">07</span>
+        <span class="ov-title">MySQL InnoDB B+树索引：聚簇索引、二级索引、覆盖索引、最左前缀原理</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-08">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">08</span>
+        <span class="ov-title">MySQL MVCC 实现：Read View 构造、undo log 版本链、trx_id 可见性判断</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-16">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">16</span>
+        <span class="ov-title">HTTPS/TLS 1.3 握手：证书链验证、密钥交换、前向安全</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-18">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">18</span>
+        <span class="ov-title">类加载器：双亲委派模型、打破委派（Tomcat/Spi/OSGi）</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-19">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">19</span>
+        <span class="ov-title">Java 线程池：7 参数、Executors 缺陷、ForkJoinPool 工作窃取</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-31">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">31</span>
+        <span class="ov-title">JVM 调优与 OOM 排查：参数配置、GC 日志分析、内存 Dump、线上应急</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-34">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">34</span>
+        <span class="ov-title">Spring 事务：传播机制、隔离级别、失效场景、@Transactional 底层与编程式事务</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s06">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">06</span>
+        <span class="ov-title">分布式锁选型与实现</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s10">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">10</span>
+        <span class="ov-title">缓存与数据库一致性</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s14">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">14</span>
+        <span class="ov-title">Redis 缓存三大问题</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s17">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">17</span>
+        <span class="ov-title">消息队列积压处理</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s19">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">19</span>
+        <span class="ov-title">线上 OOM 排查实战：百万级订单服务内存泄漏定位</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s20">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">20</span>
+        <span class="ov-title">CPU 100% 问题排查：支付服务线程死循环定位</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s22">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">22</span>
+        <span class="ov-title">消息可靠性保障：订单消息不丢、不重、不积压的全链路设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p0">P0</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="ov-group" id="group-p1">
+      <h2 class="ov-group-title"><span class="priority priority-p1">P1</span> 高频重点 · 123 题</h2>
+      <div class="ov-group-body">
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">专家级 · 18 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-2">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-2</span>
+        <span class="ov-title">CMS/G1/ZGC/Shenandoah 四个收集器的核心差异与选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-11">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-11</span>
+        <span class="ov-title">Generational ZGC 生产调优（JDK 21+ 分代 ZGC）？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-3">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-3</span>
+        <span class="ov-title">AQS 的 CLH 队列与 CAS 如何实现同步？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-9">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-9</span>
+        <span class="ov-title">虚拟线程 pinning 生产排查与治理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-2">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-2</span>
+        <span class="ov-title">Spring Boot 3.x 的 AOT 与 GraalVM Native Image 如何工作？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-15">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-15</span>
+        <span class="ov-title">分布式系统的容灾与多活架构如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-5">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-5</span>
+        <span class="ov-title">Service Mesh(Istio) 如何解耦微服务治理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-15">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-15</span>
+        <span class="ov-title">可观测性三大支柱与工程实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-3">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-3</span>
+        <span class="ov-title">向量 Embedding 与相似度检索的数学原理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-5">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-5</span>
+        <span class="ov-title">Prompt 工程的核心技巧与模板设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-25">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-25</span>
+        <span class="ov-title">LLM 结构化输出解析失败兜底：JSON 修复/重试/降级链路如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-30">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-30</span>
+        <span class="ov-title">LLM 评测集构建与 CI 质量卡门：如何防劣化上线？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-32">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-32</span>
+        <span class="ov-title">长记忆/会话存储与隐私合规：数据留存/脱敏/合规如何治理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-7">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-7</span>
+        <span class="ov-title">Netty 内存管理：ByteBuf 池化、引用计数与内存泄漏排查？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-14-databases.html#qa-14-3">
+        <span class="ov-src ov-src-ch">第14篇</span>
+        <span class="ov-num">14-3</span>
+        <span class="ov-title">Milvus 如何支撑十亿级向量？存算分离架构与 IVF/HNSW/DiskANN 索引如何权衡？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-14-databases.html#qa-14-5">
+        <span class="ov-src ov-src-ch">第14篇</span>
+        <span class="ov-num">14-5</span>
+        <span class="ov-title">TiDB 如何实现 HTAP 同时支持 OLTP 与 OLAP？Raft 共识与 Percolator 分布式事务如何保证一致性？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-15-reactive.html#qa-15-5">
+        <span class="ov-src ov-src-ch">第15篇</span>
+        <span class="ov-num">15-5</span>
+        <span class="ov-title">Virtual Threads vs Reactive 并发模型如何选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s28">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">28</span>
+        <span class="ov-title">金融风控系统设计：实时计算 + 规则引擎 + 模型决策的百毫秒级风控大脑</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">架构级 · 54 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-4">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-4</span>
+        <span class="ov-title">JMM 的 happens-before 规则如何保证可见性与有序性？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-9">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-9</span>
+        <span class="ov-title">如何进行 JVM 线上调优全流程？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-4">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-4</span>
+        <span class="ov-title">Spring Security 的过滤器链与认证授权流程？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-5">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-5</span>
+        <span class="ov-title">Spring AI 的核心抽象与架构是怎样的？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-11">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-11</span>
+        <span class="ov-title">Spring Security 6 的安全架构与 OAuth2 实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-7">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-7</span>
+        <span class="ov-title">分库分表如何设计与落地？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-12">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-12</span>
+        <span class="ov-title">大表在线变更（Online DDL）方案选型与治理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-6">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-6</span>
+        <span class="ov-title">多级缓存架构如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-10">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-10</span>
+        <span class="ov-title">Redis 在高并发场景的常见问题与优化？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-11">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-11</span>
+        <span class="ov-title">分布式系统的链路追踪与可观测性如何落地？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-16">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-16</span>
+        <span class="ov-title">分布式事务新演进与 2026 选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-6">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-6</span>
+        <span class="ov-title">单体到微服务的架构演进路径如何规划？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-7">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-7</span>
+        <span class="ov-title">高可用架构设计的核心原则与实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-9">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-9</span>
+        <span class="ov-title">灰度发布与蓝绿部署如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-10">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-10</span>
+        <span class="ov-title">Serverless 架构的适用场景与挑战？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-13">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-13</span>
+        <span class="ov-title">微服务安全与零信任架构？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-16">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-16</span>
+        <span class="ov-title">CQRS 与 Event Sourcing 模式的架构设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-17">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-17</span>
+        <span class="ov-title">可观测性三支柱（Metrics/Traces/Logs）与 OpenTelemetry 实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-7">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-7</span>
+        <span class="ov-title">Agent 框架与 MCP 协议如何构建自主智能体？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-8">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-8</span>
+        <span class="ov-title">如何评估和监控 LLM 应用的质量？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-9">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-9</span>
+        <span class="ov-title">LLM 应用的成本优化与工程实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-21">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-21</span>
+        <span class="ov-title">多模型路由与故障转移架构：单供应商故障如何容灾、成本如何最优？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-22">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-22</span>
+        <span class="ov-title">十亿级向量库选型与性能调优：Milvus/Qdrant 实战参数如何调？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-26">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-26</span>
+        <span class="ov-title">流式 SSE 响应中途断连恢复与背压：长连接稳定性如何保证？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-28">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-28</span>
+        <span class="ov-title">RAG 知识库增量更新与向量一致性同步：数据时效与一致如何保证？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-29">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-29</span>
+        <span class="ov-title">多租户 AI 应用隔离/配额/计费：资源争抢与成本归因如何治理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-14-databases.html#qa-14-2">
+        <span class="ov-src ov-src-ch">第14篇</span>
+        <span class="ov-num">14-2</span>
+        <span class="ov-title">为何用 MongoDB 做向量检索？Atlas Vector Search 的 ANN 原理与混合查询如何优化？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-14-databases.html#qa-14-4">
+        <span class="ov-src ov-src-ch">第14篇</span>
+        <span class="ov-num">14-4</span>
+        <span class="ov-title">Qdrant 为何用 Rust？过滤检索（filtering）与 Payload 索引如何高效？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-14-databases.html#qa-14-6">
+        <span class="ov-src ov-src-ch">第14篇</span>
+        <span class="ov-num">14-6</span>
+        <span class="ov-title">ClickHouse 列存为何适合 OLAP？MergeTree 引擎与物化视图如何加速分析？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-05">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">05</span>
+        <span class="ov-title">Spring 循环依赖：三级缓存源码级解析与局限性</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-11">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">11</span>
+        <span class="ov-title">Redis 分布式锁：Redisson 看门狗机制 vs RedLock 的争议与取舍</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-12">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">12</span>
+        <span class="ov-title">Netty 高性能：Reactor 线程模型、零拷贝（sendfile/mmap/DirectBuffer）</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-21">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">21</span>
+        <span class="ov-title">Spring Cloud Gateway：路由、断言、过滤器、限流与自适应熔断</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-23">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">23</span>
+        <span class="ov-title">Seata AT 模式： undo_log、全局锁、二阶段提交、隔离级别与性能</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-24">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">24</span>
+        <span class="ov-title">RocketMQ：事务消息、延迟消息、顺序消息、Broker 主从复制</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-29">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">29</span>
+        <span class="ov-title">Kafka 消费者组：重平衡机制、分区分配策略、位移提交、Exactly-Once</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-41">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">41</span>
+        <span class="ov-title">Virtual Threads pinning 排查：载体线程钉住诊断、synchronized 与 native 钉住机制、JFR 监控与治理策略</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-43">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">43</span>
+        <span class="ov-title">Seata TCC 模式原理：Try-Confirm-Cancel 三阶段、空回滚/悬挂/幂等治理、与 AT 选型差异</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-44">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">44</span>
+        <span class="ov-title">ZGC 染色指针与读屏障：染色位布局、并发标记转移重定位、多视图映射与分代 ZGC</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s02">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">02</span>
+        <span class="ov-title">千亿级短链服务设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s04">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">04</span>
+        <span class="ov-title">直播带货系统设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s11">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">11</span>
+        <span class="ov-title">亿级数据分库分表方案</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s15">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">15</span>
+        <span class="ov-title">单体到微服务拆分</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s16">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">16</span>
+        <span class="ov-title">API 网关统一设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s18">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">18</span>
+        <span class="ov-title">灰度发布与流量染色</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s23">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">23</span>
+        <span class="ov-title">Java 21 虚拟线程落地：高并发网关从平台线程到虚拟线程的架构迁移</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s29">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">29</span>
+        <span class="ov-title">千万级消息推送系统设计：长连接接入、路由分发与多通道离线推送</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s30">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">30</span>
+        <span class="ov-title">数据迁移与零停机发布：Oracle 迁 MySQL 分库分表的灰度切流与回滚方案</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s34">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">34</span>
+        <span class="ov-title">服务故障自愈与切流恢复：如何实现故障秒级发现、分钟级自愈</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s41">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">41</span>
+        <span class="ov-title">Netty 百万级长连接网关设计：千万在线用户的即时通讯接入层架构</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s44">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">44</span>
+        <span class="ov-title">WebSocket 实时推送系统架构：百万并发证券交易行情推送</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s53">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">53</span>
+        <span class="ov-title">全链路压测与容量评估体系：大促前系统极限承载能力验证</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s58">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">58</span>
+        <span class="ov-title">LLM 网关 Token 成本单月翻倍的排查与治理</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s63">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">63</span>
+        <span class="ov-title">流式 AI 接口大规模并发下的背压与降级</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">高级开发 · 51 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-2">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-2</span>
+        <span class="ov-title">对象的创建过程与内存布局？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-7">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-7</span>
+        <span class="ov-title">Java 对象的引用类型与 GC 回收？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-6">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-6</span>
+        <span class="ov-title">如何选择 GC 收集器？各场景的推荐配置？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-7">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-7</span>
+        <span class="ov-title">Arthas 的核心命令与线上诊断实战？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-1">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-1</span>
+        <span class="ov-title">volatile 如何保证可见性？为何不能保证原子性？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-4">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-4</span>
+        <span class="ov-title">CAS 与 ABA 问题如何解决？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-5">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-5</span>
+        <span class="ov-title">ReentrantLock 与 synchronized 如何选择？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-8">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-8</span>
+        <span class="ov-title">Java 并发集合有哪些？各自的使用场景？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-10">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-10</span>
+        <span class="ov-title">如何实现一个线程安全的计数器？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-3">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-3</span>
+        <span class="ov-title">ThreadLocal 为何会内存泄漏？如何避免？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-5">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-5</span>
+        <span class="ov-title">Virtual Threads 在 Spring Boot 中如何落地？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-6">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-6</span>
+        <span class="ov-title">CompletableFuture 如何编排异步任务？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-8">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-8</span>
+        <span class="ov-title">BeanFactory 与 ApplicationContext 的区别？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-3">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-3</span>
+        <span class="ov-title">如何设计一个自定义 Spring Boot Starter？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-8">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-8</span>
+        <span class="ov-title">Spring Boot 的配置加载机制与优先级？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-5">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-5</span>
+        <span class="ov-title">慢 SQL 如何排查与优化？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-6">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-6</span>
+        <span class="ov-title">索引设计原则与优化策略？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-10">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-10</span>
+        <span class="ov-title">MySQL 的执行计划(EXPLAIN)如何解读？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-11">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-11</span>
+        <span class="ov-title">MySQL 的死锁检测原理与排查实战？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-2">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-2</span>
+        <span class="ov-title">Redis RDB 与 AOF 持久化的权衡？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-8">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-8</span>
+        <span class="ov-title">Redis 的过期策略与内存淘汰机制？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-7">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-7</span>
+        <span class="ov-title">一致性哈希如何解决分布式缓存的数据分布？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-12">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-12</span>
+        <span class="ov-title">分布式缓存的一致性如何保障？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-13">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-13</span>
+        <span class="ov-title">分布式会话共享有哪些方案？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-8">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-8</span>
+        <span class="ov-title">全链路 TraceId 如何在多线程与跨服务间透传？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-13">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-13</span>
+        <span class="ov-title">分布式任务调度的设计与选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-4">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-4</span>
+        <span class="ov-title">文档分块(Chunking)策略如何影响 RAG 效果？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-1">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-1</span>
+        <span class="ov-title">OSI 七层与 TCP/IP 四层模型如何映射？各层核心协议与数据封装过程？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-4">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-4</span>
+        <span class="ov-title">HTTPS/TLS 1.2 与 1.3 握手流程差异？证书链验证与前向安全？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-9">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-9</span>
+        <span class="ov-title">WebSocket 握手、心跳与断线重连如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-15-reactive.html#qa-15-3">
+        <span class="ov-src ov-src-ch">第15篇</span>
+        <span class="ov-num">15-3</span>
+        <span class="ov-title">R2DBC 响应式数据访问原理？与 JDBC 有何本质差异？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-15-reactive.html#qa-15-4">
+        <span class="ov-src ov-src-ch">第15篇</span>
+        <span class="ov-num">15-4</span>
+        <span class="ov-title">响应式错误处理与重试策略如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-01">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">01</span>
+        <span class="ov-title">Java 21 新特性：Virtual Threads、Pattern Matching、ZGC Generational、Sequenced Collections</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-06">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">06</span>
+        <span class="ov-title">Spring Boot 自动配置：@EnableAutoConfiguration + spring.factories + @Conditional</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-15">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">15</span>
+        <span class="ov-title">熔断限流算法：令牌桶、漏桶、滑动窗口、Sentinel 自适应限流</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-17">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">17</span>
+        <span class="ov-title">Elasticsearch 倒排索引：分词、postings list、Skip List、BM25 打分</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-22">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">22</span>
+        <span class="ov-title">Nacos：注册中心服务发现、配置中心动态刷新、一致性协议</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-25">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">25</span>
+        <span class="ov-title">Dubbo：服务导出/引用、SPI 扩展、负载均衡、集群容错与线程模型</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-26">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">26</span>
+        <span class="ov-title">Sentinel：流量控制、熔断降级、系统自适应保护、热点参数限流</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-27">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">27</span>
+        <span class="ov-title">MySQL 慢查询优化：执行计划分析、索引失效、覆盖索引、SQL 改写</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-28">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">28</span>
+        <span class="ov-title">Redis 持久化：RDB 快照、AOF 日志、混合模式、重写机制与选型</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-32">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">32</span>
+        <span class="ov-title">Java AQS：CLH 变体队列、独占/共享模式、ReentrantLock 与 Semaphore 实现</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-33">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">33</span>
+        <span class="ov-title">ThreadLocal：ThreadLocalMap、弱引用、内存泄漏、InheritableThreadLocal 与 TransmittableThreadLocal</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-35">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">35</span>
+        <span class="ov-title">MyBatis：一级/二级缓存、插件拦截原理、SQL 执行流程、懒加载与结果映射</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-39">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">39</span>
+        <span class="ov-title">常用设计模式：策略、工厂、观察者、责任链、模板方法与应用场景</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s08">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">08</span>
+        <span class="ov-title">分布式 ID 生成方案</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s12">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">12</span>
+        <span class="ov-title">线上慢 SQL 优化实战</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s13">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">13</span>
+        <span class="ov-title">MySQL 主从延迟解决</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s21">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">21</span>
+        <span class="ov-title">接口性能优化：商品详情接口从 200ms 到 20ms 的系统化改造</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s26">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">26</span>
+        <span class="ov-title">K8s 容器化部署 Java 应用：微服务上云与弹性伸缩实践</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s35">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">35</span>
+        <span class="ov-title">SLA 保障与容量规划：如何从 99.8% 提升到承诺的 99.95%</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p1">P1</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="ov-group" id="group-p2">
+      <h2 class="ov-group-title"><span class="priority priority-p2">P2</span> 进阶补充 · 80 题</h2>
+      <div class="ov-group-body">
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">专家级 · 16 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-8">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-8</span>
+        <span class="ov-title">JDK 9 模块系统(JPMS) 对类加载的影响？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-8">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-8</span>
+        <span class="ov-title">JDK Flight Recorder(JFR) 与异步 profiling 如何用于性能分析？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-9">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-9</span>
+        <span class="ov-title">ForkJoinPool 的分治与工作窃取算法？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-8">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-8</span>
+        <span class="ov-title">Structured Concurrency(结构化并发)如何管理并发任务？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-7">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-7</span>
+        <span class="ov-title">APM 全链路监控系统的架构如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-9">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-9</span>
+        <span class="ov-title">OpenTelemetry 的可观测性三支柱如何落地？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-15">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-15</span>
+        <span class="ov-title">gRPC + Protobuf 高性能通信原理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-10">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-10</span>
+        <span class="ov-title">多模态 LLM 与 AI 应用的未来趋势？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-12">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-12</span>
+        <span class="ov-title">AgentScope-Java Agentic 框架与 ReAct 范式？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-14">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-14</span>
+        <span class="ov-title">LangGraph4j StateGraph 图编排与 MultiAgent？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-16">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-16</span>
+        <span class="ov-title">AI Guardrails 护栏框架：NeMo Guardrails 与 Llama Guard 的工程实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-23">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-23</span>
+        <span class="ov-title">Embedding 模型升级迁移：向量重算成本与一致性如何治理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s33">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">33</span>
+        <span class="ov-title">混沌工程与故障演练平台：如何主动注入故障验证系统韧性</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s48">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">48</span>
+        <span class="ov-title">Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s50">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">50</span>
+        <span class="ov-title">数据湖仓一体架构设计与治理：5 PB 级多模态数据统一存储与分析</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s55">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">55</span>
+        <span class="ov-title">跨境电商平台全球多租户架构：数据合规与区域化部署设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-expert">专家级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">架构级 · 37 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-6">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-6</span>
+        <span class="ov-title">直接内存(Direct Memory)与 NIO 的关系？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-01-jvm-memory-classloading.html#qa-1-9">
+        <span class="ov-src ov-src-ch">第1篇</span>
+        <span class="ov-num">1-9</span>
+        <span class="ov-title">JVM JIT 编译器（C1/C2/GraalVM）的工作原理与调优？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-7">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-7</span>
+        <span class="ov-title">Condition 条件变量与 LockSupport 如何实现等待/通知？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-03-concurrency-locks.html#qa-3-11">
+        <span class="ov-src ov-src-ch">第3篇</span>
+        <span class="ov-num">3-11</span>
+        <span class="ov-title">Disruptor 无锁队列的设计原理与高性能实现？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-04-threadpool-virtual-threads.html#qa-4-7">
+        <span class="ov-src ov-src-ch">第4篇</span>
+        <span class="ov-num">4-7</span>
+        <span class="ov-title">响应式编程(WebFlux)与传统 Servlet 模型的本质差异？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-7">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-7</span>
+        <span class="ov-title">BeanPostProcessor 与 BeanFactoryPostProcessor 的区别与扩展？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-9">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-9</span>
+        <span class="ov-title">MySQL 高可用方案如何选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-14">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-14</span>
+        <span class="ov-title">分布式系统的全局时钟与顺序保证？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-14">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-14</span>
+        <span class="ov-title">多租户架构如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-17">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-17</span>
+        <span class="ov-title">SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-6">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-6</span>
+        <span class="ov-title">CI/CD 流水线如何设计标准化？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-10">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-10</span>
+        <span class="ov-title">混沌工程如何验证系统韧性？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-14">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-14</span>
+        <span class="ov-title">Elasticsearch 倒排索引、分片与集群架构？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-18">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-18</span>
+        <span class="ov-title">数据库版本化管理与迁移：Flyway vs Liquibase 的工程实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-11">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-11</span>
+        <span class="ov-title">Spring AI Alibaba Graph 编排与阿里云生态集成？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-13">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-13</span>
+        <span class="ov-title">LangChain4j AiServices 与多模型集成？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-15">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-15</span>
+        <span class="ov-title">LLM 应用安全防护：Prompt Injection 防御与 Guardrails 实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-17">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-17</span>
+        <span class="ov-title">LLM 流式响应处理：Spring AI stream() API 与 SSE 端点设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-12-ai-engineering.html#qa-12-31">
+        <span class="ov-src ov-src-ch">第12篇</span>
+        <span class="ov-num">12-31</span>
+        <span class="ov-title">模型版本灰度发布与 A/B 实验架构：平滑升级与效果如何度量？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-11">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-11</span>
+        <span class="ov-title">Linux io_uring 异步 IO 接口与 JDK Project Loom 的关系？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-15-reactive.html#qa-15-6">
+        <span class="ov-src ov-src-ch">第15篇</span>
+        <span class="ov-num">15-6</span>
+        <span class="ov-title">响应式系统架构设计如何全栈落地？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-30">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">30</span>
+        <span class="ov-title">Elasticsearch：分片路由、副本同步、段合并、搜索与写入调优</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-37">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">37</span>
+        <span class="ov-title">Kubernetes：Pod 调度、Deployment 滚动更新、HPA、Service 与网络模型</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-42">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">42</span>
+        <span class="ov-title">GraalVM Native Image 兼容性：封闭世界假设、反射/动态代理/资源治理、构建配置与 Spring Boot 3 AOT 适配</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-45">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">45</span>
+        <span class="ov-title">HNSW vs IVF 向量索引：分层小世界图 vs 倒排聚类、召回率/内存/构建成本取舍、RAG 选型决策</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s24">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">24</span>
+        <span class="ov-title">大模型 API 高可用封装：LLM 网关的重试、降级、限流与多模型切换架构</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s25">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">25</span>
+        <span class="ov-title">RAG 知识库 Java 实现：企业级检索增强生成的全链路架构</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s37">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">37</span>
+        <span class="ov-title">API 安全设计：5 亿次/日调用量下的 OAuth2+JWT+签名+防重放+限流体系</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s38">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">38</span>
+        <span class="ov-title">数据加密与密钥管理：3 亿用户敏感数据加密存储与密钥全生命周期管理</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s40">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">40</span>
+        <span class="ov-title">敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s43">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">43</span>
+        <span class="ov-title">HTTP/2、gRPC、QUIC 协议选型与落地：微服务内网通信协议升级</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s46">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">46</span>
+        <span class="ov-title">亿级数据 Elasticsearch 集群设计与优化：电商商品搜索高可用架构</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s47">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">47</span>
+        <span class="ov-title">电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s49">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">49</span>
+        <span class="ov-title">ClickHouse 实时 OLAP 分析与画像引擎：百亿级行为数据亚秒级聚合</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s51">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">51</span>
+        <span class="ov-title">海量小文件对象存储设计与治理：百亿级图片/日志文件统一存储架构</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s52">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">52</span>
+        <span class="ov-title">服务网格 Service Mesh 落地与 Sidecar 治理：零侵入微服务流量管理</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s54">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">54</span>
+        <span class="ov-title">向量数据库与 RAG 检索增强架构：企业知识库语义搜索与大模型融合</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">高级开发 · 27 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-02-gc-performance.html#qa-2-10">
+        <span class="ov-src ov-src-ch">第2篇</span>
+        <span class="ov-num">2-10</span>
+        <span class="ov-title">逃逸分析与标量替换如何优化对象分配？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-5">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-5</span>
+        <span class="ov-title">Spring 事件机制(ApplicationEvent)原理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-6">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-6</span>
+        <span class="ov-title">Spring 中用到了哪些设计模式？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-9">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-9</span>
+        <span class="ov-title">Spring 类型转换与数据绑定机制？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-05-spring-core.html#qa-5-10">
+        <span class="ov-src ov-src-ch">第5篇</span>
+        <span class="ov-num">5-10</span>
+        <span class="ov-title">SpEL(Spring表达式语言)的原理与应用？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-6">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-6</span>
+        <span class="ov-title">Spring Session 如何实现分布式 Session？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-9">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-9</span>
+        <span class="ov-title">Spring Boot 全局异常处理如何设计？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-10">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-10</span>
+        <span class="ov-title">Spring Validation 数据校验机制？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-07-mysql-deep.html#qa-7-8">
+        <span class="ov-src ov-src-ch">第7篇</span>
+        <span class="ov-num">7-8</span>
+        <span class="ov-title">MySQL 主从复制原理与延迟优化？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-7">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-7</span>
+        <span class="ov-title">Redis Cluster 的工作原理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-9">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-9</span>
+        <span class="ov-title">布隆过滤器的原理与缓存穿透防护？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-08-redis-cache.html#qa-8-11">
+        <span class="ov-src ov-src-ch">第8篇</span>
+        <span class="ov-num">8-11</span>
+        <span class="ov-title">Redis Stream 作为消息队列的设计与实战？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-09-distributed-systems.html#qa-9-10">
+        <span class="ov-src ov-src-ch">第9篇</span>
+        <span class="ov-num">9-10</span>
+        <span class="ov-title">分布式系统的拜占庭将军问题与共识算法？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-8">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-8</span>
+        <span class="ov-title">微服务配置中心的设计与选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-10-microservice-cloud.html#qa-10-12">
+        <span class="ov-src ov-src-ch">第10篇</span>
+        <span class="ov-num">10-12</span>
+        <span class="ov-title">云原生 CI/CD 与 GitOps 实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-4">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-4</span>
+        <span class="ov-title">OAuth 2.1 四种授权模式的流程与安全考量？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-5">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-5</span>
+        <span class="ov-title">JWT 的结构与安全实践？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-16">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-16</span>
+        <span class="ov-title">Nacos 与 Apollo 配置中心选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-13-network-io.html#qa-13-10">
+        <span class="ov-src ov-src-ch">第13篇</span>
+        <span class="ov-num">13-10</span>
+        <span class="ov-title">DNS 解析原理与智能调度：递归/迭代查询、HTTPDNS、CDN 调度？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-14-databases.html#qa-14-7">
+        <span class="ov-src ov-src-ch">第14篇</span>
+        <span class="ov-num">14-7</span>
+        <span class="ov-title">图数据库如何建模？Cypher 模式匹配如何高效？Neo4j 何时该用？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-36">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">36</span>
+        <span class="ov-title">Docker：Namespace、Cgroups、联合文件系统、网络模式与镜像分层</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-38">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">38</span>
+        <span class="ov-title">Prometheus + Grafana：指标体系、Exporter、告警规则、PromQL 与可观测性</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-eight-part.html#epq-46">
+        <span class="ov-src ov-src-ep">八股</span>
+        <span class="ov-num">46</span>
+        <span class="ov-title">OAuth 2.1 + PKCE：授权码+PKCE 流程、为什么废弃隐式/密码模式、Refresh Token 轮换与安全增强</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s36">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">36</span>
+        <span class="ov-title">Web 安全防护体系：日均 2000 万 PV 下的 XSS/CSRF/SQL 注入/SSRF 纵深防御</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s39">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">39</span>
+        <span class="ov-title">越权访问与权限控制体系：百万用户 SaaS 平台的 RBAC + 数据权限双层模型</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s42">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">42</span>
+        <span class="ov-title">TCP 粘包拆包与自定义协议设计：物联网百万设备上行数据解析</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="questions-scenario.html#s45">
+        <span class="ov-src ov-src-sc">场景</span>
+        <span class="ov-num">45</span>
+        <span class="ov-title">高并发连接池调优与网络延迟优化：微服务下游调用性能治理</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p2">P2</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="ov-group" id="group-p3">
+      <h2 class="ov-group-title"><span class="priority priority-p3">P3</span> 扩展了解 · 4 题</h2>
+      <div class="ov-group-body">
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">架构级 · 1 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-3">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-3</span>
+        <span class="ov-title">规则引擎(QLExpress/Drools)的执行原理与选型？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-architect">架构级</span>
+          <span class="priority priority-p3">P3</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+        <div class="ov-subgroup">
+          <h3 class="ov-subgroup-title">高级开发 · 3 题</h3>
+          <div class="ov-items">
+      <a class="ov-item" href="chapter-06-spring-boot-modern.html#qa-6-7">
+        <span class="ov-src ov-src-ch">第6篇</span>
+        <span class="ov-num">6-7</span>
+        <span class="ov-title">Spring Boot Actuator 的监控端点与自定义？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p3">P3</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-1">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-1</span>
+        <span class="ov-title">工作流引擎(Activiti)的 BPMN 2.0 模型与执行原理？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p3">P3</span>
+        </span>
+      </a>
+
+      <a class="ov-item" href="chapter-11-middleware-engineering.html#qa-11-2">
+        <span class="ov-src ov-src-ch">第11篇</span>
+        <span class="ov-num">11-2</span>
+        <span class="ov-title">如何实现流程节点的批量配置化？</span>
+        <span class="ov-badges">
+          <span class="difficulty difficulty-senior">高级开发</span>
+          <span class="priority priority-p3">P3</span>
+        </span>
+      </a>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer style="max-width:1100px;margin:0 auto;padding:var(--space-md);border-top:1px solid var(--rule);font-size:0.82rem;color:var(--muted);">
+    数据来源：15 章深度 Q&amp;A（191）+ 八股文速查（46）+ 真实场景题（63）= 300 题 ·
+    徽章样式复用 design-system.css · 排序：优先级 P0&gt;P1&gt;P2&gt;P3，等级 专家级&gt;架构级&gt;高级
+  </footer>
+
+  <button class="back-to-top" aria-label="返回顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+  <script>
+    // 返回顶部按钮显隐
+    (function() {
+      var btn = document.querySelector('.back-to-top');
+      function onScroll() {
+        if (window.scrollY > 400) btn.classList.add('visible');
+        else btn.classList.remove('visible');
+      }
+      window.addEventListener('scroll', onScroll);
+    })();
+  </script>
+</body>
+</html>
