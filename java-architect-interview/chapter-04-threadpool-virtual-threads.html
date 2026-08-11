@@ -372,7 +372,7 @@ pool.<span class="fn">shutdown</span>();                              <span clas
             <p><strong>ThreadLocal（JDK 1.2，1998）</strong>：提供线程局部变量，每个线程独立副本。设计初衷是避免参数层层传递，典型用于 SimpleDateFormat 线程安全、数据库连接、用户上下文。但<strong>父子线程无法继承</strong>。</p>
             <p><strong>InheritableThreadLocal（JDK 1.2）</strong>：子线程创建时（new Thread 构造方法内）复制父线程的 InheritableThreadLocal 值。但<strong>线程池场景失效</strong>——线程被复用，只在首次创建时复制一次，后续任务拿不到提交线程的最新上下文。</p>
             <p><strong>TransmittableThreadLocal / TTL（阿里开源，2017+）</strong>：通过 <code class="inline-code">TtlRunnable.get(runnable)</code> 包装，在任务提交时快照、执行时回放、执行后还原，解决线程池场景的上下文透传。是全链路 TraceId 透传的事实标准。</p>
-            <p><strong>Scoped Values（JDK 21+，Preview）</strong>：与结构化并发配套的<strong>不可变、有界作用域</strong>的值传递机制，取代 ThreadLocal 在虚拟线程下的滥用。它绑定到 StructuredTaskScope 的生命周期，作用域结束自动清理，从根本上消除"忘记 remove 导致泄漏"和"线程池透传失效"两大顽疾，是未来方向。</p>
+            <p><strong>Scoped Values（JDK 21 Preview，JDK 25 JEP 506 正式转正）</strong>：与结构化并发配套的<strong>不可变、有界作用域</strong>的值传递机制，取代 ThreadLocal 在虚拟线程下的滥用。它绑定到 StructuredTaskScope 的生命周期，作用域结束自动清理，从根本上消除"忘记 remove 导致泄漏"和"线程池透传失效"两大顽疾，是未来方向。</p>
           </div>
         </div>
 
@@ -1143,7 +1143,7 @@ flowchart TD
     }
 }</code></pre></div>
 
-            <p><strong>API 时效性说明（JDK 25 破坏性改动）</strong>：以上示例基于 JDK 21-24 API（<code class="inline-code">new StructuredTaskScope.ShutdownOnFailure()</code>）。JDK 25 起 API 有破坏性改动：<code class="inline-code">StructuredTaskScope</code> 改为静态工厂 <code class="inline-code">open()</code> 创建，废弃 public 构造器；策略类从 <code class="inline-code">ShutdownOnFailure</code>/<code class="inline-code">ShutdownOnSuccess</code> 改为 <code class="inline-code">Joiner.awaitAllSuccessfulOrThrow()</code> / <code class="inline-code">Joiner.awaitAnySuccessfulResult()</code>，上述构造器写法在 JDK 25 已不可用。</p>
+            <p>以上示例基于 JDK 21-24 API（ShutdownOnFailure/Success + public 构造器）；JDK 25（JEP 505）API 有破坏性改动：<code class="inline-code">StructuredTaskScope</code> 改为静态工厂 <code class="inline-code">open()</code> 创建，策略类改为 <code class="inline-code">Joiner.awaitAllSuccessfulOrThrow()</code> / <code class="inline-code">Joiner.awaitAnySuccessfulResult()</code>，public 构造器写法已废弃。</p>
             <p><strong>三大保证</strong>：① <strong>生命周期绑定</strong>——子任务不超出作用域，作用域关闭即取消全部未完成子任务；② <strong>错误传播</strong>——子任务异常自动传播给父，触发 fail-fast 关闭；③ <strong>可观测性</strong>——作用域内的任务树可被整体 dump（线程转储能看到父子关系）， unlike CompletableFuture 的扁平链。</p>
           </div>
         </div>
@@ -1152,7 +1152,7 @@ flowchart TD
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>当前状态（2026）</strong>：截至 JDK 25（JEP 505，第五次 Preview）仍为 Preview API，JDK 26（JEP 525，第六次 Preview）继续预览，尚未 GA，生产慎用。需 <code class="inline-code">--enable-preview --release 21</code> 编译运行。但其设计思想已可用 CompletableFuture + 虚拟线程近似实现：用 allOf 编排、exceptionally 降级、虚拟线程执行器承载。</p>
-            <p><strong>何时采用</strong>：① 学习与原型验证，为未来 GA 做准备；② 内部工具/非核心链路试用；③ 等 GA（预计 JDK 25/26）后逐步替换 CompletableFuture 的复杂编排场景。</p>
+            <p><strong>何时采用</strong>：① 学习与原型验证，为未来 GA 做准备；② 内部工具/非核心链路试用；③ 等 GA（预计 JDK 26+ 或后续版本）后逐步替换 CompletableFuture 的复杂编排场景。</p>
             <div class="callout callout-tip">
               <div class="callout-title">架构判断</div>
               <p>结构化并发与 Scoped Values、Virtual Threads 是一套设计：虚拟线程让"每任务一线程"廉价，Scoped Values 提供"作用域内只读上下文"，StructuredTaskScope 提供"作用域内任务生命周期"。三者共同让 Java 并发从"手动管理线程/池/回调"演进到"声明式作用域"，是未来 5 年并发编程的主线。架构师应提前理解其思想，评估现有 CompletableFuture/线程池代码的迁移路径。</p>
@@ -1341,11 +1341,11 @@ flowchart TD
       <ol>
         <li><span class="src-title">Brian Goetz 等. Java Concurrency in Practice. Addison-Wesley, 2006. — 线程池、Executor 框架、任务取消与异常处理的权威著作</span></li>
         <li><span class="src-title">JEP 444: Virtual Threads (JDK 21, 2023). — 虚拟线程正式特性，载体线程调度、栈 unmount/mount、pinning 机制</span></li>
-        <li><span class="src-title">JEP 453 / 462: Structured Concurrency (Preview). — StructuredTaskScope、ShutdownOnFailure/ShutdownOnSuccess 设计</span></li>
-        <li><span class="src-title">JEP 446: Scoped Values (Preview). — 取代 ThreadLocal 的不可变作用域值传递机制</span></li>
+        <li><span class="src-title">JEP 453/462/480/499/505/525: Structured Concurrency (Preview). — StructuredTaskScope 与 Joiner 设计</span></li>
+        <li><span class="src-title">JEP 446/506: Scoped Values (JDK 21 Preview → JDK 25 Final). — 取代 ThreadLocal 的不可变作用域值传递机制</span></li>
         <li><span class="src-title">美团技术团队. Java 线程池实现原理及其在美团业务中的实践. 2016. — 动态调参方案、监控大盘、线程池治理</span></li>
         <li><span class="src-title">Doug Lea. A Java Fork/Join Framework. JSR-166, 2003. — ForkJoinPool 工作窃取，是虚拟线程调度器的基础</span></li>
-        <li><span class="src-title">OpenJDK. java.util.concurrent 源码（ThreadPoolExecutor / CompletableFuture / StructuredTaskScope）JDK 8~24</span></li>
+        <li><span class="src-title">OpenJDK. java.util.concurrent 源码（ThreadPoolExecutor / CompletableFuture / StructuredTaskScope）JDK 8~25</span></li>
         <li><span class="src-title">Spring Framework 6.1 / Spring Boot 3.2 Reference. — spring.threads.virtual.enabled 虚拟线程集成、Tomcat 线程模型切换</span></li>
         <li><span class="src-title">阿里巴巴. TransmittableThreadLocal (TTL) 开源项目. — 线程池场景的上下文透传方案</span></li>
         <li><span class="src-title">Ron Pressler. Project Loom: Modern Scalable Concurrency for the Java Platform. — 虚拟线程与结构化并发的设计动机与演进</span></li>

@@ -3343,7 +3343,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
           <li><strong>对 CPU 密集型任务用虚拟线程</strong>：虚拟线程优势在 IO 阻塞时让出载体线程。CPU 密集型任务（加密、压缩、排序）不阻塞 IO，虚拟线程不会 unmount，反而因调度开销比平台线程更慢。CPU 密集型应继续用固定大小平台线程池（Executors.newFixedThreadPool），仅 IO 密集型用虚拟线程。</li>
           <li><strong>未排查 synchronized 导致大量 pinning</strong>：直接启用虚拟线程但未替换 synchronized，pinning 频繁导致载体线程被钉住，吞吐量不升反降。迁移前必须用 -Djdk.tracePinnedThreads=full 全量排查，将热点 synchronized 替换为 ReentrantLock。</li>
           <li><strong>虚拟线程池未限制数量导致资源耗尽</strong>：虽然虚拟线程轻量，但不限制数量可能导致 DB 连接池耗尽——10 万虚拟线程同时请求 HikariCP（maxPoolSize=50），9 万+ 线程阻塞在 getConnection。需用 Semaphore 限制并发 IO 调用数，或虚拟线程池配合信号量限流。</li>
-          <li><strong>结构化并发 API 在正式版被移除/变更</strong>：StructuredTaskScope 在 Java 21 是预览特性，API 可能在后续版本变更。生产环境需评估风险：封装一层抽象隔离 API 变化，或等 Java 25 正式版后再全面使用。过渡期可用 CompletableFuture + 自定义超时管理替代。</li>
+          <li><strong>结构化并发 API 在正式版被移除/变更</strong>：StructuredTaskScope 截至 JDK 25 仍为 Preview 特性（JEP 505 第五次预览），API 仍在迭代。生产环境需封装抽象隔离 API 变化，或等正式转正后再全面使用。过渡期可用 CompletableFuture + 自定义超时管理替代。</li>
         </ul>
       </div>
     </div>

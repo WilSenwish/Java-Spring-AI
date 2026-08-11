@@ -1230,7 +1230,7 @@ flowchart TB
             <p><strong>阶段 1：ThreadLocal（单线程内）</strong>。同一线程内用 ThreadLocal 存 TraceId，日志从 MDC 取。局限：线程切换即丢失（线程池复用线程，主线程的 ThreadLocal 传不到工作线程）。</p>
             <p><strong>阶段 2：手动传递 + InheritableThreadLocal</strong>。InheritableThreadLocal 在<strong>创建子线程时</strong>继承父线程上下文。局限：① 只在 <code class="inline-code">new Thread()</code> 时继承，<strong>线程池复用线程不触发</strong>（线程早已创建，提交任务时不继承）；② 需手动把 TraceId 塞 Runnable。</p>
             <p><strong>阶段 3：TransmittableThreadLocal(阿里 TTL)</strong>。解决线程池场景——在<strong>提交任务时</strong>（而非创建线程时）捕获当前上下文，在任务执行前回放、执行后还原。用 <code class="inline-code">TtlRunnable.get(runnable)</code> 包装或 <code class="inline-code">TtlExecutors.getTtlExecutorService</code> 装饰线程池。是线程池透传主流方案。</p>
-            <p><strong>阶段 4：Virtual Thread 兼容（Java 21+）</strong>。Virtual Thread 是轻量线程，每次阻塞 IO 会 unmount/mount carrier thread，ThreadLocal 会有<strong>继承与拷贝开销</strong>问题。JDK 21 的 Scoped Values(预览) 是 ThreadLocal 的替代，专为虚拟线程设计。OTel SDK 已适配 Virtual Thread，MDC 在虚拟线程下仍可用但需注意开销。</p>
+            <p><strong>阶段 4：Virtual Thread 兼容（Java 21+）</strong>。Virtual Thread 是轻量线程，每次阻塞 IO 会 unmount/mount carrier thread，ThreadLocal 会有<strong>继承与拷贝开销</strong>问题。Scoped Values（JDK 21 引入，JDK 25 JEP 506 正式转正）是 ThreadLocal 的替代，专为虚拟线程设计。OTel SDK 已适配 Virtual Thread，MDC 在虚拟线程下仍可用但需注意开销。</p>
             <p><strong>阶段 5：W3C TraceContext 标准</strong>。跨服务透传从各家私有 Header(B3/X-B3) 趋向 W3C 标准 <code class="inline-code">traceparent</code>/<code class="inline-code">tracestate</code> Header，保证多厂商互通。</p>
           </div>
         </div>

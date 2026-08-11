@@ -85,10 +85,10 @@
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型（5+4），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code> 等）自动切换编码，对用户透明。</p>
+            <p><strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型，共 9 种：5 基础（String/List/Hash/Set/Zset）+ 4 扩展（Stream/Bitmap/HyperLogLog/Vector Set），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code> 等）自动切换编码，对用户透明。</p>
 
             <table class="compare-table">
-              <thead><tr><th>类型</th><th>典型底层编码（7.x）</th><th>核心命令</th><th>典型场景</th></tr></thead>
+              <thead><tr><th>类型</th><th>典型底层编码（7.x / 8.0）</th><th>核心命令</th><th>典型场景</th></tr></thead>
               <tbody>
                 <tr><td><strong>String</strong></td><td>int / embstr / raw</td><td>SET/GET/INCR/SETNX</td><td>缓存对象JSON、计数器、分布式锁、限流器</td></tr>
                 <tr><td><strong>List</strong></td><td>quicklist(=listpack链表)</td><td>LPUSH/RPOP/LRANGE/BLPOP</td><td>消息队列(LPUSH+BRPOP)、最新N条、栈/队列</td></tr>
@@ -98,7 +98,7 @@
                 <tr><td><strong>Stream</strong></td><td>radix tree + listpack</td><td>XADD/XREAD/XGROUP</td><td>消息队列(消费组+ACK)、事件日志</td></tr>
                 <tr><td><strong>Bitmap</strong></td><td>String(SDS位操作)</td><td>SETBIT/BITCOUNT/BITFIELD</td><td>用户签到、在线状态、布隆过滤器</td></tr>
                 <tr><td><strong>HyperLogLog</strong></td><td>稀疏/稠密 String</td><td>PFADD/PFCOUNT/PFMERGE</td><td>UV 去重统计(误差 0.81%, 固定 12KB)</td></tr>
-<tr><td><strong>Vector Set</strong></td><td>HNSW + listpack</td><td>VADD/VSIM/VRANDMEMBER</td><td>语义检索、RAG 向量召回</td></tr>
+<tr><td><strong>Vector Set</strong></td><td>HNSW + 8-bit/二值量化<sup>8.0+</sup></td><td>VADD/VSIM/VRANDMEMBER</td><td>语义检索、RAG 向量召回</td></tr>
               </tbody>
             </table>
 
@@ -1137,7 +1137,7 @@ flowchart LR
             <p><strong>早期：单线程模型的性能认知</strong>。Redis 单线程命令处理（6.0 前网络 IO 也单线程），避免锁竞争但单实例 QPS 上限约 10 万。优化聚焦命令选择与 pipeline。</p>
             <p><strong>Redis 6.0：多线程网络 IO</strong>。命令执行仍单线程（保有序与无锁），但网络读写多线程化，提升网络密集场景吞吐。配合 IO threads 配置。</p>
             <p><strong>现状：全链路优化</strong>。从客户端（连接池、pipeline、集群路由）→ 网络（多线程 IO、TLS）→ 服务端（Lua 原子、大 key 拆分、慢命令禁用）→ 集群（分片均衡、热 key 迁移）→ 持久化（fork 优化、异步删除）→ 监控（latency monitor、slowlog）的全链路治理。</p>
-            <p><strong>趋势</strong>：① Redis on NVM/持久内存（Intel Optane）突破内存容量限制；② Redis 8.0 计划的多线程命令执行（部分场景）；③ 云上 Redis（Tair）的并行执行引擎与向量检索扩展；④ Sidecar 缓存下沉，业务无感。</p>
+            <p><strong>趋势</strong>：① Redis on NVM/持久内存（Intel Optane）突破内存容量限制；② Redis 8.0 引入的多线程 I/O 与 Vector Set 多线程查询（部分场景）；③ 云上 Redis（Tair）的并行执行引擎与向量检索扩展；④ Sidecar 缓存下沉，业务无感。</p>
           </div>
         </div>
 

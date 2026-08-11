@@ -97,7 +97,7 @@
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Spring 生态的范式跃迁</strong>：Spring MVC（2009）统一 Web 请求 → Spring Data（2011）统一数据访问 → Spring Cloud（2014）统一微服务治理 → <strong>Spring AI（2025 GA）统一 AI 应用开发</strong>。每一次都是"<strong>统一抽象 + 可插拔实现 + 自动配置 Starter</strong>"模式降维整合一个新领域。</p>
-            <p><strong>Spring AI 0.8（2023 里程碑）</strong>：首批抽象落地——<code class="inline-code">ChatClient</code>/<code class="inline-code">EmbeddingClient</code> 接口（后更名为 <code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code>）、OpenAI 实现、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。仅同步调用，需手动拼 Prompt。</p>
+            <p><strong>Spring AI 0.8（2024 里程碑）</strong>：<code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code> 底层模型接口、<code class="inline-code">ChatClient</code>/<code class="inline-code">EmbeddingClient</code> 高层 API（1.0 M 阶段 <code class="inline-code">EmbeddingClient</code> 更名为 <code class="inline-code">EmbeddingModel</code>，<code class="inline-code">ChatClient</code> 保留为高层 Fluent API）、OpenAI 实现、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。仅同步调用，需手动拼 Prompt。</p>
             <p><strong>Spring AI 1.0 M（2024）</strong>：引入 <code class="inline-code">ChatClient</code> 高层 Fluent API、<code class="inline-code">Advisor</code> 链（前置/后置拦截，支持 RAG/日志/重试）、Structured Output（JSON → POJO）、声明式 Function Calling。同步/流式/异步全支持。</p>
             <p><strong>Spring AI 1.0 GA（2025）+ MCP</strong>：支持 Model Context Protocol（Anthropic 主导标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排能力（<code class="inline-code">ChatClientAgent</code> [规划中]）逐步落地。</p>
             <p><strong>趋势</strong>：向 Agentic AI 演进——多 Agent 协作、长记忆（Long-term Memory）、工具自主编排；与 Spring Boot AOT/Native 集成优化冷启动；多模态（图像/音频/视频）统一抽象；Spring AI Alibaba 生态（通义/百炼/Gemini 插件）补足国产链路。</p>
@@ -107,7 +107,7 @@
 flowchart LR
     MVC["Spring MVC<br/>统一 Web（2009）"] --> DATA["Spring Data<br/>统一数据访问（2011）"]
     DATA --> CLOUD["Spring Cloud<br/>统一微服务（2014）"]
-    CLOUD --> AI0["Spring AI 0.8<br/>首批抽象（2023）"]
+    CLOUD --> AI0["Spring AI 0.8<br/>首批抽象（2024）"]
     AI0 --> AI1["Spring AI 1.0<br/>ChatClient+Advisor（2024）"]
     AI1 --> AIGA["Spring AI GA<br/>+MCP+Agent（2025）"]
     AIGA --> AGI["Agentic AI<br/>多Agent协作"]
@@ -200,11 +200,11 @@ flowchart TD
     <span class="kw">@PostMapping</span>(<span class="str">"/ask"</span>)
     <span class="kw">public</span> <span class="type">String</span> <span class="fn">ask</span>(<span class="kw">@RequestParam</span> <span class="type">String</span> sessionId,
                        <span class="kw">@RequestBody</span> <span class="type">String</span> question) {
-        <span class="com">// Advisor 链: RAG 检索注入 + 会话记忆</span>
+        <span class="com">// Advisor 链: RAG 检索注入 + 会话记忆 (Spring AI 1.0 GA 推荐 Builder 模式: QuestionAnswerAdvisor.builder(vectorStore).build() / MessageChatMemoryAdvisor.builder(chatMemory).build(), PromptChatMemoryAdvisor 已更名为 MessageChatMemoryAdvisor)</span>
         <span class="type">QuestionAnswerAdvisor</span> <span class="var">rag</span> =
-            <span class="kw">new</span> <span class="type">QuestionAnswerAdvisor</span>(vectorStore);
+            <span class="kw">new</span> <span class="type">QuestionAnswerAdvisor</span>(vectorStore);  <span class="com">// Spring AI 1.0 GA 推荐: QuestionAnswerAdvisor.builder(vectorStore).build()</span>
         <span class="type">PromptChatMemoryAdvisor</span> <span class="var">mem</span> =
-            <span class="kw">new</span> <span class="type">PromptChatMemoryAdvisor</span>(chatMemory);
+            <span class="kw">new</span> <span class="type">PromptChatMemoryAdvisor</span>(chatMemory);  <span class="com">// Spring AI 1.0 GA 已更名 MessageChatMemoryAdvisor, 推荐: MessageChatMemoryAdvisor.builder(chatMemory).build()</span>
         <span class="kw">return</span> chatClient.prompt()
             .user(question)
             .advisors(rag, mem)
@@ -351,14 +351,14 @@ flowchart LR
     <span class="kw">private final</span> <span class="type">ChatModel</span> chatModel;  <span class="com">// 用于 HyDE 改写</span>
 
     <span class="kw">public</span> <span class="type">String</span> <span class="fn">answer</span>(<span class="type">String</span> question) {
-        <span class="com">// 1. HyDE: 生成假设文档改写检索</span>
+        <span class="com">// 1. HyDE: 生成假设文档改写检索 (此处用底层 ChatModel 以展示 HyDE 中间 Prompt 步骤; 简化写法可改为 chatClient.prompt().user("...").call().content())</span>
         <span class="type">String</span> <span class="var">hyde</span> = chatModel.call(<span class="kw">new</span> <span class="type">Prompt</span>(
             <span class="str">"请简要回答（用于检索改写）: "</span> + question)).getResult().getOutput().getText();
 
         <span class="com">// 2. 向量检索 top-10 + 元数据过滤（仅租赁政策）</span>
         <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">docs</span> = vectorStore.similaritySearch(
-            <span class="type">SearchRequest</span>.query(hyde).withTopK(<span class="num">10</span>)
-                .withFilterExpression(<span class="str">"source == 'policy'"</span>));
+            <span class="type">SearchRequest</span>.builder().query(hyde).topK(<span class="num">10</span>)
+                .filterExpression(<span class="str">"source == 'policy'"</span>).build());
 
         <span class="com">// 3. Rerank 精排取 top-3（用 bge-reranker 或 Cohere）</span>
         <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">top</span> = reranker.rerank(question, docs, <span class="num">3</span>);
@@ -2207,7 +2207,7 @@ flowchart TD
 
             <div class="code-block"><pre><code><span class="com">// Spring AI Advisor: 输入输出安全拦截链</span>
 <span class="kw">@Component</span>
-<span class="kw">public class</span> <span class="type">SafetyAdvisor</span> <span class="kw">implements</span> <span class="type">CallableAdvisor</span> {
+<span class="kw">public class</span> <span class="type">SafetyAdvisor</span> <span class="kw">implements</span> <span class="type">CallableAdvisor</span> {  <span class="com">// Spring AI 1.0 GA 映射: CallableAdvisor→CallAdvisor, before/after→adviseCall(ChatClientRequest,CallAdvisorChain) 链式, before→chain.next之前, after→chain返回之后</span>
 
     <span class="com">// 输入侧: 拦截 Prompt Injection + PII 脱敏</span>
     <span class="kw">@Override</span>
@@ -2379,7 +2379,7 @@ define flow
 
             <div class="code-block"><pre><code><span class="com">// Spring AI Advisor 集成 Llama Guard 做输出安全检查</span>
 <span class="kw">@Component</span>
-<span class="kw">public class</span> <span class="type">LlamaGuardAdvisor</span> <span class="kw">implements</span> <span class="type">CallableAdvisor</span> {
+<span class="kw">public class</span> <span class="type">LlamaGuardAdvisor</span> <span class="kw">implements</span> <span class="type">CallableAdvisor</span> {  <span class="com">// Spring AI 1.0 GA 映射: CallableAdvisor→CallAdvisor, before/after→adviseCall(ChatClientRequest,CallAdvisorChain) 链式, before→chain.next之前, after→chain返回之后</span>
 
     <span class="kw">private final</span> <span class="type">ChatModel</span> guardModel;  <span class="com">// Llama Guard 本地部署模型</span>
 
@@ -2645,7 +2645,7 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>简历关联：车辆租赁智能问答</strong>。召回率从初版 52% 提升到 89%，幻觉率（人工抽检）从 18% 降到 3% 以下。</p>
             <div class="code-block"><pre><code><span class="com">// 混合检索 + Rerank + 引用溯源 Advisor（Spring AI 1.0）</span>
-<span class="kw">public class</span> <span class="type">GroundingRagAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {
+<span class="kw">public class</span> <span class="type">GroundingRagAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {  <span class="com">// Spring AI 1.0 GA 映射: BaseAdvisor→CallAdvisor, adviseRequest/adviseResponse→adviseCall(ChatClientRequest,CallAdvisorChain) 链式</span>
 
     <span class="kw">private final</span> <span class="type">VectorStore</span> denseStore;   <span class="com">// Milvus 稠密</span>
     <span class="kw">private final</span> <span class="type">Bm25Searcher</span> bm25;        <span class="com">// Elasticsearch BM25</span>
@@ -2657,15 +2657,15 @@ flowchart LR
         <span class="com">// 1. 查询改写: HyDE 让 LLM 先生成假设答案再检索</span>
         <span class="type">String</span> <span class="var">hydeQuery</span> = hydeRewriter.<span class="fn">rewrite</span>(q);
         <span class="com">// 2. 混合检索: BM25(关键词) + 稠密(语义) 各取 top20</span>
-        <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">bm</span> = bm25.<span class="fn">search</span>(q, <span class="str">20</span>);
+        <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">bm</span> = bm25.<span class="fn">search</span>(q, <span class="num">20</span>);
         <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">dn</span> = denseStore.<span class="fn">similaritySearch</span>(
-            <span class="type">SearchRequest</span>.<span class="fn">query</span>(hydeQuery).<span class="fn">withTopK</span>(<span class="str">20</span>));
+            <span class="type">SearchRequest</span>.builder().query(hydeQuery).topK(<span class="num">20</span>).build());
         <span class="com">// 3. RRF 融合 + Cross-Encoder 重排取 top5</span>
         <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">fused</span> = <span class="type">RrfFuser</span>.<span class="fn">fuse</span>(bm, dn);
-        <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">top</span> = reranker.<span class="fn">rerank</span>(fused, q).<span class="fn">stream</span>().<span class="fn">limit</span>(<span class="str">5</span>).<span class="fn">toList</span>();
+        <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">top</span> = reranker.<span class="fn">rerank</span>(fused, q).<span class="fn">stream</span>().<span class="fn">limit</span>(<span class="num">5</span>).<span class="fn">toList</span>();
         <span class="com">// 4. 注入带 chunk_id 的上下文 + Grounding 约束</span>
-        <span class="type">String</span> <span class="var">ctx</span> = <span class="fn">buildCitedContext</span>(top);  <span class="com">// "[1] xxx\n[2] yyy"</span>
-        <span class="type">String</span> <span class="var">grounded</span> = <span class="str">"仅依据以下资料回答，每条论断标注[n]，无法回答请说'未找到':\n"</span> + ctx;
+        <span class="type">String</span> <span class="var">citedCtx</span> = <span class="fn">buildCitedContext</span>(top);  <span class="com">// "[1] xxx\n[2] yyy"</span>
+        <span class="type">String</span> <span class="var">grounded</span> = <span class="str">"仅依据以下资料回答，每条论断标注[n]，无法回答请说'未找到':\n"</span> + citedCtx;
         ctx.<span class="fn">put</span>(<span class="str">"cited_docs"</span>, top);  <span class="com">// 供后置校验与前端溯源</span>
         <span class="kw">return</span> req.<span class="fn">withUserText</span>(grounded + <span class="str">"\n问题:"</span> + q);
     }
@@ -2769,18 +2769,18 @@ flowchart LR
 
     <span class="kw">public</span> <span class="type">ResilientChatService</span>(<span class="type">ChatClient.Builder</span>[] builders,
                              <span class="type">CircuitBreakerRegistry</span> reg) {
-        <span class="kw">this</span>.bigModel = builders[<span class="str">0</span>].<span class="fn">build</span>();
-        <span class="kw">this</span>.smallModel = builders[<span class="str">1</span>].<span class="fn">build</span>();
+        <span class="kw">this</span>.bigModel = builders[<span class="num">0</span>].<span class="fn">build</span>();
+        <span class="kw">this</span>.smallModel = builders[<span class="num">1</span>].<span class="fn">build</span>();
         <span class="com">// 慢调用熔断: 50% 请求 RT&gt;8s 或错误率&gt;40%, 持续 10s 熔断, 半开试探 30s</span>
         <span class="kw">this</span>.cb = reg.<span class="fn">circuitBreaker</span>(<span class="str">"llm"</span>, <span class="kw">new</span> <span class="type">CircuitBreakerConfig</span>.<span class="type">Builder</span>()
-            .<span class="fn">slowCallDurationThreshold</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="str">8</span>))
+            .<span class="fn">slowCallDurationThreshold</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">8</span>))
             .<span class="fn">slowCallRateThreshold</span>(<span class="str">0.5f</span>)
             .<span class="fn">failureRateThreshold</span>(<span class="str">0.4f</span>)
             .<span class="fn">waitDurationInOpenState</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="str">30</span>))
             .<span class="fn">build</span>());
         <span class="kw">this</span>.timeLimiter = <span class="type">TimeLimiter</span>.<span class="fn">of</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="str">15</span>));  <span class="com">// 整体超时</span>
         <span class="kw">this</span>.bulkhead = <span class="type">Bulkhead</span>.<span class="fn">of</span>(<span class="str">"llm"</span>, <span class="type">BulkheadConfig</span>.<span class="fn">custom</span>()
-            .<span class="fn">maxConcurrentCalls</span>(<span class="str">50</span>).<span class="fn">build</span>()); <span class="com">// 并发舱壁</span>
+            .<span class="fn">maxConcurrentCalls</span>(<span class="num">50</span>).<span class="fn">build</span>()); <span class="com">// 并发舱壁</span>
     }
 
     <span class="kw">public</span> <span class="type">String</span> <span class="fn">ask</span>(<span class="type">String</span> question) {
@@ -2788,7 +2788,10 @@ flowchart LR
         <span class="type">String</span> <span class="var">cached</span> = cache.<span class="fn">get</span>(question);
         <span class="kw">if</span> (cached != <span class="kw">null</span>) <span class="kw">return</span> cached;
 
-        <span class="type">Supplier</span>&lt;<span class="type">String</span>&gt; <span class="var">primary</span> = () -&gt; bigModel.<span class="fn">prompt</span>().<span class="fn">user</span>(question).<span class="fn">call</span>().<span class="fn">content</span>();
+        <span class="type">Supplier</span>&lt;<span class="type">String</span>&gt; <span class="var">primary</span> = () -&gt;
+            timeLimiter.<span class="fn">executeFutureSupplier</span>(() -&gt;
+                <span class="type">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt;
+                    bigModel.<span class="fn">prompt</span>().<span class="fn">user</span>(question).<span class="fn">call</span>().<span class="fn">content</span>()));
         <span class="kw">try</span> {
             <span class="kw">return</span> <span class="type">Decorators</span>.<span class="fn">ofSupplier</span>(primary)
                 .<span class="fn">withCircuitBreaker</span>(cb)
@@ -2894,7 +2897,7 @@ flowchart LR
             <p><strong>生产级多级过滤链 Advisor</strong>（Advisor 基础用法详见 12.15，此处仅展示生产级增强：多级过滤链 + 审计日志 + 间接注入隔离）：</p>
             <div class="code-block"><pre><code><span class="com">// 生产级多级过滤链 Advisor: 规则快筛 → LlamaGuard 分类 → 审计日志</span>
 <span class="com">// (Advisor 基础用法详见 12.15, 此处仅展示生产级增强)</span>
-<span class="kw">public class</span> <span class="type">ProductionSecurityChainAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {
+<span class="kw">public class</span> <span class="type">ProductionSecurityChainAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {  <span class="com">// Spring AI 1.0 GA 映射: BaseAdvisor→CallAdvisor, adviseRequest/adviseResponse→adviseCall(ChatClientRequest,CallAdvisorChain) 链式</span>
 
     <span class="kw">private final</span> <span class="type">RuleBasedDetector</span> ruleDetector;        <span class="com">// 1. 规则层: 正则/关键词快筛</span>
     <span class="kw">private final</span> <span class="type">LlmGuardClassifier</span> guardClassifier;    <span class="com">// 2. 模型层: LlamaGuard 分类</span>
@@ -3177,12 +3180,12 @@ flowchart TD
     .<span class="fn">withMetricType</span>(<span class="type">MetricType</span>.IP)
     .<span class="fn">withExtraParam</span>(<span class="str">"nlist"</span>, <span class="str">8192</span>)      <span class="com">// 聚类中心, 12亿量级</span>
     .<span class="fn">withExtraParam</span>(<span class="str">"m"</span>, <span class="str">64</span>)           <span class="com">// PQ 子向量数, 1024/64=16维/子</span>
-    .<span class="fn">withExtraParam</span>(<span class="str">"nbits"</span>, <span class="str">8</span>);        <span class="com">// 每子向量 8bit, 压缩 32 倍</span>
+    .<span class="fn">withExtraParam</span>(<span class="str">"nbits"</span>, <span class="num">8</span>);        <span class="com">// 每子向量 8bit, 压缩 64 倍</span>
 
 <span class="com">// 查询参数: nprobe 在线调, 召回率-延迟权衡</span>
 <span class="type">SearchParam</span> <span class="var">sp</span> = <span class="type">SearchParam</span>.<span class="fn">new</span>()
     .<span class="fn">withVector</span>(queryVec)
-    .<span class="fn">withTopK</span>(<span class="str">50</span>)                  <span class="com">// 粗排取 50, 再 Rerank 到 5</span>
+    .<span class="fn">withTopK</span>(<span class="num">50</span>)                  <span class="com">// 粗排取 50, 再 Rerank 到 5</span>
     .<span class="fn">withExtraParam</span>(<span class="str">"nprobe"</span>, <span class="str">64</span>);     <span class="com">// 探查 64 簇, 召回~92%</span>
 
 <span class="com">// 分片: 按 tenant_id 分 16 shard, 物理隔离多租户</span>
@@ -3280,7 +3283,7 @@ flowchart TD
 
     <span class="com">// 写入: 双写, 保证增量不丢</span>
     <span class="kw">public</span> <span class="kw">void</span> <span class="fn">add</span>(<span class="type">Document</span> doc) {
-        <span class="type">String</span> <span class="var">v</span> = v2Model.<span class="fn">embed</span>(doc.<span class="fn">getText</span>());  <span class="com">// 新模型算向量</span>
+        <span class="type">float[]</span> <span class="var">v</span> = v2Model.<span class="fn">embed</span>(doc.<span class="fn">getText</span>());  <span class="com">// 新模型算向量</span>
         v1Store.<span class="fn">add</span>(<span class="fn">withVec</span>(doc, v1Model.<span class="fn">embed</span>(doc.<span class="fn">getText</span>())));
         v2Store.<span class="fn">add</span>(<span class="fn">withVec</span>(doc, v));
     }
@@ -3290,11 +3293,11 @@ flowchart TD
         <span class="type">String</span> <span class="var">ver</span> = gray.<span class="fn">route</span>(tenantId);   <span class="com">// v1 / v2</span>
         <span class="kw">if</span> (<span class="str">"v2"</span>.equals(ver)) {
             <span class="kw">return</span> v2Store.<span class="fn">similaritySearch</span>(
-                <span class="type">SearchRequest</span>.<span class="fn">query</span>(query)
-                    .<span class="fn">withEmbeddingModel</span>(v2Model));  <span class="com">// 关键: 用 v2 模型算查询向量</span>
+                <span class="type">SearchRequest</span>.builder().query(query)
+                    .embeddingModel(v2Model).build());  <span class="com">// 关键: 用 v2 模型算查询向量</span>
         }
         <span class="kw">return</span> v1Store.<span class="fn">similaritySearch</span>(
-            <span class="type">SearchRequest</span>.<span class="fn">query</span>(query).<span class="fn">withEmbeddingModel</span>(v1Model));
+            <span class="type">SearchRequest</span>.builder().query(query).embeddingModel(v1Model).build());
     }
 }</code></pre></div>
             <p><strong>关键实践</strong>：① <strong>热数据优先回填</strong>——按访问频次排序，热数据先重算，冷数据 lazy 重算（查询 miss 时按需重算）；② <strong>批量重算控成本</strong>——用本地部署 Embedding 模型（如 bge-m3 ONNX）批量重算，避免 API 费用，十亿级省百万级费用；③ <strong>灰度切流监控召回率</strong>——切流租户的 RAGAS 召回率/忠实度 vs 未切租户对比，下降超阈值自动回滚；④ <strong>双倍存储预算</strong>——迁移期 v1+v2 双 collection，需预留存储与内存。</p>
@@ -3411,7 +3414,7 @@ flowchart TD
 
     <span class="kw">public</span> <span class="type">String</span> <span class="fn">run</span>(<span class="type">String</span> task) {
         <span class="type">List</span>&lt;<span class="type">Step</span>&gt; <span class="var">history</span> = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;&gt;();
-        <span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="str">0</span>; i &lt; <span class="type">MAX_STEPS</span>; i++) {
+        <span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="num">0</span>; i &lt; <span class="type">MAX_STEPS</span>; i++) {
             <span class="com">// 1. 预算硬约束: token/金额超限强制终止</span>
             <span class="kw">if</span> (budget.<span class="fn">exhausted</span>()) <span class="kw">return</span> <span class="fn">partial</span>(history, <span class="str">"预算超限"</span>);
 
@@ -3426,13 +3429,13 @@ flowchart TD
 
             <span class="com">// 3. 危险工具人工确认</span>
             <span class="kw">if</span> (<span class="fn">isDangerous</span>(step.<span class="fn">tool</span>())) {
-                <span class="kw">if</span> (!approval.<span class="fn">approve</span>(step, <span class="type">Duration</span>.<span class="fn">ofMinutes</span>(<span class="str">5</span>))) {
+                <span class="kw">if</span> (!approval.<span class="fn">approve</span>(step, <span class="type">Duration</span>.<span class="fn">ofMinutes</span>(<span class="num">5</span>))) {
                     <span class="kw">return</span> <span class="fn">partial</span>(history, <span class="str">"人工拒绝危险操作"</span>);
                 }
             }
 
             <span class="com">// 4. 工具执行(带重试与失败反馈)</span>
-            <span class="type">String</span> <span class="var">obs</span> = <span class="fn">callToolWithRetry</span>(step, <span class="str">3</span>);
+            <span class="type">String</span> <span class="var">obs</span> = <span class="fn">callToolWithRetry</span>(step, <span class="num">3</span>);
             history.<span class="fn">add</span>(step.<span class="fn">withObservation</span>(obs));
             budget.<span class="fn">consume</span>(step.<span class="fn">tokens</span>(), step.<span class="fn">cost</span>());
         }
@@ -3531,9 +3534,13 @@ flowchart TD
 
     <span class="kw">public</span> <span class="type">RentSuggestion</span> <span class="fn">extract</span>(<span class="type">String</span> need) {
         <span class="type">String</span> <span class="var">schema</span> = converter.<span class="fn">getFormat</span>();  <span class="com">// 自动生成 JSON Schema 注入 prompt</span>
-        <span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="str">0</span>; i &lt; <span class="str">3</span>; i++) {
+        <span class="type">String</span> <span class="var">lastError</span> = <span class="kw">null</span>;  <span class="com">// 保存上轮解析错误</span>
+        <span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="num">0</span>; i &lt; <span class="num">3</span>; i++) {
+            <span class="com">// 构造带错误反馈的 user message (首次无 lastError)</span>
+            <span class="type">String</span> <span class="var">question</span> = <span class="str">"需求:"</span> + need + <span class="str">"\n按此JSON Schema输出:\n"</span> + schema
+                + (lastError != <span class="kw">null</span> ? <span class="str">"\n上轮解析错误："</span> + lastError + <span class="str">"\n请修正后重新输出合法JSON。"</span> : <span class="str">""</span>);
             <span class="type">String</span> <span class="var">raw</span> = chatClient.<span class="fn">prompt</span>()
-                .user(<span class="str">"需求:"</span> + need + <span class="str">"\n按此JSON Schema输出:\n"</span> + schema)
+                .user(question)
                 .<span class="fn">call</span>().<span class="fn">content</span>();
             <span class="com">// 1. 容错解析: json-repair 修复语法错误(截断/多余逗号/markdown)</span>
             <span class="type">String</span> <span class="var">repaired</span> = <span class="type">JsonRepair</span>.<span class="fn">repair</span>(raw);
@@ -3542,7 +3549,7 @@ flowchart TD
             } <span class="kw">catch</span> (<span class="type">Exception</span> e) {
                 <span class="com">// 2. 重试: 带错误反馈, 让模型自纠</span>
                 <span class="kw">if</span> (i == <span class="str">2</span>) <span class="kw">break</span>;
-                chatClient = chatClient.<span class="fn">mutate</span>().<span class="fn">build</span>();  <span class="com">// 下轮带错误提示</span>
+                lastError = e.getMessage();  <span class="com">// 保存错误信息, 下轮拼进 prompt</span>
             }
         }
         <span class="com">// 3. 降级: 换强模型重试 / 简化schema / 返回默认</span>
@@ -3632,7 +3639,7 @@ flowchart TD
     <span class="type">SseEmitter</span> <span class="var">emitter</span> = <span class="kw">new</span> <span class="type">SseEmitter</span>(<span class="str">300_000L</span>);  <span class="com">// 5min 超时</span>
     <span class="com">// 1. 断连重连: 从 Redis 取已生成内容, 续传 lastId 之后的部分</span>
     <span class="kw">if</span> (lastId != <span class="kw">null</span>) {
-        <span class="type">List</span>&lt;<span class="type">TokenEvent</span>&gt; <span class="var">cached</span> = redis.<span class="fn">getRange</span>(sessionId, lastId + <span class="str">1</span>, -<span class="str">1</span>);
+        <span class="type">List</span>&lt;<span class="type">TokenEvent</span>&gt; <span class="var">cached</span> = redis.<span class="fn">getRange</span>(sessionId, lastId + <span class="num">1</span>, -<span class="num">1</span>);
         <span class="fn">sendCached</span>(emitter, cached);  <span class="com">// 先补发缺失内容</span>
         <span class="kw">if</span> (<span class="fn">isFinished</span>(sessionId)) <span class="kw">return</span> emitter;  <span class="com">// 已结束, 补发完即关</span>
     }
@@ -3749,7 +3756,7 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>Redis 语义缓存（Spring AI Advisor）</strong>：</p>
             <div class="code-block"><pre><code><span class="com">// 语义缓存 Advisor: 命中则直接返回, 跳过模型调用</span>
-<span class="kw">public class</span> <span class="type">SemanticCacheAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {
+<span class="kw">public class</span> <span class="type">SemanticCacheAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {  <span class="com">// Spring AI 1.0 GA 映射: BaseAdvisor→CallAdvisor, adviseRequest/adviseResponse→adviseCall(ChatClientRequest,CallAdvisorChain) 链式</span>
 
     <span class="kw">private final</span> <span class="type">EmbeddingModel</span> embedModel;
     <span class="kw">private final</span> <span class="type">RedisVectorStore</span> cacheStore;  <span class="com">// 缓存向量库</span>
@@ -3770,9 +3777,9 @@ flowchart LR
         <span class="type">String</span> <span class="var">q</span> = req.<span class="fn">userText</span>();
         <span class="com">// 查相似 query, 命中则短路(用标记跳过模型调用)</span>
         <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">hits</span> = cacheStore.<span class="fn">similaritySearch</span>(
-            <span class="type">SearchRequest</span>.<span class="fn">query</span>(q).<span class="fn">withTopK</span>(<span class="str">1</span>).<span class="fn">withSimilarityThreshold</span>(threshold));
+            <span class="type">SearchRequest</span>.builder().query(q).topK(<span class="num">1</span>).similarityThreshold(threshold).build());
         <span class="kw">if</span> (!hits.<span class="fn">isEmpty</span>()) {
-            ctx.<span class="fn">put</span>(<span class="str">"cache_hit"</span>, hits.<span class="fn">get</span>(<span class="str">0</span>).<span class="fn">getText</span>());  <span class="com">// 直接返回缓存答案</span>
+            ctx.<span class="fn">put</span>(<span class="str">"cache_hit"</span>, hits.<span class="fn">get</span>(<span class="num">0</span>).<span class="fn">getText</span>());  <span class="com">// 直接返回缓存答案</span>
         }
         <span class="kw">return</span> req;
     }
@@ -4344,7 +4351,7 @@ flowchart LR
         <span class="type">String</span> <span class="var">user</span> = (<span class="type">String</span>) ctx.<span class="fn">get</span>(<span class="str">"user_id"</span>);
         <span class="type">String</span> <span class="var">ans</span> = resp.<span class="fn">content</span>();
         <span class="com">// 3. 存短期记忆(原文, TTL 1小时, 用于多轮)</span>
-        shortTerm.<span class="fn">append</span>(user, ans, <span class="type">Duration</span>.<span class="fn">ofHours</span>(<span class="str">1</span>));
+        shortTerm.<span class="fn">append</span>(user, ans, <span class="type">Duration</span>.<span class="fn">ofHours</span>(<span class="num">1</span>));
         <span class="com">// 4. 长期记忆只存脱敏后摘要(会话结束时异步摘要)</span>
         <span class="type">String</span> <span class="var">sanitized</span> = piiDetector.<span class="fn">sanitize</span>(ans);  <span class="com">// PII -&gt; [PHONE] 等</span>
         <span class="kw">return</span> resp;
@@ -4370,11 +4377,11 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：长期记忆如何高效检索与注入？</strong></p>
-            <p>用户长期交互积累大量记忆（偏好/历史事实），全量注入 prompt 会爆炸。检索策略：① <strong>向量化记忆 + 语义检索</strong>——记忆条目向量化存向量库，按当前 query 检索相关记忆注入（如问车型偏好时只注入车型相关记忆），类似个人 RAG；② <strong>结构化偏好 + 查询</strong>——偏好存结构化表（key-value），按需查询注入，精确高效；③ <strong>记忆分层 + 衰减</strong>——近期记忆权重高、远期衰减，避免陈旧记忆干扰；④ <strong>记忆压缩**——定期合并/去重相似记忆，控制总量。生产中结构化偏好（精确）+ 向量化记忆（语义）组合，平衡精确与灵活。</p>
+            <p>用户长期交互积累大量记忆（偏好/历史事实），全量注入 prompt 会爆炸。检索策略：① <strong>向量化记忆 + 语义检索</strong>——记忆条目向量化存向量库，按当前 query 检索相关记忆注入（如问车型偏好时只注入车型相关记忆），类似个人 RAG；② <strong>结构化偏好 + 查询</strong>——偏好存结构化表（key-value），按需查询注入，精确高效；③ <strong>记忆分层 + 衰减</strong>——近期记忆权重高、远期衰减，避免陈旧记忆干扰；④ <strong>记忆压缩</strong>——定期合并/去重相似记忆，控制总量。生产中结构化偏好（精确）+ 向量化记忆（语义）组合，平衡精确与灵活。</p>
             <p><strong>追问 2：PII 脱敏会不会影响模型理解？</strong></p>
-            <p>会部分影响。如"帮我查 13800001111 的订单"脱敏成"帮我查 [PHONE] 的订单"，模型无法用手机号查单。权衡方案：① <strong>业务侧用占位符映射**——脱敏成占位符但保留映射（[PHONE_1] → 13800001111 存加密 vault），业务查询时还原占位符调内部 API，模型只看到占位符但不影响业务（模型不直接查 DB）；② <strong>延迟脱敏**——输入时不脱敏（让模型理解），只在留存时脱敏，但这增加了传输/日志泄露风险；③ <strong>分级脱敏**——强 PII（身份证/银行卡）必脱敏，弱 PII（姓名）可按场景保留。核心是<strong>脱敏在留存而非处理</strong>——处理时可还原，留存必脱敏。</p>
+            <p>会部分影响。如"帮我查 13800001111 的订单"脱敏成"帮我查 [PHONE] 的订单"，模型无法用手机号查单。权衡方案：① <strong>业务侧用占位符映射</strong>——脱敏成占位符但保留映射（[PHONE_1] → 13800001111 存加密 vault），业务查询时还原占位符调内部 API，模型只看到占位符但不影响业务（模型不直接查 DB）；② <strong>延迟脱敏</strong>——输入时不脱敏（让模型理解），只在留存时脱敏，但这增加了传输/日志泄露风险；③ <strong>分级脱敏</strong>——强 PII（身份证/银行卡）必脱敏，弱 PII（姓名）可按场景保留。核心是<strong>脱敏在留存而非处理</strong>——处理时可还原，留存必脱敏。</p>
             <p><strong>追问 3：跨境数据传输合规如何处理？</strong></p>
-            <p>个保法/GDPR 对跨境传输严格：① <strong>数据驻留**——金融/政务/医疗等敏感场景，数据必须境内存储处理，模型调用走国产模型（通义/百炼/DeepSeek），不走境外 API（OpenAI/Anthropic）；② <strong>跨境评估**——非敏感场景跨境需安全评估/标准合同/认证，且获用户单独同意；③ <strong>传输脱敏**——确需跨境（如用 GPT-4）时，传输前脱敏 PII，境外只处理匿名化数据；④ <strong>模型部署选择**——国产场景用通义/百炼国内部署，或开源模型（Qwen/DeepSeek）本地部署，数据不出境。合规是硬约束，架构选型须先满足合规再谈效果。</p>
+            <p>个保法/GDPR 对跨境传输严格：① <strong>数据驻留</strong>——金融/政务/医疗等敏感场景，数据必须境内存储处理，模型调用走国产模型（通义/百炼/DeepSeek），不走境外 API（OpenAI/Anthropic）；② <strong>跨境评估</strong>——非敏感场景跨境需安全评估/标准合同/认证，且获用户单独同意；③ <strong>传输脱敏</strong>——确需跨境（如用 GPT-4）时，传输前脱敏 PII，境外只处理匿名化数据；④ <strong>模型部署选择</strong>——国产场景用通义/百炼国内部署，或开源模型（Qwen/DeepSeek）本地部署，数据不出境。合规是硬约束，架构选型须先满足合规再谈效果。</p>
           </div>
         </div>
 
