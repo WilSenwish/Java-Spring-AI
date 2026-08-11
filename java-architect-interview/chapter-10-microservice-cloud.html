@@ -32,6 +32,13 @@
         <li><a href="#qa-10-15"><span class="toc-number">10.15</span>可观测性三大支柱</a></li>
         <li><a href="#qa-10-16"><span class="toc-number">10.16</span>CQRS 与 Event Sourcing</a></li>
         <li><a href="#qa-10-17"><span class="toc-number">10.17</span>SLO/SLI 工程实践</a></li>
+        <li><a href="#qa-10-18"><span class="toc-number">10.18</span>Spring Cloud 服务调用链路</a></li>
+        <li><a href="#qa-10-19"><span class="toc-number">10.19</span>OpenFeign 深度原理与实践</a></li>
+        <li><a href="#qa-10-20"><span class="toc-number">10.20</span>Spring Cloud Gateway 生产级调优</a></li>
+        <li><a href="#qa-10-21"><span class="toc-number">10.21</span>Bootstrap 上下文与 @RefreshScope 刷新原理</a></li>
+        <li><a href="#qa-10-22"><span class="toc-number">10.22</span>Sleuth→Micrometer Tracing 链路追踪演进</a></li>
+        <li><a href="#qa-10-23"><span class="toc-number">10.23</span>Spring Cloud Commons 核心抽象如何让注册中心无缝切换</a></li>
+        <li><a href="#qa-10-24"><span class="toc-number">10.24</span>Spring Cloud 常见生产坑与排查</a></li>
       </ol>
     </aside>
 
@@ -50,15 +57,15 @@
         <h1 class="chapter-title">微服务与云原生</h1>
         <p class="chapter-subtitle">单体→SOA→微服务→Service Mesh→Serverless 的架构演进、Eureka→Nacos→xDS 的服务发现演进、Zuul→Gateway→APISIX 的网关演进、Hystrix→Resilience4j→Sentinel 的熔断框架演进、IaaS→PaaS→Serverless 的云计算演进：直击 K8s 容器感知、Istio Sidecar 解耦、绞杀者模式迁移、单元化异地多活、全链路灰度与 FaaS 冷启动</p>
         <div class="chapter-meta">
-          <span>题目数：17</span>
+          <span>题目数：24</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×6</span>
+          <span>高级开发 ×8</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×10</span>
+          <span>架构级 ×14</span>
           <span class="meta-divider">|</span>
-          <span>专家级 ×1</span>
+          <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：200 分钟</span>
+          <span>预计复习：280 分钟</span>
         </div>
       </div>
 
@@ -2202,6 +2209,1405 @@ flowchart LR
                 <li><strong>告警阈值单一（只用总预算消耗）</strong>：只在月底看"SLO 是否达标"或只用单一阈值告警，导致要么滞后（月底才发现违约）要么误报（瞬时尖峰触发 Page）。必须用<strong>多窗口多档 Burn Rate</strong>，快燃快告警、慢燃慢告警，兼顾灵敏度与降噪。</li>
                 <li><strong>忽略 SLO 的长期维护和校准</strong>：上线时设了 SLO 就不再管，系统演进后 SLI 定义过时（如接口已下线但 SLI 还在算）、SLO 与实际能力脱节。SLO 需<strong>季度 Review + 持续校准</strong>，纳入服务生命周期管理，否则沦为"装饰性 SLO"。</li>
                 <li><strong>把 SLO 等同于监控告警</strong>：只把 SLO 用于配置告警，忽略 Error Budget 的<strong>决策价值</strong>（驱动发布冻结、容量规划）。没有决策闭环的 SLO 只是更高级的告警规则，未发挥"可靠性即预算"的工程价值。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10.18 Spring Cloud 服务调用链路：@LoadBalanced / LoadBalancer / OpenFeign 动态代理 -->
+      <!-- ================================================================================= -->
+      <div class="qa-card" id="qa-10-18" data-difficulty="architect" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">10.18</div>
+          <div class="qa-question">Spring Cloud 服务调用链路：为什么 @LoadBalanced 的 RestTemplate 能用服务名直接访问？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>Spring Cloud 服务调用全链路</strong>的底层理解。核心要回答：打了 <code class="inline-code">@LoadBalanced</code> 注解的 <code class="inline-code">RestTemplate</code>/<code class="inline-code">WebClient</code>，之所以能直接用服务名（<code class="inline-code">http://order-service/xxx</code>）而非 IP:Port 访问，本质是 <strong>Spring 拦截器机制 + 客户端负载均衡 + 服务发现客户端</strong>三者的精妙组合。核心 4 个组件协同工作：① <code class="inline-code">@LoadBalanced</code> 注解（Qualifier 限定符，标记哪些 Bean 需要被增强）；② <code class="inline-code">LoadBalancerInterceptor</code>（ClientHttpRequestInterceptor 实现，拦截 HTTP 请求）；③ <code class="inline-code">LoadBalancerClient</code>（从 DiscoveryClient 拿到服务实例列表后按策略选一个）；④ 底层 HTTP 客户端（URLConnection/HttpClient/OkHttp/Apache HC5，执行真正的 TCP 通信）。理解关键：<code class="inline-code">@LoadBalanced</code> 不是"魔法"，而是 Spring 给特定 Bean 批量塞拦截器的<strong> Qualifier 限定注解</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>负载均衡框架演进</strong>：<strong>Ribbon（Spring Cloud Netflix 1.x，已废弃）</strong>——Netflix 开源，基于同步阻塞模型，核心接口 ILoadBalancer + IRule，内置轮询/随机/可用过滤/权重/响应时间加权等策略，Spring Cloud 2020.0.0（Ilford）起正式移除；→ <strong>Spring Cloud LoadBalancer（Spring Cloud Commons 重写）</strong>——基于 Reactor 响应式编程模型，取代 Ribbon，Spring Cloud 2021.x 起成为默认实现，核心抽象 <code class="inline-code">ServiceInstanceListSupplier</code> + <code class="inline-code">ReactorLoadBalancer</code>，默认 RoundRobin，支持按服务名单独配置策略。</p>
+            <p><strong>HTTP 客户端演进</strong>：<strong>URLConnection（JDK 默认）</strong>——无连接池，单路由默认 5 连接，高并发瓶颈明显；→ <strong>Apache HttpClient 4</strong>——成熟稳定，连接池可配置；→ <strong>OkHttp</strong>——SPDY/HTTP/2 支持，API 简洁；→ <strong>Apache HttpClient 5 / Jetty Client</strong>——支持 HTTP/2，异步非阻塞模型更适合 WebFlux。</p>
+            <p><strong>调用方式演进</strong>：<strong>RestTemplate（同步阻塞）</strong>——Spring 3.x 引入，经典但阻塞线程；→ <strong>WebClient（异步非阻塞，Spring WebFlux）</strong>——基于 Reactor，背压支持，适合高吞吐；→ <strong>RestClient（Spring 3.2+ 轻量 Fluent）</strong>——同步但 API 更现代，替代 RestTemplate 的新选择；→ <strong>OpenFeign（声明式）</strong>——写接口加注解即可，自动生成动态代理实现类，业务代码零 HTTP 细节。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>1. @LoadBalanced 是 Qualifier 限定注解</strong>：打开源码可见 <code class="inline-code">@LoadBalanced</code> 本身被 <code class="inline-code">@Qualifier</code> 标注。Spring Cloud 的自动配置类 <code class="inline-code">LoadBalancerAutoConfiguration</code> 会收集所有带 <code class="inline-code">@LoadBalanced</code> 注解的 <code class="inline-code">RestTemplate</code>/<code class="inline-code">WebClient.Builder</code> Bean，给它们逐个添加 <code class="inline-code">LoadBalancerInterceptor</code>。没有这个注解的 RestTemplate 就是普通直连模板——这是"哪些该注入拦截器"的筛选机制。</p>
+            <p><strong>2. 拦截器完整执行链路</strong>：<code class="inline-code">ClientHttpRequestInterceptor#intercept</code> 被触发 → 从原始 URL 提取 serviceId（如 <code class="inline-code">http://order-service/api</code> → serviceId=<code class="inline-code">order-service</code>）→ 调用 <code class="inline-code">LoadBalancerClient.choose(serviceId)</code> → 从 <code class="inline-code">ServiceInstance</code> 列表按策略（RoundRobin/Random/Weighted）选一个实例 → 将 URL 的 serviceId 替换为 <code class="inline-code">host:port</code>（如 <code class="inline-code">10.0.1.5:8080</code>）→ delegate 给底层 HTTP Client 执行真正请求。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    A["@LoadBalanced RestTemplate<br/>getForObject('http://order-service/api')"] --> B["LoadBalancerInterceptor<br/>ClientHttpRequestInterceptor"]
+    B --> C["LoadBalancerClient.choose('order-service')"]
+    C --> D["ServiceInstanceListSupplier<br/>从 DiscoveryClient / 静态配置拉实例列表"]
+    D --> E["RoundRobinLoadBalancer<br/>按轮询策略选 1 个 ServiceInstance"]
+    E --> F["URL 重写: order-service → 10.0.1.5:8080"]
+    F --> G["底层 HTTP Client<br/>URLConnection / HC5 / OkHttp 执行请求"]
+    style A fill:#ede9fe,stroke:#7c3aed
+    style G fill:#dbeafe,stroke:#2563eb
+              </div>
+              <div class="chart-caption">图 10.18-1 @LoadBalanced RestTemplate 完整调用链路</div>
+            </div>
+
+            <p><strong>3. Ribbon vs Spring Cloud LoadBalancer 核心对比</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Ribbon（已废弃）</th><th>Spring Cloud LoadBalancer</th></tr></thead>
+              <tbody>
+                <tr><td>编程模型</td><td>同步阻塞（RxJava 适配层）</td><td>Reactor 响应式（Mono/Flux）</td></tr>
+                <tr><td>核心接口</td><td>ILoadBalancer + IRule + IPing</td><td>ReactorLoadBalancer + ServiceInstanceListSupplier</td></tr>
+                <tr><td>默认策略</td><td>ZoneAvoidanceRule（zone 感知 + 可用过滤）</td><td>RoundRobinLoadBalancer（轮询）</td></tr>
+                <tr><td>实例获取</td><td>NIWSServerList（每 30s 拉取 + 过滤）</td><td>ServiceInstanceListSupplier（支持缓存/懒加载/重试）</td></tr>
+                <tr><td>重试集成</td><td>Spring Retry + LoadBalancedRetryPolicy</td><td>LoadBalancedRetryFactory + RetryableLoadBalancer</td></tr>
+                <tr><td>适用场景</td><td>Spring Cloud 2020 前老项目</td><td>Spring Cloud 2021+ / WebFlux 新项目</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>① 给 RestTemplate 打 @LoadBalanced + 配置 HTTP 客户端连接池</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Configuration</span>
+<span class="kw">public class</span> <span class="type">RestTemplateConfig</span> {
+
+    <span class="annotation">@Bean</span>
+    <span class="annotation">@LoadBalanced</span>
+    <span class="kw">public</span> <span class="type">RestTemplate</span> <span class="fn">loadBalancedRestTemplate</span>() {
+        <span class="type">PoolingHttpClientConnectionManager</span> cm = <span class="kw">new</span> <span class="type">PoolingHttpClientConnectionManager</span>();
+        cm.<span class="fn">setMaxTotal</span>(<span class="num">200</span>);
+        cm.<span class="fn">setDefaultMaxPerRoute</span>(<span class="num">50</span>);
+
+        <span class="type">RequestConfig</span> rc = <span class="type">RequestConfig</span>.<span class="fn">custom</span>()
+            .<span class="fn">setConnectTimeout</span>(<span class="num">2000</span>)
+            .<span class="fn">setConnectionRequestTimeout</span>(<span class="num">1000</span>)
+            .<span class="fn">setSocketTimeout</span>(<span class="num">5000</span>)
+            .<span class="fn">build</span>();
+
+        <span class="type">CloseableHttpClient</span> httpClient = <span class="type">HttpClients</span>.<span class="fn">custom</span>()
+            .<span class="fn">setConnectionManager</span>(cm)
+            .<span class="fn">setDefaultRequestConfig</span>(rc)
+            .<span class="fn">build</span>();
+
+        <span class="kw">return new</span> <span class="type">RestTemplate</span>(<span class="kw">new</span> <span class="type">HttpComponentsClientHttpRequestFactory</span>(httpClient));
+    }
+}</code></pre></div>
+
+            <p><strong>② 自定义负载均衡策略（一致性哈希，按用户 ID Hash 路由到同实例）</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Configuration(proxyBeanMethods = false)</span>
+<span class="kw">public class</span> <span class="type">UserHashLoadBalancerConfig</span> {
+
+    <span class="annotation">@Bean</span>
+    <span class="kw">public</span> <span class="type">ReactorLoadBalancer&lt;ServiceInstance&gt;</span> <span class="fn">userHashLoadBalancer</span>(
+            <span class="type">Environment</span> env,
+            <span class="type">ServiceInstanceListSupplier</span> supplier) {
+        <span class="type">String</span> name = env.<span class="fn">getProperty</span>(<span class="type">LoadBalancerClientFactory</span>.<span class="const">PROPERTY_NAME</span>);
+        <span class="kw">return new</span> <span class="type">UserHashLoadBalancer</span>(supplier, name);
+    }
+
+    <span class="kw">static class</span> <span class="type">UserHashLoadBalancer</span> <span class="kw">implements</span> <span class="type">ReactorLoadBalancer&lt;ServiceInstance&gt;</span> {
+        <span class="kw">private final</span> <span class="type">ServiceInstanceListSupplier</span> supplier;
+        <span class="kw">private final</span> <span class="type">String</span> serviceId;
+
+        <span class="annotation">@Override</span>
+        <span class="kw">public</span> <span class="type">Mono&lt;Response&lt;ServiceInstance&gt;&gt;</span> <span class="fn">choose</span>(<span class="type">Request</span> request) {
+            <span class="kw">return</span> supplier.<span class="fn">get</span>().<span class="fn">next</span>().<span class="fn">map</span>(instances -> {
+                <span class="kw">if</span> (instances.<span class="fn">isEmpty</span>()) <span class="kw">return</span> <span class="type">Response</span>.<span class="fn">empty</span>();
+                <span class="type">Object</span> ctx = request.<span class="fn">getContext</span>();
+                <span class="type">String</span> userId = ctx != <span class="kw">null</span> ? ctx.<span class="fn">toString</span>() : <span class="type">UUID</span>.<span class="fn">randomUUID</span>().<span class="fn">toString</span>();
+                <span class="kw">int</span> idx = <span class="type">Math</span>.<span class="fn">abs</span>(userId.<span class="fn">hashCode</span>() % instances.<span class="fn">size</span>());
+                <span class="kw">return</span> <span class="type">Response</span>.<span class="fn">of</span>(instances.<span class="fn">get</span>(idx));
+            });
+        }
+    }
+}
+
+<span class="com">// 指定 user-service 使用该策略</span>
+<span class="annotation">@SpringBootApplication</span>
+<span class="annotation">@LoadBalancerClient(name = "user-service", configuration = UserHashLoadBalancerConfig.class)</span>
+<span class="kw">public class</span> <span class="type">OrderApplication</span> { }</code></pre></div>
+
+            <p><strong>③ WebClient + @LoadBalanced 配置</strong>：注入 <code class="inline-code">@LoadBalanced WebClient.Builder</code>，构建时自动加 <code class="inline-code">LoadBalancerExchangeFilterFunction</code>，用法与 RestTemplate 同理但异步非阻塞。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：@LoadBalanced 的 Qualifier 机制——Spring 怎么知道给哪些 RestTemplate 注拦截器？</strong></p>
+            <p>关键在于 <code class="inline-code">@LoadBalanced</code> 元注解上标了 <code class="inline-code">@Qualifier</code>。Spring 的自动配置 <code class="inline-code">LoadBalancerAutoConfiguration</code> 中有一个字段：<code class="inline-code">@LoadBalanced @Autowired(required=false) private List&lt;RestTemplate&gt; restTemplates = Collections.emptyList();</code>。Spring 会把<strong>所有同时满足 @Autowired + @LoadBalanced 限定符</strong>的 RestTemplate Bean 注入到这个 List，然后通过 <code class="inline-code">SmartInitializingSingleton</code> 回调逐个给它们 add <code class="inline-code">LoadBalancerInterceptor</code>。不带 <code class="inline-code">@LoadBalanced</code> 的 RestTemplate 根本不会出现在这个 List 里——这就是精准筛选的本质。</p>
+            <p><strong>追问 2：Ribbon 时代的 zone/availability 过滤策略，在 LoadBalancer 时代如何实现？</strong></p>
+            <p>Spring Cloud LoadBalancer 通过自定义 <code class="inline-code">ServiceInstanceListSupplier</code> 装饰器实现。① <strong>Zone 偏好</strong>：用 <code class="inline-code">ZonePreferenceServiceInstanceListSupplier</code>（Spring Cloud LoadBalancer 内置），优先选同 zone 的实例；② <strong>可用性过滤</strong>：自定义 <code class="inline-code">HealthCheckServiceInstanceListSupplier</code>（内置）定期 ping 实例健康端点，过滤掉不健康的；③ <strong>自定义组合</strong>：用 <code class="inline-code">DelegatingServiceInstanceListSupplier</code> 链式装饰——先 zone 过滤 → 再健康过滤 → 再权重挑选。</p>
+            <p><strong>追问 3：调用链里一个 ServiceInstance 全失败时的重试与 failover 如何配置？</strong></p>
+            <p>用 <strong>Spring Retry + LoadBalancedRetryFactory</strong> 组合。① 引入 <code class="inline-code">spring-retry</code> 依赖；② 配置 <code class="inline-code">spring.cloud.loadbalancer.retry.enabled=true</code>；③ 自定义 <code class="inline-code">LoadBalancedRetryFactory</code> Bean，指定 <code class="inline-code">RetryTemplate</code>（最大重试次数 3、重试间隔指数退避、哪些异常触发重试：<code class="inline-code">IOException</code>/<code class="inline-code">ConnectException</code>/<code class="inline-code">SocketTimeoutException</code>）；④ 重试时 <code class="inline-code">RetryableLoadBalancer</code> 会在每次重试前重新 <code class="inline-code">choose</code> 实例（默认换实例），实现 failover。注意：重试总耗时必须小于上层熔断超时，否则熔断先开会吞掉重试机会。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>WebFlux 项目里用同步 RestTemplate 引发虚拟线程 pinning 或阻塞 Netty EventLoop</strong>：WebFlux 默认 Netty EventLoop 线程极少（CPU 核数 × 2），用同步 RestTemplate 会把 EventLoop 阻塞住，导致整个网关/服务不可用。WebFlux 项目必须用 <code class="inline-code">WebClient</code> 或 <code class="inline-code">RestClient</code>（异步模式）。</li>
+                <li><strong>多 RestTemplate Bean 漏加 @LoadBalanced 或全部加导致直连失败</strong>：一个项目里常既有"跨服务调用（要负载均衡）"又有"调第三方外网 API（要直连）"。必须分开两个 Bean：一个打 <code class="inline-code">@LoadBalanced</code> + <code class="inline-code">@Qualifier("lbRestTemplate")</code>，另一个不加 + <code class="inline-code">@Qualifier("directRestTemplate")</code>，注入时按 Qualifier 区分。全部加 <code class="inline-code">@LoadBalanced</code> 会导致调外网时把域名当 serviceId 去注册中心查，报 <code class="inline-code">No instances available</code>。</li>
+                <li><strong>HTTP 客户端连接池参数未配置，默认单路由 5 连接导致高并发瓶颈</strong>：RestTemplate 默认用 JDK <code class="inline-code">URLConnection</code>，单路由 5 连接、总连接数有限，QPS 一上来大量线程卡在 <code class="inline-code">getConnection</code> 上，RT 飙升。生产必须切换到 Apache HC5 或 OkHttp 并配 <code class="inline-code">maxTotal=200+</code>、<code class="inline-code">defaultMaxPerRoute=50+</code>。</li>
+                <li><strong>自定义 LoadBalancer 策略 Bean 漏标 @Configuration(proxyBeanMethods=false)</strong>：Spring Cloud LoadBalancer 每个服务名对应一个独立的 ApplicationContext（子上下文），如果 <code class="inline-code">proxyBeanMethods=true</code>（默认），子上下文会尝试代理父上下文的 Bean，导致启动慢甚至 Bean 循环依赖。<code class="inline-code">@Configuration(proxyBeanMethods=false)</code> 是官方推荐写法。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10.19 OpenFeign 深度：动态代理 + RequestInterceptor + 超时/重试/FallbackFactory + 多参数坑 -->
+      <!-- ============================================================================================== -->
+      <div class="qa-card" id="qa-10-19" data-difficulty="senior" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">10.19</div>
+          <div class="qa-question">OpenFeign 深度：@FeignClient 接口如何变成能发 HTTP 的"实现类"？动态代理 + 熔断 + 多参数坑<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>OpenFeign 声明式调用底层原理</strong>的掌握。核心要回答：为什么只写一个 <code class="inline-code">@FeignClient</code> 注解的接口（没有任何实现类），注入后就能直接发 HTTP 请求拿到结果？本质是 <strong>JDK Dynamic Proxy + Feign Contract 注解解析 + Spring Bean 自动注册 + 与客户端负载均衡/熔断框架集成</strong>四者的协同。Spring 启动时，<code class="inline-code">@EnableFeignClients</code> 扫描所有 <code class="inline-code">@FeignClient</code> 接口 → 为每个接口生成 JDK 动态代理 → 代理对象作为 Bean 注册到 Spring 容器 → 调用接口方法时，代理层把方法签名翻译成 HTTP 请求、经拦截器链、走负载均衡、发请求、解码响应、命中异常时走 FallbackFactory。理解关键：Feign 不是"生成代码"而是"<strong>运行时动态代理拦截每一次方法调用</strong>"。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Netflix Feign（2012，Netflix 内部）</strong>：最初叫 <code class="inline-code">feign</code>，基于注解声明 REST 客户端，Java 6+ 兼容，集成 Ribbon + Hystrix，在 Spring Cloud Netflix 时代成为标配。</p>
+            <p><strong>OpenFeign（2016，社区 fork）</strong>：Netflix 将 Feign 捐献给社区，在 <code class="inline-code">io.github.openfeign</code> groupId 下继续开发。Spring Cloud 2020.x 起全面从 Netflix Feign 迁移到 OpenFeign 3.x，支持 HTTP/2、更灵活的 Contract、Micrometer Tracing。</p>
+            <p><strong>Spring Cloud OpenFeign 4.x（Spring Boot 3.x / Java 17+）</strong>：要求 Java 17 baseline，Jakarta EE 9+ 命名空间，整合 Spring Framework 6 的 HTTP Interface（<code class="inline-code">@HttpExchange</code>）新特性，原生支持 Observability，内置 Apache HC5 适配。</p>
+            <p><strong>关键里程碑</strong>：① 支持 HTTP 客户端可插拔（URLConnection/Apache HC/OkHttp/Apache HC5）；② 整合 Spring MVC 注解契约（<code class="inline-code">SpringMvcContract</code>，支持 <code class="inline-code">@GetMapping/@PathVariable/@RequestHeader</code>，不必用 Feign 原生 <code class="inline-code">@RequestLine</code>）；③ Sentinel/Resilience4j Circuit Breaker 集成（Feign 级熔断，resourceName 格式 <code class="inline-code">接口名#方法名(参数类型)</code>）；④ Micrometer Tracing 支持（自动透传 TraceId 到下游）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>调用链完整路径（逐跳拆解）</strong>：</p>
+            <ol>
+              <li><strong>业务代码</strong> 调用 <code class="inline-code">userClient.getUser(123)</code>，<code class="inline-code">userClient</code> 本质是 JDK Dynamic Proxy 实例。</li>
+              <li><strong>JDK InvocationHandler</strong>（<code class="inline-code">FeignInvocationHandler</code>）按方法路由到对应的 <code class="inline-code">MethodHandler</code>（每个接口方法对应一个，缓存到 ConcurrentHashMap 里避免重复解析）。</li>
+              <li><strong>Contract 解析</strong>（<code class="inline-code">SpringMvcContract</code>）：解析方法上的 Spring MVC 注解——<code class="inline-code">@GetMapping("/users/{id}")</code> 提取 HTTP 方法 + URL 模板，<code class="inline-code">@PathVariable("id")</code> 绑定参数到 URL 占位符，<code class="inline-code">@RequestHeader("X-UserId")</code> 绑定到请求头，<code class="inline-code">@RequestBody</code> 绑定到 Body。</li>
+              <li>生成 <strong>RequestTemplate</strong>：包含 URL、Method、Headers、Body、QueryParams。</li>
+              <li><strong>RequestInterceptor 拦截器链</strong>：依次执行所有注册的 <code class="inline-code">RequestInterceptor</code>——添加 TraceId（从 MDC）、添加用户 ID、添加灰度标签等。这是扩展的核心钩子。</li>
+              <li><strong>Client.execute</strong>：Feign 的 <code class="inline-code">Client</code> 接口，默认 URLConnection，可切 HC5/OkHttp。如果启用了 <code class="inline-code">@LoadBalanced</code>（Spring Cloud OpenFeign 默认集成），Client 内部会先走 <code class="inline-code">LoadBalancerClient</code> 选实例再发。</li>
+              <li><strong>收到 Response</strong>：<code class="inline-code">Decoder</code>（默认 SpringDecoder，用 ObjectMapper 反序列化 JSON）把响应 Body 转成 Java 对象。</li>
+              <li><strong>异常与 Fallback</strong>：若出现 <code class="inline-code">DecodeException</code>/<code class="inline-code">IOException</code>/<code class="inline-code">CircuitBreakerOpenException</code>，则调用 <code class="inline-code">FallbackFactory.create(Throwable)</code> 返回降级结果。</li>
+            </ol>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    U["业务调用 userClient.getUser(123)"] --> P["JDK Dynamic Proxy<br/>FeignInvocationHandler"]
+    P --> M["MethodHandler(按方法缓存)<br/>SpringMvcContract 解析注解"]
+    M --> RT["RequestTemplate 构建<br/>URL+Method+Headers+Body"]
+    RT --> RI["RequestInterceptor 链<br/>TraceId | 鉴权 | 灰度标签"]
+    RI --> C["Client.execute(HTTP)<br/>HC5 / OkHttp / 默认"]
+    C --> LB["LoadBalancer 选实例<br/>order-service → IP:Port"]
+    LB --> R["后端服务响应 JSON"]
+    R --> D["Decoder 反序列化<br/>SpringDecoder(ObjectMapper)"]
+    D --> E{"异常?"}
+    E -->|否| OK["返回 Java 对象"]
+    E -->|是| FF["FallbackFactory.create(t)"]
+    FF --> FB["返回降级结果"]
+    style P fill:#ede9fe,stroke:#7c3aed
+    style LB fill:#dbeafe,stroke:#2563eb
+    style FF fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 10.19-1 OpenFeign 调用链完整路径</div>
+            </div>
+
+            <p><strong>OpenFeign + Sentinel 集成要点</strong>：Feign 级熔断的 <code class="inline-code">resourceName</code> 是 <code class="inline-code">接口名#方法名(参数类型)</code>（如 <code class="inline-code">UserClient#getUser(Integer)</code>）；<code class="inline-code">fallback</code> / <code class="inline-code">fallbackFactory</code> 必须实现被 <code class="inline-code">@FeignClient</code> 注解的接口，且必须是 Spring Bean（加 <code class="inline-code">@Component</code>）；超时参数 <code class="inline-code">connectTimeout</code>/<code class="inline-code">readTimeout</code> 触发的是 IO 异常，优先被 FallbackFactory 捕获，所以 FallbackFactory 里要区分异常类型做细粒度降级。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>① @FeignClient 继承父接口模式（UserFeignClient extends UserApi）</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// ---- 公共 API 模块（服务端+客户端共享）----</span>
+<span class="annotation">@RequestMapping("/api/users")</span>
+<span class="kw">public interface</span> <span class="type">UserApi</span> {
+    <span class="annotation">@GetMapping("/{id}")</span>
+    <span class="type">UserDTO</span> <span class="fn">getUser</span>(<span class="annotation">@PathVariable("id")</span> <span class="type">Integer</span> id);
+
+    <span class="annotation">@PostMapping("/search")</span>
+    <span class="type">List&lt;UserDTO&gt;</span> <span class="fn">search</span>(<span class="annotation">@RequestParam("name")</span> <span class="type">String</span> name,
+                        <span class="annotation">@RequestParam("age")</span> <span class="type">Integer</span> age);
+}
+
+<span class="com">// ---- 服务端 Controller（实现接口即可，注解已在父接口）----</span>
+<span class="annotation">@RestController</span>
+<span class="kw">public class</span> <span class="type">UserController</span> <span class="kw">implements</span> <span class="type">UserApi</span> {
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">UserDTO</span> <span class="fn">getUser</span>(<span class="type">Integer</span> id) { <span class="com">/* ... */</span> }
+}
+
+<span class="com">// ---- 消费端 Feign Client（继承接口，零重复注解）----</span>
+<span class="annotation">@FeignClient(name = "user-service",
+             fallbackFactory = UserClientFallbackFactory.class,
+             configuration = FeignConfig.class)</span>
+<span class="kw">public interface</span> <span class="type">UserFeignClient</span> <span class="kw">extends</span> <span class="type">UserApi</span> { }</code></pre></div>
+
+            <p><strong>② RequestInterceptor 透传 TraceId + 用户 ID + 灰度标签</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Component</span>
+<span class="kw">public class</span> <span class="type">TraceIdFeignInterceptor</span> <span class="kw">implements</span> <span class="type">RequestInterceptor</span> {
+    <span class="annotation">@Override</span>
+    <span class="kw">public void</span> <span class="fn">apply</span>(<span class="type">RequestTemplate</span> template) {
+        <span class="type">String</span> traceId = <span class="type">MDC</span>.<span class="fn">get</span>(<span class="str">"traceId"</span>);
+        <span class="kw">if</span> (traceId != <span class="kw">null</span>) {
+            template.<span class="fn">header</span>(<span class="str">"X-Trace-Id"</span>, traceId);
+        }
+        <span class="type">String</span> userId = <span class="type">UserContext</span>.<span class="fn">getUserId</span>();
+        <span class="kw">if</span> (userId != <span class="kw">null</span>) {
+            template.<span class="fn">header</span>(<span class="str">"X-User-Id"</span>, userId);
+        }
+        <span class="type">String</span> grayTag = <span class="type">GrayContext</span>.<span class="fn">getTag</span>();
+        <span class="kw">if</span> (grayTag != <span class="kw">null</span>) {
+            template.<span class="fn">header</span>(<span class="str">"X-Gray-Tag"</span>, grayTag);
+        }
+    }
+}</code></pre></div>
+
+            <p><strong>③ FallbackFactory 示例：区分异常类型返回不同降级文案</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Component</span>
+<span class="kw">public class</span> <span class="type">UserClientFallbackFactory</span> <span class="kw">implements</span> <span class="type">FallbackFactory&lt;UserFeignClient&gt;</span> {
+    <span class="kw">private static final</span> <span class="type">Logger</span> log = <span class="type">LoggerFactory</span>.<span class="fn">getLogger</span>(<span class="type">UserClientFallbackFactory</span>.<span class="kw">class</span>);
+
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">UserFeignClient</span> <span class="fn">create</span>(<span class="type">Throwable</span> cause) {
+        <span class="kw">return new</span> <span class="type">UserFeignClient</span>() {
+            <span class="annotation">@Override</span>
+            <span class="kw">public</span> <span class="type">UserDTO</span> <span class="fn">getUser</span>(<span class="type">Integer</span> id) {
+                log.<span class="fn">error</span>(<span class="str">"用户服务调用失败 userId={}"</span>, id, cause);
+                <span class="kw">if</span> (cause <span class="kw">instanceof</span> <span class="type">CircuitBreakerOpenException</span>) {
+                    <span class="kw">throw new</span> <span class="type">DegradeException</span>(<span class="str">"用户服务熔断中，请稍后重试"</span>);
+                } <span class="kw">else if</span> (cause <span class="kw">instanceof</span> <span class="type">SocketTimeoutException</span>) {
+                    <span class="kw">return</span> <span class="type">UserDTO</span>.<span class="fn">defaultCached</span>(id); <span class="com">// 读缓存兜底</span>
+                } <span class="kw">else if</span> (cause <span class="kw">instanceof</span> <span class="type">DecodeException</span>) {
+                    <span class="kw">throw new</span> <span class="type">BizException</span>(<span class="str">"用户服务响应格式异常"</span>);
+                } <span class="kw">else</span> {
+                    <span class="kw">throw new</span> <span class="type">BizException</span>(<span class="str">"用户服务暂时不可用"</span>);
+                }
+            }
+        };
+    }
+}</code></pre></div>
+
+            <p><strong>④ 超时 + 重试配置</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># application.yml</span>
+<span class="var">feign:</span>
+  <span class="var">client:</span>
+    <span class="var">config:</span>
+      <span class="var">default:</span>          <span class="com"># 全局默认</span>
+        <span class="var">connectTimeout:</span> <span class="num">1000</span>  <span class="com"># TCP 连接超时 1s</span>
+        <span class="var">readTimeout:</span>    <span class="num">6000</span>  <span class="com"># 读超时 6s（必须大于后端接口 P99 + 重试总耗时）</span>
+        <span class="var">retryer:</span> feign.Retryer.Default    <span class="com"># 内置重试: 初始100ms, 最大1000ms, 3次</span>
+      <span class="var">user-service:</span>     <span class="com"># user-service 单独覆盖（优先级更高）</span>
+        <span class="var">connectTimeout:</span> <span class="num">800</span>
+        <span class="var">readTimeout:</span>    <span class="num">3000</span>
+  <span class="var">httpclient:</span>
+    <span class="var">hc5:</span>
+      <span class="var">enabled:</span> <span class="kw">true</span>             <span class="com"># 启用 Apache HC5，替换默认 URLConnection</span>
+      <span class="var">max-connections:</span> <span class="num">200</span>
+      <span class="var">max-connections-per-route:</span> <span class="num">50</span></code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Feign + Sentinel + LoadBalancer 三层超时如何设置？顺序和大小关系是什么？</strong></p>
+            <p>必须按从小到大设，否则上层超时先触发导致下层机制失效。正确顺序与大小关系：<br/>
+            <code class="inline-code">Feign connectTimeout</code>（TCP 建连，~500-1000ms）<br/>
+            &lt; <code class="inline-code">Feign readTimeout</code>（单次 HTTP 请求读超时，~3000-5000ms）<br/>
+            &lt; <code class="inline-code">Feign Retryer 总耗时</code>（readTimeout × 重试次数 + 间隔，如 3s × 3 次 + 退避 = ~10s）<br/>
+            &lt; <code class="inline-code">Sentinel 超时</code>（慢调用熔断阈值，~15s）<br/>
+            &lt; <code class="inline-code">Tomcat 线程超时 / 网关超时</code>（~30s）<br/>
+            反例：如果 Sentinel timeout 设 2s 而 readTimeout 设 5s，那么接口耗时 3s 时还没等 HTTP 超时返回，Sentinel 先熔断了，接口正常返回也被算失败，导致误熔断雪崩。</p>
+            <p><strong>追问 2：Fallback 与 FallbackFactory 的区别，为何推荐 FallbackFactory？</strong></p>
+            <p><code class="inline-code">fallback</code> 只能指定一个"降级实现类"，拿不到异常对象，只能做"不管什么错都返回同一个兜底值"的粗粒度降级；<code class="inline-code">fallbackFactory</code> 是工厂接口，<code class="inline-code">create(Throwable cause)</code> 能拿到真正的异常对象，可以判断是 <code class="inline-code">CircuitBreakerOpenException</code>/<code class="inline-code">SocketTimeoutException</code>/<code class="inline-code">DecodeException</code>/<code class="inline-code">FeignException$NotFound(404)</code> 等不同异常做差异化降级——404 直接抛业务异常、超时读缓存兜底、熔断提示"稍后重试"。生产环境必须用 FallbackFactory，否则降级逻辑等于"蒙着眼睛兜底"，排查问题时也拿不到降级触发的根因。</p>
+            <p><strong>追问 3：继承方式多参数坑——父接口 @RequestParam 为什么必须显式写 value？</strong></p>
+            <p>Java 编译时默认会把方法参数名擦除（除非开 <code class="inline-code">-parameters</code> 编译参数），所以 Spring 在运行时通过反射拿不到参数名"id"，只能拿到 <code class="inline-code">arg0</code>、<code class="inline-code">arg1</code>。<code class="inline-code">@RequestParam</code> 如果不显式写 <code class="inline-code">value = "id"</code>，Spring MVC Contract 在父接口里解析时，会尝试用参数名做 key，但拿到的是 <code class="inline-code">arg0</code> 而不是真实参数名，导致运行时报：<code class="inline-code">Query parameter 'id' was not found among request parameters</code>（编译不报错，运行才炸）。解决方案有两个：① 所有 <code class="inline-code">@RequestParam/@PathVariable</code> 都显式写 <code class="inline-code">value</code> 属性（最稳妥，兼容所有编译环境）；② 开 <code class="inline-code">-parameters</code> 编译参数 + Spring Boot 3.x 原生支持参数名保留（但要确保公共 API 模块和消费端都开了，任何一端没开都会炸）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>继承接口多参数漏写 @RequestParam value，报 Query parameter not found</strong>：生产级踩坑率极高。父接口写 <code class="inline-code">search(@RequestParam String name, @RequestParam Integer age)</code> 看着对，运行时就报找不到参数。务必显式写 <code class="inline-code">@RequestParam("name")</code>，不要省 value。</li>
+                <li><strong>Fallback/FallbackFactory 忘记加 @Component 或未在 @FeignClient 指定</strong>：两种典型错——① 降级类写了但没加 <code class="inline-code">@Component</code>，Spring 找不到 Bean 启动报 <code class="inline-code">NoSuchBeanDefinitionException</code>；② <code class="inline-code">@FeignClient</code> 上漏写 <code class="inline-code">fallbackFactory = XxxFallbackFactory.class</code>，等于降级根本没生效，异常直接抛出到前端。</li>
+                <li><strong>默认 URLConnection 无连接池，高并发 Socket exhausted</strong>：默认 <code class="inline-code">Client.Default</code> 用 JDK URLConnection，每个请求建一个 Socket 不池化。QPS 几百时出现大量 <code class="inline-code">Cannot assign requested address</code>（本地端口耗尽）或 <code class="inline-code">Too many open files</code>。生产必须切 <code class="inline-code">feign.hc5.enabled=true</code> 或 <code class="inline-code">feign.okhttp.enabled=true</code> 并配连接池。</li>
+                <li><strong>ReadTimeout 设太长 + Fallback 不抛异常，调用方线程堆积锁死 Tomcat</strong>：ReadTimeout 设 30s，后端真卡死时 Feign 线程占 30s 才返回，期间 Tomcat 200 线程全被 Feign 调用占满，新请求排队，整个服务雪崩。Fallback 必须要么快速抛异常（让上游感知失败），要么返回兜底缓存值（毫秒级返回），绝不能让 Fallback 也慢。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10.20 Spring Cloud Gateway 生产级调优：GlobalFilter 顺序 / DirectBuffer 泄漏 / 连接池 / 上下文透传 -->
+      <!-- ========================================================================================================== -->
+      <div class="qa-card" id="qa-10-20" data-difficulty="architect" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">10.20</div>
+          <div class="qa-question">Spring Cloud Gateway 生产级调优：GlobalFilter 执行顺序、DirectBuffer 泄漏、连接池与响应上下文透传<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题直接考察<strong>"你是否在生产上踩过 Gateway 的坑"</strong>——不是背配置，而是能解释现象背后的根因。核心场景：为什么 Gateway 在 2k QPS 下出现 <code class="inline-code">OutOfDirectMemoryError</code>（堆外内存泄漏）？为什么自定义 GlobalFilter 里写回的响应头客户端收不到？为什么从 MDC 拿的 TraceId 在 Gateway 转发到下游时丢了？本质是 <strong>Reactor Netty 响应式模型 + Gateway Filter 执行顺序 + Netty 堆外内存生命周期 + Spring RequestContext 在异步线程传递失败</strong>四者之间的协同问题。理解关键：Gateway 不是 Servlet，它跑在 Netty EventLoop 上，<strong>ThreadLocal 在异步场景下完全失效</strong>，所有"存上下文/读上下文/释放内存"操作都必须走 Reactor Context 和 DataBuffer 引用计数，否则线上必出诡异问题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Zuul 1.x（Servlet + 同步阻塞）</strong>：Netflix 第一代网关，基于 Servlet + Tomcat，每请求一线程，线程池耗尽即雪崩，生产上 1k QPS 就需要大堆大机器。</p>
+            <p><strong>Spring Cloud Gateway（2017，WebFlux + Netty 异步非阻塞）</strong>：Spring 团队基于 Spring 5 WebFlux + Project Reactor + Netty 重写，少量线程（CPU 核数 × 2）支撑万级 QPS，Predicate + Filter 模型，Spring 生态无缝集成。</p>
+            <p><strong>Gateway 3.x（Spring Boot 3.x / Spring 6.x）</strong>：Java 17 baseline，支持 RFC 7808 Problem 格式响应，Spring Boot 3 Observability（Micrometer Tracing）开箱支持，Netty Native Epoll/kqueue 传输，AOT GraalVM Native Image。</p>
+            <p><strong>生产调优演进路径（踩坑顺序）</strong>：<strong>配置路由</strong>（写 <code class="inline-code">spring.cloud.gateway.routes</code>，能跑就行）→ <strong>排内存泄漏</strong>（压测 2h 后 DirectBuffer OOM，查自定义 Filter 里 Body 读取没释放）→ <strong>调连接池</strong>（Netty HttpClient 默认连接池撑不住，调 <code class="inline-code">maxConnections</code> + <code class="inline-code">pendingAcquireTimeout</code>）→ <strong>定制 GlobalFilter</strong>（鉴权、灰度、审计、限流器，发现 order 设错被绕过）→ <strong>上下文透传</strong>（TraceId/UserId 在 Netty 线程间传递丢了，MDC 换成 Reactor Context）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>1. GlobalFilter 执行顺序（order 值越小越先执行）</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>Filter 名称</th><th>order 值</th><th>职责</th></tr></thead>
+              <tbody>
+                <tr><td>AdaptCachedBodyGlobalFilter</td><td>-2147482648（Integer.MIN+888）</td><td>读取请求 Body 缓存，供后续 Filter 重读</td></tr>
+                <tr><td>（自定义鉴权 GlobalFilter 推荐放这里）</td><td>~ -100 ~ 10000</td><td>JWT 解析、权限校验、灰度打标（必须在路由前）</td></tr>
+                <tr><td>NettyWriteResponseFilter</td><td>-1</td><td>将后端响应写回客户端</td></tr>
+                <tr><td>NettyRoutingFilter</td><td>Ordered.LOWEST_PRECEDENCE - 1</td><td>真正发请求到后端服务（转发核心）</td></tr>
+                <tr><td>ForwardRoutingFilter</td><td>Ordered.LOWEST_PRECEDENCE（2147483647）</td><td>本地 forward，非外部调用</td></tr>
+              </tbody>
+            </table>
+            <p>核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong>（即 < LOWEST_PRECEDENCE - 1），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 放最后倒数第二是因为它是"出站的最后一步"——前面的 Filter 改完请求、鉴权通过、限流通过，最后由它真正转发。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    IN["请求进入<br/>Netty EventLoop"] --> A["AdaptCachedBodyGlobalFilter<br/>(-2147482648) 缓存Body"]
+    A --> B["自定义 JwtAuthGlobalFilter<br/>(order=-100) 解析JWT+鉴权+打标"]
+    B --> C["自定义 GrayGlobalFilter<br/>(order=-50) 灰度标签路由决策"]
+    C --> D["GatewayMetricsFilter<br/>(order=0) 记录指标开始时间"]
+    D --> E["NettyWriteResponseFilter<br/>(order=-1，后置写响应)"]
+    E --> F["NettyRoutingFilter<br/>(LOWEST_PRECEDENCE-1) 真正转发到后端"]
+    F --> OUT["后端服务 → 响应回流 → NettyWriteResponseFilter 写回"]
+    style B fill:#ede9fe,stroke:#7c3aed
+    style F fill:#dbeafe,stroke:#2563eb
+              </div>
+              <div class="chart-caption">图 10.20-1 Gateway GlobalFilter 执行顺序与推荐自定义位置</div>
+            </div>
+
+            <p><strong>2. DirectBuffer（堆外内存）泄漏排查</strong>：出现 <code class="inline-code">io.netty.util.internal.OutOfDirectMemoryError</code>，三大原因：</p>
+            <ol>
+              <li><strong>请求 Body 读取后未释放</strong>：自定义 Filter 里调用 <code class="inline-code">DataBufferUtils.join(bodyFlux)</code> 或 <code class="inline-code">DataBufferUtils.read</code> 拿到了堆外 DataBuffer，用完没 <code class="inline-code">DataBufferUtils.release(buffer)</code>，ByteBuf 引用计数 +1 永远不回收。</li>
+              <li><strong>AdaptCachedBodyGlobalFilter 重复缓存</strong>：Spring Cloud Gateway 旧版本 Bug（3.1.2 前），大文件上传时缓存 Body 多次，每次 +1 引用计数。</li>
+              <li><strong>Netty 发送失败后 ByteBuf 泄漏</strong>：客户端提前断连（RST），Netty 发送 ChannelFuture 失败时 Handler 未正确释放传入的 ByteBuf。</li>
+            </ol>
+            <p>排查命令：① <code class="inline-code">jcmd &lt;pid&gt; VM.native_memory summary</code>（看 Internal 分类是否异常增长）；② JVM 参数 <code class="inline-code">-Dio.netty.leakDetection.level=paranoid</code>（压测环境开，能捕捉到堆栈）；③ Heap dump + Eclipse MAT 搜 <code class="inline-code">PooledByteBuf</code> / <code class="inline-code">UnpooledByteBuf</code>，看哪个泄漏对象最多，反向追引用链到自定义 Filter。</p>
+
+            <p><strong>3. Reactor Netty HttpClient 连接池调优</strong>：核心参数——</p>
+            <ul>
+              <li><code class="inline-code">maxConnections</code>：最大连接数，生产按"后端实例数 × 单实例期望并发（~50）"设，2k QPS 通常 500-2000。</li>
+              <li><code class="inline-code">pendingAcquireTimeout</code>：拿不到连接时的等待时间（默认 45s 太长！），压测建议 3000-5000ms，否则大量请求堆积在"等连接"上。</li>
+              <li><code class="inline-code">maxIdleTime</code>：空闲连接最大存活，~30s，避免后端服务器主动断开后连接池里留脏连接。</li>
+              <li><code class="inline-code">connectTimeout</code>：TCP 建连超时，~1000ms。</li>
+              <li><code class="inline-code">ReadTimeoutHandler</code>：建立连接后读超时，~30s。</li>
+            </ul>
+
+            <p><strong>4. 响应上下文透传（TraceId / UserId 在 Reactor 中不丢）</strong>：MDC 用的是 ThreadLocal，Netty EventLoop 会在异步操作后把同一个请求换到另一个线程执行，ThreadLocal 直接空。正确做法——① 用 Micrometer Tracing（Spring Boot 3 内置 Observation）自动跨 Reactor Context 传递；② 手动模式：<code class="inline-code">ContextSnapshot.captureAll().updateContext(contextWrite)</code> 在入口把 MDC 塞进 Reactor Context，出口 <code class="inline-code">handle((signalType, contextView) -> { MDC.setContextMap(contextView.get(...)) })</code> 取出来写到响应头。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>① 自定义 JwtAuthGlobalFilter（order=-100，必须在 NettyRoutingFilter 之前）</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Component</span>
+<span class="annotation">@Order(-100)</span>
+<span class="kw">public class</span> <span class="type">JwtAuthGlobalFilter</span> <span class="kw">implements</span> <span class="type">GlobalFilter</span>, <span class="type">Ordered</span> {
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">Mono&lt;Void&gt;</span> <span class="fn">filter</span>(<span class="type">ServerWebExchange</span> exchange, <span class="type">GatewayFilterChain</span> chain) {
+        <span class="type">ServerHttpRequest</span> request = exchange.<span class="fn">getRequest</span>();
+        <span class="type">String</span> token = request.<span class="fn">getHeaders</span>().<span class="fn">getFirst</span>(<span class="str">"Authorization"</span>);
+        <span class="kw">if</span> (token == <span class="kw">null</span> || !token.<span class="fn">startsWith</span>(<span class="str">"Bearer "</span>)) {
+            <span class="kw">return</span> <span class="fn">unauthorized</span>(exchange, <span class="str">"Missing token"</span>);
+        }
+        <span class="type">String</span> userId = <span class="type">JwtUtils</span>.<span class="fn">parseUserId</span>(token.<span class="fn">substring</span>(<span class="num">7</span>));
+        <span class="kw">if</span> (userId == <span class="kw">null</span>) {
+            <span class="kw">return</span> <span class="fn">unauthorized</span>(exchange, <span class="str">"Invalid token"</span>);
+        }
+
+        <span class="type">ServerHttpRequest</span> mutated = request.<span class="fn">mutate</span>()
+            .<span class="fn">header</span>(<span class="str">"X-User-Id"</span>, userId)
+            .<span class="fn">build</span>();
+
+        <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange.<span class="fn">mutate</span>().<span class="fn">request</span>(mutated).<span class="fn">build</span>());
+    }
+
+    <span class="annotation">@Override</span>
+    <span class="kw">public int</span> <span class="fn">getOrder</span>() { <span class="kw">return</span> <span class="num">-100</span>; }
+
+    <span class="kw">private</span> <span class="type">Mono&lt;Void&gt;</span> <span class="fn">unauthorized</span>(<span class="type">ServerWebExchange</span> ex, <span class="type">String</span> msg) {
+        ex.<span class="fn">getResponse</span>().<span class="fn">setStatusCode</span>(<span class="type">HttpStatus</span>.<span class="const">UNAUTHORIZED</span>);
+        ex.<span class="fn">getResponse</span>().<span class="fn">getHeaders</span>().<span class="fn">setContentType</span>(<span class="type">MediaType</span>.<span class="const">APPLICATION_JSON</span>);
+        <span class="type">String</span> body = <span class="str">"{\"code\":401,\"msg\":\""</span> + msg + <span class="str">"\"}"</span>;
+        <span class="type">DataBuffer</span> buffer = ex.<span class="fn">getResponse</span>().<span class="fn">bufferFactory</span>().<span class="fn">wrap</span>(body.<span class="fn">getBytes</span>(<span class="type">StandardCharsets</span>.<span class="const">UTF_8</span>));
+        <span class="kw">return</span> ex.<span class="fn">getResponse</span>().<span class="fn">writeWith</span>(<span class="type">Mono</span>.<span class="fn">just</span>(buffer));
+    }
+}</code></pre></div>
+
+            <p><strong>② Reactor Netty HttpClient 定制化（调连接池、超时、启用 Epoll Native）</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Configuration</span>
+<span class="kw">public class</span> <span class="type">GatewayNettyConfig</span> {
+
+    <span class="annotation">@Bean</span>
+    <span class="kw">public</span> <span class="type">HttpClientCustomizer</span> <span class="fn">gatewayHttpClientCustomizer</span>() {
+        <span class="kw">return</span> httpClient -> httpClient
+            .<span class="fn">option</span>(<span class="type">ChannelOption</span>.<span class="const">CONNECT_TIMEOUT_MILLIS</span>, <span class="num">1000</span>)
+            .<span class="fn">option</span>(<span class="type">ChannelOption</span>.<span class="const">TCP_NODELAY</span>, <span class="kw">true</span>)
+            .<span class="fn">option</span>(<span class="type">ChannelOption</span>.<span class="const">SO_KEEPALIVE</span>, <span class="kw">true</span>)
+            .<span class="fn">doOnConnected</span>(conn -> conn
+                .<span class="fn">addHandlerLast</span>(<span class="kw">new</span> <span class="type">ReadTimeoutHandler</span>(<span class="num">30</span>, <span class="type">TimeUnit</span>.<span class="const">SECONDS</span>))
+                .<span class="fn">addHandlerLast</span>(<span class="kw">new</span> <span class="type">WriteTimeoutHandler</span>(<span class="num">10</span>, <span class="type">TimeUnit</span>.<span class="const">SECONDS</span>)))
+            .<span class="fn">responseTimeout</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">30</span>))
+            .<span class="fn">runOn</span>(<span class="type">LoopResources</span>.<span class="fn">create</span>(<span class="str">"gateway-epoll"</span>, <span class="num">Runtime</span>.<span class="fn">getRuntime</span>().<span class="fn">availableProcessors</span>() * <span class="num">2</span>, <span class="kw">true</span>))
+            .<span class="fn">secure</span>(spec -> spec.<span class="fn">sslContext</span>(
+                <span class="type">SslContextBuilder</span>.<span class="fn">forClient</span>().<span class="fn">trustManager</span>(<span class="type">InsecureTrustManagerFactory</span>.<span class="const">INSTANCE</span>)))
+            .<span class="fn">pool</span>(poolSpec -> poolSpec
+                .<span class="fn">maxConnections</span>(<span class="num">2000</span>)
+                .<span class="fn">pendingAcquireTimeout</span>(<span class="type">Duration</span>.<span class="fn">ofMillis</span>(<span class="num">5000</span>))
+                .<span class="fn">maxIdleTime</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">30</span>))
+                .<span class="fn">evictionInBackground</span>(<span class="kw">true</span>)
+                .<span class="fn">evictionInterval</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">60</span>)));
+    }
+}</code></pre></div>
+
+            <p><strong>③ 生产 JVM 参数（Netty 堆外内存关键）</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># 堆内存（不要给太大，Gateway 大量对象是堆外的）</span>
+-Xms2g -Xmx2g -XX:+UseG1GC
+
+<span class="com"># Netty 堆外内存（生产至少预留 256M~1G，根据压测调整）</span>
+-Dio.netty.maxDirectMemory=512M
+
+<span class="com"># Netty 内存分配器：pooled 池化（默认，但显式写）</span>
+-Dio.netty.allocator.type=pooled
+
+<span class="com"># 泄漏检测级别：生产 simple / 压测 advanced / 排查 paranoid</span>
+-Dio.netty.leakDetection.level=simple
+
+<span class="com"># Netty Native Epoll（Linux 生产开，性能 +10%~30%）</span>
+-Dio.netty.transport.noNative=false
+
+<span class="com"># NIO 堆外内存映射限制，预防 MappedByteBuffer OOM</span>
+-XX:MaxDirectMemorySize=512M</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：NettyRoutingFilter 为什么 order 是 LOWEST_PRECEDENCE - 1 而不是最小？你写的鉴权 GlobalFilter 应该放在哪个 order 值之前？</strong></p>
+            <p>Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 放"最大倒数第二"因为它是<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong>，即 < LOWEST_PRECEDENCE - 1（< 2147483646），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。</p>
+            <p><strong>追问 2：堆外内存 OOM 与堆内 OOM 的现象与排查路径差异？</strong></p>
+            <p><strong>堆内 OOM（Java heap space）</strong>：现象——GC 次数频繁且耗时很长（G1 Young GC 从 50ms 变 2s+）、Old Gen 占用接近 -Xmx、<code class="inline-code">jmap -histo:live</code> 能看到某类业务对象（如 HashMap/byte[]）数量爆炸。排查：<code class="inline-code">jmap -dump:live,format=b</code> 堆转储 + Eclipse MAT 看泄漏嫌疑报告。<br/>
+            <strong>堆外 OOM（OutOfDirectMemoryError / Native memory）</strong>：现象——堆使用正常（老年代 < 60%）、但进程 RSS 持续飙升远超 -Xmx、<code class="inline-code">jcmd VM.native_memory summary</code> 中 Internal 类别占几 GB、dmesg 或 hs_err_pid 日志报 Direct Memory。排查：开 <code class="inline-code">-Dio.netty.leakDetection.level=paranoid</code> 复现看堆栈、用 <code class="inline-code">pmap</code> 看匿名内存段大小、Heap dump 搜 <code class="inline-code">PooledByteBuf</code> 反向找持有引用的类、用 perf/async-profiler 搜 <code class="inline-code">allocateDirect</code> 调用栈。根本差异：堆内 OOM 靠 GC 回收，堆外 OOM 靠显式 <code class="inline-code">release()</code> 回收，GC 管不到。</p>
+            <p><strong>追问 3：在 GlobalFilter 中用 WebSession.getAttribute("user") 为什么总是 null，如何让 Spring Session Redis 在 WebFlux Gateway 中生效？</strong></p>
+            <p>两个核心原因。① <strong>WebSession 在 Gateway 中默认是内存 Session（不会跨 Gateway 实例共享）</strong>，且 Reactor 异步线程切换时 WebSession 的 Mono 订阅链没正确传递；② <strong>Spring Session Data Redis 对 WebFlux 支持需要显式配置响应式 Session Repository</strong>，光加 <code class="inline-code">spring-session-data-redis</code> 依赖没用。修复方案：① 引入 <code class="inline-code">org.springframework.session:spring-session-data-redis</code> + <code class="inline-code">spring-boot-starter-data-redis-reactive</code>（必须是 reactive 版，不是 Jedis/Lettuce 同步版）；② 配置 <code class="inline-code">spring.session.store-type=redis</code> + <code class="inline-code">spring.redis.*</code> 连接；③ 在自定义 GlobalFilter 中先 <code class="inline-code">exchange.getSession()</code> 拿到 Mono<WebSession>，在它的 <code class="inline-code">flatMap(session -> { ... session.getAttribute("user") ... })</code> 回调中用属性，不能在 filter 方法里直接拿（Session 是懒加载的 Mono，没订阅就是空）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>GlobalFilter order 设错（0 或正数太大），鉴权被 NettyRoutingFilter 跳过</strong>：很多人写 <code class="inline-code">@Order(0)</code> 就觉得"很靠前"，但如果中间有自定义的其他 Filter 用了 order=10 做路由改写，实际效果可能是"先路由后鉴权"。推荐 order=-100 起步，显式写 <code class="inline-code">implements Ordered</code> 而不是只写 <code class="inline-code">@Order</code>，并写单测打印实际 Filter 链顺序。</li>
+                <li><strong>压测环境只给 -Xmx 没给 -Dio.netty.maxDirectMemory，Netty 默认用堆 25% 的 Direct 内存导致 swap</strong>：<code class="inline-code">io.netty.maxDirectMemory</code> 不设时，Netty 默认取 <code class="inline-code">JVM 最大堆内存的 25%</code> 作为上限，且跟 JDK 的 <code class="inline-code">MaxDirectMemorySize</code> 可能不一致，导致 RSS 持续涨触发系统 swap，性能暴跌 10 倍。生产必须显式设两个参数一致：<code class="inline-code">-Dio.netty.maxDirectMemory=512M -XX:MaxDirectMemorySize=512M</code>。</li>
+                <li><strong>透传上下文用 ThreadLocal 而不是 Reactor Context，异步线程 traceId 丢了</strong>：Servlet 时代养成的 MDC+ThreadLocal 习惯在 Gateway（WebFlux+Netty）里 100% 失效——同一个请求可能被 3-4 个 EventLoop 线程接力处理，中间线程一切换 ThreadLocal 就空。必须用 <code class="inline-code">contextWrite()</code> 写入 Reactor Context，或者直接上 Spring Boot 3 Micrometer Tracing（自动搞定）。</li>
+                <li><strong>调用 DataBufferUtils.join(Flux<DataBuffer>) 读取 body 后忘记 release，导致 ByteBuf 引用计数 +1 泄漏</strong>：这是 Gateway 自定义 Filter 最常见的 OOM 根因。<code class="inline-code">DataBufferUtils.join()</code> 合并多个缓冲区时会把每个 buffer <code class="inline-code">retain()</code>，返回的合并后 buffer 引用计数 = 参与合并的 buffer 数。用完必须在 <code class="inline-code">doFinally(signal -> DataBufferUtils.release(bodyBuffer))</code> 里释放，哪怕抛出异常也要释放。用 try-with-resources 模式或 <code class="inline-code">Flux.usingWhen</code> 模式能从代码层面避免漏释放。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10.21 Bootstrap 上下文 + @RefreshScope 动态刷新代理原理 -->
+      <!-- ========================================================================================================== -->
+      <div class="qa-card" id="qa-10-21" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">10.21</div>
+          <div class="qa-question">Bootstrap 上下文与 @RefreshScope 动态刷新代理原理<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>为什么一定要写 <code class="inline-code">bootstrap.yml</code> 才能让配置中心生效？<code class="inline-code">@RefreshScope</code> 打了之后配置就真的会自动刷新？本质是 <strong>Spring Cloud 在 Boot 2.x/3.x 之前引入的 Bootstrap 上下文（父上下文）加载注册/配置 Bean</strong>，以及 <strong><code class="inline-code">@RefreshScope</code> 是一个 Bean Scope 代理对象换 target 的机制</strong>。面试官要的不是"能配置"，而是你能解释清楚：配置中心的 Bean 凭什么在主应用 Bean 创建之前就连上远程拉配置？为什么 @Value 的字段改了配置中心要重新建 Bean 才能拿到新值？这两个问题不搞懂，Boot 2.x 升 3.x 时必然遇到"配置全失效"的事故。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring Cloud 早期（Boot 1.5 / 2.x，Dalston ~ 2021.x）</strong>：引入 Bootstrap 上下文机制，通过 <code class="inline-code">spring.factories</code> 加载 <code class="inline-code">BootstrapApplicationListener</code>，父上下文提前加载注册/配置 Bean，与主 <code class="inline-code">application.yml</code> 分层加载，保证"Nacos 先连上、再创建业务 Bean"的顺序。</p>
+            <p><strong>Spring Boot 3.0 / Spring Cloud 2022.0.x（TBD 2022-11）</strong>：<strong>移除了 Bootstrap 上下文的自动加载</strong>，改为用 <code class="inline-code">spring.config.import</code> 机制显式声明配置来源（如 <code class="inline-code">spring.config.import=nacos:</code>），不再自动扫描 bootstrap.yml；想恢复老行为需额外加依赖 <code class="inline-code">spring-cloud-starter-bootstrap</code>。</p>
+            <p><strong>Spring Boot 3.2+（2024 ~ 至今）</strong>：<code class="inline-code">spring.config.import</code> 支持多配置中心优先级；<code class="inline-code">@RefreshScope</code> 与 <code class="inline-code">@ConfigurationProperties</code> 刷新等价，两者行为对齐。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>① Bootstrap 上下文加载机制（Boot 2.x 时代）</strong>：<code class="inline-code">Spring Cloud BootstrapApplicationListener</code> 在 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code> 阶段，用一个名为 <code class="inline-code">bootstrap</code> 的 <code class="inline-code">SpringApplication</code> 先创建父上下文（Parent Context），加载 <code class="inline-code">bootstrap.yml</code> 配置与 <code class="inline-code">BootstrapConfiguration</code> 配置类——Nacos/Apollo 等注册/配置 Bean 先实例化放入父上下文。父上下文的 Bean 可被子上下文用 <code class="inline-code">@Autowired</code> 直接拿到，因此 <code class="inline-code">NacosConfigService</code> 才能在主应用 Bean 创建前连上配置中心拉取配置。</p>
+
+            <p><strong>② Boot 3.x 时代替代方案：<code class="inline-code">spring.config.import:</code> + ConfigData 机制</strong>：Spring Boot 2.4 引入的 <code class="inline-code">ConfigDataResolver</code> / <code class="inline-code">ConfigDataLocationResolver</code> SPI，Spring Cloud Nacos 2022.0.x 实现了 <code class="inline-code">NacosConfigDataLocationResolver</code>，在 Environment 后置阶段加载远程配置，无需父上下文。配置示例：</p>
+            <div class="code-block"><pre><code><span class="com"># Boot 3.x application.yml（不需要 bootstrap.yml）</span>
+<span class="kw">spring:</span>
+  <span class="kw">config:</span>
+    <span class="kw">import:</span> <span class="str">"nacos:order-service-dev.yml?refresh-enabled=true&amp;group=DEFAULT_GROUP"</span>
+  <span class="kw">cloud:</span>
+    <span class="kw">nacos:</span>
+      <span class="kw">config:</span>
+        <span class="kw">server-addr:</span> <span class="str">nacos:8848</span>
+        <span class="kw">namespace:</span> <span class="str">dev</span></code></pre></div>
+
+            <p><strong>③ @RefreshScope 动态刷新原理</strong>：<code class="inline-code">RefreshScope</code> 是一个自定义 Scope（默认 singleton/prototype/request/session 之外），<code class="inline-code">@RefreshScope</code> 标注的 Bean 实际被 Spring 包装成 <code class="inline-code">ScopedProxyFactoryBean</code> 的代理对象。代理里持有一个 ObjectFactory，第一次调用 <code class="inline-code">getObject</code> 时创建 target 并缓存；当 <code class="inline-code">ContextRefresher.refresh()</code> 或 <code class="inline-code">/actuator/refresh</code> 端点被触发时：<code class="inline-code">RefreshScope</code> 会调用 <code class="inline-code">cache.clear()</code> 销毁所有被代理的 target，下次调用代理 <code class="inline-code">getObject</code> 时重新创建 target，新 target 拿到的 Environment 就是刷新过的。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    A["@RefreshScope Bean 定义"] --> B["ScopedProxyFactoryBean(CGLIB 代理)"]
+    B --> C["RefreshScope Cache"]
+    C --> D["target Bean\n(第一次调用创建\n持有旧 Environment)"]
+    E["/actuator/refresh\n或 ContextRefresher.refresh()"] --> F["RefreshScope.cache.clear()\n销毁 target"]
+    F --> G["下一次方法调用"]
+    G --> H["getObject() 创建新 target\n加载刷新后的 Environment 新值"]
+    style B fill:#ede9fe,stroke:#7c3aed
+    style F fill:#fef3c7,stroke:#d97706
+    style H fill:#dbeafe,stroke:#2563eb
+              </div>
+              <div class="chart-caption">图 10.21-1 @RefreshScope 代理 + cache.clear() 重建 target 流程图</div>
+            </div>
+
+            <p><strong>④ @ConfigurationProperties 不需要 @RefreshScope</strong>：因为它的 Bean 是 <code class="inline-code">ConfigurationPropertiesBindingPostProcessor</code> 在绑定时每次重建，<code class="inline-code">ConfigurationPropertiesRebinder</code> 会在 Environment 刷新后重新绑定，所以注解 <code class="inline-code">@ConfigurationProperties</code> 的配置类自动刷新，无需额外打 <code class="inline-code">@RefreshScope</code>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>① bootstrap.yml(Boot 2.x) vs application.yml(Boot 3.x spring.config.import) 两份等价示例</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Boot 2.x bootstrap.yml</th><th>Boot 3.x application.yml (spring.config.import)</th></tr></thead>
+              <tbody>
+                <tr><td>文件名</td><td>必须 src/main/resources/bootstrap.yml</td><td>src/main/resources/application.yml</td></tr>
+                <tr><td>触发机制</td><td>BootstrapApplicationListener 自动加载父上下文</td><td>ConfigDataLocationResolver SPI</td></tr>
+                <tr><td>配置写法</td><td><code class="inline-code">spring.cloud.nacos.config.server-addr</code></td><td><code class="inline-code">spring.config.import=nacos:xxx.yml</code> + nacos.*</td></tr>
+                <tr><td>额外依赖</td><td>spring-cloud-starter-alibaba-nacos-config</td><td>同上，<strong>不需要</strong> spring-cloud-starter-bootstrap</td></tr>
+                <tr><td>恢复老行为</td><td>—</td><td>加 spring-cloud-starter-bootstrap 即可用 bootstrap.yml</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>② @RefreshScope + @Value 的 Controller + /actuator/refresh 触发</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@RestController</span>
+<span class="annotation">@RequestMapping</span>(<span class="str">"/api/order"</span>)
+<span class="annotation">@RefreshScope</span>
+<span class="kw">public class</span> <span class="type">OrderController</span> {
+
+    <span class="annotation">@Value</span>(<span class="str">"${order.timeout:30}"</span>)
+    <span class="kw">private</span> <span class="type">Integer</span> orderTimeout;
+
+    <span class="annotation">@GetMapping</span>(<span class="str">"/timeout"</span>)
+    <span class="kw">public</span> <span class="type">Integer</span> <span class="fn">getTimeout</span>() {
+        <span class="kw">return</span> orderTimeout;
+    }
+}
+
+<span class="com"># Nacos 改 order.timeout=60 后执行刷新</span>
+<span class="com">$ curl -X POST http://localhost:8080/actuator/refresh</span>
+<span class="com"># 返回 ["order.timeout"] → 表示这个 key 的 PropertySource 发生了变化</span>
+<span class="com"># 再访问 /api/order/timeout → 已变成 60</span></code></pre></div>
+
+            <p><strong>③ Nacos shared-configs / extension-configs 共享配置示例</strong>：</p>
+            <div class="code-block"><pre><code><span class="kw">spring:</span>
+  <span class="kw">cloud:</span>
+    <span class="kw">nacos:</span>
+      <span class="kw">config:</span>
+        <span class="kw">server-addr:</span> <span class="str">nacos:8848</span>
+        <span class="kw">namespace:</span> <span class="str">prod</span>
+        <span class="kw">group:</span> <span class="str">DEFAULT_GROUP</span>
+        <span class="com"># 共享配置（多个服务都用到的公共：数据源、Redis、MQ 配置等）</span>
+        <span class="kw">shared-configs:</span>
+          - <span class="kw">data-id:</span> <span class="str">common-datasource.yml</span>
+            <span class="kw">group:</span> <span class="str">SHARED_GROUP</span>
+            <span class="kw">refresh:</span> <span class="const">true</span>
+          - <span class="kw">data-id:</span> <span class="str">common-redis.yml</span>
+            <span class="kw">group:</span> <span class="str">SHARED_GROUP</span>
+            <span class="kw">refresh:</span> <span class="const">true</span>
+        <span class="com"># 扩展配置（业务服务自己的额外配置）</span>
+        <span class="kw">extension-configs:</span>
+          - <span class="kw">data-id:</span> <span class="str">order-service-ext.yml</span>
+            <span class="kw">group:</span> <span class="str">DEFAULT_GROUP</span>
+            <span class="kw">refresh:</span> <span class="const">true</span></code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：@RefreshScope 的 Bean 在 refresh 时正被线程调用会怎样？</strong></p>
+            <p>Spring Cloud 用 <code class="inline-code">SerializationDelegate</code> 做锁，旧对象用 soft reference 暂存，等待用完再回收，所以不会发生 NPE。具体来说：<code class="inline-code">RefreshScope</code> 的 cache 是 <code class="inline-code">StandardScopeCache</code>，内部 <code class="inline-code">ConcurrentHashMap</code> 存 name→BeanLifecycleWrapper；refresh 时 <code class="inline-code">cache.clear()</code> 会把 wrapper 从 map 里移除（不再有强引用），但正在执行中的线程已经拿到了旧 target 的引用，会继续跑完；当所有线程都释放旧对象后，soft reference 下次 GC 时回收。唯一风险是"refresh 瞬间 + 并发极高"时可能有极短暂的新旧对象并存，但不会抛 NPE，也不会拿半初始化的对象。</p>
+
+            <p><strong>追问 2：Boot 3.x 去掉 Bootstrap 后如何让多个服务统一共享配置？</strong></p>
+            <p>两种方式。① <strong>Nacos shared-configs + spring.config.import 组合</strong>：共享配置仍放 Nacos 的 <code class="inline-code">shared-configs</code> 里，每个服务 <code class="inline-code">spring.config.import=nacos:common-datasource.yml,nacos:common-redis.yml</code>，Spring Cloud LoadBalancer 先加载公共 import 再加载自身配置，覆盖顺序符合预期。② <strong>Spring Cloud Config Server + Git 共享文件</strong>：老架构可保留 Config Server，application.yml 里 <code class="inline-code">spring.config.import=configserver:http://config-server:8888</code>，Config Server 从 Git 拉公共 <code class="inline-code">application-*.yml</code> 与服务自己的 <code class="inline-code">{service-name}-*.yml</code> 合并返回。两者共同点：都不再需要 bootstrap.yml。</p>
+
+            <p><strong>追问 3：Nacos Config 长轮询推送触发 refresh 但前端读值没变，常见原因？</strong></p>
+            <p>三大根因。① <strong>漏打 @RefreshScope</strong>：<code class="inline-code">@Value</code> 字段所在的类（Controller/Service）必须加 <code class="inline-code">@RefreshScope</code>，否则还是 singleton 旧对象，Environment 刷新了但字段没重新注入。② <strong>用 static 字段保存旧值</strong>：有人把 <code class="inline-code">@Value</code> 注入的值存到 static 静态字段里，RefreshScope 重建实例也不会动 static 字段，永远读到旧值。③ <strong>本地快照缓存优先级高于远程</strong>：Nacos 客户端 <code class="inline-code">${user.home}/nacos/config</code> 有本地快照，配置中心临时宕机恢复后快照被覆盖逻辑有 Bug（老版本 1.x），需手动删快照或升级 Nacos Client 2.2.3+。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>在 Boot 3.x 里写老版 bootstrap.yml 但没加 spring-cloud-starter-bootstrap 依赖，配置完全不生效</strong>：Spring Boot 3.0 默认不再扫描 bootstrap.yml，Nacos 配置直接跳过，服务启动时 <code class="inline-code">@Value("${xxx}")</code> 直接报 Could not resolve placeholder。升级第一步：要么把配置搬到 application.yml + spring.config.import，要么显式加 <code class="inline-code">spring-cloud-starter-bootstrap</code> 启动器。</li>
+                <li><strong>@Value 字段所在的类忘了加 @RefreshScope，就以为能自动刷新</strong>：最常见的错误，改完 Nacos 配置 curl /actuator/refresh 返回了变更 key，但读接口还是旧值——因为 target Bean 根本没重建。记住规则：@Value → 必须 @RefreshScope；@ConfigurationProperties → 不需要，自动 rebind。</li>
+                <li><strong>RefreshScope 代理对象在 @PostConstruct 中读取字段</strong>：@PostConstruct 执行时代理对象的 target 可能还没有完成第一次初始化，或者 target 的 @Value 注入时机尚未完成，读到 null。应在 InitializingBean.afterPropertiesSet() 或 ApplicationReadyEvent 里第一次读配置。</li>
+                <li><strong>自定义 Scope 刷新线程不考虑并发读写导致脏数据</strong>：有人自己实现 Scope 但没做 soft reference 暂存，cache.clear() 直接把正在用的 target 干掉，正在执行的方法下一行就拿不到字段值报 NPE。自定义 Scope 必须参照 RefreshScope 的 SerializationDelegate + BeanLifecycleWrapper 设计。</li>
+                <li><strong>Boot 2.x→3.x 升级漏加 spring.config.import=nacos: 导致启动找不到 Nacos 服务</strong>：升级 checklist 第一条：凡是 bootstrap.yml 里的配置中心连接串，必须迁移到 application.yml 的 spring.config.import 声明。漏写的症状：服务能启动，但所有远程配置 key 都没加载，表现为 datasource URL 为空、Redis host 是 localhost。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10.22 Sleuth→Micrometer Tracing 链路追踪演进（B3/W3C、采样率、Brave/OTel、MDC） -->
+      <!-- ========================================================================================================== -->
+      <div class="qa-card" id="qa-10-22" data-difficulty="expert" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">10.22</div>
+          <div class="qa-question">Sleuth→Micrometer Tracing 链路追踪演进：B3/W3C 传播、采样率、Brave/OTel 桥接与 MDC 透传<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>Spring Cloud Sleuth 为什么在 Boot 3.0 突然"消失"，而变成 Micrometer Tracing？本质是 <strong>Spring 社区在 2022 年把链路追踪 API 从 Spring Cloud 子项目下沉到 Spring Framework 级别的 Micrometer 观测抽象（Micrometer Metrics / Tracing / Logging 三合一）</strong>，与 OpenTelemetry API 对齐。面试官要考察的是：你是否知道"为什么要做这次下沉"？是否亲自做过 Boot 2→3 的链路追踪升级？能否区分 Brave vs OTel 两套桥接的取舍？W3C TraceContext 跟 B3 到底谁是未来？生产 10k QPS 下 traceId 怎么保证异步线程不丢、采集量怎么不压爆 OTel Collector？这些都是"用过 APM"和"做过 APM 生产落地"的分水岭。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring Cloud Sleuth 1.x（2017，Dalston）</strong>：基于 Brave 4.x，MDC 自动注入 traceId/spanId，默认 B3 传播格式，Zipkin 作为默认后端。</p>
+            <p><strong>Spring Cloud Sleuth 2.x（2019 ~ 2022，Hoxton ~ 2021.x）</strong>：升级 Brave 5.x + Zipkin Reporter 2.x，开始支持 OTel Bridge 试验性集成，增加 Async/Reactor 自动传播。</p>
+            <p><strong>Spring Boot 3.0（2022-11）</strong>：Sleuth 停止维护，功能迁移到 <strong>Micrometer Tracing 1.0+</strong>（Spring 官方观测栈）+ Spring Cloud 2022.0.x 只保留少量桥接适配。关键收益：观测 API 从 Spring Cloud 下沉到 Micrometer，与 Metrics/Logging 三合一，不再需要 Spring Cloud 全家桶也能用到链路追踪（比如只写 Spring MVC 单体也能上）。</p>
+            <p><strong>Micrometer Tracing 1.2+（2024）</strong>：支持 Brave + OpenTelemetry 两套桥接实现，功能完全对齐。</p>
+            <p><strong>2025 Micrometer Tracing 1.3+ + OTel SDK 1.35+</strong>：W3C TraceContext 默认传播格式，B3 可通过配置切换。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    A["Spring Cloud Sleuth 1.x\n(Brave 4.x + B3 + Zipkin)"] --> B["Sleuth 2.x\n(Brave 5.x + 试验性 OTel Bridge)"]
+    B --> C["Micrometer Tracing 1.0\n(Spring Boot 3.0，Sleuth 停止维护)"]
+    C --> D["Micrometer Tracing 1.2\n(Brave Bridge 与 OTel Bridge 并驾齐驱)"]
+    D --> E["Micrometer Tracing 1.3 + OTel SDK 1.35\n(W3C TraceContext 默认、Metrcs/Tracing/Logging 三合一)"]
+    style A fill:#e0e7ff,stroke:#4f46e5
+    style C fill:#ede9fe,stroke:#7c3aed
+    style E fill:#dbeafe,stroke:#2563eb
+              </div>
+              <div class="chart-caption">图 10.22-1 Sleuth → Micrometer Tracing 演进路线图</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>① 核心抽象五件套</strong>：<code class="inline-code">Tracer</code>（创建 Span）、<code class="inline-code">Span</code>（一个调用段，带 name/tags/startTime/endTime）、<code class="inline-code">CurrentTraceContext</code>（ThreadLocal / Scope 存当前 Span）、<code class="inline-code">Propagator</code>（跨进程传播 Header）、<code class="inline-code">SpanExporter</code>（上报到 Zipkin/Jaeger/OTel Collector）。<strong>Brave 实现 vs OpenTelemetry 实现的取舍</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Brave Bridge</th><th>OpenTelemetry Bridge</th></tr></thead>
+              <tbody>
+                <tr><td>背景</td><td>Twitter 开源，Java 原生</td><td>CNCF 跨语言标准</td></tr>
+                <tr><td>性能</td><td>更高（Java 原生优化）</td><td>略低（SDK 抽象 + 多语言兼容）</td></tr>
+                <tr><td>生态</td><td>Java 偏科，Zipkin 原生</td><td>全语言，Collector/Jaeger/Tempo/Prometheus 全兼容</td></tr>
+                <tr><td>启动开销</td><td>低</td><td>略高（Agent/SDK 初始化）</td></tr>
+                <tr><td>推荐场景</td><td>纯 Java 技术栈 + Zipkin 后端</td><td>多语言 + 统一 OTel Collector 架构</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>② 传播格式：W3C vs B3 vs B3 单头</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>格式</th><th>Header 示例</th><th>是否默认</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><strong>W3C TraceContext</strong>（RFC）</td><td><code class="inline-code">traceparent: 00-{traceId 32hex}-{spanId 16hex}-{flags 2hex}</code><br/><code class="inline-code">tracestate: vendor1=xxx,vendor2=yyy</code></td><td>✅ Spring 3.2+ 默认</td><td>RFC 标准，跨厂商兼容，flags 第二位是采样位。</td></tr>
+                <tr><td><strong>B3 多头</strong>（Zipkin 老格式）</td><td><code class="inline-code">X-B3-TraceId</code> / <code class="inline-code">X-B3-SpanId</code> / <code class="inline-code">X-B3-Sampled</code></td><td>❌ 旧系统兼容</td><td>Spring Boot 2.x Sleuth 默认，老系统对接常见。</td></tr>
+                <tr><td><strong>B3 单头</strong></td><td><code class="inline-code">b3: {traceId}-{spanId}-{sampled}-{parentSpanId}</code></td><td>❌</td><td>把 5 个 Header 压成 1 个，减少跨服务 Header 数量。</td></tr>
+                <tr><td><strong>Uber Jaeger</strong></td><td><code class="inline-code">uber-trace-id</code>: traceId:spanId:parentId:flags</td><td>❌</td><td>Jaeger 早期自家格式，已全面转向 W3C。</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>③ 采样率配置</strong>：<code class="inline-code">management.tracing.sampling.probability=0.1</code>（10% 采样，生产推荐 1%~10% 依流量）。经验值：<strong>压测期 100%（定位全链路问题）→ 灰度期 10%（统计稳定）→ 稳定期 1%（降本）</strong>；可用 <code class="inline-code">AlwaysSampler</code>（测试环境全采）或 <code class="inline-code">NeverSampler</code>（临时全关）。进阶可做<strong>基于错误的尾部采样（Tail-based Sampling）</strong>：Collector 层把 status=ERROR 的 Span 补捞回来，保证错误链路 100% 可查，正常链路只采 1%。</p>
+
+            <p><strong>④ MDC 透传原理</strong>：Micrometer Tracing 默认在 <code class="inline-code">ObservationThreadLocalAccessor</code> 中自动写入 traceId/spanId 到 SLF4J MDC，日志模板加 <code class="inline-code">[%traceId/%spanId]</code> 即可看到。但在异步线程（@Async / 线程池 / 虚拟线程）需用 <code class="inline-code">Observation.wrap(Runnable)</code> 或 <code class="inline-code">ContextSnapshot</code> 手动 capture + restore，否则 MDC 空 traceId。</p>
+
+            <p><strong>⑤ Brave vs OTel 桥接依赖区别</strong>：两者使用的 API 完全相同（都走 Micrometer Tracing Tracer/Span），只是底层实现不同。Maven 二选一：① <code class="inline-code">micrometer-tracing-bridge-brave</code>（Brave + Zipkin Reporter）→ 后端接 Zipkin；② <code class="inline-code">micrometer-tracing-bridge-otel</code>（OTel SDK + OTLP Exporter）→ 后端接 OTel Collector → Jaeger / Tempo / Zipkin 均可。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>① application.yml 配置 Micrometer Tracing（W3C + 10% 采样 + OTLP Exporter）</strong>：</p>
+            <div class="code-block"><pre><code><span class="kw">management:</span>
+  <span class="kw">tracing:</span>
+    <span class="kw">enabled:</span> <span class="const">true</span>
+    <span class="com"># 传播格式：W3C（生产推荐），老系统切 b3 或 b3-multi</span>
+    <span class="kw">propagation:</span>
+      <span class="kw">type:</span> <span class="str">w3c</span>
+    <span class="com"># 采样率：生产 0.01（1%），压测期 1.0</span>
+    <span class="kw">sampling:</span>
+      <span class="kw">probability:</span> <span class="num">0.1</span>
+    <span class="com"># Brave 后端（Zipkin）示例：</span>
+    <span class="kw">zipkin:</span>
+      <span class="kw">tracing:</span>
+        <span class="kw">endpoint:</span> <span class="str">http://zipkin:9411/api/v2/spans</span>
+    <span class="com"># OTLP 后端（OTel Collector）示例：</span>
+    <span class="kw">otlp:</span>
+      <span class="kw">tracing:</span>
+        <span class="kw">endpoint:</span> <span class="str">http://otel-collector:4317</span>
+
+<span class="com"># 日志格式让每一条日志自包含 traceId/spanId</span>
+<span class="kw">logging:</span>
+  <span class="kw">pattern:</span>
+    <span class="kw">console:</span> <span class="str">[%d{HH:mm:ss.SSS}] [%traceId,%spanId] [%thread] %-5level %logger{36} - %msg%n</span></code></pre></div>
+
+            <p><strong>② 异步线程（@Async + 线程池）用 Observation.wrap 保 MDC 透传</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Service</span>
+<span class="kw">public class</span> <span class="type">AsyncOrderService</span> {
+
+    <span class="kw">private final</span> <span class="type">ObservationRegistry</span> observationRegistry;
+    <span class="kw">private final</span> <span class="type">ExecutorService</span> bizPool;
+
+    <span class="com">// 构造注入 ObservationRegistry + 自定义线程池</span>
+    <span class="kw">public</span> <span class="type">AsyncOrderService</span>(<span class="type">ObservationRegistry</span> registry) {
+        <span class="kw">this</span>.observationRegistry = registry;
+        <span class="kw">this</span>.bizPool = <span class="kw">new</span> <span class="type">ThreadPoolExecutor</span>(
+            <span class="num">10</span>, <span class="num">50</span>, <span class="num">60</span>L, <span class="type">TimeUnit</span>.<span class="const">SECONDS</span>,
+            <span class="kw">new</span> <span class="type">LinkedBlockingQueue</span>&lt;&gt;(<span class="num">1000</span>),
+            <span class="kw">new</span> <span class="type">ThreadFactoryBuilder</span>().<span class="fn">setNameFormat</span>(<span class="str">"biz-pool-%d"</span>).<span class="fn">build</span>());
+    }
+
+    <span class="annotation">@Async</span>
+    <span class="kw">public void</span> <span class="fn">processAsync</span>(<span class="type">Long</span> orderId) {
+        <span class="com">// 把当前调用链的 Observation 包装进 Runnable → 保证 biz-pool 线程里有 traceId</span>
+        <span class="type">Runnable</span> task = <span class="type">Observation</span>.<span class="fn">createNotStarted</span>(<span class="str">"order.process"</span>, observationRegistry)
+            .<span class="fn">observe</span>(() -> {
+                <span class="com">// 这里 MDC 中已有 traceId/spanId，打日志能直接看到</span>
+                <span class="type">log</span>.<span class="fn">info</span>(<span class="str">"开始异步处理订单: {}"</span>, orderId);
+                <span class="fn">doHeavyWork</span>(orderId);
+            });
+        bizPool.<span class="fn">submit</span>(task);
+    }
+}</code></pre></div>
+
+            <p><strong>③ Gateway Filter 注入 traceId 到响应头便于前端排障</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Component</span>
+<span class="annotation">@Order</span>(-<span class="num">90</span>)
+<span class="kw">public class</span> <span class="type">TraceIdInjectFilter</span> <span class="kw">implements</span> <span class="type">GlobalFilter</span>, <span class="type">Ordered</span> {
+
+    <span class="kw">private final</span> <span class="type">Tracer</span> tracer;
+
+    <span class="kw">public</span> <span class="type">TraceIdInjectFilter</span>(<span class="type">Tracer</span> tracer) { <span class="kw">this</span>.tracer = tracer; }
+
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">Mono&lt;Void&gt;</span> <span class="fn">filter</span>(<span class="type">ServerWebExchange</span> exchange, <span class="type">GatewayFilterChain</span> chain) {
+        <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange).<span class="fn">then</span>(<span class="type">Mono</span>.<span class="fn">fromRunnable</span>(() -> {
+            <span class="type">Span</span> currentSpan = tracer.<span class="fn">currentSpan</span>();
+            <span class="kw">if</span> (currentSpan != <span class="kw">null</span>) {
+                <span class="type">String</span> traceId = currentSpan.<span class="fn">context</span>().<span class="fn">traceId</span>();
+                exchange.<span class="fn">getResponse</span>().<span class="fn">getHeaders</span>().<span class="fn">add</span>(<span class="str">"X-Trace-Id"</span>, traceId);
+                exchange.<span class="fn">getResponse</span>().<span class="fn">getHeaders</span>().<span class="fn">add</span>(
+                    <span class="str">"traceparent"</span>,
+                    <span class="str">"00-"</span> + traceId + <span class="str">"-"</span> + currentSpan.<span class="fn">context</span>().<span class="fn">spanId</span>() + <span class="str">"-01"</span>
+                );
+            }
+        }));
+    }
+
+    <span class="annotation">@Override</span> <span class="kw">public int</span> <span class="fn">getOrder</span>() { <span class="kw">return</span> -<span class="num">90</span>; }
+}</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：跨线程池（ScheduledExecutorService / Kafka 消费线程 / Reactor Schedulers）时 traceId 如何传递？</strong></p>
+            <p>Micrometer Tracing 提供了统一的 <code class="inline-code">Observation.registerThreadLocalAccessor()</code> 机制 + <code class="inline-code">Micrometer Context Accessor</code>。具体分场景：① <strong>ScheduledExecutorService / 自定义线程池</strong>：用 <code class="inline-code">ContextSnapshot.captureAll()</code> 在提交任务前 capture，任务 Runnable 第一行 <code class="inline-code">contextSnapshot.setThreadLocals()</code> restore，finally 里 <code class="inline-code">contextSnapshot.restoreThreadLocals()</code> 复原；② <strong>Kafka 消费线程</strong>：给 <code class="inline-code">ConcurrentKafkaListenerContainerFactory</code> 配 <code class="inline-code">ContainerProperties.setObservationEnabled(true)</code>，Spring Kafka 6.x 自动用 Micrometer Observation 包装 onMessage；③ <strong>Reactor Schedulers</strong>：<code class="inline-code">Hooks.enableAutomaticContextPropagation()</code>（Boot 3.2+ / Micrometer 1.12+ 一行搞定），不用手动 wrap。原则：优先用框架自带的 Observation 支持，其次才是手动 capture/restore。</p>
+
+            <p><strong>追问 2：生产 10k QPS 全量采集压爆 OTel Collector，如何降本？</strong></p>
+            <p>四层降本策略。① <strong>Agent 端采样</strong>：<code class="inline-code">probability=0.01</code> 只采 1%，量立刻降 100 倍；② <strong>Batch + 压缩</strong>：OTLP Exporter 默认已开 Batch（512 span / 5s flush / 10MB 内存上限）+ gzip 压缩，确认没被手动关掉；③ <strong>Collector 层尾部采样（Tail-based）</strong>：Collector Pipeline 里加 <code class="inline-code">tailsamplingprocessor</code>，把 status_code=ERROR / latency>2s / http.status>=500 的 Span <strong>100% 补捞</strong>，其余正常只保留 1%，保证线上有问题的链路一定查得到；④ <strong>降 Tag 维度</strong>：自定义 tag 不要带 user_id、order_id 这种高基数字段（一天就几百万元素），放到 Span Event 或 baggage 里，少用 tag。OTel Collector 侧用 <code class="inline-code">attributesprocessor</code> 的 <code class="inline-code">actions: delete</code> 直接把不需要的高基数 key 在 Collector 端删掉。</p>
+
+            <p><strong>追问 3：W3C traceparent flags = 00 / 01 的含义？B3 sampled 的 0 / 1 / d 含义？</strong></p>
+            <p>W3C traceparent 格式：<code class="inline-code">version-traceId-spanId-traceflags</code>，共 4 段。traceflags 是 8 bit 的 2 位 hex：<br/>
+            · <code class="inline-code">flags = 00</code> → 第 0 位（采样位）= 0 → <strong>未采样</strong>，下游服务不要采这条链路。<br/>
+            · <code class="inline-code">flags = 01</code> → 第 0 位 = 1 → <strong>已采样</strong>，下游继续采样上报。<br/>
+            · 剩余 7 bit 预留，必须是 0，所以目前 flags 合法值只有 00/01。<br/><br/>
+            B3 sampled 的取值：<br/>
+            · <code class="inline-code">sampled = 1</code> → 已采样，对应 W3C flags=01。<br/>
+            · <code class="inline-code">sampled = 0</code> → 未采样，对应 W3C flags=00。<br/>
+            · <code class="inline-code">sampled = d（debug）</code> → 调试强制采样，即使采样率 0% 也采这条，对应 W3C 的 tracestate 里 vendor 自定义标记，下游不能丢。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>Spring Boot 3.x 升级忘了把 spring-cloud-starter-sleuth 换成 micrometer-tracing-bridge-brave/otel，启动没报错但 traceId 全是空</strong>：Sleuth 在 Boot 3 里没有对应版本，spring-cloud-starter-sleuth 加了不会报 ClassNotFound，但它的 AutoConfiguration 不匹配 Boot 3 的条件注解，直接跳过。症状：日志 [%traceId] 位置是空的，Zipkin/Jaeger 一条数据都没有。升级必须把 pom 中 <code class="inline-code">spring-cloud-starter-sleuth</code> 删除，替换成 <code class="inline-code">micrometer-tracing-bridge-brave</code>（Zipkin 后端）或 <code class="inline-code">micrometer-tracing-bridge-otel</code>（OTLP 后端），两者二选一不要同时加。</li>
+                <li><strong>用自定义 ThreadPoolExecutor 没启用 Observation.wrap，异步任务日志里 traceId 缺失</strong>：<code class="inline-code">@Async</code> 默认用 Spring 的 SimpleAsyncTaskExecutor 是自动支持的，但自己 <code class="inline-code">new ThreadPoolExecutor()</code> 出来的线程池，Micrometer Tracing 不知道，里面跑的 Runnable 必须显式 <code class="inline-code">Observation.wrap(runnable)</code> 或 <code class="inline-code">ContextSnapshot.captureAll()</code> 提前 capture，否则就是空 traceId。</li>
+                <li><strong>W3C 和 B3 混用：上游 W3C 下游 B3，导致跨服务链路断</strong>：比如老网关用 B3 多头，新订单服务用 Boot 3 W3C 默认，下游订单服务只看 traceparent 头，不看 X-B3-TraceId，两个服务各自生成 traceId，APM 里一条完整链路被切成两段。必须全链路统一一种传播格式，过渡期在网关层做一次 W3C↔B3 的 Header 转换。</li>
+                <li><strong>采样率设 1.0，生产日志爆炸</strong>：压测环境 100% 采样是对的，但是忘了灰度上线后改回 0.01，一夜之间 OTel Collector 磁盘写满、Jaeger 查询超时。采样率必须通过配置中心（Nacos/Apollo）动态可配，并且<strong>生产默认值就是 0.01</strong>。</li>
+                <li><strong>management.tracing.enabled=false 但 Zipkin 依赖仍在，ZipkinAutoConfiguration 不生效，报错 endpoint 不存在</strong>：tracing.enabled=false 会让 Tracer Bean 不注册，但是 Zipkin 的 Reporter Bean 仍然尝试连接 <code class="inline-code">management.zipkin.tracing.endpoint</code>，启动时因没有 Tracer 上下文而报错。正确关闭链路追踪：tracing.enabled=false 同时把 <code class="inline-code">micrometer-tracing-bridge-*</code> 的依赖用 Maven profile 排除掉。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10.23 Spring Cloud Commons 核心抽象（DiscoveryClient/ServiceInstance/LoadBalancer）无缝切换 -->
+      <!-- ========================================================================================================== -->
+      <div class="qa-card" id="qa-10-23" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">10.23</div>
+          <div class="qa-question">Spring Cloud Commons 核心抽象如何让注册中心从 Eureka→Nacos→Consul 无缝切换<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>为什么 pom.xml 把 <code class="inline-code">spring-cloud-starter-netflix-eureka-client</code> 改成 <code class="inline-code">spring-cloud-starter-alibaba-nacos-discovery</code>，代码里 <code class="inline-code">@LoadBalanced RestTemplate</code>、<code class="inline-code">DiscoveryClient</code>、<code class="inline-code">LoadBalancer</code> 的用法一行不用改？本质是 <strong>Spring Cloud Commons 定义了统一接口层，各注册中心组件（Eureka/Nacos/Consul）实现各自 AutoConfiguration，Bean 注入时 Spring 按条件装配，上层业务面向 Commons 抽象编程</strong>。面试官考察的是：你是否真的理解"面向接口+条件装配"是怎么协作的？能否画出从业务代码到具体 Nacos/Eureka 实现的调用链路？能不能自己扩展一个 StaticDiscoveryClient 做本地测试？遇到 CompositeDiscoveryClient 多注册中心聚合时能排障。这些问题能区分"只会抄 pom 换依赖"和"真正懂 Spring Cloud 架构设计"两类候选人。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring Cloud Commons 1.0（2015，Angel 发行版）</strong>：第一次提出核心抽象——<code class="inline-code">DiscoveryClient</code> / <code class="inline-code">ServiceInstance</code> / <code class="inline-code">LoadBalancerClient</code>，奠定"面向抽象编程、替换注册中心不改代码"的架构基调。</p>
+            <p><strong>Spring Cloud Commons 2.x（Spring Cloud 2020.x，移除 Ribbon）</strong>：新增 <code class="inline-code">Spring Cloud LoadBalancer</code>（Reactor 实现）取代 Netflix Ribbon（已停止维护），抽象层增加 <code class="inline-code">ReactorLoadBalancer</code> / <code class="inline-code">ServiceInstanceListSupplier</code> 响应式接口。</p>
+            <p><strong>Spring Cloud Commons 4.x（Boot 3.x / Spring 6.x）</strong>：删除 Spring Cloud Netflix 大量已废弃接口（Ribbon/Hystrix/Archaius），抽象全面对齐 Spring 6，<code class="inline-code">spring.factories</code> 迁移到 <code class="inline-code">AutoConfiguration.imports</code>。</p>
+            <p><strong>Spring Cloud 2023.x（Leyton）+ Commons 4.1.x（2024 ~ 至今）</strong>：全面支持 GraalVM Native Image、CRaC Coordinated Restore at Checkpoint（秒级启动）、Micrometer Observability 内嵌 Trace/Metrics。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>核心抽象 4 件套 + Spring Factories / AutoConfiguration.imports 机制</strong>：业务代码 → Commons 抽象层 → AutoConfiguration 条件装配 → 具体实现（Nacos/Eureka/Consul/Zookeeper）。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    A["业务代码层\n@LoadBalanced RestTemplate\nDiscoveryClient.getInstances()\nLoadBalancer.choose()"] --> B["Spring Cloud Commons 抽象层\n【4 件套】\n① DiscoveryClient\n② ServiceInstance\n③ ReactorLoadBalancer\n④ @LoadBalanced + LoadBalancerInterceptor"]
+    B --> C["AutoConfiguration 条件装配\n@ConditionalOnClass\n@ConditionalOnProperty\n@AutoConfigureBefore/After"]
+    C --> D1["Nacos 实现\nNacosDiscoveryClient\nNacosDiscoveryAutoConfiguration\nAutoConfiguration.imports"]
+    C --> D2["Eureka 实现\nEurekaDiscoveryClient\nEurekaClientAutoConfiguration\nspring.factories(Boot2)"]
+    C --> D3["Consul 实现\nConsulDiscoveryClient\nConsulAutoConfiguration"]
+    C --> D4["K8s 实现\nKubernetesDiscoveryClient\nSpring Cloud Kubernetes"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style B fill:#ede9fe,stroke:#7c3aed
+    style C fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 10.23-1 Spring Cloud Commons 抽象 → 条件装配 → 多注册中心实现 调用链</div>
+            </div>
+
+            <p><strong>① DiscoveryClient（通用注册发现客户端）</strong>：接口三大方法——<code class="inline-code">getInstances(serviceId)</code>（按服务名拿健康实例列表）、<code class="inline-code">getServices()</code>（拿注册中心里所有 serviceId）、<code class="inline-code">description()</code>（返回实现描述字符串）。典型实现类：<br/>
+            · <code class="inline-code">NacosDiscoveryClient</code> → <code class="inline-code">getInstances()</code> 直接调用 Nacos Client 的 <code class="inline-code">NamingService.selectInstances()</code> 拿健康实例；<br/>
+            · <code class="inline-code">EurekaDiscoveryClient</code> → 调 Eureka <code class="inline-code">EurekaClient.getInstancesByVipAddress()</code>；<br/>
+            · <code class="inline-code">CompositeDiscoveryClient</code> → 聚合多个 DiscoveryClient，按 <code class="inline-code">@Order</code> 遍历，第一个有结果就返回。</p>
+
+            <p><strong>② ServiceInstance（服务实例信息）</strong>：接口方法 <code class="inline-code">getServiceId()</code> / <code class="inline-code">getHost()</code> / <code class="inline-code">getPort()</code> / <code class="inline-code">isSecure()</code>（https?）/ <code class="inline-code">getUri()</code> / <code class="inline-code">getMetadata()</code>。其中 <strong><code class="inline-code">getMetadata()</code> 返回的 <code class="inline-code">Map&lt;String, String&gt;</code></strong> 是灵魂——常用来存灰度标签（<code class="inline-code">version=gray</code>）、版本号（<code class="inline-code">app-version=1.3.5</code>）、权重（<code class="inline-code">weight=100</code>）、机房（<code class="inline-code">zone=cn-hangzhou-a</code>），是做灰度路由、权重负载、同机房优先的基础。</p>
+
+            <p><strong>③ ReactorLoadBalancer（客户端负载均衡器，Spring Cloud LoadBalancer）</strong>：核心方法 <code class="inline-code">Mono&lt;Response&lt;ServiceInstance&gt;&gt; choose(Request request)</code>。默认实现与扩展：<br/>
+            · <code class="inline-code">RoundRobinLoadBalancer</code>（默认，轮询）；<br/>
+            · <code class="inline-code">RandomLoadBalancer</code>（随机）；<br/>
+            · <code class="inline-code">RetrySupport</code>（失败重试装饰器）；<br/>
+            · <code class="inline-code">WeightedLoadBalancer</code>（Nacos 扩展，基于 metadata weight 权重）；<br/>
+            · <code class="inline-code">HintBasedLoadBalancer</code>（基于请求头 X-Service-Version 匹配实例 metadata 的 version）。</p>
+
+            <p><strong>④ Spring Factories vs AutoConfiguration.imports 机制</strong>：<br/>
+            · <strong>Boot 2.x 时代</strong>：<code class="inline-code">META-INF/spring.factories</code> 里写 <code class="inline-code">org.springframework.boot.autoconfigure.EnableAutoConfiguration=xxx.NacosDiscoveryAutoConfiguration</code>。<br/>
+            · <strong>Boot 3.x 时代</strong>：改为 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code> 文件，每一行一个配置类全限定名。<br/>
+            Nacos Discovery 的入口：<code class="inline-code">NacosDiscoveryAutoConfiguration</code> → 条件 <code class="inline-code">@ConditionalOnNacosDiscoveryEnabled</code>（即 <code class="inline-code">spring.cloud.nacos.discovery.enabled=true</code>，默认 true）→ 注册 <code class="inline-code">NacosDiscoveryClient</code> Bean。<br/>
+            · 关键机制：<strong>当 pom 里同时有 Eureka + Nacos 两个 discovery starter，两者的 AutoConfiguration 都会尝试注册 DiscoveryClient Bean</strong>，此时 <code class="inline-code">DiscoveryClient</code> 注入点会发现多个候选，Spring 按 <code class="inline-code">@Primary</code> + <code class="inline-code">@Order</code> 取第一个（如果没 @Primary，启动报错 expected single matching bean but found 2）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>① 无缝切换示例：Eureka → Nacos 仅改 pom + yml，代码零改动</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Eureka 时代</th><th>Nacos 时代</th></tr></thead>
+              <tbody>
+                <tr><td>pom 依赖</td><td><code class="inline-code">spring-cloud-starter-netflix-eureka-client</code></td><td><code class="inline-code">spring-cloud-starter-alibaba-nacos-discovery</code></td></tr>
+                <tr><td>application.yml</td><td><code class="inline-code">eureka.client.serviceUrl.defaultZone=http://eureka:8761/eureka/</code></td><td><code class="inline-code">spring.cloud.nacos.discovery.server-addr=nacos:8848</code></td></tr>
+                <tr><td>业务代码</td><td><code class="inline-code">@LoadBalanced RestTemplate</code> / <code class="inline-code">DiscoveryClient</code> / Feign</td><td><strong>完全不变</strong>，一行不用改</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>② 自定义 StaticDiscoveryClient（本地测试环境，不连注册中心）</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Configuration</span>
+<span class="annotation">@ConditionalOnProperty</span>(name = <span class="str">"spring.cloud.discovery.client.static.enabled"</span>, havingValue = <span class="str">"true"</span>)
+<span class="kw">public class</span> <span class="type">StaticDiscoveryConfig</span> {
+
+    <span class="annotation">@Bean</span>
+    <span class="annotation">@Primary</span>
+    <span class="kw">public</span> <span class="type">DiscoveryClient</span> <span class="fn">staticDiscoveryClient</span>() {
+        <span class="kw">return new</span> <span class="type">DiscoveryClient</span>() {
+            <span class="annotation">@Override</span>
+            <span class="kw">public</span> <span class="type">List&lt;ServiceInstance&gt;</span> <span class="fn">getInstances</span>(<span class="type">String</span> serviceId) {
+                <span class="kw">if</span> (<span class="str">"user-service"</span>.<span class="fn">equals</span>(serviceId)) {
+                    <span class="kw">return</span> <span class="type">List</span>.<span class="fn">of</span>(
+                        <span class="kw">new</span> <span class="type">DefaultServiceInstance</span>(<span class="str">"user-service"</span>, <span class="str">"127.0.0.1"</span>, <span class="num">8081</span>, <span class="kw">false</span>, <span class="type">Map</span>.<span class="fn">of</span>(<span class="str">"version"</span>, <span class="str">"gray"</span>)),
+                        <span class="kw">new</span> <span class="type">DefaultServiceInstance</span>(<span class="str">"user-service"</span>, <span class="str">"127.0.0.1"</span>, <span class="num">8082</span>, <span class="kw">false</span>, <span class="type">Map</span>.<span class="fn">of</span>(<span class="str">"version"</span>, <span class="str">"prod"</span>))
+                    );
+                }
+                <span class="kw">return</span> <span class="type">Collections</span>.<span class="fn">emptyList</span>();
+            }
+            <span class="annotation">@Override</span> <span class="kw">public</span> <span class="type">List&lt;String&gt;</span> <span class="fn">getServices</span>() { <span class="kw">return</span> <span class="type">List</span>.<span class="fn">of</span>(<span class="str">"user-service"</span>); }
+            <span class="annotation">@Override</span> <span class="kw">public</span> <span class="type">String</span> <span class="fn">description</span>() { <span class="kw">return</span> <span class="str">"Static Discovery Client (dev-only)"</span>; }
+        };
+    }
+}</code></pre></div>
+
+            <p><strong>③ 利用 ServiceInstance metadata + HintBasedLoadBalancer 做版本路由</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// 自定义 HintBasedLoadBalancer 配置</span>
+<span class="annotation">@Configuration</span>
+<span class="kw">public class</span> <span class="type">VersionLbConfig</span> {
+
+    <span class="annotation">@Bean</span>
+    <span class="kw">public</span> <span class="type">ReactorLoadBalancer&lt;ServiceInstance&gt;</span> <span class="fn">versionBasedLb</span>(
+            <span class="type">Environment</span> env,
+            <span class="type">LoadBalancerClientFactory</span> factory) {
+        <span class="type">String</span> serviceId = env.<span class="fn">getProperty</span>(<span class="type">LoadBalancerClientFactory</span>.<span class="const">PROPERTY_NAME</span>);
+        <span class="kw">return new</span> <span class="type">ReactorServiceInstanceLoadBalancer</span>() {
+            <span class="annotation">@Override</span>
+            <span class="kw">public</span> <span class="type">Mono&lt;Response&lt;ServiceInstance&gt;&gt;</span> <span class="fn">choose</span>(<span class="type">Request</span> request) {
+                <span class="com">// 从请求头取 X-Version=gray，匹配实例 metadata version=gray</span>
+                <span class="type">String</span> hint = (<span class="type">String</span>) request.<span class="fn">getContext</span>()
+                    .<span class="fn">getOrDefault</span>(<span class="str">"X-Version"</span>, <span class="str">"prod"</span>);
+                <span class="kw">return</span> <span class="fn">getInstanceListSupplier</span>(serviceId, factory)
+                    .<span class="fn">get</span>().<span class="fn">next</span>()
+                    .<span class="fn">map</span>(instances -> instances.<span class="fn">stream</span>()
+                        .<span class="fn">filter</span>(ins -> hint.<span class="fn">equals</span>(ins.<span class="fn">getMetadata</span>().<span class="fn">get</span>(<span class="str">"version"</span>)))
+                    .<span class="fn">map</span>(filtered -> filtered.<span class="fn">findFirst</span>()
+                        .<span class="fn">map</span>(<span class="type">DefaultResponse</span>::<span class="kw">new</span>)
+                        .<span class="fn">orElseGet</span>(() -> <span class="kw">new</span> <span class="type">EmptyResponse</span>()));
+            }
+        };
+    }
+}
+
+<span class="com">// 指定该 LB 配置仅在 user-service 生效，不污染全局</span>
+<span class="annotation">@LoadBalancerClient</span>(name = <span class="str">"user-service"</span>, configuration = <span class="type">VersionLbConfig</span>.<span class="kw">class</span>)
+<span class="annotation">@SpringBootApplication</span>
+<span class="kw">public class</span> <span class="type">OrderApplication</span> { }</code></pre></div>
+
+            <p><strong>④ ServiceInstanceListSupplier 三大增强装饰器</strong>：<code class="inline-code">CachingServiceInstanceListSupplier</code>（本地缓存实例列表，默认 TTL 35s，避免每次请求都打注册中心）→ <code class="inline-code">HealthCheckServiceInstanceListSupplier</code>（主动探活，过滤不健康实例）→ <code class="inline-code">ZonePreferenceServiceInstanceListSupplier</code>（同机房/同 Zone 优先，降低跨机房调用延迟）。装饰器链顺序推荐：先 Zone 过滤 → 再 HealthCheck 过滤 → 最后 Caching 缓存。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：CompositeDiscoveryClient 如何聚合 Nacos + K8s Discovery，让一部分服务从 K8s Endpoints 拉，另一部分从 Nacos 拉？</strong></p>
+            <p>Spring Cloud Kubernetes 提供了 <code class="inline-code">KubernetesDiscoveryClient</code>，它实现了 <code class="inline-code">DiscoveryClient</code> 接口，从 K8s API Server 读 <code class="inline-code">Endpoints / EndpointSlice</code> 资源拿 Pod IP。把 Nacos starter 和 Spring Cloud Kubernetes starter 同时加到 pom，两个 <code class="inline-code">DiscoveryClient</code> Bean 都会注册，Spring Cloud Commons 的 <code class="inline-code">CompositeDiscoveryClient</code> 会自动把两者按 <code class="inline-code">@Order</code> 包装起来——查询某个 serviceId 时，按 order 从小到大依次问每个子 DiscoveryClient，第一个返回非空列表的直接作为结果。具体做法：① 给 <code class="inline-code">NacosDiscoveryClient</code> 配 <code class="inline-code">@Order(0)</code> 优先查 Nacos（已注册的业务服务走 Nacos）；② <code class="inline-code">KubernetesDiscoveryClient</code> 配 <code class="inline-code">@Order(100)</code> 次级查 K8s（中间件 MySQL/Redis 的 Service 通过 K8s Endpoints 拿 ClusterIP 或 Pod IP）；③ 用 <code class="inline-code">spring.cloud.kubernetes.discovery.all-namespaces=true</code> 跨命名空间。不想让 Nacos 先查到也可以：自定义一个 DiscoveryPredicate，按 serviceId 前缀分发（<code class="inline-code">infra-*</code> 走 K8s，其他走 Nacos）。</p>
+
+            <p><strong>追问 2：Nacos 的 ServiceInstance metadata 权重值如何在自定义 LoadBalancer 中生效？</strong></p>
+            <p>Nacos 控制台注册实例时可以设置 <code class="inline-code">weight=0~10000</code>，这个值自动出现在 <code class="inline-code">ServiceInstance.getMetadata().get("weight")</code> 里。自定义权重 LB 实现 WeightedResponseTimeRule 风格：① 从所有健康实例中拿各自的 weight（转 int，默认值 100）；② 计算总权重 <code class="inline-code">sumWeight</code>；③ 取 <code class="inline-code">random = [0, sumWeight)</code> 的随机整数；④ 遍历实例累加 weight，直到"累计权重 > random"，命中该实例（实例 A weight=20，B weight=80，命中 B 的概率是 80%）。生产建议再加"兜底保护"：如果某实例连续 3 次 5xx，临时把它的权重降到 1（保留少量流量验证是否恢复），不要直接摘除，避免误判全挂。</p>
+
+            <p><strong>追问 3：ServiceInstanceListSupplier 的缓存刷新与注册中心推送变更如何做防抖？</strong></p>
+            <p>Nacos 注册中心在发布变更、实例上下线时可能会连续推送 3~5 次（Nacos 1.x Distro 协议节点间同步延迟），如果每次推送都刷新缓存 + 重建 LB，容易抖动。防抖做法三层：① <strong>CachingServiceInstanceListSupplier 默认 TTL 35s</strong> 已经覆盖大部分场景，TTL 没到之前即使 Nacos 推送也不真正刷新缓存；② 自定义一个 <code class="inline-code">DebouncedServiceInstanceListSupplier</code> 装饰器，持有一个 <code class="inline-code">AtomicLong lastRefreshNanos</code>，两次刷新之间强制至少间隔 5s（用 <code class="inline-code">System.nanoTime()</code> 比较），小于则直接返回上次缓存结果；③ 如果是 Nacos 推送的订阅回调，回调里不直接刷新缓存，而是把刷新任务丢到一个 <code class="inline-code">singleThreadScheduledExecutor.schedule(task, 3s, SECONDS)</code> 延迟队列里，3s 内多次推送只有最后一次会执行（典型 debounce 模式）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>pom 同时加了 Eureka 和 Nacos，都注册了 DiscoveryClient Bean（按 order 排序取第一个，可能不是你想要的）</strong>：启动时如果 <code class="inline-code">DiscoveryClient</code> 注入点发现多个候选但都没 @Primary，会直接报错 NoUniqueBeanDefinitionException。排查：pom 排掉不用的 starter；或给要优先用的 DiscoveryClient 的 AutoConfiguration 类用 <code class="inline-code">@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)</code> 指定顺序，或者给 <code class="inline-code">DiscoveryClient</code> 注入点加 <code class="inline-code">@Qualifier("nacosDiscoveryClient")</code>。</li>
+                <li><strong>自定义 LoadBalancer 忘了 @LoadBalancerClient(name="user-service", configuration=MyLBConfig.class) 指定生效服务，导致全局生效污染</strong>：<code class="inline-code">@LoadBalancerClient</code> 的 configuration 类不能被主 <code class="inline-code">@ComponentScan</code> 扫描到（否则就变成全局共享配置），必须放到 <code class="inline-code">@SpringBootApplication</code> scanBasePackages 之外的独立包路径，或加 <code class="inline-code">@ComponentScan(excludeFilters = @ComponentScan.Filter(type=ASSIGNABLE_TYPE, classes=MyLBConfig.class))</code>。踩坑症状：原本只想给 user-service 做灰度路由，结果 order-service / pay-service 的调用全都被自定义 LB 接管，瞬间全报 No servers available。</li>
+                <li><strong>ServiceInstance metadata 用中文或特殊字符引发 HTTP URL 编码异常</strong>：Nacos 的 metadata 其实是 Map&lt;String,String&gt;，会被拼接进注册请求的 Body / 查询参数，若包含中文或 &、?、= 等字符，不同注册中心实现的 URL 编码不一致，有的会报 500，有的会被截断导致 version/weight 读出来是乱码。metadata 的 value 应限定：ASCII 英文字母数字 + 点 + 下划线 + 中划线，禁止中文和特殊字符。</li>
+                <li><strong>CachingServiceInstanceListSupplier 缓存 TTL 过长（默认 35s）+ Nacos 推送延迟叠加，实例下线后 40s 还被调用</strong>：生产如果 Nacos 推送偶发延迟（注册中心集群跨机房同步慢），LB 里的缓存要等 35s TTL 过期才刷新，这时已下线实例还会被流量打到。解决方案：① <code class="inline-code">spring.cloud.loadbalancer.cache.ttl=5s</code> 把 TTL 调低（或按服务维度通过 <code class="inline-code">LoadBalancerClients</code> 为关键服务单独配 TTL）；② 打开 <code class="inline-code">HealthCheckServiceInstanceListSupplier</code> 主动探活，即使缓存里有，探活失败的实例也会被实时过滤。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q10.24 Spring Cloud 常见生产 7 大坑 -->
+      <!-- ========================================================================================================== -->
+      <div class="qa-card" id="qa-10-24" data-difficulty="senior" data-priority="p2">
+        <div class="qa-header">
+          <div class="qa-badge">10.24</div>
+          <div class="qa-question">Spring Cloud 常见生产 7 大坑：Feign 传文件、LoadBalanced WebClient 冲突、RefreshScope Bean 失效、Gateway Predicate 优先级、上下文丢失、Date 序列化、Sentinel Fallback 吞异常<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这 7 个坑是 <strong>Spring Cloud 社区 GitHub issue 星标最高的 7 个真实生产事故集合</strong>，覆盖 Feign / Gateway / RefreshScope / Sentinel 四大组件。面试官通过"踩坑经验"区分"<strong>用过 Spring Cloud</strong>"和"<strong>用 Spring Cloud 做过生产</strong>"两类候选人。核心不是背"怎么改"，而是每坑能说出 <strong>根因 → 触发条件 → 最小复现代码 → 修复代码 → 如何预防下一次</strong> 五步完整链路。候选人如果能在每一个坑上补充自己团队的真实事故编号、发生时间、影响面、事后复盘改进项，基本就锁定 offer 了。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p>坑的版本依赖性很强——Spring Boot 2.x → 3.x，Spring Cloud 2021.x → 2022.x → 2023.x，很多坑在新版本修复但老项目仍然大量存在。本题重点讲"<strong>2026 年主流版本（Boot 3.2+ / Spring Cloud 2023.x）仍会踩到的坑</strong>"：</p>
+            <ul>
+              <li>坑 1 Feign 传文件 → Feign 12.x 仍默认不支持，需显式加 feign-form 依赖。</li>
+              <li>坑 2 @LoadBalanced WebClient 冲突 → Boot 3.2 仍存在。</li>
+              <li>坑 3 @RefreshScope 定时任务失效 → 设计层面就是这样，官方不会改。</li>
+              <li>坑 4 Gateway Predicate 优先级 → 配置顺序匹配，官方文档强调过但生产仍天天踩。</li>
+              <li>坑 5 Gateway 上下文丢失 → 新人写 Gateway Filter 必踩。</li>
+              <li>坑 6 Feign Date 序列化 → Jackson 默认把 Date 转 timestamp，跨时区必错。</li>
+              <li>坑 7 Sentinel FallbackFactory 吞异常 → Sentinel 1.8.x 仍是默认行为。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理 + 7 坑详解（根因 + 修复代码）</div>
+          <div class="qa-layer-body">
+            <p><strong>坑 1：Feign 传 File / InputStream 报 <code class="inline-code">is not a type supported by this encoder</code></strong><br/>
+            <strong>根因</strong>：Feign 默认的 <code class="inline-code">SpringEncoder</code>（基于 Jackson）只处理 JSON / POJO，不处理 <code class="inline-code">MultipartFile</code> / <code class="inline-code">File</code> / <code class="inline-code">InputStream</code>。要传文件必须用 Feign 官方的 <code class="inline-code">feign-form</code> 扩展，它实现了 <code class="inline-code">multipart/form-data</code> 编码。<br/>
+            <strong>修复代码</strong>：下面实践部分给出完整版。</p>
+
+            <p><strong>坑 2：@LoadBalanced WebClient 与 Spring Cloud Gateway 路由冲突（500 No ServiceInstance）</strong><br/>
+            <strong>根因</strong>：在 Gateway 应用里把一个全局的 <code class="inline-code">WebClient.Builder</code> 加了 <code class="inline-code">@LoadBalanced</code>，导致 Gateway 内部用 <code class="inline-code">lb://</code> scheme 路由时，和这个全局 Builder 加的 <code class="inline-code">LoadBalancerFilterFunction</code> 冲突——重复做了两次 loadBalance 或者 WebClient 试图解析 lb:// 的 serviceId 失败，报 500 "No servers available for service: xxx" 或 "No ServiceInstance"。<br/>
+            <strong>修复思路</strong>：全局 WebClient.Builder 不要加 @LoadBalanced；专门给"内部服务间调用"用的 Builder 单独用 <code class="inline-code">@Qualifier</code> 隔离。</p>
+
+            <p><strong>坑 3：@RefreshScope 触发后，@Scheduled 定时任务 / 线程池单例 Bean 失效</strong><br/>
+            <strong>根因</strong>：<code class="inline-code">@RefreshScope</code> 会销毁并重建被代理的 target Bean。但是 <code class="inline-code">@Scheduled</code> 注解的 Bean 是被 <code class="inline-code">ScheduledAnnotationBeanPostProcessor</code> 在初始化时扫描，把<strong>具体 target 实例的方法句柄</strong>（Method + 实例引用）注册给 <code class="inline-code">ThreadPoolTaskScheduler</code>。RefreshScope 销毁旧 target、重建新 target 后，调度器持有的仍然是旧 target 引用，永远不会调度到新实例。<br/>
+            <strong>典型症状</strong>：刷新配置后定时任务还在执行，但打印出来的配置值还是旧的。</p>
+
+            <p><strong>坑 4：Gateway Predicate 多路由匹配优先级陷阱：多个路由同时匹配但 Path 前缀重叠，选了错的</strong><br/>
+            <strong>根因</strong>：Gateway <code class="inline-code">RouteDefinitionRouteLocator</code> 加载 route 时，默认按 <code class="inline-code">routes</code> 列表在配置文件中的<strong>从上到下顺序</strong>取第一个匹配的。如果 order-service 的 Path=<code class="inline-code">/api/order/**</code>，pay-service 的 Path=<code class="inline-code">/api/order/pay/**</code>，且 pay-service <strong>写在后面</strong>，那么 <code class="inline-code">/api/order/pay/create</code> 会优先命中前面的 <code class="inline-code">/api/order/**</code> → 流量被打到错误的 order-service，404 或 500。<br/>
+            <strong>修复</strong>：给每个 route 显式加 <code class="inline-code">order: 数字</code>（越小越优先）。</p>
+
+            <p><strong>坑 5：Gateway GlobalFilter 中从 <code class="inline-code">exchange.getAttribute("userId")</code> 总是 null（Reactor 上下文透传失败）</strong><br/>
+            <strong>根因</strong>：很多人把 Servlet 的经验带到了 Reactor Gateway，在某处 Filter 用 <code class="inline-code">Mono.subscriberContext(Context.of("userId", uid))</code> 写入上下文，然后在另一个 Filter 里想当然用 <code class="inline-code">Mono.subscriberContext().get("userId")</code> 读。但 Gateway Filter 链的每一步都是一个独立的 <code class="inline-code">Mono&lt;Void&gt;</code> 订阅，<strong>Reactor Context 只在当前 Flux/Mono 链上传递，跨独立 Mono 就丢</strong>。<br/>
+            <strong>正确做法</strong>：跨 Filter 用 <code class="inline-code">exchange.getAttributes()</code>（它跟 <code class="inline-code">ServerWebExchange</code> 请求对象绑定，整个请求-响应生命周期内不丢）。</p>
+
+            <p><strong>坑 6：Feign Date / LocalDateTime 序列化错误（时区错一天 / JsonMappingException）</strong><br/>
+            <strong>根因</strong>：Feign 底层默认用 Jackson 的 <code class="inline-code">ObjectMapper</code>。Jackson 对 <code class="inline-code">java.util.Date</code> 默认序列化为 <strong>timestamp（毫秒数）</strong>，对 <code class="inline-code">LocalDateTime</code> 默认需要 <code class="inline-code">jackson-datatype-jsr310</code> 模块。当服务端和客户端时区不一致时，Date 的 timestamp 反序列化会"错一天"（比如客户端 GMT+8，服务端 UTC，23:30 发送的日期在服务端变成 UTC 当天 15:30，日期被认为是昨天）。</p>
+
+            <p><strong>坑 7：Sentinel Feign FallbackFactory 吞业务异常导致无法触发告警</strong><br/>
+            <strong>根因</strong>：FallbackFactory 的接口是 <code class="inline-code">T create(Throwable cause)</code>，很多人写 fallback 时对所有异常（限流、熔断、业务 500、超时）都返回 <strong>空列表 / null / 默认值</strong>，然后上游 <code class="inline-code">@RestControllerAdvice</code> 全局异常处理拿不到真正的异常——该告警的没告警，该追查的被静默，线上出了问题排查时根本不知道 500 什么时候发生的。<br/>
+            <strong>修复</strong>：Fallback 里把真正的异常"传出来"，让全局异常处理能抓到。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践（每坑一段修复代码）</div>
+          <div class="qa-layer-body">
+            <p><strong>① 坑 1 修复：Feign 传文件 SpringFormEncoder 配置</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// pom.xml 加依赖</span>
+<span class="kw">&lt;dependency&gt;</span>
+    <span class="kw">&lt;groupId&gt;</span>io.github.openfeign.form<span class="kw">&lt;/groupId&gt;</span>
+    <span class="kw">&lt;artifactId&gt;</span>feign-form-spring<span class="kw">&lt;/artifactId&gt;</span>
+    <span class="kw">&lt;version&gt;</span>3.8.0<span class="kw">&lt;/version&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span>
+
+<span class="com">// 配置类：显式注册 SpringFormEncoder</span>
+<span class="annotation">@Configuration</span>
+<span class="kw">public class</span> <span class="type">FeignMultipartConfig</span> {
+    <span class="annotation">@Autowired</span>
+    <span class="kw">private</span> <span class="type">ObjectFactory&lt;HttpMessageConverters&gt;</span> messageConverters;
+
+    <span class="annotation">@Bean</span>
+    <span class="annotation">@Scope</span>(<span class="str">"prototype"</span>)
+    <span class="kw">public</span> <span class="type">Encoder</span> <span class="fn">feignEncoder</span>() {
+        <span class="kw">return new</span> <span class="type">SpringFormEncoder</span>(<span class="kw">new</span> <span class="type">SpringEncoder</span>(messageConverters));
+    }
+}
+
+<span class="com">// Feign 接口：@RequestPart + consumes = MULTIPART_FORM_DATA</span>
+<span class="annotation">@FeignClient</span>(name = <span class="str">"file-service"</span>, configuration = <span class="type">FeignMultipartConfig</span>.<span class="kw">class</span>)
+<span class="kw">public interface</span> <span class="type">FileServiceClient</span> {
+    <span class="annotation">@PostMapping</span>(value = <span class="str">"/api/file/upload"</span>, consumes = <span class="type">MediaType</span>.<span class="const">MULTIPART_FORM_DATA_VALUE</span>)
+    <span class="type">FileUploadResult</span> <span class="fn">upload</span>(<span class="annotation">@RequestPart</span>(<span class="str">"file"</span>) <span class="type">MultipartFile</span> file,
+                            <span class="annotation">@RequestParam</span>(<span class="str">"bizType"</span>) <span class="type">String</span> bizType);
+}</code></pre></div>
+
+            <p><strong>② 坑 2 修复：多 WebClient.Builder 分离（LoadBalanced 专用 + Gateway 路由专用）</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Configuration</span>
+<span class="kw">public class</span> <span class="type">WebClientConfig</span> {
+
+    <span class="com">// 专门给"内部服务间 lb:// 调用"用的 Builder：加 @LoadBalanced + @Qualifier</span>
+    <span class="annotation">@Bean</span>
+    <span class="annotation">@LoadBalanced</span>
+    <span class="annotation">@Qualifier</span>(<span class="str">"internalLbWebClientBuilder"</span>)
+    <span class="kw">public</span> <span class="type">WebClient.Builder</span> <span class="fn">internalLbWebClientBuilder</span>() {
+        <span class="kw">return</span> <span class="type">WebClient</span>.<span class="fn">builder</span>()
+            .<span class="fn">codecs</span>(config -> config.<span class="fn">defaultCodecs</span>().<span class="fn">maxInMemorySize</span>(<span class="num">2</span> * <span class="num">1024</span> * <span class="num">1024</span>))
+            .<span class="fn">defaultHeader</span>(<span class="str">"X-Caller"</span>, <span class="str">"gateway"</span>);
+    }
+
+    <span class="com">// 普通调用外部 HTTPS 的 Builder：不要加 @LoadBalanced，用默认</span>
+    <span class="annotation">@Bean</span>
+    <span class="annotation">@Primary</span>
+    <span class="kw">public</span> <span class="type">WebClient.Builder</span> <span class="fn">primaryWebClientBuilder</span>() {
+        <span class="kw">return</span> <span class="type">WebClient</span>.<span class="fn">builder</span>();
+    }
+}
+
+<span class="com">// 业务使用：注入时用 @Qualifier("internalLbWebClientBuilder") 指定</span>
+<span class="annotation">@Service</span>
+<span class="kw">public class</span> <span class="type">UserServiceRemote</span> {
+    <span class="kw">private final</span> <span class="type">WebClient</span> lbWebClient;
+
+    <span class="kw">public</span> <span class="type">UserServiceRemote</span>(<span class="annotation">@Qualifier</span>(<span class="str">"internalLbWebClientBuilder"</span>) <span class="type">WebClient.Builder</span> builder) {
+        <span class="kw">this</span>.lbWebClient = builder.<span class="fn">baseUrl</span>(<span class="str">"lb://user-service"</span>).<span class="fn">build</span>();
+    }
+}</code></pre></div>
+
+            <p><strong>③ 坑 3 修复：监听 RefreshScopeRefreshedEvent 重新注册 @Scheduled 任务</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// 推荐方案：把 @Scheduled 移到非 RefreshScope Bean，配置类改用 @ConfigurationProperties（自动刷新）</span>
+<span class="annotation">@ConfigurationProperties</span>(prefix = <span class="str">"schedule"</span>)
+<span class="kw">public class</span> <span class="type">ScheduleProperties</span> {
+    <span class="kw">private</span> <span class="type">Long</span> orderCheckIntervalMs = <span class="num">60000</span>L;
+    <span class="com">// setter / getter</span>
+}
+
+<span class="annotation">@Component</span>
+<span class="kw">public class</span> <span class="type">OrderCheckTask</span> <span class="kw">implements</span> <span class="type">DisposableBean</span> {
+    <span class="kw">private final</span> <span class="type">ScheduleProperties</span> props;
+    <span class="kw">private final</span> <span class="type">ThreadPoolTaskScheduler</span> scheduler;
+    <span class="kw">private</span> <span class="type">ScheduledFuture&lt;?&gt;</span> currentFuture;
+
+    <span class="kw">public</span> <span class="type">OrderCheckTask</span>(<span class="type">ScheduleProperties</span> props, <span class="type">ThreadPoolTaskScheduler</span> scheduler) {
+        <span class="kw">this</span>.props = props; <span class="kw">this</span>.scheduler = scheduler;
+    }
+
+    <span class="com">// 启动时注册 + RefreshScope 刷新后重新注册</span>
+    <span class="annotation">@EventListener</span>({ <span class="type">ApplicationReadyEvent</span>.<span class="kw">class</span>, <span class="type">RefreshScopeRefreshedEvent</span>.<span class="kw">class</span> })
+    <span class="kw">public synchronized void</span> <span class="fn">reschedule</span>() {
+        <span class="kw">if</span> (currentFuture != <span class="kw">null</span>) currentFuture.<span class="fn">cancel</span>(<span class="kw">false</span>);
+        currentFuture = scheduler.<span class="fn">scheduleAtFixedRate</span>(
+            <span class="kw">this</span>::<span class="fn">checkOrders</span>, <span class="kw">new</span> <span class="type">Date</span>(), props.<span class="fn">getOrderCheckIntervalMs</span>());
+    }
+
+    <span class="kw">public void</span> <span class="fn">checkOrders</span>() { <span class="com">/* 定时任务逻辑 */</span> }
+
+    <span class="annotation">@Override</span> <span class="kw">public void</span> <span class="fn">destroy</span>() {
+        <span class="kw">if</span> (currentFuture != <span class="kw">null</span>) currentFuture.<span class="fn">cancel</span>(<span class="kw">true</span>);
+    }
+}</code></pre></div>
+
+            <p><strong>④ 坑 4 修复：Gateway routes 显式加 order（越小越优先）</strong>：</p>
+            <div class="code-block"><pre><code><span class="kw">spring:</span>
+  <span class="kw">cloud:</span>
+    <span class="kw">gateway:</span>
+      <span class="kw">routes:</span>
+        <span class="com"># /api/order/pay/** 前缀更精确，order 越小越优先</span>
+        - <span class="kw">id:</span> <span class="str">pay-service-route</span>
+          <span class="kw">uri:</span> <span class="str">lb://pay-service</span>
+          <span class="kw">order:</span> <span class="num">0</span>
+          <span class="kw">predicates:</span>
+            - <span class="kw">Path=</span><span class="str">/api/order/pay/**</span>
+          <span class="kw">filters:</span>
+            - <span class="kw">StripPrefix=</span><span class="num">2</span>
+
+        <span class="com"># /api/order/** 前缀更宽泛，order 放后面</span>
+        - <span class="kw">id:</span> <span class="str">order-service-route</span>
+          <span class="kw">uri:</span> <span class="str">lb://order-service</span>
+          <span class="kw">order:</span> <span class="num">100</span>
+          <span class="kw">predicates:</span>
+            - <span class="kw">Path=</span><span class="str">/api/order/**</span>
+          <span class="kw">filters:</span>
+            - <span class="kw">StripPrefix=</span><span class="num">2</span></code></pre></div>
+
+            <p><strong>⑤ 坑 5 修复：Gateway 跨 Filter 用 exchange.getAttributes()，跨 Reactor 算子用 Context.of</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Component</span>
+<span class="annotation">@Order</span>(-<span class="num">99</span>)
+<span class="kw">public class</span> <span class="type">UserExtractFilter</span> <span class="kw">implements</span> <span class="type">GlobalFilter</span> {
+
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">Mono&lt;Void&gt;</span> <span class="fn">filter</span>(<span class="type">ServerWebExchange</span> exchange, <span class="type">GatewayFilterChain</span> chain) {
+        <span class="type">String</span> token = exchange.<span class="fn">getRequest</span>().<span class="fn">getHeaders</span>().<span class="fn">getFirst</span>(<span class="str">"Authorization"</span>);
+        <span class="type">String</span> userId = <span class="type">JwtUtils</span>.<span class="fn">parseUserId</span>(token);
+
+        <span class="com">// 正确做法 1：跨 GlobalFilter 用 exchange.getAttributes() 存</span>
+        exchange.<span class="fn">getAttributes</span>().<span class="fn">put</span>(<span class="str">"userId"</span>, userId);
+
+        <span class="com">// 正确做法 2：跨当前链上的 Reactor 算子用 contextWrite（需下游用 deferContextual 读）</span>
+        <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange)
+            .<span class="fn">contextWrite</span>(<span class="type">Context</span>.<span class="fn">of</span>(<span class="str">"bizTag"</span>, <span class="str">"vip"</span>));
+    }
+}
+
+<span class="annotation">@Component</span>
+<span class="annotation">@Order</span>(-<span class="num">80</span>)
+<span class="kw">public class</span> <span class="type">AuditLogFilter</span> <span class="kw">implements</span> <span class="type">GlobalFilter</span> {
+
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">Mono&lt;Void&gt;</span> <span class="fn">filter</span>(<span class="type">ServerWebExchange</span> exchange, <span class="type">GatewayFilterChain</span> chain) {
+        <span class="com">// 从 exchange.getAttributes() 读 → 一定能读到，跟请求绑定</span>
+        <span class="type">String</span> userId = (<span class="type">String</span>) exchange.<span class="fn">getAttributes</span>().<span class="fn">get</span>(<span class="str">"userId"</span>);
+
+        <span class="com">// 从 Reactor Context 读 → 必须在 chain.filter 返回的 Mono 上 deferContextual</span>
+        <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange)
+            .<span class="fn">then</span>(<span class="type">Mono</span>.<span class="fn">deferContextual</span>(ctx -> {
+                <span class="type">String</span> bizTag = ctx.<span class="fn">getOrDefault</span>(<span class="str">"bizTag"</span>, <span class="str">"normal"</span>);
+                <span class="type">log</span>.<span class="fn">info</span>(<span class="str">"审计日志 userId={}, bizTag={}"</span>, userId, bizTag);
+                <span class="kw">return</span> <span class="type">Mono</span>.<span class="fn">empty</span>();
+            }));
+    }
+}</code></pre></div>
+
+            <p><strong>⑥ 坑 6 修复：Feign ObjectMapper 定制 + JavaTimeModule + GMT+8 时区</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// application.yml 全局 Jackson 配置（Spring MVC + Feign 共用）</span>
+<span class="kw">spring:</span>
+  <span class="kw">jackson:</span>
+    <span class="kw">date-format:</span> <span class="str">yyyy-MM-dd HH:mm:ss</span>
+    <span class="kw">time-zone:</span> <span class="str">GMT+8</span>
+    <span class="kw">serialization:</span>
+      <span class="kw">write-dates-as-timestamps:</span> <span class="const">false</span>   <span class="com"># 禁止 Date 转成 timestamp 毫秒数</span>
+    <span class="kw">default-property-inclusion:</span> <span class="str">non_null</span>
+
+<span class="com">// 自定义 Feign Encoder/Decoder 用同一个定制 ObjectMapper</span>
+<span class="annotation">@Configuration</span>
+<span class="kw">public class</span> <span class="type">FeignJacksonConfig</span> {
+    <span class="annotation">@Bean</span>
+    <span class="kw">public</span> <span class="type">Encoder</span> <span class="fn">feignEncoder</span>(<span class="type">ObjectMapper</span> objectMapper) {
+        <span class="kw">return new</span> <span class="type">SpringEncoder</span>(
+            () -> <span class="kw">new</span> <span class="type">HttpMessageConverters</span>(<span class="kw">new</span> <span class="type">MappingJackson2HttpMessageConverter</span>(<span class="fn">customize</span>(objectMapper))));
+    }
+    <span class="annotation">@Bean</span>
+    <span class="kw">public</span> <span class="type">Decoder</span> <span class="fn">feignDecoder</span>(<span class="type">ObjectMapper</span> objectMapper) {
+        <span class="kw">return new</span> <span class="type">SpringDecoder</span>(
+            () -> <span class="kw">new</span> <span class="type">HttpMessageConverters</span>(<span class="kw">new</span> <span class="type">MappingJackson2HttpMessageConverter</span>(<span class="fn">customize</span>(objectMapper))));
+    }
+    <span class="kw">private</span> <span class="type">ObjectMapper</span> <span class="fn">customize</span>(<span class="type">ObjectMapper</span> om) {
+        <span class="kw">return</span> om.<span class="fn">copy</span>()
+            .<span class="fn">registerModule</span>(<span class="kw">new</span> <span class="type">JavaTimeModule</span>())  <span class="com">// LocalDate/LocalDateTime 序列化</span>
+            .<span class="fn">disable</span>(<span class="type">SerializationFeature</span>.<span class="const">WRITE_DATES_AS_TIMESTAMPS</span>)
+            .<span class="fn">setDateFormat</span>(<span class="kw">new</span> <span class="type">SimpleDateFormat</span>(<span class="str">"yyyy-MM-dd HH:mm:ss"</span>))
+            .<span class="fn">setTimeZone</span>(<span class="type">TimeZone</span>.<span class="fn">getTimeZone</span>(<span class="str">"GMT+8"</span>));
+    }
+}</code></pre></div>
+
+            <p><strong>⑦ 坑 7 修复：FallbackFactory 抛 BusinessFallbackException，交由 @RestControllerAdvice 统一告警</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// 自定义业务 Fallback 异常，让全局异常处理能识别</span>
+<span class="kw">public class</span> <span class="type">BusinessFallbackException</span> <span class="kw">extends</span> <span class="type">RuntimeException</span> {
+    <span class="kw">private final</span> <span class="type">String</span> serviceName;
+    <span class="kw">public</span> <span class="type">BusinessFallbackException</span>(<span class="type">String</span> serviceName, <span class="type">String</span> msg, <span class="type">Throwable</span> cause) {
+        <span class="kw">super</span>(msg, cause); <span class="kw">this</span>.serviceName = serviceName;
+    }
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getServiceName</span>() { <span class="kw">return</span> serviceName; }
+}
+
+<span class="com">// FallbackFactory 实现：按异常类型分支处理，不要吞异常</span>
+<span class="annotation">@Component</span>
+<span class="kw">public class</span> <span class="type">UserServiceFallbackFactory</span> <span class="kw">implements</span> <span class="type">FallbackFactory</span>&lt;<span class="type">UserServiceClient</span>&gt; {
+
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">UserServiceClient</span> <span class="fn">create</span>(<span class="type">Throwable</span> cause) {
+        <span class="kw">return new</span> <span class="type">UserServiceClient</span>() {
+            <span class="annotation">@Override</span>
+            <span class="kw">public</span> <span class="type">UserVO</span> <span class="fn">getUserById</span>(<span class="type">Long</span> id) {
+                <span class="com">// 1. 先打 error 日志，带完整异常栈，ELK 能搜到</span>
+                <span class="type">log</span>.<span class="fn">error</span>(<span class="str">"[FALLBACK] user-service getUserById 失败, id={}, causeType={}"</span>,
+                    id, cause.<span class="fn">getClass</span>().<span class="fn">getSimpleName</span>(), cause);
+
+                <span class="com">// 2. CircuitBreakerOpenException（熔断）→ 抛 BusinessFallbackException，触发告警</span>
+                <span class="kw">if</span> (cause <span class="kw">instanceof</span> <span class="type">CircuitBreakerOpenException</span>) {
+                    <span class="kw">throw new</span> <span class="type">BusinessFallbackException</span>(<span class="str">"user-service"</span>,
+                        <span class="str">"user-service 熔断，暂时无法访问"</span>, cause);
+                }
+
+                <span class="com">// 3. Sentinel 限流异常 BlockException → 返回降级默认值（属于预期内，不必告警）</span>
+                <span class="kw">if</span> (cause <span class="kw">instanceof</span> <span class="type">BlockException</span>) {
+                    <span class="kw">return new</span> <span class="type">UserVO</span>(id, <span class="str">"系统繁忙，请稍后重试"</span>);
+                }
+
+                <span class="com">// 4. 其他异常（超时 / 500 / connect 失败）→ 抛，不要吞</span>
+                <span class="kw">throw new</span> <span class="type">BusinessFallbackException</span>(<span class="str">"user-service"</span>,
+                    <span class="str">"调用 user-service 失败: "</span> + cause.<span class="fn">getMessage</span>(), cause);
+            }
+        };
+    }
+}
+
+<span class="com">// 全局异常处理：统一捕获 BusinessFallbackException，做告警 + 响应</span>
+<span class="annotation">@RestControllerAdvice</span>
+<span class="kw">public class</span> <span class="type">GlobalExceptionHandler</span> {
+    <span class="annotation">@ExceptionHandler</span>(<span class="type">BusinessFallbackException</span>.<span class="kw">class</span>)
+    <span class="kw">public</span> <span class="type">Result</span>&lt;<span class="type">Void</span>&gt; <span class="fn">handleFallback</span>(<span class="type">BusinessFallbackException</span> e) {
+        <span class="com">// 这里可以发 Prometheus Counter、钉钉/飞书告警</span>
+        <span class="type">alertService</span>.<span class="fn">sendAlert</span>(<span class="str">"SERVICE_FALLBACK"</span>, e.<span class="fn">getServiceName</span>(), e.<span class="fn">getMessage</span>());
+        <span class="kw">return</span> <span class="type">Result</span>.<span class="fn">error</span>(<span class="num">5003</span>, <span class="str">"服务暂不可用: "</span> + e.<span class="fn">getServiceName</span>());
+    }
+}</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：坑 5 中用了 exchange.getAttributes()，但在 Gateway 的 NettyRoutingFilter 中异步转发后，响应链路上一个 Post GlobalFilter 还能读到吗？</strong></p>
+            <p>能。<code class="inline-code">ServerWebExchange</code> 的生命周期是从"请求进入 Gateway"一直到"响应完全写回客户端"的<strong>整个请求-响应过程</strong>。NettyRoutingFilter 异步转发后，响应沿着 Filter 链按 order 从大到小反向执行（post 阶段），每一步 GlobalFilter 拿到的 exchange 对象是<strong>同一个实例</strong>（不是拷贝）。所以只要你在前置 Filter（order=-99）往 <code class="inline-code">exchange.getAttributes().put("userId", uid)</code> 里写进去，后面所有 Filter（无论前置还是后置），包括 NettyRoutingFilter 转发完毕后的 Post GlobalFilter，甚至 <code class="inline-code">exchange.getResponse().beforeCommit()</code> 回调里都能读到同一个值。这就是为什么 <strong>跨 Filter 用 exchange.getAttributes() 是最佳实践</strong>——语义清晰、生命周期明确、不依赖 Reactor Context 订阅链。</p>
+
+            <p><strong>追问 2：坑 3 中 @RefreshScope + @Async 线程池引用失效的根因（与 @Scheduled 类似）？</strong></p>
+            <p>根因和 @Scheduled 类似。<code class="inline-code">@Async</code> 是由 <code class="inline-code">AsyncAnnotationBeanPostProcessor</code> 在初始化期扫描 <code class="inline-code">@Async</code> 方法，<strong>把 target Bean 的方法句柄 + 实例引用</strong>包装成 AsyncExecutionInterceptor 的 MethodInterceptor，交给 <code class="inline-code">TaskExecutor</code> 异步调度。RefreshScope 销毁旧 target、建新 target 时，AsyncExecutionInterceptor 里持有的实例引用仍然是旧的——后续每次 @Async 调用都是在旧 target 上执行，自然拿到旧配置值。修复思路一致：① 把 @Async 方法放到非 RefreshScope Bean，配置改用 @ConfigurationProperties；② 或者在 <code class="inline-code">RefreshScopeRefreshedEvent</code> 监听器里手动销毁并重新注册 AsyncAdvisor（更重，不推荐）。推荐方案永远是：<strong>业务单例 Bean 保持 singleton，配置抽 @ConfigurationProperties（它是 rebind 机制，不需要销毁重建 Bean）</strong>，@RefreshScope 只用于 Controller / Feign 客户端这种轻量对象。</p>
+
+            <p><strong>追问 3：坑 7 如果是 CircuitBreakerOpenException 与业务 FallbackException 同时触发如何区分？</strong></p>
+            <p>用异常类型的 <code class="inline-code">instanceof</code> 精确判断，判断顺序必须<strong>从具体子类到宽泛父类</strong>。FallbackFactory.create(Throwable cause) 的 cause 真实类型在 Sentinel + Resilience4j 组合场景下有 6 种常见：① <code class="inline-code">BlockException</code>（Sentinel 限流）→ 子类 FlowException / DegradeException / ParamFlowException；② <code class="inline-code">CircuitBreakerOpenException</code>（Resilience4j 熔断打开）；③ <code class="inline-code">TimeoutException</code>（Feign readTimeout）；④ <code class="inline-code">ConnectException</span>（连接失败）；⑤ <code class="inline-code">RetryableException</span>（重试耗尽）；⑥ 真正的业务 <code class="inline-code">FeignException$InternalServerError</code>（HTTP 500，服务端抛业务异常）。判断顺序建议：先判断 BlockException 及其子类 → 再 CircuitBreakerOpenException → TimeoutException/ConnectException → FeignException（看 status()）→ 最后兜底 RuntimeException。每一种分别走不同的告警策略：限流降级、熔断、超时、服务端 5xx，分别对应 Prometheus 的 counter name 不同。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>以为用了 Spring Cloud 就高枕无忧，不做压测</strong>：上面 7 个坑几乎所有都是"线上有流量、走特定路径"才会触发，本地单测和功能测试根本复现不了（比如坑 1 传文件、坑 4 Path 重叠必须请求 /api/order/pay/create、坑 3 必须 refresh+等下一次定时任务才会暴露）。上线前必须做：<strong>接口级压测 + 配置中心 refresh 演练 + Gateway 路由全矩阵用例 + 故障注入（Sentinel 限流熔断触发）</strong>，这四项缺一项都叫没准备好上生产。</li>
+                <li><strong>每个坑都用"临时 try-catch"修复而不在根本处调整架构</strong>：比如坑 4 Gateway Predicate 优先级，很多人明知 Path 重叠但为了"先上线"就在 order-service 里再加一个 /pay/create 的 Controller 做转发——这是把架构问题变成业务代码的债，过三个月连本人都忘了 order-service 里为什么有个 pay 的 Controller。正确修复永远是"在问题的根源层改"：Path 重叠就拆前缀，order 显式加，不要绕道。</li>
+                <li><strong>不记录告警埋点，出了生产事故才发现</strong>：坑 7 FallbackFactory 吞异常的可怕之处不是"降级返回空值"本身，而是"线上连续 3 小时调用 user-service 全走 fallback，业务报表对不上、客诉激增、工程师在 ELK 里搜不到任何 error 日志"。正确修复必须配套三层埋点：① FallbackFactory.error 级日志带 cause；② Prometheus Counter（<code class="inline-code">service_fallback_total{service="user-service", cause="circuit_breaker"}</code>）；③ 钉钉/飞书告警（Counter > 10/min 时）。三层都有才能"5 分钟内发现、15 分钟定位、30 分钟恢复"。</li>
               </ul>
             </div>
           </div>
