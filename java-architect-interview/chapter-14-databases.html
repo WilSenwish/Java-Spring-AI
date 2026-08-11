@@ -397,7 +397,7 @@ vectorStore.add(List.of(doc));
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察对 <strong>"专用向量库如何从架构层面解决超大规模向量检索"</strong> 的深度理解。核心要回答：Milvus 凭什么支撑十亿级向量而 MongoDB/PgVector 做不到？存算分离（QueryNode/DataNode/Coordinator）的职责划分与代价？IVF、HNSW、DiskANN 三种索引在召回率、内存、延迟上的权衡？Segment 分段如何支撑水平扩展？这是向量库架构的"天花板"题。</p>
+            <p>本题从数据库视角聚焦 Milvus 内部架构；十亿级 RAG 的向量索引调参与召回率治理详见 12.22。这道题考察对 <strong>"专用向量库如何从架构层面解决超大规模向量检索"</strong> 的深度理解。核心要回答：Milvus 凭什么支撑十亿级向量而 MongoDB/PgVector 做不到？存算分离（QueryNode/DataNode/Coordinator）的职责划分与代价？IVF、HNSW、DiskANN 三种索引在召回率、内存、延迟上的权衡？Segment 分段如何支撑水平扩展？这是向量库架构的"天花板"题。</p>
           </div>
         </div>
 
@@ -468,9 +468,9 @@ flowchart TD
               <thead><tr><th>维度</th><th>Milvus</th><th>Qdrant</th><th>Pinecone</th></tr></thead>
               <tbody>
                 <tr><td>语言</td><td>Go + C++（核心算子）</td><td>Rust</td><td>闭源（托管）</td></tr>
-                <tr><td>架构</td><td>存算分离（对象存储）</td><td>存算耦合（单机为主+分片）</td><td>托管云原生</td></tr>
+                <tr><td>架构</td><td>存算分离（对象存储）</td><td>分布式分片+副本（内存为主，对象存储可选快照持久化）</td><td>托管云原生</td></tr>
                 <tr><td>索引</td><td>IVF/HNSW/DiskANN/GPU</td><td>HNSW + 量化</td><td>HNSW（封装）</td></tr>
-                <tr><td>规模</td><td>十亿级（存算分离+DiskANN）</td><td>亿级（单机内存受限）</td><td>十亿级（弹性）</td></tr>
+                <tr><td>规模</td><td>十亿级（存算分离+DiskANN）</td><td>亿级（分片可横向扩展，单分片内存为瓶颈，分片越多规模越大）</td><td>十亿级（弹性）</td></tr>
                 <tr><td>过滤</td><td>标量字段过滤</td><td>强（Payload pre/post-filter）</td><td>元数据过滤</td></tr>
                 <tr><td>运维</td><td>自托管，组件多（etcd/MinIO/Pulsar）</td><td>自托管，单二进制轻量</td><td>全托管，零运维</td></tr>
                 <tr><td>成本</td><td>低（对象存储+按需计算）</td><td>中（内存为主）</td><td>高（托管溢价）</td></tr>
@@ -514,7 +514,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
     .searchParams(<span class="type">Map</span>.of(<span class="str">"ef"</span>, <span class="num">128</span>))      <span class="com">// HNSW 查询参数</span>
     .build();
 <span class="type">SearchResults</span> <span class="var">resp</span> = client.search(req);</code></pre></div>
-            <p><strong>索引选型指南</strong>：① <strong>数据量 &lt; 1000 万 + 精度优先</strong> → HNSW（M=16, efConstruction=200）；② <strong>1 亿级 + 成本敏感</strong> → IVF_FLAT/IVF_PQ（nlist=4096, nprobe=16~64）；③ <strong>十亿级 + 低成本</strong> → DiskANN（索引落 SSD）；④ <strong>构建慢需加速</strong> → GPU 索引。无论哪种，上线前都需<strong>离线评测召回率</strong>（与暴力检索对比，目标 95%+）。</p>
+            <p><strong>索引选型指南</strong>：索引参数调优实战经验与 RAG 场景治理详见 12.22。无论哪种，上线前都需<strong>离线评测召回率</strong>（与暴力检索对比，目标 95%+）。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>Milvus 工程四要点：① <strong>load 预热</strong>——查询前必须 load 索引到内存，大集合 load 耗时，应上线/重启后预热避免首查超时；② <strong>Collection 按业务隔离</strong>——不同业务分 Collection，避免大混合查询相互影响；③ <strong>用 Partition 做时间/租户切分</strong>——按天/租户建 Partition，查询带分区键减少扫描范围；④ <strong>存算分离下关注延迟</strong>——对象存储读取有延迟，热数据应常驻 QueryNode 内存，冷数据用 DiskANN。</p>
@@ -526,7 +526,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：IVF 与 HNSW 如何选？nlist/M 与召回率关系？</strong></p>
-            <p>核心权衡是<strong>内存 vs 召回 vs 延迟</strong>。HNSW 召回高（M=16/ef=128 可达 97%+）、查询快，但内存大（每向量约 M×2 连接）、构建慢。IVF 召回略低（nprobe 调高可逼近）、内存省（尤其 IVF_PQ 量化）、构建快、易增量。<strong>nlist</strong> 是 IVF 聚类簇数，一般取 √N（百万数据 nlist=1024，亿级 nlist=8192）；nlist 太大簇内向量少建索引无意义，太小扫描范围大。<strong>M</strong> 是 HNSW 每层连接数，越大越准越耗内存（16~48 常用）。选型：内存充足/精度优先 → HNSW；亿级/成本敏感 → IVF_PQ；十亿/落盘 → DiskANN。务必离线评测召回率定参。</p>
+            <p>索引参数调优实战经验与 RAG 场景治理详见 12.22。务必离线评测召回率定参。</p>
             <p><strong>追问 2：存算分离的延迟与成本如何权衡？</strong></p>
             <p>存算分离把数据放对象存储，QueryNode 按需加载，<strong>好处</strong>是存储便宜（S3 比 SSD 便宜一个数量级）、计算弹性（按 QPS 扩 QueryNode）、故障恢复快（无状态重加载）。<strong>代价</strong>是冷查询需从对象存储读索引，延迟比纯内存高（首查可能秒级）。优化：① <strong>热数据常驻内存</strong>——load 常用 Segment 到 QueryNode 内存；② <strong>DiskANN 混合</strong>——热入口点放内存、向量落 SSD，兼顾成本与延迟；③ <strong>缓存层</strong>——QueryNode 本地缓存热点 Segment。成本上存算分离总拥有成本低于纯内存耦合架构，尤其适合向量数大但 QPS 不极端的场景。</p>
           </div>
@@ -562,7 +562,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察对 <strong>"向量库实现语言选型与结构化过滤检索的工程优化"</strong> 的理解。核心要回答：Qdrant 为什么选 Rust 而非 C++/Go？Rust 的零成本抽象与内存安全如何转化为向量检索的性能与稳定性优势？Payload（JSON 结构化字段）索引如何加速过滤？pre-filter 与 post-filter 的性能差异与适用场景？Qdrant 与 Milvus 的选型分界？这是向量库"过滤检索"维度的对比题。</p>
+            <p>本题从数据库视角聚焦 Qdrant 架构与选型；十亿级 RAG 的向量库选型矩阵与调参实战详见 12.22。这道题考察对 <strong>"向量库实现语言选型与结构化过滤检索的工程优化"</strong> 的理解。核心要回答：Qdrant 为什么选 Rust 而非 C++/Go？Rust 的零成本抽象与内存安全如何转化为向量检索的性能与稳定性优势？Payload（JSON 结构化字段）索引如何加速过滤？pre-filter 与 post-filter 的性能差异与适用场景？Qdrant 与 Milvus 的选型分界？这是向量库"过滤检索"维度的对比题。</p>
           </div>
         </div>
 
@@ -612,19 +612,7 @@ flowchart LR
               <li><strong>Binary 量化</strong>：量化到 1 bit/维，内存省 32 倍，用汉明距离检索，速度快但精度损失大。适合<strong>初筛召回+精排</strong>两阶段。</li>
             </ul>
 
-            <table class="compare-table">
-              <thead><tr><th>维度</th><th>Qdrant</th><th>Milvus</th><th>Pinecone</th></tr></thead>
-              <tbody>
-                <tr><td>语言</td><td>Rust（无 GC，内存安全）</td><td>Go + C++</td><td>闭源（托管）</td></tr>
-                <tr><td>部署</td><td>单二进制，轻量</td><td>多组件（etcd/MinIO/Pulsar）</td><td>全托管 SaaS</td></tr>
-                <tr><td>架构</td><td>存算耦合（单机+分片）</td><td>存算分离（对象存储）</td><td>托管云原生</td></tr>
-                <tr><td>过滤</td><td>极强（Payload 索引+自动 pre/post）</td><td>中（标量字段过滤）</td><td>中（元数据过滤）</td></tr>
-                <tr><td>量化</td><td>Scalar/Binary</td><td>PQ/Scalar</td><td>内置（封装）</td></tr>
-                <tr><td>规模</td><td>亿级（单机内存+分片）</td><td>十亿级（存算分离+DiskANN）</td><td>十亿级</td></tr>
-                <tr><td>延迟</td><td>极低（Rust 无 GC）</td><td>低（冷查有对象存储延迟）</td><td>低</td></tr>
-                <tr><td>适用</td><td>中等规模、过滤强、低延迟、轻运维</td><td>超大规模、成本敏感、自运维</td><td>免运维、快速上线</td></tr>
-              </tbody>
-            </table>
+            <p>向量库选型矩阵（Qdrant/Milvus/Pinecone 多维度对比）详见 12.22。</p>
           </div>
         </div>
 

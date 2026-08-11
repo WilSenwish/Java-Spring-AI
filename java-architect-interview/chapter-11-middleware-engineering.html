@@ -1134,45 +1134,11 @@ flowchart LR
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>Java Agent + Instrumentation 字节码增强原理</strong>（APM 核心）：</p>
-            <ol>
-              <li><strong>Agent 启动</strong>：JVM 启动参数 <code class="inline-code">-javaagent:skywalking-agent.jar</code> 触发 <code class="inline-code">premain</code> 方法（JVM 启动前）或运行时 attach 触发 <code class="inline-code">agentmain</code>（运行时挂载）。</li>
-              <li><strong>注册 ClassFileTransformer</strong>：Instrumentation.addTransformer 注册字节码转换器，在<strong>类加载时</strong>拦截字节码。</li>
-              <li><strong>字节码改写</strong>：用 ByteBuddy/ASM/Javaassist 对目标类(如 HttpURLConnection)的方法前后插入埋点代码——方法前 start span、方法后 end span、异常记录。改写后的字节码交给 JVM 加载。</li>
-              <li><strong>插件化</strong>：每个框架(Spring/MyBatis/Dubbo)一个插件，定义"增强哪些类的哪些方法"，微内核按需加载。</li>
-            </ol>
+            <p><strong>Java Agent + Instrumentation 字节码增强原理</strong>（APM 核心）：Java Agent 通过 <code class="inline-code">premain</code>（启动时）或 <code class="inline-code">agentmain</code>（运行时 attach）入口，注册 ClassFileTransformer 在类加载时拦截字节码，用 ByteBuddy/ASM 对目标方法前后插入埋点代码（start span/end span/异常记录）。各框架增强逻辑独立插件化（Spring/MyBatis/Dubbo 各一插件），微内核按需加载。Java Agent 启动配置与 OTel 集成示例详见 <a href="#qa-11-17" class="internal-link">11.17</a>。</p>
 
-            <div class="code-block"><pre><code><span class="com">// Java Agent premain 入口</span>
-<span class="kw">public class</span> <span class="type">ApmAgent</span> {
-    <span class="kw">public static void</span> <span class="fn">premain</span>(<span class="type">String</span> args, <span class="type">Instrumentation</span> inst) {
-        <span class="com">// 1. 加载插件配置(增强哪些框架)</span>
-        <span class="type">List</span>&lt;<span class="type">PluginDefinition</span>&gt; plugins = PluginLoader.<span class="fn">load</span>();
-        <span class="com">// 2. 注册字节码转换器</span>
-        inst.<span class="fn">addTransformer</span>(<span class="kw">new</span> <span class="type">ApmTransformer</span>(plugins), <span class="kw">true</span>);
-        <span class="com">// 3. retransform 已加载的类(运行时 attach 场景)</span>
-        inst.<span class="fn">retransformClasses</span>(plugins.<span class="fn">stream</span>().<span class="fn">map</span>(<span class="type">PluginDefinition</span>::<span class="fn">getTargetClass</span>).<span class="fn">toArray</span>(<span class="type">Class</span>[]::<span class="kw">new</span>));
-    }
-}
+            <p><strong>Trace/Span 模型</strong>：一次请求的完整调用链是一棵 Trace 树，每个方法调用是一个 Span（含 traceId/spanId/parentId/operationName/时间/标签/日志）。跨服务透传 traceId 串起多服务 Span。三支柱关联、采样策略与 OTel 标准详见 <a href="#qa-11-17" class="internal-link">11.17</a>。</p>
 
-<span class="com">// 字节码转换器: 拦截目标方法插入埋点</span>
-<span class="kw">public class</span> <span class="type">ApmTransformer</span> <span class="kw">implements</span> <span class="type">ClassFileTransformer</span> {
-    <span class="annotation">@Override</span>
-    <span class="kw">public byte</span>[] <span class="fn">transform</span>(<span class="type">ClassLoader</span> loader, <span class="type">String</span> className, <span class="type">Class</span>&lt;?&gt; classBeingRedefined,
-            <span class="type">ProtectionDomain</span> pd, <span class="kw">byte</span>[] classfileBuffer) {
-        <span class="type">PluginDefinition</span> plugin = <span class="fn">findPlugin</span>(className);
-        <span class="kw">if</span> (plugin == <span class="kw">null</span>) <span class="kw">return null</span>;  <span class="com">// 不增强则返回 null</span>
-        <span class="com">// 用 ByteBuddy 改写: 方法前 startSpan, 方法后 endSpan, 异常 recordException</span>
-        <span class="kw">return new</span> <span class="type">ByteBuddy</span>()
-            .<span class="fn">redefine</span>(plugin.<span class="fn">getTargetClass</span>())
-            .<span class="fn">method</span>(plugin.<span class="fn">getMethods</span>())
-            .<span class="fn">intercept</span>(<span class="type">MethodDelegation</span>.<span class="fn">to</span>(<span class="type">SpanInterceptor</span>.<span class="kw">class</span>))
-            .<span class="fn">make</span>().<span class="fn">getBytes</span>();
-    }
-}</code></pre></div>
-
-            <p><strong>Trace/Span 模型</strong>：一次请求的完整调用链是一棵 Trace 树，每个方法调用是一个 Span。Span 含：traceId(整棵树唯一)、spanId(本节点唯一)、parentId(父 Span)、operationName、startTime/duration、tags、logs。跨服务透传 traceId 把多服务的 Span 串成一棵树。</p>
-
-            <p><strong>APM 系统架构（微内核+插件）</strong>：</p>
+            <p><strong>APM 系统架构（微内核+插件）——五件套全景</strong>：</p>
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TB
@@ -1436,16 +1402,16 @@ flowchart LR
       <!-- ============================================================ -->
       <!-- Q11.9 OpenTelemetry 的可观测性三支柱如何落地？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="qa-11-9" data-difficulty="expert" data-priority="p2">
+      <div class="qa-card" id="qa-11-9" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">11.9</div>
-          <div class="qa-question">OpenTelemetry 的可观测性三支柱如何落地？<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">OpenTelemetry 的可观测性三支柱如何落地？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察<strong>"可观测性(Observability) 如何标准化落地"</strong>的架构能力。核心回答：可观测性三支柱（Trace/Metrics/Log）的本质与关联、OpenTelemetry 作为统一标准的架构(API+SDK+Collector)、为何它能终结厂商锁定，以及从日志到 APM 到 OpenTelemetry 到 eBPF 的完整演进。重点在 OTel Collector 的管道设计与三支柱关联（Exemplar/TraceID 关联 Metrics 与 Log）。</p>
+            <p>本题聚焦 OTel Collector 管道设计与部署模式；三支柱原理详见 <a href="#qa-11-17" class="internal-link">11.17</a>。考察<strong>"可观测性(Observability) 如何标准化落地"</strong>的架构能力。核心回答：OpenTelemetry 作为统一标准的架构(API+SDK+Collector)、为何它能终结厂商锁定，重点深挖 <strong>OTel Collector 管道工程细节</strong>（pipeline/receiver/processor/exporter 配置、Service Graph Connector、Tail Sampling Processor）与部署模式（Agent/Deployment/Gateway 三级拓扑）。</p>
           </div>
         </div>
 
@@ -1476,17 +1442,7 @@ flowchart LR
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>可观测性三支柱</strong>：</p>
-            <table class="compare-table">
-              <thead><tr><th>支柱</th><th>回答的问题</th><th>数据模型</th><th>典型后端</th></tr></thead>
-              <tbody>
-                <tr><td><strong>Metrics 指标</strong></td><td>系统整体健康(QPS/RT/错误率/资源)</td><td>时间序列(name+labels+value+timestamp)</td><td>Prometheus/VictoriaMetrics</td></tr>
-                <tr><td><strong>Trace 链路</strong></td><td>单次请求的完整路径与耗时分布</td><td>Span 树(traceId/spanId/parentId)</td><td>Jaeger/Tempo/Zipkin</td></tr>
-                <tr><td><strong>Log 日志</strong></td><td>具体事件的离散详情与上下文</td><td>结构化日志(JSON+traceId)</td><td>Loki/ELK/Fluentd</td></tr>
-              </tbody>
-            </table>
-
-            <p><strong>三支柱关联（核心价值）</strong>：① <strong>Metrics ↔ Trace</strong>——Metrics 的 <strong>Exemplar</strong> 机制：指标点附带一个 traceId 样本，从监控告警的高延迟指标点可直接跳到对应的 Trace 链路定位根因；② <strong>Log ↔ Trace</strong>——日志记录 traceId/spanId，从 Trace 链路某 Span 可跳到该 Span 期间的日志；③ <strong>Trace ↔ Log</strong>——Span 事件(Span Event)本质是结构化日志附在 Span 上。三者通过 traceId 关联，实现"指标告警 → 链路定位 → 日志详情"的排障闭环。</p>
+            <p><strong>可观测性三支柱基础</strong>：Metrics（时序指标/QPS/RT）、Trace（Span 树/traceId/spanId）、Log（结构化日志+traceId）三者的定义、数据模型与 Exemplar 关联机制详见 <a href="#qa-11-17" class="internal-link">11.17</a>。Head/Tail 采样策略对比也见 <a href="#qa-11-17" class="internal-link">11.17</a> 深度追问 2。以下聚焦 OTel Collector 管道工程细节。</p>
 
             <p><strong>OpenTelemetry 架构：API + SDK + Collector</strong>：</p>
             <div class="mermaid-container">
@@ -1509,9 +1465,35 @@ flowchart LR
               <div class="chart-caption">图 11.9-2 OpenTelemetry 架构：API/SDK 采集 + Collector 管道 + 多后端</div>
             </div>
 
-            <p><strong>三层解耦</strong>：① <strong>API 层</strong>——业务代码只依赖 OTel API（接口），不绑定具体实现；② <strong>SDK 层</strong>——运行时实现，配置采样率、批处理、导出协议，可替换；③ <strong>Collector 层</strong>——独立部署的管道，接收(receivers)→处理(processors:过滤/重采样/富化)→导出(exporters:多后端)。三层解耦使"换后端不改业务代码"成为可能。</p>
+            <p><strong>三层解耦</strong>：① <strong>API 层</strong>——业务代码只依赖 OTel API（接口），不绑定具体实现；② <strong>SDK 层</strong>——运行时实现，配置采样率、批处理、导出协议，可替换；③ <strong>Collector 层</strong>——独立部署的管道，核心是 <strong>pipeline 管道</strong>：<code class="inline-code">receivers（接收）→ processors（处理）→ exporters（导出）</code>。三层解耦使"换后端不改业务代码"成为可能。</p>
 
             <p><strong>OTLP 协议</strong>：OTel 自定义的高效协议，gRPC/HTTP 双传输，支持 Trace/Metrics/Log 三种信号统一传输，是 OTel 的原生协议。Collector 间也可用 OTLP 转发，支持级联部署。</p>
+
+            <p><strong>Collector 管道深度解析：Receiver / Processor / Exporter 三角色</strong>：</p>
+            <ul>
+              <li><strong>Receivers（接收器）</strong>：数据入口。<code class="inline-code">otlp</code>（gRPC 4317/HTTP 4318，接收 SDK 上报）、<code class="inline-code">prometheus</code>（pull 方式抓取指标）、<code class="inline-code">kafka</code>（从 Kafka 消费缓冲数据，抗峰削谷）、<code class="inline-code">filelog</code>（tail 本地日志文件）。同一 Collector 可同时启多个 receiver 接收不同信号。</li>
+              <li><strong>Processors（处理器核心能力）</strong>：管道的"大脑"。① <code class="inline-code">batch</code>——批量合并减少网络请求（必配，timeout 5s/send_batch_size 1024）；② <code class="inline-code">memory_limiter</code>——软限制内存防 OOM（limit_percentage 80，必配）；③ <code class="inline-code">filter</code>——按属性过滤噪音（如过滤 <code class="inline-code">/actuator/health</code> 健康检查 Span）；④ <code class="inline-code">resource</code>——统一注入/富化 service.name、k8s.pod.name 等资源标签；⑤ <strong><code class="inline-code">tail_sampling</code>（见工程实践完整示例）</strong>——Collector 缓冲完整 Trace，按策略（ERROR 状态/慢调用/概率）决定保留；⑥ <strong><code class="inline-code">servicegraph</code>（Service Graph Connector）</strong>——从 Trace Span 聚合生成服务调用拓扑（A→B 调用次数/RT），供 Grafana Tempo 的"服务图"直接展示。</li>
+              <li><strong>Exporters（导出器）</strong>：数据出口。<code class="inline-code">otlp</code>（发给下一级 Collector 或 Jaeger/Tempo）、<code class="inline-code">prometheusremotewrite</code>（写给 VictoriaMetrics/Prometheus）、<code class="inline-code">kafka</code>（写入 Kafka 做缓冲层）、<code class="inline-code">debug</code>（stdout 打印排障用）。</li>
+            </ul>
+
+            <p><strong>Collector 三级部署拓扑（生产推荐）</strong>：</p>
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TB
+    subgraph NODE["K8s 每个 Node（DaemonSet）"]
+        AGT["Agent Collector<br/>（轻量）<br/>receivers: otlp/filelog<br/>无重处理器<br/>exporter: otlp→GW"]
+    end
+    subgraph NS["网关层（独立 Deployment）"]
+        GW["Gateway Collector<br/>（重量级）<br/>receivers: otlp(来自Agent)<br/>processors: tail_sampling/servicegraph/batch/memory_limiter<br/>exporters: OTLP→Jaeger / RemoteWrite→Prom / OTLP→Loki"]
+    end
+    APP["应用 SDK / Agent"] -->|OTLP 本地节点| AGT
+    AGT -->|OTLP 跨节点| GW
+    style AGT fill:#dbeafe,stroke:#2563eb
+    style GW fill:#ede9fe,stroke:#7c3aed
+              </div>
+              <div class="chart-caption">图 11.9-3 Collector 三级拓扑：应用 SDK→Node Agent（DaemonSet）→Gateway（集群级）</div>
+            </div>
+            <p>拓扑分工：① <strong>Agent 级（DaemonSet 每节点一个）</strong>——只做接收 + 轻量 batch，无 tail_sampling 等重处理器，避免占用业务节点资源，本地就近上报减少跨节点流量；② <strong>Gateway 级（独立 Deployment）</strong>——做重处理（tail_sampling/servicegraph/跨集群路由），集中式多副本弹性伸缩，与业务节点资源隔离。</p>
           </div>
         </div>
 
@@ -1799,6 +1781,7 @@ spec:
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
+            <p>本题聚焦 Kafka Exactly-Once 端到端工程化与事务协调器原理；基础机制（ISR/HW/acks 三档/幂等生产者原理）详见 9.4，此处不重复展开。</p>
             <p>考察<strong>分布式消息队列的可靠性设计与一致性语义</strong>的架构能力。核心回答：Kafka 通过<strong>分区副本机制 + ISR 集合 + Leader 选举</strong>保障高可用；通过<strong>幂等生产者 + 事务 API + 消费者位移原子提交</strong>实现 Exactly-Once 语义。需厘清副本同步机制、HW/LEO 水位、以及幂等号段与事务协调器的工作原理。</p>
           </div>
         </div>
@@ -1816,14 +1799,7 @@ spec:
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>高可用：副本与 ISR 机制</strong>：</p>
-            <ul>
-              <li><strong>Leader-Follower 副本</strong>：每个分区有 1 个 Leader 和多个 Follower，Leader 处理读写，Follower 异步拉取同步。</li>
-              <li><strong>ISR（In-Sync Replicas）</strong>：与 Leader 保持同步的副本集合。只有 ISR 中的副本才有资格竞选 Leader。</li>
-              <li><strong>HW（High Watermark）</strong>：ISR 中所有副本都已同步的最大偏移量，消费者只能读到 HW 之前的数据，保证已提交消息不丢。</li>
-              <li><strong>LEO（Log End Offset）</strong>：每个副本的最后一条消息偏移量。Leader 的 LEO >= Follower 的 LEO。</li>
-              <li><strong>acks 策略</strong>：acks=0（发完不管）、acks=1（Leader 落盘即确认）、acks=all（ISR 全部落盘才确认）。生产环境强一致要求用 acks=all。</li>
-            </ul>
+            <p>ISR/HW/acks 基础机制见 9.4，此处仅推导 Exactly-Once 的进阶设计。</p>
 
             <p><strong>Exactly-Once 三要素</strong>：</p>
             <table class="compare-table">
@@ -1835,7 +1811,19 @@ spec:
               </tbody>
             </table>
 
-            <p><strong>幂等生产者原理</strong>：每个生产者实例分配唯一 PID（Producer ID），每条消息带单调递增的 Sequence Number。Broker 端按 <code class="inline-code">(PID, 分区)</code> 维度维护已收到的最大 SeqNum，重复消息直接丢弃。注意：幂等仅保证<strong>单分区单会话</strong>的 Exactly-Once，跨分区需事务。</p>
+            <p><strong>事务协调器与两阶段提交</strong>：Kafka 事务引入<strong>Transaction Coordinator（事务协调器）</strong>组件，每个 Broker 上运行一个协调器实例，职责是维护事务状态与写入事务日志（特殊内部 Topic <code class="inline-code">__transaction_state</code>）。事务生命周期：</p>
+            <ul>
+              <li><strong>阶段 1：BEGIN</strong>——生产者调用 <code class="inline-code">initTransactions()</code> 后分配 PID，<code class="inline-code">beginTransaction()</code> 向协调器注册事务。</li>
+              <li><strong>阶段 2：PREPARE</strong>——生产者发送消息到目标分区后，调用 <code class="inline-code">commitTransaction()</code>，协调器向所有参与分区写入 <code class="inline-code">PREPARE_COMMIT</code> 标记。</li>
+              <li><strong>阶段 3：COMMIT/ABORT</strong>——所有分区 PREPARE 成功后，协调器写入事务日志并向分区广播 <code class="inline-code">COMMIT</code> 标记，消费者过滤 ABORT 标记的消息；任何一步失败则广播 ABORT。</li>
+            </ul>
+
+            <p><strong>Exactly-Once 边界与退化</strong>：Kafka 事务仅保证<strong>Kafka 内部 Topic 之间</strong>的原子性，跨外部系统（如数据库写入、Redis 更新、调用外部 HTTP 接口）时 Exactly-Once 语义会退化，需分层兜底：</p>
+            <ul>
+              <li><strong>跨数据库写操作（非 Kafka 事务）</strong>：DB 写不在 Kafka 事务协调器管辖范围内，Exactly-Once 退化为<strong>业务层幂等</strong>——为每条消息分配唯一业务 ID（如订单号+流水号），DB 表建唯一索引或用 Redis 去重 Set 防重复写入。</li>
+              <li><strong>与 DB 双写一致性</strong>：Kafka 消息 + DB 事务无法原子提交，需引入<strong>Outbox Pattern + CDC</strong>：业务只写 DB 事务（业务表 + outbox 消息表在同一本地事务），Debezium/Canal 订阅 outbox 表的 binlog 异步投递到 Kafka，保证 DB 成功则消息必出，DB 回滚则消息不出，避免双写不一致。</li>
+              <li><strong>调用外部 HTTP 接口</strong>：外部接口无事务保障，必须依赖<strong>接口幂等设计</strong>（如请求携带 X-Request-Id，服务端缓存已处理 ID 短时间去重）+ 失败重试 + 死信队列人工补偿。</li>
+            </ul>
           </div>
         </div>
 
@@ -1870,6 +1858,7 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
             producer.send(<span class="kw">new</span> ProducerRecord&lt;&gt;(<span class="str">"output-topic"</span>, transform(r)));
         }
         <span class="com">// 将消费位移作为事务的一部分提交</span>
+        <span class="com">// 示意：实际需遍历 consumer.assignment()，按分区构造 Map&lt;TopicPartition, OffsetAndMetadata&gt; 后传入</span>
         producer.sendOffsetsToTransaction(
             consumer.position(consumer.assignment()), consumer.groupMetadata());
         producer.commitTransaction();
@@ -1918,6 +1907,7 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
+            <p>本题聚焦 10.2/10.3/10.9 未覆盖的增量——网关层与服务层限流协同、AI 流量治理(Token 限流/MCP 接口配额)、网关扩展插件；基础限流算法、熔断状态机、Spring Cloud Gateway 实现、灰度染色原理详见 10.3/10.2/10.9。</p>
             <p>考察<strong>API 网关作为微服务流量入口的统一治理能力</strong>。核心回答：API 网关本质是<strong>反向代理 + 协议转换 + 流量控制 + 可观测性的聚合层</strong>。需厘清限流（Rate Limiting）的算法选型、熔断（Circuit Breaker）的状态机与恢复策略、以及灰度发布（Canary）的流量染色与路由机制。</p>
           </div>
         </div>
@@ -1935,64 +1925,73 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>限流算法对比</strong>：</p>
-            <table class="compare-table">
-              <thead><tr><th>算法</th><th>原理</th><th>优点</th><th>缺点</th></tr></thead>
-              <tbody>
-                <tr><td>计数器</td><td>固定窗口内计数</td><td>简单、省内存</td><td>窗口边界突发（临界问题）</td></tr>
-                <tr><td>滑动窗口</td><td>按请求时间滑动统计</td><td>平滑、无临界突发</td><td>内存占用高（需记录时间戳）</td></tr>
-                <tr><td>令牌桶</td><td>定速放令牌，拿令牌才能过</td><td>允许突发、平滑限流</td><td>配置不当可能突发过大</td></tr>
-                <tr><td>漏桶</td><td>定速漏出，请求入桶排队</td><td>绝对平滑、无突发</td><td>无法应对突发流量</td></tr>
-              </tbody>
-            </table>
+            <p>基础限流算法（计数器/滑动窗口/令牌桶/漏桶）对比、熔断三态机（Closed/Open/Half-Open）原理、灰度发布流量染色与路由机制详见 10.3/10.2/10.9，此处仅展开 10.x 未覆盖的增量设计。</p>
 
-            <p><strong>熔断状态机（熔断器模式）</strong>：</p>
+            <p><strong>网关层 vs 服务层限流协同</strong>：两层限流不是重复建设，而是<strong>纵深防御</strong>，定位与维度不同：</p>
             <ul>
-              <li><strong>Closed（关闭）</strong>：正常放行，统计失败率/慢调用率。</li>
-              <li><strong>Open（打开）</strong>：失败率超过阈值，熔断开启，请求快速失败（Fail Fast），保护下游。</li>
-              <li><strong>Half-Open（半开）</strong>：经过熔断时长后，放少量探测请求。若成功则关闭，失败则重新打开。</li>
+              <li><strong>网关层：入口级粗控</strong>——维度为 API 路径、AppKey、IP、租户 ID，阈值按集群总容量设定（如单 API 10万 QPS），目标是<strong>拦截恶意/突发流量</strong>，防止过载流量穿透到服务层。实现通常用 Redis 分布式令牌桶（跨网关实例共享计数）。</li>
+              <li><strong>服务层：实例级精控</strong>——维度为接口、线程池、DB 连接池、下游依赖资源，阈值按<strong>单实例容量</strong>设定（如某接口单实例 500 QPS），目标是<strong>保护自身不被拖垮</strong>。实现通常用本地令牌桶（Sentinel/Resilience4j 内存计数器，避免跨实例网络开销）。</li>
+              <li><strong>协同防漏</strong>：网关限流阈值 = 服务实例数 × 单实例限流阈值 × 冗余系数（1.2~1.5），留足弹性但避免漏限流。当服务层因异常触发熔断时，网关层通过健康检查/主动探测感知，快速摘除异常实例，路由到健康节点。</li>
             </ul>
 
-            <p><strong>灰度发布核心机制</strong>：① <strong>流量染色</strong>——按 Header（X-Canary: true）、Cookie、用户 ID 白名单、权重比例（5% 流量）标记灰度流量；② <strong>路由匹配</strong>——网关根据染色标签将请求路由到新版本实例；③ <strong>可观测隔离</strong>——灰度流量独立监控，错误率/延迟达标再全量。</p>
+            <p><strong>AI 流量治理</strong>：大模型时代流量特征从"QPS 驱动"变为"Token 驱动 + 流式长连接"，传统 QPS 限流不适用，需三类扩展能力：</p>
+            <ul>
+              <li><strong>按 Token 而非 QPS 限流</strong>：模型推理成本与输入输出 Token 数正相关（GPT-4 每 1K Token 成本是普通 API 的百倍）。网关需识别请求体中的 <code class="inline-code">max_tokens</code> 字段估算消耗，或拦截响应流式 chunk 累加实际输出 Token，按<strong>Token 速率（如 10万 Tokens/分钟/用户）</strong>限流，而非单纯 QPS。</li>
+              <li><strong>MCP 工具接口独立配额</strong>：MCP（Model Context Protocol）网关承载模型调用外部工具（代码执行/SQL 查询/文档检索）的流量，不同工具的成本与风险差异极大（如代码沙箱执行比文档检索贵 10 倍、写数据库工具需严格权限）。需为每个 MCP Tool 独立配置限流配额、熔断阈值、权限白名单，而非按模型 API 统一限流。</li>
+              <li><strong>流式请求的背压传递</strong>：大模型 SSE（Server-Sent Events）流式输出时，响应可能持续 10~60 秒，传统连接池/线程池模型会被长连接占满。网关需支持：① <strong>请求级并发数限制</strong>（而非 QPS），按用户/租户限制同时进行中的流式请求数；② <strong>背压传递</strong>——客户端消费慢（TCP 窗口满）时，网关暂停从模型服务拉取 chunk，避免内存堆积；③ <strong>超时分段控制</strong>——首 token 超时（如 10s 未收到首包快速失败）与总流式时长超时（如 120s 强制截断）分离。</li>
+            </ul>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>Spring Cloud Gateway 限流示例（Redis + 令牌桶）</strong>：</p>
-            <div class="code-block"><pre><code><span class="com">// 基于 RedisRateLimiter 的分布式令牌桶限流</span>
-<span class="ann">@Bean</span>
-<span class="kw">public</span> RouteLocator customRoutes(RouteLocatorBuilder builder) {
-    <span class="kw">return</span> builder.routes()
-        .route(<span class="str">"order-service"</span>, r -> r.path(<span class="str">"/api/order/**"</span>)
-            .filters(f -> f.requestRateLimiter(config -> {
-                config.setRateLimiter(redisRateLimiter());
-                config.setKeyResolver(userKeyResolver());
-            }))
-            .uri(<span class="str">"lb://order-service"</span>))
-        .build();
-}
+            <p>Spring Cloud Gateway Redis 令牌桶限流代码、Sentinel 熔断规则配置、灰度发布 Header 染色方案详见 10.3/10.2/10.9，此处补充 AI 网关增量工程实践。</p>
 
-<span class="com">// KeyResolver: 按用户限流</span>
-<span class="ann">@Bean</span>
-<span class="kw">public</span> KeyResolver userKeyResolver() {
-    <span class="kw">return</span> exchange -> Mono.just(
-        exchange.getRequest().getHeaders().getFirst(<span class="str">"X-User-Id"</span>));
-}</code></pre></div>
+            <p><strong>AI 网关按 Token 限流示例（APISIX/自定义 Plugin 伪代码）</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">-- 接入层拦截：累加输入+输出 Token，按用户维度做令牌桶限流</span>
+<span class="kw">local</span> <span class="kw">function</span> token_rate_limiting(conf, ctx)
+    <span class="kw">local</span> user_id = ctx.var.http_x_user_id <span class="kw">or</span> <span class="str">"anonymous"</span>
+    <span class="kw">local</span> key = <span class="str">"token_limit:"</span> .. user_id
 
-            <p><strong>Sentinel 熔断规则配置</strong>：</p>
-            <div class="code-block"><pre><code><span class="com"># 熔断规则：慢调用比例模式</span>
-<span class="com"># 当 1 秒内慢调用（RT>500ms）比例超过 50%，且请求数>=10，熔断 10 秒</span>
-DegradeRule rule = <span class="kw">new</span> DegradeRule(<span class="str">"order-service"</span>)
-    .setGrade(CircuitBreakerStrategy.SLOW_REQUEST_RATIO)  <span class="com">// 慢调用比例</span>
-    .setCount(<span class="num">0.5</span>)                                      <span class="com">// 比例阈值 50%</span>
-    .setTimeWindow(<span class="num">10</span>)                                  <span class="com">// 熔断时长 10s</span>
-    .setMinRequestAmount(<span class="num">10</span>)                            <span class="com">// 最小请求数</span>
-    .setStatIntervalMs(<span class="num">1000</span>)                            <span class="com">// 统计窗口 1s</span>
-    .setSlowRatioThreshold(<span class="num">500</span>);                        <span class="com">// 慢调用 RT 阈值 ms</span></code></pre></div>
+    <span class="com">-- 1. 请求体预解析：估算 max_tokens 作为预扣减依据</span>
+    <span class="kw">local</span> req_body = core.request.get_body()
+    <span class="kw">local</span> max_tokens = req_body <span class="kw">and</span> json.decode(req_body).max_tokens <span class="kw">or</span> <span class="num">2048</span>
+    <span class="kw">local</span> ok, _ = limit_req:check(key, max_tokens, conf.tokens_per_minute / <span class="num">60</span>, conf.burst)
+    <span class="kw">if</span> <span class="kw">not</span> ok <span class="kw">then</span>
+        <span class="kw">return</span> <span class="num">429</span>, <span class="str">"Token quota exceeded, please retry later"</span>
+    <span class="kw">end</span>
 
-            <p><strong>灰度发布 Header 染色方案</strong>：网关层统一处理，业务服务无侵入。例如 <code class="inline-code">X-Gray-Version: v2</code> 头在网关根据用户 ID % 100 < 5 注入，下游服务通过标签选择器路由到 v2 Pod。</p>
+    <span class="com">-- 2. 响应阶段：拦截流式 chunk，累加实际 output token，修正计数</span>
+    ctx.token_count = <span class="num">0</span>
+    <span class="kw">local</span> <span class="kw">function</span> log_chunk(chunk)
+        <span class="kw">for</span> line <span class="kw">in</span> string.gmatch(chunk, <span class="str">"[^\n]+"</span>) <span class="kw">do</span>
+            <span class="kw">if</span> string.sub(line, <span class="num">1</span>, <span class="num">6</span>) == <span class="str">"data: {"</span> <span class="kw">then</span>
+                <span class="kw">local</span> usage = json.decode(string.sub(line, <span class="num">7</span>)).usage
+                <span class="kw">if</span> usage <span class="kw">then</span>
+                    ctx.token_count = ctx.token_count + (usage.completion_tokens <span class="kw">or</span> <span class="num">0</span>)
+                <span class="kw">end</span>
+            <span class="kw">end</span>
+        <span class="kw">end</span>
+    <span class="kw">end</span>
+<span class="kw">end</span></code></pre></div>
+
+            <p><strong>MCP 工具接口独立配额</strong>：网关按 MCP Server + Tool Name 粒度配独立限流 Key，而非按模型 API 共享：</p>
+            <div class="code-block"><pre><code><span class="com"># MCP 网关限流规则示例（YAML）</span>
+<span class="com"># 高风险/高成本工具配额收紧，低风险工具放宽</span>
+mcp_tools_quota:
+  - tool: <span class="str">"sql_query"</span>                <span class="com"># 写数据库：严格限制</span>
+    per_user: <span class="num">60</span> requests/hour         <span class="com"># 60 次/用户/小时</span>
+    concurrency: <span class="num">2</span>                      <span class="com"># 同时进行中不超 2 个</span>
+    require_whitelist: <span class="kw">true</span>               <span class="com"># 仅白名单用户可用</span>
+  - tool: <span class="str">"code_executor"</span>            <span class="com"># 代码沙箱：成本高</span>
+    per_user: <span class="num">300</span> requests/hour
+    concurrency: <span class="num">5</span>
+  - tool: <span class="str">"document_search"</span>          <span class="com"># 文档检索：放宽</span>
+    per_user: <span class="num">6000</span> requests/hour
+    concurrency: <span class="num">20</span></code></pre></div>
+
+            <p><strong>流式请求并发数 + 背压控制要点</strong>：① 对 SSE/WebSocket 接口配置<strong>Per-User In-Flight Request Limit</strong>（如免费用户同时最多 3 个流式请求，付费用户 10 个），而非 QPS；② 网关层开启 TCP <code class="inline-code">TCP_NODELAY</code> 并监听 <code class="inline-code">write_buffer_high_watermark</code>，写缓冲区满时暂停向上游拉取数据；③ 首 Token 超时（TTFT）设 10s、流式总时长设 120s，超过返回 504 并打审计日志。</p>
           </div>
         </div>
 
@@ -2444,7 +2443,8 @@ flowchart LR
             <p><strong>阶段 2：DB 配置表 + 应用定时拉取</strong>。配置入库，应用启动加载 + 定时轮询。解决了发版问题，但实时性差、无推送、无灰度。</p>
             <p><strong>阶段 3：ZooKeeper 强一致配置</strong>。利用 ZK 的 Watch 机制做配置变更通知，实时性好、强一致。但 ZK 运维复杂、CP 模型在配置场景过重（配置更关注可用性而非强一致）。</p>
             <p><strong>阶段 4：Apollo（携程 2016 开源）</strong>。专为配置中心设计，<strong>长轮询</strong>推送 + 多环境 + 灰度发布 + 版本回滚，管理后台完善，Java 生态成熟。</p>
-            <p><strong>阶段 5：Nacos（阿里 2018 开源）</strong>。配置中心 + 注册中心二合一，<strong>长轮询 + UDP 推送</strong>混合降低延迟，支持 AP/CP 切换，与 Spring Cloud Alibaba 深度整合，云原生首选。</p>
+            <p><strong>阶段 5：Nacos（阿里 2018 开源）</strong>。配置中心 + 注册中心二合一，<strong>2.x 起 gRPC 长连接双向流推送</strong>（取代 1.x 长轮询+UDP），连接复用、状态精准、性能显著提升，支持 AP/CP 切换，与 Spring Cloud Alibaba 深度整合，云原生首选。</p>
+            <p><strong>Nacos 2.0（2021）</strong>：通信模型从 HTTP 短连接长轮询升级为 gRPC 长连接，性能提升 10x。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -2467,7 +2467,7 @@ flowchart LR
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>Apollo 长轮询机制</strong>：客户端定时（默认 1s 检测）向 Config Server 发起长轮询请求，服务端<strong>hold 住连接</strong>：若有配置变更立即返回变更的 namespace 列表，客户端再拉取具体配置内容；若无变更则保持连接到超时（默认 60s）后返回，客户端立即发下一次请求。本质是"服务端有变更才返回 + 客户端持续保活"，兼顾实时性与连接复用。</p>
-            <p><strong>Nacos 长轮询 + UDP 混合</strong>：客户端同样长轮询，但服务端在配置变更时除通过长轮询返回外，还<strong>额外发 UDP 包</strong>给客户端做"快速通知"，客户端收到 UDP 立即主动拉取。UDP 用于降低延迟（毫秒级感知），长轮询作为 UDP 丢失时的兜底，二者互补。</p>
+            <p><strong>Nacos gRPC 长连接推送（2.x）/ 长轮询+UDP（1.x 兼容）</strong>：2.x 客户端通过 gRPC 长连接订阅配置，服务端变更时通过 gRPC 流主动推送；1.x 兼容模式下仍用长轮询+UDP（客户端长轮询，服务端变更时额外发 UDP 包做快速通知，UDP 丢失时长轮询兜底）。</p>
             <p><strong>配置灰度发布</strong>：按 <strong>IP 维度</strong>或<strong>标签维度</strong>指定部分实例先生效新配置，验证无误再全量推送。Apollo 内置灰度规则引擎，Nacos 通过命名空间 + 分组 + DataId 组合实现类似隔离。</p>
             <p><strong>多环境隔离</strong>：Apollo 用 <strong>Env（DEV/FAT/UAT/PRO）+ Cluster（机房）+ Namespace</strong> 三级隔离；Nacos 用<strong>命名空间（Namespace）+ 分组（Group）+ DataId</strong> 三级隔离，命名空间天然对应环境。</p>
             <p><strong>Nacos AP/CP 切换</strong>：</p>
@@ -2480,7 +2480,7 @@ flowchart LR
               <thead><tr><th>维度</th><th>Nacos</th><th>Apollo</th></tr></thead>
               <tbody>
                 <tr><td>定位</td><td>配置 + 注册中心二合一</td><td>专注配置中心</td></tr>
-                <tr><td>推送机制</td><td>长轮询 + UDP 混合</td><td>纯长轮询</td></tr>
+                <tr><td>推送机制</td><td>gRPC 长连接（2.x）/ 长轮询+UDP（1.x 兼容）</td><td>纯长轮询</td></tr>
                 <tr><td>一致性</td><td>AP/CP 可切换</td><td>强一致（DB）</td></tr>
                 <tr><td>多环境</td><td>Namespace 隔离</td><td>Env + Cluster 隔离</td></tr>
                 <tr><td>灰度发布</td><td>命名空间+分组模拟</td><td>内置灰度规则引擎</td></tr>
@@ -2577,7 +2577,7 @@ spring:
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察对可观测性三支柱(Metrics/Traces/Logs)统一关联、OpenTelemetry 标准、TraceId 跨线程/跨服务透传的理解。核心回答：<strong>可观测性(Observability)区别于监控(Monitoring)</strong>——监控只能发现"预设的已知问题"(阈值告警)，而可观测性通过三支柱的关联分析，回答"为什么出问题、还有哪些未知问题"。三支柱必须通过 <code class="inline-code">TraceId</code> 统一关联形成闭环，OpenTelemetry(CNCF)提供了标准化的 API/SDK/Collector/OTLP 协议，解决厂商锁定与生态碎片化。</p>
+            <p>本题是可观测性三支柱（Trace/Metrics/Log）+ OpenTelemetry 标准综述；Collector 管道工程详见 <a href="#qa-11-9" class="internal-link">11.9</a>，TraceId 透传详见 <a href="#qa-11-8" class="internal-link">11.8</a>。核心回答：<strong>可观测性(Observability)区别于监控(Monitoring)</strong>——监控只能发现"预设的已知问题"(阈值告警)，而可观测性通过三支柱的关联分析，回答"为什么出问题、还有哪些未知问题"。三支柱必须通过 <code class="inline-code">TraceId</code> 统一关联形成闭环，OpenTelemetry(CNCF)提供了标准化的 API/SDK/Collector/OTLP 协议，解决厂商锁定与生态碎片化。</p>
           </div>
         </div>
 
@@ -2607,18 +2607,20 @@ spring:
               <li>采样(Sampling)：避免全量采集导致存储爆炸</li>
             </ul>
             <p><strong>Logs(日志)</strong>：结构化日志(JSON 格式)，携带 TraceId/SpanId 字段，实现 Logs→Traces 跳转。</p>
-            <p><strong>OpenTelemetry 架构分层</strong>：API(应用编程接口，无实现) → SDK(配置与实现) → Exporter(导出到后端) → Collector(独立部署，接收/处理/转发)。</p>
-            <p><strong>Context/Baggage 传播</strong>：Context 携带 TraceId/SpanId；Baggage 携带业务自定义 KV(如 userId)；跨服务通过 W3C TraceContext HTTP Header(<code class="inline-code">traceparent</code>)传播；进程内通过 ThreadLocal + MDC(SLF4J) 自动注入日志。</p>
+            <p><strong>可观测性三支柱详表</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>支柱</th><th>回答的问题</th><th>数据模型</th><th>典型后端</th><th>关联纽带</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Metrics 指标</strong></td><td>系统整体健康(QPS/RT/错误率/资源)</td><td>时间序列(name+labels+value+timestamp)</td><td>Prometheus/VictoriaMetrics</td><td>Exemplar 嵌入 TraceId → Metrics↔Trace 跳转</td></tr>
+                <tr><td><strong>Trace 链路</strong></td><td>单次请求的完整路径与耗时分布</td><td>Span 树(traceId/spanId/parentId)</td><td>Jaeger/Tempo/Zipkin</td><td>Span Event = 结构化日志 → Trace↔Log 互跳</td></tr>
+                <tr><td><strong>Log 日志</strong></td><td>具体事件的离散详情与上下文</td><td>结构化日志(JSON+traceId/spanId)</td><td>Loki/ELK/Fluentd</td><td>日志带 traceId → Log↔Trace 关联</td></tr>
+              </tbody>
+            </table>
 
-            <div class="code-block"><pre><code><span class="com">// OTel Java Agent 零侵入启动(无需改业务代码)</span>
-<span class="com">// java -javaagent:opentelemetry-javaagent.jar \</span>
-<span class="com">//   -Dotel.service.name=order-service \</span>
-<span class="com">//   -Dotel.exporter.otlp.endpoint=http://otel-collector:4317 \</span>
-<span class="com">//   -Dotel.traces.sampler=parentbased_traceidratio \</span>
-<span class="com">//   -Dotel.traces.sampler.arg=0.1 \</span>
-<span class="com">//   -jar app.jar</span>
+            <p><strong>OpenTelemetry 架构分层</strong>：API(应用编程接口，无实现) → SDK(配置与实现) → Exporter(导出到后端) → Collector(独立部署，接收/处理/转发)。Collector 管道设计(pipeline/receiver/processor/exporter)、Service Graph Connector、Tail Sampling Processor、三级部署拓扑详见 <a href="#qa-11-9" class="internal-link">11.9</a>。Java Agent 启动配置示例见 <a href="#qa-11-9" class="internal-link">11.9</a> 工程实践。</p>
+            <p><strong>Context/Baggage 传播</strong>：Context 携带 TraceId/SpanId；Baggage 携带业务自定义 KV(如 userId)；跨服务通过 W3C TraceContext HTTP Header(<code class="inline-code">traceparent</code>)传播；进程内通过 ThreadLocal + MDC(SLF4J) 自动注入日志。<strong>跨线程/线程池/虚拟线程下 TraceId 透传完整治理方案（TTL/MDC TaskDecorator/Context.wrap 对比）</strong>详见 <a href="#qa-11-8" class="internal-link">11.8</a>。</p>
 
-<span class="com">// Micrometer 自定义业务指标</span>
+            <div class="code-block"><pre><code><span class="com">// Micrometer 自定义业务指标 + Exemplar 自动关联 Trace</span>
 <span class="kw">@Service</span>
 <span class="kw">@RequiredArgsConstructor</span>
 <span class="kw">public class</span> <span class="type">OrderMetrics</span> {
@@ -2637,43 +2639,6 @@ spring:
         registry.<span class="fn">timer</span>(<span class="str">"order.process.duration"</span>,
                 <span class="str">"channel"</span>, channel)
             .<span class="fn">record</span>(millis, <span class="type">TimeUnit</span>.MILLISECONDS);
-    }
-}</code></pre></div>
-
-            <p><strong>跨线程上下文传播(核心难点)</strong>：线程池中 ThreadLocal 上下文丢失导致 TraceId 断链，必须用 OTel <code class="inline-code">Context.wrap()</code> 包装任务。</p>
-
-            <div class="code-block"><pre><code><span class="com">// 问题: 线程池中 ThreadLocal 上下文丢失, TraceId 断链</span>
-<span class="com">// 方案: OTel Context.wrap() 自动捕获并透传上下文</span>
-
-<span class="kw">@Service</span>
-<span class="kw">@RequiredArgsConstructor</span>
-<span class="kw">public class</span> <span class="type">OrderAsyncService</span> {
-    <span class="kw">private final</span> <span class="type">Executor</span> executor;
-
-    <span class="com">// 错误: 直接提交, TraceId 丢失, 日志无 TraceId</span>
-    <span class="kw">public void</span> <span class="fn">wrongSubmit</span>(<span class="type">Long</span> orderId) {
-        executor.<span class="fn">execute</span>(() -> {
-            <span class="com">// MDC 为空, 日志 TraceId 缺失</span>
-            log.<span class="fn">info</span>(<span class="str">"处理订单 {}"</span>, orderId);
-        });
-    }
-
-    <span class="com">// 正确: Context.wrap() 包装 Runnable</span>
-    <span class="kw">public void</span> <span class="fn">correctSubmit</span>(<span class="type">Long</span> orderId) {
-        <span class="type">Runnable</span> task = <span class="type">Context</span>.current().<span class="fn">wrap</span>(() -> {
-            <span class="com">// TraceId 自动透传, MDC 已注入, 日志可关联</span>
-            log.<span class="fn">info</span>(<span class="str">"处理订单 {}"</span>, orderId);
-        });
-        executor.<span class="fn">execute</span>(task);
-    }
-
-    <span class="com">// 虚拟线程(JDK 21): OTel 1.32+ 自动支持</span>
-    <span class="kw">public void</span> <span class="fn">virtualThreadSubmit</span>(<span class="type">Long</span> orderId) {
-        <span class="type">Thread</span>.<span class="fn">startVirtualThread</span>(
-            <span class="type">Context</span>.current().<span class="fn">wrap</span>(
-                () -> log.<span class="fn">info</span>(<span class="str">"虚拟线程处理 {}"</span>, orderId)
-            )
-        );
     }
 }</code></pre></div>
           </div>
@@ -2723,8 +2688,8 @@ processors:
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
-            <p><strong>追问 1：TraceId 如何在跨线程(线程池/虚拟线程)场景下透传？</strong></p>
-            <p>核心问题是 <code class="inline-code">ThreadLocal</code> 上下文不会自动传递到新线程。解决方案：① OTel 提供 <code class="inline-code">Context.current().wrap(Runnable)</code> 包装任务，在提交时捕获当前 Context，执行时恢复；② Spring 的 <code class="inline-code">TaskDecorator</code> 可装饰线程池统一处理；③ 虚拟线程(JDK 21)同样需要 wrap，OTel 1.32+ 已适配，但需注意虚拟线程数量巨大时 ThreadLocal 的内存开销；④ Spring Boot 3.2+ 的 Micrometer Tracing 自动处理 <code class="inline-code">@Async</code> 场景，但手动线程池仍需显式 wrap。</p>
+            <p><strong>追问 1：TraceId 跨线程透传治理详见 <a href="#qa-11-8" class="internal-link">11.8</a></strong></p>
+            <p>核心问题是 ThreadLocal 在线程池场景失效，治理方案包括 TransmittableThreadLocal(TTL)、Spring TaskDecorator、OTel Context.wrap() 三对比，MDC 注入/清理防串流，以及虚拟线程下的 Scoped Values 演进。完整代码示例与原理拆解见 <a href="#qa-11-8" class="internal-link">11.8</a>。</p>
             <p><strong>追问 2：OpenTelemetry 的 Head Sampling vs Tail Sampling 有什么区别？</strong></p>
             <p><strong>Head Sampling(头部采样)</strong>：在请求入口(Trace 起点)立即按概率决定是否采样，一旦不采样则后续所有 Span 都不生成。优点是开销极小(下游零埋点)；缺点是无法根据"是否出错/是否慢"决策——错误请求可能被提前丢弃。<strong>Tail Sampling(尾部采样)</strong>：所有 Span 全量采集传到 Collector，Collector 缓冲完整 Trace 后(等待 decision_wait)，根据策略(错误状态/延迟/属性)决定是否保留。优点是能精准保留错误与慢调用；缺点是需要 Collector 缓冲内存、有延迟。生产实践：入口用低比例 Head Sampling 降流量 + Collector Tail Sampling 保留异常 Trace。</p>
             <p><strong>追问 3：Metrics 和 Traces 如何关联(Exemplar)？</strong></p>

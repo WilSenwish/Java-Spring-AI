@@ -6460,7 +6460,7 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
         <p><strong>5. 异常处理</strong>：补偿队列（本地消息表驱动）自动重试失败步骤，重试耗尽转人工兜底工单，所有资金动作留痕可审计。</p>
       </div>
     </div>
-    <div class="qa-layer" data-layer="code">
+    <div class="qa-layer" data-layer="practice">
       <div class="qa-layer-title">关键代码</div>
       <div class="qa-layer-body">
         <div class="code-block"><pre><code><span class="com">// Saga 编排式支付：每步执行 + 补偿动作，保证最终一致性</span>
@@ -6780,7 +6780,7 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
     <span class="kw">private final</span> <span class="type">Map</span>&lt;<span class="type">String</span>, <span class="type">Integer</span>&gt; toolCallCount = <span class="kw">new</span> <span class="type">HashMap</span>&lt;&gt;();
     <span class="kw">private final</span> <span class="type">Set</span>&lt;<span class="type">String</span>&gt; recentArgsHash = <span class="kw">new</span> <span class="type">LinkedHashSet</span>&lt;&gt;(); <span class="com">// 滑动窗口</span>
 
-    <span class="kw">public</span> <span class="type">ToolResult</span> <span class="fn">executeTool</span>(<span class="type">ToolCall</span> call) {
+    <span class="kw">public</span> <span class="type">ToolResult</span> <span class="fn">executeTool</span>(<span class="type">ToolCall</span> call, <span class="type">String</span> requestId) {
         <span class="kw">if</span> (++steps &gt; <span class="num">10</span>) <span class="kw">throw new</span> <span class="type">AgentTerminatedException</span>(<span class="str">"步数超限"</span>);
         <span class="type">String</span> argsHash = <span class="fn">sha1</span>(call.<span class="fn">getName</span>() + call.<span class="fn">getArgs</span>());
         <span class="com">// 循环检测：连续重复相同 tool_call 直接终止</span>
@@ -6792,7 +6792,7 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
         <span class="kw">int</span> cnt = toolCallCount.<span class="fn">merge</span>(call.<span class="fn">getName</span>(), <span class="num">1</span>, <span class="type">Integer</span>::sum);
         <span class="kw">if</span> (cnt &gt; <span class="num">3</span>) <span class="kw">throw new</span> <span class="type">AgentTerminatedException</span>(<span class="str">"单工具调用超限"</span>);
         <span class="com">// 注入幂等键，工具侧用该 key 去重，重复调用返回首次结果</span>
-        call.<span class="fn">setIdempotencyKey</span>(<span class="type">UUID</span>.<span class="fn">randomUUID</span>().<span class="fn">toString</span>());
+        call.<span class="fn">setIdempotencyKey</span>(requestId); <span class="com">// 复用请求级幂等键，重试时携带同一 key</span>
         <span class="kw">return</span> toolExecutor.<span class="fn">invoke</span>(call);
     }
 }
@@ -7221,6 +7221,7 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
         <span class="kw">if</span> (!acquired) <span class="kw">return</span> <span class="type">Flux</span>.<span class="fn">just</span>(<span class="str">"[降级]排队超时"</span>);
 
         <span class="com">// 2. 首 Token 超时降级：2s 内无首 Token 切小模型</span>
+        <span class="com">// 注意：timeout(Duration) 实际为相邻元素间隔超时；生产中需仅针对首 Token 时，应用 take(1).timeout(...).concatWith(skip(1)) 的模式</span>
         <span class="type">Flux</span>&lt;<span class="type">String</span>&gt; largeModel = llmClient.<span class="fn">streamLarge</span>(prompt);
         <span class="type">Flux</span>&lt;<span class="type">String</span>&gt; flux = largeModel.<span class="fn">timeout</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">2</span>))
                 .<span class="fn">onErrorResume</span>(e -&gt; llmClient.<span class="fn">streamSmall</span>(prompt));

@@ -1443,7 +1443,7 @@
         <div class="epq-section">
           <div class="epq-section-title">高频追问</div>
           <ul class="epq-fu-list">
-            <li><span class="q">Q: Nacos 与 Eureka 的核心区别？</span><span class="a">A: Nacos 支持 CP/AP 切换、配置中心、长连接推送；Eureka 仅 AP、仅注册中心、HTTP 轮询。Nacos 2.x 性能显著优于 Eureka。</span></li>
+            <li><span class="q">Q: Nacos 与 Eureka 的核心区别？</span><span class="a">A: Nacos 支持 CP/AP 切换、配置中心、长连接推送；Eureka 仅 AP、仅注册中心、HTTP 轮询。Nacos 2.x 性能显著优于 Eureka。Eureka 2.x 已停更（Netflix 2018 终止开发）、1.x 仅维护模式，新架构首选 Nacos。</span></li>
             <li><span class="q">Q: 服务注册不上如何排查？</span><span class="a">A: 检查客户端日志确认是否连接成功；检查 Nacos 服务端是否开启认证；检查网络是否通（gRPC 端口 9848/9849）；查看服务端 cluster.conf 是否正确。</span></li>
           </ul>
         </div>
@@ -2427,8 +2427,8 @@
           <div class="epq-section-title">高频追问</div>
           <ul class="epq-fu-list">
             <li><span class="q">Q: Native Image 适合所有 Spring Boot 应用吗？</span><span class="a">A: 不适合。重度反射（Hibernate 动态模型）、运行时字节码增强（部分 ORM/SPI）、动态加载（OSGi/运行时 SPI 发现）的应用改造成本极高，需逐个验证第三方 starter 适配。</span></li>
-            <li><span class="q">Q: Native 与 JIT 的吞吐差距能补齐吗？</span><span class="a">A: 部分可补：GraalVM 21+ 引入 PGO（Profile-Guided Optimization），用 G1GC 替代默认 GC；但峰值吞吐仍难追 JIT（JIT 可基于运行时 profile 做激进内联/去虚化）。</span></li>
-            <li><span class="q">Q: 反射缺失为什么这么痛？</span><span class="a">A: 构建期做可达性分析，未被静态引用的类直接被剔除；运行时反射找不到 Class 对象；必须 metadata 显式告知"该类运行时会被反射访问"，否则抛 MissingReflectionRegistrationError。</span></li>
+            <li><span class="q">Q: Native 与 JIT 的吞吐差距能补齐吗？</span><span class="a">A: 部分可补：PGO（Profile-Guided Optimization）：GraalVM 企业版早期支持，社区版自 GraalVM 21 起显著完善，可弥补 Native Image 吞吐劣势；用 G1GC 替代默认 GC；但峰值吞吐仍难追 JIT（JIT 可基于运行时 profile 做激进内联/去虚化）。</span></li>
+            <li><span class="q">Q: 反射缺失为什么这么痛？</span><span class="a">A: 构建期做可达性分析，未被静态引用的类直接被剔除；运行时反射找不到 Class 对象；必须 metadata 显式告知"该类运行时会被反射访问"，否则抛反射元数据缺失类异常（如 <code class="inline-code">MissingReflectionRegistrationException</code> / <code class="inline-code">UnsupportedFeatureError</code>，视 GraalVM 版本而定）。</span></li>
             <li><span class="q">Q: Spring Boot 3 对 Native 支持成熟度？</span><span class="a">A: 3.0 起原生支持，3.2+ 提供完整 @NativeHint 体系；但 MyBatis、部分 Redis 客户端、动态数据源等第三方 starter 需验证，建议先在非核心服务灰度。</span></li>
           </ul>
         </div>
@@ -2452,6 +2452,7 @@
 
         <div class="epq-section">
           <div class="epq-section-title">核心要点</div>
+          <p>承接 epq-10 的分布式事务对比，本题聚焦 Seata TCC 模式的生产级治理（空回滚/悬挂/幂等）与工程细节。</p>
           <ul class="epq-kp-list">
             <li>TCC 三阶段：Try（资源预留/冻结）、Confirm（业务确认/扣减冻结）、Cancel（释放冻结/回滚），业务层实现三个接口</li>
             <li>与 AT 区别：AT 依赖 Undo Log 自动回滚（无业务侵入）；TCC 侵入性强但性能高、可跨异构存储（MySQL + Redis + MQ）</li>
@@ -2477,7 +2478,7 @@
         <div class="epq-section">
           <div class="epq-section-title">高频追问</div>
           <ul class="epq-fu-list">
-            <li><span class="q">Q: TCC 为什么比 AT 性能好？</span><span class="a">A: AT 在 Confirm 阶段仍需写 Undo Log + 全局锁校验；TCC Confirm 是纯业务操作（无全局锁、无 Undo Log），且 Try 阶段就完成了资源校验，冲突少、RT 低。</span></li>
+            <li><span class="q">Q: TCC 为什么比 AT 性能好？</span><span class="a">A: AT 在分支执行阶段需写 Undo Log + 申请全局锁，Confirm/Cancel 阶段异步清理 Undo Log 并释放全局锁，整体 RT 与锁竞争开销高于 TCC 的纯业务 Confirm；TCC Confirm 是纯业务操作（无全局锁、无 Undo Log），且 Try 阶段就完成了资源校验，冲突少、RT 低。</span></li>
             <li><span class="q">Q: TCC 的开发成本如何降低？</span><span class="a">A: 模板化代码生成（MyBatis Plugin 生成 try/confirm/cancel）；Seata 2.x 提供 TCC 注解 + 自动状态管理；封装通用 freeze/release 工具类；同一业务域内抽象 TCC 模板方法。</span></li>
             <li><span class="q">Q: 资金类业务为什么必须 TCC？</span><span class="a">A: 资金要求强一致 + 跨账户原子性 + 审计可追溯；AT 的 Undo Log 在异构存储（Redis 计数器、ES 索引、MQ）无法回滚；TCC 业务层回滚可覆盖任意存储类型。</span></li>
             <li><span class="q">Q: TCC 与 Saga 怎么选？</span><span class="a">A: TCC 适合短事务、强一致、资源可预留；Saga 适合长事务、最终一致、业务流程长（如订单全链路）；Saga 无 Try 阶段，补偿事务时前置事务已提交，存在数据可见窗口。</span></li>
@@ -2523,7 +2524,7 @@
 
         <div class="callout callout-tip">
           <div class="callout-title">工程实践</div>
-          <p>启用参数：<code class="inline-code">-XX:+UseZGC</code>（JDK 15+ 生产可用），<code class="inline-code">-XX:+ZGenerational</code> 显式开启分代（JDK 21 默认开）。堆大小：ZGC 设计支持 16TB 堆，生产 32GB~512GB 表现最佳；小堆（&lt; 4GB）优势不明显，G1 更合适。监控指标：GC 暂停时间（<code class="inline-code">jcmd &lt;pid&gt; GC.Heap_info</code>）、并发标记周期时长、染色指针翻转频率；目标暂停 &lt; 10ms。吞吐量权衡：ZGC 吞吐量比 G1 低 5%~15%，但暂停稳定 &lt; 10ms；延迟敏感（交易/风控/实时推荐）选 ZGC，吞吐优先（离线 ETL）选 G1。调优要点：避免大对象频繁分配（触发 ZGC 转移）、监控 ConcurrentHashMap 等引用密集结构的读屏障开销。</p>
+          <p>启用参数：<code class="inline-code">-XX:+UseZGC</code>（JDK 15+ 生产可用），<code class="inline-code">-XX:+ZGenerational</code> 显式开启分代（JDK 21 默认关闭，JDK 23+ 计划默认开）。堆大小：ZGC 设计支持 16TB 堆，生产 32GB~512GB 表现最佳；小堆（&lt; 4GB）优势不明显，G1 更合适。监控指标：GC 暂停时间（<code class="inline-code">jcmd &lt;pid&gt; GC.Heap_info</code>）、并发标记周期时长、染色指针翻转频率；目标暂停 &lt; 10ms。吞吐量权衡：ZGC 吞吐量比 G1 低 5%~15%，但暂停稳定 &lt; 10ms；延迟敏感（交易/风控/实时推荐）选 ZGC，吞吐优先（离线 ETL）选 G1。调优要点：避免大对象频繁分配（触发 ZGC 转移）、监控 ConcurrentHashMap 等引用密集结构的读屏障开销。</p>
         </div>
 
         <div class="epq-section">
@@ -2532,7 +2533,7 @@
             <li><span class="q">Q: ZGC 为什么能保持 &lt; 10ms 暂停？</span><span class="a">A: STW 阶段只做根集合扫描和转移集选定，对象图遍历/复制/重定位全并发；读屏障承担了"修正引用"的工作，无需 STW 修正整个对象图。</span></li>
             <li><span class="q">Q: 读屏障和写屏障有什么区别？</span><span class="a">A: 读屏障在引用加载时触发（ZGC/Shenandoah 用），写屏障在引用存储时触发（G1/CMS 用维护卡表/记忆集）；ZGC 选读屏障是因为转移期间旧引用需即时自愈到新地址。</span></li>
             <li><span class="q">Q: 染色指针为什么不影响 64 位寻址？</span><span class="a">A: x86-64 实际只用低 48 位虚拟地址（47 位用户态），高 16 位空闲；ZGC 借用高 4 位做染色，物理地址仍 52 位，不影响真实寻址能力。</span></li>
-            <li><span class="q">Q: 分代 ZGC 比单代快多少？</span><span class="a">A: 年轻代独立回收降低全堆标记频率，吞吐提升 10%~20%，分配停顿降低 50%+；适合分配速率高的对象密集型应用。JDK 21 起默认分代。</span></li>
+            <li><span class="q">Q: 分代 ZGC 比单代快多少？</span><span class="a">A: 年轻代独立回收降低全堆标记频率，吞吐提升 10%~20%，分配停顿降低 50%+；适合分配速率高的对象密集型应用。JDK 21 引入但默认关闭，需显式开启；JDK 23+ 计划默认分代。</span></li>
           </ul>
         </div>
 
@@ -2568,7 +2569,7 @@
           <div class="epq-section-title">详细解答</div>
           <p><strong>HNSW 结构</strong>：多层图，每层节点数按指数衰减（层 i 节点数 ≈ N × e^(-i)）；查询从顶层贪心搜索到目标层，再下沉到底层精确召回。核心参数：M（每节点连接数，16~48）、efConstruction（构建时邻居候选数，200~500）、efSearch（查询时邻居候选数，50~200）。M 越大召回越高内存越大，efSearch 越大召回越高 RT 越长。</p>
           <p><strong>IVF 结构</strong>：K-Means 训练 nlist 个聚类中心；向量按最近中心分桶；查询时计算 query 到所有中心距离，选 top-nprobe 个桶扫描。核心参数：nlist（桶数，sqrt(N)~N/1000）、nprobe（查询桶数，8~64）。nprobe 越大召回越高但 RT 越长。</p>
-          <p><strong>性能对比</strong>：1000 万 768 维向量，HNSW 召回 95% RT ~5ms，IVF nprobe=8 召回 85% RT ~8ms；HNSW 内存 ~30GB，IVF 内存 ~10GB（含原始向量）。HNSW 在召回率与 RT 平衡上明显占优，代价是内存。</p>
+          <p><strong>性能对比</strong>：1000 万 768 维向量，HNSW 召回 95% RT ~5ms，IVF nprobe=8 召回 85% RT ~8ms；原始向量本身约 30GB（1000万×768×4B）；HNSW 总内存约 35GB（原始向量 30GB + 图结构约 5GB）；IVF 若不量化约 31GB，配 PQ 量化后约 1~2GB。HNSW 在召回率与 RT 平衡上明显占优，代价是内存。</p>
           <p><strong>量化压缩</strong>：IVF 常配 PQ（Product Quantization）将 768 维压缩到 96 字节，内存降 50 倍但召回率下降 5%~10%；HNSW 配 PQ 需重排（re-rank，先取 top-k 候选用压缩向量，再用原始向量精排）保留高召回。<strong>索引构建</strong>：HNSW 构建慢（O(N log N) 全量插入），增量更新成本高（需维护图连通性）；IVF 构建快（K-Means 一次性），增量只需重算聚类中心。</p>
         </div>
 

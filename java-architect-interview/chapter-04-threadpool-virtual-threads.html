@@ -1143,6 +1143,7 @@ flowchart TD
     }
 }</code></pre></div>
 
+            <p><strong>API 时效性说明（JDK 25 破坏性改动）</strong>：以上示例基于 JDK 21-24 API（<code class="inline-code">new StructuredTaskScope.ShutdownOnFailure()</code>）。JDK 25 起 API 有破坏性改动：<code class="inline-code">StructuredTaskScope</code> 改为静态工厂 <code class="inline-code">open()</code> 创建，废弃 public 构造器；策略类从 <code class="inline-code">ShutdownOnFailure</code>/<code class="inline-code">ShutdownOnSuccess</code> 改为 <code class="inline-code">Joiner.awaitAllSuccessfulOrThrow()</code> / <code class="inline-code">Joiner.awaitAnySuccessfulResult()</code>，上述构造器写法在 JDK 25 已不可用。</p>
             <p><strong>三大保证</strong>：① <strong>生命周期绑定</strong>——子任务不超出作用域，作用域关闭即取消全部未完成子任务；② <strong>错误传播</strong>——子任务异常自动传播给父，触发 fail-fast 关闭；③ <strong>可观测性</strong>——作用域内的任务树可被整体 dump（线程转储能看到父子关系）， unlike CompletableFuture 的扁平链。</p>
           </div>
         </div>
@@ -1150,7 +1151,7 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>当前状态（2026）</strong>：仍为 Preview API（JDK 21~24），需 <code class="inline-code">--enable-preview --release 21</code> 编译运行，<strong>不建议生产使用</strong>。但其设计思想已可用 CompletableFuture + 虚拟线程近似实现：用 allOf 编排、exceptionally 降级、虚拟线程执行器承载。</p>
+            <p><strong>当前状态（2026）</strong>：截至 JDK 25（JEP 505，第五次 Preview）仍为 Preview API，JDK 26（JEP 525，第六次 Preview）继续预览，尚未 GA，生产慎用。需 <code class="inline-code">--enable-preview --release 21</code> 编译运行。但其设计思想已可用 CompletableFuture + 虚拟线程近似实现：用 allOf 编排、exceptionally 降级、虚拟线程执行器承载。</p>
             <p><strong>何时采用</strong>：① 学习与原型验证，为未来 GA 做准备；② 内部工具/非核心链路试用；③ 等 GA（预计 JDK 25/26）后逐步替换 CompletableFuture 的复杂编排场景。</p>
             <div class="callout callout-tip">
               <div class="callout-title">架构判断</div>
@@ -1179,10 +1180,10 @@ flowchart TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>误以为已 GA</strong>：截至 JDK 24 仍 Preview，API 可能变，生产慎用。</li>
+                <li><strong>误以为已 GA</strong>：截至 JDK 25 仍 Preview，API 可能变，生产慎用。</li>
                 <li><strong>忘记 join/throwIfFailed</strong>：fork 后不 join 就 get，可能读到未完成结果或抛错。</li>
                 <li><strong>作用域内阻塞外部资源</strong>：子任务持有锁/连接后被取消，需确保资源可中断释放。</li>
-                <li><strong>与 ThreadLocal 混用</strong>：结构化并发应配 Scoped Values，用 ThreadLocal 会丧失作用域优势。</li>
+                <li><strong>与 ThreadLocal 混用</strong>：结构化并发应配 Scoped Values，用 ThreadLocal 会丧失作用域优势。Scoped Values 已在 JDK 25（JEP 506）正式转正，可率先在生产使用；结构化并发仍 Preview，可先用 Scoped Values 替代 ThreadLocal。</li>
                 <li><strong>忽视取消的协作性</strong>：子任务需响应中断（检查中断标志/用可中断 API），否则取消不生效。</li>
               </ul>
             </div>

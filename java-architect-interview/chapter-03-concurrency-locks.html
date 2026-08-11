@@ -59,10 +59,10 @@
       <!-- ============================================================ -->
       <!-- Q3.1 volatile 如何保证可见性？为何不能保证原子性？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="qa-3-1" data-difficulty="senior" data-priority="p1">
+      <div class="qa-card" id="qa-3-1" data-difficulty="senior" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">3.1</div>
-          <div class="qa-question">volatile 如何保证可见性？为何不能保证原子性？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          <div class="qa-question">volatile 如何保证可见性？为何不能保证原子性？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -238,7 +238,7 @@ sequenceDiagram
             <p><strong>JDK 1.0~1.3：重量级锁独占</strong>。synchronized 直接映射到 OS 的互斥量（mutex），每次加锁解锁都涉及用户态/内核态切换，开销巨大。这也是早期 Java"慢"的代名词之一，Doug Lea 的 util.concurrent 库正是为了绕开它而生。</p>
             <p><strong>JDK 6（2006）：锁优化大爆发</strong>。HotSpot 引入偏向锁、轻量级锁、自旋锁、锁消除、锁粗化五项优化，让 synchronized 在无竞争/低竞争场景下性能逼近 ReentrantLock。这是"synchronized 性能不再差"的认知转折点。</p>
             <p><strong>JDK 15（2020）：偏向锁废弃（JEP 374）</strong>。Oracle 发现偏向锁维护成本高（占 HotSpot 同步子系统的 5%~10% 代码）、收益在现代 CAS 指令下递减，且与 Virtual Threads 等新特性冲突，正式废弃。<strong>synchronized 回归到"轻量级锁 + 重量级锁"两级</strong>。</p>
-            <p><strong>未来趋势</strong>：synchronized 与 ReentrantLock 的性能差距已可忽略。Project Loom 时代，synchronized 在 Virtual Threads 上的"pinning"问题（持有 synchronized 时虚拟线程无法卸载）正在被重新审视，JDK 团队计划在后续版本优化 synchronized 的载体线程绑定问题。</p>
+            <p><strong>未来趋势</strong>：synchronized 与 ReentrantLock 的性能差距已可忽略。JDK 24（JEP 491，2025）重构了 synchronized 实现（ObjectMonitor 改造为可虚拟化），允许虚拟线程在 synchronized 块内 park 时正常卸载，消除了最主要的 pinning 源。JDK 24+ 不必再为 pinning 而回避 synchronized。</p>
           </div>
         </div>
 
@@ -918,10 +918,10 @@ graph TB
       <!-- ============================================================ -->
       <!-- Q3.7 Condition 条件变量与 LockSupport 如何实现等待/通知？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="qa-3-7" data-difficulty="architect" data-priority="p2">
+      <div class="qa-card" id="qa-3-7" data-difficulty="senior" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">3.7</div>
-          <div class="qa-question">Condition 条件变量与 LockSupport 如何实现等待/通知？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">Condition 条件变量与 LockSupport 如何实现等待/通知？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -937,7 +937,7 @@ graph TB
             <p><strong>Object.wait/notify（JDK 1.0）</strong>：与 synchronized 绑定，每个对象有一个 WaitSet。局限：① 必须在 synchronized 块内调用；② 只有一个等待队列，无法分类唤醒；③ notify 随机唤醒，无法指定唤醒哪类等待者；④ wait 无法做到"先 notify 后 wait 不阻塞"。</p>
             <p><strong>LockSupport.park/unpark（JDK 5，2004）</strong>：Doug Lea 引入的线程级阻塞原语，每个线程一个 permit（许可）。unpark 先于 park 调用时，park 不会阻塞（permit 已被"存起来"）。这是对 wait/notify 时序缺陷的根本修复。</p>
             <p><strong>Condition.await/signal（JDK 5）</strong>：基于 AQS 实现，一个 Lock 可创建多个 Condition，每个 Condition 有独立等待队列，可精准唤醒某类等待者。是阻塞队列、生产消费模型的标准实现工具。</p>
-            <p><strong>未来趋势</strong>：Virtual Threads 时代，park 是虚拟线程卸载的触发点（unmount），但 synchronized 持有期间虚拟线程无法卸载（pinning），因此新的并发组件推荐用 ReentrantLock + Condition 而非 synchronized + wait/notify。</p>
+            <p><strong>未来趋势</strong>：Virtual Threads 时代，park 是虚拟线程卸载的触发点（unmount）。<strong>JDK 21-23</strong> 环境下，synchronized 持有期间虚拟线程会 pin 在载体线程上无法卸载，此时推荐 ReentrantLock + Condition；<strong>JDK 24+（JEP 491）</strong> 已消除该限制，synchronized 与 ReentrantLock 在虚拟线程上均可正常卸载，选型回归“语义需要”而非 pinning 规避。</p>
           </div>
         </div>
 
@@ -1039,7 +1039,7 @@ graph TD
             <p>设计上 permit 是 boolean 语义（0 或 1），不是计数器。这是为了简化语义——park 的目的是"阻塞至有许可"，而非"阻塞至收到 N 个许可"。多次 unpark 同一线程只有第一次生效，后续的"丢失"是有意的，调用方需自行用其他机制（如队列）保证不丢业务信号。</p>
 
             <p><strong>追问 3：Virtual Threads 时代 Condition 还适用吗？</strong></p>
-            <p>适用，且比 synchronized + wait/notify 更优。因为 ReentrantLock 在虚拟线程持有时不 pinning（不绑定载体线程），Condition.await 会让虚拟线程优雅 unmount；而 synchronized 持有时虚拟线程会 pin 在载体线程上无法卸载。所以 Virtual Threads 场景推荐 ReentrantLock + Condition 替代 synchronized + wait/notify。</p>
+            <p>适用。<strong>JDK 21-23</strong> 环境下，synchronized 持有期间虚拟线程会 pin 在载体线程上无法卸载，而 ReentrantLock 在虚拟线程持有时不 pinning，Condition.await 会让虚拟线程优雅 unmount，此时推荐 ReentrantLock + Condition 替代 synchronized + wait/notify；<strong>JDK 24+（JEP 491）</strong> 已消除 synchronized 的 pinning 限制，synchronized + wait/notify 与 ReentrantLock + Condition 在虚拟线程上均可正常卸载，选型回归“语义需要”而非 pinning 规避。</p>
           </div>
         </div>
 
@@ -1052,7 +1052,7 @@ graph TD
                 <li><strong>await 用 if 而非 while</strong>：虚假唤醒或条件竞态会导致逻辑错误，必须 while。</li>
                 <li><strong>signal 前忘记持锁</strong>：signal 必须在持锁状态下调用，否则可能唤醒了但节点未入同步队列。</li>
                 <li><strong>误以为多次 unpark 可唤醒多次 park</strong>：permit 不可累加，多次 unpark 后 park 仍只阻塞一次后返回。</li>
-                <li><strong>park 不响应中断会死等</strong>：park 默认响应中断（返回但不抛异常），需自行检查中断状态。</li>
+                <li><strong>误以为 park 抛 InterruptedException：park 响应中断时仅返回，不抛异常，需自行检查 `Thread.interrupted()` 状态，否则忽略中断继续执行</strong>：park 默认响应中断（返回但不抛异常），需自行检查中断状态。</li>
               </ul>
             </div>
           </div>

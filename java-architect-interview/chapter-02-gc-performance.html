@@ -75,7 +75,7 @@
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>引用计数法（早期 / Python、Objective-C、Squirrel）</strong>：对象被引用时计数 +1，引用失效时 -1，归零即回收。优点是可立即回收、无 STW；致命缺陷是<strong>循环引用</strong>（A 引用 B、B 引用 A，计数永不归零）。JVM 早期评估后放弃此方案。</p>
+            <p><strong>引用计数法（早期 / Objective-C ARC、Squirrel 等；Python CPython 以引用计数为主，辅以分代 GC 检测循环引用，但仍存在循环引用扫描开销）</strong>：对象被引用时计数 +1，引用失效时 -1，归零即回收。优点是可立即回收、无 STW；致命缺陷是<strong>循环引用</strong>（A 引用 B、B 引用 A，计数永不归零）。JVM 早期评估后放弃此方案。</p>
             <p><strong>可达性分析（Reachability Analysis，JVM 选择）</strong>：从 GC Roots 出发，沿引用链遍历，不可达对象即死亡。天然解决循环引用问题，代价是需要枚举所有 Root 并暂停所有应用线程（STW）。</p>
             <p><strong>三种基础算法的演进</strong>：标记-清除（Mark-Sweep）是最早的算法，实现简单但产生碎片；复制（Copying）算法解决碎片但浪费一半空间；标记-整理（Mark-Compact）兼顾无碎片与空间利用率，但移动对象代价高。三者各有取舍，没有银弹。</p>
             <p><strong>分代收集理论（弱代假说 Weak Generational Hypothesis）</strong>：基于"绝大多数对象朝生夕死"与"熬过越多次 GC 的对象越可能继续存活"两条经验，将堆分新生代（用复制算法）与老年代（用标记-清除/整理），是 HotSpot 分代设计的理论根基。</p>
@@ -219,6 +219,7 @@ graph TD
             <p><strong>G1（Garbage First，JDK 1.7u4 引入，JDK 9 默认）</strong>：堆 Region 化（目标约 2048 个 Region，根据堆大小动态调整），每个 Region 动态归属 Eden/Survivor/Old/Humongous。回收价值优先（Garbage First）：优先回收垃圾最多的 Region，用停顿时间模型 <code class="inline-code">-XX:MaxGCPauseMillis</code> 预测可回收的 Region 数。Mixed GC 替代 Full GC。</p>
             <p><strong>ZGC（Z Garbage Collector，JDK 11 实验，JDK 15 生产可用）</strong>：染色指针（Colored Pointer）+ 读屏障（Load Barrier），STW 通常 &lt; 10ms（部分场景 &lt; 1ms）且不随堆增大而增加，支持 TB 级堆。<strong>JDK 21 引入 Generational ZGC（JEP 439）</strong>，重新加入分代，进一步降低分配压力下的 GC 频率。</p>
             <p><strong>Shenandoah（OpenJDK，RedHat 主导，JDK 12 实验、JDK 15 生产）</strong>：转发指针（Brooks Pointer）+ 读屏障实现并发整理，与 ZGC 目标类似（&lt;10ms 停顿）但实现路径不同。每个对象头多一个转发指针字段，内存开销略大。</p>
+            <p><strong>JDK 25（JEP 521，2025）：Generational Shenandoah 转正</strong>——引入分代，年轻代/老年代独立并发回收，对标 Generational ZGC，进一步降低分配压力下的 GC 频率。至此两大低延迟收集器（ZGC、Shenandoah）均完成分代化演进。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -261,6 +262,7 @@ timeline
                   <tr><td>碎片</td><td>有（标记-清除）</td><td>无（复制整理）</td><td>无</td><td>无</td></tr>
                   <tr><td>内存开销</td><td>低</td><td>RSet 约 5-20%</td><td>染色指针 + 记忆集</td><td>每个对象 +8B 转发指针</td></tr>
                   <tr><td>调优复杂度</td><td>高（碎片 + 退化）</td><td>中（停顿目标 + IHOP）</td><td>低（几乎自调优）</td><td>中</td></tr>
+                  <tr><td>分代支持</td><td>是（连续分代）</td><td>是（Region 动态归属）</td><td>JDK 21+ 分代（Generational ZGC）</td><td>JDK 25+ 分代（Generational Shenandoah）</td></tr>
                   <tr><td>状态</td><td>JDK14 移除</td><td>JDK9+ 默认</td><td>JDK15 生产</td><td>OpenJDK 独有</td></tr>
                 </tbody>
               </table>

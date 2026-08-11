@@ -1065,8 +1065,9 @@ sequenceDiagram
         </div>
 
         <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>本质考察消息从生产到消费<strong>全链路的可靠性保障（不丢、不重、有序）</strong>。核心是"全链路思维"——生产端（确认+重试+本地消息表/事务消息）→ Broker（持久化+副本）→ 消费端（手动 ACK+幂等+死信），任一环节缺失都会破坏可靠性。顺序性则是"分区/队列级有序 + 单线程消费"的约束。</p>
+            <p>本题聚焦通用 MQ 可靠性与顺序性；Kafka 专有的 Exactly-Once、事务、分区顺序细节详见 <a href="#qa-9-4" class="internal-link">9.4</a>。本质考察消息从生产到消费<strong>全链路的可靠性保障（不丢、不重、有序）</strong>。核心是"全链路思维"——生产端（确认+重试+本地消息表/事务消息）→ Broker（持久化+副本）→ 消费端（手动 ACK+幂等+死信），任一环节缺失都会破坏可靠性。顺序性则是"分区/队列级有序 + 单线程消费"的约束。</p>
           </div>
         </div>
 
@@ -1074,12 +1075,12 @@ sequenceDiagram
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>简单投递（fire-and-forget）</strong>：生产者发完即忘，无确认。可靠性最低，丢消息无感知。</p>
-            <p><strong>生产确认 + 重试</strong>：Producer 等待 Broker ACK，失败重试。RabbitMQ publisher confirm、Kafka acks。解决生产端丢失。</p>
-            <p><strong>持久化存储 + 副本</strong>：Broker 落盘 + 多副本（Kafka ISR、RabbitMQ 镜像队列）。解决 Broker 故障丢失。</p>
+            <p><strong>生产确认 + 重试</strong>：Producer 等待 Broker ACK，失败重试。RabbitMQ publisher confirm/return（见工程实践）、Kafka acks（<a href="#qa-9-4" class="internal-link">详见 9.4</a>）。解决生产端丢失。</p>
+            <p><strong>持久化存储 + 副本</strong>：Broker 落盘 + 多副本。Kafka acks=all + min.insync.replicas + ISR（<a href="#qa-9-4" class="internal-link">详见 9.4</a>）；RocketMQ 同步复制刷盘；<strong>RabbitMQ 镜像队列</strong>（HA policy，queue 镜像到多节点，主节点故障自动切备节点，见工程实践增量）。解决 Broker 故障丢失。</p>
             <p><strong>消费手动 ACK</strong>：消费者处理完成后才 ACK，未 ACK 的消息重新入队。解决消费端丢失。</p>
-            <p><strong>死信队列</strong>：多次消费失败的消息转入死信队列，避免毒药消息阻塞。RabbitMQ DLX、Kafka 需自建。</p>
-            <p><strong>本地消息表 / 事务消息</strong>：生产端"本地事务 + 消息表"原子，异步投递；RocketMQ 事务消息（半消息+回查）。解决"生产端业务与消息发送的原子性"。</p>
-            <p><strong>Exactly-Once 语义</strong>：Kafka 幂等生产者+事务、RocketMQ 消费去重。从 At-Most-Once / At-Least-Once 向 Exactly-Once 演进。</p>
+            <p><strong>死信队列</strong>：多次消费失败的消息转入死信队列，避免毒药消息阻塞。RabbitMQ DLX（Dead-Letter Exchange，绑定死信队列自动路由）、Kafka 需自建。</p>
+            <p><strong>本地消息表 / 事务消息</strong>：生产端"本地事务 + 消息表"原子，异步投递；RocketMQ 事务消息（半消息+回查，见工程实践完整示例）。解决"生产端业务与消息发送的原子性"。</p>
+            <p><strong>Exactly-Once 语义</strong>：Kafka 幂等生产者+事务 Exactly-Once（<a href="#qa-9-4" class="internal-link">详见 9.4</a>）；RocketMQ/通用方案退化为"At-Least-Once + 消费幂等"（见工程实践通用幂等双写设计）。</p>
           </div>
         </div>
 
@@ -1116,29 +1117,28 @@ flowchart LR
 
             <p><strong>三段可靠性保障</strong>：</p>
             <ol>
-              <li><strong>生产端不丢</strong>：① 本地消息表——业务事务与消息表插入原子，后台扫描消息表异步发送，成功后标记已发送；② RocketMQ 事务消息——发送半消息（对消费者不可见）→ 执行本地事务 → 提交/回滚半消息，Broker 回查本地事务状态。解决"业务成功但消息发送失败"。</li>
-              <li><strong>Broker 不丢</strong>：持久化（同步刷盘或副本同步）+ 多副本（Kafka acks=all + min.insync.replicas、RocketMQ 同步复制）。</li>
-              <li><strong>消费端不丢</strong>：手动 ACK（处理完再确认）+ 幂等（防重投递重复）+ 死信队列（毒药消息隔离）。</li>
+              <li><strong>生产端不丢</strong>：① 本地消息表——业务事务与消息表插入原子，后台扫描消息表异步发送，成功后标记已发送；② RocketMQ 事务消息——发送半消息（对消费者不可见）→ 执行本地事务 → 提交/回滚半消息，Broker 回查本地事务状态；③ <strong>RabbitMQ confirm/return 双机制</strong>（见工程实践代码示例）。解决"业务成功但消息发送失败"或"消息未路由到 queue"。</li>
+              <li><strong>Broker 不丢</strong>：持久化（同步刷盘或副本同步）+ 多副本。Kafka acks=all + min.insync.replicas 多副本细节（<a href="#qa-9-4" class="internal-link">详见 9.4</a>）；RocketMQ 同步复制刷盘；RabbitMQ 镜像队列 HA policy（见工程实践配置示例）。</li>
+              <li><strong>消费端不丢</strong>：手动 ACK（处理完再确认）+ 幂等（防重投递重复，见工程实践通用幂等双写设计）+ 死信队列（毒药消息隔离）。</li>
             </ol>
 
             <p><strong>顺序性保证</strong>：</p>
             <table class="compare-table">
-              <thead><tr><th>有序级别</th><th>机制</th><th>代价</th></tr></thead>
+              <thead><tr><th>有序级别</th><th>通用机制</th><th>Kafka 实现</th><th>RocketMQ 实现</th><th>代价</th></tr></thead>
               <tbody>
-                <tr><td>全局有序</td><td>单分区/单队列 + 单消费者</td><td>无并行，吞吐极低</td></tr>
-                <tr><td>分区有序</td><td>按 key 路由同分区 + 单消费者消费该分区</td><td>同 key 串行，不同 key 并行</td></tr>
-                <tr><td>业务有序</td><td>同业务实体(如orderId)消息同分区</td><td>需合理设计 partition key</td></tr>
+                <tr><td>全局有序</td><td>单分区/单队列 + 单消费者</td><td>1 分区 + 1 consumer</td><td>1 queue + MessageListenerOrderly</td><td>无并行，吞吐极低，几乎不用</td></tr>
+                <tr><td>分区有序（业务级有序）</td><td>按业务 key 路由同分区/队列 + 单分区单线程消费</td><td>按 key 路由分区 + 单消费者（<a href="#qa-9-4" class="internal-link">详见 9.4</a>）</td><td><strong>MessageQueueSelector 按业务 ID 选队列 + MessageListenerOrderly 顺序消费</strong>（见工程实践代码）</td><td>同 key 串行，不同 key 并行，工程实践平衡</td></tr>
               </tbody>
             </table>
 
-            <p><strong>顺序性破坏场景</strong>：① 消费者多线程消费同分区（破坏分区顺序）；② rebalance 后分区重分配，旧消费者未处理完新消费者已开始；③ 重试消息进入重试队列延迟后回到原队列，与后续消息乱序。解法：单线程消费分区 + 顺序重试（RocketMQ 顺序消息）。</p>
+            <p><strong>顺序性破坏场景</strong>：① 消费者多线程消费同分区（破坏分区顺序）；② rebalance 后分区重分配，旧消费者未处理完新消费者已开始；③ 重试消息进入重试队列延迟后回到原队列，与后续消息乱序。解法：单线程消费分区 + 顺序重试（RocketMQ MessageListenerOrderly 内建顺序重试，失败阻塞当前队列不跳过）。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>RocketMQ 事务消息实现"可靠投递+本地事务原子"</strong>：</p>
+            <p><strong>1. RocketMQ 事务消息（半消息+反查机制）</strong>：</p>
             <div class="code-block"><pre><code><span class="com">// 1. 发送半消息(对消费者不可见)</span>
 <span class="type">TransactionMQProducer</span> producer = <span class="kw">new</span> <span class="type">TransactionMQProducer</span>(group);
 producer.<span class="fn">setTransactionListener</span>(<span class="kw">new</span> <span class="type">TransactionListener</span>() {  <span class="com">// 注：RocketMQ 4.7.0+ 已废弃，推荐使用 setTransactionChecker + TransactionChecker</span>
@@ -1156,8 +1156,71 @@ producer.<span class="fn">setTransactionListener</span>(<span class="kw">new</sp
 });
 producer.<span class="fn">sendMessageInTransaction</span>(msg, <span class="kw">null</span>);</code></pre></div>
 
-            <p><strong>消费端可靠消费</strong>：① 关闭自动 ACK，手动 ACK；② 消费幂等（唯一键去重或状态机）；③ 失败重试有上限（如 3 次），超过进死信队列；④ 死信队列监控告警，人工或脚本处理。</p>
-            <p><strong>顺序消息实践</strong>：RocketMQ 顺序消息（MessageQueueSelector 按 key 选队列）+ 顺序消费（MessageListenerOrderly 单线程消费队列）。Kafka 按 key 路由分区 + 单消费者消费分区。注意顺序消费下失败会阻塞当前分区，需快速失败 + 死信。</p>
+            <p><strong>2. RocketMQ 严格顺序（MessageQueueSelector + MessageListenerOrderly）</strong>：发送时按 orderId 选择同一队列，消费时单线程顺序消费：</p>
+            <div class="code-block"><pre><code><span class="com">// 发送端: MessageQueueSelector 按业务键(orderId)选队列, 保证同 orderId 同 queue</span>
+producer.<span class="fn">send</span>(msg, <span class="kw">new</span> <span class="type">MessageQueueSelector</span>() {
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">MessageQueue</span> <span class="fn">select</span>(<span class="type">List</span>&lt;<span class="type">MessageQueue</span>&gt; mqs, <span class="type">Message</span> msg, <span class="type">Object</span> arg) {
+        <span class="type">Long</span> orderId = (<span class="type">Long</span>) arg;
+        <span class="kw">int</span> idx = (<span class="kw">int</span>) (orderId % mqs.<span class="fn">size</span>());  <span class="com">// 同 orderId 路由同队列</span>
+        <span class="kw">return</span> mqs.<span class="fn">get</span>(idx);
+    }
+}, orderId);  <span class="com">// arg = orderId</span>
+
+<span class="com">// 消费端: MessageListenerOrderly 内建单线程消费每队列 + 顺序重试(失败阻塞当前队列不跳过)</span>
+consumer.<span class="fn">registerMessageListener</span>(<span class="kw">new</span> <span class="type">MessageListenerOrderly</span>() {
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> <span class="type">ConsumeOrderlyStatus</span> <span class="fn">consumeMessage</span>(<span class="type">List</span>&lt;<span class="type">MessageExt</span>&gt; msgs, <span class="type">ConsumeOrderlyContext</span> ctx) {
+        <span class="kw">for</span> (<span class="type">MessageExt</span> msg : msgs) {
+            <span class="type">Long</span> orderId = (<span class="type">Long</span>) msg.<span class="fn">getProperty</span>(<span class="str">"orderId"</span>);
+            orderService.<span class="fn">processByOrder</span>(orderId);  <span class="com">// 同 orderId 的消息串行处理</span>
+        }
+        <span class="kw">return</span> <span class="type">ConsumeOrderlyStatus</span>.SUCCESS;
+    }
+});</code></pre></div>
+
+            <p><strong>3. RabbitMQ confirm/return 机制与镜像队列</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// ========== 生产端 confirm + return 双确认 ==========</span>
+<span class="type">ConnectionFactory</span> factory = <span class="kw">new</span> <span class="type">ConnectionFactory</span>();
+factory.<span class="fn">setPublisherConfirmType</span>(<span class="type">ConfirmType</span>.CORRELATED);  <span class="com">// 开启 confirm 异步回调</span>
+factory.<span class="fn">setPublisherReturns</span>(<span class="kw">true</span>);                          <span class="com">// 开启 return(消息未路由到 queue 时回调)</span>
+<span class="type">RabbitTemplate</span> template = <span class="kw">new</span> <span class="type">RabbitTemplate</span>(factory);
+template.<span class="fn">setConfirmCallback</span>((correlationData, ack, cause) -> {
+    <span class="kw">if</span> (!ack) { log.<span class="fn">error</span>(<span class="str">"消息未到 Broker: {}"</span>, cause); retry(correlationData); }
+});
+template.<span class="fn">setReturnsCallback</span>(returned -> {
+    log.<span class="fn">error</span>(<span class="str">"消息未路由到 queue: exchange={}, routingKey={}, reply={}"</span>,
+        returned.<span class="fn">getExchange</span>(), returned.<span class="fn">getRoutingKey</span>(), returned.<span class="fn">getReplyText</span>());
+});
+template.<span class="fn">convertAndSend</span>(<span class="str">"order.exchange"</span>, <span class="str">"order.create"</span>, msg,
+    <span class="kw">new</span> <span class="type">CorrelationData</span>(UUID.randomUUID().<span class="fn">toString</span>()));
+
+<span class="com">// ========== Broker 镜像队列 HA policy(命令行配置) ==========</span>
+<span class="com"># 对 ha. 前缀的所有 queue 启用镜像, 镜像到集群所有节点, ha-sync-mode=automatic 自动同步</span>
+<span class="com">rabbitmqctl set_policy ha-all "^ha\." '{"ha-mode":"all","ha-sync-mode":"automatic"}'</span>
+<span class="com"># 或镜像到恰好 N 个节点</span>
+<span class="com">rabbitmqctl set_policy ha-nodes "^ha\." '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}'</span></code></pre></div>
+
+            <p><strong>4. 通用幂等设计（业务唯一键 + Redis SETNX / DB UNIQUE 双写）</strong>：Exactly-Once 在端到端(跨外部系统)场景无法绝对保证，工程退化为<strong>At-Least-Once + 消费幂等</strong>。双保险策略：</p>
+            <div class="code-block"><pre><code><span class="com">// 消费幂等：Redis SETNX(快路径) + DB 唯一约束(慢路径兜底)</span>
+<span class="kw">public void</span> <span class="fn">onOrderCreated</span>(<span class="type">String</span> eventId, <span class="type">OrderEvent</span> event) {
+    <span class="com">// 1. 快路径: Redis SETNX 原子抢占, 过期时间>业务最大处理时间</span>
+    <span class="type">Boolean</span> first = redisTemplate.<span class="fn">opsForValue</span>()
+        .<span class="fn">setIfAbsent</span>(<span class="str">"mq:idempotent:"</span> + eventId, <span class="str">"1"</span>, <span class="num">24</span>, <span class="type">TimeUnit</span>.HOURS);
+    <span class="kw">if</span> (Boolean.<span class="fn">FALSE</span>.<span class="fn">equals</span>(first)) {
+        log.<span class="fn">warn</span>(<span class="str">"重复消费跳过 eventId={}"</span>, eventId);  <span class="com">// 绝大多数重复请求在此拦截</span>
+        <span class="kw">return</span>;
+    }
+    <span class="kw">try</span> {
+        <span class="com">// 2. 执行业务: DB 同事务插入去重表(t_mq_consume_record, event_id UNIQUE 索引)</span>
+        jdbcTemplate.<span class="fn">update</span>(<span class="str">"INSERT INTO t_mq_consume_record(event_id, created_at) VALUES (?, NOW())"</span>, eventId);
+        orderService.<span class="fn">create</span>(event);  <span class="com">// 与去重表插入同一 DB 事务, DB UNIQUE 兜底</span>
+    } <span class="kw">catch</span> (<span class="type">DuplicateKeyException</span> e) {
+        log.<span class="fn">warn</span>(<span class="str">"DB 兜底拦截重复消费 eventId={}"</span>, eventId);  <span class="com">// Redis 故障/过期时由 DB 兜底</span>
+    }
+}</code></pre></div>
+
+            <p><strong>消费端可靠消费通用检查项</strong>：① 关闭自动 ACK，手动 ACK（处理完再确认）；② 失败重试有上限（如 3 次），超过转死信队列；③ 死信队列监控告警，人工兜底；④ Kafka 分区有序与 Exactly-Once/事务细节（<a href="#qa-9-4" class="internal-link">详见 9.4</a>）。</p>
           </div>
         </div>
 
@@ -1799,12 +1862,11 @@ flowchart LR
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>XA/2PC（早期）</strong>：数据库层强一致两阶段提交，<strong>资源长锁定</strong>，性能差、跨异构数据源难，已基本退出互联网主链路。</p>
-            <p><strong>TCC（Try-Confirm-Cancel）</strong>：业务层两阶段，Try 预留资源、Confirm 确认、Cancel 回滚。<strong>最终一致、无长锁</strong>，但业务侵入大（每接口写三套逻辑），需幂等与防悬挂。</p>
-            <p><strong>Seata AT（2019）</strong>：自动生成反向 SQL 实现回滚，<strong>低侵入（仅加 @GlobalTransactional）</strong>。痛点是全局锁（branch 事务间串行）成为高并发性能瓶颈，且依赖本地事务 ACID。</p>
-            <p><strong>本地消息表</strong>：业务表与消息表同库事务写入，定时轮询消息表投递 MQ。<strong>简单可靠</strong>，但轮询有延迟、消息表需定期清理、高频写时数据库压力大。</p>
-            <p><strong>Outbox 模式 + CDC（2020+ 兴起）</strong>：业务写库同时写 outbox 表，<strong>Debezium/Canal 订阅 binlog</strong> 投递 MQ，应用无需轮询。<strong>趋势</strong>：Outbox + 事件驱动成为微服务事务主流，解耦业务与消息投递。</p>
-            <p><strong>Seata 2.x（2024）</strong>：TC 引入<strong>Raft 集群高可用</strong>（告别单点）、存储模型重构支持 Redis/DB 多种后端、Saga 状态机引擎增强（支持 JSON DSL 编排补偿）。<strong>2026 选型趋势</strong>：最终一致场景首选 Outbox + 事件驱动；强一致短事务用 Seata AT；长流程编排用 Saga；高并发资源预留用 TCC。</p>
+            <p>本题聚焦分布式事务 2026 新演进与选型决策矩阵；TCC/AT/Saga/本地消息表基础详见 <a href="#qa-9-2" class="internal-link">9.2</a>。</p>
+            <p><strong>基础模式回顾（详见 9.2）</strong>：XA/2PC 强一致长锁已淘汰；TCC Try/Confirm/Cancel 三接口业务侵入大；Seata AT Undo Log+全局锁低侵入但并发瓶颈；Saga 正向+补偿适合长流程；本地消息表靠轮询投递。以下聚焦 2026 增量演进。</p>
+            <p><strong>增量 1：Outbox 模式 + CDC 兴起（2020+→2026 主流）</strong>。业务写库同时写 outbox 表，<strong>Debezium/Canal 订阅 binlog</strong>（表级别变更捕获）投递 MQ，应用无需轮询。Outbox vs 本地消息表关键差异：<strong>① 实时性</strong>——CDC 毫秒级推送（binlog 产生即推送）vs 轮询秒级延迟（通常 1-5s 轮询间隔）；<strong>② 无状态性</strong>——CDC 连接器是独立中间件，应用服务本身无定时任务线程，对 DB 无附加轮询查询压力；<strong>③ 统一接入</strong>——多服务共用一套 CDC 集群，无需各服务自建轮询。<strong>Outbox 表设计要点</strong>（id/aggregate_type/aggregate_id/event_type/payload/created_at 六字段）：<code class="inline-code">id BIGINT AUTO_INCREMENT PRIMARY KEY</code>（自增保证顺序）、<code class="inline-code">aggregate_type VARCHAR(64)</code>（聚合根类型，如 Order）、<code class="inline-code">aggregate_id VARCHAR(128)</code>（聚合根业务 ID）、<code class="inline-code">event_type VARCHAR(64)</code>（事件类型，如 OrderCreated）、<code class="inline-code">payload JSON</code>（事件体）、<code class="inline-code">created_at DATETIME</code>。<strong>趋势</strong>：Outbox + 事件驱动成为微服务事务首选。</p>
+            <p><strong>增量 2：Seata 2.x TC Raft 集群高可用（2023→2026 成熟）</strong>。Seata 1.x TC 依赖 DB/Redis 做共享存储 + 注册中心选举，故障切换有分钟级窗口期；2.x 引入<strong>Raft 存储模式</strong>（基于 sofa-jraft），TC 本身组成 3/5 节点 Raft 集群，无需外部依赖。<strong>Raft 模式 vs DB 模式选型对比</strong>：① <strong>一致性</strong>——Raft 强一致（Leader 写，多数派同步后 ACK），DB 模式一致性取决于共享 DB 本身；② <strong>性能</strong>——Raft 模式 Leader 单点写但多数派同步（网络 RTT×2），中小集群吞吐够用；DB 模式若共享 DB 是 MySQL 主从则写主从延迟风险；③ <strong>运维复杂度</strong>——Raft 模式无需额外部署共享 DB/Redis，减少组件；DB 模式依赖 DB 高可用（需部署 MHA/Orchestrator 等），链路长；④ <strong>部署规模</strong>——小集群（≤5 TC 节点）选 Raft 模式（2026 推荐），超大规模选 DB 模式 + 独立高可用数据库。</p>
+            <p><strong>增量 3：2026 选型决策矩阵</strong>（五维度表格见原理层）。最终一致场景首选 Outbox+CDC；强一致短事务用 Seata AT；长流程编排用 Saga；高并发资源预留用 TCC；无 CDC 基础设施的中小团队本地消息表起步。</p>
           </div>
         </div>
 
@@ -1849,6 +1911,18 @@ flowchart LR
             </div>
 
             <p><strong>TCC vs AT 取舍</strong>：AT 零侵入但有全局锁，适合<strong>低并发强一致</strong>（如库存扣减的旁路校验）；TCC 侵入大但无锁并发好，适合<strong>高并发资源预留</strong>（如秒杀库存）。核心差异：AT 回滚靠反向 SQL（可能脏写需校验），TCC 回滚靠业务 Cancel（精确可控）。</p>
+
+            <p><strong>2026 选型决策矩阵（五维度）</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>典型场景</th><th>一致性需求</th><th>可用性要求</th><th>实现成本</th><th>运维复杂度</th><th>推荐方案</th><th>决策说明</th></tr></thead>
+              <tbody>
+                <tr><td>电商订单履约（长流程：下单→扣库存→支付→发货→通知）</td><td>最终一致（允许中间态）</td><td>极高（链路长，任一步阻塞不能影响其他）</td><td>中（需 Saga 状态机编排+补偿幂等）</td><td>高（补偿失败告警+人工兜底）</td><td><strong>Saga 状态机</strong></td><td>长流程无全局事务，正向+补偿可独立重试/人工兜底</td></tr>
+                <tr><td>跨服务订单创建+扣库存+优惠券（多服务原子性）</td><td>最终一致</td><td>高</td><td>低（业务写 outbox+CDC 基础设施）</td><td>中（需维护 Debezium/Canal 集群）</td><td><strong>Outbox + CDC + 事件驱动</strong>（2026 首选）</td><td>业务与消息同事务原子，CDC 实时解耦，多服务共用基础设施</td></tr>
+                <tr><td>秒杀库存预留（高并发热点行）</td><td>最终一致</td><td>极高（抗瞬时流量）</td><td>高（三套接口+幂等+防悬挂）</td><td>中</td><td><strong>TCC</strong></td><td>Try 阶段本地事务冻结资源，无全局锁，并发高，适合热点</td></tr>
+                <tr><td>账户转账/积分兑换（强一致短事务）</td><td>强一致（不能中间态）</td><td>中（链路短）</td><td>极低（@GlobalTransactional 注解）</td><td>中（Seata 2.x Raft TC 集群 3 节点）</td><td><strong>Seata AT</strong></td><td>强一致，零侵入，热点并发低时可用；超热点需换 TCC</td></tr>
+                <tr><td>中小团队微服务，无 CDC 基础设施</td><td>最终一致</td><td>高</td><td>极低（SQL 写消息表+Spring @Scheduled 轮询）</td><td>低（无额外组件）</td><td><strong>本地消息表</strong>（起步方案）</td><td>零额外组件，单服务内即可闭环；后期 CDC 基础设施就位后迁 Outbox</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 

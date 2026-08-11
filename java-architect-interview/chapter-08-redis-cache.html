@@ -15,7 +15,7 @@
     <aside class="sidebar-toc">
       <h3>本篇目录</h3>
       <ol>
-        <li><a href="#qa-8-1"><span class="toc-number">8.1</span>5+3 种数据结构与应用</a></li>
+        <li><a href="#qa-8-1"><span class="toc-number">8.1</span>5+4 种数据结构与应用</a></li>
         <li><a href="#qa-8-2"><span class="toc-number">8.2</span>RDB 与 AOF 持久化权衡</a></li>
         <li><a href="#qa-8-3"><span class="toc-number">8.3</span>穿透/击穿/雪崩</a></li>
         <li><a href="#qa-8-4"><span class="toc-number">8.4</span>缓存与数据库一致性</a></li>
@@ -57,12 +57,12 @@
       </div>
 
       <!-- ============================================================ -->
-      <!-- Q8.1 Redis 的 5+3 种数据结构与应用场景？ -->
+      <!-- Q8.1 Redis 的 5+4 种数据结构与应用场景？ -->
       <!-- ============================================================ -->
       <div class="qa-card" id="qa-8-1" data-difficulty="senior" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">8.1</div>
-          <div class="qa-question">Redis 的 5+3 种数据结构与应用场景？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+          <div class="qa-question">Redis 的 5+4 种数据结构与应用场景？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -78,14 +78,14 @@
             <p><strong>早期 Redis 2.x~3.x：基础五类型 + 简单编码</strong>。String 底层 int/embstr/raw；List 用 ziplist（小，已废弃：Redis 7.0 起全面退役，替代：listpack，消除连锁更新问题）或 linkedlist（大）；Hash/Set/Zset 用 ziplist（同上已废弃）或 hashtable/skiplist。痛点：ziplist 的连锁更新（cascade update）问题——中间元素扩张导致后续所有元素 prevlen 字段级联修改，最坏 O(n²)。</p>
             <p><strong>Redis 4.0：List 引入 quicklist</strong>——双向链表 + 每节点一个 ziplist（Redis 7.0 起节点内部改用 listpack），兼顾内存紧凑与修改效率，替代纯 linkedlist。Redis 5.0 引入 Stream（借鉴 Kafka 消费组模型）。</p>
             <p><strong>Redis 7.0：ziplist 全面退役，引入 listpack</strong>。listpack 取消了 prevlen 字段，每个元素只存自身长度，从根本上<strong>消除连锁更新</strong>。Hash/Set/Zset 的小数据编码从 ziplist 切换为 listpack，List 的 quicklist 内部也从 ziplist 替换为 listpack（quicklist->listpack）。</p>
-            <p><strong>趋势</strong>：① 编码持续向"紧凑 + 无连锁更新"演进，listpack 之后社区在探索 listpack 是否可承载更大容量；② 类型语义融合数据库能力——Stream 补齐消息队列、Bitmap 补齐位图统计、HyperLogLog 补齐基数去重；③ Redis 7.4+ 引入 <code class="inline-code">Hash field expiration</code>（hexpire）、8.0 计划中的 vector set（向量检索），向多模数据库演进。</p>
+            <p><strong>趋势</strong>：① 编码持续向"紧凑 + 无连锁更新"演进，listpack 之后社区在探索 listpack 是否可承载更大容量；② 类型语义融合数据库能力——Stream 补齐消息队列、Bitmap 补齐位图统计、HyperLogLog 补齐基数去重；③ Redis 7.4+ 引入 <code class="inline-code">Hash field expiration</code>（hexpire）、Redis 8.0（2025-05 GA）引入 Vector Set（向量检索，HNSW 索引，命令 VADD/VSIM/VRANDMEMBER），向多模数据库演进。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型（5+3），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code> 等）自动切换编码，对用户透明。</p>
+            <p><strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型（5+4），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code> 等）自动切换编码，对用户透明。</p>
 
             <table class="compare-table">
               <thead><tr><th>类型</th><th>典型底层编码（7.x）</th><th>核心命令</th><th>典型场景</th></tr></thead>
@@ -98,6 +98,7 @@
                 <tr><td><strong>Stream</strong></td><td>radix tree + listpack</td><td>XADD/XREAD/XGROUP</td><td>消息队列(消费组+ACK)、事件日志</td></tr>
                 <tr><td><strong>Bitmap</strong></td><td>String(SDS位操作)</td><td>SETBIT/BITCOUNT/BITFIELD</td><td>用户签到、在线状态、布隆过滤器</td></tr>
                 <tr><td><strong>HyperLogLog</strong></td><td>稀疏/稠密 String</td><td>PFADD/PFCOUNT/PFMERGE</td><td>UV 去重统计(误差 0.81%, 固定 12KB)</td></tr>
+<tr><td><strong>Vector Set</strong></td><td>HNSW + listpack</td><td>VADD/VSIM/VRANDMEMBER</td><td>语义检索、RAG 向量召回</td></tr>
               </tbody>
             </table>
 
@@ -127,7 +128,7 @@
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：String 的 embstr 与 raw 编码有何区别？为何 44 字节是分界线？</strong></p>
-            <p>embstr（embedded string）将 redisObject 与 SDS 内存连续分配，一次 malloc，对 CPU cache 友好；raw 是 redisObject 与 SDS 分两次 malloc。embstr 上限 = 64 字节头（redisObject 16 + SDS 头 3 + 结尾 1）− 20 = 44 字节（Redis 4.x 后调整为 44）。超过即切 raw。embstr 是只读的——修改会转为 raw 再操作。</p>
+            <p>embstr（embedded string）将 redisObject 与 SDS 内存连续分配，一次 malloc，对 CPU cache 友好；raw 是 redisObject 与 SDS 分两次 malloc。embstr 要求 redisObject + SDS 连续分配且总大小 ≤ 64 字节（jemalloc 小对象分配边界），即数据部分 ≤ 64 − 16(redisObject) − 3(SDS 头) − 1(\0结尾) = 44 字节（Redis 4.x 后调整为 44）。超过即切 raw。embstr 是只读的——修改会转为 raw 再操作。</p>
             <p><strong>追问 2：Stream 相比 List/Kafka 做消息队列的边界？</strong></p>
             <p>Stream 优势：内置消费组（XGROUP）、ACK 机制（XPENDING/XCLAIM）、持久化、内存级低延迟。劣势：单机容量受内存限制、无分区并行（Kafka 分区多消费者并行）、消息堆积后回溯不如 Kafka 灵活。<strong>适用</strong>：中小规模（日千万级）、对延迟敏感、不希望引入独立 MQ 的场景；大规模/可观测性要求高用 Kafka。</p>
           </div>
@@ -780,10 +781,10 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
       <!-- ============================================================ -->
       <!-- Q8.7 Redis Cluster 的工作原理？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="qa-8-7" data-difficulty="senior" data-priority="p2">
+      <div class="qa-card" id="qa-8-7" data-difficulty="senior" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">8.7</div>
-          <div class="qa-question">Redis Cluster 的工作原理？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">Redis Cluster 的工作原理？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -948,7 +949,7 @@ flowchart TB
 
             <p><strong>近似 LRU 实现</strong>：Redis 不维护全局 LRU 链表（百万 key 的链表移动开销大）。每个 redisObject 有 24 位 lru 字段记录最后访问时间戳（秒级）。淘汰时随机采样 <code class="inline-code">maxmemory-samples</code>（默认5）个 key，淘汰其中 lru 最旧的。采样数越大越接近真实 LRU 但越慢。5 是性能与准确性的折中，可调到 10 提升命中率。</p>
 
-            <p><strong>LFU 的 Morris 计数器</strong>：lru 字段在 LFU 模式拆为 16 位衰减时间 + 8 位频率计数。8 位频率用 Morris 计数器——概率性递增（访问越多递增概率越低），8 位可表示远超 255 的访问次数。8 位还分两段：高 4 位存频率、低 4 位存衰减计数，实现"长时间不访问则频率衰减"，避免老热点永不被淘汰。</p>
+            <p><strong>LFU 的 Morris 计数器</strong>：lru 字段在 LFU 模式拆为 16 位衰减时间 + 8 位频率计数。8 位频率用 Morris 计数器——概率性递增（访问越多递增概率越低），8 位可表示远超 255 的访问次数。8 位频率计数器为完整的 Morris 概率计数器（概率性递增，8 位即可表达远超 256 的访问频次）；衰减基于 24 位 lru 字段中的高 16 位时间戳（分钟精度），按 <code class="inline-code">lfu-decay-time</code>（默认 1 分钟）周期对频率做对数衰减。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>

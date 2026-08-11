@@ -76,7 +76,7 @@
             <p><strong>JDK 1.0 ~ 1.1（1996-1997）</strong>：内存区域划分原始，堆不分代，方法区概念尚未明确，GC 只有 Serial。</p>
             <p><strong>JDK 1.2（1998）</strong>：引入分代收集理论，堆被划分为新生代（Eden + 2 个 Survivor）与老年代，弱/软/虚引用体系建立。</p>
             <p><strong>JDK 1.6（2006）</strong>：方法区由"永久代（PermGen）"实现，字符串常量池位于永久代中。<code class="inline-code">-XX:MaxPermSize</code>（JDK 8 已随永久代移除，现使用 <code class="inline-code">-XX:MaxMetaspaceSize</code>）成为高频调优参数，但永久代大小固定、易 OOM 成为痛点。</p>
-            <p><strong>JDK 1.7（2011）</strong>：符号引用、静态变量移出永久代；字符串常量池从永久代迁移到堆中（仍部分保留）。这是永久代废除的前奏。</p>
+            <p><strong>JDK 1.7（2011）</strong>：符号引用、静态变量移出永久代；字符串常量池从永久代整体迁移到 Java 堆。这是永久代废除的前奏。</p>
             <p><strong>JDK 1.8（2014）</strong>：<strong>彻底移除永久代</strong>，方法区改由本地内存的"元空间（Metaspace）"实现。类元数据只受本地内存上限约束，解决了永久代易溢出的问题。</p>
             <p><strong>JDK 10（2018）</strong>：引入容器感知（<code class="inline-code">-XX:+UseContainerSupport</code>），JVM 自动识别 cgroup 内存限制，避免容器内 OOM Killed。</p>
             <p><strong>JDK 16</strong>：JEP 387 弹性元空间（Elastic Metaspace），元空间可归还内存给操作系统，解决早期元空间只增不减的问题。</p>
@@ -154,7 +154,7 @@ graph TD
             <p>永久代有两个根本缺陷：一是大小固定（-XX:MaxPermSize），无法动态伸缩，容易 OOM；二是它与堆使用不同的内存管理，GC 效率低。元空间使用本地内存，大小仅受 OS 限制，且类元数据按 ClassLoader 隔离管理，回收粒度更精细。另外，JRockit 与 HotSpot 融合（JRockit 无永久代）也是推动因素。</p>
 
             <p><strong>追问 2：字符串常量池为什么从永久代移到堆？</strong></p>
-            <p>永久代 GC 效率低（Full GC 才回收），而 <code class="inline-code">String.intern()</code> 调用频繁，大量字符串常量堆积在永久代易 OOM。移到堆后可被年轻代 GC 及时回收，且堆内存更大更弹性。JDK 7 开始迁移，JDK 8 彻底完成。</p>
+            <p>永久代 GC 效率低（Full GC 才回收），而 <code class="inline-code">String.intern()</code> 调用频繁，大量字符串常量堆积在永久代易 OOM。移到堆后可被年轻代 GC 及时回收，且堆内存更大更弹性。JDK 7 将字符串常量池从永久代整体迁到堆（可被年轻代 GC 及时回收）；JDK 8 进一步移除永久代，方法区改由元空间实现——这是两件不同的事，不要混为一谈。</p>
 
             <p><strong>追问 3：程序计数器为什么不会 OOM？</strong></p>
             <p>PC 寄存器只存当前线程执行的字节码地址（一个整数），由 CPU 寄存器直接承载，不涉及堆内存分配，因此不存在内存不足的场景。</p>

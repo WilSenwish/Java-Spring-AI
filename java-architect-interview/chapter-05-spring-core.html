@@ -253,9 +253,8 @@ flowchart LR
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>早期 Spring（单级缓存）</strong>：最初只有 <code class="inline-code">singletonObjects</code>，无法解决任何循环依赖——A 创建时需要 B，B 创建时需要 A，但 A 还没放入缓存，B 拿不到 A，死锁。</p>
-            <p><strong>引入二级缓存</strong>：增加 <code class="inline-code">earlySingletonObjects</code>，存放"实例化完成但未完成属性填充"的半成品。A 实例化后立即放入二级缓存，再填充属性时发现需要 B；B 实例化后填充属性需要 A，从二级缓存拿到 A 的半成品，B 完成；A 继续完成。这解决了 setter 循环依赖。</p>
-            <p><strong>引入三级缓存（AOP 时代）</strong>：当 A 需要被 AOP 代理时，二级缓存存的是 A 的原始对象，而 B 注入的应是 A 的代理对象——若 B 注入了原始对象，代理失效。于是引入第三级 <code class="inline-code">singletonFactories</code>，存放 <code class="inline-code">ObjectFactory</code>（一个 lambda），在需要时才调用 <code class="inline-code">getEarlyBeanReference</code> <strong>提前生成代理</strong>，并升级到二级缓存。这是为 AOP 服务的精细设计。</p>
+            <p><strong>早期 Spring</strong>：用一级成品缓存 <code class="inline-code">singletonObjects</code> + 二级半成品缓存 <code class="inline-code">earlySingletonObjects</code> 解决 setter 循环依赖；A 实例化后立即放入二级缓存，再填充属性时发现需要 B；B 实例化后填充属性需要 A，从二级缓存拿到 A 的半成品，B 完成；A 继续完成。</p>
+            <p><strong>引入三级缓存（AOP 时代）</strong>：当 A 需要被 AOP 代理时，二级缓存存的是 A 的原始对象，而 B 注入的应是 A 的代理对象——若 B 注入了原始对象，代理失效。于是引入第三级 <code class="inline-code">singletonFactories</code>（ObjectFactory），为保证代理对象正确暴露，在需要时才调用 <code class="inline-code">getEarlyBeanReference</code> <strong>提前生成代理</strong>，并升级到二级缓存。这是为 AOP 服务的精细设计。</p>
             <p><strong>Spring 6.x 收紧（2022）</strong>：<code class="inline-code">spring.main.allow-circular-references</code> 默认 <strong>false</strong>，Boot 启动时若有循环依赖直接报错。这是"用框架强制纠错"的演进——循环依赖本质是设计缺陷，官方态度从"尽力解决"转为"默认禁止，需显式开启"。同时 <code class="inline-code">spring.main.allow-bean-definition-overriding</code> 也默认 false。架构师应理解：未来循环依赖是 code smell，而非可依赖的特性。</p>
           </div>
         </div>
@@ -1276,7 +1275,7 @@ flowchart TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>第一代：PropertyEditor（JDK 提供，Spring 早期复用）</strong>：基于 <code class="java.beans.PropertyEditor</code> 接口，通过 <code class="inline-code">setAsText</code>/<code class="inline-code">getAsText</code> 在 String 与目标类型间转换。问题：<strong>有状态且线程不安全</strong>（实例字段存中间状态），需每个转换新建实例或加锁；API 设计面向 GUI（JavaBeans 规范），不适合服务端高并发。典型：<code class="inline-code">CustomDateEditor</code>。</p>
+            <p><strong>第一代：PropertyEditor（JDK 提供，Spring 早期复用）</strong>：基于 <code class="inline-code">java.beans.PropertyEditor</code> 接口，通过 <code class="inline-code">setAsText</code>/<code class="inline-code">getAsText</code> 在 String 与目标类型间转换。问题：<strong>有状态且线程不安全</strong>（实例字段存中间状态），需每个转换新建实例或加锁；API 设计面向 GUI（JavaBeans 规范），不适合服务端高并发。典型：<code class="inline-code">CustomDateEditor</code>。</p>
             <p><strong>第二代：Converter SPI（Spring 3.0）</strong>：引入 <code class="inline-code">Converter&lt;S,T&gt;</code> 接口，<strong>无状态、线程安全</strong>，适合服务端。配套 <code class="inline-code">ConverterFactory</code>（一组类型转换，如 String→Number 子类）与 <code class="inline-code">GenericConverter</code>（多源多目标，带上下文）。统一由 <code class="inline-code">ConversionService</code>（默认 <code class="inline-code">DefaultFormattingConversionService</code>）管理。</p>
             <p><strong>第三代：Formatter（Spring 3.0）</strong>：面向<strong>本地化格式化</strong>的转换，<code class="inline-code">Formatter&lt;T&gt;</code> 在 String 与 T 间转换并带 <code class="inline-code">Locale</code>。适用于日期/货币等需本地化的场景。Formatter 内部会被适配为 Converter 注册到 ConversionService。</p>
             <p><strong>Spring Boot 松绑定（Relaxed Binding）</strong>：在 <code class="inline-code">@ConfigurationProperties</code> 场景下，属性名支持松散匹配（kebab-case/camelCase/snake_case 互通），并复用 ConversionService 完成类型转换与 <code class="inline-code">Duration</code>/<code class="inline-code">DataSize</code> 等特殊类型解析。</p>
