@@ -51,16 +51,21 @@
 
     function updateActive() {
       var scrollPos = window.scrollY + 120;
-      var activeIndex = 0;
+      var activeCard = null;
 
       for (var i = 0; i < cards.length; i++) {
         if (cards[i].offsetTop <= scrollPos) {
-          activeIndex = i;
+          activeCard = cards[i];
         }
       }
 
-      tocLinks.forEach(function (link, idx) {
-        if (idx === activeIndex) {
+      // 按 href 锚点与卡片 id 精确匹配，避免 TOC 链接数与卡片数不一致时按索引错位
+      var activeId = activeCard ? activeCard.id : '';
+
+      tocLinks.forEach(function (link) {
+        var href = link.getAttribute('href');
+        var isActive = href === '#' + activeId;
+        if (isActive) {
           link.classList.add('active');
         } else {
           link.classList.remove('active');

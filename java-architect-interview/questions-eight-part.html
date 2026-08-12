@@ -282,11 +282,11 @@
           <p><strong>Virtual Threads</strong> 是 Java 21 最核心的特性。与传统 OS 线程（Platform Thread）1:1 映射不同，Virtual Thread 由 JVM 的 ForkJoinPool 调度，挂载（mount）到平台线程上执行，遇到阻塞 IO 时自动卸载（unmount），平台线程可继续执行其他虚拟线程。这使得高并发场景下线程创建成本从 MB 级降到 KB 级。</p>
           <p>但需注意 <strong>pinning</strong> 问题：当虚拟线程在 <code class="inline-code">synchronized</code> 块或 <code class="inline-code">native</code> 方法中执行时，会被"钉"在平台线程上无法卸载，导致平台线程阻塞。生产环境应使用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning。</p>
           <p><strong>Pattern Matching for switch</strong> 允许 switch 表达式直接对引用类型进行模式匹配：</p>
-          <pre class="code-block"><code>switch (obj) {
-    case Integer i -> System.out.println("int " + i);
-    case String s  -> System.out.println("str " + s);
-    case null      -> System.out.println("null");
-    default        -> System.out.println("other");
+          <pre class="code-block"><code><span class="kw">switch</span> (<span class="var">obj</span>) {
+    <span class="kw">case</span> <span class="type">Integer</span> <span class="var">i</span> <span class="op">-></span> <span class="type">System</span>.<span class="var">out</span>.<span class="fn">println</span>(<span class="str">"int "</span> <span class="op">+</span> <span class="var">i</span>);
+    <span class="kw">case</span> <span class="type">String</span> <span class="var">s</span>  <span class="op">-></span> <span class="type">System</span>.<span class="var">out</span>.<span class="fn">println</span>(<span class="str">"str "</span> <span class="op">+</span> <span class="var">s</span>);
+    <span class="kw">case null</span>      <span class="op">-></span> <span class="type">System</span>.<span class="var">out</span>.<span class="fn">println</span>(<span class="str">"null"</span>);
+    <span class="kw">default</span>        <span class="op">-></span> <span class="type">System</span>.<span class="var">out</span>.<span class="fn">println</span>(<span class="str">"other"</span>);
 }</code></pre>
           <p><strong>ZGC Generational</strong> 将堆划分为年轻代和老年代，年轻代使用标记-复制算法，暂停时间通常保持在 10ms 以内（部分场景低于 1ms），同时吞吐量显著优于单代 ZGC，适合大堆低延迟场景。</p>
         </div>
@@ -491,7 +491,7 @@
         <div class="epq-section">
           <div class="epq-section-title">详细解答</div>
           <p>Spring 解决循环依赖的核心在于"提前暴露"。当 A 开始实例化（createBeanInstance）后，尚未填充属性（populateBean）时，就将一个 ObjectFactory 放入三级缓存（singletonFactories）：</p>
-          <pre class="code-block"><code>addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));</code></pre>
+          <pre class="code-block"><code><span class="fn">addSingletonFactory</span>(<span class="var">beanName</span>, () <span class="op">-></span> <span class="fn">getEarlyBeanReference</span>(<span class="var">beanName</span>, <span class="var">mbd</span>, <span class="var">bean</span>));</code></pre>
           <p>如果 B 依赖 A，在填充 B 的属性时会去容器找 A。此时 A 尚未完成，但三级缓存中有 A 的工厂，调用 <code class="inline-code">getObject()</code> 获取早期引用。如果 A 需要被代理（如 AOP），<code class="inline-code">getEarlyBeanReference</code> 会调用 SmartInstantiationAwareBeanPostProcessor 提前生成代理对象，否则返回原始对象。</p>
           <p>获取早期引用后，A 的工厂从三级缓存移除，早期引用放入二级缓存（earlySingletonObjects）。当 A 完成属性填充和初始化后，从二级缓存移到一级缓存（singletonObjects）。</p>
           <p>为什么不用二级缓存？因为二级缓存只存对象引用，无法处理"是否需要代理"的判断。三级缓存的 ObjectFactory 可以延迟决定返回原始对象还是代理对象。</p>
