@@ -112,8 +112,7 @@ sequenceDiagram
             </div>
 
             <p><strong>四类内存屏障</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>屏障类型</th><th>作用</th><th>volatile 中的位置</th></tr>
                 </thead>
@@ -124,7 +123,7 @@ sequenceDiagram
                   <tr><td>LoadStore</td><td>禁止后面的普通写与前面的 volatile 读重排</td><td>volatile 读之后</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>为何不能保证原子性</strong>：以 <code class="inline-code">count++</code> 为例，它不是单条指令，而是"读 count → +1 → 写 count"三步。volatile 只保证每一步对其他线程可见，但<strong>不保证三步之间不被其他线程插入</strong>。两个线程同时读到 count=0，各自 +1 后写回 1，结果丢失一次更新。这是"读-改-写"（Read-Modify-Write）复合操作的本质问题，必须用 CAS（AtomicInteger）或锁来保证整体原子性。</p>
 
@@ -227,6 +226,7 @@ sequenceDiagram
         </div>
 
         <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
             <p>这道题考察对 synchronized 在 JVM 层"自适应优化"的理解——从无竞争到高竞争，JVM 如何在<strong>轻量级锁 → 重量级锁</strong>两级之间升级（JDK 15 起偏向锁已废弃，JEP 374，锁状态由 4 种简化为 3 种，现升级路径为：无锁 → 轻量级锁 → 重量级锁），以在"锁开销"与"竞争处理"间取得动态平衡。本质是 HotSpot 团队对"绝大多数锁在整个生命周期内不会出现竞争"这一经验的工程化利用。</p>
           </div>
@@ -246,8 +246,7 @@ sequenceDiagram
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>Mark Word：锁状态的载体</strong>。每个 Java 对象的对象头（Header）中有一个 64 位的 Mark Word，不同锁状态复用这 64 位存储不同信息：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>锁状态</th><th>Mark Word (64 bit)</th><th>触发条件</th></tr>
                 </thead>
@@ -259,7 +258,7 @@ sequenceDiagram
                   <tr><td>GC 标记</td><td>空 + 11</td><td>GC 期间标记用</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -595,8 +594,7 @@ sequenceDiagram
             <p><strong>解决方案二：布尔标记（AtomicMarkableReference）</strong>。用 boolean mark 替代 stamp，适合只关心"是否被动过"的场景，开销更小。</p>
 
             <p><strong>CAS 的三大局限</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>局限</th><th>描述</th><th>解决方案</th></tr>
                 </thead>
@@ -606,7 +604,7 @@ sequenceDiagram
                   <tr><td>单变量边界</td><td>一次只能 CAS 一个变量，无法原子更新多个</td><td>AtomicReference 封装对象、分布式锁</td></tr>
                 </tbody>
               </table>
-            </div>
+            
           </div>
         </div>
 
@@ -689,8 +687,7 @@ sequenceDiagram
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>三者核心特性对比</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>特性</th><th>synchronized</th><th>ReentrantLock</th><th>StampedLock</th></tr>
                 </thead>
@@ -706,7 +703,7 @@ sequenceDiagram
                   <tr><td>锁消除/粗化</td><td>JIT 可优化</td><td>无法优化</td><td>无法优化</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>StampedLock 的乐观读原理</strong>：写锁和读锁通过一个 long stamp（含锁状态位 + 版本号）管理。<code class="inline-code">tryOptimisticRead()</code> 返回当前 stamp（无任何 CAS，零开销），读完后 <code class="inline-code">validate(stamp)</code> 校验期间是否发生过写操作。若未发生写，读结果有效；若发生过写，降级为悲观读锁重新读。这避免了 ReentrantReadWriteLock"读锁也要 CAS"的开销。</p>
             <div class="code-block"><pre><code><span class="com">// StampedLock 乐观读模板（官方推荐写法）</span>
@@ -1002,8 +999,7 @@ graph TD
 }</code></pre></div>
 
             <p><strong>park/unpark vs wait/notify 的关键差异</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>维度</th><th>Object.wait/notify</th><th>LockSupport.park/unpark</th></tr>
                 </thead>
@@ -1015,7 +1011,7 @@ graph TD
                   <tr><td>许可累加</td><td>多次 notify 唤醒多个等待者</td><td>多次 unpark 只算 1 个 permit</td></tr>
                 </tbody>
               </table>
-            </div>
+            
           </div>
         </div>
 
@@ -1054,7 +1050,7 @@ graph TD
                 <li><strong>await 用 if 而非 while</strong>：虚假唤醒或条件竞态会导致逻辑错误，必须 while。</li>
                 <li><strong>signal 前忘记持锁</strong>：signal 必须在持锁状态下调用，否则可能唤醒了但节点未入同步队列。</li>
                 <li><strong>误以为多次 unpark 可唤醒多次 park</strong>：permit 不可累加，多次 unpark 后 park 仍只阻塞一次后返回。</li>
-                <li><strong>误以为 park 抛 InterruptedException：park 响应中断时仅返回，不抛异常，需自行检查 `Thread.interrupted()` 状态，否则忽略中断继续执行</strong>：park 默认响应中断（返回但不抛异常），需自行检查中断状态。</li>
+                <li><strong>误以为 park 抛 InterruptedException</strong>：park 响应中断时仅返回，不抛异常，需自行检查 <code class="inline-code">Thread.interrupted()</code> 状态，否则忽略中断继续执行。</li>
               </ul>
             </div>
           </div>
@@ -1091,8 +1087,7 @@ graph TD
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>并发集合全景对比</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>集合</th><th>实现机制</th><th>读</th><th>写</th><th>典型场景</th></tr>
                 </thead>
@@ -1108,7 +1103,7 @@ graph TD
                   <tr><td>ConcurrentSkipListMap</td><td>跳表 + CAS</td><td>无锁</td><td>CAS 无锁</td><td>并发有序 Map，替代 TreeMap</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>CopyOnWriteArrayList 的写时复制</strong>：写操作（add/set/remove）先获 ReentrantLock，复制整个底层数组，修改副本，再用 volatile 写替换原数组引用。读操作完全无锁（volatile 读数组引用）。代价是写 O(n) 且占用双倍内存，优势是读极快且迭代无锁（弱一致快照）。适合"监听器列表、配置表"等读远多于写的场景。</p>
 
@@ -1256,8 +1251,7 @@ graph TB
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>ForkJoinPool vs ThreadPoolExecutor 的差异</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>维度</th><th>ThreadPoolExecutor</th><th>ForkJoinPool</th></tr>
                 </thead>
@@ -1268,7 +1262,7 @@ graph TB
                   <tr><td>适合场景</td><td>Web 请求、IO 任务</td><td>CPU 密集分治、并行流</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <div class="callout callout-danger">
               <div class="callout-title">生产事故点</div>

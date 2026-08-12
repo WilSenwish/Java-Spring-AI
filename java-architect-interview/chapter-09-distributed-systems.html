@@ -80,7 +80,7 @@
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>起源：Brewer 2000 PODC keynote 提出 CAP 猜想</strong>。Eric Brewer 在"In Towards Robust Distributed Systems"中首次提出分布式系统无法同时满足一致性(Consistency)、可用性(Availability)、分区容忍性(Partition Tolerance)，只能三选二。</p>
+            <p><strong>起源：Brewer 2000 PODC keynote 提出 CAP 猜想</strong>。Eric Brewer 在"Towards Robust Distributed Systems"中首次提出分布式系统无法同时满足一致性(Consistency)、可用性(Availability)、分区容忍性(Partition Tolerance)，只能三选二。</p>
             <p><strong>形式化证明：Gilbert &amp; Lynch 2002</strong>。MIT 两位学者在"Brewer's Conjecture and the Feasibility of Consistent, Available, Partition-Tolerant Web Services"中严格证明了 CAP——在异步网络模型下，发生分区时不存在一个协议能同时保证线性一致性与总可用性。CAP 从猜想成为定理。</p>
             <p><strong>修正与反思：Brewer 2012 "CAP Twelve Years Later"</strong>。Brewer 公开承认"三选二是误导性的"——P 不是可选项而是必然（网络总会分区），实际选择是分区发生时在 C 与 A 之间权衡；且分区是少发的，无分区时系统可同时提供 C 与 A。<strong>PACELC（Abadi 2010）</strong>进一步扩展：分区时(P)权衡 A 与 C，无分区时(E)权衡 L(延迟) 与 C，更贴近工程实际。</p>
             <p><strong>BASE 理论：eBay Dan Pritchett 2008 提出</strong>。作为对 CAP 中 AP 选择的实践指南：Basically Available（基本可用，允许损失部分可用性如响应时间增加、降级）、Soft state（软状态，允许中间状态存在）、Eventually consistent（最终一致性，副本最终收敛）。BASE 让"最终一致"从模糊口号变为可工程化的设计原则。</p>
@@ -471,7 +471,7 @@ flowchart TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>ActiveMQ（2004，JMS 规范）</strong>：传统消息中间件，支持持久化但基于 Queue 的"推/拉"模型，单机吞吐万级。痛点：Master-Slave 主备切换弱、消息堆积性能下降、路由灵活但复杂。（已废弃：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar，此处仅作为 MQ 演进历史对比保留）</p>
+            <p><strong>ActiveMQ（2004，JMS 规范）</strong>：传统消息中间件，支持持久化但基于 Queue 的"推/拉"模型，单机吞吐万级。痛点：Master-Slave 主备切换弱、消息堆积性能下降、路由灵活但复杂。（新项目使用率下降：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar，此处仅作为 MQ 演进历史对比保留）</p>
             <p><strong>RabbitMQ（2007，AMQP）</strong>：Erlang 实现，灵活的 Exchange-Queue-Binding 路由模型，低延迟。痛点：吞吐仍受限（万级~十万级）、消息堆积后性能急剧下降、集群镜像队列开销大。</p>
             <p><strong>Kafka（2010，LinkedIn）</strong>：颠覆性设计——分布式提交日志（Partition+Segment 追加写）、零拷贝、页缓存、消费者 pull 模型、副本 ISR。吞吐百万级，消息堆积不影响性能（顺序读盘）。从"消息队列"重新定义为"分布式流平台"。</p>
             <p><strong>Pulsar（2016，Yahoo）</strong>：计算存储分离——Broker 无状态（计算）、BookKeeper 分层存储（持久化）。原生多租户、跨地域复制、存算独立扩缩。弥补 Kafka 的存储与计算耦合、Rebalance 慢、多租户弱等痛点。</p>
@@ -592,7 +592,7 @@ unclean.leader.election.enable=<span class="kw">false</span>  <span class="com">
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>早期：单队列人工排查</strong>。ActiveMQ（已废弃：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar）/RabbitMQ 时代靠管理台看 Queue 深度，手动重启消费者，处理粗放。</p>
+            <p><strong>早期：单队列人工排查</strong>。ActiveMQ（新项目使用率下降：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar）/RabbitMQ 时代靠管理台看 Queue 深度，手动重启消费者，处理粗放。</p>
             <p><strong>中期：消费组扩容 + 监控告警</strong>。Kafka Consumer Group 模型成熟后，通过增加消费者实例提升并行度；Prometheus + kafka_exporter 采集 consumer lag 告警。</p>
             <p><strong>现代：临时扩容 + 跳过堆积 + binlog 回溯</strong>。大规模积压时，"扩容受分区数限制"成为瓶颈，催生"跳过堆积到最新 + 异步 binlog/MQ 回溯重建"的紧急方案；Flink/Kafka Streams 流处理引入背压机制从源头限流。</p>
           </div>
@@ -1895,10 +1895,9 @@ flowchart LR
             </div>
 
             <p><strong>方案对比</strong>：</p>
-            <div class="compare-table">
-              <table>
-                <thead>
-                  <tr><th>维度</th><th>Seata AT</th><th>TCC</th><th>Saga</th><th>本地消息表</th><th>Outbox+CDC</th></tr>
+            <table class="compare-table">
+              <thead>
+                <tr><th>维度</th><th>Seata AT</th><th>TCC</th><th>Saga</th><th>本地消息表</th><th>Outbox+CDC</th></tr>
                 </thead>
                 <tbody>
                   <tr><td>一致性</td><td>强一致（全局锁）</td><td>最终一致</td><td>最终一致</td><td>最终一致</td><td>最终一致</td></tr>
@@ -1907,8 +1906,7 @@ flowchart LR
                   <tr><td>投递延迟</td><td>—</td><td>—</td><td>—</td><td>秒级（轮询间隔）</td><td>毫秒级（CDC 实时）</td></tr>
                   <tr><td>额外组件</td><td>TC 集群</td><td>TC 集群</td><td>状态机引擎</td><td>定时任务</td><td>Debezium/Canal</td></tr>
                 </tbody>
-              </table>
-            </div>
+            </table>
 
             <p><strong>TCC vs AT 取舍</strong>：AT 零侵入但有全局锁，适合<strong>低并发强一致</strong>（如库存扣减的旁路校验）；TCC 侵入大但无锁并发好，适合<strong>高并发资源预留</strong>（如秒杀库存）。核心差异：AT 回滚靠反向 SQL（可能脏写需校验），TCC 回滚靠业务 Cancel（精确可控）。</p>
 

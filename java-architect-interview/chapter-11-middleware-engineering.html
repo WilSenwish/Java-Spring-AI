@@ -53,11 +53,11 @@
         <div class="chapter-meta">
           <span>题目数：18</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×6</span>
+          <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×6</span>
+          <span>架构级 ×9</span>
           <span class="meta-divider">|</span>
-          <span>专家级 ×3</span>
+          <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
           <span>预计复习：320 分钟</span>
         </div>
@@ -1336,7 +1336,7 @@ flowchart LR
     <span class="kw">public</span> <span class="type">ClientHttpResponse</span> <span class="fn">intercept</span>(<span class="type">HttpRequest</span> req, <span class="kw">byte</span>[] body, <span class="type">ClientHttpRequestExecution</span> exec) <span class="kw">throws</span> <span class="type">IOException</span> {
         <span class="type">String</span> traceId = <span class="type">TraceContext</span>.TRACE_ID.<span class="fn">get</span>();
         <span class="kw">if</span> (traceId != <span class="kw">null</span>) {
-            req.<span class="fn">getHeaders</span>().<span class="fn">set</span>(<span class="str">"traceparent"</span>, <span class="str">"00-"</span>+traceId+<span class="str">-"</span>+genSpanId()+<span class="str">"-01"</span>);
+            req.<span class="fn">getHeaders</span>().<span class="fn">set</span>(<span class="str">"traceparent"</span>, <span class="str">"00-"</span>+traceId+<span class="str">"-"</span>+genSpanId()+<span class="str">"-01"</span>);
         }
         <span class="kw">return</span> exec.<span class="fn">execute</span>(req, body);
     }
@@ -1506,7 +1506,8 @@ java -javaagent:opentelemetry-javaagent.jar \
   -Dotel.service.name=order-service \
   -Dotel.exporter.otlp.endpoint=http://otel-collector:4317 \
   -Dotel.traces.sampler=parentbased_traceidratio \
-  -Dotel.traces.sampler.arg=0.1 \          <span class="com"># 10% 采样</span>
+  <span class="com"># 10% 采样</span>
+  -Dotel.traces.sampler.arg=0.1 \
   -Dotel.metrics.exporter=otlp \
   -Dotel.logs.exporter=otlp \
   -jar order-service.jar
@@ -1543,13 +1544,13 @@ service:
 <span class="kw">public</span> <span class="type">Order</span> <span class="fn">createOrder</span>(<span class="type">OrderRequest</span> req) {
     <span class="type">Span</span> span = tracer.<span class="fn">spanBuilder</span>(<span class="str">"createOrder"</span>).<span class="fn">startSpan</span>();
     <span class="kw">try</span> (<span class="type">Scope</span> scope = span.<span class="fn">makeCurrent</span>()) {
-        span.<span class="fn">setAttribute</span>(<span class="str">"order.userId"</span>, req.<span class="fn">getUserId</span>());  <span class="com"># 业务标签</span>
+        span.<span class="fn">setAttribute</span>(<span class="str">"order.userId"</span>, req.<span class="fn">getUserId</span>());  <span class="com">// 业务标签</span>
         span.<span class="fn">setAttribute</span>(<span class="str">"order.amount"</span>, req.<span class="fn">getAmount</span>().<span class="fn">doubleValue</span>());
         <span class="type">Order</span> order = orderRepo.<span class="fn">save</span>(buildOrder(req));
         span.<span class="fn">addEvent</span>(<span class="str">"order.created"</span>, Attributes.<span class="fn">of</span>(AttributeKey.<span class="fn">stringKey</span>(<span class="str">"orderId"</span>), order.<span class="fn">getId</span>()));
         <span class="kw">return</span> order;
     } <span class="kw">catch</span> (<span class="type">Exception</span> e) {
-        span.<span class="fn">recordException</span>(e);  <span class="com"># 异常记录到 Span</span>
+        span.<span class="fn">recordException</span>(e);  <span class="com">// 异常记录到 Span</span>
         span.<span class="fn">setStatus</span>(<span class="type">StatusCode</span>.<span class="fn">ERROR</span>);
         <span class="kw">throw</span> e;
     } <span class="kw">finally</span> { span.<span class="fn">end</span>(); }

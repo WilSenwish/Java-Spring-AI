@@ -46,7 +46,7 @@
         <div class="chapter-meta">
           <span>题目数：11</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×6</span>
+          <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
           <span>架构级 ×3</span>
           <span class="meta-divider">|</span>
@@ -488,7 +488,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：为什么不能"先删缓存再更DB"？</strong></p>
-            <p>先删缓存后更DB有典型并发问题：线程A删缓存→线程B读（miss，读DB旧值，写回缓存）→线程A更DB。结果缓存是旧值、DB是新值，且缓存不过期前一直不一致。<strong>这个窗口比"先更DB后删缓存"大得多</strong>（因为读+写缓存比 更DB 快），所以禁用"先删后更"。</p>
+            <p>先删缓存后更DB有典型并发问题：线程A删缓存→线程B读（miss，读DB旧值，写回缓存）→线程A更DB。结果缓存是旧值、DB是新值，且缓存不过期前一直不一致。<strong>这个窗口比"先更DB后删缓存"大得多</strong>（因为读+写缓存比更新 DB 快），所以禁用"先删后更"。</p>
             <p><strong>追问 2：Canal 方案如何保证缓存删除的顺序与幂等？</strong></p>
             <p>顺序：Canal 按 binlog 顺序投递，单 partition 内有序，同一 key 的变更按 DB 提交顺序到达。幂等：删除缓存操作天然幂等（删多次结果一样）；若用"更新缓存"则需带版本号/binlog position 去重。失败重试用 MQ 死信队列，最终一致。</p>
           </div>
@@ -943,13 +943,13 @@ flowchart TB
                 <tr><td><strong>volatile-lru</strong></td><td>设TTL的key</td><td>LRU淘汰设TTL的最久未用</td><td>混合存储(部分持久数据无TTL)</td></tr>
                 <tr><td><strong>volatile-lfu</strong></td><td>设TTL的key</td><td>LFU淘汰设TTL的频率最低</td><td>混合存储+有热点</td></tr>
                 <tr><td><strong>volatile-random</strong></td><td>设TTL的key</td><td>随机淘汰设TTL的</td><td>混合存储无差异</td></tr>
-                <tr><td><strong>volatile-ttl</strong></td><td>设TTL的key</td><td>优先淘汰TTL最短的</td><td>希望尽快回收临key</td></tr>
+                <tr><td><strong>volatile-ttl</strong></td><td>设TTL的key</td><td>优先淘汰TTL最短的</td><td>希望尽快回收临时 key</td></tr>
               </tbody>
             </table>
 
             <p><strong>近似 LRU 实现</strong>：Redis 不维护全局 LRU 链表（百万 key 的链表移动开销大）。每个 redisObject 有 24 位 lru 字段记录最后访问时间戳（秒级）。淘汰时随机采样 <code class="inline-code">maxmemory-samples</code>（默认5）个 key，淘汰其中 lru 最旧的。采样数越大越接近真实 LRU 但越慢。5 是性能与准确性的折中，可调到 10 提升命中率。</p>
 
-            <p><strong>LFU 的 Morris 计数器</strong>：lru 字段在 LFU 模式拆为 16 位衰减时间 + 8 位频率计数。8 位频率用 Morris 计数器——概率性递增（访问越多递增概率越低），8 位可表示远超 255 的访问次数。8 位频率计数器为完整的 Morris 概率计数器（概率性递增，8 位即可表达远超 256 的访问频次）；衰减基于 24 位 lru 字段中的高 16 位时间戳（分钟精度），按 <code class="inline-code">lfu-decay-time</code>（默认 1 分钟）周期对频率做对数衰减。</p>
+            <p><strong>LFU 的 Morris 计数器</strong>：lru 字段在 LFU 模式拆为 16 位衰减时间 + 8 位频率计数。8 位频率用 Morris 计数器——概率性递增（访问越多递增概率越低），8 位可表示远超 255 的访问次数；衰减基于 24 位 lru 字段中的高 16 位时间戳（分钟精度），按 <code class="inline-code">lfu-decay-time</code>（默认 1 分钟）周期对频率做对数衰减。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
@@ -1176,10 +1176,10 @@ flowchart LR
             <p><strong>热 Key 治理</strong>：① <strong>探测</strong>——<code class="inline-code">redis-cli --hotkeys</code>（需 LFU）、JD hotkey 组件、Sentinel 热点参数；② <strong>本地化</strong>——热 key 推送到 Caffeine 本地缓存，TTL 短（秒级）；③ <strong>读副本</strong>——热 key 读多副本分散压力（Cluster 从节点读）；④ <strong>拆分</strong>——热 key 拆多份（如 <code class="inline-code">hotkey_0~hotkey_9</code> 随机读）。</p>
             <p><strong>连接池调优（Lettuce/Jedis）</strong>：</p>
             <div class="code-block"><pre><code><span class="com"># Lettuce (Spring Boot 默认, 基于Netty, 单连接共享+连接池)</span>
-spring.redis.lettuce.pool.max-active=<span class="num">32</span>   <span class="com"># 总连接数</span>
-spring.redis.lettuce.pool.max-idle=<span class="num">16</span>
-spring.redis.lettuce.pool.min-idle=<span class="num">4</span>
-spring.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span class="com"># 获取连接超时</span>
+spring.data.redis.lettuce.pool.max-active=<span class="num">32</span>   <span class="com"># 总连接数</span>
+spring.data.redis.lettuce.pool.max-idle=<span class="num">16</span>
+spring.data.redis.lettuce.pool.min-idle=<span class="num">4</span>
+spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span class="com"># 获取连接超时</span>
 
 <span class="com"># 高并发要点:</span>
 <span class="com"># - max-active 不宜过大(每连接占内存+socket,建议 32-64)</span>

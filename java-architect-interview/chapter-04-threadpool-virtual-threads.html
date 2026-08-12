@@ -84,8 +84,7 @@
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>七个构造参数</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>参数</th><th>类型</th><th>语义</th><th>调优要点</th></tr>
                 </thead>
@@ -99,7 +98,7 @@
                   <tr><td>handler</td><td>RejectedExecutionHandler</td><td>拒绝策略，最大线程+队列都满时触发</td><td>按业务容错语义选型</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>调优公式（Brian Goetz 经验法则）</strong>：</p>
             <ul>
@@ -119,8 +118,7 @@
 );</code></pre></div>
 
             <p><strong>四种拒绝策略对比</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>策略</th><th>行为</th><th>适用场景</th><th>风险</th></tr>
                 </thead>
@@ -131,7 +129,7 @@
                   <tr><td>DiscardOldestPolicy</td><td>丢弃队列头部最老任务，重试提交</td><td>只需最新数据（如行情推送）</td><td>老任务被静默丢弃</td></tr>
                 </tbody>
               </table>
-            </div>
+            
           </div>
         </div>
 
@@ -287,8 +285,7 @@ stateDiagram-v2
               <div class="chart-caption">图 4.2-2 线程池五状态流转：RUNNING→SHUTDOWN→STOP→TIDYING→TERMINATED</div>
             </div>
 
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>状态</th><th>ctl 高3位</th><th>接收新任务</th><th>处理队列任务</th><th>中断执行中任务</th></tr>
                 </thead>
@@ -300,7 +297,7 @@ stateDiagram-v2
                   <tr><td>TERMINATED</td><td>011 (3)</td><td>否</td><td>否</td><td>—</td></tr>
                 </tbody>
               </table>
-            </div>
+            
           </div>
         </div>
 
@@ -544,8 +541,7 @@ timeline
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>平台线程 vs 虚拟线程</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>维度</th><th>平台线程（Platform Thread）</th><th>虚拟线程（Virtual Thread）</th></tr>
                 </thead>
@@ -559,7 +555,7 @@ timeline
                   <tr><td>适用场景</td><td>CPU 密集、需要内核级抢占</td><td>IO 密集、大量阻塞等待</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>unmount/mount 机制（核心原理）</strong>：虚拟线程的栈是堆上的 <code class="inline-code">StackChunk</code> 对象。当虚拟线程执行到阻塞操作（如 Socket.read、LockSupport.park）时，JVM 把当前栈帧<strong>拷贝出载体线程</strong>（unmount），载体线程立即去运行下一个虚拟线程；当 IO 就绪，JVM 把栈帧<strong>拷贝回某个载体线程</strong>（mount）继续执行。整个过程对应用透明——代码看起来是同步阻塞，实际载体线程从未空闲。</p>
 
@@ -713,8 +709,7 @@ spring:
 <span class="com"># Maven: java.version=21, parent 为 spring-boot-starter-parent:3.2.x</span></code></pre></div>
 
             <p><strong>性能对比（典型 IO 密集场景，外部 HTTP 调用 50ms）</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>模型</th><th>线程数</th><th>内存/千并发</th><th>吞吐(RPS)</th><th>编程模型</th></tr>
                 </thead>
@@ -724,7 +719,7 @@ spring:
                   <tr><td>MVC + Virtual Threads</td><td>百万级虚拟线程</td><td>~30MB</td><td>~18,000</td><td>命令式（阻塞）</td></tr>
                 </tbody>
               </table>
-            </div>
+            
             <p>关键结论：MVC + Virtual Threads 在吞吐上接近 WebFlux，但保留了命令式代码的可读性与生态兼容性，是大多数项目的最优解。</p>
           </div>
         </div>
@@ -825,8 +820,7 @@ spring:
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>核心方法分类</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>类别</th><th>方法</th><th>语义</th></tr>
                 </thead>
@@ -843,7 +837,7 @@ spring:
                   <tr><td>副作用</td><td>whenComplete(biCon)</td><td>正常/异常都触发，不改变结果</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>thenApply vs thenCompose（最容易混淆）</strong>：thenApply 的 fn 返回普通值 <code class="inline-code">T -&gt; R</code>，结果 CF&lt;R&gt;；thenCompose 的 fn 返回 CF <code class="inline-code">T -&gt; CompletableFuture&lt;R&gt;</code>，结果扁平化为 CF&lt;R&gt;。类比 Stream 的 map vs flatMap。</p>
 
@@ -985,8 +979,7 @@ flowchart TB
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>三维度对比</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>维度</th><th>Servlet（同步）</th><th>WebFlux（响应式）</th><th>Virtual Threads</th></tr>
                 </thead>
@@ -1001,7 +994,7 @@ flowchart TB
                   <tr><td>内存/并发</td><td>低（受线程数）</td><td>高</td><td>高</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>WebFlux 的本质：声明式数据流 + 背压</strong>。Mono/Flux 是"数据流的描述"，subscribe 才执行。Reactor 通过操作符组合实现 map/filter/flatMap/merge，背压让消费者控制生产者速率（request(n)）。它的价值不只是"高并发"，而是<strong>对流的抽象</strong>——SSE、WebSocket、流式 LLM 输出等场景，Flux 比"阻塞队列+轮询"优雅得多。</p>
 
@@ -1242,8 +1235,7 @@ flowchart TD
             </div>
 
             <p><strong>pinning 触发条件与影响</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>触发场景</th><th>原因</th><th>JDK 版本</th><th>影响</th></tr>
                 </thead>
@@ -1254,7 +1246,7 @@ flowchart TD
                   <tr><td>Object.wait()</td><td>native 阻塞</td><td>钉住</td><td>罕见，应用层少用</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>诊断工具对比</strong>：<code class="inline-code">-Djdk.tracePinnedThreads=full</code> 在每次钉住时打印完整虚拟线程栈与载体线程，适合开发期定位；<code class="inline-code">jcmd Thread.dump_to_file --format=json</code> 生产期快照，JSON 中每个虚拟线程含 <code class="inline-code">pinned</code> 字段与 <code class="inline-code">pinReason</code>（如 MONITOR_WAIT / NATIVE），是线上排查首选。</p>
           </div>

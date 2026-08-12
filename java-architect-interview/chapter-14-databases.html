@@ -129,7 +129,7 @@ flowchart TD
               <li><strong>范围分片（Range）</strong>：按分片键值范围划分 Chunk，利于范围查询，但易热点（自增 ID/时间戳集中写入同一 Chunk）。</li>
               <li><strong>哈希分片（Hash）</strong>：对分片键取哈希均匀分布，写入分散抗热点，但范围查询需广播到所有 Shard（scatter-gather）。</li>
             </ul>
-            <p><strong>Chunk 迁移</strong>：Balancer 后台检测各 Shard Chunk 数量不均，按分片键范围迁移 Chunk 到目标 Shard。迁移期间源 Shard 仍服务读，写双重写入，迁移完成更新 Config Server 路由表。分片键一旦设定<strong>历史上不可变</strong>（5.0 起支持 resharing 在线重分片，但成本高）。</p>
+            <p><strong>Chunk 迁移</strong>：Balancer 后台检测各 Shard Chunk 数量不均，按分片键范围迁移 Chunk 到目标 Shard。迁移期间源 Shard 仍服务读，写双重写入，迁移完成更新 Config Server 路由表。分片键<strong>一经设定即不可变</strong>（5.0 起支持 resharding 在线重分片，但成本高）。</p>
 
             <p><strong>副本集与选举</strong>：每个 Shard 是一个副本集，含 1 个 Primary（读写）+ N 个 Secondary（同步复制，可读）+ 可选 Arbiter（仅投票不存数据）。Primary 故障时，具备投票权的节点发起选举（<strong>Raft 变体</strong>），多数派同意后新 Primary 上位。关键参数：<code class="inline-code">writeConcern</code>（写多少节点才确认，如 w:majority 防回滚）、<code class="inline-code">readPreference</code>（读主还是读从）。脑裂通过"多数派投票"避免——少数派分区无法选出 Primary，自动降级为只读。</p>
 
@@ -201,7 +201,7 @@ flowchart TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：分片键选错了如何迁移？</strong></p>
-            <p>5.0 之前需停服重建集合：导出数据 → 按新分片键重新分片导入 → 切换应用。5.0+ 支持<strong>在线 resharing</strong>——后台按新分片键克隆数据到新分片集合，期间双写保证一致，完成后原子切换。但 resharing 仍是重操作（消耗额外存储与带宽、拖慢写入），应尽量上线前定好分片键。选键原则：组合键（如 region + userId）兼顾分布与查询，避免纯单调字段。</p>
+            <p>5.0 之前需停服重建集合：导出数据 → 按新分片键重新分片导入 → 切换应用。5.0+ 支持<strong>在线 resharding</strong>——后台按新分片键克隆数据到新分片集合，期间双写保证一致，完成后原子切换。但 resharding 仍是重操作（消耗额外存储与带宽、拖慢写入），应尽量上线前定好分片键。选键原则：组合键（如 region + userId）兼顾分布与查询，避免纯单调字段。</p>
             <p><strong>追问 2：MongoDB 事务与 MySQL 事务的差异？</strong></p>
             <p>① <strong>隔离级别</strong>——MongoDB 固定 snapshot 快照隔离，MySQL 默认 RR（可配 RC/Serializable）；② <strong>跨分片机制</strong>——MongoDB 跨分片用 2PC，性能损耗大，MySQL 单机事务无此开销（分布式靠 XA/Seata）；③ <strong>事务限制</strong>——MongoDB 事务有 60s 时间与 oplog 大小上限，不适合大事务，MySQL 大事务能力更强但仍需控制；④ <strong>锁粒度</strong>——MongoDB 文档级锁，MySQL InnoDB 行级锁；⑤ <strong>使用哲学</strong>——MongoDB 鼓励"文档内聚"减少跨文档事务，MySQL 鼓励规范化与事务保障。</p>
           </div>

@@ -121,8 +121,7 @@ graph TD
             <p><strong>三不可达对象的三次标记</strong>：真正回收前需经过<strong>两次标记</strong>。第一次标记后，筛选出有必要执行 <code class="inline-code">finalize()</code> 的对象（重写了且未被调用过），放入 F-Queue，由 Finalizer 线程执行；finalize() 执行中若重新建立与 Root 的引用链则"自救"成功，否则第二次标记后回收。<strong>finalize() 已被官方明确不推荐</strong>（JEP 421 于 JDK 18 标记为 Deprecation for Removal，已不推荐使用），应使用 Cleaner / try-with-resources 替代。</p>
 
             <p><strong>三种 GC 算法本质权衡</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>维度</th><th>标记-清除 Mark-Sweep</th><th>复制 Copying</th><th>标记-整理 Mark-Compact</th></tr>
                 </thead>
@@ -135,7 +134,7 @@ graph TD
                   <tr><td>典型应用</td><td>CMS 老年代（CMS 已 JDK14 移除）</td><td>新生代（Serial/ParNew）</td><td>Parallel Scavenge 老年代 / Full GC</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>分代收集的理论依据</strong>：新生代 98% 对象朝生夕死，适合复制算法（只需复制 2% 存活对象，且 HotSpot 用 Eden:S0:S1 = 8:1:1，实际浪费仅 10%）；老年代存活率高、没有额外空间担保，适合标记-清除或标记-整理。跨代引用问题用<strong>记忆集（Remembered Set）+ 卡表（Card Table）</strong>解决，避免全堆扫描老年代来确认新生代对象的引用。</p>
 
@@ -249,8 +248,7 @@ timeline
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>四个收集器的核心机制对比</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>维度</th><th>CMS</th><th>G1</th><th>ZGC</th><th>Shenandoah</th></tr>
                 </thead>
@@ -266,7 +264,7 @@ timeline
                   <tr><td>状态</td><td>JDK14 移除</td><td>JDK9+ 默认</td><td>JDK15 生产</td><td>OpenJDK 独有</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>G1 的 Region 布局与回收逻辑</strong>：</p>
             <div class="mermaid-container">
@@ -391,8 +389,7 @@ graph TD
             </ul>
 
             <p><strong>关键参数调优对照表</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>参数</th><th>作用</th><th>默认值</th><th>调优建议</th></tr>
                 </thead>
@@ -408,7 +405,7 @@ graph TD
                   <tr><td><code>-XX:MaxDirectMemorySize</code></td><td>直接内存上限</td><td>约等于 -Xmx</td><td>Netty/Kafka 场景单独评估，加监控</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>GC 选型决策树</strong>：</p>
             <div class="mermaid-container">
@@ -733,8 +730,7 @@ graph TD
 <span class="com">#    重点看 GC Roots 到大对象的引用链（Path to GC Roots）</span></code></pre></div>
 
             <p><strong>不同 GC 收集器的调优参数差异</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>收集器</th><th>FullGC 主因</th><th>关键调优参数</th></tr>
                 </thead>
@@ -745,7 +741,7 @@ graph TD
                   <tr><td>Parallel</td><td>老年代满 / 担保失败</td><td><code>-XX:MaxGCPauseMillis</code>、<code>-XX:GCTimeRatio</code>（吞吐比）</td></tr>
                 </tbody>
               </table>
-            </div>
+            
           </div>
         </div>
 
@@ -825,8 +821,7 @@ graph TD
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>选型决策矩阵</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>场景</th><th>堆大小</th><th>延迟需求</th><th>推荐收集器</th><th>关键参数</th></tr>
                 </thead>
@@ -841,7 +836,7 @@ graph TD
                   <tr><td>Serverless/冷启动</td><td>小</td><td>启动优先</td><td>Serial + GraalVM</td><td>Native Image 无 GC 压力</td></tr>
                 </tbody>
               </table>
-            </div>
+            
 
             <p><strong>选择原则</strong>：</p>
             <ul>
@@ -1256,8 +1251,7 @@ graph TD
             </ul>
 
             <p><strong>调优指标基准（经验值）</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>指标</th><th>健康</th><th>告警</th><th>危险</th></tr>
                 </thead>
@@ -1269,7 +1263,7 @@ graph TD
                   <tr><td>元空间占用</td><td>&lt;60%</td><td>60-80%</td><td>&gt;80%</td></tr>
                 </tbody>
               </table>
-            </div>
+            
           </div>
         </div>
 
@@ -1520,8 +1514,7 @@ flowchart TD
             <p><strong>停顿与吞吐权衡</strong>：分代 ZGC 的 STW 阶段仅剩"初始标记 / 再标记 / 根枚举重启"，这些只与线程数和根数量相关，与堆大小解耦，实测 P99 停顿通常 &lt;1ms。代价是<strong>读屏障的固定吞吐损失</strong>（约 5-10%）与<strong>记忆集内存开销</strong>（约堆的 1-5%）。相较单代，分代通过减少标记工作量换回更大吞吐，是净收益。</p>
 
             <p><strong>关键调优参数</strong>：</p>
-            <div class="compare-table">
-              <table>
+            <table class="compare-table">
                 <thead>
                   <tr><th>参数</th><th>作用</th><th>默认</th><th>调优建议</th></tr>
                 </thead>
@@ -1533,7 +1526,7 @@ flowchart TD
                   <tr><td><code>-XX:ZUncommitDelay</code></td><td>空闲内存归还 OS 延迟</td><td>300s</td><td>波峰波谷场景调短，快速归还</td></tr>
                 </tbody>
               </table>
-            </div>
+            
           </div>
         </div>
 
