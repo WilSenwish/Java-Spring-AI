@@ -399,7 +399,7 @@ vectorStore.add(List.of(doc));
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>本题从数据库视角聚焦 Milvus 内部架构；十亿级 RAG 的向量索引调参与召回率治理详见 12.22。这道题考察对 <strong>"专用向量库如何从架构层面解决超大规模向量检索"</strong> 的深度理解。核心要回答：Milvus 凭什么支撑十亿级向量而 MongoDB/PgVector 做不到？存算分离（QueryNode/DataNode/Coordinator）的职责划分与代价？IVF、HNSW、DiskANN 三种索引在召回率、内存、延迟上的权衡？Segment 分段如何支撑水平扩展？这是向量库架构的"天花板"题。</p>
+            <p>本题从数据库视角聚焦 Milvus 内部架构；十亿级 RAG 的向量索引调参与召回率治理详见 12.21。这道题考察对 <strong>"专用向量库如何从架构层面解决超大规模向量检索"</strong> 的深度理解。核心要回答：Milvus 凭什么支撑十亿级向量而 MongoDB/PgVector 做不到？存算分离（QueryNode/DataNode/Coordinator）的职责划分与代价？IVF、HNSW、DiskANN 三种索引在召回率、内存、延迟上的权衡？Segment 分段如何支撑水平扩展？这是向量库架构的"天花板"题。</p>
           </div>
         </div>
 
@@ -516,7 +516,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
     .searchParams(<span class="type">Map</span>.of(<span class="str">"ef"</span>, <span class="num">128</span>))      <span class="com">// HNSW 查询参数</span>
     .build();
 <span class="type">SearchResults</span> <span class="var">resp</span> = client.search(req);</code></pre></div>
-            <p><strong>索引选型指南</strong>：索引参数调优实战经验与 RAG 场景治理详见 12.22。无论哪种，上线前都需<strong>离线评测召回率</strong>（与暴力检索对比，目标 95%+）。</p>
+            <p><strong>索引选型指南</strong>：索引参数调优实战经验与 RAG 场景治理详见 12.21。无论哪种，上线前都需<strong>离线评测召回率</strong>（与暴力检索对比，目标 95%+）。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>Milvus 工程四要点：① <strong>load 预热</strong>——查询前必须 load 索引到内存，大集合 load 耗时，应上线/重启后预热避免首查超时；② <strong>Collection 按业务隔离</strong>——不同业务分 Collection，避免大混合查询相互影响；③ <strong>用 Partition 做时间/租户切分</strong>——按天/租户建 Partition，查询带分区键减少扫描范围；④ <strong>存算分离下关注延迟</strong>——对象存储读取有延迟，热数据应常驻 QueryNode 内存，冷数据用 DiskANN。</p>
@@ -528,7 +528,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：IVF 与 HNSW 如何选？nlist/M 与召回率关系？</strong></p>
-            <p>索引参数调优实战经验与 RAG 场景治理详见 12.22。务必离线评测召回率定参。</p>
+            <p>索引参数调优实战经验与 RAG 场景治理详见 12.21。务必离线评测召回率定参。</p>
             <p><strong>追问 2：存算分离的延迟与成本如何权衡？</strong></p>
             <p>存算分离把数据放对象存储，QueryNode 按需加载，<strong>好处</strong>是存储便宜（S3 比 SSD 便宜一个数量级）、计算弹性（按 QPS 扩 QueryNode）、故障恢复快（无状态重加载）。<strong>代价</strong>是冷查询需从对象存储读索引，延迟比纯内存高（首查可能秒级）。优化：① <strong>热数据常驻内存</strong>——load 常用 Segment 到 QueryNode 内存；② <strong>DiskANN 混合</strong>——热入口点放内存、向量落 SSD，兼顾成本与延迟；③ <strong>缓存层</strong>——QueryNode 本地缓存热点 Segment。成本上存算分离总拥有成本低于纯内存耦合架构，尤其适合向量数大但 QPS 不极端的场景。</p>
           </div>
@@ -564,7 +564,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>本题从数据库视角聚焦 Qdrant 架构与选型；十亿级 RAG 的向量库选型矩阵与调参实战详见 12.22。这道题考察对 <strong>"向量库实现语言选型与结构化过滤检索的工程优化"</strong> 的理解。核心要回答：Qdrant 为什么选 Rust 而非 C++/Go？Rust 的零成本抽象与内存安全如何转化为向量检索的性能与稳定性优势？Payload（JSON 结构化字段）索引如何加速过滤？pre-filter 与 post-filter 的性能差异与适用场景？Qdrant 与 Milvus 的选型分界？这是向量库"过滤检索"维度的对比题。</p>
+            <p>本题从数据库视角聚焦 Qdrant 架构与选型；十亿级 RAG 的向量库选型矩阵与调参实战详见 12.21。这道题考察对 <strong>"向量库实现语言选型与结构化过滤检索的工程优化"</strong> 的理解。核心要回答：Qdrant 为什么选 Rust 而非 C++/Go？Rust 的零成本抽象与内存安全如何转化为向量检索的性能与稳定性优势？Payload（JSON 结构化字段）索引如何加速过滤？pre-filter 与 post-filter 的性能差异与适用场景？Qdrant 与 Milvus 的选型分界？这是向量库"过滤检索"维度的对比题。</p>
           </div>
         </div>
 
@@ -614,7 +614,7 @@ flowchart LR
               <li><strong>Binary 量化</strong>：量化到 1 bit/维，内存省 32 倍，用汉明距离检索，速度快但精度损失大。适合<strong>初筛召回+精排</strong>两阶段。</li>
             </ul>
 
-            <p>向量库选型矩阵（Qdrant/Milvus/Pinecone 多维度对比）详见 12.22。</p>
+            <p>向量库选型矩阵（Qdrant/Milvus/Pinecone 多维度对比）详见 12.21。</p>
           </div>
         </div>
 

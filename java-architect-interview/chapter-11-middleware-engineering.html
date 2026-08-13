@@ -23,7 +23,7 @@
         <li><a href="#qa-11-6"><span class="toc-number">11.6</span>CI/CD 流水线标准化设计</a></li>
         <li><a href="#qa-11-7"><span class="toc-number">11.7</span>APM 全链路监控系统架构</a></li>
         <li><a href="#qa-11-8"><span class="toc-number">11.8</span>TraceId 多线程跨服务透传</a></li>
-        <li><a href="#qa-11-9"><span class="toc-number">11.9</span>OpenTelemetry 可观测性三支柱落地</a></li>
+        <li><a href="#qa-11-9"><span class="toc-number">11.9</span>可观测性三支柱与 OpenTelemetry</a></li>
         <li><a href="#qa-11-10"><span class="toc-number">11.10</span>混沌工程验证系统韧性</a></li>
         <li><a href="#qa-11-11"><span class="toc-number">11.11</span>消息队列 Kafka 高可用与 Exactly-Once</a></li>
         <li><a href="#qa-11-12"><span class="toc-number">11.12</span>API 网关限流熔断与灰度发布</a></li>
@@ -31,8 +31,7 @@
         <li><a href="#qa-11-14"><span class="toc-number">11.14</span>Elasticsearch 倒排索引、分片与集群架构</a></li>
         <li><a href="#qa-11-15"><span class="toc-number">11.15</span>gRPC + Protobuf 高性能通信原理</a></li>
         <li><a href="#qa-11-16"><span class="toc-number">11.16</span>Nacos 与 Apollo 配置中心选型</a></li>
-        <li><a href="#qa-11-17"><span class="toc-number">11.17</span>可观测性三支柱与 OpenTelemetry</a></li>
-        <li><a href="#qa-11-18"><span class="toc-number">11.18</span>数据库迁移 Flyway/Liquibase</a></li>
+        <li><a href="#qa-11-17"><span class="toc-number">11.17</span>数据库迁移 Flyway/Liquibase</a></li>
       </ol>
     </aside>
 
@@ -1134,9 +1133,9 @@ flowchart LR
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>Java Agent + Instrumentation 字节码增强原理</strong>（APM 核心）：Java Agent 通过 <code class="inline-code">premain</code>（启动时）或 <code class="inline-code">agentmain</code>（运行时 attach）入口，注册 ClassFileTransformer 在类加载时拦截字节码，用 ByteBuddy/ASM 对目标方法前后插入埋点代码（start span/end span/异常记录）。各框架增强逻辑独立插件化（Spring/MyBatis/Dubbo 各一插件），微内核按需加载。Java Agent 启动配置与 OTel 集成示例详见 <a href="#qa-11-17" class="internal-link">11.17</a>。</p>
+            <p><strong>Java Agent + Instrumentation 字节码增强原理</strong>（APM 核心）：Java Agent 通过 <code class="inline-code">premain</code>（启动时）或 <code class="inline-code">agentmain</code>（运行时 attach）入口，注册 ClassFileTransformer 在类加载时拦截字节码，用 ByteBuddy/ASM 对目标方法前后插入埋点代码（start span/end span/异常记录）。各框架增强逻辑独立插件化（Spring/MyBatis/Dubbo 各一插件），微内核按需加载。Java Agent 启动配置与 OTel 集成示例详见 <a href="#qa-11-9" class="internal-link">11.9</a>。</p>
 
-            <p><strong>Trace/Span 模型</strong>：一次请求的完整调用链是一棵 Trace 树，每个方法调用是一个 Span（含 traceId/spanId/parentId/operationName/时间/标签/日志）。跨服务透传 traceId 串起多服务 Span。三支柱关联、采样策略与 OTel 标准详见 <a href="#qa-11-17" class="internal-link">11.17</a>。</p>
+            <p><strong>Trace/Span 模型</strong>：一次请求的完整调用链是一棵 Trace 树，每个方法调用是一个 Span（含 traceId/spanId/parentId/operationName/时间/标签/日志）。跨服务透传 traceId 串起多服务 Span。三支柱关联、采样策略与 OTel 标准详见 <a href="#qa-11-9" class="internal-link">11.9</a>。</p>
 
             <p><strong>APM 系统架构（微内核+插件）——五件套全景</strong>：</p>
             <div class="mermaid-container">
@@ -1400,29 +1399,29 @@ flowchart LR
       </div>
 
       <!-- ============================================================ -->
-      <!-- Q11.9 OpenTelemetry 的可观测性三支柱如何落地？ -->
+      <!-- Q11.9 可观测性三支柱与 OpenTelemetry 工程落地？ -->
       <!-- ============================================================ -->
       <div class="qa-card" id="qa-11-9" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">11.9</div>
-          <div class="qa-question">OpenTelemetry 的可观测性三支柱如何落地？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          <div class="qa-question">可观测性三支柱（Metrics/Traces/Logs）与 OpenTelemetry 如何工程落地？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>本题聚焦 OTel Collector 管道设计与部署模式；三支柱原理详见 <a href="#qa-11-17" class="internal-link">11.17</a>。考察<strong>"可观测性(Observability) 如何标准化落地"</strong>的架构能力。核心回答：OpenTelemetry 作为统一标准的架构(API+SDK+Collector)、为何它能终结厂商锁定，重点深挖 <strong>OTel Collector 管道工程细节</strong>（pipeline/receiver/processor/exporter 配置、Service Graph Connector、Tail Sampling Processor）与部署模式（Agent/Deployment/Gateway 三级拓扑）。</p>
+            <p>考察<strong>"可观测性(Observability) 如何标准化落地"</strong>的架构能力。核心回答：<strong>可观测性区别于监控(Monitoring)</strong>——监控只能发现"预设的已知问题"(阈值告警)，可观测性通过 Metrics/Trace/Log 三支柱的关联分析，回答"为什么出问题、还有哪些未知问题"，三支柱必须通过 <code class="inline-code">TraceId</code> 统一关联形成闭环。<strong>OpenTelemetry(OTel)</strong> 作为统一标准的架构（API+SDK+Collector）终结厂商锁定，落地重心在 <strong>OTel Collector 管道工程</strong>（pipeline/receiver/processor/exporter、Service Graph Connector、Tail Sampling Processor）与部署模式（Agent/Deployment/Gateway 三级拓扑）。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>阶段 1：日志为主（2000s）</strong>。ELK(Elasticsearch+Logstash+Kibana) 统一日志采集检索，Metrics 靠 Zabbix/Nagios 独立，Trace 几乎没有。三支柱割裂，排障需跨系统跳转。</p>
-            <p><strong>阶段 2：APM 兴起（2012+）</strong>。Pinpoint/SkyWalking/Cat 提供调用链 Trace，Prometheus 统一 Metrics，日志仍 ELK。三支柱各有工具但<strong>标准不统一、厂商锁定严重</strong>——换 APM 厂商需重写埋点。</p>
-            <p><strong>阶段 3：OpenTracing + OpenCensus（2016-2019）</strong>。OpenTracing（CNCF，Trace 标准 API）与 OpenCensus（Google，Trace+Metrics 标准）两套标准并存，社区分裂，使用者困惑。</p>
-            <p><strong>阶段 4：OpenTelemetry 统一（2019+）</strong>。CNCF 合并两者成 <strong>OpenTelemetry(OTel)</strong>，提供<strong>厂商中立的 API + SDK + Collector</strong>，统一 Trace/Metrics/Log 三支柱。一次埋点，可导出到任意后端(Jaeger/Tempo/Prometheus/Loki/ES)。终结厂商锁定，成为 CNCF 仅次于 K8s 的第二大项目。</p>
-            <p><strong>阶段 5：eBPF 补充（2021+）</strong>。OTel eBPF Profiler 从内核采集无侵入 Profile，补足应用层 Trace 看不到的网络/系统层细节。OTel + eBPF 融合成趋势——OTel 管应用语义，eBPF 管内核底层。</p>
+            <p><strong>阶段 1：传统监控/日志为主（2000s）</strong>。Nagios/Zabbix 基于阈值告警，ELK 统一日志采集检索，Metrics 靠 Zabbix/Nagios 独立，Trace 几乎没有。三支柱割裂，只能覆盖已知失败模式，排障需跨系统跳转。</p>
+            <p><strong>阶段 2：Dapper 奠基 + APM 兴起（2010-2012）</strong>。Google Dapper 论文奠定分布式追踪理论基础——Span 树 + TraceId 串联跨服务调用链；Pinpoint/SkyWalking/Cat 提供调用链 Trace，Prometheus 统一 Metrics，日志仍 ELK。三支柱各有工具但<strong>标准不统一、厂商锁定严重</strong>——换 APM 厂商需重写埋点。</p>
+            <p><strong>阶段 3：OpenTracing + OpenCensus（2016-2019）</strong>。OpenTracing（CNCF，Trace 标准 API）与 OpenCensus（Google，Trace+Metrics 标准）两套标准并存，生态碎片化，使用者困惑。</p>
+            <p><strong>阶段 4：OpenTelemetry 统一（2019+）</strong>。CNCF 合并两者成 <strong>OpenTelemetry(OTel)</strong>，提供<strong>厂商中立的 API + SDK + Collector + OTLP 协议</strong>，统一 Trace/Metrics/Log 三支柱。一次埋点，可导出到任意后端(Jaeger/Tempo/Prometheus/Loki/ES)，成为 CNCF 仅次于 K8s 的第二大项目。</p>
+            <p><strong>阶段 5：eBPF 补充 + 生态融合（2021+）</strong>。OTel eBPF Profiler 从内核采集无侵入 Profile，补足应用层 Trace 看不到的网络/系统层细节；Spring Boot 3.2+ 内置 Micrometer Tracing(桥接 OTel/Brave)；JDK 21 虚拟线程带来 ThreadLocal 上下文传播新挑战。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -1442,7 +1441,20 @@ flowchart LR
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>可观测性三支柱基础</strong>：Metrics（时序指标/QPS/RT）、Trace（Span 树/traceId/spanId）、Log（结构化日志+traceId）三者的定义、数据模型与 Exemplar 关联机制详见 <a href="#qa-11-17" class="internal-link">11.17</a>。Head/Tail 采样策略对比也见 <a href="#qa-11-17" class="internal-link">11.17</a> 深度追问 2。以下聚焦 OTel Collector 管道工程细节。</p>
+            <p><strong>可观测性三支柱基础</strong>：</p>
+            <ul>
+              <li><strong>Metrics(指标)</strong>——聚合数值，低成本高吞吐，适合告警与趋势分析。Counter(单调递增：请求数/错误数)、Gauge(瞬时值：连接数/队列长度)、Histogram(分布：RT 分位 P99)；<strong>Exemplar</strong> 在指标数据点中嵌入 TraceId，实现 Metrics→Traces 跳转。</li>
+              <li><strong>Traces(追踪)</strong>——Span 树形结构，还原请求在分布式系统中的完整路径。TraceId(全局唯一 128bit)/SpanId(64bit)/ParentSpanId 建立父子关系；跨服务透传 traceId 串起多服务 Span。</li>
+              <li><strong>Logs(日志)</strong>——结构化日志(JSON 格式)，携带 TraceId/SpanId 字段，实现 Logs→Traces 跳转。</li>
+            </ul>
+            <table class="compare-table">
+              <thead><tr><th>支柱</th><th>回答的问题</th><th>数据模型</th><th>典型后端</th><th>关联纽带</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Metrics 指标</strong></td><td>系统整体健康(QPS/RT/错误率/资源)</td><td>时间序列(name+labels+value+timestamp)</td><td>Prometheus/VictoriaMetrics</td><td>Exemplar 嵌入 TraceId → Metrics↔Trace 跳转</td></tr>
+                <tr><td><strong>Trace 链路</strong></td><td>单次请求的完整路径与耗时分布</td><td>Span 树(traceId/spanId/parentId)</td><td>Jaeger/Tempo/Zipkin</td><td>Span Event = 结构化日志 → Trace↔Log 互跳</td></tr>
+                <tr><td><strong>Log 日志</strong></td><td>具体事件的离散详情与上下文</td><td>结构化日志(JSON+traceId/spanId)</td><td>Loki/ELK/Fluentd</td><td>日志带 traceId → Log↔Trace 关联</td></tr>
+              </tbody>
+            </table>
 
             <p><strong>OpenTelemetry 架构：API + SDK + Collector</strong>：</p>
             <div class="mermaid-container">
@@ -1472,7 +1484,7 @@ flowchart LR
             <p><strong>Collector 管道深度解析：Receiver / Processor / Exporter 三角色</strong>：</p>
             <ul>
               <li><strong>Receivers（接收器）</strong>：数据入口。<code class="inline-code">otlp</code>（gRPC 4317/HTTP 4318，接收 SDK 上报）、<code class="inline-code">prometheus</code>（pull 方式抓取指标）、<code class="inline-code">kafka</code>（从 Kafka 消费缓冲数据，抗峰削谷）、<code class="inline-code">filelog</code>（tail 本地日志文件）。同一 Collector 可同时启多个 receiver 接收不同信号。</li>
-              <li><strong>Processors（处理器核心能力）</strong>：管道的"大脑"。① <code class="inline-code">batch</code>——批量合并减少网络请求（必配，timeout 5s/send_batch_size 1024）；② <code class="inline-code">memory_limiter</code>——软限制内存防 OOM（limit_percentage 80，必配）；③ <code class="inline-code">filter</code>——按属性过滤噪音（如过滤 <code class="inline-code">/actuator/health</code> 健康检查 Span）；④ <code class="inline-code">resource</code>——统一注入/富化 service.name、k8s.pod.name 等资源标签；⑤ <strong><code class="inline-code">tail_sampling</code>（见工程实践完整示例）</strong>——Collector 缓冲完整 Trace，按策略（ERROR 状态/慢调用/概率）决定保留；⑥ <strong><code class="inline-code">servicegraph</code>（Service Graph Connector）</strong>——从 Trace Span 聚合生成服务调用拓扑（A→B 调用次数/RT），供 Grafana Tempo 的"服务图"直接展示。</li>
+              <li><strong>Processors（处理器核心能力）</strong>：管道的"大脑"。① <code class="inline-code">batch</code>——批量合并减少网络请求（必配，timeout 5s/send_batch_size 1024）；② <code class="inline-code">memory_limiter</code>——软限制内存防 OOM（limit_percentage 80，必配）；③ <code class="inline-code">filter</code>——按属性过滤噪音（如过滤 <code class="inline-code">/actuator/health</code> 健康检查 Span）；④ <code class="inline-code">resource</code>——统一注入/富化 service.name、k8s.pod.name 等资源标签；⑤ <strong><code class="inline-code">tail_sampling</code></strong>——Collector 缓冲完整 Trace，按策略（ERROR 状态/慢调用/概率）决定保留（配置见工程实践）；⑥ <strong><code class="inline-code">servicegraph</code>（Service Graph Connector）</strong>——从 Trace Span 聚合生成服务调用拓扑（A→B 调用次数/RT），供 Grafana Tempo 的"服务图"直接展示。</li>
               <li><strong>Exporters（导出器）</strong>：数据出口。<code class="inline-code">otlp</code>（发给下一级 Collector 或 Jaeger/Tempo）、<code class="inline-code">prometheusremotewrite</code>（写给 VictoriaMetrics/Prometheus）、<code class="inline-code">kafka</code>（写入 Kafka 做缓冲层）、<code class="inline-code">debug</code>（stdout 打印排障用）。</li>
             </ul>
 
@@ -1494,6 +1506,10 @@ flowchart TB
               <div class="chart-caption">图 11.9-3 Collector 三级拓扑：应用 SDK→Node Agent（DaemonSet）→Gateway（集群级）</div>
             </div>
             <p>拓扑分工：① <strong>Agent 级（DaemonSet 每节点一个）</strong>——只做接收 + 轻量 batch，无 tail_sampling 等重处理器，避免占用业务节点资源，本地就近上报减少跨节点流量；② <strong>Gateway 级（独立 Deployment）</strong>——做重处理（tail_sampling/servicegraph/跨集群路由），集中式多副本弹性伸缩，与业务节点资源隔离。</p>
+
+            <p><strong>Context/Baggage 传播</strong>：Context 携带 TraceId/SpanId；Baggage 携带业务自定义 KV(如 userId)；跨服务通过 W3C TraceContext HTTP Header(<code class="inline-code">traceparent</code>)传播；进程内通过 ThreadLocal + MDC(SLF4J) 自动注入日志。<strong>跨线程/线程池/虚拟线程下 TraceId 透传完整治理方案（TTL/MDC TaskDecorator/Context.wrap 对比）</strong>详见 <a href="#qa-11-8" class="internal-link">11.8</a>。</p>
+
+            <p><strong>采样策略（存储成本与完整性的平衡）</strong>：高 QPS 链路用 <strong>Head Sampling</strong>(入口概率采样降开销)，关键链路用 <strong>Tail Sampling</strong>(全量采集后在 Collector 按错误/慢调用筛选保留)；两者对比详见深度追问 2。</p>
           </div>
         </div>
 
@@ -1556,7 +1572,54 @@ service:
     } <span class="kw">finally</span> { span.<span class="fn">end</span>(); }
 }</code></pre></div>
 
-            <p><strong>落地建议</strong>：① 优先用 <strong>Java Agent 自动埋点</strong>覆盖通用框架，零侵入；② 关键业务方法<strong>手动加 Span + 业务 Attribute</strong>，便于按业务维度筛选；③ Collector 独立部署，配置 batch + memory_limiter 防背压；④ 三后端分离部署（Jaeger/Prometheus/Loki），用 Grafana 统一面板关联展示；⑤ 采样率从低开始(10%)，异常链路用尾部采样保证采到。</p>
+            <p><strong>Micrometer 自定义业务指标 + Exemplar 自动关联 Trace</strong>（Spring Boot Actuator + Micrometer 暴露 <code class="inline-code">/actuator/prometheus</code>，OTel SDK 自动将当前 Span 的 TraceId 作为 Exemplar 嵌入指标）：</p>
+            <div class="code-block"><pre><code><span class="com">// Micrometer 自定义业务指标 + Exemplar 自动关联 Trace</span>
+<span class="kw">@Service</span>
+<span class="kw">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> <span class="type">OrderMetrics</span> {
+    <span class="kw">private final</span> <span class="type">MeterRegistry</span> registry;
+
+    <span class="com">// Counter: 订单创建数(按渠道标签)</span>
+    <span class="kw">public void</span> <span class="fn">recordOrder</span>(<span class="type">String</span> channel, <span class="kw">boolean</span> success) {
+        registry.<span class="fn">counter</span>(<span class="str">"order.create.total"</span>,
+                <span class="str">"channel"</span>, channel,
+                <span class="str">"result"</span>, success ? <span class="str">"success"</span> : <span class="str">"fail"</span>)
+            .<span class="fn">increment</span>();
+    }
+
+    <span class="com">// Timer: 订单处理耗时(自动关联 Exemplar -&gt; Trace)</span>
+    <span class="kw">public void</span> <span class="fn">recordProcessTime</span>(<span class="type">String</span> channel, <span class="kw">long</span> millis) {
+        registry.<span class="fn">timer</span>(<span class="str">"order.process.duration"</span>,
+                <span class="str">"channel"</span>, channel)
+            .<span class="fn">record</span>(millis, <span class="type">TimeUnit</span>.MILLISECONDS);
+    }
+}</code></pre></div>
+
+            <p><strong>Tail Sampling Collector 配置（保留错误与慢调用）</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># otel-collector: Tail Sampling 保留错误与慢调用 Trace</span>
+processors:
+  tail_sampling:
+    decision_wait: 30s        <span class="com"># 缓冲 30s 等待完整 Trace</span>
+    policies:
+      <span class="com"># 保留所有错误请求的 Trace</span>
+      - name: error-status
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      <span class="com"># 保留慢调用(大于 2s)</span>
+      - name: slow-trace
+        type: latency
+        latency:
+          threshold_ms: 2000
+      <span class="com"># 10% 采样其余(基线覆盖)</span>
+      - name: baseline
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10</code></pre></div>
+
+            <p><strong>平台选型</strong>：① <strong>开源自建</strong>(Prometheus+Grafana+Tempo/Loki，成本低可控)；② <strong>SaaS</strong>(Datadog，开箱即用但贵)；③ <strong>云厂商</strong>(阿里云 ARMS，深度集成云资源)。</p>
+
+            <p><strong>落地建议</strong>：① 优先用 <strong>Java Agent 自动埋点</strong>覆盖通用框架，零侵入；② 关键业务方法<strong>手动加 Span + 业务 Attribute</strong>，便于按业务维度筛选；③ Collector 独立部署，配置 batch + memory_limiter 防背压；④ 三后端分离部署（Jaeger/Prometheus/Loki），用 Grafana 统一面板关联展示；⑤ 采样率从低开始(10%)，异常链路用尾部采样保证采到；⑥ <strong>SLO 告警基于 SLI</strong>——定义服务等级指标(可用率/延迟 P99/错误率)，多窗口多燃烧率告警避免抖动误报；⑦ 深度观测可用 <strong>eBPF</strong>(Cilium/Hubble) 做内核层网络流量零侵入观测。</p>
           </div>
         </div>
 
@@ -1565,8 +1628,14 @@ service:
           <div class="qa-layer-body">
             <p><strong>追问 1：OTel 如何解决厂商锁定？迁移后端成本多大？</strong></p>
             <p>OTel 三层解耦是关键：业务代码只依赖 OTel API（接口），SDK 与 Collector 是实现层。换后端只需改 Collector 的 exporter 配置（如 Jaeger→Tempo），<strong>业务代码零改动</strong>。甚至可同时导出多后端做灰度验证。相比传统 APM 换厂商需重写所有埋点，OTel 把迁移成本从"月级代码改造"降到"分钟级配置变更"。</p>
-            <p><strong>追问 2：Metrics、Trace、Log 数据量差异巨大，如何差异化存储与采样？</strong></p>
+            <p><strong>追问 2：OpenTelemetry 的 Head Sampling vs Tail Sampling 有什么区别？</strong></p>
+            <p><strong>Head Sampling(头部采样)</strong>：在请求入口(Trace 起点)立即按概率决定是否采样，一旦不采样则后续所有 Span 都不生成。优点是开销极小(下游零埋点)；缺点是无法根据"是否出错/是否慢"决策——错误请求可能被提前丢弃。<strong>Tail Sampling(尾部采样)</strong>：所有 Span 全量采集传到 Collector，Collector 缓冲完整 Trace 后(等待 decision_wait)，根据策略(错误状态/延迟/属性)决定是否保留。优点是能精准保留错误与慢调用；缺点是需要 Collector 缓冲内存、有延迟。生产实践：入口用低比例 Head Sampling 降流量 + Collector Tail Sampling 保留异常 Trace。</p>
+            <p><strong>追问 3：Metrics 和 Traces 如何关联(Exemplar)？</strong></p>
+            <p>Prometheus Exemplar 机制：Histogram/Counter 的数据点可附带一个 TraceId 引用。当 Micrometer 记录指标时，OTel SDK 自动将当前 Span 的 TraceId 作为 Exemplar 嵌入。在 Grafana 中点击指标图表上的 Exemplar 点，可直接跳转到 Tempo/Jaeger 查看该请求的完整 Trace——实现从"指标异常(如 P99 飙升)"到"具体请求链路"的下钻分析。这是三支柱联动的关键纽带。</p>
+            <p><strong>追问 4：Metrics、Trace、Log 数据量差异巨大，如何差异化存储与采样？</strong></p>
             <p>① <strong>Metrics</strong>——数据量小且聚合，通常全量保留，存 Prometheus/VictoriaMetrics（时序库，高效压缩）；② <strong>Trace</strong>——数据量大，需采样（头部 10% 或尾部只采异常/慢），存 Jaeger/Tempo（Trace 库），用采样率控制量；③ <strong>Log</strong>——数据量最大，分级采集（ERROR 全采，INFO 采样），存 Loki/ES（日志库），按保留期滚动删除。Collector 对三种信号分别配 pipeline 与采样策略，差异化处理。</p>
+            <p><strong>追问 5：TraceId 跨线程透传如何治理？</strong></p>
+            <p>核心问题是 ThreadLocal 在线程池场景失效，治理方案包括 TransmittableThreadLocal(TTL)、Spring TaskDecorator、OTel Context.wrap() 三对比，MDC 注入/清理防串流，以及虚拟线程下的 Scoped Values 演进。完整代码示例与原理拆解见 <a href="#qa-11-8" class="internal-link">11.8</a>。</p>
           </div>
         </div>
 
@@ -1576,11 +1645,13 @@ service:
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
+                <li><strong>混淆监控与可观测性</strong>：认为接入 Prometheus 就是可观测性。监控只看已知指标阈值，可观测性强调三支柱关联探索未知问题，缺少 Trace/Log 关联等于退化为监控。</li>
                 <li><strong>三支柱各自为政无关联</strong>：Metrics 无 Exemplar、Log 无 traceId，排障无法跳转，必须用 traceId 贯穿三者。</li>
-                <li><strong>Trace 全量采集撑爆存储</strong>：高 QPS 下全量 Trace 数据量巨大，必须采样，异常链路用尾部采样保证采到。</li>
+                <li><strong>Trace 全量采集撑爆存储</strong>：高 QPS 下全量 Trace 数据量巨大，必须设计采样策略(Head + Tail)，按错误/慢调用优先保留。</li>
                 <li><strong>Collector 单点无高可用</strong>：Collector 挂了数据丢失，需集群部署 + 队列缓冲(如 Kafka 接收)。</li>
-                <li><strong>Span 滥用导致开销大</strong>：每个方法都建 Span，层级过深开销大，只在有意义边界建 Span。</li>
+                <li><strong>ThreadLocal 上下文在线程池中丢失 + MDC 未清理串流</strong>：直接向线程池提交任务不 wrap Context 导致 TraceId 断链；线程复用下上个任务的 MDC 未清理，下一个任务继承错误 TraceId。OTel wrap 会自动 save/restore，自定义 MDC 操作需注意清理。</li>
                 <li><strong>业务代码依赖 OTel SDK 而非 API</strong>：依赖 SDK 实现类导致厂商耦合，应只依赖 API 接口。</li>
+                <li><strong>只采集不告警</strong>：部署了完整采集链路但没有 SLO 告警，出问题靠用户反馈。必须基于 SLI 定义 SLO 告警，让系统主动预警。</li>
                 <li><strong>忽视 Log 结构化</strong>：非结构化日志无法关联 traceId，需结构化输出(JSON)并注入 traceId。</li>
               </ul>
             </div>
@@ -2569,158 +2640,12 @@ spring:
         </div>
       </div>
 
-      <div class="qa-card" id="qa-11-17" data-difficulty="architect" data-priority="p1">
+      <!-- ============================================================ -->
+      <!-- Q11.17 数据库版本化管理与迁移：Flyway vs Liquibase 的工程实践？ -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="qa-11-17" data-difficulty="architect" data-priority="p2">
         <div class="qa-header">
           <div class="qa-badge">11.17</div>
-          <div class="qa-question">可观测性三支柱（Metrics/Traces/Logs）与 OpenTelemetry 实践？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
-        </div>
-
-        <div class="qa-layer" data-layer="essence">
-          <div class="qa-layer-title">本质问题</div>
-          <div class="qa-layer-body">
-            <p>本题是可观测性三支柱（Trace/Metrics/Log）+ OpenTelemetry 标准综述；Collector 管道工程详见 <a href="#qa-11-9" class="internal-link">11.9</a>，TraceId 透传详见 <a href="#qa-11-8" class="internal-link">11.8</a>。核心回答：<strong>可观测性(Observability)区别于监控(Monitoring)</strong>——监控只能发现"预设的已知问题"(阈值告警)，而可观测性通过三支柱的关联分析，回答"为什么出问题、还有哪些未知问题"。三支柱必须通过 <code class="inline-code">TraceId</code> 统一关联形成闭环，OpenTelemetry(CNCF)提供了标准化的 API/SDK/Collector/OTLP 协议，解决厂商锁定与生态碎片化。</p>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="evolution">
-          <div class="qa-layer-title">演进脉络</div>
-          <div class="qa-layer-body">
-            <p><strong>阶段 1：传统监控(Monitoring)</strong>。Nagios/Zabbix 基于阈值告警，覆盖已知失败模式，无法应对分布式系统的未知故障组合。</p>
-            <p><strong>阶段 2：可观测性(Observability)概念引入</strong>。源自控制论——"通过系统外部输出推断内部状态"，强调从多维数据中探索未知问题，而非仅依赖预设规则。</p>
-            <p><strong>阶段 3：Google Dapper(2010)</strong>。Dapper 论文奠定分布式追踪理论基础——Span 树 + TraceId 串联跨服务调用链，工业级落地。</p>
-            <p><strong>阶段 4：标准分裂(2015-2019)</strong>。OpenTracing(CNCF，纯 API 规范)与 OpenCensus(Google，API+SDK 实现)并存，生态碎片化，客户端多套集成成本高。</p>
-            <p><strong>阶段 5：OpenTelemetry 合并(2019，CNCF)</strong>。两项目合并统一 API+SDK+Collector+OTLP 协议，成为 CNCF 仅次于 Kubernetes 的第二大项目，实现厂商无关、后端可切换。</p>
-            <p><strong>阶段 6：生态深度融合(2023+)</strong>。Spring Boot 3.2+ 内置 Micrometer Tracing(桥接 OTel/Brave)；OTLP 成为事实标准；JDK 21 虚拟线程带来 ThreadLocal 上下文传播新挑战(虚拟线程海量并发，ThreadLocal 内存与 GC 压力需关注)。</p>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">第一性原理</div>
-          <div class="qa-layer-body">
-            <p><strong>Metrics(指标)</strong>：聚合数值，低成本高吞吐，适合告警与趋势分析。</p>
-            <ul>
-              <li>Counter(单调递增：请求数/错误数)、Gauge(瞬时值：连接数/队列长度)、Histogram(分布：RT 分位 P99)、Summary(客户端计算分位)</li>
-              <li>Prometheus exposition(pull 模型)；<strong>Exemplar</strong> 在指标数据点中嵌入 TraceId，实现 Metrics→Traces 跳转</li>
-            </ul>
-            <p><strong>Traces(追踪)</strong>：Span 树形结构，还原请求在分布式系统中的完整路径。</p>
-            <ul>
-              <li>TraceId(全局唯一 128bit) / SpanId(64bit) / ParentSpanId(建立父子关系)</li>
-              <li>采样(Sampling)：避免全量采集导致存储爆炸</li>
-            </ul>
-            <p><strong>Logs(日志)</strong>：结构化日志(JSON 格式)，携带 TraceId/SpanId 字段，实现 Logs→Traces 跳转。</p>
-            <p><strong>可观测性三支柱详表</strong>：</p>
-            <table class="compare-table">
-              <thead><tr><th>支柱</th><th>回答的问题</th><th>数据模型</th><th>典型后端</th><th>关联纽带</th></tr></thead>
-              <tbody>
-                <tr><td><strong>Metrics 指标</strong></td><td>系统整体健康(QPS/RT/错误率/资源)</td><td>时间序列(name+labels+value+timestamp)</td><td>Prometheus/VictoriaMetrics</td><td>Exemplar 嵌入 TraceId → Metrics↔Trace 跳转</td></tr>
-                <tr><td><strong>Trace 链路</strong></td><td>单次请求的完整路径与耗时分布</td><td>Span 树(traceId/spanId/parentId)</td><td>Jaeger/Tempo/Zipkin</td><td>Span Event = 结构化日志 → Trace↔Log 互跳</td></tr>
-                <tr><td><strong>Log 日志</strong></td><td>具体事件的离散详情与上下文</td><td>结构化日志(JSON+traceId/spanId)</td><td>Loki/ELK/Fluentd</td><td>日志带 traceId → Log↔Trace 关联</td></tr>
-              </tbody>
-            </table>
-
-            <p><strong>OpenTelemetry 架构分层</strong>：API(应用编程接口，无实现) → SDK(配置与实现) → Exporter(导出到后端) → Collector(独立部署，接收/处理/转发)。Collector 管道设计(pipeline/receiver/processor/exporter)、Service Graph Connector、Tail Sampling Processor、三级部署拓扑详见 <a href="#qa-11-9" class="internal-link">11.9</a>。Java Agent 启动配置示例见 <a href="#qa-11-9" class="internal-link">11.9</a> 工程实践。</p>
-            <p><strong>Context/Baggage 传播</strong>：Context 携带 TraceId/SpanId；Baggage 携带业务自定义 KV(如 userId)；跨服务通过 W3C TraceContext HTTP Header(<code class="inline-code">traceparent</code>)传播；进程内通过 ThreadLocal + MDC(SLF4J) 自动注入日志。<strong>跨线程/线程池/虚拟线程下 TraceId 透传完整治理方案（TTL/MDC TaskDecorator/Context.wrap 对比）</strong>详见 <a href="#qa-11-8" class="internal-link">11.8</a>。</p>
-
-            <div class="code-block"><pre><code><span class="com">// Micrometer 自定义业务指标 + Exemplar 自动关联 Trace</span>
-<span class="kw">@Service</span>
-<span class="kw">@RequiredArgsConstructor</span>
-<span class="kw">public class</span> <span class="type">OrderMetrics</span> {
-    <span class="kw">private final</span> <span class="type">MeterRegistry</span> registry;
-
-    <span class="com">// Counter: 订单创建数(按渠道标签)</span>
-    <span class="kw">public void</span> <span class="fn">recordOrder</span>(<span class="type">String</span> channel, <span class="kw">boolean</span> success) {
-        registry.<span class="fn">counter</span>(<span class="str">"order.create.total"</span>,
-                <span class="str">"channel"</span>, channel,
-                <span class="str">"result"</span>, success ? <span class="str">"success"</span> : <span class="str">"fail"</span>)
-            .<span class="fn">increment</span>();
-    }
-
-    <span class="com">// Timer: 订单处理耗时(自动关联 Exemplar -&gt; Trace)</span>
-    <span class="kw">public void</span> <span class="fn">recordProcessTime</span>(<span class="type">String</span> channel, <span class="kw">long</span> millis) {
-        registry.<span class="fn">timer</span>(<span class="str">"order.process.duration"</span>,
-                <span class="str">"channel"</span>, channel)
-            .<span class="fn">record</span>(millis, <span class="type">TimeUnit</span>.MILLISECONDS);
-    }
-}</code></pre></div>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="practice">
-          <div class="qa-layer-title">工程实践</div>
-          <div class="qa-layer-body">
-            <p><strong>高级开发</strong>：</p>
-            <ul>
-              <li>Spring Boot Actuator + Micrometer 自动暴露 <code class="inline-code">/actuator/prometheus</code>，零配置采集 JVM/HTTP 指标</li>
-              <li>OTel Java Agent(-javaagent) 零代码改动自动埋点：HTTP/JDBC/Redis/Kafka 自动追踪</li>
-              <li>结构化日志：Spring Boot 3.2+ 自动将 TraceId 注入 MDC，日志 JSON 格式输出(Logstash encoder)</li>
-            </ul>
-            <p><strong>架构师</strong>：</p>
-            <ul>
-              <li><strong>平台选型</strong>：开源自建(Prometheus+Grafana+Tempo/Loki，成本低可控) vs SaaS(Datadog，开箱即用但贵) vs 云厂商(阿里云 ARMS，深度集成云资源)</li>
-              <li><strong>采样策略</strong>：高 QPS 链路 Head Sampling(入口概率采样 1%)降开销；关键链路 Tail Sampling(全量采集后在 Collector 按错误/慢调用筛选保留)</li>
-              <li><strong>eBPF 零侵入观测</strong>(Cilium/Hubble)：内核层网络流量观测，无需应用改造</li>
-              <li><strong>SLO 告警基于 SLI</strong>：定义服务等级指标(可用率/延迟 P99/错误率)，多窗口多燃烧率告警(避免抖动误报)</li>
-            </ul>
-
-            <p><strong>Tail Sampling Collector 配置(保留错误与慢调用)</strong>：</p>
-            <div class="code-block"><pre><code><span class="com"># otel-collector: Tail Sampling 保留错误与慢调用 Trace</span>
-processors:
-  tail_sampling:
-    decision_wait: 30s        <span class="com"># 缓冲 30s 等待完整 Trace</span>
-    policies:
-      <span class="com"># 保留所有错误请求的 Trace</span>
-      - name: error-status
-        type: status_code
-        status_code:
-          status_codes: [ERROR]
-      <span class="com"># 保留慢调用(大于 2s)</span>
-      - name: slow-trace
-        type: latency
-        latency:
-          threshold_ms: 2000
-      <span class="com"># 10% 采样其余(基线覆盖)</span>
-      - name: baseline
-        type: probabilistic
-        probabilistic:
-          sampling_percentage: 10</code></pre></div>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="deep">
-          <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body">
-            <p><strong>追问 1：TraceId 跨线程透传治理详见 <a href="#qa-11-8" class="internal-link">11.8</a></strong></p>
-            <p>核心问题是 ThreadLocal 在线程池场景失效，治理方案包括 TransmittableThreadLocal(TTL)、Spring TaskDecorator、OTel Context.wrap() 三对比，MDC 注入/清理防串流，以及虚拟线程下的 Scoped Values 演进。完整代码示例与原理拆解见 <a href="#qa-11-8" class="internal-link">11.8</a>。</p>
-            <p><strong>追问 2：OpenTelemetry 的 Head Sampling vs Tail Sampling 有什么区别？</strong></p>
-            <p><strong>Head Sampling(头部采样)</strong>：在请求入口(Trace 起点)立即按概率决定是否采样，一旦不采样则后续所有 Span 都不生成。优点是开销极小(下游零埋点)；缺点是无法根据"是否出错/是否慢"决策——错误请求可能被提前丢弃。<strong>Tail Sampling(尾部采样)</strong>：所有 Span 全量采集传到 Collector，Collector 缓冲完整 Trace 后(等待 decision_wait)，根据策略(错误状态/延迟/属性)决定是否保留。优点是能精准保留错误与慢调用；缺点是需要 Collector 缓冲内存、有延迟。生产实践：入口用低比例 Head Sampling 降流量 + Collector Tail Sampling 保留异常 Trace。</p>
-            <p><strong>追问 3：Metrics 和 Traces 如何关联(Exemplar)？</strong></p>
-            <p>Prometheus Exemplar 机制：Histogram/Counter 的数据点可附带一个 TraceId 引用。当 Micrometer 记录指标时，OTel SDK 自动将当前 Span 的 TraceId 作为 Exemplar 嵌入。在 Grafana 中点击指标图表上的 Exemplar 点，可直接跳转到 Tempo/Jaeger 查看该请求的完整 Trace——实现从"指标异常(如 P99 飙升)"到"具体请求链路"的下钻分析。这是三支柱联动的关键纽带。</p>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="pitfall">
-          <div class="qa-layer-title">常见陷阱</div>
-          <div class="qa-layer-body">
-            <div class="callout callout-pitfall">
-              <div class="callout-title">易错点</div>
-              <ul>
-                <li><strong>混淆监控与可观测性</strong>：认为接入 Prometheus 就是可观测性。监控只看已知指标阈值，可观测性强调三支柱关联探索未知问题，缺少 Trace/Log 关联等于退化为监控。</li>
-                <li><strong>忽略采样导致存储爆炸</strong>：全量采集 Trace，高 QPS 下存储成本线性增长。必须设计采样策略(Head + Tail)，按错误/慢调用优先保留。</li>
-                <li><strong>ThreadLocal 上下文在线程池中丢失</strong>：直接向线程池提交任务不 wrap Context，导致异步链路 TraceId 断链，无法排查异步问题。</li>
-                <li><strong>MDC 在异步场景未清理导致 TraceId 串流</strong>：线程池复用线程，上一个任务的 MDC 未清理，下一个任务继承错误的 TraceId，日志关联到错误的请求。OTel wrap 会自动 save/restore，但自定义 MDC 操作需注意清理。</li>
-                <li><strong>只采集不告警</strong>：部署了完整采集链路但没有 SLO 告警，出问题靠用户反馈。必须基于 SLI 定义 SLO 告警，让系统主动预警。</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================ -->
-      <!-- Q11.18 数据库版本化管理与迁移：Flyway vs Liquibase 的工程实践？ -->
-      <!-- ============================================================ -->
-      <div class="qa-card" id="qa-11-18" data-difficulty="architect" data-priority="p2">
-        <div class="qa-header">
-          <div class="qa-badge">11.18</div>
           <div class="qa-question">数据库版本化管理与迁移：Flyway vs Liquibase 的工程实践？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
         </div>
 
