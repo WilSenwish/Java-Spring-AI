@@ -338,7 +338,7 @@
     E -->|恶意| F[滑块验证码/拒绝]
     E -->|正常| G[应用层 Redis Lua 预扣减]
     G -->|扣减成功| H[发送 RocketMQ 消息]
-    G -->|库存不足| I[返回售罞]
+    G -->|库存不足| I[返回售罄]
     H --> J[返回排队中 异步]
     H --> K[MQ 消费者集群]
     K --> L[DB 乐观锁扣减库存]
@@ -622,6 +622,7 @@
       <div class="qa-layer-body"><p>1. <strong>实时消息广播</strong>：500 万人在线，单条弹幕需广播放大成百万级推送；2. <strong>消息风暴</strong>：50 万 QPS 弹幕不能全量下发，需合并裁剪；3. <strong>瞬时下单洪峰</strong>：主播喊"上车"瞬间 20 万 QPS；4. <strong>长连接管理</strong>：500 万 TCP 长连接的资源消耗与心跳维护；5. <strong>音视频与互动协同</strong>：商品讲解与上架推送需与视频时序对齐。</p></div>
     </div>
     <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">分析框架</div>
       <div class="qa-layer-body"><p>采用<strong>"推拉结合 + 消息合并 + 分层削峰"</strong>：弹幕用 IM 长连接（WebSocket/TCP）推为主，热点消息合并广播（每 200ms 聚合一批下发）；视频走 CDN RTMP/HLS 推拉流，互动消息走独立通道；下单复用秒杀架构（Redis 预扣 + MQ 异步）。长连接网关做水平扩展 + 一致性哈希分片管理连接。</p></div>
     </div>
     <div class="qa-layer" data-layer="practice">
@@ -851,7 +852,7 @@
     <span class="kw">public</span> <span class="type">String</span> <span class="fn">tryLock</span>(<span class="type">String</span> <span class="var">key</span>, <span class="kw">long</span> <span class="var">ttlMs</span>) {
         <span class="type">String</span> <span class="var">token</span> = <span class="type">UUID</span>.<span class="fn">randomUUID</span>().<span class="fn">toString</span>();
         <span class="type">Boolean</span> <span class="var">ok</span> = redis.<span class="fn">opsForValue</span>().<span class="fn">setIfAbsent</span>(<span class="var">key</span>, <span class="var">token</span>, <span class="var">ttlMs</span>, <span class="type">TimeUnit</span>.MILLISECONDS);
-        <span class="kw">if</span> (<span class="var">ok</span> != <span class="kw">null</span> && <span class="var">ok</span>) {
+        <span class="kw">if</span> (<span class="var">ok</span> != <span class="kw">null</span> &amp;&amp; <span class="var">ok</span>) {
             <span class="fn">startWatchdog</span>(<span class="var">key</span>, <span class="var">token</span>, <span class="var">ttlMs</span>); <span class="com">// 启动看门狗续期</span>
             <span class="kw">return</span> <span class="var">token</span>; <span class="com">// 返回持锁凭证，释放时校验</span>
         }
@@ -871,7 +872,7 @@
     <span class="kw">public</span> <span class="kw">boolean</span> <span class="fn">unlock</span>(<span class="type">String</span> <span class="var">key</span>, <span class="type">String</span> <span class="var">token</span>) {
         <span class="var">watchdogs</span>.<span class="fn">remove</span>(<span class="var">key</span>).<span class="fn">cancel</span>(<span class="kw">false</span>); <span class="com">// 停止续期</span>
         <span class="type">Long</span> <span class="var">ret</span> = redis.<span class="fn">execute</span>(<span class="kw">new</span> <span class="type">DefaultRedisScript</span>&lt;&gt;(<span class="var">UNLOCK_SCRIPT</span>, <span class="type">Long</span>.<span class="kw">class</span>), <span class="type">Collections</span>.<span class="fn">singletonList</span>(<span class="var">key</span>), <span class="var">token</span>);
-        <span class="kw">return</span> <span class="var">ret</span> != <span class="kw">null</span> && <span class="var">ret</span> == <span class="num">1</span>;
+        <span class="kw">return</span> <span class="var">ret</span> != <span class="kw">null</span> &amp;&amp; <span class="var">ret</span> == <span class="num">1</span>;
     }
 }</code></pre></div>
       </div>
@@ -1090,7 +1091,7 @@
             <span class="kw">else</span> <span class="kw">throw</span> <span class="kw">new</span> <span class="type">IllegalStateException</span>(<span class="str">"时钟回拨:"</span> + <span class="var">offset</span>);
         }
         <span class="kw">if</span> (<span class="var">now</span> == <span class="var">lastTs</span>) { <span class="com">// 同毫秒内序列号自增</span>
-            <span class="var">seq</span> = (<span class="var">seq</span> + <span class="num">1</span>) & <span class="var">MAX_SEQ</span>;
+            <span class="var">seq</span> = (<span class="var">seq</span> + <span class="num">1</span>) &amp; <span class="var">MAX_SEQ</span>;
             <span class="kw">if</span> (<span class="var">seq</span> == <span class="num">0</span>) <span class="var">now</span> = <span class="fn">tilNextMillis</span>(<span class="var">lastTs</span>); <span class="com">// 序列耗尽等下一毫秒</span>
         } <span class="kw">else</span> { <span class="var">seq</span> = <span class="num">0L</span>; }
         <span class="var">lastTs</span> = <span class="var">now</span>;
@@ -1714,6 +1715,7 @@
       <span class="scenario-tag">布隆过滤器</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某电商商品详情页系统，Redis 集群（6 主 6 从）缓存商品信息，QPS 峰值 5 万，缓存命中率日常 95%。线上连续发生三次故障：① 恶意爬虫大量请求不存在的商品 ID（ID=-1、随机 UUID），缓存和 DB 均未命中，DB 连接池打满服务不可用 15 分钟（缓存穿透）；② 热销爆款商品缓存过期瞬间，2 万并发请求同时打到 DB，DB CPU 飙至 100%（缓存击穿）；③ 凌晨缓存批量过期 + DB 重启恢复，大量请求涌入导致雪崩式故障 30 分钟（缓存雪崩）。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -1931,6 +1933,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">灰度</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某中型电商公司核心交易系统为 Java 单体应用（SpringBoot 2.1.3），代码量 42 万行，430 个 Controller，部署包 220MB。团队从 8 人扩张至 35 人后出现严重协作问题：代码合并冲突频发（日均 15+ 次），发布周期从周级拉长至月级（任何模块改动需全量回归测试），单次部署影响全站（支付 bug 导致商品搜索不可用）。线上故障频发（月均 4 次 P2 级故障），系统耦合严重：订单直接调用商品库表、支付模块依赖库存 Java 对象。日均订单 200 万，大促峰值 TPS 5000。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -2072,6 +2075,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">协议转换</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某互联网公司微服务体系包含 18 个微服务，客户端（APP/H5/小程序）共 50+ 个 API 入口。当前问题严重：① 鉴权逻辑散落在各服务中（有的用 JWT、有的用 Session、有的未鉴权），安全漏洞频发；② 无统一限流，大促期间单服务过载引发雪崩；③ 客户端需多次调用不同服务聚合数据（首页需 6 次 API 调用），延迟高（P99=1.2s）；④ 灰度发布靠手工 Nginx 配置，效率低且易出错；⑤ 外部合作伙伴接入需协议转换（HTTP → Dubbo/gRPC）。日均 API 调用量 2 亿次，峰值 QPS 8 万。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -2254,6 +2258,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">监控</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某外卖平台订单消息处理系统，使用 Kafka 集群（3 Broker，topic=order-events，6 分区，副本因子 2）。消费者服务（4 实例）正常消费速度 2000 条/秒。大促期间订单消息生产速度飙升至 5000 条/秒，持续 2 小时后积压 2000 万条消息，消费延迟从毫级升至 2.5 小时。影响：骑手超时提醒延迟（用户已收到餐但 APP 仍显示"准备中"）、订单状态同步延迟导致客服无法及时处理退款。Kafka Lag 监控告警频繁，消费者服务 CPU 70%、JVM GC 频繁（Full GC 每 5 分钟一次）。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -2391,6 +2396,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">回滚</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某金融科技公司核心交易链路包含 5 个微服务：网关 → 交易服务 → 风控服务 → 账务服务 → 通知服务。交易服务进行大规模重构（从同步调用改为事件驱动架构），需灰度验证 2% 流量验证稳定性后再逐步放量。挑战：灰度流量必须全链路路由到灰度版本（交易服务 v2 调用风控服务 v2 调用账务服务 v2），不能出现 v2 调 v1 的版本混乱。同时需支持秒级回滚（灰度发现问题立即切回全量 v1）。系统日均交易 500 万笔，涉及资金安全，灰度期间不能影响正常交易。技术栈：Spring Cloud + Nacos + OpenFeign + RocketMQ。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -2683,7 +2689,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
           <tbody>
             <tr><td>jmap + MAT</td><td>离线全量分析，Dominator Tree 直观定位泄漏链</td><td>dump 期间 STW，文件大下载慢</td></tr>
             <tr><td>Arthas heapdump</td><td>在线 attach，可 --live 只看存活对象</td><td>无法做引用链深度分析</td></tr>
-            <tr><td>JFR (Java Flight Recorder)</td><td>持续采样开销低（<1%），可看对象分配热点</td><td>JDK 11+ 默认可用，8u 需商业授权解锁</td></tr>
+            <tr><td>JFR (Java Flight Recorder)</td><td>持续采样开销低（&lt;1%），可看对象分配热点</td><td>JDK 11+ 默认可用，8u 需商业授权解锁</td></tr>
             <tr><td>jcmd + NMT</td><td>Native Memory Tracking 看堆外内存分布</td><td>需启动参数 -XX:NativeMemoryTracking=summary，有 5%-10% 性能损耗</td></tr>
           </tbody>
         </table>
@@ -2762,6 +2768,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">GC</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某支付平台核心交易服务（8核16G x 12节点），日均交易 500 万笔，峰值 TPS 3000。某日 14:30 监控告警 3 个节点 CPU 持续 100% 持续 8 分钟未恢复，接口 P99 从 50ms 飙到 8000ms，支付成功率从 99.99% 跌至 97%。应用使用 SpringBoot 2.1.3 + Dubbo + Redis，JVM 参数 -Xms8g -Xmx8g -XX:+UseG1GC，线程池配置 corePoolSize=200, maxPoolSize=400。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -2892,6 +2899,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">连接池</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某电商商品详情页接口 /api/product/{id}，日均 PV 3000 万，大促峰值 QPS 15000。当前 P99 响应时间 200ms，产品要求优化到 20ms 以内。接口内部逻辑：查商品基础信息（MySQL，15ms）→ 查价格促销（MySQL，25ms）→ 查库存（Redis，5ms）→ 查评价摘要（MySQL，40ms）→ 查推荐商品（RPC，50ms）→ 查标签属性（MySQL，30ms）→ 组装返回（35ms），总计约 200ms（串行调用）。MySQL 单表 2000 万行，Druid 连接池 maxActive=20。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -3017,6 +3025,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">幂等</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某 O2O 平台订单消息链路：订单服务 → RocketMQ → 消费者（库存扣减、积分发放、通知推送），日均消息量 2000 万条，大促峰值 5 万 TPS。曾出现三类故障：1）MQ 宕机切换期间丢失约 2 万条订单消息，导致库存不扣减；2）消费者重启时重复消费，积分多发 3 倍；3）大促消息积压 800 万条，积压 2 小时才消费完。需设计全链路可靠性方案。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -3242,6 +3251,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">迁移</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某 SaaS 平台 API 网关（Spring Cloud Gateway），日均请求量 5 亿次，峰值 QPS 8 万，平均每个请求需调用 3-5 个下游微服务（IO 密集型）。当前基于 Reactor WebFlux + Netty 的响应式编程模型，开发复杂度高、调试困难、排障链路追踪可读性差。团队希望迁移到 Java 21 虚拟线程（JEP 444）+ Spring Boot 3.2 的同步编程模型，降低开发心智负担的同时保持或提升吞吐量。当前平台线程池配置：HTTP 请求处理 200 线程，RPC 调用池 500 线程，高峰期线程数 800+，上下文切换开销显著。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -3364,6 +3374,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">多模型切换</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某 AI 客服平台日均调用大模型 200 万次（GPT-4o / Claude / 通义千问 / 文心一言多供应商），峰值 QPS 500。大模型 API 存在三类不稳定：1）超时频繁——P99 延迟 15 秒，偶发 30 秒超时；2）限流/过载——各供应商返回 429/529 错误，高峰期 20% 请求被拒；3）成本控制——GPT-4o 单次调用成本 ¥0.15，日均 30 万元，需智能路由降低成本。业务要求：SLA 可用性 99.9%，P99 &lt; 8 秒，失败请求自动降级到缓存回复或小模型。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -3487,6 +3498,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">检索增强</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某大型企业内部知识库系统，沉淀文档 50 万篇（PDF/Word/Confluence/邮件，总计 200GB 文本），需构建 RAG（Retrieval-Augmented Generation）问答系统，员工通过自然语言提问获取精准答案。当前痛点：传统关键词搜索召回率低（35%），大模型直接回答存在幻觉且不知道企业内部知识。目标：召回率 &gt; 85%，答案准确率 &gt; 90%，单次问答 P95 &lt; 5 秒，支持 500 并发。技术栈：Spring Boot 3 + Spring AI + Milvus + Redis + PostgreSQL。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -3494,6 +3506,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <div class="qa-layer-body"><p>1）文档分块（Chunking）策略直接影响召回质量——太大包含噪声、太小丢失上下文，表格/代码/长文需不同分块策略；2）Embedding 模型选择与成本——50 万文档全量 Embedding 约 1.5 亿 token，需选择性价比模型且支持中文；3）混合检索（向量 + 关键词）的融合排序——纯向量检索对专有名词/编号召回差，需结合 BM25 关键词检索；4）上下文组装与 Prompt 工程——检索到 N 个 chunk 后如何组装给 LLM，避免上下文超限和噪声干扰；5）知识更新——文档变更后需增量更新向量索引，不能全量重建。</p></div>
     </div>
     <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">分析框架</div>
       <div class="qa-layer-body"><p>RAG 架构分为离线索引和在线检索两阶段。离线阶段：文档解析 → 清洗 → 分块 → Embedding → 存入向量数据库。在线阶段：用户提问 → Query 改写 → 向量检索 + BM25 检索 → 融合排序（RRF）→ 上下文组装 → LLM 生成 → 引用标注。核心指标：召回率（Recall@K）、精确率（Precision@K）、答案准确率。检索增强的关键不在 LLM 而在检索质量——"Garbage In Garbage Out"，检索到错误上下文比不检索更危险。因此需引入 Reranker（重排序模型）对初筛结果精排。</p></div>
     </div>
     <div class="qa-layer" data-layer="practice">
@@ -3620,6 +3633,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       <span class="scenario-tag">配置管理</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某物流平台将 20 个 SpringBoot 微服务从传统 VM 部署迁移到 Kubernetes 集群（3 Master + 10 Worker，每节点 16核64G）。服务规模：日均订单 800 万，峰值 QPS 12000，核心服务（订单/调度/计费）要求 99.95% 可用性。迁移痛点：1）JVM 堆内存设 4G 但容器 limit 6G，偶发 OOMKilled；2）Pod 启动慢（60 秒）被 Liveness 探针杀掉循环重启；3）大促流量突增时 HPA 扩容不及时导致请求堆积；4）多环境配置（dev/staging/prod）管理混乱。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -3762,7 +3776,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
     </div>
     <div class="qa-layer" data-layer="scenario">
       <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某企业需构建内部知识库问答系统，涵盖 1000 万份技术文档、产品手册、会议记录。要求支持语义搜索（而非关键词匹配），并与大模型结合实现 RAG（检索增强生成），回答准确率 > 85%，响应延迟 < 2s。</p></div>
+      <div class="qa-layer-body"><p>某企业需构建内部知识库问答系统，涵盖 1000 万份技术文档、产品手册、会议记录。要求支持语义搜索（而非关键词匹配），并与大模型结合实现 RAG（检索增强生成），回答准确率 > 85%，响应延迟 &lt; 2s。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
       <div class="qa-layer-title">核心挑战</div>
@@ -4681,6 +4695,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       <span class="scenario-tag">演练自动化</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某金融科技公司微服务集群 500+ 节点，生产环境频繁出现未知故障（网络分区、磁盘 IO 饱和、依赖超时级联），被动救火模式导致 MTTR 平均 45 分钟，故障复盘发现大量隐患未提前暴露。需建设混沌工程平台，主动在预发/生产环境注入故障验证系统韧性，目标：覆盖核心链路 80% 故障场景，MTTR 降至 10 分钟以内，将故障发现从"线上爆发"前移到"演练暴露"。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -4788,6 +4803,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       <span class="scenario-tag">恢复</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某 SaaS 平台 300+ 微服务部署在 K8s 集群，日常故障频繁（每天 10+ 次实例重启、网络抖动、依赖超时），运维团队 7x24 值班仍无法快速响应，P0 故障平均 MTTR 15 分钟。需建设故障自愈体系，实现故障秒级发现、分钟级自愈，目标：P0 故障自愈率 90%+，MTTR &lt; 5 分钟，运维从"救火"转向"设计韧性"。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -4895,6 +4911,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       <span class="scenario-tag">告警体系</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某互联网公司核心交易系统对外承诺 SLA 99.95%（月度允许停机 &lt; 21.8 分钟），但实际仅达到 99.8%（月度停机约 87 分钟），频繁因容量不足触发降级和限流导致业务损失。技术侧缺乏容量规划流程，资源扩容靠"拍脑袋"，大促前压测不充分。需建设 SLA 保障体系和容量规划流程，将 SLA 提升至 99.95% 以上。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -5010,7 +5027,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     </div>
     <div class="qa-layer" data-layer="scenario">
       <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某互联网公司 Web 应用近期遭遇第三方安全扫描，报告显示存在多项高危漏洞：XSS 漏洞 3 处（评论区存储型 XSS、商品详情反射型 XSS、用户昵称 DOM 型 XSS），SQL 注入 2 处（搜索接口使用 ${} 拼接 ORDER BY、订单查询使用字符串拼接），CSRF 风险（转账、删除操作未校验来源）。系统日均 PV 2000 万，注册用户量 5000 万，峰值 QPS 8000，要求在不影响性能（接口 RT 增量 < 5ms）的前提下建设完整的 Web 安全防护体系，并需通过等保三级复测。</p></div>
+      <div class="qa-layer-body"><p>某互联网公司 Web 应用近期遭遇第三方安全扫描，报告显示存在多项高危漏洞：XSS 漏洞 3 处（评论区存储型 XSS、商品详情反射型 XSS、用户昵称 DOM 型 XSS），SQL 注入 2 处（搜索接口使用 ${} 拼接 ORDER BY、订单查询使用字符串拼接），CSRF 风险（转账、删除操作未校验来源）。系统日均 PV 2000 万，注册用户量 5000 万，峰值 QPS 8000，要求在不影响性能（接口 RT 增量 &lt; 5ms）的前提下建设完整的 Web 安全防护体系，并需通过等保三级复测。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
       <div class="qa-layer-title">核心挑战</div>
@@ -5115,6 +5132,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       <span class="scenario-tag">限流</span>
     </div>
     <div class="qa-layer" data-layer="scenario">
+            <div class="qa-layer-title">场景背景</div>
       <div class="qa-layer-body"><p>某开放平台对外提供 200+ API 接口，接入第三方应用 1000+，日均调用量 5 亿次，峰值 QPS 12 万。平台需要设计完整的 API 安全体系，覆盖五个维度：认证（识别调用方身份）、授权（控制可调用的接口范围）、防篡改（保证请求内容不被中间人修改）、防重放（防止请求被截获后重复执行）、限流（防止接口被滥用导致系统雪崩）。近期曾发生一起抓包重放攻击导致 10 万次重复下单的事故，暴露出防重放机制缺失。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
@@ -5151,7 +5169,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     style E fill:#e8f5e9</div>
           <div class="chart-caption">OAuth2 + JWT 认证授权与 API 调用全流程图</div>
         </div>
-        <p><strong>二、请求签名方案（HMAC-SHA256）</strong><br>签名算法：sign = HMAC-SHA256(secret, method + path + sortedParams + timestamp + nonce + bodyMd5)<br>参数排序：所有业务参数按 key 字典序升序排列，拼接为 key1=value1&key2=value2。<br>请求头：X-App-Key、X-Timestamp、X-Nonce、X-Signature。<br>密钥管理：appSecret 存储于 KMS，应用启动时拉取至内存，定期轮换。</p>
+        <p><strong>二、请求签名方案（HMAC-SHA256）</strong><br>签名算法：sign = HMAC-SHA256(secret, method + path + sortedParams + timestamp + nonce + bodyMd5)<br>参数排序：所有业务参数按 key 字典序升序排列，拼接为 key1=value1&amp;key2=value2。<br>请求头：X-App-Key、X-Timestamp、X-Nonce、X-Signature。<br>密钥管理：appSecret 存储于 KMS，应用启动时拉取至内存，定期轮换。</p>
         <p><strong>三、防重放方案</strong><br>- 时间戳校验：服务器时间与请求时间戳差值超过 5 分钟拒绝。<br>- nonce 去重：Redis SETNX nonce:{app_id}:{nonce}，TTL 5 分钟，设置成功表示首次请求，已存在则拒绝。<br>- 性能优化：高频接口用 BloomFilter 前置过滤（Guava BloomFilter，预计 1 亿元素，误判率 0.01%），过滤后再查 Redis。</p>
         <p><strong>四、三级限流方案</strong><br>- 应用级：网关层（Spring Cloud Gateway）基于 app_id 限流，单 App 1000 QPS，使用 Redis + Lua 脚本原子计数。<br>- 接口级：Sentinel 针对敏感接口（如下单/支付）单独配置 QPS 阈值，支持热点参数限流。<br>- 用户级：Redis + Lua 基于 user_id 限流，单用户 100 QPM（每分钟）。</p>
         <table class="compare-table">
@@ -5359,7 +5377,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     </div>
     <div class="qa-layer" data-layer="scenario">
       <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某 SaaS 平台安全审计发现严重越权漏洞：水平越权 5 处（用户 A 通过修改 URL 参数 orderId 可查看用户 B 的订单详情）、垂直越权 3 处（普通用户通过直接调用 /admin/user/delete 接口执行管理操作）、数据权限缺失（销售角色可查看全量客户数据，无法限制为仅看自己负责的客户）。系统用户量 100 万，角色 50+（含超级管理员/区域经理/销售/客服/财务等），日均请求量 3000 万次。需建设统一的权限控制体系，要求权限规则变更后 5 秒内全集群生效，接口 RT 增量 < 3ms。</p></div>
+      <div class="qa-layer-body"><p>某 SaaS 平台安全审计发现严重越权漏洞：水平越权 5 处（用户 A 通过修改 URL 参数 orderId 可查看用户 B 的订单详情）、垂直越权 3 处（普通用户通过直接调用 /admin/user/delete 接口执行管理操作）、数据权限缺失（销售角色可查看全量客户数据，无法限制为仅看自己负责的客户）。系统用户量 100 万，角色 50+（含超级管理员/区域经理/销售/客服/财务等），日均请求量 3000 万次。需建设统一的权限控制体系，要求权限规则变更后 5 秒内全集群生效，接口 RT 增量 &lt; 3ms。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
       <div class="qa-layer-title">核心挑战</div>
@@ -5374,7 +5392,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       <div class="qa-layer-body">
         <p><strong>一、RBAC 功能权限模型</strong><br>- 数据模型：user → user_role → role → role_permission → permission（permission 标识接口如 order:query、order:delete）。<br>- 接口鉴权：自定义注解 @RequirePermission("order:query")，Spring AOP 拦截校验当前用户是否拥有该权限。<br>- 垂直越权防护：Spring Security 配置 HttpSecurity，管理接口路径 /admin/** 仅允许 ADMIN 角色访问，全局 Filter 兜底校验。</p>
         <p><strong>二、数据权限拦截器（MyBatis Interceptor）</strong><br>- 水平越权防护：拦截 SQL 执行，自动注入 WHERE tenant_id = currentUser.tenantId AND owner_id = currentUser.userId。<br>- 行级数据权限：销售角色查询客户列表时，自动注入 WHERE sales_id = currentUser.userId；区域经理注入 WHERE region = currentUser.region。<br>- 列级数据权限：查询结果返回后，根据角色配置脱敏字段（客服角色 phone 字段返回 138****5678）。<br>- 实现方式：MyBatis Plugin 拦截 StatementHandler，解析 SQL AST（JSqlParser）注入条件，开发者只需在 Mapper 方法加 @DataScope 注解。</p>
-        <p><strong>三、权限缓存方案（二级缓存）</strong><br>- L1 本地缓存（Caffeine）：缓存用户权限列表，TTL 60 秒，最大 10 万条，命中率目标 95%+。<br>- L2 分布式缓存（Redis）：缓存角色权限规则，TTL 30 分钟，权限变更时主动删除。<br>- 权限变更通知：管理员修改权限 → 写 DB → 发布 Redis Pub/Sub 消息 → 各节点收到消息清空本地缓存 → 下次请求从 Redis 重新加载。全集群生效延迟 < 2 秒。</p>
+        <p><strong>三、权限缓存方案（二级缓存）</strong><br>- L1 本地缓存（Caffeine）：缓存用户权限列表，TTL 60 秒，最大 10 万条，命中率目标 95%+。<br>- L2 分布式缓存（Redis）：缓存角色权限规则，TTL 30 分钟，权限变更时主动删除。<br>- 权限变更通知：管理员修改权限 → 写 DB → 发布 Redis Pub/Sub 消息 → 各节点收到消息清空本地缓存 → 下次请求从 Redis 重新加载。全集群生效延迟 &lt; 2 秒。</p>
         <p><strong>四、越权检测与告警</strong><br>- 运行时检测：权限校验失败时记录日志（user_id + resource_id + 接口），超过阈值（如单用户 1 分钟 10 次）触发告警。<br>- 定期扫描：离线任务对比用户访问日志与权限规则，发现历史越权访问。代码审计：CI 阶段扫描 Controller 方法是否都有权限注解。</p>
         <table class="compare-table">
           <thead><tr><th>权限模型</th><th>优点</th><th>缺点</th></tr></thead>

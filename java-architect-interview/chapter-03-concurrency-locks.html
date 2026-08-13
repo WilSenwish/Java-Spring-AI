@@ -46,9 +46,9 @@
         <div class="chapter-meta">
           <span>题目数：11</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×7</span>
+          <span>高级开发 ×8</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×2</span>
+          <span>架构级 ×1</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
@@ -300,7 +300,7 @@ graph TD
 
             <p><strong>额外优化：锁消除与锁粗化</strong>。锁消除基于逃逸分析——若 JIT 判定 StringBuffer 只在方法内使用（无逃逸），会消除其 synchronized。锁粗化则是把相邻的多次对同一对象的加锁合并为一次，减少加锁次数。</p>
 
-            <p>JDK 25（JEP 519）引入紧凑对象头（可选启用 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>，默认关闭），将对象头压缩至 96 位，Mark Word 位布局有调整；传统 128 位对象头仍为默认，使用 JOL 观察时需注意是否启用该特性。</p>
+            <p>JDK 25（JEP 519）引入紧凑对象头（可选启用 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>，默认关闭），将对象头压缩至 64 位（传统默认 96 位、未压缩场景 128 位），Mark Word 位布局有调整；传统对象头仍为默认，使用 JOL 观察时需注意是否启用该特性。</p>
           </div>
         </div>
 
@@ -1096,7 +1096,7 @@ graph TD
                   <tr><td>CopyOnWriteArrayList</td><td>写时复制（ReentrantLock + 数组复制）</td><td>无锁（volatile 数组）</td><td>全量复制，O(n)</td><td>读多写少：监听器列表、配置</td></tr>
                   <tr><td>ConcurrentLinkedQueue</td><td>无锁 CAS（Michael-Scott）</td><td>无锁</td><td>无锁 CAS</td><td>无界非阻塞队列，高吞吐</td></tr>
                   <tr><td>ArrayBlockingQueue</td><td>ReentrantLock + 2 Condition</td><td>持锁</td><td>持锁</td><td>有界阻塞队列，生产消费</td></tr>
-                  <tr><td>LinkedBlockingQueue</td><td>两把 ReentrantLock（头尾分离）</td><td>putLock</td><td>takeLock</td><td>高吞吐有界阻塞队列</td></tr>
+                  <tr><td>LinkedBlockingQueue</td><td>两把 ReentrantLock（头尾分离）</td><td>takeLock</td><td>putLock</td><td>高吞吐有界阻塞队列</td></tr>
                   <tr><td>SynchronousQueue</td><td>无容量，直接传递</td><td>等待生产者</td><td>等待消费者</td><td>线程池直接交接（Executors.newCachedThreadPool）</td></tr>
                   <tr><td>PriorityBlockingQueue</td><td>堆 + ReentrantLock</td><td>持锁</td><td>持锁</td><td>优先级任务队列</td></tr>
                   <tr><td>DelayQueue</td><td>PriorityQueue + 延迟到期</td><td>持锁 + 条件等待</td><td>持锁</td><td>延时任务、定时调度</td></tr>

@@ -1742,7 +1742,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：mTLS 的性能开销有多大？</strong></p>
-            <p>TLS 握手有 CPU 开销（尤其是 RSA），但现代 CPU 的 AES-NI 加速后，对称加密开销很低（< 5%）。Istio 的 Sidecar 额外带来：① 网络多跳（应用 → Sidecar → Sidecar → 目标）增加延迟（通常 1~3ms）；② 证书轮转时的短时 CPU 峰值。缓解：① 启用 TLS session resumption；② 使用 ECDSA 证书（比 RSA 快）；③ 考虑 Ambient Mesh（Sidecar-less）减少代理开销。</p>
+            <p>TLS 握手有 CPU 开销（尤其是 RSA），但现代 CPU 的 AES-NI 加速后，对称加密开销很低（&lt; 5%）。Istio 的 Sidecar 额外带来：① 网络多跳（应用 → Sidecar → Sidecar → 目标）增加延迟（通常 1~3ms）；② 证书轮转时的短时 CPU 峰值。缓解：① 启用 TLS session resumption；② 使用 ECDSA 证书（比 RSA 快）；③ 考虑 Ambient Mesh（Sidecar-less）减少代理开销。</p>
             <p><strong>追问 2：SPIFFE/SPIRE 解决了什么问题？</strong></p>
             <p>传统服务身份依赖 IP/主机名/证书 Common Name，动态环境下（Pod 重建、扩缩容）难以稳定标识。SPIFFE 定义标准服务身份 URI（<code>spiffe://trust-domain/ns/default/sa/my-sa</code>），SPIRE 自动为工作负载签发短期 X.509-SVID 或 JWT-SVID，实现<strong>动态、短期、可轮换的服务身份</strong>。Istio 身份体系已兼容 SPIFFE。</p>
           </div>
@@ -2602,7 +2602,7 @@ flowchart TD
                 <tr><td>ForwardRoutingFilter</td><td>Ordered.LOWEST_PRECEDENCE（2147483647）</td><td>本地 forward，非外部调用</td></tr>
               </tbody>
             </table>
-            <p>核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong>（即 < LOWEST_PRECEDENCE - 1），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 放最后倒数第二是因为它是"出站的最后一步"——前面的 Filter 改完请求、鉴权通过、限流通过，最后由它真正转发。</p>
+            <p>核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong>（即 &lt; LOWEST_PRECEDENCE - 1），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 放最后倒数第二是因为它是"出站的最后一步"——前面的 Filter 改完请求、鉴权通过、限流通过，最后由它真正转发。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -2730,7 +2730,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：NettyRoutingFilter 为什么 order 是 LOWEST_PRECEDENCE - 1 而不是最小？你写的鉴权 GlobalFilter 应该放在哪个 order 值之前？</strong></p>
-            <p>Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 放"最大倒数第二"因为它是<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong>，即 < LOWEST_PRECEDENCE - 1（< 2147483646），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。</p>
+            <p>Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 放"最大倒数第二"因为它是<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong>，即 &lt; LOWEST_PRECEDENCE - 1（&lt; 2147483646），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。</p>
             <p><strong>追问 2：堆外内存 OOM 与堆内 OOM 的现象与排查路径差异？</strong></p>
             <p><strong>堆内 OOM（Java heap space）</strong>：现象——GC 次数频繁且耗时很长（G1 Young GC 从 50ms 变 2s+）、Old Gen 占用接近 -Xmx、<code class="inline-code">jmap -histo:live</code> 能看到某类业务对象（如 HashMap/byte[]）数量爆炸。排查：<code class="inline-code">jmap -dump:live,format=b</code> 堆转储 + Eclipse MAT 看泄漏嫌疑报告。<br/>
             <strong>堆外 OOM（OutOfDirectMemoryError / Native memory）</strong>：现象——堆使用正常（老年代 < 60%）、但进程 RSS 持续飙升远超 -Xmx、<code class="inline-code">jcmd VM.native_memory summary</code> 中 Internal 类别占几 GB、dmesg 或 hs_err_pid 日志报 Direct Memory。排查：开 <code class="inline-code">-Dio.netty.leakDetection.level=paranoid</code> 复现看堆栈、用 <code class="inline-code">pmap</code> 看匿名内存段大小、Heap dump 搜 <code class="inline-code">PooledByteBuf</code> 反向找持有引用的类、用 perf/async-profiler 搜 <code class="inline-code">allocateDirect</code> 调用栈。根本差异：堆内 OOM 靠 GC 回收，堆外 OOM 靠显式 <code class="inline-code">release()</code> 回收，GC 管不到。</p>
@@ -3269,7 +3269,7 @@ flowchart TD
               <ul>
                 <li><strong>pom 同时加了 Eureka 和 Nacos，都注册了 DiscoveryClient Bean（按 order 排序取第一个，可能不是你想要的）</strong>：启动时如果 <code class="inline-code">DiscoveryClient</code> 注入点发现多个候选但都没 @Primary，会直接报错 NoUniqueBeanDefinitionException。排查：pom 排掉不用的 starter；或给要优先用的 DiscoveryClient 的 AutoConfiguration 类用 <code class="inline-code">@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)</code> 指定顺序，或者给 <code class="inline-code">DiscoveryClient</code> 注入点加 <code class="inline-code">@Qualifier("nacosDiscoveryClient")</code>。</li>
                 <li><strong>自定义 LoadBalancer 忘了 @LoadBalancerClient(name="user-service", configuration=MyLBConfig.class) 指定生效服务，导致全局生效污染</strong>：<code class="inline-code">@LoadBalancerClient</code> 的 configuration 类不能被主 <code class="inline-code">@ComponentScan</code> 扫描到（否则就变成全局共享配置），必须放到 <code class="inline-code">@SpringBootApplication</code> scanBasePackages 之外的独立包路径，或加 <code class="inline-code">@ComponentScan(excludeFilters = @ComponentScan.Filter(type=ASSIGNABLE_TYPE, classes=MyLBConfig.class))</code>。踩坑症状：原本只想给 user-service 做灰度路由，结果 order-service / pay-service 的调用全都被自定义 LB 接管，瞬间全报 No servers available。</li>
-                <li><strong>ServiceInstance metadata 用中文或特殊字符引发 HTTP URL 编码异常</strong>：Nacos 的 metadata 其实是 Map&lt;String,String&gt;，会被拼接进注册请求的 Body / 查询参数，若包含中文或 &、?、= 等字符，不同注册中心实现的 URL 编码不一致，有的会报 500，有的会被截断导致 version/weight 读出来是乱码。metadata 的 value 应限定：ASCII 英文字母数字 + 点 + 下划线 + 中划线，禁止中文和特殊字符。</li>
+                <li><strong>ServiceInstance metadata 用中文或特殊字符引发 HTTP URL 编码异常</strong>：Nacos 的 metadata 其实是 Map&lt;String,String&gt;，会被拼接进注册请求的 Body / 查询参数，若包含中文或 &amp;、?、= 等字符，不同注册中心实现的 URL 编码不一致，有的会报 500，有的会被截断导致 version/weight 读出来是乱码。metadata 的 value 应限定：ASCII 英文字母数字 + 点 + 下划线 + 中划线，禁止中文和特殊字符。</li>
                 <li><strong>CachingServiceInstanceListSupplier 缓存 TTL 过长（默认 35s）+ Nacos 推送延迟叠加，实例下线后 40s 还被调用</strong>：生产如果 Nacos 推送偶发延迟（注册中心集群跨机房同步慢），LB 里的缓存要等 35s TTL 过期才刷新，这时已下线实例还会被流量打到。解决方案：① <code class="inline-code">spring.cloud.loadbalancer.cache.ttl=5s</code> 把 TTL 调低（或按服务维度通过 <code class="inline-code">LoadBalancerClients</code> 为关键服务单独配 TTL）；② 打开 <code class="inline-code">HealthCheckServiceInstanceListSupplier</code> 主动探活，即使缓存里有，探活失败的实例也会被实时过滤。</li>
               </ul>
             </div>
