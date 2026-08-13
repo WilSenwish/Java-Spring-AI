@@ -218,6 +218,7 @@
             <li><a href="#s33"><span class="toc-number">S33</span>混沌工程与故障演练</a></li>
             <li><a href="#s34"><span class="toc-number">S34</span>服务故障自愈与切流</a></li>
             <li><a href="#s35"><span class="toc-number">S35</span>SLA 保障与容量规划</a></li>
+            <li><a href="#s64"><span class="toc-number">S64</span>全链路可观测性建设</a></li>
           </ol>
         </div>
         <div class="toc-group">
@@ -276,13 +277,13 @@
       <div class="chapter-header">
         <div class="chapter-number">SCENARIO QUESTIONS / REAL-WORLD SYSTEM DESIGN</div>
         <h1 class="chapter-title">高频真实场景题</h1>
-        <p class="chapter-subtitle">基于 2026 面试招聘需求 · 63 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
+        <p class="chapter-subtitle">基于 2026 面试招聘需求 · 64 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
         <div class="chapter-meta">
-          <span>题目数：63</span>
+          <span>题目数：64</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×17</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×39</span>
+          <span>架构级 ×40</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×7</span>
           <span class="meta-divider">|</span>
@@ -7278,6 +7279,100 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
           <li><strong>背压无 DROP 导致 OOM</strong>：客户端慢消费时网关无限缓冲 Token，内存撑爆。必须设 buffer 上限 + DROP 策略，丢弃优先于 OOM。</li>
           <li><strong>降级策略单一无分级</strong>：只有"拒绝"一档，容量一满全量报错。必须分级降级（小模型 → 非流式 → 排队 → 拒绝），尽量保可用。</li>
           <li><strong>无公平调度饿死短请求</strong>：FIFO 队列下长请求占满 GPU，短请求长时间排队。必须按预估耗时 + 优先级调度，短请求优先。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="qa-card" id="s64" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S64</div>
+      <div class="qa-question">全链路可观测性建设：大促前订单链路偶发超时根因定位与告警降噪<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">可观测性</span>
+      <span class="scenario-tag">链路追踪</span>
+      <span class="scenario-tag">告警降噪</span>
+      <span class="scenario-tag">OpenTelemetry</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某电商平台订单链路（APP → 网关 → 订单服务 → 库存/支付/优惠券 → MQ → 积分）大促前出现「偶发下单超时」，SLA 99.95% 一度跌至 99.9%。现状：① 各团队日志各自为政、无统一 TraceId，两次超时分别排查 2 小时才定位到不同服务；② 监控指标零散（QPS/RT/CPU），无法还原「一笔请求在哪个环节慢」；③ 告警每天 200+ 条，值班团队麻木，真实故障反而被淹没。要求：大促期间任意一笔慢请求 10 分钟内定位到具体服务与原因，告警误报率下降 80%。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 链路贯穿——订单链路 10+ 服务、跨语言（Java/Go/前端）、跨线程池/异步 MQ，TraceId 如何不丢失；② 采样与成本——全量采集存储成本爆炸，采样不足又漏掉「偶发慢请求」这类低频异常；③ 三支柱割裂——Trace、Log、Metric 分属不同系统，无法按一笔请求关联检索；④ 告警降噪——阈值告警无关联、无抑制，噪音掩盖真实故障；⑤ 根因定位——从「链路慢」到「为什么慢」（SQL 慢？GC？锁？依赖超时？）需要上下文串联。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用<strong>"统一埋点 → 贯穿传递 → 关联检索 → 自动根因 → 告警降噪"</strong>五层。统一埋点：OpenTelemetry 标准（Trace+Metrics 同源）；贯穿传递：TraceId 经 HTTP 头/线程池包装/MQ 消息头全程透传；关联检索：日志携带 TraceId + 服务名 + 时间片，支持 trace → 日志 双向跳转；自动根因：黄金信号（延迟/流量/错误/饱和度）异常检测 + 依赖拓扑下钻；告警降噪：分级、聚合、静默、抑制、对账闭环。核心原则：先让「每一笔请求可追溯」，再谈采样与降噪。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 统一采集与埋点</strong>：全量接入 OpenTelemetry SDK（Java Agent 无侵入 + Go SDK），导出到 SkyWalking/Jeager 或自建（OTLP Collector → ClickHouse）；关键链路（下单/支付）单独配置「全量采样」，其余默认 10% 头部采样 + 尾部采样兜底（错误/慢请求强制采样率 100%）。</p>
+        <p><strong>2. TraceId 贯穿传递</strong>：网关生成/透传 <code class="inline-code">traceparent</code>（W3C 标准）；HTTP 用拦截器注入请求头；线程池用装饰器（<code class="inline-code">TtlRunnable</code> 或自定义包装）传递上下文；MQ 生产者塞消息头、消费者还原；异步回调/定时任务补建 trace 根。日志统一 MDC 携带 traceId+spanId，结构化 JSON 输出。</p>
+        <p><strong>3. 关联检索</strong>：日志平台支持「按 TraceId 一键拉全链路日志」，链路平台支持「按 traceId 跳转日志 + 按时间片拉取指标」；服务间调用关系由 trace 数据自动生成依赖拓扑（服务 × 接口 × 耗时分布矩阵）。</p>
+        <p><strong>4. 自动根因初筛</strong>：慢 Trace 自动关联其 span 耗时占比（哪个 span 耗时最大）、该 span 所在服务当前指标（CPU/GC/连接池/线程池）、SQL 执行计划耗时、下游依赖 RT；输出「候选根因列表」给值班人员，人工确认后沉淀为根因知识库。</p>
+        <p><strong>5. 告警降噪</strong>：告警分级（P0 核心链路不可用 / P1 高错误率 / P2 指标异常）+ 聚合（同类告警合并为一条）+ 静默（已知故障窗口 / 发布窗口自动静默）+ 抑制（下游故障只报根因不报所有下游级联）+ 告警对账（每日告警清单与根因复盘，持续收敛阈值）。</p>
+        <table class="compare-table">
+          <thead><tr><th>能力</th><th>落地前</th><th>落地后</th></tr></thead>
+          <tbody>
+            <tr><td>慢请求定位</td><td>2 小时人工翻日志</td><td>&lt; 10 分钟 trace 下钻</td></tr>
+            <tr><td>日志检索</td><td>按关键词猜服务</td><td>按 TraceId 一键关联</td></tr>
+            <tr><td>告警量</td><td>200+ 条/天</td><td>&lt; 30 条/天（聚合+抑制）</td></tr>
+            <tr><td>故障复盘</td><td>凭记忆</td><td>根因知识库沉淀</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code><span class="com">// 1. 线程池传递 TraceId（异步不丢链路）</span>
+<span class="kw">public class</span> <span class="type">TraceIdPropagator</span> {
+    <span class="kw">public static</span> <span class="type">ExecutorService</span> <span class="fn">wrap</span>(<span class="type">ExecutorService</span> pool) {
+        <span class="kw">return</span> <span class="kw">new</span> <span class="type">ExecutorServiceWrapper</span>(pool, <span class="type">Context</span>::<span class="fn">current</span>);
+    }
+    <span class="com">// 提交任务时快照当前 TraceContext，执行时还原</span>
+    <span class="com">// Spring 场景直接用 TransmittableThreadLocal（阿里 TTL）更彻底</span>
+}
+
+<span class="com">// 2. MQ 生产者透传 traceparent</span>
+<span class="type">Message</span> msg = <span class="kw">new</span> <span class="type">Message</span>();
+msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, <span class="type">W3CTraceContextPropagator</span>.<span class="fn">getInstance</span>()
+        .<span class="fn">extract</span>(<span class="type">Context</span>.<span class="fn">current</span>(), <span class="type">Map</span>.<span class="fn">of</span>(), <span class="fn">mapGetter</span>).toString());
+
+<span class="com">// 3. 日志 MDC 注入（logback pattern: %X{traceId} %X{spanId}）</span>
+<span class="kw">public class</span> <span class="type">TraceFilter</span> <span class="kw">extends</span> <span class="type">OncePerRequestFilter</span> {
+    <span class="kw">protected void</span> <span class="fn">doFilterInternal</span>(...) {
+        <span class="type">Span</span> span = <span class="type">TracerHolder</span>.<span class="fn">tracer</span>().<span class="fn">spanBuilder</span>(<span class="str">"http-in"</span>).<span class="fn">startSpan</span>();
+        <span class="type">MDC</span>.<span class="fn">put</span>(<span class="str">"traceId"</span>, span.<span class="fn">getSpanContext</span>().<span class="fn">getTraceId</span>());
+        <span class="kw">try</span> { chain.<span class="fn">doFilter</span>(req, res); }
+        <span class="kw">finally</span> { <span class="type">MDC</span>.<span class="fn">remove</span>(<span class="str">"traceId"</span>); span.<span class="fn">end</span>(); }
+    }
+}</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">采样率怎么定——既控成本又不漏偶发故障？</div><div class="followup-a">分场景：核心交易链路全量（量级可控）；普通接口头部采样 10% + 尾部采样兜底（错误、慢请求（RT &gt; P99×3）强制全采）；关键业务（支付、下单）可自定义采样规则 100%。成本大头在 span 存储，用「采样 + 过期策略（热 7 天 / 温 30 天 / 冷归档）+ 明细只存错误与慢请求」控成本。</div></li>
+          <li><div class="followup-q">Trace 与 Log、Metric 如何真正关联起来？</div><div class="followup-a">三个关联键：① TraceId（日志必须打印，链路平台与日志平台按 traceId 互跳）；② 服务+接口+时间片（无 trace 时的粗粒度关联，用指标看趋势、用日志看现场）；③ 依赖拓扑（服务间调用图由 trace 数据聚合生成，定位「下游哪一环最慢」）。关键前提：日志必须结构化 JSON，且与 trace 数据在同一时间轴上可对齐。</div></li>
+          <li><div class="followup-q">跨语言、跨进程的 TraceId 传递怎么做？</div><div class="followup-a">统一 W3C traceparent（trace-id/span-id/flags 三段式），HTTP 头、gRPC metadata、MQ 消息头、线程局部变量四类通道全部透传；网关统一解析并强制覆盖（缺失则生成新 trace 根，防止篡改）。跨语言 SDK 均实现 W3C 标准即可互认，不依赖单一厂商协议。</div></li>
+          <li><div class="followup-q">告警误报率下降 80% 具体靠哪些机制？</div><div class="followup-a">① 动态基线（基于历史分位数而非固定阈值，如 RT 用 P99 基线 + 波动检测）；② 告警聚合与抑制（同类合并、下游故障只报根因）；③ 发布/运维窗口静默（发布中 RT 抖动不告警）；④ 告警分级与值班路由（P0 才拉群电话）；⑤ 对账闭环——每周告警复盘，持续校准阈值与规则，误报规则直接下线。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>只埋点不贯穿</strong>：各服务各自生成 span、TraceId 不互传，链路断成一段段孤岛，等于没做。贯穿（HTTP/线程池/MQ）是第一步，比选型更重要。</li>
+          <li><strong>全量采集导致成本爆炸</strong>：10 亿级调用全量入库，存储成本翻几倍。必须采样 + 分级存储 + 明细只留错误与慢请求。</li>
+          <li><strong>日志不带 TraceId</strong>：链路平台找到慢 span，日志平台按 traceId 查不到对应日志，还得回到手工翻日志的老路。MDC 注入是硬性规范。</li>
+          <li><strong>告警无关联无抑制</strong>：一个 DB 故障触发 20 条告警（每个调用方各报一次），值班被噪音淹没。必须做根因告警 + 级联抑制 + 聚合。</li>
         </ul>
       </div>
     </div>
