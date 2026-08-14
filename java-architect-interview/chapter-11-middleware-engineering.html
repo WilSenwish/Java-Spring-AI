@@ -1133,9 +1133,9 @@ flowchart LR
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>Java Agent + Instrumentation 字节码增强原理</strong>（APM 核心）：Java Agent 通过 <code class="inline-code">premain</code>（启动时）或 <code class="inline-code">agentmain</code>（运行时 attach）入口，注册 ClassFileTransformer 在类加载时拦截字节码，用 ByteBuddy/ASM 对目标方法前后插入埋点代码（start span/end span/异常记录）。各框架增强逻辑独立插件化（Spring/MyBatis/Dubbo 各一插件），微内核按需加载。Java Agent 启动配置与 OTel 集成示例详见 <a href="#C11.09" class="internal-link">11.9</a>。</p>
+            <p><strong>Java Agent + Instrumentation 字节码增强原理</strong>（APM 核心）：Java Agent 通过 <code class="inline-code">premain</code>（启动时）或 <code class="inline-code">agentmain</code>（运行时 attach）入口，注册 ClassFileTransformer 在类加载时拦截字节码，用 ByteBuddy/ASM 对目标方法前后插入埋点代码（start span/end span/异常记录）。各框架增强逻辑独立插件化（Spring/MyBatis/Dubbo 各一插件），微内核按需加载。Java Agent 启动配置与 OTel 集成示例详见 <a href="#C11.09" class="internal-link">C11.09</a>。</p>
 
-            <p><strong>Trace/Span 模型</strong>：一次请求的完整调用链是一棵 Trace 树，每个方法调用是一个 Span（含 traceId/spanId/parentId/operationName/时间/标签/日志）。跨服务透传 traceId 串起多服务 Span。三支柱关联、采样策略与 OTel 标准详见 <a href="#C11.09" class="internal-link">11.9</a>。</p>
+            <p><strong>Trace/Span 模型</strong>：一次请求的完整调用链是一棵 Trace 树，每个方法调用是一个 Span（含 traceId/spanId/parentId/operationName/时间/标签/日志）。跨服务透传 traceId 串起多服务 Span。三支柱关联、采样策略与 OTel 标准详见 <a href="#C11.09" class="internal-link">C11.09</a>。</p>
 
             <p><strong>APM 系统架构（微内核+插件）——五件套全景</strong>：</p>
             <div class="mermaid-container">
@@ -1507,7 +1507,7 @@ flowchart TB
             </div>
             <p>拓扑分工：① <strong>Agent 级（DaemonSet 每节点一个）</strong>——只做接收 + 轻量 batch，无 tail_sampling 等重处理器，避免占用业务节点资源，本地就近上报减少跨节点流量；② <strong>Gateway 级（独立 Deployment）</strong>——做重处理（tail_sampling/servicegraph/跨集群路由），集中式多副本弹性伸缩，与业务节点资源隔离。</p>
 
-            <p><strong>Context/Baggage 传播</strong>：Context 携带 TraceId/SpanId；Baggage 携带业务自定义 KV(如 userId)；跨服务通过 W3C TraceContext HTTP Header(<code class="inline-code">traceparent</code>)传播；进程内通过 ThreadLocal + MDC(SLF4J) 自动注入日志。<strong>跨线程/线程池/虚拟线程下 TraceId 透传完整治理方案（TTL/MDC TaskDecorator/Context.wrap 对比）</strong>详见 <a href="#C11.08" class="internal-link">11.8</a>。</p>
+            <p><strong>Context/Baggage 传播</strong>：Context 携带 TraceId/SpanId；Baggage 携带业务自定义 KV(如 userId)；跨服务通过 W3C TraceContext HTTP Header(<code class="inline-code">traceparent</code>)传播；进程内通过 ThreadLocal + MDC(SLF4J) 自动注入日志。<strong>跨线程/线程池/虚拟线程下 TraceId 透传完整治理方案（TTL/MDC TaskDecorator/Context.wrap 对比）</strong>详见 <a href="#C11.08" class="internal-link">C11.08</a>。</p>
 
             <p><strong>采样策略（存储成本与完整性的平衡）</strong>：高 QPS 链路用 <strong>Head Sampling</strong>(入口概率采样降开销)，关键链路用 <strong>Tail Sampling</strong>(全量采集后在 Collector 按错误/慢调用筛选保留)；两者对比详见深度追问 2。</p>
           </div>
@@ -1635,7 +1635,7 @@ processors:
             <p><strong>追问 4：Metrics、Trace、Log 数据量差异巨大，如何差异化存储与采样？</strong></p>
             <p>① <strong>Metrics</strong>——数据量小且聚合，通常全量保留，存 Prometheus/VictoriaMetrics（时序库，高效压缩）；② <strong>Trace</strong>——数据量大，需采样（头部 10% 或尾部只采异常/慢），存 Jaeger/Tempo（Trace 库），用采样率控制量；③ <strong>Log</strong>——数据量最大，分级采集（ERROR 全采，INFO 采样），存 Loki/ES（日志库），按保留期滚动删除。Collector 对三种信号分别配 pipeline 与采样策略，差异化处理。</p>
             <p><strong>追问 5：TraceId 跨线程透传如何治理？</strong></p>
-            <p>核心问题是 ThreadLocal 在线程池场景失效，治理方案包括 TransmittableThreadLocal(TTL)、Spring TaskDecorator、OTel Context.wrap() 三对比，MDC 注入/清理防串流，以及虚拟线程下的 Scoped Values 演进。完整代码示例与原理拆解见 <a href="#C11.08" class="internal-link">11.8</a>。</p>
+            <p>核心问题是 ThreadLocal 在线程池场景失效，治理方案包括 TransmittableThreadLocal(TTL)、Spring TaskDecorator、OTel Context.wrap() 三对比，MDC 注入/清理防串流，以及虚拟线程下的 Scoped Values 演进。完整代码示例与原理拆解见 <a href="#C11.08" class="internal-link">C11.08</a>。</p>
           </div>
         </div>
 
