@@ -19,7 +19,7 @@
         <li><a href="#C06.02"><span class="toc-number">C06.02</span>AOT 与 GraalVM Native Image</a></li>
         <li><a href="#C06.03"><span class="toc-number">C06.03</span>自定义 Spring Boot Starter</a></li>
         <li><a href="#C06.04"><span class="toc-number">C06.04</span>Spring Security 过滤器链</a></li>
-        <li><a href="#C06.05"><span class="toc-number">C06.05</span>Spring AI 核心抽象与架构</a></li>
+        <li><a href="#C06.05"><span class="toc-number">C06.05</span>Spring Boot 启动流程与事件机制</a></li>
         <li><a href="#C06.06"><span class="toc-number">C06.06</span>Spring Session 分布式 Session</a></li>
         <li><a href="#C06.07"><span class="toc-number">C06.07</span>Actuator 监控端点与自定义</a></li>
         <li><a href="#C06.08"><span class="toc-number">C06.08</span>配置加载机制与优先级</a></li>
@@ -42,7 +42,7 @@
       <div class="chapter-header">
         <div class="chapter-number">CHAPTER 06 / SPRING BOOT &amp; MODERN FRAMEWORKS</div>
         <h1 class="chapter-title">Spring Boot 与现代框架</h1>
-        <p class="chapter-subtitle">从自动配置 SPI 到 AOT/GraalVM Native Image：理解 spring.factories→AutoConfiguration.imports 演进、JIT→AOT→Native 编译范式转移、Spring Security 过滤器链、Spring AI 架构与 Spring 生态从 Web 到 AI 的演进</p>
+        <p class="chapter-subtitle">从自动配置 SPI 到 AOT/GraalVM Native Image：理解 spring.factories→AutoConfiguration.imports 演进、JIT→AOT→Native 编译范式转移、Spring Security 过滤器链、Spring Boot 启动流程与七事件生命周期编排</p>
         <div class="chapter-meta">
           <span>题目数：11</span>
           <span class="meta-divider">|</span>
@@ -586,117 +586,136 @@ flowchart TD
       </div>
 
       <!-- ============================================================ -->
-      <!-- C06.05 Spring AI 的核心抽象与架构是怎样的？ -->
+      <!-- C06.05 Spring Boot 的启动流程与事件机制是怎样的？ -->
       <!-- ============================================================ -->
       <div class="qa-card" id="C06.05" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C06.05</div>
-          <div class="qa-question">Spring AI 的核心抽象与架构是怎样的？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          <div class="qa-question">Spring Boot 的启动流程与事件机制是怎样的？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察对 <strong>Spring 生态从 Web 时代迈向 AI 时代的架构认知</strong>。Spring AI 的本质是<strong>把 LLM 调用、向量存储、RAG、Function Calling、Agent 等 AI 能力，用 Spring 一贯的"抽象 + 自动配置 + Starter"模式标准化</strong>——就像 Spring Data 统一了不同数据库的访问，Spring AI 统一了不同 LLM（OpenAI/Anthropic/Ollama/通义千问）的调用。理解它要抓住核心抽象：<code class="inline-code">ChatClient</code>（高层 Fluent API）/ <code class="inline-code">ChatModel</code>（底层模型抽象）/ <code class="inline-code">EmbeddingModel</code>（向量化）/ <code class="inline-code">VectorStore</code>（向量存储）/ <code class="inline-code">Advisor</code>（拦截链）。这是 2026 年架构师必须掌握的新方向。</p>
+            <p>这道题考察对 <strong>Spring Boot 如何编排从 <code class="inline-code">main()</code> 到应用就绪的完整生命周期</strong> 的架构认知。<code class="inline-code">SpringApplication.run()</code> 不是简单地调一次 <code class="inline-code">refresh()</code>——它在 IoC 容器刷新之上叠加了<strong>事件驱动启动、自动配置触发、嵌入式容器启停、Runner 回调</strong>四层编排。与 C05.01 讲的 Spring Framework <code class="inline-code">refresh()</code> 13 步（容器内幕）不同，本题聚焦<strong>Boot 层如何驱动容器、在什么时机发布什么事件、各扩展点（Initializer / Listener / Runner）分别在哪个阶段介入</strong>。理解了启动流程，就能回答"自动配置在什么时机生效""嵌入式容器何时启动""如何在 Bean 初始化前修改 Environment""ApplicationRunner 和 CommandLineRunner 区别"等一系列问题。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>Spring 生态的范式跃迁</strong>：Spring MVC（2009）统一了 Web 请求处理 → Spring Data（2011）统一了数据访问 → Spring Cloud（2014）统一了微服务治理 → <strong>Spring AI（2025 1.0 GA）统一了 AI 应用开发</strong>。每一次都是用"<strong>统一抽象 + 可插拔实现 + 自动配置</strong>"模式降维整合一个新领域。</p>
-            <p><strong>Spring AI 0.8（2024 里程碑）</strong>：首批抽象落地——<code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code> 底层模型接口、<code class="inline-code">ChatClient</code>/<code class="inline-code">EmbeddingClient</code> 高层 API（1.0 M 阶段 <code class="inline-code">EmbeddingClient</code> 更名为 <code class="inline-code">EmbeddingModel</code>，<code class="inline-code">ChatClient</code> 保留为高层 Fluent API）、OpenAI 实现、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。仅支持同步调用，API 较底层，需手动拼 Prompt。</p>
-            <p><strong>Spring AI 1.0 M（2024）</strong>：引入 <code class="inline-code">ChatClient</code> 高层 Fluent API（类似 RestClient/WebClient 风格），<code class="inline-code">Advisor</code> 链（前置/后置拦截，支持 RAG/日志/重试），Structured Output（JSON 反序列化为 POJO），Function Calling 声明式注册。同步/流式/异步全支持。</p>
-            <p><strong>Spring AI 1.0 GA（2025）+ MCP 支持</strong>：支持 Model Context Protocol（Anthropic 主导的标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排能力（<code class="inline-code">ChatClientAgent</code> [规划中]）逐步落地。</p>
-            <p><strong>趋势</strong>：向 Agentic AI 演进——多 Agent 协作、长记忆（Long-term Memory）、工具自主编排；与 Spring Boot AOT/Native 集成优化冷启动；多模态（图像/音频/视频）统一抽象。</p>
+            <p><strong>Spring XML 时代（2003-2009）</strong>：开发者手动创建 <code class="inline-code">ClassPathXmlApplicationContext</code>，传入 XML 配置文件路径，构造器内部直接调 <code class="inline-code">refresh()</code>。没有"启动流程"概念——容器即应用，<code class="inline-code">refresh()</code> 完就绪。启动过程<strong>无事件、无回调、无自动配置</strong>，一切手动。</p>
+            <p><strong>Spring 注解时代（2010-2013）</strong>：<code class="inline-code">AnnotationConfigApplicationContext</code> 取代 XML，<code class="inline-code">@Configuration</code> + <code class="inline-code">@ComponentScan</code> 成为主流。容器启动仍是一次 <code class="inline-code">refresh()</code>，但引入了 <code class="inline-code">AnnotationConfigApplicationContext.register()</code> 延迟刷新能力。仍无统一的启动编排框架。</p>
+            <p><strong>Spring Boot 1.x（2014）</strong>：<code class="inline-code">SpringApplication.run()</code> 诞生——把"创建容器 → 准备环境 → 刷新容器 → 启动嵌入式服务器 → 执行 Runner"编排成一条流水线，并引入 <strong>7 个生命周期事件</strong>。通过 <code class="inline-code">spring.factories</code> 注册 <code class="inline-code">ApplicationListener</code> 和 <code class="inline-code">ApplicationContextInitializer</code>，实现<strong>零配置扩展</strong>。这是"启动流程"作为独立概念的起点。</p>
+            <p><strong>Spring Boot 2.x（2018）</strong>：事件体系完善——新增 <code class="inline-code">ApplicationContextInitializedEvent</code> 和 <code class="inline-code">ApplicationStartedEvent</code>，使事件链从 5 个扩展到 7 个。<code class="inline-code">ApplicationRunner</code> 取代 <code class="inline-code">CommandLineRunner</code> 成为推荐接口（参数解析更友好）。<code class="inline-code">spring.factories</code> 的 <code class="inline-code">EnvironmentPostProcessor</code> 成为修改 Environment 的标准扩展点。</p>
+            <p><strong>Spring Boot 3.x（2022）</strong>：<strong>AOT 预处理 + Native Image</strong> 改变启动模型——AOT 在构建期生成 Bean 定义与配置快照，运行期跳过条件评估与类路径扫描，启动从秒级降至毫秒级。事件机制保持不变，但 <code class="inline-code">spring.factories</code> 中自动配置 key 迁移到 <code class="inline-code">AutoConfiguration.imports</code>（见 C06.01）。<code class="inline-code">SpringApplication</code> 新增 <code class="inline-code">setLazyInitialization()</code> 支持全局懒加载。</p>
+            <p><strong>趋势</strong>：启动优化从"减少条件评估"走向"构建期冻结一切"——AOT/Native 是终极方向；同时 GraalVM Native Image 下事件链不变，但 Bean 实例化策略大变（无反射、构造器注入为主），架构师需理解 AOT 与 JIT 模式下启动流程的差异。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>核心抽象分层</strong>（自底向上）：</p>
+            <p><strong>启动流程七阶段与七事件</strong>（<code class="inline-code">SpringApplication.run()</code> 核心时序）：</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TD
-    subgraph L4 ["应用层"]
-        APP["业务 ChatClient 调用 + Advisor 链"]
-    end
-    subgraph L3 ["Spring AI 高层 API"]
-        CC["ChatClient （Fluent API）<br/>prompt（）.user（）.call（）.content（）"]
-        ADV["Advisor 链<br/>（前置/后置拦截:RAG/日志/重试/记忆）"]
-        SO["Structured Output<br/>entity（Class） → POJO"]
-        CC --> ADV
-        ADV --> SO
-    end
-    subgraph L2 ["Spring AI 模型抽象"]
-        CM["ChatModel<br/>call（Prompt）/stream（Prompt）"]
-        EM["EmbeddingModel<br/>embed（List&lt;String&gt;）"]
-        VS["VectorStore<br/>add/delete/similaritySearch"]
-        FC["Function Calling<br/>@Bean Function 注册"]
-    end
-    subgraph L1 ["可插拔实现"]
-        OAI["OpenAI"]
-        ANT["Anthropic"]
-        OLL["Ollama（本地）"]
-        QW["通义千问/智谱"]
-        PGV["PgVector/Redis/Chroma/Milvus"]
-    end
-    L4 --> L3 --> L2 --> L1
-    style CC fill:#dbeafe,stroke:#2563eb
-    style CM fill:#fef3c7,stroke:#d97706
-    style VS fill:#dcfce7,stroke:#059669
-    style FC fill:#f3e8ff,stroke:#7c3aed
+    A["1. SpringApplication 构造<br/>推断 Web 类型 → 读 Initializer/Listener"] --> B["2. prepareEnvironment<br/>加载 application.yml → 绑定"]
+    B --> E1["📢 ApplicationEnvironmentPreparedEvent"]
+    E1 --> C["3. createApplicationContext<br/>根据 Web 类型创建容器"]
+    C --> E2["📢 ApplicationContextInitializedEvent"]
+    E2 --> D["4. prepareContext<br/>注册主配置类 → 执行 Initializer"]
+    D --> E3["📢 ApplicationPreparedEvent"]
+    E3 --> F["5. refreshContext<br/>refresh 13 步 → 自动配置生效<br/>→ 嵌入式容器启动"]
+    F --> E4["📢 ApplicationStartedEvent"]
+    E4 --> G["6. callRunners<br/>ApplicationRunner / CommandLineRunner"]
+    G --> E5["📢 ApplicationReadyEvent"]
+    style E1 fill:#fef3c7,stroke:#d97706
+    style E3 fill:#fef3c7,stroke:#d97706
+    style E5 fill:#dcfce7,stroke:#059669
+    style F fill:#dbeafe,stroke:#2563eb
               </div>
-              <div class="chart-caption">图 6.5-1 Spring AI 分层架构：ChatClient 高层 API → Model 抽象 → 可插拔 LLM/VectorStore 实现</div>
+              <div class="chart-caption">图 6.5-1 SpringApplication.run() 七阶段时序：每个阶段发布一个事件，扩展点在事件间隙介入</div>
             </div>
 
-            <p><strong>ChatModel vs ChatClient</strong>：<code class="inline-code">ChatModel</code> 是底层接口（<code class="inline-code">call(Prompt): ChatResponse</code>、<code class="inline-code">stream(Prompt): Flux&lt;ChatResponse&gt;</code>），对应一个具体 LLM。<code class="inline-code">ChatClient</code> 是高层 Fluent API，封装了 Prompt 构建、Advisor 链、Structured Output、重试，是<strong>推荐的业务入口</strong>——类似 <code class="inline-code">RestTemplate</code> vs <code class="inline-code">RestClient</code> 的关系。</p>
-            <p><strong>Advisor 链：Spring AOP 思想在 AI 领域的复刻</strong>。<code class="inline-code">Advisor</code> 拦截 <code class="inline-code">ChatClient</code> 请求/响应，可前置修改 Prompt（如 RAG 注入检索结果）、后置处理响应（如日志、敏感词过滤）。内置 <code class="inline-code">QuestionAnswerAdvisor</code>（RAG）、<code class="inline-code">PromptChatMemoryAdvisor</code>（记忆）。这是 Spring 把 AOP 经验迁移到 AI 调用链的设计。</p>
-            <p><strong>VectorStore 统一抽象</strong>：仿 Spring Data 的 <code class="inline-code">Repository</code>，<code class="inline-code">VectorStore</code> 接口定义 <code class="inline-code">add(List&lt;Document&gt;)</code>/<code class="inline-code">similaritySearch(SearchRequest)</code>，实现有 PgVector/Redis/Chroma/Milvus/Pinecone。切换向量库只换 Starter，业务代码不变。</p>
+            <p><strong>七个事件的含义与扩展点</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>事件</th><th>发布时机</th><th>此时容器状态</th><th>典型扩展点</th></tr></thead>
+              <tbody>
+                <tr><td>ApplicationStartingEvent</td><td>run() 开始、环境创建前</td><td>容器未创建</td><td>极早期初始化（注册 SPI）</td></tr>
+                <tr><td>ApplicationEnvironmentPreparedEvent</td><td>Environment 准备完成</td><td>容器未创建</td><td><strong>EnvironmentPostProcessor</strong>：修改配置源</td></tr>
+                <tr><td>ApplicationContextInitializedEvent</td><td>容器创建 + Initializer 执行后</td><td>空容器，无 Bean</td><td>注册极早期 Bean</td></tr>
+                <tr><td>ApplicationPreparedEvent</td><td>BeanDefinition 加载完成、refresh 前</td><td>有定义、未实例化</td><td>注册 BeanFactoryPostProcessor</td></tr>
+                <tr><td>ApplicationStartedEvent</td><td>refresh 完成、Runner 前</td><td>所有单例 Bean 就绪</td><td>需在 Runner 前执行的逻辑</td></tr>
+                <tr><td>ApplicationReadyEvent</td><td>Runner 执行完成</td><td>应用完全就绪</td><td>通知外部探活、开流量</td></tr>
+                <tr><td>ApplicationFailedEvent</td><td>启动异常</td><td>不确定</td><td>错误上报、优雅退出</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>三层扩展点对比</strong>：</p>
+            <p><code class="inline-code">ApplicationContextInitializer</code>：在<strong>容器创建后、refresh 前</strong>执行（第 4 阶段），能定制 <code class="inline-code">ApplicationContext</code> 本身（如注册自定义 BeanFactoryPostProcessor）。时机比 Listener 早，但此时<strong>没有 Bean</strong>，不能用 <code class="inline-code">@Autowired</code>。注册方式：<code class="inline-code">spring.factories</code> 或 <code class="inline-code">addInitializers()</code>。</p>
+            <p><code class="inline-code">ApplicationListener</code>：监听特定事件，在<strong>事件发布时</strong>执行。最灵活——可以监听 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code>（容器都没创建时修改配置），也可以监听 <code class="inline-code">ApplicationReadyEvent</code>（应用就绪后开流量）。注册方式：<code class="inline-code">spring.factories</code>、<code class="inline-code">@Component</code>（仅容器创建后的事件）、<code class="inline-code">addListener()</code>。</p>
+            <p><code class="inline-code">ApplicationRunner</code> / <code class="inline-code">CommandLineRunner</code>：在<strong>refresh 完成、所有 Bean 就绪后</strong>执行（第 6 阶段），能用 <code class="inline-code">@Autowired</code> 注入任意 Bean。区别：<code class="inline-code">CommandLineRunner</code> 接收原始 <code class="inline-code">String[]</code> 参数，<code class="inline-code">ApplicationRunner</code> 接收解析后的 <code class="inline-code">ApplicationArguments</code>（支持 <code class="inline-code">--key=value</code> 解析）。二者执行顺序可用 <code class="inline-code">@Order</code> 控制。</p>
+
+            <p><strong>自动配置何时生效</strong>：<code class="inline-code">@SpringBootApplication</code> 包含 <code class="inline-code">@EnableAutoConfiguration</code>，后者通过 <code class="inline-code">@Import(AutoConfigurationImportSelector.class)</code> 在<strong>refresh 的第 5 步（invokeBeanFactoryPostProcessors）</strong>触发——<code class="inline-code">ConfigurationClassPostProcessor</code> 解析主配置类时发现 <code class="inline-code">@Import</code>，调用 <code class="inline-code">AutoConfigurationImportSelector.selectImports()</code> 加载候选类、条件过滤、注册 BeanDefinition。自动配置发生在 <code class="inline-code">ApplicationPreparedEvent</code> 之后、<code class="inline-code">ApplicationStartedEvent</code> 之前的 refresh 过程中（C05.01 详解了 refresh 13 步内幕）。</p>
+
+            <p><strong>嵌入式容器何时启动</strong>：Web 应用在 refresh 的 <code class="inline-code">onRefresh()</code> 阶段（第 9 步）启动嵌入式容器——<code class="inline-code">ServletWebServerApplicationContext.onRefresh()</code> 调用 <code class="inline-code">createWebServer()</code>，创建 Tomcat/Undertow/Jetty 实例并绑定端口。此时 Bean 已实例化但<strong>Runner 尚未执行</strong>，容器在 <code class="inline-code">finishRefresh()</code>（第 12 步）发布 <code class="inline-code">ContextRefreshedEvent</code> 后完全就绪。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁 + Spring AI</strong>。在租赁业务中引入 Spring AI 做智能客服与合同条款问答：用 <code class="inline-code">PgVector</code> 存合同/政策文档向量，<code class="inline-code">QuestionAnswerAdvisor</code> 实现 RAG，<code class="inline-code">ChatClient</code> 调用通义千问/DeepSeek，Structured Output 把回答反序列化为结构化建议。</p>
-            <div class="code-block"><pre><code><span class="com">// ChatClient + RAG Advisor 典型用法</span>
-<span class="kw">@RestController</span>
-<span class="kw">public class</span> <span class="type">ChatController</span> {
-
-    <span class="kw">private final</span> <span class="type">ChatClient</span> chatClient;
-    <span class="kw">private final</span> <span class="type">VectorStore</span> vectorStore;
-
-    <span class="kw">public</span> <span class="type">ChatController</span>(<span class="type">ChatClient.Builder</span> builder, <span class="type">VectorStore</span> vectorStore) {
-        <span class="kw">this</span>.chatClient = builder.build();
-        <span class="kw">this</span>.vectorStore = vectorStore;
+            <p><strong>简历关联：车辆租赁系统启动优化</strong>。租赁系统启动慢（40s+），通过事件链分析定位到三个瓶颈：Flyway 迁移（8s）、Redis 连接池初始化（3s）、本地缓存预热（15s）。用事件机制做了三件事：</p>
+            <div class="code-block"><pre><code><span class="com">// 1. EnvironmentPostProcessor: 启动最早期动态注入配置（如根据环境变量切换数据源）</span>
+<span class="kw">@Order</span>(<span class="num">1</span>)
+<span class="kw">public class</span> <span class="type">RentEnvPostProcessor</span> <span class="kw">implements</span> <span class="type">EnvironmentPostProcessor</span> {
+    <span class="annotation">@Override</span>
+    <span class="kw">public void</span> <span class="fn">postProcessEnvironment</span>(<span class="type">ConfigurableEnvironment</span> env,
+                                          <span class="type">SpringApplication</span> app) {
+        <span class="com">// 容器未创建, 此时可安全修改 Environment</span>
+        <span class="kw">if</span> (<span class="str">"prod"</span>.equals(env.getProperty(<span class="str">"spring.profiles.active"</span>))) {
+            <span class="type">Map</span>&lt;<span class="type">String</span>, <span class="type">Object</span>&gt; <span class="var">overrides</span> = <span class="kw">new</span> <span class="type">HashMap</span>&lt;&gt;();
+            overrides.put(<span class="str">"spring.datasource.hikari.maximum-pool-size"</span>, <span class="str">"20"</span>);
+            env.getPropertySources().addFirst(<span class="kw">new</span> <span class="type">MapPropertySource</span>(<span class="str">"prod-overrides"</span>, overrides));
+        }
     }
+}
+<span class="com">// 注册: META-INF/spring.factories → org.springframework.boot.env.EnvironmentPostProcessor=com...RentEnvPostProcessor</span>
 
-    <span class="kw">@PostMapping</span>(<span class="str">"/ask"</span>)
-    <span class="kw">public</span> <span class="type">String</span> <span class="fn">ask</span>(<span class="kw">@RequestBody</span> <span class="type">String</span> question) {
-        <span class="com">// RAG Advisor: 检索相关文档注入 Prompt</span>
-        <span class="type">QuestionAnswerAdvisor</span> <span class="var">rag</span> = <span class="kw">new</span> <span class="type">QuestionAnswerAdvisor</span>(vectorStore);
-        <span class="kw">return</span> chatClient.prompt()
-            .user(question)
-            .advisors(rag)                       <span class="com">// 注入检索结果</span>
-            .call()
-            .content();                          <span class="com">// 返回文本</span>
+<span class="com">// 2. ApplicationRunner: 所有 Bean 就绪后异步预热缓存 (不阻塞启动)</span>
+<span class="kw">@Component</span>
+<span class="kw">@Order</span>(<span class="num">10</span>)
+<span class="kw">public class</span> <span class="type">CacheWarmupRunner</span> <span class="kw">implements</span> <span class="type">ApplicationRunner</span> {
+
+    <span class="annotation">@Autowired</span>
+    <span class="kw">private</span> <span class="type">RentCacheService</span> cacheService;
+
+    <span class="annotation">@Override</span>
+    <span class="kw">public void</span> <span class="fn">run</span>(<span class="type">ApplicationArguments</span> args) {
+        <span class="com">// ApplicationReadyEvent 之前执行, 此时 Bean 全部就绪</span>
+        <span class="com">// 异步预热, 不阻塞 ApplicationReadyEvent 发布</span>
+        <span class="type">CompletableFuture</span>.runAsync(() -&gt; cacheService.warmup());
     }
+}
 
-    <span class="com">// Structured Output: 直接反序列化为 POJO</span>
-    <span class="kw">@PostMapping</span>(<span class="str">"/suggest"</span>)
-    <span class="kw">public</span> <span class="type">RentSuggestion</span> <span class="fn">suggest</span>(<span class="kw">@RequestBody</span> <span class="type">String</span> need) {
-        <span class="kw">return</span> chatClient.prompt()
-            .user(<span class="str">"根据需求推荐车型: "</span> + need)
-            .call()
-            .entity(<span class="type">RentSuggestion</span>.<span class="kw">class</span>);  <span class="com">// JSON → POJO</span>
+<span class="com">// 3. ApplicationReadyEvent: 应用完全就绪, 通知网关开流量</span>
+<span class="kw">@Component</span>
+<span class="kw">public class</span> <span class="type">ReadyEventListener</span> {
+
+    <span class="annotation">@Autowired</span>
+    <span class="kw">private</span> <span class="type">GatewayClient</span> gateway;
+
+    <span class="annotation">@EventListener</span>(<span class="type">ApplicationReadyEvent</span>.<span class="kw">class</span>)
+    <span class="kw">public void</span> <span class="fn">onReady</span>() {
+        <span class="com">// 只有 Runner 全部执行完, 才通知网关引流</span>
+        gateway.notifyReady();
     }
 }</code></pre></div>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
-              <p>架构师落地 Spring AI 四要点：① <strong>ChatClient 而非 ChatModel</strong>——高层 API 自带 Advisor/重试/结构化输出，业务代码更简洁；② <strong>模型抽象解耦</strong>——用 <code class="inline-code">ChatModel</code> 接口注入，便于切换 OpenAI/本地 Ollama/国产大模型，避免厂商锁定；③ <strong>RAG 用 Advisor</strong>——<code class="inline-code">QuestionAnswerAdvisor</code> 把检索逻辑与业务解耦；④ <strong>成本与限流</strong>——LLM 调用贵且慢，务必加缓存（语义缓存）、限流、超时降级。</p>
+              <p>启动流程扩展四原则：① <strong>修改 Environment 用 EnvironmentPostProcessor</strong>——此时容器未创建，改配置最安全；② <strong>定制容器用 Initializer</strong>——比 Listener 早，能注册 BeanFactoryPostProcessor；③ <strong>初始化数据用 ApplicationRunner</strong>——Bean 全就绪，可注入任意依赖，重活异步化不阻塞启动；④ <strong>开流量用 ApplicationReadyEvent</strong>——确保 Runner 全部完成后才对外提供服务，避免"半就绪"状态接请求。</p>
             </div>
           </div>
         </div>
@@ -704,10 +723,10 @@ flowchart TD
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
-            <p><strong>追问 1：Spring AI 的 Function Calling 如何让 LLM 调用 Java 方法？</strong></p>
-            <p>原理：① 用 <code class="inline-code">@Bean Function&lt;Req,Resp&gt;</code> 注册 Java 方法为工具；② <code class="inline-code">ChatClient</code> 调用时把函数 schema（参数类型/描述）随请求发给 LLM；③ LLM 判断需要调用工具时，返回 <code class="inline-code">tool_call</code>（函数名 + 参数 JSON）；④ Spring AI 拦截该响应，用 Jackson 反序列化参数，反射调用对应 <code class="inline-code">Function</code> Bean，把返回值作为 tool result 再发一轮请求；⑤ LLM 基于工具结果生成最终回答。整个过程对开发者透明，只需 <code class="inline-code">.tools("getWeather")</code> 声明可用工具。这是 Agent 能力的基础——LLM 决策调用哪个工具，Spring AI 执行。</p>
-            <p><strong>追问 2：Spring AI 与 LangChain4j 如何选型？</strong></p>
-            <p>两者定位相似但生态不同：<strong>Spring AI</strong> 是 Spring 官方，与 Spring Boot/Cloud/AOT 深度整合，自动配置成熟，适合已用 Spring 技术栈的团队，长期更稳；<strong>LangChain4j</strong> 是 LangChain 的 Java 移植，社区活跃、功能更新快（Agent/AI Service 领先），适合追求前沿特性、不在意 Spring 强绑定的团队。2026 年趋势是 Spring AI 在企业级整合与稳定性上占优，LangChain4j 在 Agent 创新上领先，架构师选型应结合团队技术栈与功能需求，而非盲目追新。</p>
+            <p><strong>追问 1：SpringApplicationRunListener 是什么？和 ApplicationListener 什么关系？</strong></p>
+            <p><code class="inline-code">SpringApplicationRunListener</code> 是<strong>启动流程的内部编排者</strong>——<code class="inline-code">SpringApplication.run()</code> 不直接发布事件，而是委托 <code class="inline-code">SpringApplicationRunListener</code> 在每个阶段调用 <code class="inline-code">starting()</code>/<code class="inline-code">environmentPrepared()</code>/<code class="inline-code">contextPrepared()</code> 等方法，由它内部用 <code class="inline-code">ApplicationEventMulticaster</code> 广播事件给所有 <code class="inline-code">ApplicationListener</code>。默认实现 <code class="inline-code">EventPublishingRunListener</code> 通过 <code class="inline-code">spring.factories</code> 加载。关系：<code class="inline-code">RunListener</code> 是<strong>事件的发布方</strong>（SPI，框架内部），<code class="inline-code">ApplicationListener</code> 是<strong>事件的消费方</strong>（Bean 或 <code class="inline-code">spring.factories</code> 注册）。开发者通常只写 Listener，不写 RunListener——除非需要在事件发布前后插入框架级逻辑（如 Spring Cloud 的 <code class="inline-code">BootstrapApplicationListener</code>）。</p>
+            <p><strong>追问 2：AOT 模式下启动流程有什么不同？事件链变了吗？</strong></p>
+            <p>AOT（Ahead-of-Time）在<strong>构建期</strong>执行 <code class="inline-code">SpringApplication.run()</code> 的"模拟运行"——AOT 处理器创建 <code class="inline-code">SpringApplication</code> 实例并走到 <code class="inline-code">ApplicationPreparedEvent</code>，捕获所有 BeanDefinition、条件评估结果、<code class="inline-code">@Configuration</code> 解析结果，生成 <code class="inline-code">ApplicationContextAOTGenerator</code> 代码。运行期 <code class="inline-code">run()</code> 跳过类路径扫描和条件评估，直接用 AOT 生成的 BeanDefinition 注册。事件链<strong>不变</strong>——7 个事件照常发布，但 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code> 到 <code class="inline-code">ApplicationPreparedEvent</code> 之间的耗时从数百毫秒降至接近 0（因为条件判断已冻结）。这就是 Native Image 启动从秒级降到毫秒级的核心原因。</p>
           </div>
         </div>
 
@@ -717,11 +736,11 @@ flowchart TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>直接用 ChatModel 拼 Prompt</strong>：跳过 ChatClient/Advisor，丢失 RAG/记忆/重试/结构化能力，代码冗余。</li>
-                <li><strong>厂商锁定</strong>：业务代码直接 import OpenAI SDK，切换模型要改代码，应通过 <code class="inline-code">ChatModel</code> 抽象注入。</li>
-                <li><strong>LLM 调用无限流无超时</strong>：LLM 响应慢且贵，未设超时/限流/降级，拖垮服务或成本失控。</li>
-                <li><strong>Structured Output 无 schema 约束</strong>：LLM 返回 JSON 格式不稳定，未用 JSON Schema 强约束导致反序列化失败。</li>
-                <li><strong>RAG 检索结果全塞 Prompt</strong>：超 token 上限，应做重排（Rerank）与 top-k 截断。</li>
+                <li><strong>在 Initializer 中注入 Bean</strong>：Initializer 在容器 refresh 前执行，此时 Bean 未实例化，<code class="inline-code">@Autowired</code> 注入的是 null。Initializer 只能操作 <code class="inline-code">ApplicationContext</code> 本身，不能依赖业务 Bean。</li>
+                <li><strong>混淆 ApplicationStartedEvent 与 ApplicationReadyEvent</strong>：<code class="inline-code">Started</code> 在 refresh 后、Runner 前发布，此时数据可能未预热；<code class="inline-code">Ready</code> 在 Runner 完成后发布。开流量、通知探活必须用 <code class="inline-code">Ready</code>，否则"半就绪"接请求导致错误。</li>
+                <li><strong>Runner 中做阻塞操作拖慢启动</strong>：ApplicationRunner 在启动主线程同步执行，重操作（全量缓存预热、大量数据初始化）会阻塞 <code class="inline-code">ApplicationReadyEvent</code> 发布，应异步化或延迟执行。</li>
+                <li><strong>用 @PostConstruct 做启动初始化</strong>：<code class="inline-code">@PostConstruct</code> 在 Bean 初始化时执行，此时其他 Bean 可能未就绪，依赖顺序不确定。跨 Bean 的初始化逻辑应放 ApplicationRunner。</li>
+                <li><strong>EnvironmentPostProcessor 中读 Bean</strong>：此扩展点在容器创建前执行，没有任何 Bean 存在，只能操作 <code class="inline-code">Environment</code>（增删 PropertySource）。需要读数据库决定配置的场景应改用 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code> 的异步预处理 + 延迟加载。</li>
               </ul>
             </div>
           </div>
@@ -1513,7 +1532,7 @@ flowchart TD
         <li><span class="src-title">Spring Boot 3.0 Release Notes. — AutoConfiguration.imports 取代 spring.factories、AOT 处理、GraalVM Native Image 原生支持、 Jakarta EE 9 迁移</span></li>
         <li><span class="src-title">GraalVM Project. Reference Documentation. — SubstrateVM 闭世界分析、Reachability Metadata、Native Image 构建原理</span></li>
         <li><span class="src-title">Spring Security Reference 5.x / 6.x. — FilterChainProxy、SecurityFilterChain、Lambda DSL、OAuth2 Resource Server、JWT 集成</span></li>
-        <li><span class="src-title">Spring AI Reference 1.0. — ChatClient/ChatModel/EmbeddingModel/VectorStore 核心抽象、Advisor 链、Function Calling、MCP 支持</span></li>
+        <li><span class="src-title">Spring Boot Core Source Code (SpringApplication / SpringApplicationRunListener). — run() 七阶段时序、EventPublishingRunListener、ApplicationContextInitializer、ApplicationRunner/CommandLineRunner 扩展点</span></li>
         <li><span class="src-title">Spring Session Reference. — @EnableRedisHttpSession、SessionRepositoryFilter、Session 事件、与 OAuth2 整合</span></li>
         <li><span class="src-title">Spring Boot Actuator + Micrometer + Prometheus. — 端点安全演进、HealthIndicator、Metrics、Prometheus 集成</span></li>
         <li><span class="src-title">Bean Validation 2.0/3.0 (JSR-380) &amp; Hibernate Validator. — 校验注解、@Valid/@Validated、自定义约束、分组校验</span></li>

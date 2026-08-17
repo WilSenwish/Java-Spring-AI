@@ -249,6 +249,8 @@ flowchart TD
                 <li><strong>RAG 逻辑写进 Controller</strong>：检索 + Prompt 拼接散落业务层，应封装为 <code class="inline-code">QuestionAnswerAdvisor</code> 复用。</li>
                 <li><strong>忽视流式与超时</strong>：LLM 响应慢，同步阻塞占满 Tomcat 线程，高并发应用必须用 <code class="inline-code">stream()</code> + SSE 或独立线程池。</li>
                 <li><strong>把 Spring AI 当 ORM 用</strong>：以为 VectorStore 能替代关系数据库，忽视向量检索的近似性，关键业务数据仍需落 MySQL。</li>
+                <li><strong>Structured Output 无 Schema 约束</strong>：LLM 返回 JSON 格式不稳定，未用 JSON Schema 强约束导致反序列化失败，应用 <code class="inline-code">entity(Class)</code> + BeanOutputConverter 强约束输出格式。</li>
+                <li><strong>RAG 检索结果全塞 Prompt</strong>：召回片段过多超出 token 上限且"上下文迷失"（Lost in the Middle），应做 Rerank 精排 + top-k 截断。</li>
               </ul>
             </div>
           </div>
