@@ -179,7 +179,7 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁 + Spring AI</strong>。在租赁业务中引入 Spring AI 做智能客服与合同条款问答：用 <code class="inline-code">PgVector</code> 存合同/政策文档向量，<code class="inline-code">QuestionAnswerAdvisor</code> 实现 RAG，<code class="inline-code">ChatClient</code> 调用通义千问/DeepSeek，Structured Output 把回答反序列化为结构化建议。</p>
+            <p>在业务系统中引入 Spring AI 做智能客服与合同条款问答：用 <code class="inline-code">PgVector</code> 存合同/政策文档向量，<code class="inline-code">QuestionAnswerAdvisor</code> 实现 RAG，<code class="inline-code">ChatClient</code> 调用通义千问/DeepSeek，Structured Output 把回答反序列化为结构化建议。</p>
             <div class="code-block"><pre><code><span class="com">// ChatClient + Advisor 链 + Structured Output 典型用法</span>
 <span class="kw">@RestController</span>
 <span class="kw">public class</span> <span class="type">RentChatController</span> {
@@ -342,7 +342,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁合同问答</strong>。租赁合同/政策文档存 PgVector，做企业内部知识问答。落地踩坑与优化：</p>
+            <p>租赁合同/政策文档存 PgVector，做企业内部知识问答。落地踩坑与优化：</p>
             <div class="code-block"><pre><code><span class="com">// 混合检索 + 重排 + 引用标注 的 RAG 实践</span>
 <span class="kw">@Service</span>
 <span class="kw">public class</span> <span class="type">RagService</span> {
@@ -489,7 +489,7 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：PgVector 向量库选型与调参</strong>。车辆租赁知识库用 PgVector（复用 PostgreSQL 运维栈，避免引入新组件），<code class="inline-code">bge-m3</code> 模型（1024 维，中文友好）。</p>
+            <p>某租赁平台知识库用 PgVector（复用 PostgreSQL 运维栈，避免引入新组件），<code class="inline-code">bge-m3</code> 模型（1024 维，中文友好）。</p>
             <div class="code-block"><pre><code><span class="com">-- PgVector: 建 HNSW 索引 + 余弦距离</span>
 <span class="kw">CREATE TABLE</span> docs (
     id <span class="type">BIGSERIAL</span> <span class="kw">PRIMARY KEY</span>,
@@ -605,7 +605,7 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：租赁合同分块实践</strong>。合同含条款编号、表格（费率表）、条款引用。踩坑：固定分块把费率表切成两半，问答"日租多少钱"答错。</p>
+            <p>合同含条款编号、表格（费率表）、条款引用。踩坑：固定分块把费率表切成两半，问答"日租多少钱"答错。</p>
             <div class="code-block"><pre><code><span class="com">// 结构感知分块 + 父子分块 + 元数据</span>
 <span class="type">MarkdownDocumentReader</span> <span class="var">reader</span> = <span class="kw">new</span> <span class="type">MarkdownDocumentReader</span>(resource);
 <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">docs</span> = reader.get();
@@ -733,7 +733,7 @@ flowchart LR
 
             <div class="code-block"><pre><code><span class="com">// Spring AI 结构化输出 + PromptTemplate 模板管理</span>
 <span class="type">PromptTemplate</span> <span class="var">tpl</span> = <span class="kw">new</span> <span class="type">PromptTemplate</span>(<span class="str">"""
-    你是车辆租赁法务助手。请基于以下资料回答问题。
+    你是某XXX平台法务助手。请基于以下资料回答问题。
     规则:
     1. 只基于资料回答，资料无则答"未找到"
     2. 每个论断标注[资料编号]
@@ -903,7 +903,7 @@ sequenceDiagram
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：租赁业务工具集</strong>。把"查库存""算价格""下单""查订单"封装为 Function，让 LLM 做智能客服自主完成"询价-下单"全流程。</p>
+            <p>把"查库存""算价格""下单""查订单"封装为 Function，让 LLM 做智能客服自主完成"询价-下单"全流程。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>Function Calling 工程五要点：① <strong>工具描述要清晰</strong>——<code class="inline-code">@Description</code> 是 LLM 选工具的唯一依据，写清"做什么、参数含义、返回什么"；② <strong>参数最小化</strong>——参数越少 LLM 填错率越低，复杂参数拆成多工具；③ <strong>幂等与校验</strong>——查询类可重试，下单类必须幂等（防 LLM 重复调用）；④ <strong>错误回填不抛异常</strong>——把错误信息作为 tool result 让 LLM 决策；⑤ <strong>限最大轮次与超时</strong>——防死循环与长时间挂起。</p>
@@ -1060,7 +1060,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：租赁智能客服 Agent</strong>。用 Plan-and-Execute 模式：Planner 把"帮我租一辆北京的车"拆成"查库存→选车型→算价格→生成订单"四步，Executor 逐步调工具，失败回 Planner 重规划。工具封装为 MCP Server 供多端复用。</p>
+            <p>用 Plan-and-Execute 模式：Planner 把"帮我租一辆北京的车"拆成"查库存→选车型→算价格→生成订单"四步，Executor 逐步调工具，失败回 Planner 重规划。工具封装为 MCP Server 供多端复用。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>Agent 工程五原则：① <strong>模式选型</strong>——短探索任务用 ReAct，长确定性流程用 Plan-and-Execute/状态图；② <strong>工具 MCP 化</strong>——工具独立为 MCP Server 复用，不绑死应用；③ <strong>人机协同(HITL)</strong>——高风险步骤设人工确认闸，Agent 提议人批准；④ <strong>状态持久化</strong>——长任务用 LangGraph 持久化检查点，可中断恢复；⑤ <strong>可观测</strong>——记录每步 Thought/Action/Observation，便于排查"Agent 为什么这么决策"。可靠性优先于自主性，能规则化的不要交给 LLM。</p>
@@ -1189,7 +1189,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：租赁问答评估体系</strong>。建 200 题评测集（含标准答案+参考文档），每次 Prompt/检索/分块改动跑 RAGAS 评测，关注 Faithfulness（防合同答错）与 Context Recall（防漏检）。线上用 Langfuse 采集 Trace，监控重问率与采纳率。</p>
+            <p>建 200 题评测集（含标准答案+参考文档），每次 Prompt/检索/分块改动跑 RAGAS 评测，关注 Faithfulness（防合同答错）与 Context Recall（防漏检）。线上用 Langfuse 采集 Trace，监控重问率与采纳率。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>评估体系建设四步：① <strong>建评测集</strong>——200-500 题覆盖核心场景与边界 case，含标准答案；② <strong>自动化评测</strong>——RAGAS + LLM-as-Judge 跑批，CI 集成防回归；③ <strong>线上监控</strong>——Langfuse/LangSmith 采集 Trace，监控业务/质量/工程指标；④ <strong>闭环反哺</strong>——线上失败 case 反哺评测集，持续迭代。无评测不上线，无监控不生产。</p>
@@ -1309,7 +1309,7 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：租赁问答成本优化</strong>。初期全用通义最大模型，月成本万元级。优化后：FAQ 命中语义缓存（40% 请求零模型调用），简单问题路由到 Qwen-7B，仅复杂合同问题用大模型，月成本降 70%。</p>
+            <p>初期全用通义最大模型，月成本万元级。优化后：FAQ 命中语义缓存（40% 请求零模型调用），简单问题路由到 Qwen-7B，仅复杂合同问题用大模型，月成本降 70%。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>成本优化优先级（ROI 从高到低）：① <strong>语义缓存</strong>——重复场景立省；② <strong>多模型路由</strong>——简单任务不浪费旗舰；③ <strong>RAG 限上下文</strong>——top-3+Rerank 替代 top-10；④ <strong>Prompt 压缩</strong>——历史对话摘要；⑤ <strong>输出约束</strong>——限长度+结构化；⑥ <strong>批处理</strong>——非实时任务走 Batch API 半价；⑦ <strong>开源私有部署</strong>——量大时本地部署摊薄成本。先量化（埋点 Token/成本），再优化。</p>
@@ -1410,7 +1410,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：多模态在租赁业务的落地</strong>。① <strong>合同图表解析</strong>：用 Qwen-VL 识别合同中的费率表图片，转结构化数据入库；② <strong>车辆损伤识别</strong>：用户上传还车照片，多模态模型识别划痕/凹陷并定位，自动生成定损单；③ <strong>语音客服</strong>：语音转文本→LLM→文本转语音，降低接入门槛。</p>
+            <p>① <strong>合同图表解析</strong>：用 Qwen-VL 识别合同中的费率表图片，转结构化数据入库；② <strong>车辆损伤识别</strong>：用户上传还车照片，多模态模型识别划痕/凹陷并定位，自动生成定损单；③ <strong>语音客服</strong>：语音转文本→LLM→文本转语音，降低接入门槛。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>多模态落地四要点：① <strong>模态按需</strong>——不必追求全模态，业务需要哪个加哪个，图像理解性价比最高；② <strong>模态分工</strong>——专用模型做单模态（OCR/ASR）往往比多模态更准更便宜，多模态做跨模态融合；③ <strong>成本控制</strong>——多模态 Token 贵（图片按分辨率折算 token），缓存与降级更重要；④ <strong>幻觉防范</strong>——多模态也会"看错"，关键判断仍需校验。</p>
@@ -1523,7 +1523,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁 + Spring AI Alibaba Graph</strong>。用 Graph 编排一个智能定损 Agent：节点1（Qwen-VL 识别车辆损伤）→ 条件边（损伤严重？）→ 节点2A（轻伤自动报价）/ 节点2B（重伤转人工 + 调用定损 API）→ 节点3（生成定损单）。通义模型经百炼接入，工具服务注册到 Nacos MCP Registry。</p>
+            <p>用 Graph 编排一个智能定损 Agent：节点1（Qwen-VL 识别车辆损伤）→ 条件边（损伤严重？）→ 节点2A（轻伤自动报价）/ 节点2B（重伤转人工 + 调用定损 API）→ 节点3（生成定损单）。通义模型经百炼接入，工具服务注册到 Nacos MCP Registry。</p>
             <div class="code-block"><pre><code><span class="com">// Spring AI Alibaba Graph 编排 DSL 示例</span>
 <span class="kw">@Configuration</span>
 <span class="kw">public class</span> <span class="type">DamageGraphConfig</span> {
@@ -1699,7 +1699,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁 + AgentScope ReAct Agent</strong>。构建一个"智能租车顾问"Agent——用户说"下周去三亚出差需要车"，Agent 自主推理：Thought（需要查车型+查库存+查价格）→ Action（调库存系统）→ Observation（SUV 有库存）→ Thought（需算价格）→ Action（调计费系统）→ 最终推荐。不可信的代码生成（用户自定义规则脚本）放入文件系统沙箱执行。</p>
+            <p>构建一个"智能租车顾问"Agent——用户说"下周去三亚出差需要车"，Agent 自主推理：Thought（需要查车型+查库存+查价格）→ Action（调库存系统）→ Observation（SUV 有库存）→ Thought（需算价格）→ Action（调计费系统）→ 最终推荐。不可信的代码生成（用户自定义规则脚本）放入文件系统沙箱执行。</p>
             <div class="code-block"><pre><code><span class="com">// AgentScope-Java ReAct Agent 示例</span>
 <span class="kw">public class</span> <span class="type">RentAdvisorAgent</span> {
 
@@ -1856,7 +1856,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁 + LangChain4j AiServices</strong>。用 AiServices 声明式接口实现智能客服——定义 <code class="inline-code">RentAssistant</code> 接口，<code class="inline-code">@SystemMessage</code> 设定"你是租车顾问"人设，<code class="inline-code">@UserMessage</code> 模板引用用户输入，返回 <code class="inline-code">RentSuggestion</code> POJO 自动解析。RAG 用混合检索（Elasticsearch 全文 + PgVector 向量 + RRF 融合）检索合同条款。</p>
+            <p>用 AiServices 声明式接口实现智能客服——定义 <code class="inline-code">RentAssistant</code> 接口，<code class="inline-code">@SystemMessage</code> 设定"你是租车顾问"人设，<code class="inline-code">@UserMessage</code> 模板引用用户输入，返回 <code class="inline-code">RentSuggestion</code> POJO 自动解析。RAG 用混合检索（Elasticsearch 全文 + PgVector 向量 + RRF 融合）检索合同条款。</p>
             <div class="code-block"><pre><code><span class="com">// LangChain4j AiServices 声明式接口示例</span>
 <span class="kw">public interface</span> <span class="type">RentAssistant</span> {
 
@@ -2069,7 +2069,7 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁 + LangGraph4j MultiAgent</strong>。构建一个"租赁风控 MultiAgent"——Supervisor 接收用户租车申请，分派给：Agent A（身份核验：调征信 API）、Agent B（历史行为分析：查过往订单）、Agent C（车辆风险评估：查车型事故率）。三者并行执行（fan-out），结果汇聚回 Supervisor（fan-in），Supervisor 综合判断是否通过。关键节点加 Checkpoint 支持人工复核。</p>
+            <p>构建一个"租赁风控 MultiAgent"——Supervisor 接收用户租车申请，分派给：Agent A（身份核验：调征信 API）、Agent B（历史行为分析：查过往订单）、Agent C（车辆风险评估：查车型事故率）。三者并行执行（fan-out），结果汇聚回 Supervisor（fan-in），Supervisor 综合判断是否通过。关键节点加 Checkpoint 支持人工复核。</p>
             <div class="code-block"><pre><code><span class="com">// LangGraph4j StateGraph 构建示例: 风控审批图</span>
 <span class="kw">public class</span> <span class="type">RiskControlGraph</span> {
 
@@ -2575,7 +2575,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>简历关联：车辆租赁智能问答</strong>。召回率从初版 52% 提升到 89%，幻觉率（人工抽检）从 18% 降到 3% 以下。</p>
+            <p>召回率从初版 52% 提升到 89%，幻觉率（人工抽检）从 18% 降到 3% 以下。</p>
             <div class="code-block"><pre><code><span class="com">// 混合检索 + Rerank + 引用溯源 Advisor（Spring AI 1.0）</span>
 <span class="kw">public class</span> <span class="type">GroundingRagAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {  <span class="com">// Spring AI 1.0 GA 映射: BaseAdvisor→CallAdvisor, adviseRequest/adviseResponse→adviseCall(ChatClientRequest,CallAdvisorChain) 链式</span>
 
@@ -3102,7 +3102,7 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>十亿级 Milvus 部署与调优</strong>（车辆租赁全车型知识库 + 行业政策库，约 12 亿 chunk）：</p>
+            <p><strong>十亿级 Milvus 部署与调优</strong>（某租赁平台全车型知识库 + 行业政策库，约 12 亿 chunk）：</p>
             <div class="code-block"><pre><code><span class="com">// Milvus 集群: 存算分离 + 分片 + IVF_PQ 索引</span>
 <span class="com">// collection schema: id(int64) + embedding(float32[1024]) + metadata</span>
 
@@ -3716,7 +3716,7 @@ flowchart LR
         <span class="kw">return</span> req;
     }
 }</code></pre></div>
-            <p><strong>降本效果数据</strong>（车辆租赁客服，月 1000 万请求）：语义缓存命中率 32%（省 320 万次调用）、分级路由 65% 走小模型、上下文裁剪平均输入 token 从 3200 降到 1400。综合月成本从 ~$48k 降到 ~$11k，降 77%。</p>
+            <p><strong>降本效果数据</strong>（某租赁平台客服，月 1000 万请求）：语义缓存命中率 32%（省 320 万次调用）、分级路由 65% 走小模型、上下文裁剪平均输入 token 从 3200 降到 1400。综合月成本从 ~$48k 降到 ~$11k，降 77%。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>① <strong>语义缓存是 ROI 最高的降本手段</strong>——零效果损失、命中即省；② <strong>分级路由保能力门槛</strong>——别为降本把复杂任务压给小模型；③ <strong>上下文裁剪无损优先</strong>——先摘要/精排（无损），再考虑 Prompt 压缩（可能有损）；④ <strong>成本看板按场景/租户拆</strong>——定位成本大头针对性优化。</p>
