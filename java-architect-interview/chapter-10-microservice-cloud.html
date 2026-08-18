@@ -1495,7 +1495,7 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察微服务架构下<strong>跨服务事务</strong>的设计哲学：单体时代的 ACID 在分布式环境下不可行，必须在<strong>强一致、可用性、性能</strong>之间做显式权衡。核心回答：优先用"最终一致 + 补偿/对账"替代分布式事务；必须强一致时用 TCC 或 Seata AT；SAGA 模式适合长事务编排；消息队列是实现最终一致的最常用基础设施。</p>
+            <p>考察微服务架构下<strong>跨服务事务</strong>的设计哲学：单体时代的 ACID 在分布式环境下不可行，必须在<strong>强一致、可用性、性能</strong>之间做显式权衡。核心回答：优先用"最终一致 + 补偿/对账"替代分布式事务；必须强一致时用 TCC 或 XA；SAGA 模式适合长事务编排；消息队列是实现最终一致的最常用基础设施。</p>
           </div>
         </div>
 
@@ -1535,14 +1535,14 @@ flowchart LR
             <table class="compare-table">
               <thead><tr><th>方案</th><th>一致性</th><th>侵入性</th><th>性能</th><th>适用</th></tr></thead>
               <tbody>
-                <tr><td>Seata AT</td><td>强一致</td><td>低（代理数据源）</td><td>中</td><td>简单 CRUD 场景</td></tr>
+                <tr><td>Seata AT</td><td>最终一致（全局锁防脏写）</td><td>低（代理数据源）</td><td>中</td><td>简单 CRUD 场景</td></tr>
                 <tr><td>TCC</td><td>强一致</td><td>高（三接口）</td><td>高</td><td>高并发、复杂资源预留</td></tr>
                 <tr><td>SAGA</td><td>最终一致</td><td>中（补偿接口）</td><td>高</td><td>长事务、业务流程</td></tr>
                 <tr><td>可靠消息</td><td>最终一致</td><td>低</td><td>极高</td><td>通用首选</td></tr>
               </tbody>
             </table>
 
-            <p><strong>落地建议</strong>：① <strong>默认用最终一致</strong>：本地事务 + 消息通知，消费者幂等；② <strong>必须强一致时用 Seata AT</strong>（简单）或 TCC（高性能）；③ <strong>长流程用 SAGA</strong>（如审批、物流）；④ <strong>所有补偿/消费接口必须幂等</strong>；⑤ <strong>建立对账机制</strong>：日终比对各服务数据，发现不一致人工/自动修复。</p>
+            <p><strong>落地建议</strong>：① <strong>默认用最终一致</strong>：本地事务 + 消息通知，消费者幂等；② <strong>必须强一致时用 TCC</strong>（高性能）或 XA（简单）；AT 提供最终一致，适合低并发最终一致场景；③ <strong>长流程用 SAGA</strong>（如审批、物流）；④ <strong>所有补偿/消费接口必须幂等</strong>；⑤ <strong>建立对账机制</strong>：日终比对各服务数据，发现不一致人工/自动修复。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">设计原则</div>
@@ -1555,7 +1555,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Seata AT 的脏读问题如何解决？</strong></p>
-            <p>Seata AT 一阶段已提交本地事务，其他事务可能读到未全局提交的数据（若全局回滚则读到脏数据）。解法：① <strong>全局锁</strong>：Seata 代理数据源时加行级全局锁，阻塞其他事务读未提交数据；② <strong>@GlobalLock + SELECT FOR UPDATE</strong>：强制走 Seata 代理；③ 业务层容忍短暂不一致，或查询走快照/副本。</p>
+            <p>Seata AT 一阶段已提交本地事务，其他事务可能读到未全局提交的数据（若全局回滚则读到脏数据）。解法：① <strong>全局锁</strong>：Seata 代理数据源时加行级全局锁，阻塞其他事务对同一数据行的写操作（防脏写）；② <strong>@GlobalLock + SELECT FOR UPDATE</strong>：强制走 Seata 代理；③ 业务层容忍短暂不一致，或查询走快照/副本。</p>
             <p><strong>追问 2：SAGA 的补偿失败了怎么办？</strong></p>
             <p>补偿操作也可能失败（如网络超时、服务宕机）。解法：① <strong>补偿必须幂等</strong>，允许重试；② 补偿失败进入<strong>人工干预队列</strong>，告警通知运维；③ 设计<strong>可回退的业务状态</strong>，避免补偿逻辑过于复杂；④ 预留<strong>对账修复</strong>机制，日终自动校验并修复不一致。</p>
           </div>

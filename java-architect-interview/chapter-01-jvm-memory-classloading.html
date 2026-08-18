@@ -552,7 +552,7 @@ graph LR
               <li><strong>StoreLoad</strong>：Store1 → StoreLoad → Load2，保证 Store1 对所有处理器可见后再 Load（开销最大，volatile 写后插入）</li>
             </ul>
 
-            <p><strong>volatile 的实现</strong>：写 volatile 变量前插入 StoreStore 屏障（禁止与前面普通写重排），写后插入 StoreLoad 屏障（刷新到主内存并使其他 CPU 缓存失效）；读 volatile 前插入 LoadLoad 屏障，读后插入 LoadStore 屏障。底层依赖 CPU 的<strong>MESI 缓存一致性协议</strong>（Modified/Exclusive/Shared/Invalid）通过总线嗅探保证缓存一致。</p>
+            <p><strong>volatile 的实现</strong>：写 volatile 变量前插入 StoreStore 屏障（禁止与前面普通写重排），写后插入 StoreLoad 屏障（刷新到主内存并使其他 CPU 缓存失效）；读 volatile 变量后插入 LoadLoad 屏障（禁止与后面普通读重排）与 LoadStore 屏障（禁止与后面普通写重排）。底层依赖 CPU 的<strong>MESI 缓存一致性协议</strong>（Modified/Exclusive/Shared/Invalid）通过总线嗅探保证缓存一致。</p>
           </div>
         </div>
 
@@ -1180,7 +1180,7 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
               <li><strong>AOT 编译（JEP 295）</strong>：JDK 9 引入 <code class="inline-code">jaotc</code> 工具，将类预编译为本地代码缩短启动时间，但未能广泛使用，JDK 17 被移除。</li>
               <li><strong>GraalVM JIT（JEP 317）</strong>：JDK 10 实验性引入，通过 JVMCI 接口用纯 Java 实现的 Graal 编译器替代 C2，支持更激进的优化（如部分逃逸分析）。</li>
               <li><strong>GraalVM Native Image</strong>：基于闭世界分析的 AOT 方案，启动毫秒级、内存占用极低，适合 Serverless/微服务。</li>
-              <li><strong>JDK 21+ GraalVM GA</strong>：Oracle 官方将 GraalVM 编译器作为独立组件正式发布，JDK 24（JEP 483）将 Graal JIT 转正为生产可用，标志着 JIT 编译器从 C/C++ 实现向 Java 实现的迁移完成。</li>
+              <li><strong>JDK 21+ GraalVM GA</strong>：Oracle 官方将 GraalVM 编译器（基于 JVMCI、纯 Java 实现的 C2 替代）作为独立组件正式发布，标志着 JIT 编译器从 C/C++（C2）实现向 Java（Graal）实现的迁移完成；JDK 24 的 JEP 483（Ahead-of-Time Class Loading & Linking）通过构建期预加载与链接类、配合 AOT 缓存进一步缩短启动时间，推动 Java 启动优化向构建期 AOT 演进。</li>
             </ul>
           </div>
         </div>

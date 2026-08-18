@@ -140,7 +140,7 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>分层一致性实践</strong>（电商场景）：</p>
             <ul>
-              <li><strong>支付/账户/库存扣减 → CP</strong>：资金不能错，用强一致（TCC/Saga/Seata AT），宁可短时不可用也不允许超卖或余额错误。</li>
+              <li><strong>支付/账户/库存扣减 → CP</strong>：资金不能错，用强一致（TCC/XA），宁可短时不可用也不允许超卖或余额错误。</li>
               <li><strong>商品展示/评论/推荐 → AP</strong>：用最终一致，缓存+异步刷新，短暂不一致可接受，可用性优先。</li>
               <li><strong>订单状态 → 最终一致</strong>：订单创建后各子系统异步处理，通过消息+对账保证最终一致。</li>
             </ul>
@@ -1874,7 +1874,7 @@ flowchart LR
             <p><strong>基础模式回顾（详见 C09.02）</strong>：XA/2PC 强一致长锁已淘汰；TCC Try/Confirm/Cancel 三接口业务侵入大；Seata AT Undo Log+全局锁低侵入但并发瓶颈；Saga 正向+补偿适合长流程；本地消息表靠轮询投递。以下聚焦 2026 增量演进。</p>
             <p><strong>增量 1：Outbox 模式 + CDC 兴起（2020+→2026 主流）</strong>。业务写库同时写 outbox 表，<strong>Debezium/Canal 订阅 binlog</strong>（表级别变更捕获）投递 MQ，应用无需轮询。Outbox vs 本地消息表关键差异：<strong>① 实时性</strong>——CDC 毫秒级推送（binlog 产生即推送）vs 轮询秒级延迟（通常 1-5s 轮询间隔）；<strong>② 无状态性</strong>——CDC 连接器是独立中间件，应用服务本身无定时任务线程，对 DB 无附加轮询查询压力；<strong>③ 统一接入</strong>——多服务共用一套 CDC 集群，无需各服务自建轮询。<strong>Outbox 表设计要点</strong>（id/aggregate_type/aggregate_id/event_type/payload/created_at 六字段）：<code class="inline-code">id BIGINT AUTO_INCREMENT PRIMARY KEY</code>（自增保证顺序）、<code class="inline-code">aggregate_type VARCHAR(64)</code>（聚合根类型，如 Order）、<code class="inline-code">aggregate_id VARCHAR(128)</code>（聚合根业务 ID）、<code class="inline-code">event_type VARCHAR(64)</code>（事件类型，如 OrderCreated）、<code class="inline-code">payload JSON</code>（事件体）、<code class="inline-code">created_at DATETIME</code>。<strong>趋势</strong>：Outbox + 事件驱动成为微服务事务首选。</p>
             <p><strong>增量 2：Seata 2.x TC Raft 集群高可用（2023→2026 成熟）</strong>。Seata 1.x TC 依赖 DB/Redis 做共享存储 + 注册中心选举，故障切换有分钟级窗口期；2.x 引入<strong>Raft 存储模式</strong>（基于 sofa-jraft），TC 本身组成 3/5 节点 Raft 集群，无需外部依赖。<strong>Raft 模式 vs DB 模式选型对比</strong>：① <strong>一致性</strong>——Raft 强一致（Leader 写，多数派同步后 ACK），DB 模式一致性取决于共享 DB 本身；② <strong>性能</strong>——Raft 模式 Leader 单点写但多数派同步（网络 RTT×2），中小集群吞吐够用；DB 模式若共享 DB 是 MySQL 主从则写主从延迟风险；③ <strong>运维复杂度</strong>——Raft 模式无需额外部署共享 DB/Redis，减少组件；DB 模式依赖 DB 高可用（需部署 MHA/Orchestrator 等），链路长；④ <strong>部署规模</strong>——小集群（≤5 TC 节点）选 Raft 模式（2026 推荐），超大规模选 DB 模式 + 独立高可用数据库。</p>
-            <p><strong>增量 3：2026 选型决策矩阵</strong>（五维度表格见原理层）。最终一致场景首选 Outbox+CDC；强一致短事务用 Seata AT；长流程编排用 Saga；高并发资源预留用 TCC；无 CDC 基础设施的中小团队本地消息表起步。</p>
+            <p><strong>增量 3：2026 选型决策矩阵</strong>（五维度表格见原理层）。最终一致场景首选 Outbox+CDC；最终一致短事务用 Seata AT；长流程编排用 Saga；高并发资源预留用 TCC；无 CDC 基础设施的中小团队本地消息表起步。</p>
           </div>
         </div>
 
@@ -1908,7 +1908,7 @@ flowchart LR
                 <tr><th>维度</th><th>Seata AT</th><th>TCC</th><th>Saga</th><th>本地消息表</th><th>Outbox+CDC</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>一致性</td><td>强一致（全局锁）</td><td>最终一致</td><td>最终一致</td><td>最终一致</td><td>最终一致</td></tr>
+                  <tr><td>一致性</td><td>最终一致（全局锁防脏写）</td><td>最终一致</td><td>最终一致</td><td>最终一致</td><td>最终一致</td></tr>
                   <tr><td>侵入性</td><td>低（注解）</td><td>高（三套接口）</td><td>中（状态机）</td><td>低</td><td>低</td></tr>
                   <tr><td>并发性能</td><td>差（全局锁串行）</td><td>好</td><td>好</td><td>中（轮询压力）</td><td>好</td></tr>
                   <tr><td>投递延迟</td><td>—</td><td>—</td><td>—</td><td>秒级（轮询间隔）</td><td>毫秒级（CDC 实时）</td></tr>
@@ -1916,7 +1916,7 @@ flowchart LR
                 </tbody>
             </table>
 
-            <p><strong>TCC vs AT 取舍</strong>：AT 零侵入但有全局锁，适合<strong>低并发强一致</strong>（如库存扣减的旁路校验）；TCC 侵入大但无锁并发好，适合<strong>高并发资源预留</strong>（如秒杀库存）。核心差异：AT 回滚靠反向 SQL（可能脏写需校验），TCC 回滚靠业务 Cancel（精确可控）。</p>
+            <p><strong>TCC vs AT 取舍</strong>：AT 零侵入但有全局锁，适合<strong>低并发最终一致</strong>（如库存扣减的旁路校验）；TCC 侵入大但无锁并发好，适合<strong>高并发资源预留</strong>（如秒杀库存）。核心差异：AT 回滚靠反向 SQL（可能脏写需校验），TCC 回滚靠业务 Cancel（精确可控）。</p>
 
             <p><strong>2026 选型决策矩阵（五维度）</strong>：</p>
             <table class="compare-table">
@@ -1925,7 +1925,7 @@ flowchart LR
                 <tr><td>电商订单履约（长流程：下单→扣库存→支付→发货→通知）</td><td>最终一致（允许中间态）</td><td>极高（链路长，任一步阻塞不能影响其他）</td><td>中（需 Saga 状态机编排+补偿幂等）</td><td>高（补偿失败告警+人工兜底）</td><td><strong>Saga 状态机</strong></td><td>长流程无全局事务，正向+补偿可独立重试/人工兜底</td></tr>
                 <tr><td>跨服务订单创建+扣库存+优惠券（多服务原子性）</td><td>最终一致</td><td>高</td><td>低（业务写 outbox+CDC 基础设施）</td><td>中（需维护 Debezium/Canal 集群）</td><td><strong>Outbox + CDC + 事件驱动</strong>（2026 首选）</td><td>业务与消息同事务原子，CDC 实时解耦，多服务共用基础设施</td></tr>
                 <tr><td>秒杀库存预留（高并发热点行）</td><td>最终一致</td><td>极高（抗瞬时流量）</td><td>高（三套接口+幂等+防悬挂）</td><td>中</td><td><strong>TCC</strong></td><td>Try 阶段本地事务冻结资源，无全局锁，并发高，适合热点</td></tr>
-                <tr><td>账户转账/积分兑换（强一致短事务）</td><td>强一致（不能中间态）</td><td>中（链路短）</td><td>极低（@GlobalTransactional 注解）</td><td>中（Seata 2.x Raft TC 集群 3 节点）</td><td><strong>Seata AT</strong></td><td>强一致，零侵入，热点并发低时可用；超热点需换 TCC</td></tr>
+                <tr><td>账户转账/积分兑换（最终一致短事务）</td><td>最终一致（允许短暂中间态）</td><td>中（链路短）</td><td>极低（@GlobalTransactional 注解）</td><td>中（Seata 2.x Raft TC 集群 3 节点）</td><td><strong>Seata AT</strong></td><td>最终一致，零侵入，热点并发低时可用；超热点需换 TCC</td></tr>
                 <tr><td>中小团队微服务，无 CDC 基础设施</td><td>最终一致</td><td>高</td><td>极低（SQL 写消息表+Spring @Scheduled 轮询）</td><td>低（无额外组件）</td><td><strong>本地消息表</strong>（起步方案）</td><td>零额外组件，单服务内即可闭环；后期 CDC 基础设施就位后迁 Outbox</td></tr>
               </tbody>
             </table>
@@ -1935,7 +1935,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>2026 选型决策</strong>：① 跨服务最终一致 + 事件驱动 → <strong>Outbox + CDC</strong>（首选）；② 强一致短事务（如转账）→ <strong>Seata AT</strong>；③ 长流程编排（如订单履约）→ <strong>Saga 状态机</strong>；④ 高并发资源预留（如秒杀）→ <strong>TCC</strong>；⑤ 无 CDC 基础设施的中小团队 → <strong>本地消息表</strong>起步。</p>
+            <p><strong>2026 选型决策</strong>：① 跨服务最终一致 + 事件驱动 → <strong>Outbox + CDC</strong>（首选）；② 最终一致短事务（如转账）→ <strong>Seata AT</strong>；③ 长流程编排（如订单履约）→ <strong>Saga 状态机</strong>；④ 高并发资源预留（如秒杀）→ <strong>TCC</strong>；⑤ 无 CDC 基础设施的中小团队 → <strong>本地消息表</strong>起步。</p>
 
             <div class="code-block"><pre><code><span class="com">// Outbox 模式：业务与 outbox 同事务写入，CDC 订阅投递</span>
 <span class="kw">@Transactional</span>

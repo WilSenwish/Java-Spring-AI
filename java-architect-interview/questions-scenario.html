@@ -925,12 +925,12 @@
     </div>
     <div class="qa-layer" data-layer="principle">
       <div class="qa-layer-title">分析框架</div>
-      <div class="qa-layer-body"><p>按一致性强度分层选型：<strong>强一致</strong>用 Seata AT 模式（自动生成回滚 SQL，2PC 改造小，适合 CRUD）或 TCC（Try-Confirm-Cancel，业务侵入大但性能好，适合资金扣减）；<strong>最终一致</strong>用本地消息表（业务与消息同事务，异步投递保证可靠投递）或事务消息（RocketMQ 半消息）。原则：核心交易链路强一致用 TCC，非核心（积分、通知）最终一致用消息表/事务消息异步解耦。</p></div>
+      <div class="qa-layer-body"><p>按一致性强度分层选型：<strong>强一致</strong>用 TCC（Try-Confirm-Cancel，业务侵入大但性能好，适合资金扣减）或 XA/2PC；<strong>最终一致</strong>用 Seata AT 模式（自动生成回滚 SQL，2PC 改造小，适合 CRUD）或本地消息表（业务与消息同事务，异步投递保证可靠投递）或事务消息（RocketMQ 半消息）。原则：核心交易链路强一致用 TCC，非核心（积分、通知）最终一致用消息表/事务消息异步解耦。</p></div>
     </div>
     <div class="qa-layer" data-layer="practice">
       <div class="qa-layer-title">解决方案</div>
       <div class="qa-layer-body">
-        <p><strong>方案一：Seata AT（强一致）</strong>：全局事务由 TC 协调，各分支注册分支事务；一阶段执行业务 SQL 并自动记录 before/after image 到 undo_log，本地事务提交；二阶段全成功则异步删除 undo_log，任一失败则按 undo_log 反向生成回滚 SQL 补偿。适合订单/库存等 CRUD 场景，无需改业务代码。</p>
+        <p><strong>方案一：Seata AT（最终一致）</strong>：全局事务由 TC 协调，各分支注册分支事务；一阶段执行业务 SQL 并自动记录 before/after image 到 undo_log，本地事务提交；二阶段全成功则异步删除 undo_log，任一失败则按 undo_log 反向生成回滚 SQL 补偿。适合订单/库存等 CRUD 场景，无需改业务代码。</p>
         <p><strong>方案二：TCC（强一致高性能）</strong>：Try（预留资源，如冻结库存）、Confirm（确认扣减）、Cancel（释放预留）。订单服务作为事务发起者编排，库存/券/积分各自实现三阶段接口；Confirm/Cancel 由 TC 重试保证最终执行，必须幂等。适合资金等需精确控制的场景。</p>
         <p><strong>方案三：本地消息表（最终一致）</strong>：订单服务本地事务内同时写 order 表与 message 表（同事务保证一致），定时任务扫描 message 表投递 MQ；下游服务消费 MQ 执行业务并幂等。积分等弱一致场景用此方案，解耦且可靠。</p>
         <div class="mermaid-container">
@@ -1453,7 +1453,7 @@
         <ul class="followup-list">
           <li><div class="followup-q">1. 双写迁移过程中，如果影子表写入失败如何处理？是否会影响主流程？</div><div class="followup-a">采用异步补偿机制：影子表写入失败写入 MQ 死信队列，不影响主库写入。补偿任务定期消费死信重试，超过 3 次告警人工介入。迁移窗口内保持双写开关可降级，确保主流程可用性优先。</div></li>
           <li><div class="followup-q">2. 分库分表后，全局唯一 ID 如何保证？Snowflake 时钟回拨问题如何解决？</div><div class="followup-a">采用 Snowflake 改进方案（如美团 Leaf 或百度 UidGenerator），Leaf-segment 方案通过 DB 号段模式分配，避免时钟依赖；Leaf-snowflake 方案通过 ZK 持久化 workerId 并启用时钟回拨检测，回拨超过 5ms 直接拒绝服务等待追平。</div></li>
-          <li><div class="followup-q">3. 分库后的分布式事务如何处理？强一致性 vs 最终一致性如何取舍？</div><div class="followup-a">交易核心链路（下单扣库存）采用 Seata AT 模式保证强一致；非核心链路（积分、通知）采用本地消息表 + MQ 最终一致。评估维度：一致性要求、吞吐量、实现复杂度。金融场景强制强一致，营销场景可接受秒级最终一致。</div></li>
+          <li><div class="followup-q">3. 分库后的分布式事务如何处理？强一致性 vs 最终一致性如何取舍？</div><div class="followup-a">交易核心链路（下单扣库存）采用 Seata AT 模式保证最终一致（全局锁防脏写，非线性强一致）；非核心链路（积分、通知）采用本地消息表 + MQ 最终一致。评估维度：一致性要求、吞吐量、实现复杂度。金融场景强制强一致，营销场景可接受秒级最终一致。</div></li>
           <li><div class="followup-q">4. 从 4 库扩容到 8 库时，如何实现不停机平滑扩容？</div><div class="followup-a">采用倍增翻倍策略：原 user_id % 4 的每个分片，按 user_id / 4 % 2 拆分为两个新分片。预先在新库创建影子表并同步数据，切换时仅需更新路由规则（模数从 4 改为 8），同一 user_id 的数据映射关系不变，无需全量重新 Hash。</div></li>
           <li><div class="followup-q">5. 如何监控分片后的数据分布是否均匀？发现倾斜后如何再平衡？</div><div class="followup-a">搭建分片监控看板，采集各分片数据量、QPS、慢查询指标，按标准差判断倾斜度。发现倾斜后，对大用户可采用"二级分片"策略（同一 user_id 的订单按时间再分表），或对冷热数据分层（热数据留在分片表，冷数据归档到 HBase）。</div></li>
         </ul>
@@ -3919,7 +3919,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
         <table class="compare-table">
           <thead><tr><th>分布式事务方案</th><th>优点</th><th>缺点</th><th>适用</th></tr></thead>
           <tbody>
-            <tr><td>2PC（Seata AT）</td><td>强一致，业务无感</td><td>性能差，长事务持锁，不适合高并发</td><td>低频资金核心</td></tr>
+            <tr><td>Seata AT（最终一致）</td><td>最终一致（全局锁防脏写），业务无感</td><td>性能差，长事务持锁，不适合高并发</td><td>低频资金核心</td></tr>
             <tr><td>Saga（状态机驱动）</td><td>长事务友好，最终一致，无全局锁</td><td>需写补偿逻辑，中间态对用户可见</td><td>订单全链路</td></tr>
             <tr><td>本地消息表 + MQ</td><td>简单可靠，与业务解耦</td><td>耦合业务表，需定时扫描</td><td>异步通知/积分</td></tr>
             <tr><td>TCC（Try-Confirm-Cancel）</td><td>灵活，性能好，资源预留</td><td>开发成本高，需全链路幂等</td><td>库存/资金扣减</td></tr>
@@ -3989,7 +3989,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
           <li><strong>库存扣减用 MySQL 行锁</strong>：高并发下热点行锁等待导致 RT 飙升雪崩。应改为 Redis 预扣 + 异步落库，DB 只做最终确认与对账。</li>
           <li><strong>支付回调未做幂等</strong>：支付通道可能重复回调，导致重复发货/重复发券。必须以支付单号为幂等键，前置 Redis 去重 + DB 唯一索引双保险。</li>
           <li><strong>消息队列消费失败直接丢弃</strong>：MQ 消费失败未重试或重试次数耗尽未进死信队列，导致数据丢失。必须配置重试 + 死信 + 人工补偿兜底。</li>
-          <li><strong>分布式事务强求 2PC 强一致</strong>：下单全链路用 Seata AT 全局锁，高并发下性能崩溃。应区分核心/非核心链路，核心用 TCC/Saga，非核心用本地消息表最终一致。</li>
+          <li><strong>分布式事务强求全局强一致却误用 Seata AT</strong>：下单全链路用 Seata AT 全局锁（AT 本质为最终一致，全局锁仅防脏写，无法提供线性强一致），高并发下性能崩溃。应区分核心/非核心链路，核心用 TCC/Saga，非核心用本地消息表最终一致。</li>
           <li><strong>限流只在网关单层配置</strong>：网关被绕过或单点故障则全盘失守。应多层限流：网关（集群）+ 应用（单机）+ 数据层（连接池/DB 限流），形成纵深防御。</li>
         </ul>
       </div>
