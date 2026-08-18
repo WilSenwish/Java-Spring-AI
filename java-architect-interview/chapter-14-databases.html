@@ -22,6 +22,8 @@
         <li><a href="#C14.05"><span class="toc-number">C14.05</span>TiDB HTAP 与 Raft 共识</a></li>
         <li><a href="#C14.06"><span class="toc-number">C14.06</span>ClickHouse 列存与 OLAP 分析</a></li>
         <li><a href="#C14.07"><span class="toc-number">C14.07</span>Neo4j 图数据库与 Cypher</a></li>
+        <li><a href="#C14.08"><span class="toc-number">C14.08</span>分布式 SQL/NewSQL 选型</a></li>
+        <li><a href="#C14.09"><span class="toc-number">C14.09</span>时序数据库与建模</a></li>
       </ol>
     </aside>
 
@@ -39,13 +41,13 @@
       <div class="chapter-header">
         <div class="chapter-number">CHAPTER 14 / DATABASES</div>
         <h1 class="chapter-title">数据库与存储深度</h1>
-        <p class="chapter-subtitle">从 MongoDB 文档模型到分片副本集到多文档事务的 NoSQL 演进、从 FAISS 到 Milvus 到 Qdrant 的向量检索引擎演进、从 HNSW 到 IVF 到 DiskANN 的 ANN 索引演进、从分库分表到 TiDB NewSQL 到 HTAP 行列共存的分布式数据库演进、从行存到列存到 MergeTree 的 OLAP 分析引擎演进、从多表 JOIN 到属性图到 Cypher 的图数据库演进：直击 BSON 与分片键设计、副本集选举与 WiredTiger、MongoDB Atlas Vector Search 混合检索、Milvus 存算分离与十亿级检索、Qdrant Rust 与 Payload 过滤、TiDB Raft 共识与 Percolator 事务、ClickHouse 列存压缩与物化视图、Neo4j 属性图模型与 Cypher 模式匹配</p>
+        <p class="chapter-subtitle">从 MongoDB 文档模型到分片副本集到多文档事务的 NoSQL 演进、从 FAISS 到 Milvus 到 Qdrant 的向量检索引擎演进、从 HNSW 到 IVF 到 DiskANN 的 ANN 索引演进、从分库分表到 TiDB NewSQL 到 HTAP 行列共存的分布式数据库演进、从行存到列存到 MergeTree 的 OLAP 分析引擎演进、从多表 JOIN 到属性图到 Cypher 的图数据库演进、从通用存储到 TSDB 到 InfluxDB/TimescaleDB 的时序数据库演进：直击 BSON 与分片键设计、副本集选举与 WiredTiger、MongoDB Atlas Vector Search 混合检索、Milvus 存算分离与十亿级检索、Qdrant Rust 与 Payload 过滤、TiDB Raft 共识与 Percolator 事务、ClickHouse 列存压缩与物化视图、Neo4j 属性图模型与 Cypher 模式匹配、时序数据库 InfluxDB 时序线协议与 TimescaleDB Hypertable 分区建模</p>
         <div class="chapter-meta">
-          <span>题目数：7</span>
+          <span>题目数：9</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×2</span>
+          <span>高级开发 ×3</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×3</span>
+          <span>架构级 ×4</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
@@ -1186,6 +1188,171 @@ flowchart TD
                 <li><strong>把所有数据塞进图库</strong>：图库不擅长大量属性存储与事务型 CRUD，主体业务数据应留关系库，只把关系子图放图库。</li>
                 <li><strong>忽视 Fabric 跨分片性能</strong>：分片后跨实例遍历性能下降，应按业务子图切分减少跨分片查询。</li>
                 <li><strong>关系建模无方向/属性</strong>：关系不带方向与属性丢失语义，应明确方向（OUTGOING/INCOMING）与关系属性。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C14.08 分布式 SQL / NewSQL 选型边界 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C14.08" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C14.08</div>
+          <div class="qa-question">分布式 SQL/NewSQL（CockroachDB/YugabyteDB/OceanBase/TiDB）与 TiDB 选型边界<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>NewSQL（分布式 SQL）选型边界</strong> 的判断：它用"SQL 接口 + 自动分片 + 分布式事务 + 弹性扩展"试图兼得 RDBMS 的易用与 NoSQL 的扩展，但代价是<strong>延迟与复杂度</strong>。本质是"<strong>业务透明的强一致分布式事务 vs 中间件分库分表 vs NoSQL</strong>"的分工。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>单机 RDBMS</strong>：强一致、事务完备，但单机容量/连接数有天花板。</p>
+            <p><strong>分库分表（ShardingSphere）</strong>：中间件层把数据按分片键打散，业务需感知分片、跨分片事务弱（依赖柔性事务）。</p>
+            <p><strong>NoSQL</strong>：为扩展性放弃 SQL 与跨行事务（Cassandra/MongoDB），适合简单 KV/文档。</p>
+            <p><strong>NewSQL</strong>：受 Google Spanner 启发，兼容 SQL + 强一致分布式事务 + 弹性扩缩；国内 OceanBase（蚂蚁）、TiDB（PingCAP）、海外 CockroachDB、YugabyteDB 成熟。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>产品</th><th>兼容协议</th><th>存储/事务</th><th>亮点</th></tr></thead>
+              <tbody>
+                <tr><td>TiDB</td><td>MySQL</td><td>TiKV(RocksDB+Raft)+PD；Percolator 事务</td><td>HTAP（TiFlash 列存）、生态成熟</td></tr>
+                <tr><td>OceanBase</td><td>MySQL/Oracle</td><td>Paxos 多副本；LSM</td><td>金融级、TPC-C 冠军、多租户</td></tr>
+                <tr><td>CockroachDB</td><td>PostgreSQL</td><td>Range 分片 + Raft</td><td>地理分布友好、强一致</td></tr>
+                <tr><td>YugabyteDB</td><td>PostgreSQL</td><td>DocDB(tablet+Raft)</td><td>PG 兼容度高、云原生</td></tr>
+              </tbody>
+            </table>
+            <p><strong>与 ShardingSphere 的关键差异</strong>：中间件分库分表要求业务<strong>显式设计分片键</strong>、跨分片 JOIN/事务受限；NewSQL 对业务<strong>透明</strong>——自动分片、跨节点分布式事务由存储层保证，应用像用单机库。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>选型边界：<strong>强一致分布式事务 + SQL + 弹性扩展</strong> → NewSQL；<strong>海量写入无跨行事务</strong> → NoSQL；<strong>中等规模、可控分片</strong> → ShardingSphere（更轻、改动小）。NewSQL 的多副本网络 RT 使其<strong>单点延迟高于单机</strong>，不适合极致低延迟场景。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>场景匹配</strong>：金融核心/全球化多活/超大规模 OLTP → OceanBase/TiDB/CockroachDB；需<strong>HTAP</strong>（同一份数据兼顾 TP 与分析）→ TiDB（TiFlash）。</p>
+            <p><strong>兼容度优先</strong>：已有 MySQL 生态选 TiDB/OceanBase（MySQL 协议）；PG 生态选 CockroachDB/YugabyteDB，迁移成本更低。</p>
+            <p><strong>资源隔离</strong>：HTAP 场景用独立列存副本/资源组隔离分析负载，避免拖垮 TP。</p>
+            <p><strong>与云托管对比</strong>：Aurora/PolarDB 是"单机库上云+存储计算分离"，并非真正分布式事务 NewSQL，扩展上限与跨地域能力弱于原生 NewSQL。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：NewSQL 分布式事务如何保证强一致？</strong> 多基于 Percolator（两阶段提交 + 全局时间戳）+ 多副本 Raft/Paxos；OceanBase 用 Paxos 组提交。代价是跨节点网络 RT，吞吐/延迟逊于单机。</p>
+            <p><strong>追问 2：分库分表何时仍优于 NewSQL？</strong> 数据量中等、分片键清晰、团队熟悉 ShardingSphere 时，引入 NewSQL 的运维与迁移成本不划算。</p>
+            <p><strong>追问 3：HTAP 怎么做到一份数据两用？</strong> 行存服务 TP，异步同步到列存（TiFlash）服务分析，读写资源隔离，避免分析查询影响交易。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>以为 NewSQL 性能 ≈ 单机</strong>：多副本网络开销，点查延迟更高，不适合极致低延迟单点。</li>
+                <li><strong>盲目替代分库分表</strong>：小中型用 ShardingSphere 更轻，引入 NewSQL 运维/迁移成本高。</li>
+                <li><strong>忽略兼容度差异</strong>：MySQL 与 PG 协议生态不同，选错增加迁移成本。</li>
+                <li><strong>跨地域多活未评估网络延迟</strong>：地理分布式下提交延迟受限于副本距离。</li>
+                <li><strong>HTAP 不隔离资源</strong>：分析查询吃满 CPU/IO，拖垮在线交易。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C14.09 时序数据库适用场景与建模 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C14.09" data-difficulty="senior" data-priority="p2">
+        <div class="qa-header">
+          <div class="qa-badge">C14.09</div>
+          <div class="qa-question">时序数据库（InfluxDB/TimescaleDB）适用场景与建模<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察 <strong>时序数据的特征与专用存储选型</strong>：监控指标、IoT 传感、行情 tick 等"写多读少、按时间范围查询、只追加、天然分区"的数据，用关系库或通用 KV 存储会遭遇写入瓶颈与压缩低效；时序数据库（TSDB）为此而生。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>RRDTool</strong>：轮转数据库，固定大小环形存储，早期监控用。</p>
+            <p><strong>OpenTSDB</strong>：架在 HBase 上的时序方案，依赖 Hadoop 重。</p>
+            <p><strong>InfluxDB</strong>：专用 TSDB，自研 TSM 引擎，写入/压缩极致优化。</p>
+            <p><strong>TimescaleDB</strong>：PostgreSQL 扩展，用 hypertable 自动时间分区，复用完整 SQL 与分析生态。</p>
+            <p><strong>Prometheus</strong>：云原生监控事实标准（单机 TSDB + 拉模型），长期存储需 Thanos/Mimir。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>时序数据特征</strong>：时间戳为轴、高写入吞吐、按时间范围扫描、数据只追加（immutable）、<strong>高基数（tag 组合爆炸）</strong>是核心挑战。</p>
+            <p><strong>存储优化</strong>：① 按时间分片（shard/chunk），旧分片转冷/降采样；② <strong>列式 + 时间戳压缩</strong>（delta-of-delta 编码时间戳、Gorilla 压缩浮点）；③ tag 建倒排/索引加速多维过滤。</p>
+            <table class="compare-table">
+              <thead><tr><th>产品</th><th>模型</th><th>适用</th></tr></thead>
+              <tbody>
+                <tr><td>InfluxDB</td><td>measurement + Tag(索引)/Field(值)</td><td>极致写入专用场景</td></tr>
+                <tr><td>TimescaleDB</td><td>PG hypertable（自动时间分区）</td><td>需 SQL/分析、复用 PG 生态</td></tr>
+                <tr><td>Prometheus</td><td>拉模型 TSDB</td><td>云原生监控（配长期存储）</td></tr>
+                <tr><td>TDengine</td><td>超级表 + 子表</td><td>国内 IoT 高写入</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>选型：<strong>监控指标 + 云原生</strong> → Prometheus + 长期存储（Thanos/Mimir）；<strong>通用时序 + 需 SQL/分析</strong> → TimescaleDB；<strong>极致专用写入</strong> → InfluxDB/TDengine。降采样（原始+聚合分层）是控制存储成本的关键。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>数据建模</strong>：metric 作为 measurement，维度（host/region/app）作为 <strong>tag（索引、低基数）</strong>，指标值作为 field；避免把高基数字段（如 user_id）当 tag，否则索引爆炸。</p>
+            <p><strong>降采样</strong>：用连续查询（CQ）/物化视图把原始数据聚合成分钟/小时级，热数据存原始、冷数据只留聚合，大幅省空间。</p>
+            <p><strong>分层存储</strong>：Prometheus 配远程写（Thanos/Mimir/Cortex）做长期存储与全局查询；TimescaleDB 用数据保留策略自动清理旧 chunk。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：高基数（high cardinality）为何是 TSDB 噩梦？</strong> tag 每种组合生成一个时间序列，user_id 当 tag 会产生千万级序列，索引与内存暴涨、写入骤降。必须把高基数字段放 field 或采样。</p>
+            <p><strong>追问 2：Prometheus 长期存储怎么解决？</strong> 单机 TSDB 不适合长期/全局，用 Thanos（对象存储+Sidecar）、Mimir/Cortex（分布式）做远程写与全局查询。</p>
+            <p><strong>追问 3：TSDB 与 OLAP（ClickHouse）区别？</strong> TSDB 为时序写入/范围扫描深度优化；ClickHouse 是通用 OLAP，擅长任意维度聚合分析，二者场景互补，常与 TSDB 原始 + ClickHouse 分析并存。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>高基数 tag 设计不当</strong>：把 user_id 等当 tag → 序列爆炸、写入崩。</li>
+                <li><strong>只存原始不降采样</strong>：存储成本指数膨胀，应原始+聚合分层。</li>
+                <li><strong>用关系库存时序</strong>：写入/范围查询性能灾难，应上专用 TSDB。</li>
+                <li><strong>误把 Prometheus 当长期存储</strong>：需远程写 + Thanos/Mimir。</li>
+                <li><strong>TimescaleDB chunk 大小不当</strong>：过大/过小都影响分区效率与清理。</li>
               </ul>
             </div>
           </div>

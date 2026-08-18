@@ -26,6 +26,7 @@
         <li><a href="#C02.09"><span class="toc-number">C02.09</span>JVM 线上调优全流程</a></li>
         <li><a href="#C02.10"><span class="toc-number">C02.10</span>逃逸分析与标量替换优化</a></li>
         <li><a href="#C02.11"><span class="toc-number">C02.11</span>Generational ZGC 生产调优</a></li>
+        <li><a href="#C02.12"><span class="toc-number">C02.12</span>GC/JVM 指标监控闭环</a></li>
       </ol>
     </aside>
 
@@ -44,9 +45,9 @@
         <h1 class="chapter-title">GC 算法与性能调优</h1>
         <p class="chapter-subtitle">从可达性分析到 Generational ZGC：理解垃圾收集器的演进哲学、第一性原理与线上调优全链路</p>
         <div class="chapter-meta">
-          <span>题目数：11</span>
+          <span>题目数：12</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×5</span>
+          <span>高级开发 ×6</span>
           <span class="meta-divider">|</span>
           <span>架构级 ×3</span>
           <span class="meta-divider">|</span>
@@ -1581,6 +1582,104 @@ flowchart TD
                 <li><strong>盲目调高 ZAllocationSpikeTolerance</strong>：会提前触发 GC、增加开销，仅大促等突发场景临时调高，常驻应保持默认或调低。</li>
                 <li><strong>忽略 SoftMaxHeapSize</strong>：不设时 ZGC 可能等到接近 -Xmx 才积极回收，导致尾延迟抖动；设软上限让回收更平滑。</li>
                 <li><strong>用 GC 次数评估 ZGC 健康度</strong>：ZGC Young GC 极频繁（每秒数次）属正常，应看停顿分布与吞吐，而非次数。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C02.12 GC/JVM 指标监控闭环：Micrometer+Prometheus+Grafana -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C02.12" data-difficulty="senior" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C02.12</div>
+          <div class="qa-question">GC/JVM 指标监控闭环：Micrometer+Prometheus+Grafana 采集 GC/内存并驱动调优告警<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察的不是"单点 GC 调优参数"，而是 <strong>可观测闭环能力</strong>：如何把 JVM/GC 的运行状态（GC 次数/停顿、各内存区用量、线程、类加载）持续采集为指标，经由存储与可视化，转化为<strong>趋势判断、告警与调优决策</strong>。架构师要从"救火式调优"升级到"指标驱动的预防式治理"。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>JMX 手工时代</strong>：用 <code class="inline-code">jstat</code> / JConsole / VisualVM 连 JMX 看实时数据，无法长期存储与跨实例聚合。</p>
+            <p><strong>GC 日志 + 脚本</strong>：<code class="inline-code">-Xlog:gc*</code> 落盘，靠 awk/脚本解析，勉强做趋势，但缺乏统一指标模型。</p>
+            <p><strong>Metrics 框架</strong>：Codahale Metrics → Micrometer（门面，屏蔽底层注册中心差异），标准化 Meter 类型（Counter/Gauge/Timer/DistributionSummary）。</p>
+            <p><strong>Prometheus + Grafana</strong>：拉模型（pull）定时抓取 <code class="inline-code">/actuator/prometheus</code>，时序存储 + 强大查询（PromQL）+ 看板与告警。2025-26 进一步与 <strong>OpenTelemetry</strong> 标准融合。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>分层职责</strong>：① <strong>采集</strong>：Micrometer 的 <code class="inline-code">PrometheusMeterRegistry</code> 自动注册 JVM/GC 指标（源自 <code class="inline-code">BufferPoolMXBean</code>、<code class="inline-code">GarbageCollectorMXBean</code> 等）；② <strong>抓取</strong>：Prometheus 定时拉 <code class="inline-code">/actuator/prometheus</code>；③ <strong>可视化/告警</strong>：Grafana 看板 + Alertmanager 规则；④ <strong>闭环</strong>：指标异常 → 告警 → 调优（联动 C02.11 的 ZGC 参数等）→ 验证指标改善。</p>
+            <table class="compare-table">
+              <thead><tr><th>关注点</th><th>核心指标</th><th>含义 / 告警阈值思路</th></tr></thead>
+              <tbody>
+                <tr><td>GC 停顿</td><td><code class="inline-code">jvm_gc_pause_seconds</code>（count/sum）</td><td>停顿次数与总时长；Full GC 次数 &gt; 0 即告警</td></tr>
+                <tr><td>内存各区</td><td><code class="inline-code">jvm_memory_used{area=heap/nonheap}</code></td><td>老年代使用率 &gt; 85% 预警，看增长斜率比绝对值更准</td></tr>
+                <tr><td>线程</td><td><code class="inline-code">jvm_threads_{live,daemon,peak}</code></td><td>线程数持续上涨 → 线程泄漏</td></tr>
+                <tr><td>类加载</td><td><code class="inline-code">jvm_classes_loaded</code></td><td>频繁加载/卸载 → 动态代理或热部署泄漏</td></tr>
+                <tr><td>缓冲池</td><td><code class="inline-code">jvm_buffer_memory_used</code></td><td>Netty 堆外内存泄漏信号</td></tr>
+              </tbody>
+            </table>
+            <div class="code-block"><pre><code><span class="com"># Spring Boot 接入：依赖 + 暴露端点，Prometheus 定时拉取</span>
+<span class="com">// build.gradle</span>
+implementation <span class="str">'io.micrometer:micrometer-registry-prometheus'</span>
+implementation <span class="str">'org.springframework.boot:spring-boot-starter-actuator'</span>
+<span class="com">// application.yml</span>
+management:
+  endpoints.web.exposure.include: prometheus,health,info
+  metrics.tags.application: ${spring.application.name}
+
+<span class="com"># Prometheus scrape 配置</span>
+scrape_configs:
+  - job_name: 'jvm'
+    metrics_path: '/actuator/prometheus'
+    static_configs: [{ targets: ['app:8080'] }]</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>指标用于<strong>趋势与告警</strong>，GC 日志用于<strong>根因定位</strong>——二者互补不可偏废。<strong>老年代增长斜率</strong>比瞬时绝对值更能预警 OOM；GC 暂停看<strong>分布</strong>而非次数（ZGC Young GC 频繁属正常）。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>1. 接入</strong>：Spring Boot Actuator + <code class="inline-code">micrometer-registry-prometheus</code>，暴露 <code class="inline-code">/actuator/prometheus</code>；保留 <code class="inline-code">-Xlog:gc*:time:file=gc.log</code> 日志作根因分析。</p>
+            <p><strong>2. Grafana 看板</strong>：直接用官方 "JVM (Micrometer)" dashboard，重点看 GC 暂停分布、各代用量、Prometheus 抓取心跳。</p>
+            <p><strong>3. 告警规则</strong>：① 近 5 分钟出现 Full GC；② 老年代使用率 &gt; 85% 且斜率上升；③ <code class="inline-code">up</code> 指标掉线（进程/容器挂）。</p>
+            <p><strong>4. 闭环调优</strong>：指标预警 → 结合 GC 日志定位（如晋升失败、大对象）→ 调参（堆大小/区域、ZGC 软上限等，见 C02.11）→ 观察指标回归。</p>
+            <p><strong>5. 容器环境</strong>：必须开启 <code class="inline-code">-XX:+UseContainerSupport</code>（JDK 8u191+ 默认），让 JVM 感知容器 cgroup limit，否则指标显示堆正常却已被 OS 层 OOMKilled。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：指标、日志、链路追踪如何分工？</strong> Metrics 看"宏观趋势与告警"（如 GC 暂停率）；Logs 看"单条根因"（如某次 Full GC 的详细原因）；Traces 看"一次请求跨服务耗时"。三者由 OTel 统一采集、各取所长。</p>
+            <p><strong>追问 2：如何区分"GC 导致停顿"与"业务本身慢"？</strong> 看 GC 暂停时间点是否与 RT 飙升对齐；用 <code class="inline-code">jvm_gc_pause_seconds</code> 叠加业务 RT 曲线，错位即非 GC 主因。</p>
+            <p><strong>追问 3：Micrometer 与 OpenTelemetry 什么关系？</strong> Micrometer 偏 Metrics 门面（兼容 Prometheus），OTel 是涵盖 Metrics/Traces/Logs 的厂商无关标准；Micrometer 可桥接 OTel，新项目建议以 OTel 为统一采集底座。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>只看 GC 次数不看分布</strong>：ZGC Young GC 每秒数次属正常，应看停顿分布与吞吐。</li>
+                <li><strong>容器 OOMKilled 却看 JVM 堆正常</strong>：未开 UseContainerSupport，JVM 按宿主机内存算堆，超出容器 limit 被 kill。</li>
+                <li><strong>只配日志不配指标</strong>：无法做趋势与告警，只能事后救火。</li>
+                <li><strong>指标高基数爆炸</strong>：给 Timer 加 user_id 等高热度 label，Prometheus 存储与查询被打爆。</li>
+                <li><strong>照搬看板不针对 GC 暂停</strong>：通用模板未突出暂停分布，关键信号被淹没。</li>
               </ul>
             </div>
           </div>

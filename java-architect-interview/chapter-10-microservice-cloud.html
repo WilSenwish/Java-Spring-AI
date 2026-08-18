@@ -39,6 +39,7 @@
         <li><a href="#C10.22"><span class="toc-number">C10.22</span>Sleuth→Micrometer Tracing 链路追踪演进</a></li>
         <li><a href="#C10.23"><span class="toc-number">C10.23</span>Spring Cloud Commons 核心抽象如何让注册中心无缝切换</a></li>
         <li><a href="#C10.24"><span class="toc-number">C10.24</span>Spring Cloud 常见生产坑与排查</a></li>
+        <li><a href="#C10.25"><span class="toc-number">C10.25</span>Dubbo vs Spring Cloud 选型</a></li>
       </ol>
     </aside>
 
@@ -57,11 +58,11 @@
         <h1 class="chapter-title">微服务与云原生</h1>
         <p class="chapter-subtitle">单体→SOA→微服务→Service Mesh→Serverless 的架构演进、Eureka→Nacos→xDS 的服务发现演进、Zuul→Gateway→APISIX 的网关演进、Hystrix→Resilience4j→Sentinel 的熔断框架演进、IaaS→PaaS→Serverless 的云计算演进：直击 K8s 容器感知、Istio Sidecar 解耦、绞杀者模式迁移、单元化异地多活、全链路灰度与 FaaS 冷启动</p>
         <div class="chapter-meta">
-          <span>题目数：24</span>
+          <span>题目数：25</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×14</span>
+          <span>架构级 ×15</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
@@ -3608,6 +3609,89 @@ flowchart TD
                 <li><strong>以为用了 Spring Cloud 就高枕无忧，不做压测</strong>：上面 7 个坑几乎所有都是"线上有流量、走特定路径"才会触发，本地单测和功能测试根本复现不了（比如坑 1 传文件、坑 4 Path 重叠必须请求 /api/order/pay/create、坑 3 必须 refresh+等下一次定时任务才会暴露）。上线前必须做：<strong>接口级压测 + 配置中心 refresh 演练 + Gateway 路由全矩阵用例 + 故障注入（Sentinel 限流熔断触发）</strong>，这四项缺一项都叫没准备好上生产。</li>
                 <li><strong>每个坑都用"临时 try-catch"修复而不在根本处调整架构</strong>：比如坑 4 Gateway Predicate 优先级，很多人明知 Path 重叠但为了"先上线"就在 order-service 里再加一个 /pay/create 的 Controller 做转发——这是把架构问题变成业务代码的债，过三个月连本人都忘了 order-service 里为什么有个 pay 的 Controller。正确修复永远是"在问题的根源层改"：Path 重叠就拆前缀，order 显式加，不要绕道。</li>
                 <li><strong>不记录告警埋点，出了生产事故才发现</strong>：坑 7 FallbackFactory 吞异常的可怕之处不是"降级返回空值"本身，而是"线上连续 3 小时调用 user-service 全走 fallback，业务报表对不上、客诉激增、工程师在 ELK 里搜不到任何 error 日志"。正确修复必须配套三层埋点：① FallbackFactory.error 级日志带 cause；② Prometheus Counter（<code class="inline-code">service_fallback_total{service="user-service", cause="circuit_breaker"}</code>）；③ 钉钉/飞书告警（Counter > 10/min 时）。三层都有才能"5 分钟内发现、15 分钟定位、30 分钟恢复"。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C10.25 Dubbo vs Spring Cloud：RPC 核心原理与选型 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C10.25" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C10.25</div>
+          <div class="qa-question">Dubbo vs Spring Cloud：阿里系 RPC 核心原理与选型<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对两种主流微服务技术路线的<strong>原理级区分与选型判断</strong>：Dubbo 是基于 TCP 长连接的<strong>高性能 RPC 框架</strong>（强调接口粒度治理与强契约），Spring Cloud 是基于 HTTP/REST 的<strong>微服务全家桶</strong>（强调生态整合与跨语言）。本质是"<strong>自研高性能 RPC vs 标准 HTTP 生态</strong>"的取舍。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Dubbo</strong>：阿里 2011 开源（2.x，Netty + Hessian），停更数年后由 Apache 接管，2.7/3.x 引入 <strong>Triple 协议</strong>（gRPC over HTTP/2）、应用级服务发现，解决跨语言与 URL 爆炸。</p>
+            <p><strong>Spring Cloud</strong>：Netflix OSS（Eureka/Ribbon/Hystrix）起步，后因 Netflix 停更转向官方/Spring Cloud Alibaba（Nacos/Sentinel/Seata），以 OpenFeign（HTTP）做声明式调用，配套 Gateway/Config/Sleuth 全家桶。</p>
+            <p><strong>新变量</strong>：gRPC、Service Mesh（Sidecar 接管通信，框架变薄）正在重塑选型。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Dubbo</th><th>Spring Cloud</th></tr></thead>
+              <tbody>
+                <tr><td>通信</td><td>TCP 长连接（Dubbo 协议/Netty），二进制序列化</td><td>HTTP/REST（OpenFeign），文本 JSON</td></tr>
+                <tr><td>性能</td><td>高（二进制、长连接复用、低延迟）</td><td>中（HTTP 握手、JSON 解析开销）</td></tr>
+                <tr><td>服务治理</td><td>接口级精细（方法级路由/限流）</td><td>靠生态组件（Sentinel/Gateway）组合</td></tr>
+                <tr><td>跨语言</td><td>旧版弱；3.x Triple(gRPC) 改善</td><td>天然好（HTTP 标准）</td></tr>
+                <tr><td>契约</td><td>强类型接口（Interface 即契约）</td><td>弱（URL + JSON，易不一致）</td></tr>
+                <tr><td>生态</td><td>RPC 为核心，周边自补</td><td>全家桶完整（网关/配置/链路/熔断）</td></tr>
+              </tbody>
+            </table>
+            <p><strong>Dubbo 调用链</strong>：Consumer 从注册中心（Nacos/ZK）拉 Provider 列表 → 负载均衡选节点 → Netty 长连接发二进制请求 → 序列化（Hessian2/Kryo）→ Provider 执行返回。3.x 的 Triple 用 HTTP/2 + Protobuf，兼顾性能与跨语言。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>性能与强契约敏感的内部服务调用 → Dubbo；快速搭建、多语言、偏 RESTful 治理 → Spring Cloud。两者可<strong>混用</strong>：Dubbo 做内核 RPC，Spring Cloud Gateway 做边界 REST 网关。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>注册中心</strong>：Nacos 同时服务 Dubbo 与 Spring Cloud，可统一。Dubbo 3 推荐应用级服务发现（<code class="inline-code">dubbo.application.register-mode=instance</code>）降低注册中心压力。</p>
+            <p><strong>混布架构</strong>：对外暴露 REST（Gateway/OpenFeign），内部服务间用 Dubbo 高性能 RPC；Provider 同时注册到 Nacos 供两类消费者发现。</p>
+            <p><strong>序列化选型</strong>：Dubbo 避免用 Hessian 跨语言坑，内部用 Kryo/Fastjson2，跨语言用 Triple(Protobuf)。</p>
+            <p><strong>治理兜底</strong>：注册中心不可用时本地缓存兜底 + 客户端重试，避免全链路雪崩。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Dubbo 3 应用级服务发现解决了什么？</strong> 旧 2.x 接口级发现为每个接口生成一条 URL，大规模下注册中心 URL 数量爆炸（"URL 爆炸"）。应用级发现按"应用"粒度注册，接口映射下沉到 metadata，URL 数量降一到两个数量级。</p>
+            <p><strong>追问 2：为什么大厂（阿里/字节/美团）偏好 Dubbo 系？</strong> 内部服务调用量大、对延迟与吞吐敏感、强类型契约利于大规模协作与治理，RPC 的性能和精细治理优势显著。</p>
+            <p><strong>追问 3：Service Mesh 趋势下框架会变薄吗？</strong> 是的。Sidecar（Envoy）接管服务发现、负载均衡、熔断、mTLS，应用框架只关心业务逻辑，Dubbo/SC 的治理职责逐步上移，但 RPC 高性能内核仍有价值。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>以为 Spring Cloud 性能差不可用</strong>：合理连接池+序列化下吞吐足够，HTTP 并非瓶颈，瓶颈多在业务与 DB。</li>
+                <li><strong>Dubbo 接口级发现 URL 爆炸</strong>：旧 2.x 大规模踩坑，应升 3.x 应用级发现。</li>
+                <li><strong>混用不分边界</strong>：应"内 Dubbo、外 REST"，否则治理混乱、跨语言困难。</li>
+                <li><strong>序列化选型随意</strong>：Hessian 跨语言有坑，应按场景选 Kryo/Triple(Protobuf)。</li>
+                <li><strong>注册中心强依赖无降级</strong>：注册中心抖动导致全量不可用，需本地缓存兜底。</li>
               </ul>
             </div>
           </div>

@@ -27,6 +27,9 @@
         <li><a href="#C07.10"><span class="toc-number">C07.10</span>EXPLAIN 执行计划解读</a></li>
         <li><a href="#C07.11"><span class="toc-number">C07.11</span>死锁检测原理与排查实战</a></li>
         <li><a href="#C07.12"><span class="toc-number">C07.12</span>大表在线变更与 Online DDL</a></li>
+        <li><a href="#C07.13"><span class="toc-number">C07.13</span>隐式类型转换致索引失效</a></li>
+        <li><a href="#C07.14"><span class="toc-number">C07.14</span>MyBatis 缓存/插件与 SQL 注入</a></li>
+        <li><a href="#C07.15"><span class="toc-number">C07.15</span>MyBatis-Plus vs JPA 选型</a></li>
       </ol>
     </aside>
 
@@ -45,9 +48,9 @@
         <h1 class="chapter-title">MySQL 深度原理</h1>
         <p class="chapter-subtitle">从 B树→B+树→LSM树索引结构演进、锁到 MVCC 的隔离级别演进、异步→半同步→MGR 的复制演进、读写分离→分库分表→NewSQL 的存储演进：直击 InnoDB 存储引擎底层机制、事务一致性、锁体系、两阶段提交、SQL 调优与分布式数据库架构选型</p>
         <div class="chapter-meta">
-          <span>题目数：12</span>
+          <span>题目数：15</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×7</span>
+          <span>高级开发 ×10</span>
           <span class="meta-divider">|</span>
           <span>架构级 ×4</span>
           <span class="meta-divider">|</span>
@@ -1454,6 +1457,267 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
                 <li><strong>pt-osc 用于高写入表</strong>：触发器开销拖垮原表写入，应换 gh-ost。</li>
                 <li><strong>忽略磁盘容量</strong>：影子表 + binlog 可能撑爆磁盘，需预留 2 倍空间。</li>
                 <li><strong>双写不一致无对账</strong>：双写灰度不校验直接全量切读，数据丢失难发现。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C07.13 MySQL 隐式类型转换导致索引失效的原理与规避 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C07.13" data-difficulty="senior" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C07.13</div>
+          <div class="qa-question">MySQL 隐式类型转换如何导致索引失效？如何规避（含自增主键空洞）<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>MySQL 类型转换规则与索引有序性关系</strong> 的理解：查询条件两侧类型不一致时，MySQL 按既定规则做<strong>隐式类型转换</strong>，一旦转换作用在<strong>索引列</strong>上（对列套了函数/CAST），索引有序性被破坏，优化器只能放弃索引走全表扫描（type=ALL）。这是 2026 年高频的"看似该走索引却全表扫描"排查题，本质是<strong>比较前的类型归一化打断了 B+树的有序检索路径</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>显式转换时代</strong>：SQL 标准鼓励用 <code class="inline-code">CAST()</code> / <code class="inline-code">CONVERT()</code> 显式声明类型，转换点清晰但写法冗长、易遗漏。</p>
+            <p><strong>隐式转换（MySQL 默认行为）</strong>：为易用性引入——操作符两侧类型不同，MySQL 按 <strong>Type Conversion Rules</strong> 自动归一，优先把一切都往<strong>数值</strong>或<strong>字符串</strong>靠。代价是转换点不可见，索引可能在你不知情时失效。</p>
+            <p><strong>与 Oracle/PostgreSQL 的差异</strong>：Oracle 按上下文做字符↔数值转换；PostgreSQL 对类型不匹配往往<strong>直接报错</strong>，问题在开发期暴露。MySQL 的"静默转换 + 全表扫描"最危险——不报错、只是慢。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>核心规则</strong>：字符串列与数字常量比较时，MySQL 把<strong>字符串列转换为数字</strong>（<code class="inline-code">CAST(col AS DECIMAL)</code>），而非把常量转字符串。后果：索引按字符串字典序组织，查询却变成"对每行 col 算数字后比较"，<strong>列被函数包裹 → 索引无法定位</strong>。</p>
+            <table class="compare-table">
+              <thead><tr><th>写法</th><th>实际执行</th><th>是否走索引</th></tr></thead>
+              <tbody>
+                <tr><td><code class="inline-code">WHERE phone = '13800138000'</code>（phone 为 varchar）</td><td>字符串 = 字符串，直接命中索引</td><td>✅ ref</td></tr>
+                <tr><td><code class="inline-code">WHERE phone = 13800138000</code></td><td><code class="inline-code">CAST(phone AS DECIMAL) = 13800138000</code></td><td>❌ 全表扫描</td></tr>
+                <tr><td><code class="inline-code">WHERE id = '1001'</code>（id 为 int）</td><td>常量 '1001' 转数字，列本身不变</td><td>✅ 索引可用</td></tr>
+                <tr><td><code class="inline-code">WHERE DATE(create_time) = '2026-08-14'</code></td><td>对列套函数</td><td>❌ 全表扫描</td></tr>
+              </tbody>
+            </table>
+            <p><strong>为什么"数字列 vs 字符串常量"反而走索引</strong>：被转换的是<strong>常量</strong>，索引列 id 未被函数包裹，有序性保留。规律一句话：<strong>索引列永远不要被函数/隐式 CAST 包裹</strong>。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>失效根因不是"类型不同"，而是<strong>转换作用在索引列上</strong>。判断口诀：<strong>等号左边被检索的列是否被转换</strong>——被转换则失效，转换右边常量则无碍。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>1. 参数类型严格匹配 DDL</strong>：varchar 列永远传字符串。MyBatis 中 <code class="inline-code">#{phone}</code> 若 Java 类型是 Long，会生成数字常量 → 触发失效，应把参数声明为 String。</p>
+            <p><strong>2. 关联字段类型/字符集对齐</strong>：<code class="inline-code">a.user_id(int)</code> = <code class="inline-code">b.user_id(varchar)</code> 会导致一侧被 CAST → 索引失效 + 每行转换开销。建表统一类型，且字符集/排序规则也要一致，否则<strong>隐式 collation 转换</strong>同样废掉索引。</p>
+            <p><strong>3. 厘清"主键空洞"的成因</strong>：隐式转换本身不制造主键空洞；空洞主要来自 <code class="inline-code">DELETE</code>、事务回滚、<code class="inline-code">REPLACE</code>、批量插入失败回滚。排查慢查询时要区分"索引失效"与"空洞导致页稀疏"是两类独立问题。</p>
+            <p><strong>4. EXPLAIN + SHOW WARNINGS 验证</strong>：<code class="inline-code">type=ALL</code> 且 <code class="inline-code">key=NULL</code> 但你认为该走索引时，用 <code class="inline-code">SHOW WARNINGS</code> 看优化器改写后的 SQL，常能看到 <code class="inline-code">CAST(...)</code> 暴露在条件里。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：collation 不一致也会让索引失效吗？</strong> 会。两表 JOIN 字段类型相同但 collation 不同（如 <code class="inline-code">utf8mb4_general_ci</code> vs <code class="inline-code">utf8mb4_0900_ai_ci</code>），MySQL 对一侧做排序规则转换，等价于对列套函数 → 失效。统一建表规范是根治手段。</p>
+            <p><strong>追问 2：为什么有时"该失效"却走了索引？</strong> 因为被转换的是常量而非列。<code class="inline-code">WHERE id = '1001'</code>（id 是 int）实际把 '1001' 转成 1001，列 id 未变。失效与否取决于"被转换的是列还是常量"。</p>
+            <p><strong>追问 3：隐式转换还有什么副作用？</strong> 字符串转数字时 <code class="inline-code">'123abc'</code> 被转成 <code class="inline-code">123</code>（截断语义），<code class="inline-code">WHERE code = 123</code> 会误匹配 <code class="inline-code">'123abc'</code> 行，造成<strong>逻辑错误</strong>而不仅是性能问题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>"类型不同就一定失效"</strong>：错。失效取决于列是否被转换；数字列 vs 字符串常量走索引，字符串列 vs 数字常量才失效。</li>
+                <li><strong>MyBatis 参数类型想当然</strong>：phone 是 varchar，Java 却用 Long 接、<code class="inline-code">#{phone}</code> 生成数字常量 → 静默失效。参数类型必须与列一致。</li>
+                <li><strong>只对齐字段类型忽略 collation</strong>：类型相同但排序规则不同仍会隐式转换废索引。</li>
+                <li><strong>凭直觉不 EXPLAIN</strong>：隐式转换不报错只变慢，必须 EXPLAIN + SHOW WARNINGS 看真实改写。</li>
+                <li><strong>混淆主键空洞成因</strong>：把"索引失效"与"自增主键空洞"混为一谈，二者无因果关系。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C07.14 MyBatis 缓存体系、插件机制与 SQL 注入防护 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C07.14" data-difficulty="senior" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C07.14</div>
+          <div class="qa-question">MyBatis 一级/二级缓存、插件(Interceptor)机制与 #{} vs ${} 防 SQL 注入<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>MyBatis 运行时机制的完整认知</strong>：缓存（减少 DB 访问）、插件（无侵入增强 SQL 执行链路）、SQL 拼接安全性（注入防护）。这是 Java 持久层面试的"基础分水岭"——很多开发者只用过 <code class="inline-code">#{}</code>，却说不清一级缓存为何在 Spring 里几乎不命中、二级缓存为何容易脏读、插件如何用责任链实现分页/脱敏/分库分表。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>iBatis → MyBatis</strong>：Apache iBatis 2010 年迁移到 Google Code 后更名 MyBatis，核心不变（SQL 与代码分离、手动映射），强化了注解与动态 SQL。</p>
+            <p><strong>缓存演进</strong>：早期只有 SqlSession 一级缓存；后续加入 Mapper 级别二级缓存，并通过 <code class="inline-code">&lt;cache&gt;</code> / <code class="inline-code">@CacheNamespace</code> 支持 EHCache、Redis 等第三方实现。</p>
+            <p><strong>插件机制</strong>：MyBatis 用<strong>责任链 + JDK 动态代理</strong>在四大组件（Executor/StatementHandler/ParameterHandler/ResultSetHandler）上开放拦截点，使分页、数据权限、加解密、审计等能力可无侵入注入。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>一级缓存（SqlSession 级别，默认开启）</strong>：同一个 SqlSession 内相同查询（相同 statementId + 参数 + 分页）命中缓存。执行 <code class="inline-code">update/commit/close/clearCache</code> 会清空。坑点：Spring 整合后 SqlSession 由 <code class="inline-code">SqlSessionTemplate</code> 管理，每次 Mapper 调用常是新 Session → <strong>一级缓存在 Web 层几乎不命中</strong>（同一事务/同一 SqlSession 内才复用）。</p>
+            <p><strong>二级缓存（Mapper / namespace 级别）</strong>：需 <code class="inline-code">cacheEnabled=true</code> 且 Mapper 显式声明 <code class="inline-code">&lt;cache/&gt;</code>。跨 SqlSession 共享，但<strong>多表关联查询跨 namespace 更新不会互清 → 易脏读</strong>，因此生产多用 Redis 替代。</p>
+            <p><strong>插件原理</strong>：实现 <code class="inline-code">Interceptor</code> + <code class="inline-code">@Intercepts</code> 声明拦截点，<code class="inline-code">Plugin.wrap(target, interceptor)</code> 对目标做动态代理，形成拦截链，<code class="inline-code">invocation.proceed()</code> 放行到下一环。</p>
+            <div class="code-block"><pre><code><span class="com">// #{}：预编译占位符，参数作为值传入 PreparedStatement，防注入</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> user <span class="kw">WHERE</span> name = #{name};  <span class="com">// → WHERE name = ?  [预编译]</span>
+
+<span class="com">// ${}：字符串拼接，参数直接拼进 SQL 文本，存在注入风险</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> user <span class="kw">WHERE</span> name = '${name}'; <span class="com">// name="x' OR '1'='1" → 注入！</span>
+
+<span class="com">// ${} 仅可用于表名/列名/排序方向等"结构部分"，且须白名单校验</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> ${tableName} <span class="kw">ORDER</span> <span class="kw">BY</span> ${column} ${order};</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p><code class="inline-code">#{}</code> 走预编译占位符，参数永远作为"值"；<code class="inline-code">${}</code> 走文本拼接，参数成为"SQL 片段"。用户输入一律用 <code class="inline-code">#{}</code>，<code class="inline-code">${}</code> 只接受来自可信枚举的列名/表名/排序方向。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>插件实战</strong>：① 分页插件（PageHelper/MP）拦截 <code class="inline-code">Executor.query</code> 重写 SQL 加 limit + count；② 数据脱敏/加解密拦截 <code class="inline-code">ParameterHandler</code> / <code class="inline-code">ResultSetHandler</code>；③ 分库分表拦截 <code class="inline-code">StatementHandler</code> 改写路由。下面是慢 SQL 审计插件骨架：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Intercepts</span>({<span class="annotation">@Signature</span>(type = Executor.<span class="kw">class</span>, method = <span class="str">"query"</span>,
+    args = {MappedStatement.<span class="kw">class</span>, Object.<span class="kw">class</span>, RowBounds.<span class="kw">class</span>, ResultHandler.<span class="kw">class</span>})})
+<span class="kw">public</span> <span class="kw">class</span> <span class="type">AuditInterceptor</span> <span class="kw">implements</span> <span class="type">Interceptor</span> {
+    <span class="annotation">@Override</span>
+    <span class="kw">public</span> Object <span class="fn">intercept</span>(<span class="type">Invocation</span> <span class="var">inv</span>) <span class="kw">throws</span> <span class="type">Throwable</span> {
+        <span class="kw">long</span> <span class="var">start</span> = System.<span class="fn">nanoTime</span>();
+        <span class="kw">try</span> { <span class="kw">return</span> <span class="var">inv</span>.<span class="fn">proceed</span>(); } <span class="kw">finally</span> {
+            <span class="kw">long</span> <span class="var">ms</span> = (System.<span class="fn">nanoTime</span>() - <span class="var">start</span>) / 1_000_000;
+            <span class="kw">if</span> (<span class="var">ms</span> &gt; 1000) log.<span class="fn">warn</span>(<span class="str">"slow sql {}ms"</span>, <span class="var">ms</span>);
+        }
+    }
+    <span class="annotation">@Override</span> <span class="kw">public</span> Object <span class="fn">plugin</span>(Object <span class="var">target</span>) {
+        <span class="kw">return</span> <span class="type">Plugin</span>.<span class="fn">wrap</span>(<span class="var">target</span>, <span class="kw">this</span>); <span class="com">// 责任链动态代理包装</span>
+    }
+}</code></pre></div>
+            <p><strong>注入防护</strong>：禁止 <code class="inline-code">${}</code> 拼接用户输入；需要动态排序/表名时，对列名做白名单枚举校验（<code class="inline-code">ALLOWED.contains(col)</code>）后再拼接。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：为什么 Spring 事务内一级缓存有时能命中？</strong> Spring 把 SqlSession 绑定到事务上下文，同一事务内多次 Mapper 调用复用同一 SqlSession，一级缓存生效；事务结束即释放。</p>
+            <p><strong>追问 2：多个插件执行顺序如何？</strong> 按配置顺序从外到内嵌套代理，调用时从第一个插件进入，<code class="inline-code">proceed()</code> 依次向内，返回时逆序。顺序影响改写结果（如分页插件应在脱敏之前先改写 SQL）。</p>
+            <p><strong>追问 3：MyBatis-Plus 的分页插件与 PageHelper 能共存吗？</strong> 不建议。两者都拦截 Executor.query 且都依赖 ThreadLocal 存储分页参数，并存会导致分页条件错乱、count 语句异常。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>误以为 Web 请求内一级缓存能复用</strong>：Spring 下每次 Mapper 调用多是新 SqlSession，一级缓存几乎不命中。</li>
+                <li><strong>二级缓存跨表脏读</strong>：多表 join 的 Mapper A 更新后，Mapper B 的缓存不会自动失效，读到旧数据。</li>
+                <li><strong>${} 拼接用户输入</strong>：造成 SQL 注入，必须用 #{} 或白名单。</li>
+                <li><strong>PageHelper 用法不当</strong>：分页参数须紧跟查询方法、用完及时清除 ThreadLocal，否则污染后续查询。</li>
+                <li><strong>插件拦截点选错</strong>：想改写 SQL 文本却只拦截 ResultSetHandler（已执行后），应在 StatementHandler 阶段拦截。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C07.15 MyBatis-Plus vs JPA 对比及分页/乐观锁原理 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C07.15" data-difficulty="senior" data-priority="p2">
+        <div class="qa-header">
+          <div class="qa-badge">C07.15</div>
+          <div class="qa-question">MyBatis-Plus vs JPA 如何选型？分页插件与乐观锁(@Version)原理<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察 <strong>ORM 选型判断力</strong>：MyBatis 系（手写 SQL、灵活、适合复杂多表与报表）与 JPA/Hibernate（对象化、DDD 友好、自动 CRUD、但复杂查询易失控）的取舍，以及两者工程化增强（MP 通用 CRUD/分页/乐观锁、JPA 脏检查/二级缓存）的底层原理。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>JPA 谱系</strong>：EJB EntityBean（笨重）→ JPA 规范（Hibernate 实现）→ Spring Data JPA（方法名派生查询）。强调"对象即数据库"，屏蔽 SQL。</p>
+            <p><strong>MyBatis 谱系</strong>：iBatis → MyBatis（SQL 与代码分离）→ MyBatis-Plus（在 MyBatis 上叠加通用 Mapper/Service、条件构造器、分页/乐观锁/逻辑删除插件），保留手写 SQL 灵活性的同时补齐"CRUD 样板"短板。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>MyBatis / MyBatis-Plus</th><th>JPA / Hibernate</th></tr></thead>
+              <tbody>
+                <tr><td>SQL 控制力</td><td>完全手写，复杂 join/报表/存储过程友好</td><td>自动生成，复杂查询需 JPQL/Criteria 且易生成烂 SQL</td></tr>
+                <tr><td>学习/开发成本</td><td>需写 XML/注解 SQL，但直观可控</td><td>CRUD 极快，但调优需懂其生成的 SQL</td></tr>
+                <tr><td>性能可控性</td><td>高，SQL 一目了然</td><td>有 N+1、笛卡尔积等隐性坑</td></tr>
+                <tr><td>DDD/对象模型</td><td>弱，需手动映射</td><td>强，实体/值对象/关联天然支持</td></tr>
+                <tr><td>缓存</td><td>一级/二级缓存 + 常接 Redis</td><td>一级/二级缓存内建，易配但需防脏读</td></tr>
+              </tbody>
+            </table>
+            <p><strong>乐观锁原理（两者一致）</strong>：更新时携带版本号，SQL 形如 <code class="inline-code">UPDATE t SET col=?, version=version+1 WHERE id=? AND version=?</code>；影响行数=0 即版本冲突，业务层自旋重试。<strong>MP 用 <code class="inline-code">@Version</code> + 乐观锁拦截器</strong>自动拼接；<strong>JPA 用 <code class="inline-code">@Version</code></strong> 由脏检查触发。</p>
+            <div class="code-block"><pre><code><span class="annotation">@TableName</span>(<span class="str">"orders"</span>)
+<span class="kw">public</span> <span class="kw">class</span> <span class="type">Order</span> {
+    <span class="annotation">@TableId</span> <span class="kw">private</span> Long <span class="var">id</span>;
+    <span class="kw">private</span> BigDecimal <span class="var">amount</span>;
+    <span class="annotation">@Version</span> <span class="kw">private</span> Integer <span class="var">version</span>; <span class="com">// 版本号</span>
+}
+<span class="com">// MP 拦截器自动改写为：UPDATE orders SET amount=?, version=version+1</span>
+<span class="com">//                    WHERE id=? AND version=?  —— 影响行数0即冲突，自旋重试</span></code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>分页实现</strong>：MP 配置 <code class="inline-code">MybatisPlusInterceptor</code> + <code class="inline-code">PaginationInnerInterceptor</code>，调用 <code class="inline-code">page()</code> 时自动追加 count 与 limit；JPA 用 <code class="inline-code">Pageable</code> / <code class="inline-code">PageRequest</code>。注意 MP 分页插件与 PageHelper 不能并存。</p>
+            <p><strong>逻辑删除</strong>：MP <code class="inline-code">@TableLogic</code> 让查询自动追加 <code class="inline-code">WHERE deleted=0</code>，更新转软删；JPA 需 @SQLDelete + @Where 实现。</p>
+            <p><strong>选型建议</strong>：互联网高并发、复杂多表 join、分析报表 → MyBatis/MP；企业内部系统、CRUD 密集、强 DDD 模型 → JPA；常见混合架构：JPA 管主数据 + MyBatis 做报表查询。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：JPA 的 N+1 如何产生与解决？</strong> 延迟加载关联集合时，遍历 N 个父对象各发 1 条子查询 → N+1。解法：<code class="inline-code">JOIN FETCH</code> / <code class="inline-code">@EntityGraph</code> 一次性抓取，或 <code class="inline-code">@BatchSize</code> 批量查询。</p>
+            <p><strong>追问 2：MP Wrapper 在大查询下可读性如何？</strong> 复杂条件用 <code class="inline-code">QueryWrapper</code> 链式拼接会很长且难调试，可退回自定义 XML SQL 兼顾灵活与可读。</p>
+            <p><strong>追问 3：乐观锁在批量更新为何易失效？</strong> 批量 UPDATE 通常一次性改多行，version 条件难以逐行匹配，应改为逐条带 version 更新或改用业务幂等键。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>MP 分页插件与 PageHelper 共存</strong>：都拦截 Executor 且依赖 ThreadLocal，并存导致分页错乱，必须二选一。</li>
+                <li><strong>@Version 乐观锁批量更新失效</strong>：批量场景 version 条件无法逐行匹配，应逐条更新或改用幂等键。</li>
+                <li><strong>JPA 懒加载 Session 已关闭</strong>：事务外访问延迟属性抛 LazyInitializationException，需 Open Session in View 或提前 fetch。</li>
+                <li><strong>MP 逻辑删除遗漏物理删除</strong>：手写的原生 SQL 不受 @TableLogic 约束，易误删/漏过滤。</li>
+                <li><strong>Wrapper 误用 .eq(true, ...)</strong>：第一个布尔参数恒为 true 会无条件追加，易拼接出错误 SQL。</li>
               </ul>
             </div>
           </div>

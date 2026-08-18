@@ -26,6 +26,8 @@
         <li><a href="#C06.09"><span class="toc-number">C06.09</span>全局异常处理设计</a></li>
         <li><a href="#C06.10"><span class="toc-number">C06.10</span>Spring Validation 数据校验</a></li>
         <li><a href="#C06.11"><span class="toc-number">C06.11</span>Spring Security 6 与 OAuth2</a></li>
+        <li><a href="#C06.12"><span class="toc-number">C06.12</span>优雅停机与 K8s 滚动发布协同</a></li>
+        <li><a href="#C06.13"><span class="toc-number">C06.13</span>Quarkus/Micronaut vs Spring Boot</a></li>
       </ol>
     </aside>
 
@@ -44,11 +46,11 @@
         <h1 class="chapter-title">Spring Boot 与现代框架</h1>
         <p class="chapter-subtitle">从自动配置 SPI 到 AOT/GraalVM Native Image：理解 spring.factories→AutoConfiguration.imports 演进、JIT→AOT→Native 编译范式转移、Spring Security 过滤器链、Spring Boot 启动流程与七事件生命周期编排</p>
         <div class="chapter-meta">
-          <span>题目数：11</span>
+          <span>题目数：13</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×7</span>
+          <span>高级开发 ×8</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×3</span>
+          <span>架构级 ×4</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
@@ -1508,6 +1510,161 @@ flowchart TD
                 <li><strong>SecurityFilterChain 顺序错误导致绕过</strong>：多条链按声明顺序匹配，把宽泛的 <code class="inline-code">anyRequest</code> 链放前面会吞掉后面的精确匹配；或 <code class="inline-code">securityMatcher</code> 写错导致 <code class="inline-code">/api/**</code> 命中放行链。务必用 <code class="inline-code">@Order</code> 显式排序并自测。</li>
                 <li><strong>混淆 OAuth2 认证与授权</strong>：OAuth2 最初是<strong>授权委托</strong>协议（让第三方代为访问资源），用 OAuth2 做"登录认证"是 OIDC（OpenID Connect）的职责（在 access_token 外加 id_token）。直接用 access_token 当登录凭证存在安全隐患。</li>
                 <li><strong>放行静态资源仍走安全链</strong>：6.x 应用 <code class="inline-code">web.ignoring()</code> 的资源应改用 <code class="inline-code">WebSecurityCustomizer</code> Bean，否则每个静态请求都进 FilterChainProxy 增加开销。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C06.12 Spring Boot 优雅停机与 K8s 滚动发布协同 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C06.12" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C06.12</div>
+          <div class="qa-question">Spring Boot 优雅停机与 K8s 滚动发布协同（探针/Lifecycle/PreStop）<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察 <strong>应用生命周期与编排平台（K8s）的协同</strong>：如何让 Pod 在滚动更新/缩容时被"先摘流量、再处理完在途请求、最后退出"，杜绝 5xx 与连接中断。本质是<strong>应用侧优雅停机</strong>与<strong>平台侧流量摘除时序</strong>的对齐问题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>暴力 kill</strong>：直接 SIGKILL，在途请求全部断，连接池/事务半途而废。</p>
+            <p><strong>JVM Shutdown Hook</strong>：捕获 SIGTERM 做清理，但 Web 容器仍在接新请求，时序不可控。</p>
+            <p><strong>Spring Boot 2.3+ Graceful Shutdown</strong>：<code class="inline-code">server.shutdown=graceful</code>，停止接收新请求、等待活跃请求在超时内完成。</p>
+            <p><strong>K8s 探针协同</strong>：readiness（就绪，失败即摘流量）+ liveness（存活，失败重启）+ <code class="inline-code">terminationGracePeriodSeconds</code> + PreStop，把"摘流量"与"停机"解耦为可控时序。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>应用侧（Spring Boot）</strong>：graceful shutdown 下，容器先停止接收新连接，已接收的请求在 <code class="inline-code">spring.lifecycle.timeout-per-shutdown-phase</code> 内处理完；<code class="inline-code">SmartLifecycle</code> 控制 Bean 停止顺序，<code class="inline-code">@PreDestroy</code> 释放资源（连接池、调度器、MQ 消费者暂停）。</p>
+            <p><strong>平台侧（K8s）时序</strong>：① 置 <code class="inline-code">readinessProbe</code> 失败 → Endpoint 摘除该 Pod 流量；② 发 SIGTERM；③ 执行 <code class="inline-code">preStop</code> hook（常 sleep 几秒，确保 LB/Service 已摘流）；④ 在 <code class="inline-code">terminationGracePeriodSeconds</code>（默认 30s）内等待应用优雅停机；超时则 SIGKILL。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>必须满足 <strong>graceful timeout &lt; terminationGracePeriodSeconds</strong>，且 readiness 摘流发生在 SIGTERM 之前。否则 K8s 在应用处理完前就 SIGKILL，在途请求被截断。三者时序：<strong>readiness=false → PreStop sleep → SIGTERM → 优雅停机 → 退出</strong>。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>配置示例</strong>：<code class="inline-code">server.shutdown=graceful</code> + <code class="inline-code">spring.lifecycle.timeout-per-shutdown-phase=20s</code>；K8s <code class="inline-code">terminationGracePeriodSeconds=30</code>、<code class="inline-code">readinessProbe</code> 探活、<code class="inline-code">preStop: exec sleep 5</code>。</p>
+            <p><strong>资源清理清单</strong>：暂停 MQ 消费（如 RabbitListener 容器 stop）、停定时任务（Scheduler shutdown）、连接池优雅关闭（HikariCP 默认随 Bean 销毁）。</p>
+            <p><strong>Provider 端同样需要</strong>：Dubbo/gRPC 服务需先取消注册到注册中心再停机，避免 Consumer 仍路由到已下线实例。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：readiness 与 liveness 用同一个探针会怎样？</strong> 若合一，应用假死（依赖故障）会被 K8s 不断重启而非摘流，雪上加霜；二者必须分离——readiness 反映"能否接流量"，liveness 反映"进程是否该重启"。</p>
+            <p><strong>追问 2：长任务（如文件导出）优雅停机如何处理？</strong> graceful 超时内完不成的，应转异步/任务队列，停机前把任务状态持久化，由新实例续跑，而非阻塞退出。</p>
+            <p><strong>追问 3：滚动更新 vs 蓝绿如何选？</strong> 滚动更新资源省但流量逐步切换、风险点分散；蓝绿双环境瞬时切换、易回滚，但资源翻倍。核心系统建议蓝绿 + 优雅停机双保险。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>graceful timeout ≥ grace period</strong>：应用还没处理完就被 SIGKILL，在途请求断。</li>
+                <li><strong>只配 liveness 不配 readiness</strong>：滚动时仍接流量，请求打到正在退出的实例 → 5xx。</li>
+                <li><strong>关停机未停 MQ/调度</strong>：消费/任务执行到一半被强杀，数据不一致。</li>
+                <li><strong>缺 PreStop</strong>：LB/Service 还没摘流就 SIGTERM，瞬间请求失败。</li>
+                <li><strong>Provider 未先注销</strong>：注册中心仍路由到已下线实例，Consumer 报错。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C06.13 云原生 Java 新选择：Quarkus/Micronaut vs Spring Boot -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C06.13" data-difficulty="senior" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C06.13</div>
+          <div class="qa-question">云原生 Java 新选择：Quarkus/Micronaut vs Spring Boot 取舍<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察 <strong>云原生场景下 Java 技术选型判断力</strong>：Quarkus / Micronaut 以"编译期处理 + 原生镜像"实现极低内存与毫秒级启动，适配 K8s / Serverless / FaaS；而 Spring Boot 以生态完备与开发体验见长。核心是<strong>启动速度/内存 vs 生态成熟度</strong>的权衡。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Spring Boot 主导（2014+）</strong>：运行时反射 + 条件化 Bean，生态无敌但启动慢、内存高。</p>
+            <p><strong>云原生诉求</strong>：容器高密度、Serverless 按需冷启、FaaS 毫秒计费的场景，倒逼"快启动 + 小内存"。</p>
+            <p><strong>新选手</strong>：Quarkus（Red Hat，build-time 扩展 + 原生优先）、Micronaut（Oracle，编译期 DI/AOP，API 近似 Spring）；二者均拥抱 GraalVM Native Image。</p>
+            <p><strong>Spring 反击</strong>：Spring Boot 3 引入 AOT（Ahead-Of-Time）处理 + <code class="inline-code">spring-boot-maven-plugin</code> build-image 支持原生镜像，缩小差距。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Spring Boot</th><th>Quarkus</th><th>Micronaut</th></tr></thead>
+              <tbody>
+                <tr><td>DI/AOP 时机</td><td>运行时反射</td><td>build-time 扩展</td><td>编译期（无运行时反射）</td></tr>
+                <tr><td>原生镜像</td><td>3.x AOT 支持</td><td>原生优先，最成熟</td><td>支持，编译期天然友好</td></tr>
+                <tr><td>启动/内存</td><td>较重</td><td>ms 级启动、MB 级内存</td><td>接近 Quarkus</td></tr>
+                <tr><td>生态/开发体验</td><td>最完备</td><td>较新，扩展开源</td><td>近似 Spring，易迁移</td></tr>
+                <tr><td>典型场景</td><td>传统微服务/内部系统</td><td>Serverless/K8s/边缘</td><td>云原生微服务</td></tr>
+              </tbody>
+            </table>
+            <p><strong>原生镜像的代价</strong>：AOT 在构建期确定对象图，<strong>反射/动态代理/JNI/序列化需提前配置</strong>（reflect-config.json 等），且<strong>丧失运行时 JIT 峰值优化</strong>——长 CPU 密集任务峰值常低于 JIT 模式。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>选型本质是<strong>场景驱动</strong>：高密度/短生命周期/冷启敏感 → Quarkus/Micronaut 原生；生态依赖多/长事务/峰值性能敏感 → Spring Boot。Spring Boot 3 AOT 已能在多数场景兼顾，不必盲目换栈。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>迁移路径</strong>：Micronaut API 与 Spring 高度相似（<code class="inline-code">@Singleton</code>/<code class="inline-code">@Inject</code>），老 Spring 项目可渐进迁移；Quarkus 提供 Spring API 兼容层（<code class="inline-code">quarkus-spring-*</code> 扩展）降低改造成本。</p>
+            <p><strong>Spring Boot 原生化</strong>：<code class="inline-code">mvn spring-boot:build-image</code> 生成 Native Image；注意排查不支持的反射（用 <code class="inline-code">@RegisterReflectionForBinding</code> 声明）。</p>
+            <p><strong>决策清单</strong>：① 是否 Serverless/FaaS 冷启敏感？② 是否 CPU 密集长任务（否决原生）？③ 是否重度依赖暂不支持原生的 starter？三项决定选型。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：原生镜像峰值性能为何常低于 JIT？</strong> 原生镜像是 AOT，无运行时基于 Profile 的激进优化（分层编译、逃逸分析驱动的锁消除/标量替换、向量化），长任务峰值偏弱。</p>
+            <p><strong>追问 2：Spring Boot 3 AOT 能追上 Quarkus 吗？</strong> 启动/内存接近，但 Quarkus 的 build-time 体系更彻底、Dev Services/Kubernetes 原生集成更深；AOT 仍属"尽力逼近"。</p>
+            <p><strong>追问 3：Micronaut 与 Quarkus 的核心差异？</strong> Micronaut 编译期 DI 通用性强、易嵌入；Quarkus 针对 Kubernetes/原生极致优化、扩展生态偏 Red Hat 栈。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>盲目追求原生</strong>：反射/动态代理/序列化需大量提前配置，迁移成本被严重低估。</li>
+                <li><strong>以为原生峰值更强</strong>：AOT 无运行时 Profile 优化，CPU 密集长任务峰值常低于 JIT。</li>
+                <li><strong>忽略构建时间</strong>：Native build 分钟级，CI 时间翻倍，需评估发布效率。</li>
+                <li><strong>Spring Boot 3 AOT 兼容性假设</strong>：并非所有 starter/三方库都支持原生，踩坑在反射配置。</li>
+                <li><strong>为换而换</strong>：传统长连接/重生态微服务强行迁 Quarkus，收益不足以覆盖改造成本。</li>
               </ul>
             </div>
           </div>

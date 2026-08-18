@@ -24,6 +24,7 @@
         <li><a href="#C01.07"><span class="toc-number">C01.07</span>引用类型与 GC 回收</a></li>
         <li><a href="#C01.08"><span class="toc-number">C01.08</span>JDK 9 模块系统与类加载</a></li>
         <li><a href="#C01.09"><span class="toc-number">C01.09</span>JIT 编译器 C1/C2/GraalVM</a></li>
+        <li><a href="#C01.10"><span class="toc-number">C01.10</span>JDK 17/21 新特性与升级迁移</a></li>
       </ol>
     </aside>
 
@@ -42,9 +43,9 @@
         <h1 class="chapter-title">JVM 内存与类加载</h1>
         <p class="chapter-subtitle">从运行时数据区到模块化类加载：理解 JVM 内存模型的演进、第一性原理与工程边界</p>
         <div class="chapter-meta">
-          <span>题目数：9</span>
+          <span>题目数：10</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×5</span>
+          <span>高级开发 ×6</span>
           <span class="meta-divider">|</span>
           <span>架构级 ×3</span>
           <span class="meta-divider">|</span>
@@ -1284,6 +1285,95 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
                 <li><strong>忽略 CodeCache 大小导致 deopt</strong>：CodeCache 溢出会停止 C2 编译甚至批量逆优化，性能断崖下降。大型应用默认 240MB 可能不够，需监控并按需扩容。</li>
                 <li><strong>误以为 GraalVM Native Image 不需要 JIT</strong>：Native Image 是 AOT，确实无运行时 JIT，但这意味着<strong>无法做基于运行时 Profile 的激进优化</strong>，峰值性能常低于 JIT 模式，且反射/动态代理需提前配置。</li>
                 <li><strong>误以为 -XX:CompileThreshold 能精确控制编译</strong>：分层编译下该参数只是间接因素，实际编译受编译队列、CodeCache、采样抖动影响，不是"调用 N 次必编译"的硬阈值。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C01.10 JDK 17/21 新特性：语言与 JVM 演进及升级迁移 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C01.10" data-difficulty="senior" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">C01.10</div>
+          <div class="qa-question">JDK 17/21 新特性：Records/Sealed/Pattern Matching 的 JVM 实现与升级迁移<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>JDK 8 → 17 → 21 语言与 JVM 演进</strong> 的掌握：Records / Sealed / Pattern Matching / 虚拟线程等特性的设计动机与 JVM 实现，以及生产升级迁移的真实代价。2026 年新项目基线普遍是 JDK 17，虚拟线程要求 JDK 21，能否讲清"为什么引入这些特性、字节码/API 层面发生了什么、升级踩哪些坑"是架构师的基本功。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>LTS 节奏</strong>：JDK 6/7（历史）→ 8（2014，长期主流）→ 11（2018）→ 17（2021）→ 21（2023）。Oracle 改为半年一个特性版、每三年一个 LTS；非 LTS 版仅支持 6 个月，生产应选 LTS。</p>
+            <p><strong>语言特性演进</strong>：<code class="inline-code">var</code>（10）→ <code class="inline-code">switch</code> 表达式（14）→ Text Blocks（15）→ Records（16）→ Pattern Matching（16/21）→ Sealed（17）→ 虚拟线程/ScopedValue（21）。方向是<strong>更简洁、更安全、更利于模式匹配与并发</strong>。</p>
+            <p><strong>JVM/类库演进</strong>：G1 成为默认 GC（9）；CMS 移除（14）；ZGC/Shenandoah 成熟；<code class="inline-code">sun.misc.Unsafe</code> 部分受限；强封装内部 API（16+）；废弃 finalize 与 Security Manager（17）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>Records</strong>：不可变数据载体，编译器自动生成私有 final 字段、全参构造、<code class="inline-code">equals/hashCode/toString</code> 与 accessor（非 getter）。JVM 层面是普通 <code class="inline-code">final class</code>，无特殊字节码，只是语法糖 + 约定。</p>
+            <p><strong>Sealed Class</strong>：通过 <code class="inline-code">permits</code> 显式限定子类集合，JVM 用 <code class="inline-code">PermittedSubclasses</code> 属性存储。与 Pattern Matching 配合可做<strong>编译期穷尽性检查</strong>，替代 visitor 模式。</p>
+            <p><strong>Pattern Matching</strong>：<code class="inline-code">instanceof</code> 模式匹配（16 正式）、<code class="inline-code">switch</code> 模式匹配（21 正式）、Record Pattern（21）——把"类型判断 + 强转 + 解构"合并为一步，减少样板与 ClassCastException。</p>
+            <div class="code-block"><pre><code><span class="com">// Records：不可变数据载体，自动生成字段/构造/equals/hashCode/toString</span>
+<span class="kw">record</span> <span class="type">Point</span>(<span class="kw">int</span> x, <span class="kw">int</span> y) {}
+
+<span class="com">// Sealed：显式限定子类，配合模式匹配做穷尽分支</span>
+<span class="kw">sealed</span> <span class="kw">interface</span> <span class="type">Shape</span> <span class="kw">permits</span> <span class="type">Circle</span>, <span class="type">Rect</span>, <span class="type">Square</span> {}
+<span class="kw">final</span> <span class="kw">class</span> <span class="type">Circle</span> <span class="kw">implements</span> <span class="type">Shape</span> { <span class="kw">double</span> r; }
+
+<span class="com">// Pattern Matching for switch（JDK 21 正式）：类型 + 穷尽检查</span>
+<span class="kw">String</span> <span class="fn">describe</span>(<span class="type">Shape</span> s) {
+    <span class="kw">return</span> <span class="kw">switch</span> (s) {
+        <span class="kw">case</span> <span class="type">Circle</span> c -&gt; <span class="str">"圆 r="</span> + c.r;
+        <span class="kw">case</span> <span class="type">Rect</span>  r -&gt; <span class="str">"矩形"</span>;
+        <span class="kw">case</span> <span class="type">Square</span> s -&gt; <span class="str">"正方形"</span>;
+        <span class="kw">default</span>        -&gt; <span class="str">"其他"</span>;  <span class="com">// 非 sealed 时仍需 default</span>
+    };
+}</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>新特性的共同目标：<strong>减少样板代码、把约束前移到编译期、提升并发安全</strong>。JVM 层面大多只是语法糖 + 少量类文件属性（如 PermittedSubclasses），运行时开销极低。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>升级迁移实战</strong>：① 用 <code class="inline-code">jdeprscan</code> / <code class="inline-code">jdeps</code> 扫描废弃 API 与内部依赖；② 字节码版本：JDK 17 = 61，JDK 21 = 65，注意 Maven <code class="inline-code">release</code> 参数；③ Spring Boot 3 强制 JDK 17+ 且包名由 <code class="inline-code">javax.*</code> 改为 <code class="inline-code">jakarta.*</code>（Jakarta EE 9），这是最大的破坏性变更；④ 依赖库需同步升级（如 Hibernate 6、Tomcat 10）。</p>
+            <p><strong>GC 调优变化</strong>：G1 是默认且大幅优化；如需更低延迟上 ZGC（JDK 21 的 Generational ZGC 已成熟）。迁移后务必用真实负载压测，关注暂停分布与吞吐。</p>
+            <p><strong>强封装影响</strong>：JDK 16+ 默认强封装 <code class="inline-code">--illegal-access=deny</code>，旧版依赖 <code class="inline-code">sun.misc.Unsafe</code> / 内部 API 的库（部分 Netty、序列化框架）会启动失败，需升级到兼容版本。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Records 为什么不可继承、不能有实例字段？</strong> Records 的语义是"透明数据载体"，继承会破坏等值语义与解构稳定性，故设计为 <code class="inline-code">final</code> 且只能声明组件。需要可变/带行为时用普通类或 Builder。</p>
+            <p><strong>追问 2：Sealed + Pattern Matching 如何替代 Visitor？</strong> 对 sealed 类型做 switch 模式匹配，编译器能验证分支穷尽，新增子类时若漏处理会编译报错，比 Visitor 的双分派更轻量安全。</p>
+            <p><strong>追问 3：JDK 21 的 String Templates 现状？</strong> JEP 459/465 曾作为预览，后因设计争议在 JDK 23 被撤销，目前未定稿，面试中不宜当作"已确定特性"大讲。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>"升级只换版本号"</strong>：Spring Boot 3 + Jakarta 包名变更（javax→jakarta）是破坏性改动，大量老代码/依赖需同步升级。</li>
+                <li><strong>Records 误当可变 DTO</strong>：Records 不可变，业务可变对象应用普通类，否则引发并发/语义问题。</li>
+                <li><strong>强封装导致反射失败</strong>：旧库依赖内部 API 在新 JDK 启动即报错，须升级依赖。</li>
+                <li><strong>误以为 ZGC 默认开启</strong>：JDK 17 单代 ZGC 仍需 <code class="inline-code">-XX:+UseZGC</code>；JDK 21 的 Generational ZGC 才成熟可用。</li>
+                <li><strong>LTS 选择模糊</strong>：新项目应锚定 17 基线、21 用于虚拟线程，而非停留在 8。</li>
               </ul>
             </div>
           </div>

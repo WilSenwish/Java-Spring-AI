@@ -886,6 +886,7 @@
           <li><div class="followup-q">看门狗续期线程所在 JVM 卡顿（GC）导致续期失败，锁过期后他人获锁，怎么处理？</div><div class="followup-a">业务执行前记录持锁 token，关键操作前再次校验 token 仍归属自己，否则中止；或业务设计为幂等，重复执行无害；GC 调优减少 STW 时间。</div></li>
           <li><div class="followup-q">ZooKeeper 的 watch 惊群效应如何优化？</div><div class="followup-a">用临时顺序节点 + 只 watch 前一个节点（链式通知）而非全部 watch 同一节点，每个节点获锁只需等前驱删除，避免所有等待者同时被唤醒竞争。</div></li>
           <li><div class="followup-q">Redlock 被马丁克莱因质疑时钟漂移问题，你怎么看？</div><div class="followup-a">Redlock 依赖各节点时钟一致，NTP 漂移会导致锁 TTL 计算偏差，理论上存在安全漏洞；实践中可通过引入 fence token（单调递增序号）让资源端拒绝旧 token 请求来弥补，但增加了资源端负担。</div></li>
+          <li><div class="followup-q">Redlock 可靠性之争：antirez 与 Martin Kleppmann 各自的观点是什么？工程上到底该怎么用、如何防脑裂？</div><div class="followup-a">争议焦点是"Redlock 是否真的提供互斥安全性"。<strong>antirez（Redis 作者）立场</strong>：Redlock 假定各节点时钟误差有界、失败检测（TTL 过期）基本可用，在合理系统模型下能给出"足够好"的互斥，且多数派（N/2+1）能容忍少数节点故障。<strong>Martin Kleppmann 反驳</strong>：在异步模型里网络延迟与 GC 停顿无上界，若持锁客户端被暂停超过 TTL，锁自动过期，另一客户端可获锁，此时两者同时持锁，Redlock 并未提供互斥；他认为真正的安全来自<strong>fencing token（单调递增序号）</strong>——资源端只接受序号更大的请求、拒绝旧请求，而非依赖锁服务本身。<strong>工程结论与适用边界</strong>：① 对"偶尔双持锁可容忍 + 业务幂等兜底"的场景（如去重、防重复调度），Redlock 可用；② 对资金等强一致关键路径，不要只靠 Redlock，应叠加 fencing token 或由 ZK/etcd 这类基于共识的实现提供更强保证；③ <strong>防脑裂三件套</strong>：锁带单调递增 token + 资源端校验 token 拒绝陈旧操作 + 业务幂等/唯一约束兜底，三者齐备才能把脑裂风险降到可接受。</div></li>
         </ul>
       </div>
     </div>
@@ -1011,6 +1012,7 @@
           <li><div class="followup-q">TCC 的 Cancel 阶段执行失败（如下游服务宕机），如何保证最终回滚？</div><div class="followup-a">TC 会持续重试 Cancel 直到成功（需 Cancel 接口幂等）；若长期失败需人工介入；Try 阶段预留的资源需有超时自动释放机制（如冻结库存 30 分钟自动解冻）。</div></li>
           <li><div class="followup-q">本地消息表消息已投递但下游消费失败，如何处理？</div><div class="followup-a">MQ 消费失败走重试机制（指数退避），达到最大重试后进死信队列人工处理；下游消费必须幂等（基于 bizId 去重），重试不会导致重复执行业务。</div></li>
           <li><div class="followup-q">RocketMQ 事务消息相比本地消息表有什么优势？</div><div class="followup-a">事务消息省去本地消息表与扫描任务，半消息机制由 MQ 服务端回调检查本地事务状态，更轻量；但强依赖 MQ 的事务能力，且回查接口需业务实现，复杂度转移。</div></li>
+          <li><div class="followup-q">TCC 三坑（空回滚/悬挂/幂等）的根因是什么？如何破解，尤其是防悬挂设计？</div><div class="followup-a"><strong>三大坑根因</strong>：① <em>空回滚</em>——Try 的 RPC 超时/网络分区，TC 判定 Try 失败并发起 Cancel，但 Try 后来才真正执行；Cancel 时本地无预留资源记录，若直接报错会阻塞回滚。② <em>悬挂</em>——Cancel 已执行（或标记为已取消）后，被延迟的 Try 才到达并执行了真实预留，这笔资源永远无法被 Confirm/Cancel，造成数据不一致。③ <em>幂等</em>——TC 重试或网络重发导致 Confirm/Cancel 多次到达，重复执行会重复扣减/释放。<strong>破解：引入事务状态表（按全局事务 ID + 分支 ID）</strong>：① <em>防悬挂</em>：Try 执行前先查状态，若已 CANCELLED 则直接拒绝 Try（空回滚标记存在即不执行真实预留）。② <em>空回滚处理</em>：Cancel 时若无 Try 记录（status 非 INIT），插入 CANCELLED 空回滚标记并返回成功，不报错。③ <em>幂等</em>：Confirm/Cancel 执行前校验 status，已 CONFIRMED/DONE 则直接返回成功；状态机仅允许 INIT→CONFIRMED / INIT→CANCELLED 单向流转。④ 兜底：Try 预留资源设超时自动释放（如冻结库存 30 分钟解冻），避免悬挂资源长期占用。</div></li>
         </ul>
       </div>
     </div>
@@ -2044,6 +2046,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
           <li><div class="followup-q">3. Seata AT 模式的全局锁会不会成为性能瓶颈？如何优化？</div><div class="followup-a">AT 模式在二阶段提交前持有全局锁（行级），高并发热点行（如秒杀库存）会产生锁竞争。优化：热点场景改用 Seata TCC 模式（Try-Confirm-Cancel 无全局锁）；或 AT + Redis 预扣减（Redis 原子扣减 + 异步同步 DB）；降低全局事务粒度，非核心操作移出全局事务用最终一致。</div></li>
           <li><div class="followup-q">4. 拆分后服务间调用链路变长，如何保证整体可用性？</div><div class="followup-a">每个远程调用必须配置超时（Feign connectTimeout=1s, readTimeout=3s）、熔断（Sentinel 慢调用比例熔断）、降级（Fallback 返回默认值或缓存数据）。引入链路追踪（SkyWalking）可视化调用链，设定 SLA（如 P99 &lt; 500ms）。核心链路做异步化改造（MQ 解耦），将同步调用降至最小。</div></li>
           <li><div class="followup-q">5. 如何评估微服务拆分的粒度是否合理？拆得太细有什么问题？</div><div class="followup-a">评估维度：独立部署能力、团队自治（两个披萨团队）、故障隔离边界。拆得过细会导致：服务间网络调用开销占比过高、分布式事务复杂度爆炸、运维成本（监控/部署/排障）线性增长。建议从粗粒度开始（按领域拆 5-8 个服务），随团队规模和业务复杂度演进式细化。</div></li>
+          <li><div class="followup-q">DDD 如何真正落地到拆分：限界上下文、聚合根、上下文映射分别起什么作用？</div><div class="followup-a">三者是递进的拆分指引，比单纯"按业务拆"更可执行。<strong>① 限界上下文（Bounded Context）= 服务候选边界</strong>：语义一致、变更节奏一致、可独立部署的概念聚为一个上下文，对应一个微服务；跨上下文的概念若语义不同（如"商品"在商品域是展示信息、在库存域是库存单位）必须拆开，不能共享同一个模型。<strong>② 聚合根（Aggregate Root）= 事务与数据边界</strong>：把"必须在同一事务内保持一致"的对象划为一个聚合，仅暴露根实体，外部只能引用根 ID 而非聚合内部对象；一个聚合 = 一个事务 = 一组强一致表，这直接决定库表归属，避免跨服务事务。例如 Order 与 OrderItem 是一个聚合（Order 为根），Order 不直接持有另一个聚合的内部引用。<strong>③ 上下文映射（Context Mapping）= 服务间契约与集成方式</strong>：用模式描述上下文关系——Customer-Supplier（上下游约定）、Anticorruption Layer/ACL（防腐层，新旧系统/单体对接时翻译模型，防止老模型污染新服务）、Open Host Service/OHS + Published Language（对外发布稳定 API 与通用语言）、Separate Ways（两域无强关联就各自为政）。<strong>落地套路</strong>：事件风暴产出限界上下文 → 定义每个上下文内的聚合与根 → 用上下文映射确定服务间是 ACL 还是 OHS 集成，据此生成服务边界、库表归属与接口契约，避免"贫血模型 + 聚合泄漏到服务外"的典型反模式。</div></li>
         </ul>
       </div>
     </div>

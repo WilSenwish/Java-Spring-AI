@@ -304,7 +304,23 @@ sequenceDiagram
               <li><strong>可靠终止</strong>：最后一个 ACK 可能丢失，被动方会重传 FIN，TIME_WAIT 让主动方有机会重发 ACK。MSL（Maximum Segment Lifetime）是报文最大存活时间，2MSL 确保来回都有时间。</li>
               <li><strong>防止旧连接数据包干扰新连接</strong>：若立即复用端口，网络中延迟的旧数据包可能被新连接误收。等待 2MSL 让旧包全部消亡。</li>
             </ol>
-            <p><strong>CLOSE_WAIT 堆积根因</strong>：被动方收到 FIN 发了 ACK，但<strong>应用层未调用 close()</strong>，导致状态卡在 CLOSE_WAIT。常见原因：① 程序 bug 未关闭 Socket；② 后端处理耗时，应用层数据未发完；③ 连接池泄漏。危害：每个 CLOSE_WAIT 占用一个文件描述符，大量堆积会耗尽句柄，导致"Too many open files"。</p>
+            <p><strong>CLOSE_WAIT 堆积根因</strong>：被动方收到 FIN 发了 ACK，但<strong>应用层未调用 close()</strong>，导致状态卡在 CLOSE_WAIT。常见原因：① 程序 bug 未关闭 Socket；② 后端处理耗时，应用层数据未发完；③ 连接池泄漏。危害：每个 CLOSE_WAIT 占用一个文件描述符，大量堆积会耗尽句柄，导致“Too many open files”。</p>
+
+            <p><strong>拥塞控制核心机制（慢启动 / 拥塞避免 / 快速重传）</strong>：发送方维护<strong>拥塞窗口 cwnd</strong>，实际发送窗口 = min(cwnd, 接收窗口 rwnd)。① <strong>慢启动</strong>：初始 cwnd 较小，每收到一个 ACK 指数增长（×2），快速探明可用带宽；② <strong>拥塞避免</strong>：cwnd 达到慢启动阈值 ssthresh 后转线性增长（+1/cwnd 每 RTT），避免激进；③ <strong>丢包响应</strong>：Reno 类在收到 3 个重复 ACK（快速重传）后进入快速恢复，cwnd 降到 ssthresh（约 cwnd/2）再线性恢复；④ <strong>超时</strong>：cwnd 直接归 1 重新慢启动（最严重）。</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>CUBIC（基于丢包，Linux 默认）</th><th>BBR（基于测量，Google）</th></tr></thead>
+              <tbody>
+                <tr><td>探测依据</td><td>丢包即拥塞，降窗</td><td>主动测瓶颈带宽 BtlBw + 最小 RTT</td></tr>
+                <tr><td>高丢包网络</td><td>频繁降窗，吞吐骤降（WiFi/蜂窝差）</td><td>几乎不受随机丢包影响</td></tr>
+                <tr><td>bufferbloat</td><td>易填满缓冲区，RTT 膨胀</td><td>限制 inflight，缓解 bufferbloat</td></tr>
+                <tr><td>公平性</td><td>与同类公平</td><td>共享瓶颈可能过度占用</td></tr>
+                <tr><td>典型场景</td><td>数据中心有线低丢包</td><td>长距离/无线/高丢包</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>拥塞控制回答"网络能承受多少流量"：传统算法把<strong>丢包当拥塞信号</strong>（CUBIC 三次方回退），BBR 改为<strong>直接测量瓶颈带宽与最小 RTT</strong>，在高丢包/长肥网络下吞吐与延迟显著占优，但共享瓶颈下需与 CUBIC 权衡公平性。</p>
+            </div>
           </div>
         </div>
 

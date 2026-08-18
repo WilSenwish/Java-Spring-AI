@@ -24,6 +24,7 @@
         <li><a href="#C04.07"><span class="toc-number">C04.07</span>WebFlux 与 Servlet 模型差异</a></li>
         <li><a href="#C04.08"><span class="toc-number">C04.08</span>结构化并发管理并发任务</a></li>
         <li><a href="#C04.09"><span class="toc-number">C04.09</span>虚拟线程 pinning 排查与治理</a></li>
+        <li><a href="#C04.10"><span class="toc-number">C04.10</span>ScopedValue 替代 ThreadLocal</a></li>
       </ol>
     </aside>
 
@@ -42,11 +43,11 @@
         <h1 class="chapter-title">线程池与虚拟线程</h1>
         <p class="chapter-subtitle">从 Executor 框架到 Java 21 虚拟线程：理解并发模型六代演进、ThreadLocal 引用链泄漏、CompletableFuture 异步编排与结构化并发的范式跃迁</p>
         <div class="chapter-meta">
-          <span>题目数：9</span>
+          <span>题目数：10</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×5</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×2</span>
+          <span>架构级 ×3</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
@@ -1311,6 +1312,87 @@ flowchart TD
                 <li><strong>忽略 JDK 版本差异</strong>：JDK 24+ 已修复 synchronized pinning，用旧版本结论套新版本会误导选型。</li>
                 <li><strong>只看吞吐不看 jdk.VirtualThread.pinned 指标</strong>：pinning 累积到载体线程耗尽才体现吞吐下降，应在指标层提前预警。</li>
                 <li><strong>native 调用直接在虚拟线程执行</strong>：如某些 JNI 库、旧版 JDBC 驱动，应隔离到平台线程池。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C04.10 ScopedValue：虚拟线程时代如何安全传递上下文 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C04.10" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C04.10</div>
+          <div class="qa-question">ScopedValue：虚拟线程时代如何安全传递上下文（替代 ThreadLocal）<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察在 <strong>虚拟线程（百万级并发）</strong> 场景下，传统 <code class="inline-code">ThreadLocal</code> 的固有缺陷（内存泄漏、线程池复用污染、不可继承、与虚拟线程不友好），以及 JDK 21 引入的 <strong>ScopedValue</strong> 如何用"不可变、作用域绑定、可继承"的模型安全传递上下文（traceId / 用户身份 / 租户），是结构化并发（Structured Concurrency）的配套基石。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>ThreadLocal（JDK 1.2）</strong>：每线程一份变量副本，解决线程安全与参数透传。缺陷：需手动 <code class="inline-code">remove()</code> 否则泄漏；线程池复用导致<strong>跨任务值污染</strong>。</p>
+            <p><strong>InheritableThreadLocal</strong>：父子线程继承，但<strong>线程池场景失效</strong>——线程由池创建，任务提交时并非"父子"关系，值不会随任务更新。</p>
+            <p><strong>TransmittableThreadLocal（阿里 TTL）</strong>：通过包装 Runnable/Callable 在任务提交/执行边界拷贝值，解决线程池传递，是框架级补丁。</p>
+            <p><strong>虚拟线程 + ScopedValue（JDK 21）</strong>：虚拟线程轻量到可创建百万级，每个都挂一份 ThreadLocal map 成本过高且不可继承给子任务；ScopedValue 应运而生，与 <code class="inline-code">StructuredTaskScope</code> 配合，子任务自动继承父作用域值。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>ThreadLocal 三重坑</strong>：① <strong>泄漏</strong>：key 是弱引用、value 强引用，未 <code class="inline-code">remove()</code> 则线程存活期间 value 不回收；② <strong>污染</strong>：线程池线程复用，上一任务残留值被下一任务读到；③ <strong>虚拟线程不友好</strong>：不可继承给子任务，且每虚拟线程维护 map 开销大。</p>
+            <p><strong>ScopedValue 模型</strong>：用 <code class="inline-code">ScopedValue.where(KEY, value).run(() -&gt; {...})</code> 在<strong>作用域内</strong>绑定一个<strong>不可变</strong>值；作用域结束自动解除；子任务（结构化并发内）自动看到父作用域值。无 map、无泄漏、无污染、可继承。</p>
+            <div class="code-block"><pre><code><span class="kw">final</span> <span class="kw">static</span> <span class="type">ScopedValue</span>&lt;<span class="type">String</span>&gt; <span class="var">TRACE_ID</span> = <span class="type">ScopedValue</span>.<span class="fn">newInstance</span>();
+
+<span class="com">// 在作用域内绑定，run() 期间及其中派生的子任务都能读到，结束自动解除</span>
+<span class="type">ScopedValue</span>.<span class="fn">where</span>(<span class="var">TRACE_ID</span>, <span class="str">"req-123"</span>).<span class="fn">run</span>(() -&gt; {
+    handleRequest();              <span class="com">// TRACE_ID.get() == "req-123"</span>
+    <span class="com">// 结构化并发派生的子任务自动继承该值</span>
+});
+<span class="com">// 作用域外 TRACE_ID.orElse("none")，无残留、无泄漏</span></code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>ScopedValue 的核心优势是<strong>不可变 + 作用域自动生命周期 + 子任务继承</strong>：它从机制上消灭了 ThreadLocal 的"忘记 remove 泄漏"和"线程池污染"两类问题，并天然契合虚拟线程与结构化并发。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>迁移场景</strong>：请求级上下文（traceId、userId、租户标识）从 ThreadLocal 迁到 ScopedValue，在入口（如 filter/拦截器）用 <code class="inline-code">where(...).run()</code> 包裹业务处理。</p>
+            <p><strong>与结构化并发配合</strong>：在 <code class="inline-code">StructuredTaskScope</code> 内 <code class="inline-code">fork()</code> 的子任务自动继承父作用域的 ScopedValue，无需手动透传，避免"参数一路往下传"的污染风险。</p>
+            <p><strong>兼容性注意</strong>：Spring Security、日志框架（MDC）等仍基于 ThreadLocal，迁移需等生态跟进；过渡期可用 TTL 桥接虚拟线程与旧 ThreadLocal 体系。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：ScopedValue 为什么设计为不可变？</strong> 不可变才能安全被并发子任务共享且无需加锁；若可写，多个虚拟线程继承同一作用域会产生竞争，违背"作用域即契约"的简洁模型。</p>
+            <p><strong>追问 2：ScopedValue 能完全替代 ThreadLocal 吗？</strong> 愿景是，但生态滞后：大量框架（Spring Security、Logback MDC）仍依赖 ThreadLocal 的"可变、跨层透传"语义，短期需共存，长期随结构化并发普及而替换。</p>
+            <p><strong>追问 3：虚拟线程下 ThreadLocal 的开销具体在哪？</strong> 每个虚拟线程有自己的 ThreadLocalMap，百万级虚拟线程意味着百万份 map；且虚拟线程频繁创建销毁，map 的分配/回收成本被放大，而 ScopedValue 复用作用域、零 per-thread 存储。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>以为 ScopedValue 可变/可 set</strong>：它只读绑定，作用域结束自动解除，没有 set/remove API。</li>
+                <li><strong>线程池里 ThreadLocal 跨任务污染</strong>：未清理导致 A 请求读到 B 请求的 userId，必须 try/finally remove。</li>
+                <li><strong>虚拟线程 + 大量 ThreadLocal</strong>：每虚拟线程维护 map，百万级下内存与不可继承问题凸显。</li>
+                <li><strong>误用 InheritableThreadLocal 在线程池</strong>：池化线程非"父子"关系，值不随任务更新，应用 TTL 或 ScopedValue。</li>
+                <li><strong>忘记 ThreadLocal.remove</strong>：在线程池场景几乎必然泄漏或污染，是历史头号坑。</li>
               </ul>
             </div>
           </div>

@@ -32,6 +32,8 @@
         <li><a href="#C11.15"><span class="toc-number">C11.15</span>gRPC + Protobuf 高性能通信原理</a></li>
         <li><a href="#C11.16"><span class="toc-number">C11.16</span>Nacos 与 Apollo 配置中心选型</a></li>
         <li><a href="#C11.17"><span class="toc-number">C11.17</span>数据库迁移 Flyway/Liquibase</a></li>
+        <li><a href="#C11.18"><span class="toc-number">C11.18</span>Kafka vs RocketMQ 选型</a></li>
+        <li><a href="#C11.19"><span class="toc-number">C11.19</span>eBPF 无侵入可观测</a></li>
       </ol>
     </aside>
 
@@ -50,11 +52,11 @@
         <h1 class="chapter-title">中间件与工程化</h1>
         <p class="chapter-subtitle">jBPM→Activiti→Flowable→Camunda 的工作流引擎演进、硬编码→脚本→规则引擎→决策引擎的业务规则演进、OAuth1.0→2.0→2.1 的授权演进、Session→JWT→双Token 的认证演进、Jenkins→GitLab CI→GitOps(ArgoCD) 的 CI/CD 演进、日志→APM→OpenTelemetry→eBPF 的可观测性演进：直击 BPMN 2.0 执行原理、QLExpress/Drools 选型、授权码+PKCE、双 Token 续期、Java Agent 字节码增强、TraceId 透传、OTel Collector、混沌工程稳态假设</p>
         <div class="chapter-meta">
-          <span>题目数：17</span>
+          <span>题目数：19</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×8</span>
+          <span>架构级 ×10</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
@@ -2747,6 +2749,179 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
                 <li><strong>忽略迁移的执行顺序与并发控制</strong>：多人同时新增脚本用了冲突版本号，或多个应用实例同时启动并发执行迁移。Flyway/Liquibase 靠锁表（<code class="inline-code">flyway_schema_history</code> 行锁/<code class="inline-code">DATABASECHANGELOGLOCK</code>）串行化，但版本号冲突需靠时间戳命名 + PR 评审规范避免，<strong>禁止乱序执行</strong>（<code class="inline-code">out-of-order=false</code>）。</li>
                 <li><strong>Expand-Contract 步骤缺失导致中间状态不兼容</strong>：删列与代码切换在同一次发布，发布中途旧代码读到已删列报错。必须严格分多版本：先 Expand（加新列）发布→双写迁数据发布→切读发布→Contract（删旧列）发布，<strong>每步中间状态都兼容新旧代码</strong>，压缩步骤等于在线上裸奔。</li>
                 <li><strong>修改已执行的迁移脚本</strong>：为"修个 typo"改动已合入的脚本，导致 checksum 不匹配启动失败，且破坏多环境一致性。已执行脚本视为不可变，修正应新增脚本，或经审批后 <code class="inline-code">repair</code>。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C11.18 Kafka 与 RocketMQ 如何选型 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C11.18" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C11.18</div>
+          <div class="qa-question">Kafka 与 RocketMQ 如何选型？事务消息/延迟队列场景对比<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对两大主流消息中间件的<strong>原理级差异与场景化选型</strong>：Kafka 以<strong>超高吞吐与流式生态</strong>见长，RocketMQ（阿里）以<strong>金融级可靠、原生事务消息/延迟队列/顺序消息</strong>取胜。本质是"<strong>吞吐/流处理 vs 业务可靠特性</strong>"的取舍。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>Kafka</strong>：LinkedIn 为日志/埋点高吞吐设计，分区 + 顺序写 + 零拷贝 + 页缓存，天然适配流处理（Kafka Streams/Connect/Flink）。</p>
+            <p><strong>RocketMQ</strong>：阿里开源，Java 实现，NameServer 轻量注册；为电商/金融交易打磨出<strong>事务消息、延迟队列、顺序消息、消息回溯</strong>等"业务友好"特性。</p>
+            <p><strong>新变量</strong>：Pulsar（存算分离 + 分层存储）在云原生场景崛起，形成 Kafka/RocketMQ/Pulsar 三足鼎立。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Kafka</th><th>RocketMQ</th></tr></thead>
+              <tbody>
+                <tr><td>吞吐</td><td>极高（分区并行 + 零拷贝）</td><td>高（但偏均衡，单队列串行）</td></tr>
+                <tr><td>事务消息</td><td>弱（EOS 有限，无原生 Half 机制）</td><td>原生强（Half + 回查，解分布式事务）</td></tr>
+                <tr><td>延迟队列</td><td>需外挂（时间轮/独立 topic）</td><td>原生（18 个固定延迟 level）</td></tr>
+                <tr><td>顺序消息</td><td>分区内有序</td><td>队列维度顺序 + 严格模式</td></tr>
+                <tr><td>流处理生态</td><td>极强（Streams/Connect/Flink）</td><td>弱</td></tr>
+                <tr><td>运维/管控</td><td>生态成熟但偏底层</td><td>管控台友好、排查直观</td></tr>
+              </tbody>
+            </table>
+            <p><strong>RocketMQ 事务消息原理</strong>：① 发 Half（预备）消息，对消费者不可见；② 执行本地事务；③ 根据结果 Commit/Rollback；④ 若状态未知，Broker 定时<strong>回查</strong>生产者确认最终状态。从而把"本地 DB 事务"与"消息发送"对齐为最终一致。</p>
+            <div class="code-block"><pre><code><span class="com">// RocketMQ 事务消息：Half → 本地事务 → Commit/Rollback → 回查</span>
+<span class="type">TransactionMQProducer</span> <span class="var">p</span> = <span class="kw">new</span> <span class="type">TransactionMQProducer</span>(<span class="str">"tx_group"</span>);
+<span class="var">p</span>.<span class="fn">setTransactionListener</span>(<span class="kw">new</span> <span class="type">TransactionListener</span>() {
+    <span class="kw">public</span> <span class="type">LocalTransactionState</span> <span class="fn">executeLocalTransaction</span>(msg, arg) {
+        <span class="kw">return</span> orderService.<span class="fn">create</span>(arg) ? COMMIT : ROLLBACK; <span class="com">// 本地事务结果</span>
+    }
+    <span class="kw">public</span> <span class="type">LocalTransactionState</span> <span class="fn">checkLocalTransaction</span>(msg) {
+        <span class="kw">return</span> orderService.<span class="fn">exists</span>(msg) ? COMMIT : UNKNOW; <span class="com">// 回查</span>
+    }
+});</code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>选型：<strong>日志/埋点/流处理/高吞吐</strong> → Kafka；<strong>电商交易/分布式事务/延迟任务/顺序消费</strong> → RocketMQ。二者都需消费端<strong>幂等</strong>。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>延迟队列</strong>：RocketMQ 用 <code class="inline-code">setDelayTimeLevel(3)</code> 支持固定档位（如 10s/30s/1m…），自定义任意时间需外挂 timing wheel 或改 level 配置；Kafka 无原生延迟，常用"独立延迟 topic + 时间轮"或外部调度实现。</p>
+            <p><strong>顺序消息</strong>：RocketMQ 用 <code class="inline-code">MessageQueueSelector</code> 按业务 key（如订单号）路由到同一队列，保证队列内严格有序。</p>
+            <p><strong>幂等消费</strong>：无论是 Kafka 的 at-least-once 还是 RocketMQ 重投，消费端必须按业务唯一键做幂等（去重表/版本号）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Kafka 为什么不适合做强事务消息？</strong> Kafka 的 exactly-once 是"读-处理-写"的有限 EOS，没有 RocketMQ 的 Half+回查机制，难以把"外部 DB 事务"与"消息"对齐为最终一致。</p>
+            <p><strong>追问 2：RocketMQ 回查机制为何必要？</strong> 本地事务执行后生产者宕机，Broker 不知道 Commit/Rollback，必须回查生产者恢复最终状态，否则消息永久半消息或误决。</p>
+            <p><strong>追问 3：为什么阿里系面试爱问 RocketMQ？</strong> 阿里系（淘宝/支付宝）大量使用，事务消息/顺序消息/延迟队列是电商交易核心能力，考察候选人对业务可靠消息的实战理解。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>以为 Kafka 不能做事务</strong>：能做但弱，复杂分布式事务不如 RocketMQ 事务消息。</li>
+                <li><strong>RocketMQ 延迟队列只有固定 level</strong>：自定义任意时间需改配置或外挂，别假定支持任意毫秒。</li>
+                <li><strong>顺序消息只保证队列内</strong>：必须按业务 key 路由同一队列，否则跨队列无序。</li>
+                <li><strong>消息堆积不监控</strong>：两者堆积都会拖慢消费、放大延迟，需积压告警。</li>
+                <li><strong>重复消费未做幂等</strong>：at-least-once 下重复是常态，消费端必须幂等。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C11.19 eBPF 无侵入可观测：内核级采集与 OTel/Agent 边界 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C11.19" data-difficulty="architect" data-priority="p2">
+        <div class="qa-header">
+          <div class="qa-badge">C11.19</div>
+          <div class="qa-question">eBPF 无侵入可观测：内核级采集与 OTel/Agent 边界<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对 <strong>eBPF 无侵入可观测能力</strong> 的理解，以及它和传统 <strong>APM Agent / OpenTelemetry 埋点</strong> 的边界分工：eBPF 在内核态挂载钩子，<strong>不改应用代码、不注入 Agent</strong> 即可采集网络、系统调用、文件 IO、函数延迟等底层信号，是 2025-26 云原生可观测的新范式。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>内核模块（危险）</strong>：直接改内核，崩溃风险高、需重编内核。</p>
+            <p><strong>cBPF → eBPF</strong>：eBPF 引入<strong>校验器（verifier）</strong>，保证程序安全（不会死循环/越界）后才注入内核，无需改内核源码或重启。</p>
+            <p><strong>CO-RE 与生态</strong>：BTF + CO-RE 实现"一次编译到处运行"；生态涌现 bcc/BCC、Cilium/Hubble、Pixie（自动抓请求/SQL）、Parca（持续 Profiling）、OpenTelemetry eBPF 导出器。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>机制</strong>：eBPF 程序挂载到内核钩子（<code class="inline-code">kprobe</code>/<code class="inline-code">uprobe</code>/tracepoint/<code class="inline-code">XDP</code>/TC），运行时由校验器确保内存安全，通过 <code class="inline-code">perf buffer</code>/<code class="inline-code">ring buffer</code> 把数据送用户态。可观测 TCP 重传、syscall 延迟、调度延迟、文件 IO。</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>eBPF</th><th>APM Agent / OTel</th></tr></thead>
+              <tbody>
+                <tr><td>注入位置</td><td>内核态（钩子）</td><td>用户态（字节码增强/SDK 埋点）</td></tr>
+                <tr><td>侵入性</td><td>零侵入，不改应用</td><td>需注入 Agent 或改代码埋点</td></tr>
+                <tr><td>采集层次</td><td>网络栈/系统调用/调度（更底层）</td><td>应用/框架/业务语义（更上层）</td></tr>
+                <tr><td>业务语义</td><td>弱（拿不到 SQL 内容需 uprobe 解析）</td><td>强（方法名/参数/链路 span）</td></tr>
+                <tr><td>门槛</td><td>高（C + 内核知识）</td><td>低（SDK/自动增强）</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>eBPF 与 Agent <strong>互补而非替代</strong>：eBPF 负责"内核态无侵入的底层信号"（网络/IO/延迟），Agent/OTel 负责"用户态业务语义"（链路/方法/SQL 内容）。二者数据可由 OTel 统一采集导出。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>典型场景</strong>：① K8s 网络排查（Cilium + Hubble 看服务间流量、重传、丢包）；② 数据库慢查询根因（eBPF 抓 syscall/IO 延迟，定位是网络还是磁盘）；③ 无侵入 APM（Pixie 自动捕获请求与 SQL，无需埋点）；④ 持续 Profiling（Parca/Pixie 抓 CPU 火焰图）。</p>
+            <p><strong>落地建议</strong>：优先用成熟工具（Cilium/Pixie/bcc）而非自写 eBPF；OTel 可对接 eBPF exporter 统一可观测底座。</p>
+            <p><strong>局限</strong>：内核版本要求（建议 4.9+/5.x 更佳）；业务语义（如完整 SQL 文本、用户态对象）仍需 Agent/uprobe 配合；编写调优门槛高。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：eBPF 能完全替代 APM Agent 吗？</strong> 不能。eBPF 在内核态拿不到上层业务语义（如 Spring 方法入参、完整 SQL 文本），这类需用户态 Agent 或 uprobe 解析；二者应协同。</p>
+            <p><strong>追问 2：eBPF 相比 Sidecar 开销如何？</strong> eBPF 在内核态，无 Sidecar 的额外网络跳数与资源占用，对延迟敏感应用更友好；但覆盖范围（如七层协议解析）不如 Sidecar 灵活。</p>
+            <p><strong>追问 3：安全边界是什么？</strong> 校验器强制内存安全、禁止越界/死循环/非法帮定，且需 <code class="inline-code">CAP_BPF</code>/<code class="inline-code">CAP_SYS_ADMIN</code> 权限；绝不能加载未经验证器校验的 eBPF 程序。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>以为 eBPF 能全替代 Agent</strong>：内核态拿不到业务语义（SQL 内容需用户态解析）。</li>
+                <li><strong>忽略内核版本门槛</strong>：老内核（&lt;4.9）不支持 CO-RE，需评估升级。</li>
+                <li><strong>低估编写门槛</strong>：需 C + 内核知识，应直接用 bcc/Pixie/Cilium 而非从零写。</li>
+                <li><strong>加载未校验程序</strong>：绕过校验器有安全风险，必须走校验流程。</li>
+                <li><strong>与现有 APM 重复建设</strong>：应先明确 eBPF 管底层、Agent 管语义的分工。</li>
               </ul>
             </div>
           </div>
