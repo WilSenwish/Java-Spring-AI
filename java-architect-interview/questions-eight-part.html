@@ -267,6 +267,8 @@
           <li><a href="#E03.04"><span class="toc-number">E03.04</span>Java AQS 与 ReentrantLock</a></li>
           <li><a href="#E03.05"><span class="toc-number">E03.05</span>ThreadLocal 原理与内存泄漏</a></li>
           <li><a href="#E03.06"><span class="toc-number">E03.06</span>Virtual Threads pinning 排查</a></li>
+          <li><a href="#E03.07"><span class="toc-number">E03.07</span>synchronized 锁升级与虚拟线程适配</a></li>
+          <li><a href="#E03.08"><span class="toc-number">E03.08</span>CAS 原子类与 LongAdder 高并发计数</a></li>
         </ol>
       </div>
 
@@ -1228,6 +1230,112 @@
           <span class="epq-tag">JDK 21</span>
           <span class="epq-tag">性能排查</span>
           <span class="epq-tag">并发</span>
+        </div>
+      </div>
+
+
+
+      <!-- ============================== -->
+      <!-- E03.07 synchronized 锁升级 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E03.07" data-difficulty="senior" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E03.07</div>
+          <div class="epq-question">synchronized 锁升级：偏向锁废弃、轻量级锁与重量级锁、Mark Word 布局、JEP 491 虚拟线程适配<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>锁升级路径：无锁 → 偏向锁（已废弃）→ 轻量级锁（自旋 CAS）→ 重量级锁（OS Mutex Park）</li>
+            <li>Mark Word 布局（64 位）：25bit HashCode + 31bit ThreadID + 1bit 偏向标志 + 4bit GC 年龄 + 1bit 锁标志位（偏向锁时代）；废弃偏向锁后 HashCode 位扩展，锁状态简化为 3 种</li>
+            <li>JDK 15 废弃并默认关闭偏向锁（JEP 374），BiasedLockingStartupDelay 默认值从 4000ms 改为 0ms；JDK 18 起移除该启动参数，Mark Word 中偏向锁位被回收</li>
+            <li>轻量级锁：线程栈帧 Lock Record 拷贝 Mark Word，CAS 替换对象头指向 Lock Record；竞争时自旋重试，避免 OS 互斥量开销</li>
+            <li>重量级锁：自旋失败后膨胀为 ObjectMonitor，线程 park 进入等待队列；JDK 24+（JEP 491）重构 ObjectMonitor 为可虚拟化，synchronized 块内 park 时虚拟线程可正常卸载</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>锁升级流程</strong>：① 对象初始为无锁状态（标志位 01）；② <strong>偏向锁</strong>——首个线程进入同步块时，CAS 将 ThreadID 写入 Mark Word，后续同线程重入只需比对 ThreadID（无 CAS 无自旋）；③ <strong>轻量级锁</strong>——出现第二个线程竞争时，偏向锁撤销，线程栈帧 Lock Record 拷贝当前 Mark Word，CAS 将对象头指向 Lock Record 指针（标志位 00），竞争方自旋重试；④ <strong>重量级锁</strong>——自旋超过阈值（默认自适应）或等待线程过多，膨胀为 ObjectMonitor（标志位 10），竞争失败线程 park 进入 EntryList。</p>
+          <p><strong>偏向锁废弃背景</strong>（JEP 374，JDK 15）：偏向锁的收益依赖"同一线程重入"场景，但现代应用大量使用线程池轮转执行 + synchronized 粒度已较细，偏向锁撤销（safepoint 全局 STW）的开销反而超过收益。HotSpot 维护偏向锁代码增加了 synchronized 与虚拟线程协作改造的复杂度，废弃后锁状态从 4 种简化为 3 种（无锁/轻量级/重量级），代码更易维护。</p>
+          <p><strong>JEP 491 与虚拟线程</strong>：JDK 21 虚拟线程在 synchronized 块内 park 会被"钉住"在载体线程上（ObjectMonitor 与 Continuation 协作未完成），载体线程被阻塞导致吞吐坍塌。JDK 24+ 重构 ObjectMonitor 实现，使其可虚拟化——synchronized 块内 park 时虚拟线程可正常 unmount 载体线程，消除了最主要的 pinning 源。JDK 24+ 不必再为 pinning 回避 synchronized。</p>
+          <p><strong>紧凑对象头</strong>（JEP 519，JDK 25+）：可选启用 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>（默认关闭），将对象头压缩至 64 位（传统默认 96 位），Mark Word 位布局有调整。启用后 Mark Word 仍需容纳 HashCode + GC 年龄 + 锁标志位，轻量级锁的 Lock Record 机制不变，但可用位数减少。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>JDK 21 虚拟线程场景：若 synchronized 密集且 IO 阻塞多，优先升级 JDK 24+（JEP 491 根治 pinning）或改用 <code class="inline-code">ReentrantLock</code>（await/signal 可让虚拟线程 unmount）。JDK 15+ 不再依赖偏向锁，低竞争场景 synchronized 性能已足够好，无需刻意改用 ReentrantLock。使用 JOL（Java Object Layout）观察对象头布局时需注意是否启用了紧凑对象头。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 偏向锁为什么在 JDK 15 废弃而不是直接删除？</span><span class="a">A: 废弃（Deprecated）给了生态适配窗口——先默认关闭（BiasedLockingStartupDelay=0），JDK 18 才移除启动参数，完全清理代码在后续版本渐进完成。避免一次性删除导致依赖偏向锁行为的旧应用性能回归无法排查。</span></li>
+            <li><span class="q">Q: 轻量级锁自旋的退出条件是什么？</span><span class="a">A: 自旋采用自适应策略（Adaptive Spinning）：① 固定次数限制（避免 CPU 空转）；② 历史成功率动态调整——上次自旋成功则增加自旋次数，上次失败则减少甚至跳过自旋直接膨胀。自适应策略使 JVM 根据运行时竞争强度自动调优。</span></li>
+            <li><span class="q">Q: JDK 24+ synchronized 不再 pin 虚拟线程，ReentrantLock 还有必要吗？</span><span class="a">A: 仍有必要——ReentrantLock 支持公平锁、可中断 lock、超时 tryLock、多条件变量（Condition）、非块状锁定（跨方法 lock/unlock）。synchronized 只解决 pinning，不解决功能差异。需要这些高级特性时仍用 ReentrantLock。</span></li>
+            <li><span class="q">Q: 重量级锁的 ObjectMonitor 与 AQS 有何本质区别？</span><span class="a">A: ObjectMonitor 是 JVM 内置的 Monitor 实现（C++），通过 OS Mutex/Park 完成；AQS 是 Java 层框架，通过 CLH 变体队列 + LockSupport.park/unpark 完成。ObjectMonitor 的 EntryList 是平台相关的；AQS 的等待队列可被 Java 代码精细控制（取消、超时、条件变量）。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">synchronized</span>
+          <span class="epq-tag">锁升级</span>
+          <span class="epq-tag">Mark Word</span>
+          <span class="epq-tag">JEP 491</span>
+        </div>
+      </div>
+
+
+
+      <!-- ============================== -->
+      <!-- E03.08 CAS 原子类与 LongAdder -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E03.08" data-difficulty="senior" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E03.08</div>
+          <div class="epq-question">CAS 原子类与 LongAdder：AtomicInteger/AtomicLong 瓶颈、LongAdder 分段累加、VarHandle 替代 Unsafe、StampedLock 乐观读<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>CAS 原理：CPU 指令级原子操作（x86 <code class="inline-code">lock cmpxchg</code>，ARM <code class="inline-code">LDREX/STREX</code>），Java 通过 <code class="inline-code">Unsafe.compareAndSwapXxx</code>（JDK 8）或 <code class="inline-code">VarHandle.compareAndSet</code>（JDK 9+）暴露</li>
+            <li>原子类层级：<code class="inline-code">AtomicInteger</code>/<code class="inline-code">AtomicLong</code>（单变量 CAS）→ <code class="inline-code">AtomicReference</code>（引用 CAS）→ <code class="inline-code">AtomicStampedReference</code>（版本号防 ABA）→ <code class="inline-code">LongAdder</code>/<code class="inline-code">DoubleAdder</code>（分段累加降低竞争）</li>
+            <li>LongAdder 原理：base + Cell[] 分段，各线程先累加到自己的 Cell（CAS 失败则换 Cell），读时 sum(base + allCells)；高并发下竞争分散到多个 Cell，比 AtomicLong 的单点 CAS 快数倍</li>
+            <li>VarHandle（JDK 9+）：替代 <code class="inline-code">Unsafe</code> 的官方 API，提供类型安全的 CAS/read/write 操作与内存排序控制（<code class="inline-code">MemoryMode</code>），<code class="inline-code">Unsafe</code> 在后续版本逐步移除</li>
+            <li>StampedLock（JDK 8+）：乐观读锁 + 悲观读锁 + 写锁三模式，乐观读无锁（stamp 校验），适合读多写少且能容忍乐观读失败重试的场景</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>AtomicLong 高并发瓶颈</strong>：所有线程 CAS 竞争同一个 value 字段，高并发下大量 CAS 失败重试 + 缓存行频繁失效（MESI 协议），CPU 飙高但有效吞吐不增。<code class="inline-code">LongAdder</code> 将竞争分散——内部维护 base + Cell[] 数组（默认 CPU 核数个 Cell），写线程通过 <code class="inline-code">ThreadLocalRandom</code> 探测哈希分配到不同 Cell，仅当所有 Cell 都 CAS 失败时 fallback 到 base。读时 <code class="inline-code">sum()</code> 遍历所有 Cell 求和（非精确一致，最终一致）。</p>
+          <p><strong>LongAdder vs AtomicLong 选型</strong>：① 计数统计场景（QPS/访问量/延迟采集）选 LongAdder——高并发写、低精度读即可；② 精确值场景（序列号/余额）选 AtomicLong——需强一致读；③ 低并发两者差异可忽略，AtomicLong 更简单。<code class="inline-code">LongAdder</code> 内存占用更高（Cell[] 数组），<code class="inline-code">sum()</code> 不保证原子一致性。</p>
+          <p><strong>VarHandle 替代 Unsafe</strong>：JDK 9 引入 <code class="inline-code">java.lang.invoke.VarHandle</code>，通过 <code class="inline-code">MethodHandles.lookup().findVarHandle(...)</code> 获取字段句柄，提供 <code class="inline-code">compareAndSet</code>/<code class="inline-code">getAndAdd</code>/<code class="inline-code">getOpaque</code>/<code class="inline-code">getAcquire</code> 等操作，显式指定内存可见性语义。<code class="inline-code">sun.misc.Unsafe</code> 是内部 API，JDK 逐步移除（JEP 471 在 JDK 23+ 移除部分功能），新代码应使用 VarHandle。</p>
+          <p><strong>StampedLock 乐观读</strong>：① <code class="inline-code">tryOptimisticRead()</code> 返回 stamp（无锁）；② 读完后 <code class="inline-code">validate(stamp)</code> 校验期间是否有写操作（通过 volatile stamp 字段比对）；③ 校验失败则升级为悲观读锁重试。优势：读路径完全无 CAS 无自旋，在读远多于写时性能优于 <code class="inline-code">ReentrantReadWriteLock</code>。注意：StampedLock 不可重入，悲观写锁会阻塞所有乐观读（validate 返回 false）。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>高并发计数器：<code class="inline-code">LongAdder</code> 替代 <code class="inline-code">AtomicLong</code>，8 核以上高竞争场景吞吐提升 2-5 倍。读写锁选型：读多写少且读操作短 → StampedLock（乐观读零开销）；需可重入或 Condition → ReentrantReadWriteLock。缓存行伪共享：<code class="inline-code">@Contended</code> 注解 + <code class="inline-code">-XX:-RestrictContended</code> 启用，对高频 CAS 字段填充隔离缓存行。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: LongAdder 的 sum() 为什么不保证一致性？</span><span class="a">A: sum() 遍历 Cell[] 时其他线程可能正在更新某个 Cell，读到的是旧值；但最终（所有写线程停止后）sum 一定收敛到正确值。这是"最终一致"语义，适合统计场景，不适合精确控制流（如 compareAndSet 决策）。</span></li>
+            <li><span class="q">Q: VarHandle 相比 Unsafe 有什么安全优势？</span><span class="a">A: ① 类型安全——VarHandle 绑定字段类型，编译期检查；② 内存排序显式——通过 MemoryMode 指定 ACQUIRE/RELEASE/OPAQUE 等语义，而非 Unsafe 的全屏障；③ 官方 API 稳定——Unsafe 是 sun.misc 内部 API，JEP 471 在 JDK 23+ 逐步移除，VarHandle 是 long-term 替代。</span></li>
+            <li><span class="q">Q: StampedLock 的乐观读失败率高时性能如何？</span><span class="a">A: 写操作频繁时 validate 失败率高，频繁升级悲观读锁重试，性能退化为甚至不如 ReentrantReadWriteLock（多了 stamp 校验开销）。StampedLock 适合写操作占比 &lt;5% 且读操作较短的场景。</span></li>
+            <li><span class="q">Q: ABA 问题在什么场景下会引发实际 Bug？</span><span class="a">A: 无锁栈/队列——节点被弹出后重新压入，CAS 误判"未变化"；资源池——对象被归还后被取出再归还，状态检查 CAS 误判"未被使用"。金额/计数场景一般不受 ABA 影响（值本身就是状态）。AtomicStampedReference 携带版本号解决。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">CAS</span>
+          <span class="epq-tag">LongAdder</span>
+          <span class="epq-tag">VarHandle</span>
+          <span class="epq-tag">StampedLock</span>
         </div>
       </div>
 

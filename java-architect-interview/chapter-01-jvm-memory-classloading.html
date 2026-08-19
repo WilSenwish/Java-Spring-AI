@@ -217,7 +217,7 @@ graph TD
           <div class="qa-layer-body">
             <p><strong>句柄访问 → 直接指针</strong>：早期 JVM（如部分实现）使用句柄池，对象引用指向句柄，句柄再指向对象实例与类数据。优点是对象移动（GC 时）只需改句柄，缺点是多一次指针跳转。HotSpot 最终选择<strong>直接指针</strong>，引用直接指向堆中对象，访问更快，代价是 GC 移动对象时需更新所有引用。</p>
             <p><strong>无 TLAB → TLAB</strong>：早期堆分配全局竞争（CAS 指针碰撞），多线程分配高并发下性能差。引入 <strong>TLAB（Thread Local Allocation Buffer）</strong>后，每个线程在 Eden 区预分配一块私有内存，线程内分配无锁，全局仅当 TLAB 耗尽时才同步申请新块。</p>
-            <p><strong>Mark Word 演进</strong>：32 位时代的 Mark Word 32bit；64 位时代扩展到 64bit（开启压缩指针仍紧凑布局）；<strong>JDK 15 废弃偏向锁</strong>（JEP 374）后，Mark Word 中偏向锁位被回收，锁状态从 4 种简化为 3 种。</p>
+            <p><strong>Mark Word 演进</strong>：32 位时代的 Mark Word 32bit；64 位时代扩展到 64bit（开启压缩指针仍紧凑布局）；<strong>JDK 15 废弃并默认关闭偏向锁</strong>（JEP 374，BiasedLockingStartupDelay 默认值从 4000ms 改为 0ms；JDK 18 起移除该启动参数）后，Mark Word 中偏向锁位被回收，锁状态从 4 种简化为 3 种。</p>
             <p><strong>未来趋势</strong>：JEP 454（Foreign Function &amp; Memory API，JDK 22 Final）与值类型（Project Valhalla）将引入"内联类型"，打破"对象必有对象头"的传统布局，有望消除长期存在的对象头开销（64 位下默认 12-16 字节）。</p>
           </div>
         </div>
@@ -329,7 +329,7 @@ graph LR
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>误以为对象头固定大小</strong>：对象头大小取决于位数（32/64）和压缩指针开关，数组对象还多 4 字节长度位。</li>
-                <li><strong>混淆 Mark Word 的锁状态位</strong>：JDK 15 废弃偏向锁后，"01"不再区分无锁/偏向锁，Mark Word 布局已变化。</li>
+                <li><strong>混淆 Mark Word 的锁状态位</strong>：JDK 15 废弃并默认关闭偏向锁后，"01"不再区分无锁/偏向锁，Mark Word 布局已变化。</li>
                 <li><strong>以为 new 之后立即可见</strong>：在构造方法执行前，对象内存虽已零值初始化，但字段尚未赋值，此时其他线程通过引用看到的对象是半初始化状态——这正是 DCL 单例需要 volatile 的根因。</li>
                 <li><strong>忽略对齐填充</strong>：对象大小非 8 的倍数时会填充，影响内存占用估算，尤其在海量小对象场景。</li>
               </ul>

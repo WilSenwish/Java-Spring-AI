@@ -262,8 +262,8 @@ sequenceDiagram
           <div class="qa-layer-body">
             <p><strong>JDK 1.0~1.3：重量级锁独占</strong>。synchronized 直接映射到 OS 的互斥量（mutex），每次加锁解锁都涉及用户态/内核态切换，开销巨大。这也是早期 Java"慢"的代名词之一，Doug Lea 的 util.concurrent 库正是为了绕开它而生。</p>
             <p><strong>JDK 6（2006）：锁优化大爆发</strong>。HotSpot 引入偏向锁、轻量级锁、自旋锁、锁消除、锁粗化五项优化，让 synchronized 在无竞争/低竞争场景下性能逼近 ReentrantLock。这是"synchronized 性能不再差"的认知转折点。</p>
-            <p><strong>JDK 15（2020）：偏向锁废弃（JEP 374）</strong>。Oracle 发现偏向锁维护成本高（占 HotSpot 同步子系统的 5%~10% 代码）、收益在现代 CAS 指令下递减，且与 Virtual Threads 等新特性冲突，正式废弃。<strong>synchronized 回归到"轻量级锁 + 重量级锁"两级</strong>。</p>
-            <p><strong>未来趋势</strong>：synchronized 与 ReentrantLock 的性能差距已可忽略。JDK 24（JEP 491，2025）重构了 synchronized 实现（ObjectMonitor 改造为可虚拟化），允许虚拟线程在 synchronized 块内 park 时正常卸载，消除了最主要的 pinning 源。JDK 24+ 不必再为 pinning 而回避 synchronized。</p>
+            <p><strong>JDK 15（2020）：偏向锁废弃并默认关闭（JEP 374）</strong>——BiasedLockingStartupDelay 默认值从 4000ms 改为 0ms（等效禁用），<code class="inline-code">-XX:+UseBiasedLocking</code> 标记废弃；JDK 18 起移除启动延迟参数。Oracle 发现偏向锁维护成本高（占 HotSpot 同步子系统的 5%~10% 代码）、收益在现代 CAS 指令下递减，且与 Virtual Threads 等新特性冲突，正式废弃并默认关闭。<strong>synchronized 回归到"轻量级锁 + 重量级锁"两级</strong>。</p>
+            <p><strong>未来趋势</strong>：synchronized 与 ReentrantLock 的性能差距已可忽略。JDK 24+（JEP 491）重构了 synchronized 实现（ObjectMonitor 改造为可虚拟化），允许虚拟线程在 synchronized 块内 park 时正常卸载，消除了最主要的 pinning 源。JDK 24+ 不必再为 pinning 而回避 synchronized。</p>
           </div>
         </div>
 
@@ -325,7 +325,7 @@ graph TD
 
             <p><strong>额外优化：锁消除与锁粗化</strong>。锁消除基于逃逸分析——若 JIT 判定 StringBuffer 只在方法内使用（无逃逸），会消除其 synchronized。锁粗化则是把相邻的多次对同一对象的加锁合并为一次，减少加锁次数。</p>
 
-            <p>JDK 25（JEP 519）引入紧凑对象头（可选启用 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>，默认关闭），将对象头压缩至 64 位（传统默认 96 位、未压缩场景 128 位），Mark Word 位布局有调整；传统对象头仍为默认，使用 JOL 观察时需注意是否启用该特性。</p>
+            <p>JDK 25+（JEP 519）引入紧凑对象头（可选启用 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>，默认关闭），将对象头压缩至 64 位（传统默认 96 位、未压缩场景 128 位），Mark Word 位布局有调整；传统对象头仍为默认，使用 JOL 观察时需注意是否启用该特性。</p>
           </div>
         </div>
 

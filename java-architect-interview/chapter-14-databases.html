@@ -79,7 +79,7 @@
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart LR
-    A["文档型 DB<br/>MongoDB 1.x<br/>（2009）<br/>单机 BSON"] --> B["分片集群<br/>2.2-3.x<br/>水平扩展"]
+    A["文档型 DB<br/>MongoDB 1.x<br/>（2009）<br/>单机 BSON"] --> B["分片集群<br/>2.2-3.x<br/>（2012）<br/>水平扩展"]
     B --> C["副本集+WiredTiger<br/>3.0（2015）<br/>高可用+MVCC"]
     C --> D["多文档事务<br/>4.0（2018）<br/>跨文档 ACID"]
     D --> E["时间窗事务<br/>5.0（2021）<br/>长事务支持"]
@@ -93,7 +93,7 @@ flowchart LR
             </div>
 
             <p><strong>MongoDB 1.x（2009）</strong>：单机文档数据库，BSON 文档模型解决关系库 schema 僵化问题，但无水平扩展、无事务、无高可用，定位"高性能读写的灵活存储"。</p>
-            <p><strong>分片集群（2.2-3.x）</strong>：引入 Sharded Cluster，通过 mongos 路由 + Config Server 元数据 + Shard 分片实现水平扩展。数据按分片键分到不同 Shard，Chunk 迁移自动均衡。从此 MongoDB 可承载 TB 级数据。</p>
+            <p><strong>分片集群（2.2-3.x，2012-2014）</strong>：引入 Sharded Cluster，通过 mongos 路由 + Config Server 元数据 + Shard 分片实现水平扩展。数据按分片键分到不同 Shard，Chunk 迁移自动均衡。从此 MongoDB 可承载 TB 级数据。</p>
             <p><strong>副本集 + WiredTiger（3.0，2015）</strong>：默认存储引擎从 MMAPv1 切换到 WiredTiger（B+ 树 + MVCC + 文档级锁），并发与压缩大幅提升；副本集（Replica Set）提供自动故障转移，弥补早期单点问题。</p>
             <p><strong>多文档事务（4.0，2018）</strong>：副本集内支持多文档 ACID 事务；4.2 扩展到分片集群跨分片事务（两阶段提交 2PC）。这是 MongoDB 从" NoSQL"向"NewSQL 兼容"的关键转身，但仍不鼓励大事务。</p>
             <p><strong>时间窗事务（5.0，2021）</strong>：放宽事务执行时间限制，支持更长窗口的事务（如对账、ETL），同时引入在线分片集合重新分片（resharding）。</p>
@@ -137,7 +137,7 @@ flowchart TD
 
             <p><strong>WiredTiger 存储引擎</strong>：默认引擎，核心三点：① <strong>B+ 树索引</strong>——文档按 _id 与二级索引组织成 B+ 树，查询走索引定位；② <strong>MVCC 多版本并发控制</strong>——每个事务看到一致性快照，读写不阻塞，结合 <code class="inline-code">snapshot</code> 隔离级别；③ <strong>文档级锁</strong>——锁粒度到单文档（早期 MMAPv1 是集合级甚至全局锁），并发大幅提升；④ <strong>压缩</strong>——Snappy/Zstd 压缩减少磁盘占用，检查点（checkpoint，默认 60s）刷盘。</p>
 
-            <p><strong>多文档事务（4.0+）</strong>：副本集事务由 Primary 协调，写操作记录到 oplog 同步到 Secondary；跨分片事务（4.2+）采用<strong>两阶段提交（2PC）</strong>——协调者（Primary 所在 Shard）先 prepare 各参与 Shard，全部 prepare 成功后 commit，任一失败则 abort。事务隔离级别为 <strong>snapshot</strong>（快照隔离），但事务有<strong>时间限制（默认 60s）与 oplog 大小限制</strong>，不适合大事务。</p>
+            <p><strong>多文档事务（4.0+）</strong>：副本集事务由 Primary 协调，写操作记录到 oplog 同步到 Secondary；跨分片事务（4.2+）采用<strong>两阶段提交（2PC）</strong>——协调者（Primary 所在 Shard）先 prepare 各参与 Shard，全部 prepare 成功后 commit，任一失败则 abort。事务隔离级别为 <strong>snapshot</strong>（快照隔离）。<strong>事务约束</strong>：① 事务超时默认 60s（<code class="inline-code">transactionLifetimeLimitSeconds</code> 可调），超时自动 abort；② 单条 oplog 条目上限 16MB（BSON 文档限制），大事务产生多条 oplog 条目导致复制延迟增大；③ 跨分片事务 2PC 协调阶段持锁时间长，易引发锁竞争与协调者单点压力。因此 MongoDB 事务适合短事务 OLTP 场景，不适合大批量 ETL 或长分析查询。</p>
 
             <table class="compare-table">
               <thead><tr><th>维度</th><th>MongoDB（文档型）</th><th>MySQL（关系型）</th></tr></thead>
@@ -756,6 +756,7 @@ flowchart LR
             <p><strong>TiDB（2015，PingCAP）</strong>：开源 NewSQL，架构分三层——TiDB（SQL 层，无状态）+ TiKV（分布式 KV 行存，Raft 多副本）+ PD（Placement Driver，调度）。兼容 MySQL 协议，应用迁移成本低。用 Raft 替代 Paxos（更易理解实现），用 Percolator 替代 TrueTime（无需原子钟）。</p>
             <p><strong>HTAP（TiFlash）</strong>：引入 TiFlash 列存节点，通过 Raft Learner 异步复制 TiKV 行存数据成列存。OLTP 走 TiKV（行存点查快），OLAP 走 TiFlash（列存扫描快），<strong>行列物理隔离互不干扰</strong>，强一致（TiFlash 可配强一致读）。</p>
             <p><strong>演进驱动力</strong>：① <strong>透明扩展</strong>——分库分表应用侵入大，NewSQL 对应用透明；② <strong>一致性</strong>——分库分表跨库事务难，NewSQL 原生分布式 ACID；③ <strong>行列共存</strong>——OLTP 与 OLAP 分库（MySQL+ClickHouse）数据同步复杂，HTAP 一套搞定。</p>
+            <p><strong>TiDB 版本演进</strong>：⑤ <strong>TiDB 5.x（2021-2022）</strong>——TiFlash GA、HTAP 成熟、TiDB Cloud 上线；⑥ <strong>TiDB 6.x（2022-2023）</strong>——Placement Rules（按标签将 Region 调度到指定节点，实现冷热数据分离与多租户资源隔离）、TiFlash 资源隔离（独立计算资源池）、并行 DDL（大表加索引速度提升数倍）；⑦ <strong>TiDB 7.x（2023-2024）</strong>——Resource Control（资源组限流，按租户/优先级分配 CPU/IO 配额）、Global Sort（分布式排序解决大规模 DDL 回填的内存瓶颈）、TiDB Cloud Serverless（按量付费的 Serverless HTAP）；⑧ <strong>TiDB 8.x（2024+）</strong>——Vector Search（向量检索，支持 AI/RAG 场景）、Distributed Task Framework（分布式后台任务调度，替代 TiDB Lightning 的部分场景）。选型要点：6.x 的 Placement Rules + 资源隔离是生产级 HTAP 的关键里程碑；7.x 的 Resource Control 使多租户隔离可行；8.x 的 Vector Search 使 TiDB 兼具关系 + 向量检索能力。</p>
           </div>
         </div>
 
@@ -911,6 +912,7 @@ flowchart LR
             <p><strong>ClickHouse（2016，Yandex 开源）</strong>：为 OLAP 分析极致优化的列存 DBMS。核心特点：向量化执行（SIMD）、MergeTree 引擎（有序+分区+Part 合并）、高压缩比、单机查询极快。原为 Yandex.Metrika 网站分析设计，后成为开源 OLAP 标杆。</p>
             <p><strong>物化视图/预聚合（实时数仓）</strong>：用物化视图预聚合（如按分钟/小时聚合），查询命中物化视图秒级返回；ReplacingMergeTree 利用版本去重支持幂等更新。使 ClickHouse 从"离线分析"走向"实时数仓"。</p>
             <p><strong>演进驱动力</strong>：① <strong>分析 IO 效率</strong>——行存分析读整行浪费，列存只读所需列；② <strong>压缩降成本</strong>——列存同类型压缩率高，PB 级数据省存储；③ <strong>向量化榨干 CPU</strong>——SIMD 一次处理一批数据，分析查询吞吐量百倍提升；④ <strong>实时性</strong>——物化视图让分析从 T+1 走向秒级实时。</p>
+            <p><strong>ClickHouse 版本演进</strong>：⑤ <strong>22.x（2022）</strong>——Window 函数增强（新增 <code class="inline-code">GROUP BY</code> 修饰符 <code class="inline-code">WITH ROLLUP/CUBE</code>）、Object 类型实验性支持、S3 表函数成熟；⑥ <strong>23.x（2023）</strong>——Variant 类型（动态类型列，单列存不同类型值）、Union Merge 引擎、Query Cache（结果级缓存，重复查询秒级命中）、<code class="inline-code">Lightweight DELETE</code>（轻量删除，不再依赖 <code class="inline-code">ALTER TABLE … DELETE</code> 突变机制）；⑦ <strong>24.x（2024）</strong>——JSON 类型（原生 JSON 列存，替代用 String 手动 parse）、Async Insert 批量化（降低小批量写入开销）、Tiered Storage（冷热分层存储，SSD + HDD + S3 多层）、<code class="inline-code">CLUSTER BY</code>（自动分片均衡）；⑧ <strong>25.x（2025）</strong>——进一步优化 Vector Search（向量检索能力）、改进 <code class="inline-code">PROJECTION</code>（预投影，类似物化视图的自动路由）、强化 Streaming（Kafka/Vector 引擎集成成熟）。选型要点：23.x 的 Query Cache + Lightweight DELETE 是从"纯分析"走向"准实时数仓"的关键；24.x 的 JSON 类型 + 分层存储是 PB 级降本的重要手段。</p>
           </div>
         </div>
 
@@ -1090,6 +1092,7 @@ flowchart LR
             <p><strong>Cypher 查询语言</strong>：Neo4j 的声明式图查询语言，用 <code class="inline-code">MATCH</code> 模式匹配（如 <code class="inline-code">(a)-[:KNOWS]->(b)</code>）直观表达图模式。比 SQL 递归 CTE 简洁得多，让图查询"像画图一样写"。</p>
             <p><strong>GQL 标准（2024，ISO/IEC 39075）</strong>：图查询语言国际标准，融合 Cypher 与 PGQL，成为图数据库的"SQL"。Neo4j 等图库逐步向 GQL 靠拢，统一图查询生态。</p>
             <p><strong>演进驱动力</strong>：① <strong>关系密集</strong>——社交/风控/知识图谱关系多且深，关系库 JOIN 退化；② <strong>遍历效率</strong>——图库物理指针免 JOIN，深遍历恒定性能；③ <strong>表达直观</strong>——Cypher 模式匹配比 SQL 递归 CTE 易写易读；④ <strong>标准统一</strong>——GQL 让图查询摆脱方言，走向标准化。</p>
+            <p><strong>Neo4j 版本演进</strong>：⑤ <strong>Neo4j 4.x（2020）</strong>——Multi-database（单实例支持多库隔离）、Reactive Driver（响应式驱动，支持背压）、Causal Cluster 改进（读写路由自动分流）；⑥ <strong>Neo4j 5.x（2022-2023）</strong>——<strong>APOC Core 转正</strong>（Awesome Procedures On Cypher 核心过程进入官方发行包，提供 450+ 图算法/工具函数）、<strong>GDS（Graph Data Science）库</strong>成熟（PageRank/Louvain/Node Similarity/Link Prediction 等图算法内置，支持图嵌入与机器学习）、Fabric（跨库联邦查询，一个查询遍历多个图库）、Cypher 5 语法增强（子查询改进、EXISTS/COUNT 子句）；⑦ <strong>Neo4j 2024+（GQL 适配）</strong>——逐步支持 GQL 标准（ISO/IEC 39075），Neo4j Aura Cloud（全托管图数据库）、向量索引（Vector Index，支持 RAG + 图增强检索）。选型要点：5.x 的 GDS 是从"图存储"走向"图智能"的关键——PageRank/社区发现等算法无需自实现，GDS 库直接调用；APOC 转正降低了部署依赖（4.x 需手动安装插件，5.x 核心功能内置）。</p>
           </div>
         </div>
 
@@ -1268,14 +1271,15 @@ flowchart TD
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <table class="compare-table">
-              <thead><tr><th>产品</th><th>兼容协议</th><th>存储/事务</th><th>亮点</th></tr></thead>
+              <thead><tr><th>产品</th><th>兼容协议</th><th>存储/事务</th><th>最新版本特性</th><th>亮点</th></tr></thead>
               <tbody>
-                <tr><td>TiDB</td><td>MySQL</td><td>TiKV(RocksDB+Raft)+PD；Percolator 事务</td><td>HTAP（TiFlash 列存）、生态成熟</td></tr>
-                <tr><td>OceanBase</td><td>MySQL/Oracle</td><td>Paxos 多副本；LSM</td><td>金融级、TPC-C 冠军、多租户</td></tr>
-                <tr><td>CockroachDB</td><td>PostgreSQL</td><td>Range 分片 + Raft</td><td>地理分布友好、强一致</td></tr>
-                <tr><td>YugabyteDB</td><td>PostgreSQL</td><td>DocDB(tablet+Raft)</td><td>PG 兼容度高、云原生</td></tr>
+                <tr><td>TiDB</td><td>MySQL</td><td>TiKV(RocksDB+Raft)+PD；Percolator 事务</td><td>8.x：Placement Rules + Resource Control + Vector Search</td><td>HTAP（TiFlash 列存）、生态成熟、AI 向量检索</td></tr>
+                <tr><td>OceanBase</td><td>MySQL/Oracle</td><td>Paxos 多副本；LSM</td><td>4.x（2023+）：MySQL 8.0 兼容增强、HTAP 列存（OBKV）</td><td>金融级、TPC-C 冠军、多租户</td></tr>
+                <tr><td>CockroachDB</td><td>PostgreSQL</td><td>Range 分片 + Raft</td><td>23.x（2024+）：Zone Config 多区域策略、Unbounded Datadriven Transactions</td><td>地理分布友好、强一致、Survive 机制（区域级故障自愈）</td></tr>
+                <tr><td>YugabyteDB</td><td>PostgreSQL</td><td>DocDB(tablet+Raft)</td><td>2024.x：YSQL PG 15 兼容、Cluster-level Read Replicas、xCluster 跨集群异步复制</td><td>PG 兼容度高、云原生、多区域同步复制</td></tr>
               </tbody>
             </table>
+            <p><strong>横向对比要点</strong>：① <strong>HTAP 能力</strong>——TiDB 最强（独立 TiFlash 列存），OceanBase 次之（只读副本），CockroachDB/YugabyteDB 弱（需外挂 OLAP）；② <strong>地理分布</strong>——CockroachDB 的 Zone Config + Survive 最成熟，YugabyteDB 的 xCluster 适合多区域同步，TiDB 通过 PD 调度实现但不如前两者原生；③ <strong>生态兼容</strong>——TiDB/OceanBase 兼容 MySQL（国内生态优势），CockroachDB/YugabyteDB 兼容 PostgreSQL（海外生态优势）；④ <strong>运维复杂度</strong>——TiDB 组件最多（TiDB/TiKV/TiFlash/PD），CockroachDB/YugabyteDB 对等节点架构更简单；⑤ <strong>AI 扩展</strong>——TiDB 8.x Vector Search 使其兼具关系+向量检索，适合 RAG 场景，其余产品暂无原生向量能力。</p>
             <p><strong>与 ShardingSphere 的关键差异</strong>：中间件分库分表要求业务<strong>显式设计分片键</strong>、跨分片 JOIN/事务受限；NewSQL 对业务<strong>透明</strong>——自动分片、跨节点分布式事务由存储层保证，应用像用单机库。</p>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
