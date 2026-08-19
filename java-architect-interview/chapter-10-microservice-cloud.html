@@ -1575,6 +1575,27 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>选型结论：绝大多数场景用"最终一致 + 补偿/对账"即可，必须高性能强一致再上 TCC，严禁把 Seata AT 用于高频场景（全局锁会拖垮吞吐）。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>TCC 吞吐量</td><td>~3 万 TPS（无全局锁，业务侵入高）</td><td>强一致首选，需实现 Try/Confirm/Cancel 三接口</td></tr>
+                <tr><td>本地消息表</td><td>~2 万 TPS（异步解耦）</td><td>最终一致常用方案，依赖定时对账补差</td></tr>
+                <tr><td>Seata AT 吞吐量</td><td>~1 万 TPS（全局锁瓶颈）</td><td>高并发下 RT P99 由 20ms 升至 200ms</td></tr>
+                <tr><td>Saga 长流程</td><td>中间态可见，单流程可编排</td><td>适合长事务，但补偿链路长、需人工干预兜底</td></tr>
+                <tr><td>故障案例（未幂等重试）</td><td>对账差异 X 笔/日（参考基准，需以自身生产数据替换）</td><td>网络分区下补偿未幂等导致重复扣款</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>压测时重点验证：① AT 在高并发下的全局锁等待是否使 RT P99 翻倍；② 补偿/消费接口的幂等性（用故障注入模拟重试，观察对账差异是否归零）。以上量级均为业界参考基准，需以自身生产压测数据替换。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -1855,6 +1876,27 @@ flowchart LR
                 <li><strong>Schema 变更大面积失败</strong>：千级租户的数据库同时 DDL，锁表导致全局不可用。</li>
                 <li><strong>缺少租户级监控</strong>：无法定位"哪个租户"导致性能问题。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>选型结论：隔离强度与成本成正比——中小租户走共享库 + tenant_id 控成本，大租户独立实例保隔离，并用租户级限流防止"吵闹邻居"拖垮全局。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>独立库/实例</td><td>单实例承载数百租户</td><td>隔离最强，运维与资源成本最高</td></tr>
+                <tr><td>共享库 + tenant_id</td><td>万级租户可水平扩展</td><td>跨租户查询/迁移复杂，依赖 tenant_id 强过滤</td></tr>
+                <tr><td>行级/Schema 折中</td><td>中型 SaaS 常用</td><td>隔离与成本折中，连接池按 schema 路由</td></tr>
+                <tr><td>吵闹邻居（无隔离）</td><td>慢查询拖垮 RT 30ms→500ms（参考基准，需以自身生产数据替换）</td><td>单租户耗尽连接池，波及其他租户</td></tr>
+                <tr><td>租户级限流后</td><td>隔离度 P99 差异 &lt;20%（参考基准，需以自身生产数据替换）</td><td>100 租户混合并发压测目标</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>压测时按"100 租户混合并发"构造吵闹邻居场景，验证租户级限流（每租户 QPS 上限）能否将 P99 差异压到 20% 以内。以上量级均为业界参考基准，需以自身生产压测数据替换。</p>
             </div>
           </div>
         </div>

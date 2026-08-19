@@ -2845,6 +2845,26 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>选型结论：高吞吐/流处理选 Kafka（顺序写 + 零拷贝 + 页缓存是吞吐关键），金融级事务/延迟队列/顺序消息选 RocketMQ；削峰靠 MQ 缓冲下游压力。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>单机 Kafka 吞吐</td><td>~100 万 msg/s（顺序写+零拷贝+页缓存）</td><td>异步刷盘峰值，分区并行扩展</td></tr>
+                <tr><td>单机 RocketMQ 吞吐</td><td>~10-20 万 msg/s（同步刷盘下降）</td><td>CommitLog 顺序写是吞吐核心</td></tr>
+                <tr><td>故障切换时长</td><td>Kafka ISR 选举秒级；RocketMQ Dledger/Raft ~10s</td><td>切换时长直接影响可用性 SLA</td></tr>
+                <tr><td>削峰缓冲（大促）</td><td>峰值 10x，缓冲 30min，下游 2x 消费（参考基准，需以自身生产数据替换）</td><td>积压峰值 X 亿条约 2h 消化</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>压测时重点验证：① Kafka 顺序写 + 页缓存下的单 broker 吞吐上限；② RocketMQ 同步刷盘对吞吐的折损；③ 大促峰值下 MQ 缓冲能力与下游消费速度匹配（避免积压超阈值）。以上量级均为业界参考基准，需以自身生产压测数据替换。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->

@@ -1397,6 +1397,25 @@ flowchart TD
             </div>
           </div>
         </div>
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>虚拟线程是 IO 密集型吞吐的"数量级武器"，但内存与 pinning 才是落地的真实约束，量化压测是选型说服力的来源。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>吞吐量（IO 密集）</td><td>单 JVM 百万虚拟线程 vs 固定 200 平台线程：吞吐 ~5-10x</td><td>阻塞不占平台线程，并发度由请求数决定</td></tr>
+                <tr><td>单线程内存占用</td><td>虚拟线程 ~200B-1KB/个；平台线程默认 1MB/个</td><td>百万虚拟线程约 200MB-1GB；百万平台线程需 ~1TB，不现实</td></tr>
+                <tr><td>单 JVM 并发容量</td><td>平台线程池千级 → 虚拟线程百万级</td><td>可随请求创建，无需预置线程数</td></tr>
+                <tr><td>Pinning 退化</td><td>synchronized/本地方法 pinning 占比 &gt;5% 时吞吐显著退化</td><td>压测须监控 pinned 线程占比并消除热点</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>IO 密集型（网关/RPC/DB 调用）优先上虚拟线程；CPU 密集型无收益甚至略降。百万级虚拟线程下 <code class="inline-code">ThreadLocal</code> 的 per-thread map 是内存痛点，用 ScopedValue（零 per-thread 存储）替代；压测务必监控 pinning 比例并消除 <code class="inline-code">synchronized</code> 热点。（以上为业界参考基准，需以自身生产数据替换）</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============ 章节间导航 ============ -->

@@ -1192,6 +1192,26 @@ flowchart TD
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>选用 Neo4j 的核心量化结论：图遍历延迟随跳数指数增长，能否满足业务 RT 取决于图规模、page cache 命中率与遍历深度上限。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>图规模上限</td><td>亿级节点 / 十亿级边（单机 Enterprise）</td><td>受单机 page cache（堆外）内存约束，超规模需 Fabric 分片</td></tr>
+                <tr><td>1 跳查询延迟</td><td>ms 级（1-10ms，命中 cache）</td><td>免 JOIN 物理指针，邻接遍历恒定开销</td></tr>
+                <tr><td>3-4 跳查询延迟</td><td>s 级（0.5-3s，深遍历易劣化）</td><td>路径组合指数膨胀，>3 跳需限深度/加索引</td></tr>
+                <tr><td>page cache 命中率</td><td>目标 95%+（决定 RT 量级）</td><td>未命中退化为磁盘随机 IO，延迟上升约一个数量级</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>压测务必量化 1/2/3/4 跳 RT 与 page cache 命中率；深查询（>3 跳）默认加 <code class="inline-code">*1..3</code> 深度上限与 LIMIT，避免路径爆炸。以上为参考基准，需以自身生产数据替换。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -1354,6 +1374,26 @@ flowchart TD
                 <li><strong>误把 Prometheus 当长期存储</strong>：需远程写 + Thanos/Mimir。</li>
                 <li><strong>TimescaleDB chunk 大小不当</strong>：过大/过小都影响分区效率与清理。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>选用 TSDB 的核心量化结论：写入吞吐与压缩比决定写入瓶颈，连续聚合 + 降采样 + 保留策略将查询加速与存储成本同时压到可控量级。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>单机写入吞吐</td><td>~100w points/s（批量写入）</td><td>批量+时序引擎优化，远高于关系库逐行 INSERT</td></tr>
+                <tr><td>压缩比</td><td>10-50x（TTL+降采样后）</td><td>delta-of-delta 时间戳 + Gorilla 浮点压缩</td></tr>
+                <tr><td>连续聚合查询加速</td><td>10-100x</td><td>预计算分钟/小时级聚合，免扫原始数据</td></tr>
+                <tr><td>保留策略（容量）</td><td>热 7d 原始 + 冷 1y 降采样</td><td>存储增长随保留策略线性可控，单节点 TB 级</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>压测聚焦写入吞吐（points/s）与压缩比，落库必须批量；查询用连续聚合预计算而非扫原始。以上为参考基准，需以自身生产数据替换。</p>
             </div>
           </div>
         </div>

@@ -3619,6 +3619,27 @@ flowchart TD
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>流式 SSE 稳定性选型最终要由"断连率 / 续传成功率 / 单节点长连接数 / 背压丢弃率"四类量化指标背书，不能仅靠重试逻辑拍脑袋。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>弱网断连率 / 续传成功率</td><td>~1%–3% 断连；Last-Event-ID 续传 &gt;99%</td><td>抖动 / 网关 60s 超时触发，状态外置 Redis 兜底跨节点恢复</td></tr>
+                <tr><td>每会话生成状态 Redis 占用</td><td>~2–5 KB / 会话</td><td>含已输出 token 与工具中间态，TTL 30min 防内存泄漏</td></tr>
+                <tr><td>万级并发 SSE 的 Redis 内存</td><td>~50–100 MB</td><td>1w 会话 × 5KB 量级，可作为容量规划基准</td></tr>
+                <tr><td>单节点 SSE 长连接数</td><td>~1–2w（受句柄 / 内存限）</td><td>Netty/Reactor 需调优句柄上限，超出水平扩容</td></tr>
+                <tr><td>写水位与背压丢弃率</td><td>high=64KB / low=32KB，丢弃率 &lt;0.1%</td><td>触发 high 水位暂停推 token，BLOCK 传导而非 drop</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>以 2–5KB/会话 的 Redis 状态外置换取 &gt;99% 续传成功率与跨节点弹性；单节点长连接按 1–2w 规划、背压水位 64/32KB 下丢弃率 &lt;0.1%，即可在弱网 1%–3% 断连率下保持流式稳定。以上为<strong>参考基准，需以自身生产数据替换</strong>。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -3748,6 +3769,27 @@ flowchart LR
                 <li><strong>上下文全量塞</strong>：多轮对话历史/检索结果全量塞 prompt，token 爆炸。必须摘要/精排/裁剪。</li>
                 <li><strong>分级路由只看成本</strong>：复杂任务走小模型质量暴跌。需能力门槛，复杂任务宁可贵不降质。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>成本治理的杠杆选型（是否上语义缓存 / 分级路由 / 上下文裁剪）最终要由"命中率 20%–40%、小模型单价 ~1/10、整体降本 60%–70%"量化背书，而非凭经验拍脑袋。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>语义缓存命中率</td><td>20%–40%（重复场景更高）</td><td>命中即零模型调用，ROI 最高降本手段</td></tr>
+                <tr><td>分级路由成本占比</td><td>简单走 7B 小模型，单价 ~1/10 旗舰</td><td>整体成本降 60%–70%</td></tr>
+                <tr><td>单轮对话 token 量级</td><td>输出 ~2–5k tokens / 轮</td><td>上下文裁剪可将输入从数千压到千级</td></tr>
+                <tr><td>月调用成本（100w 次）</td><td>旗舰 X 万 → 优化后 Y 万</td><td>缓存命中 + 分级路由 + 裁剪协同降本</td></tr>
+                <tr><td>成本看板告警阈值</td><td>按模型 / 租户 / 接口归因，日成本 &gt;Z 元告警</td><td>经济性熔断，防单场景异常烧钱</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>语义缓存命中率 20%–40% 即已显著降本，叠加分级路由（小模型单价 ~1/10）整体成本可降 60%–70%；单轮 2–5k token 是成本归因与容量规划基准，成本看板需按模型/租户/接口拆分并设日成本告警。以上为<strong>参考基准，需以自身生产数据替换</strong>。</p>
             </div>
           </div>
         </div>

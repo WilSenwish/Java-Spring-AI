@@ -804,6 +804,26 @@ flowchart LR
             </div>
           </div>
         </div>
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>分布式 ID 选型应以"发号 QPS、时钟回拨安全性、对索引写入性能的影响"量化——号段与雪花的核心是"高并发下不拖慢 DB、不产生重复 ID"。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>Leaf-segment 发号 QPS</td><td>~5w（号段本地缓存，DB 每号段仅 1 次写）</td><td>号段预取使发号基本无 DB 实时交互，DB 压力极低</td></tr>
+                <tr><td>Leaf-snowflake 协调依赖</td><td>ZK 持久化 workerId + lastTimestamp</td><td>解决 workerId 冲突与时钟回拨，避免重复 ID</td></tr>
+                <tr><td>时钟回拨事故</td><td>回拨 5ms 致 workerId+timestamp 碰撞→重复 ID→重复下单/脏数据</td><td>优化：回拨&gt;5ms 拒绝 + 时钟回拨检测</td></tr>
+                <tr><td>UUID 作主键影响</td><td>无序致 B+ 树页分裂，写入 RT +30%（索引膨胀）</td><td>号段/雪花趋势递增对索引友好，避免页分裂</td></tr>
+                <tr><td>号段 step 调优</td><td>step=1000 时重启最多丢 1000 号</td><td>按业务 QPS 调 step，平衡号段浪费与取 DB 频率</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>选型核心量化点：Leaf-segment 单实例 ~5w QPS（DB 压力极低）、雪花须处理时钟回拨（&gt;5ms 拒绝）避免重复 ID、趋势递增 ID 相比 UUID 写入 RT 优约 30%。以上为参考基准，需以自身生产数据替换。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->

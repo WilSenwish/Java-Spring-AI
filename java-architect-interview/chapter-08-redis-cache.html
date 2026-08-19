@@ -384,6 +384,26 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre></di
             </div>
           </div>
         </div>
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-body">
+            <p><strong>缓存三件套组合方案（布隆过滤 + 互斥锁 + 随机 TTL）的价值，必须用"保护后 DB 峰值 QPS 与缓存命中率"量化，而非仅描述方案。</strong></p>
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>缓存命中率</td><td>目标 95%+（低于 90% 需排查）</td><td>缓存层对 DB 的保护强度，命中率越高 DB 压力越小</td></tr>
+                <tr><td>布隆过滤器误判率</td><td>&lt;1%（bitmap 调优）</td><td>误判会让不存在的 key 回源，但远优于全量穿透</td></tr>
+                <tr><td>击穿压测 DB 峰值</td><td>单 key 失效瞬间 1w→10w+（~10x）；互斥锁保护后 DB 峰值&lt;2w</td><td>无保护的热点回源会把 DB 压力放大 10 倍</td></tr>
+                <tr><td>雪崩演练 DB 冲击</td><td>大量 key 同时过期：10x→1.5x（逻辑过期 + 随机 TTL）</td><td>降级阈值 DB QPS&gt;5w 触发限流，防止 DB 被打垮</td></tr>
+                <tr><td>RT 量化</td><td>命中 P99&lt;5ms；击穿保护下未命中 P99&lt;50ms</td><td>保护方案需在可接受的 RT 预算内</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>组合方案应以"保护后 DB 峰值 QPS 与命中率"量化：将 DB 峰值控制在 2w 以内、缓存命中率维持 95%+。以上为参考基准，需以自身生产数据替换。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
