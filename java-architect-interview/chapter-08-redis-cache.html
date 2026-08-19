@@ -26,7 +26,6 @@
         <li><a href="#C08.09"><span class="toc-number">C08.09</span>布隆过滤器与穿透防护</a></li>
         <li><a href="#C08.10"><span class="toc-number">C08.10</span>高并发问题与优化</a></li>
         <li><a href="#C08.11"><span class="toc-number">C08.11</span>Redis Stream 消息队列设计</a></li>
-        <li><a href="#C08.12"><span class="toc-number">C08.12</span>Redis 8.0 新特性与演进</a></li>
       </ol>
     </aside>
 
@@ -211,7 +210,66 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
             <p><strong>面试要点</strong>：Functions 不是"另一个脚本引擎"，而是将脚本从"客户端临时发送"升级为"服务端持久管理"。回答时应强调三点：① 持久化与重启不丢失；② 可管理可审计（LIST/DUMP/DELETE）；③ 集群自动同步——这三点解决了 EVAL 时代脚本散落、丢失、难运维的根本痛点。</p>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：Redis 8.0 新特性 — 从缓存到统一多模数据平台（2025-05 GA）</div>
+          <div class="qa-layer-body">
+            <p><strong>核心变化</strong>：Redis 8.0 是历史上最大的单版本跃迁——从"内存缓存 + 模块扩展"向<strong>统一多模数据平台</strong>的范式转变。三条主线：① <strong>One Redis 统一发行</strong>（Redis Stack 的搜索/JSON/时序/概率等能力内置化，消除模块管理碎片化）；② <strong>性能大幅跃迁</strong>（全新多线程 I/O、命令延迟降 87%、副本内存省 35%）；③ <strong>向 AI 原生演进</strong>（Vector Set 向量检索数据结构，Beta）。</p>
+
+            <p><strong>版本演进脉络</strong>：</p>
+            <ul>
+              <li><strong>Redis 6.0（2020）</strong>：多线程网络 IO（命令执行仍单线程），网络读写多线程化，多核利用第一步。</li>
+              <li><strong>Redis 7.0（2022）</strong>：listpack 替换 ziplist（消除连锁更新）+ Functions（Lua 脚本服务端一等公民管理）+ ACL 细粒度权限。</li>
+              <li><strong>Redis 7.2~7.4（2023~2024）</strong>：Hash 字段过期（<code class="inline-code">HEXPIRE</code>/<code class="inline-code">HPEXPIRE</code>/<code class="inline-code">HTTL</code>），为 8.0 新 Hash 命令铺路。</li>
+              <li><strong>Redis 8.0（2025-05 GA）</strong>：One Redis 统一发行 + 全新多线程 I/O + Vector Set（Beta，HNSW 索引）+ 30+ 项性能优化（延迟最高降 87%、副本内存省 35%）。</li>
+            </ul>
+
+            <p><strong>Redis 7.x vs 8.0 关键对比</strong>：</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>特性</th><th>Redis 7.x</th><th>Redis 8.0</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><strong>发行形态</strong></td><td>Redis CE + Redis Stack（模块需单独安装）</td><td>Redis Open Source（统一内置，无模块）</td></tr>
+                  <tr><td><strong>I/O 多线程</strong></td><td>6.0 引入旧实现（网络读写）</td><td>全新实现，多核吞吐更高</td></tr>
+                  <tr><td><strong>向量检索</strong></td><td>仅 Redis Search 模块</td><td>Vector Set 原生数据结构（Beta）+ Redis Search 内置</td></tr>
+                  <tr><td><strong>Hash 字段操作</strong></td><td>HEXPIRE/HPEXPIRE/HTTL（7.4+）</td><td>新增 HGETEX/HSETEX/HGETDEL</td></tr>
+                  <tr><td><strong>命令延迟</strong></td><td>基线</td><td>最高降低 87%</td></tr>
+                  <tr><td><strong>副本内存</strong></td><td>基线</td><td>节省 35%</td></tr>
+                  <tr><td><strong>全文检索评分</strong></td><td>TF-IDF 默认</td><td>BM25 默认（Redis Search）</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><strong>Vector Set 核心机制</strong>：Redis 8.0 新增的原生数据结构（Beta），由 antirez 从零重新实现 HNSW 索引。关键差异：① <strong>真实删除</strong>——<code class="inline-code">VREM</code> 立即解除节点链接并重连邻居（非 tombstone），内存即时回收；② <strong>链接双向强制</strong>——保证删除后图连通性不退化；③ <strong>谓词过滤扫描</strong>——图遍历时支持 JSON 属性过滤。默认使用 int8 量化（FP32 的 25% 内存，召回率几乎无损）。<code class="inline-code">VSIM</code> 采用多线程处理（antirez 认为向量操作天然慢，值得打破单线程约束）。核心命令：<code class="inline-code">VADD</code>/<code class="inline-code">VREM</code>/<code class="inline-code">VSIM</code>/<code class="inline-code">VRANDMEMBER</code>/<code class="inline-code">VGETATTR</code>/<code class="inline-code">VSETATTR</code>。antirez 实测 300 万向量 × 300 维，单机 VSIM（Top-10）可达 5~6 万 QPS。</p>
+
+            <p><strong>新 Hash 命令设计动机</strong>：<code class="inline-code">HGETEX</code>（取值并可选设过期）、<code class="inline-code">HSETEX</code>（设值并可选设过期）、<code class="inline-code">HGETDEL</code>（取值并删除）将"读/写 + 过期/删除"合并为原子操作，减少 RTT。会话管理可用 <code class="inline-code">HSETEX session:uid field token EX 1800</code> 一步完成设值+过期；<code class="inline-code">HGETDEL</code> 实现"读后即焚"一次性令牌校验。</p>
+
+            <div class="callout callout-tip">
+              <div class="callout-title">升级评估清单</div>
+              <ul>
+                <li>检查是否依赖被移除的旧模块 API（8.0 将模块命令纳入标准 ACL 分类，<code class="inline-code">+@all -@write</code> 等规则行为变化）。</li>
+                <li>Redis Search 评分默认从 TF-IDF 改为 BM25，排序结果可能变化，依赖评分排序的业务需回归测试。</li>
+                <li>Vector Set 为 Beta，生产使用需评估 API 稳定性风险，关键路径建议仍用 Redis Search 向量检索（已 GA）。</li>
+                <li>全新多线程 I/O 需重新调优 <code class="inline-code">io-threads</code> 参数，沿用旧参数可能无法发挥最优吞吐。</li>
+              </ul>
+            </div>
+
+            <div class="callout callout-pitfall">
+              <div class="callout-title">常见误区</div>
+              <ul>
+                <li><strong>把 Vector Set 当稳定特性用于生产</strong>：仍为 Beta，关键路径应优先用 Redis Search 向量检索（已 GA）。</li>
+                <li><strong>忽视 ACL 破坏性变更</strong>：8.0 将原模块命令纳入标准 ACL 分类，旧规则语义变化可能导致 <code class="inline-code">JSON.SET</code> 等命令权限丢失。</li>
+                <li><strong>误以为 Vector Set = Redis Search 向量检索</strong>：两者互补但不同——Vector Set 是独立数据类型（VADD/VSIM），Redis Search 向量检索基于 JSON/Hash + FT.SEARCH。</li>
+                <li><strong>误以为 8.0 多线程 I/O = 命令多线程执行</strong>：命令执行仍单线程（Vector Set 向量计算是例外）。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
+      <!-- ============================================================ -->
+      <!-- C08.02 Redis RDB 与 AOF 持久化的权衡？ -->
       <!-- ============================================================ -->
       <div class="qa-card" id="C08.02" data-difficulty="senior" data-priority="p1">
         <div class="qa-header">
@@ -1472,95 +1530,6 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre></
                 <li><strong>用 Stream 做大流量日志采集</strong>：Stream 是内存结构，日志量巨大时很快打爆内存，应选 Kafka/Filebeat。</li>
                 <li><strong>忽视 Redis 持久化对 Stream 的影响</strong>：若 Redis 未开 AOF 或 RDB，重启后 Stream 消息全丢。重要消息必须开持久化。</li>
                 <li><strong>消费者故障后消息长期挂起</strong>：消费者宕机后其 PEL 中的消息无人处理，需监控 pending 消息数，用 XCLAIM 自动重投。</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================ -->
-      <!-- C08.12 Redis 8.0 有哪些重要新特性与演进方向？ -->
-      <!-- ============================================================ -->
-      <div class="qa-card" id="C08.12" data-difficulty="architect" data-priority="p2">
-        <div class="qa-header">
-          <div class="qa-badge">C08.12</div>
-          <div class="qa-question">Redis 8.0 有哪些重要新特性与演进方向？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
-        </div>
-
-        <div class="qa-layer" data-layer="essence">
-          <div class="qa-layer-title">本质问题</div>
-          <div class="qa-layer-body">
-            <p>这道题考察对 Redis <strong>版本演进方向与架构决策</strong>的理解：Redis 8.0（2025-05 GA）是 Redis 历史上最大的单版本跃迁——不只是新增功能，而是<strong>从"内存缓存 + 模块扩展"向"统一多模数据平台"的范式转变</strong>。核心变化可归纳为三条主线：① <strong>One Redis 统一发行</strong>（Redis Stack 的搜索/JSON/时序/概率等能力内置化，消除模块管理碎片化）；② <strong>性能大幅跃迁</strong>（全新多线程 I/O、命令延迟降 87%、副本内存省 35%）；③ <strong>向 AI 原生演进</strong>（Vector Set 向量检索数据结构，Beta）。理解这些演进有助于技术选型与升级规划。</p>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="evolution">
-          <div class="qa-layer-title">演进脉络</div>
-          <div class="qa-layer-body">
-            <p><strong>Redis 6.0（2020）：多线程网络 IO</strong>。命令执行仍单线程，网络读写多线程化，是 Redis 走向多核利用的第一步，但仅覆盖协议解析与响应发送。</p>
-            <p><strong>Redis 7.0（2022）：listpack + Functions</strong>。ziplist 全面退役为 listpack（消除连锁更新）；引入 Functions（Lua 脚本的服务端一等公民管理，持久化到 RDB/AOF）；ACL 细粒度权限。</p>
-            <p><strong>Redis 7.2~7.4（2023~2024）：Hash 字段过期 + 优化累积</strong>。7.4 引入 <code class="inline-code">HEXPIRE</code>/<code class="inline-code">HPEXPIRE</code>/<code class="inline-code">HTTL</code> 实现 Hash 字段级 TTL，为 8.0 的新 Hash 命令铺路。</p>
-            <p><strong>Redis 8.0（2025-05 GA）：统一发行 + 性能跃迁 + AI 原生</strong>。① <strong>One Redis</strong>：将 Redis Stack（RediSearch/RedisJSON/RedisTimeSeries/RedisBloom 等）合并进 Redis Open Source，单二进制内置全部能力，不再需要单独安装/管理模块，消除版本兼容碎片化。② <strong>全新多线程 I/O 实现</strong>（区别于 6.0 的旧实现），多核环境吞吐显著提升。③ <strong>Vector Set（Beta）</strong>：由 Redis 创始人 Salvatore Sanfilippo 开发的原生向量相似度检索数据结构，基于 HNSW 算法。④ <strong>性能</strong>：30+ 项优化，命令延迟最高降 87%、副本内存节省 35%、水平+垂直扩展后查询处理能力提升 16 倍。</p>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">第一性原理</div>
-          <div class="qa-layer-body">
-            <p><strong>Vector Set 的核心机制</strong>：Vector Set 是 Redis 8.0 新增的原生数据结构（Beta），用于高维向量相似度检索。底层采用由 antirez 从零重新实现的 <strong>HNSW（Hierarchical Navigable Small World）</strong>索引，与常见 HNSW 实现的关键差异：① <strong>真实删除</strong>——<code class="inline-code">VREM</code> 立即解除节点链接并重连邻居（非 tombstone），内存即时回收；② <strong>链接双向强制</strong>——保证删除后图连通性不退化；③ <strong>谓词过滤扫描</strong>——图遍历时支持 JSON 属性过滤表达式，避免全图扫描。默认使用 <strong>int8 量化</strong>（FP32 的 25% 内存，召回率几乎无损），亦支持二值量化与随机投影降维。<code class="inline-code">VSIM</code> 采用多线程处理向量相似度计算（antirez 认为向量操作天然慢，值得打破单线程约束）。核心命令：<code class="inline-code">VADD</code>（添加向量）、<code class="inline-code">VREM</code>（删除）、<code class="inline-code">VSIM</code>（相似度检索）、<code class="inline-code">VRANDMEMBER</code>（随机取成员）、<code class="inline-code">VGETATTR</code>/<code class="inline-code">VSETATTR</code>（JSON 属性读写）。Vector Set 与 Redis Search 的向量检索互补：Vector Set 是独立数据类型，API 更轻量；Redis Search 提供更丰富的过滤、聚合、全文检索能力。</p>
-
-            <table class="compare-table">
-              <thead><tr><th>特性</th><th>Redis 7.x</th><th>Redis 8.0</th></tr></thead>
-              <tbody>
-                <tr><td><strong>发行形态</strong></td><td>Redis CE + Redis Stack（模块需单独安装）</td><td>Redis Open Source（统一内置，无模块）</td></tr>
-                <tr><td><strong>I/O 多线程</strong></td><td>6.0 引入旧实现（网络读写）</td><td>全新实现，多核吞吐更高</td></tr>
-                <tr><td><strong>向量检索</strong></td><td>仅 Redis Search 模块</td><td>Vector Set 原生数据结构（Beta）+ Redis Search 内置</td></tr>
-                <tr><td><strong>Hash 字段操作</strong></td><td>HEXPIRE/HPEXPIRE/HTTL（7.4+）</td><td>新增 HGETEX/HSETEX/HGETDEL</td></tr>
-                <tr><td><strong>命令延迟</strong></td><td>基线</td><td>最高降低 87%</td></tr>
-                <tr><td><strong>副本内存</strong></td><td>基线</td><td>节省 35%</td></tr>
-                <tr><td><strong>全文检索评分</strong></td><td>TF-IDF 默认</td><td>BM25 默认（Redis Search）</td></tr>
-              </tbody>
-            </table>
-
-            <p><strong>新 Hash 命令的设计动机</strong>：<code class="inline-code">HGETEX</code>（取值并可选设过期）、<code class="inline-code">HSETEX</code>（设值并可选设过期）、<code class="inline-code">HGETDEL</code>（取值并删除）将"读/写 + 过期/删除"合并为原子操作，减少 RTT，简化缓存与会话管理的常见模式。</p>
-
-            <div class="callout callout-tip">
-              <div class="callout-title">关键结论</div>
-              <p>Redis 8.0 的核心价值：① <strong>One Redis 消除模块碎片化</strong>——部署运维简化，版本兼容不再头疼；② <strong>性能跃迁</strong>——延迟与内存双优化，同等硬件承载更多流量；③ <strong>AI 原生</strong>——Vector Set 让 Redis 可直接做 RAG 向量召回，无需额外向量数据库。升级前需评估 Beta API 稳定性与 ACL 破坏性变更。</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="practice">
-          <div class="qa-layer-title">工程实践</div>
-          <div class="qa-layer-body">
-            <p><strong>升级评估清单</strong>：① 检查是否依赖被移除的旧模块 API（8.0 将模块命令纳入标准 ACL 分类，<code class="inline-code">+@all -@write</code> 等规则行为变化）；② Redis Search 评分默认从 TF-IDF 改为 BM25，排序结果可能变化；③ Vector Set 为 Beta，生产使用需评估 API 稳定性风险，关键路径建议仍用 Redis Search 向量检索；④ 全新多线程 I/O 需重新调优 <code class="inline-code">io-threads</code> 参数。</p>
-            <p><strong>Vector Set 典型用法</strong>：语义检索 / RAG 向量召回场景，<code class="inline-code">VADD word_embeddings FP32 ...blob... item1</code> 添加向量，<code class="inline-code">VSIM word_embeddings ele "banana" WITHSCORES COUNT 10</code> 检索 Top-K 最相似向量。可将向量按 hash 分散到多个 key，并行 VSIM 后合并排序结果实现水平扩展。<code class="inline-code">VADD</code> 的 CAS 选项可将邻居收集放后台、插入放前台，提升写入吞吐。antirez 实测 300 万向量 × 300 维，单机 VSIM（Top-10）可达 5~6 万 QPS。</p>
-            <p><strong>新 Hash 命令落地</strong>：会话管理场景可用 <code class="inline-code">HSETEX session:uid field token EX 1800</code> 一步完成设值+过期，替代 <code class="inline-code">HSET + HEXPIRE</code> 两步操作；<code class="inline-code">HGETDEL</code> 实现"读后即焚"的一次性令牌校验。</p>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="deep">
-          <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body">
-            <p><strong>追问 1：Redis 8.0 的多线程 I/O 与 6.0 有何区别？命令执行还是单线程吗？</strong></p>
-            <p>Redis 8.0 引入的是<strong>全新的 I/O 多线程实现</strong>（reimplemented I/O threading），而非 6.0 旧实现的简单升级。6.0 的多线程仅在网络读写（协议解析、响应发送）环节，命令执行始终单线程——这是 Redis 的核心设计约束（保证原子有序、无锁）。8.0 的改进在于 I/O 线程的调度与效率更高，多核环境下吞吐提升更明显。命令执行本身<strong>仍然单线程</strong>（Vector Set 的向量计算是例外，antirez 认为向量操作天然慢、值得多线程化）。</p>
-            <p><strong>追问 2：One Redis 之后，Redis Search/JSON 等能力是"内置"还是仍需加载？</strong></p>
-            <p><strong>内置</strong>。Redis 8.0 将 Redis Stack（RediSearch、RedisJSON、RedisTimeSeries、RedisBloom 等）的代码合并进 Redis Open Source 主二进制，安装即包含，无需 <code class="inline-code">MODULE LOAD</code>。这是 8.0 最大的架构变化之一——消除了模块版本兼容、安装管理的碎片化问题。但这也意味着二进制体积增大，最小化部署场景需评估资源占用。</p>
-          </div>
-        </div>
-
-        <div class="qa-layer" data-layer="pitfall">
-          <div class="qa-layer-title">常见陷阱</div>
-          <div class="qa-layer-body">
-            <div class="callout callout-pitfall">
-              <div class="callout-title">易错点</div>
-              <ul>
-                <li><strong>把 Vector Set 当稳定特性用于生产</strong>：Vector Set 仍为 Beta，API 与行为可能在后续版本变更，关键路径应优先用 Redis Search 的向量检索（已 GA）。</li>
-                <li><strong>忽视 ACL 破坏性变更</strong>：8.0 将原模块命令纳入标准 ACL 分类，<code class="inline-code">+@all -@write</code> 等旧规则的语义变化可能导致 JSON.SET 等命令权限丢失，升级需重新审查 ACL 配置。</li>
-                <li><strong>忽视 Redis Search 评分默认值变化</strong>：BM25 替代 TF-IDF 成为默认评分，搜索结果排序可能变化，依赖评分排序的业务需回归测试。</li>
-                <li><strong>误以为 Vector Set = Redis Search 向量检索</strong>：两者互补但不同——Vector Set 是独立数据类型（VADD/VSIM），Redis Search 向量检索基于 JSON/Hash + FT.SEARCH，能力范围与 API 差异大。</li>
-                <li><strong>升级后不调优 io-threads</strong>：8.0 的全新多线程 I/O 实现行为与 6.0 不同，沿用旧参数可能无法发挥最优吞吐。</li>
               </ul>
             </div>
           </div>
