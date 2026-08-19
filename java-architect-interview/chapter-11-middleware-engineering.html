@@ -18,7 +18,7 @@
         <li><a href="#C11.01"><span class="toc-number">C11.01</span>工作流引擎 BPMN 2.0 模型与执行原理</a></li>
         <li><a href="#C11.02"><span class="toc-number">C11.02</span>流程节点批量配置化实现</a></li>
         <li><a href="#C11.03"><span class="toc-number">C11.03</span>规则引擎执行原理与选型</a></li>
-        <li><a href="#C11.04"><span class="toc-number">C11.04</span>OAuth 2.1 四种授权模式与安全</a></li>
+        <li><a href="#C11.04"><span class="toc-number">C11.04</span>OAuth 2.1 三种授权模式与安全</a></li>
         <li><a href="#C11.05"><span class="toc-number">C11.05</span>JWT 结构与安全实践</a></li>
         <li><a href="#C11.06"><span class="toc-number">C11.06</span>CI/CD 流水线标准化设计</a></li>
         <li><a href="#C11.07"><span class="toc-number">C11.07</span>APM 全链路监控系统架构</a></li>
@@ -556,18 +556,18 @@ flowchart LR
       </div>
 
       <!-- ============================================================ -->
-      <!-- C11.04 OAuth 2.1 四种授权模式的流程与安全考量？ -->
+      <!-- C11.04 OAuth 2.1 三种授权模式的流程与安全考量？ -->
       <!-- ============================================================ -->
       <div class="qa-card" id="C11.04" data-difficulty="senior" data-priority="p2">
         <div class="qa-header">
           <div class="qa-badge">C11.04</div>
-          <div class="qa-question">OAuth 2.1 四种授权模式的流程与安全考量？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">OAuth 2.1 三种授权模式的流程与安全考量？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察对<strong>"第三方授权访问"</strong>机制的深度理解。核心回答：OAuth 本质是<strong>委托授权协议</strong>（让用户授权第三方应用访问其在另一服务上的资源，而不交出密码），而非认证协议。需厘清四种授权模式的适用场景、为何 OAuth 2.1 废弃隐式与密码模式、授权码+PKCE 为何成为推荐方案、令牌刷新与吊销机制。</p>
+            <p>考察对<strong>"第三方授权访问"</strong>机制的深度理解。核心回答：OAuth 本质是<strong>委托授权协议</strong>（让用户授权第三方应用访问其在另一服务上的资源，而不交出密码），而非认证协议。需厘清 OAuth 2.0 四种模式如何收敛为 2.1 三种模式、为何废弃隐式与密码模式、授权码+PKCE 为何成为推荐方案、令牌刷新与吊销机制。</p>
           </div>
         </div>
 
@@ -581,14 +581,19 @@ flowchart LR
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart LR
-    O1["OAuth 1.0<br/>HMAC 签名<br/>单流程复杂（2007）"] --> O2["OAuth 2.0<br/>多授权模式<br/>Bearer Token（2012）"]
-    O2 --> PKCE["PKCE 扩展<br/>RFC 7636<br/>防授权码拦截（2015）"]
-    PKCE --> O21["OAuth 2.1<br/>收敛模式<br/>强制授权码+PKCE（草案）"]
-    O21 --> DP["Device Flow<br/>设备授权<br/>（电视/IoT）"]
+    O1["OAuth 1.0<br/>HMAC 签名<br/>单流程（2007）"] --> O2["OAuth 2.0<br/>四种授权模式<br/>Bearer Token（2012）"]
+    O2 --> O21["OAuth 2.1<br/>收敛为三种模式<br/>强制授权码+PKCE（草案）"]
+    O2 -.->|废弃| IMPL["隐式模式 Implicit"]
+    O2 -.->|废弃| PASS["密码模式 Password"]
+    O21 --> AC["授权码+PKCE<br/>Web/移动/SPA"]
+    O21 --> CC["客户端凭证<br/>M2M"]
+    O21 --> DF["设备授权<br/>电视/IoT"]
     style O2 fill:#dbeafe,stroke:#2563eb
     style O21 fill:#ede9fe,stroke:#7c3aed
+    style IMPL fill:#fee2e2,stroke:#dc2626,stroke-dasharray:5 5
+    style PASS fill:#fee2e2,stroke:#dc2626,stroke-dasharray:5 5
               </div>
-              <div class="chart-caption">图 11.4-1 OAuth 演进：1.0 签名 → 2.0 多模式 → 2.1 收敛强制 PKCE</div>
+              <div class="chart-caption">图 11.4-1 OAuth 演进：1.0 签名 → 2.0 四种模式 → 2.1 收敛为三种（废弃隐式与密码）</div>
             </div>
 
             <p><strong>为何废弃隐式与密码模式</strong>：① <strong>隐式模式</strong>——令牌直接通过 URL fragment 返回前端，暴露在浏览器历史/Referer/日志，且无法发 refresh token，被授权码+PKCE 完全取代；② <strong>密码模式</strong>——第三方应用拿到用户账号密码，违背 OAuth"不交出密码"初衷，且密码泄露风险高，应改用授权码模式（用户在授权服务器页面登录，密码不经过客户端）。</p>

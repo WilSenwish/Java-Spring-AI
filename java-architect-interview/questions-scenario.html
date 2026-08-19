@@ -4353,6 +4353,90 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
 
 
 
+  <!-- S07.05 跨境电商平台全球多租户架构：数据合规与区域化部署设计 -->
+  <div class="qa-card" id="S07.05" data-difficulty="expert" data-priority="p2">
+    <div class="qa-header">
+      <div class="qa-badge">S07.05</div>
+      <div class="qa-question">跨境电商平台全球多租户架构：数据合规与区域化部署设计<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p2">P2</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">多租户</span>
+      <span class="scenario-tag">跨境电商</span>
+      <span class="scenario-tag">数据合规</span>
+      <span class="scenario-tag">全球化部署</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某跨境电商平台服务 50+ 国家/地区，支持 20+ 语言，覆盖 B2C 和 B2B 两种模式。每个品牌（租户）可自定义页面、品类、价格策略。要求满足中国 PIPL、欧盟 GDPR、美国 CCPA 等数据合规要求，同时保证全球用户访问延迟 &lt; 200ms。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 数据驻留：中国用户数据不出境，欧盟数据不出欧；② 租户隔离：SaaS 模式下如何保证租户间数据隔离和性能隔离；③ 全球延迟：用户访问最近数据中心，但订单结算需集中处理；④ 多币种与税务：不同国家币种、税率、促销规则差异；⑤ 合规审计：跨境数据传输需通过安全评估并留痕。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用"区域化部署 + 逻辑多租户 + 联邦结算"的全球化架构：区域层在亚太、欧洲、北美部署独立 K8s 集群，数据本地化存储；租户层通过 tenant_id 字段做行级隔离，核心表增加租户索引；结算层通过异步消息将区域订单汇聚到中心结算集群；合规层通过数据脱敏和审计日志满足各国法规。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 区域化部署</strong>：中国（阿里云北京）、欧盟（AWS法兰克福）、北美（AWS us-east-1）各部署独立集群；用户通过 GeoDNS 解析到最近区域，首次注册时绑定区域且不可变更。</p>
+        <p><strong>2. 多租户隔离</strong>：共享数据库模式下所有业务表增加 tenant_id 字段，查询时强制带入 tenant_id；使用 MyBatis 插件自动注入租户条件，防止漏加导致数据泄露；核心租户可申请独立 Schema 或实例。</p>
+        <p><strong>3. 全球订单流</strong>：区域集群处理浏览、加购、下单；支付成功后订单通过 Kafka MirrorMaker 跨区同步到中心结算集群，做统一对账、清分、税务申报；非敏感分析数据经脱敏后汇聚到全球数据湖。</p>
+        <p><strong>4. 多币种与税务</strong>：价格体系以美元为基准，展示时按实时汇率转换；税费计算通过规则引擎（Drools）动态加载各国税率表；促销规则支持租户级自定义，通过配置中心热更新。</p>
+        <p><strong>5. 合规治理</strong>：PII 数据（姓名、地址、电话）在落库前 AES-256 加密；审计日志记录所有数据访问（操作人、租户、时间、IP），日志 Hash 写入区块链防篡改；用户行使"被遗忘权"时触发跨区异步删除任务。</p>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code><span class="com">// MyBatis 多租户自动注入拦截器</span>
+<span class="kw">@Intercepts</span>({<span class="kw">@Signature</span>(type = <span class="type">Executor</span>.<span class="kw">class</span>, method = <span class="str">"query"</span>, args = {<span class="type">MappedStatement</span>.<span class="kw">class</span>, <span class="type">Object</span>.<span class="kw">class</span>, <span class="type">RowBounds</span>.<span class="kw">class</span>})})
+<span class="kw">public class</span> <span class="type">TenantInterceptor</span> <span class="kw">implements</span> <span class="type">Interceptor</span> {
+    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="type">Object</span> <span class="fn">intercept</span>(<span class="type">Invocation</span> invocation) <span class="kw">throws</span> <span class="type">Throwable</span> {
+        <span class="type">Object</span> parameter = invocation.<span class="fn">getArgs</span>()[<span class="num">1</span>];
+        <span class="kw">if</span> (parameter <span class="kw">instanceof</span> <span class="type">Map</span>) {
+            ((<span class="type">Map</span>&lt;?,?&gt;) parameter).<span class="fn">put</span>(<span class="str">"tenantId"</span>, <span class="type">TenantContext</span>.<span class="fn">getCurrentTenantId</span>());
+        }
+        <span class="kw">return</span> invocation.<span class="fn">proceed</span>();
+    }
+}
+<span class="com">// 全局异常：未携带租户 ID 直接拒绝</span>
+<span class="kw">@RestControllerAdvice</span>
+<span class="kw">public class</span> <span class="type">TenantSecurityAdvice</span> {
+    <span class="kw">@ModelAttribute</span>
+    <span class="kw">public void</span> <span class="fn">validateTenant</span>(<span class="type">HttpServletRequest</span> req) {
+        <span class="kw">if</span> (<span class="type">TenantContext</span>.<span class="fn">getCurrentTenantId</span>() == <span class="kw">null</span>) {
+            <span class="kw">throw new</span> <span class="type">SecurityException</span>(<span class="str">"租户 ID 缺失"</span>);
+        }
+    }
+}</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">追问1：共享数据库模式下，如何防止某个租户的大查询影响其他租户（Noisy Neighbor）？</div><div class="followup-a">一是 SQL 层限制单租户查询的扫描行数（如 MySQL 的 MAX_EXECUTION_TIME 和 sql_safe_updates）；二是为 VIP 租户分配独立只读副本；三是在应用层对按租户聚合的慢查询增加缓存。</div></li>
+          <li><div class="followup-q">追问2：跨区域数据同步的延迟对订单状态一致性有什么影响？</div><div class="followup-a">区域间同步通常为异步（秒级延迟），订单状态在区域和中心可能存在短暂不一致。采用"本地优先可用"策略：用户看到的订单状态以区域为准，结算对账以中心为准，差异通过日终对账补偿。</div></li>
+          <li><div class="followup-q">追问3：GDPR 要求数据可携带权（Data Portability），如何导出跨系统的用户数据？</div><div class="followup-a">构建数据主体权利编排引擎：通过事件驱动方式并行查询各系统（订单、浏览、客服、物流），聚合为标准化 JSON/CSV；敏感字段脱敏后导出；导出任务异步执行并通过邮件通知用户。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>租户过滤条件漏加导致数据泄露</strong>：任何绕过 MyBatis 直接写 JDBC 或原生 SQL 的地方都可能漏加 tenant_id。应通过代码扫描工具强制检查所有 SQL 是否包含租户条件。</li>
+          <li><strong>硬编码币种和税率</strong>：不同国家税率变化频繁（如 VAT 调整），硬编码需重新发版。应使用规则引擎或配置中心动态管理。</li>
+          <li><strong>跨境数据传输未做合规评估</strong>：中国数据出境需通过网信办安全评估，欧盟数据传至美国需 SCC 条款。未评估直接传输面临巨额罚款。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
 <div class="qa-card" id="S07.06" data-difficulty="architect" data-priority="p0">
     <div class="qa-header">
       <div class="qa-badge">S07.06</div>
@@ -4447,92 +4531,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     </div>
   </div>
 
-  </section>
-
-  <!-- S07.05 跨境电商平台全球多租户架构：数据合规与区域化部署设计 -->
-  <div class="qa-card" id="S07.05" data-difficulty="expert" data-priority="p2">
-    <div class="qa-header">
-      <div class="qa-badge">S07.05</div>
-      <div class="qa-question">跨境电商平台全球多租户架构：数据合规与区域化部署设计<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p2">P2</span></div>
-    </div>
-    <div class="scenario-tags">
-      <span class="scenario-tag tag-hot">高频</span>
-      <span class="scenario-tag">多租户</span>
-      <span class="scenario-tag">跨境电商</span>
-      <span class="scenario-tag">数据合规</span>
-      <span class="scenario-tag">全球化部署</span>
-    </div>
-    <div class="qa-layer" data-layer="scenario">
-      <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某跨境电商平台服务 50+ 国家/地区，支持 20+ 语言，覆盖 B2C 和 B2B 两种模式。每个品牌（租户）可自定义页面、品类、价格策略。要求满足中国 PIPL、欧盟 GDPR、美国 CCPA 等数据合规要求，同时保证全球用户访问延迟 &lt; 200ms。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="challenge">
-      <div class="qa-layer-title">核心挑战</div>
-      <div class="qa-layer-body"><p>① 数据驻留：中国用户数据不出境，欧盟数据不出欧；② 租户隔离：SaaS 模式下如何保证租户间数据隔离和性能隔离；③ 全球延迟：用户访问最近数据中心，但订单结算需集中处理；④ 多币种与税务：不同国家币种、税率、促销规则差异；⑤ 合规审计：跨境数据传输需通过安全评估并留痕。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="principle">
-      <div class="qa-layer-title">分析框架</div>
-      <div class="qa-layer-body"><p>采用"区域化部署 + 逻辑多租户 + 联邦结算"的全球化架构：区域层在亚太、欧洲、北美部署独立 K8s 集群，数据本地化存储；租户层通过 tenant_id 字段做行级隔离，核心表增加租户索引；结算层通过异步消息将区域订单汇聚到中心结算集群；合规层通过数据脱敏和审计日志满足各国法规。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="practice">
-      <div class="qa-layer-title">解决方案</div>
-      <div class="qa-layer-body">
-        <p><strong>1. 区域化部署</strong>：中国（阿里云北京）、欧盟（AWS法兰克福）、北美（AWS us-east-1）各部署独立集群；用户通过 GeoDNS 解析到最近区域，首次注册时绑定区域且不可变更。</p>
-        <p><strong>2. 多租户隔离</strong>：共享数据库模式下所有业务表增加 tenant_id 字段，查询时强制带入 tenant_id；使用 MyBatis 插件自动注入租户条件，防止漏加导致数据泄露；核心租户可申请独立 Schema 或实例。</p>
-        <p><strong>3. 全球订单流</strong>：区域集群处理浏览、加购、下单；支付成功后订单通过 Kafka MirrorMaker 跨区同步到中心结算集群，做统一对账、清分、税务申报；非敏感分析数据经脱敏后汇聚到全球数据湖。</p>
-        <p><strong>4. 多币种与税务</strong>：价格体系以美元为基准，展示时按实时汇率转换；税费计算通过规则引擎（Drools）动态加载各国税率表；促销规则支持租户级自定义，通过配置中心热更新。</p>
-        <p><strong>5. 合规治理</strong>：PII 数据（姓名、地址、电话）在落库前 AES-256 加密；审计日志记录所有数据访问（操作人、租户、时间、IP），日志 Hash 写入区块链防篡改；用户行使"被遗忘权"时触发跨区异步删除任务。</p>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="practice">
-      <div class="qa-layer-title">关键代码</div>
-      <div class="qa-layer-body">
-        <div class="code-block"><pre><code><span class="com">// MyBatis 多租户自动注入拦截器</span>
-<span class="kw">@Intercepts</span>({<span class="kw">@Signature</span>(type = <span class="type">Executor</span>.<span class="kw">class</span>, method = <span class="str">"query"</span>, args = {<span class="type">MappedStatement</span>.<span class="kw">class</span>, <span class="type">Object</span>.<span class="kw">class</span>, <span class="type">RowBounds</span>.<span class="kw">class</span>})})
-<span class="kw">public class</span> <span class="type">TenantInterceptor</span> <span class="kw">implements</span> <span class="type">Interceptor</span> {
-    <span class="kw">@Override</span>
-    <span class="kw">public</span> <span class="type">Object</span> <span class="fn">intercept</span>(<span class="type">Invocation</span> invocation) <span class="kw">throws</span> <span class="type">Throwable</span> {
-        <span class="type">Object</span> parameter = invocation.<span class="fn">getArgs</span>()[<span class="num">1</span>];
-        <span class="kw">if</span> (parameter <span class="kw">instanceof</span> <span class="type">Map</span>) {
-            ((<span class="type">Map</span>&lt;?,?&gt;) parameter).<span class="fn">put</span>(<span class="str">"tenantId"</span>, <span class="type">TenantContext</span>.<span class="fn">getCurrentTenantId</span>());
-        }
-        <span class="kw">return</span> invocation.<span class="fn">proceed</span>();
-    }
-}
-<span class="com">// 全局异常：未携带租户 ID 直接拒绝</span>
-<span class="kw">@RestControllerAdvice</span>
-<span class="kw">public class</span> <span class="type">TenantSecurityAdvice</span> {
-    <span class="kw">@ModelAttribute</span>
-    <span class="kw">public void</span> <span class="fn">validateTenant</span>(<span class="type">HttpServletRequest</span> req) {
-        <span class="kw">if</span> (<span class="type">TenantContext</span>.<span class="fn">getCurrentTenantId</span>() == <span class="kw">null</span>) {
-            <span class="kw">throw new</span> <span class="type">SecurityException</span>(<span class="str">"租户 ID 缺失"</span>);
-        }
-    }
-}</code></pre></div>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="deep">
-      <div class="qa-layer-title">深度追问</div>
-      <div class="qa-layer-body">
-        <ul class="followup-list">
-          <li><div class="followup-q">追问1：共享数据库模式下，如何防止某个租户的大查询影响其他租户（Noisy Neighbor）？</div><div class="followup-a">一是 SQL 层限制单租户查询的扫描行数（如 MySQL 的 MAX_EXECUTION_TIME 和 sql_safe_updates）；二是为 VIP 租户分配独立只读副本；三是在应用层对按租户聚合的慢查询增加缓存。</div></li>
-          <li><div class="followup-q">追问2：跨区域数据同步的延迟对订单状态一致性有什么影响？</div><div class="followup-a">区域间同步通常为异步（秒级延迟），订单状态在区域和中心可能存在短暂不一致。采用"本地优先可用"策略：用户看到的订单状态以区域为准，结算对账以中心为准，差异通过日终对账补偿。</div></li>
-          <li><div class="followup-q">追问3：GDPR 要求数据可携带权（Data Portability），如何导出跨系统的用户数据？</div><div class="followup-a">构建数据主体权利编排引擎：通过事件驱动方式并行查询各系统（订单、浏览、客服、物流），聚合为标准化 JSON/CSV；敏感字段脱敏后导出；导出任务异步执行并通过邮件通知用户。</div></li>
-        </ul>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="pitfall">
-      <div class="qa-layer-title">常见陷阱</div>
-      <div class="qa-layer-body">
-        <ul class="pitfall-list">
-          <li><strong>租户过滤条件漏加导致数据泄露</strong>：任何绕过 MyBatis 直接写 JDBC 或原生 SQL 的地方都可能漏加 tenant_id。应通过代码扫描工具强制检查所有 SQL 是否包含租户条件。</li>
-          <li><strong>硬编码币种和税率</strong>：不同国家税率变化频繁（如 VAT 调整），硬编码需重新发版。应使用规则引擎或配置中心动态管理。</li>
-          <li><strong>跨境数据传输未做合规评估</strong>：中国数据出境需通过网信办安全评估，欧盟数据传至美国需 SCC 条款。未评估直接传输面临巨额罚款。</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
+</section>
 
 <section class="scenario-group" id="group-8">
   <h2 class="group-title">
