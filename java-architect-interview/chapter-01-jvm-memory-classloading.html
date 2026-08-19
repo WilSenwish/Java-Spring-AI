@@ -176,6 +176,24 @@ graph TD
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>字符串常量池与堆内存优化还可以延伸到 GC 层面的自动去重机制，这是 G1 的一个低调但实用的特性：</p>
+            <ul>
+              <li><strong>G1 字符串去重（String Deduplication）</strong>：JDK 8u20+ 引入 <code class="inline-code">-XX:+UseStringDeduplication</code>，必须配合 G1 使用（<code class="inline-code">-XX:+UseG1GC</code>），ZGC/Shenandoah 不支持。</li>
+              <li><strong>原理</strong>：G1 在并发标记阶段扫描 String 对象，通过比较底层 char[] 引用发现内容重复的字符串，将冗余的 char[] 指向同一份数据，原 char[] 随后被 GC 回收——注意去重的是底层数组，String 对象本身不合并。</li>
+              <li><strong>适用场景</strong>：堆中存在大量重复字符串（缓存 key、JSON 反序列化结果、日志消息模板），典型可降低 10-30% 堆内存占用；CPU 开销轻微（通常 &lt;5%）。</li>
+              <li><strong>与 String.intern() 的区别</strong>：<code class="inline-code">String.intern()</code> 在 JDK 7+ 已从永久代移到堆中，是"手动去重"（开发者显式调用、去重后共享常量池条目）；UseStringDeduplication 是"GC 自动去重"（无需改代码、只合并 char[] 不合并 String 对象），两者是不同层面的优化，可同时使用。</li>
+              <li><strong>生产实践</strong>：某交易系统开启后年轻代 GC 频率下降约 15%；上线后需监控 dedup 相关线程的 CPU 占比，若字符串重复率低则收益不明显，可关闭以省去标记开销。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>字符串去重的价值在于：业务系统中字符串常占堆的 20-30%，其中相当比例是"结构相同、内容相同但来源不同"的副本（如每次反序列化都新建相同 key）。intern 需要侵入代码且常量池本身占堆，而 G1 去重对代码零侵入，代价只是并发标记阶段多一次 char[] 哈希比对。选型判断：重复率可通过 <code class="inline-code">jcmd &lt;pid&gt; GC.string_deduplication_statistics</code> 观察统计信息后再决定开启与否。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -315,6 +333,25 @@ graph LR
                 <li><strong>以为 new 之后立即可见</strong>：在构造方法执行前，对象内存虽已零值初始化，但字段尚未赋值，此时其他线程通过引用看到的对象是半初始化状态——这正是 DCL 单例需要 volatile 的根因。</li>
                 <li><strong>忽略对齐填充</strong>：对象大小非 8 的倍数时会填充，影响内存占用估算，尤其在海量小对象场景。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>压缩指针是对象内存布局中最重要的工程权衡，32G 阈值是大堆容量规划的核心依据：</p>
+            <ul>
+              <li><strong>原理</strong>：压缩指针（CompressedOops）用"32 位偏移 + 堆基址"寻址。因为对象 8 字节对齐，地址低 3 位恒为 0 可以省略，所以 32 位地址可寻址 8 字节 × 2^32 = <strong>32GB</strong> 堆。</li>
+              <li><strong>自动开启条件</strong>：JDK 8 堆 &lt; 32G 时自动开启 <code class="inline-code">-XX:+UseCompressedOops</code>，对象头从 12 字节压缩到 8 字节（Mark Word 4 + Class Pointer 4）。</li>
+              <li><strong>超过 32G 的退化</strong>：堆 ≥ 32G 时退化为 64 位指针，对象头膨胀至 16 字节，引用、字段指针全面膨胀，实际可用内存反而可能不如 31G 堆——内存利用率下降约 40-50%。</li>
+              <li><strong>零基压缩（zero-based compression）</strong>：JVM 尽量把堆基址安排在 0 开始的地址空间，解引用时无需加基址偏移，一条指令完成寻址；若操作系统不允许（地址被占用），则退化为普通偏移压缩，多一次加法。</li>
+              <li><strong>容量规划结论</strong>：32G 是单实例压缩指针的性能甜点上限。超过 32G 的需求要么拆成两个 32G 实例（横向扩展），要么选 ZGC（原生支持 TB 级堆，指针着色方案天然无压缩指针问题）。</li>
+              <li><strong>验证命令</strong>：<code class="inline-code">java -XX:+PrintFlagsFinal -version | grep CompressedOops</code>，查看当前堆配置下是否生效。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>32G 阈值的本质是"寻址位数 × 对齐粒度"的数学极限：32 位偏移在 8 字节对齐下最大覆盖 32GB。有趣的是，把堆从 31G 提到 33G，可用对象数可能不增反降——因为每个对象（含引用字段）膨胀的内存超过了堆扩容的增量。这也是为什么许多大厂规范直接规定"-Xmx31g"作为单实例上限。若需更大堆且要求低延迟，ZGC（JDK 15+ 生产可用）使用着色指针在 64 位地址空间中直接寻址，彻底绕开压缩指针的困境。</p>
             </div>
           </div>
         </div>
@@ -474,6 +511,31 @@ graph TD
                 <li><strong>自定义类加载器误重写 loadClass</strong>：除非明确要打破双亲委派，否则应重写 <code class="inline-code">findClass</code>，否则可能丢失核心类安全保护。</li>
                 <li><strong>混淆解析时机</strong>：解析（符号引用→直接引用）不一定在初始化前完成，可能延迟到首次使用该符号时（懒解析），<code class="inline-code">invokedynamic</code> 更是运行时解析。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>类加载的反面是类卸载——理解类何时能被卸载，才能诊断 Metaspace 无限膨胀类故障：</p>
+            <ul>
+              <li><strong>类卸载三条件</strong>（缺一不可）：① 该类所有实例已被回收；② 加载该类的 <code class="inline-code">ClassLoader</code> 已被回收；③ 该类对应的 <code class="inline-code">java.lang.Class</code> 对象无任何引用。</li>
+              <li><strong>触发时机</strong>：类卸载在 Full GC 时触发（G1 在 mixed GC / Full GC 时扫描 <code class="inline-code">ClassLoaderData</code>），因此"元空间只涨不降"先看是否长期没有 Full GC。</li>
+              <li><strong>Metaspace 膨胀常见原因</strong>：CGLib/ASM 动态代理无限生成类（每次调用生成新 Enhancer 类）、Groovy 脚本每次动态编译、JSP 热部署、OSGi bundle 反复加载、自定义类加载器泄漏（被静态集合/线程持有无法回收）。</li>
+              <li><strong>Metaspace OOM 排查步骤</strong>（报错 <code class="inline-code">OutOfMemoryError: Metaspace</code>）：
+                <ol>
+                  <li>加 <code class="inline-code">-XX:+TraceClassLoading -XX:+TraceClassUnloading</code> 观察类加载/卸载是否配平；</li>
+                  <li><code class="inline-code">jcmd &lt;pid&gt; GC.class_stats</code> 查看类元数据分布（需 diagnostic 参数）；</li>
+                  <li>arthas <code class="inline-code">classloader</code> 命令查看各 ClassLoader 加载的类数量，找出异常增长的加载器；</li>
+                  <li>dump 堆后用 MAT 分析 ClassLoader 的 GC Root 引用链，定位持有者。</li>
+                </ol>
+              </li>
+              <li><strong>预防措施</strong>：设置 <code class="inline-code">-XX:MaxMetaspaceSize=512m</code> 上限（防拖垮整个进程），并对 Metaspace 使用率配置监控告警（如超过 80% 告警）。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>类卸载三条件中，最容易被忽视的是"ClassLoader 可回收"——因为类的元数据挂在 ClassLoaderData 上，只要加载器存活，它加载的所有类元数据都无法释放。典型的泄漏链是：动态代理缓存以 ClassLoader 为 value 存入静态 Map，或线程池线程的 ContextClassLoader 指向已停用应用的加载器。因此 Metaspace 泄漏的排查本质是"ClassLoader 泄漏排查"，MAT 中按 ClassLoader 分组统计 Retained Size 是最快的定位手法。</p>
             </div>
           </div>
         </div>

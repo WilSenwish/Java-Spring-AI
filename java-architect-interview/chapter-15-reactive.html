@@ -232,6 +232,39 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>核心原理之外，响应式落地最常见的工程痛点是"上下文丢失"——<code class="inline-code">ThreadLocal</code>（MDC、安全上下文、事务上下文）在线程切换后失效，需要用 Reactor Context 解决，这也是高频追问点。</p>
+            <ul>
+              <li><strong>ContextView 与 ThreadLocal 的本质区别</strong>：ThreadLocal 绑定线程，Reactor 线程切换（<code class="inline-code">publishOn/subscribeOn</code>、EventLoop）后即丢失；Context 是响应式流的一部分，随数据流传递，不绑定线程。</li>
+              <li><strong>写入与读取</strong>：写入用 <code class="inline-code">Mono.deferContextual(ctx -&gt; ...).contextWrite(Context.of("traceId", traceId))</code>，读取用 <code class="inline-code">Mono.deferContextual(ctx -&gt; ctx.get("traceId"))</code>。注意 <code class="inline-code">contextWrite</code> 影响上游操作符、<code class="inline-code">deferContextual</code> 读取下游传入的 Context，位置放错会读到空值。</li>
+              <li><strong>不可变语义</strong>：Context 不可变，<code class="inline-code">contextWrite</code> 返回新 Context；多次写入时最靠近读取点的写入生效，遵循"最近写入者生效"。</li>
+            </ul>
+            <p><strong>MDC 适配</strong>：</p>
+            <ul>
+              <li><strong>问题</strong>：MDC 基于 ThreadLocal，Reactor 线程切换后 MDC 内容丢失，日志中 <code class="inline-code">traceId</code> 为空，无法串联调用链。</li>
+              <li><strong>方案一（Hook 自动恢复）</strong>：用 <code class="inline-code">Hooks.onEachOperator</code> 在每个操作符执行前从 Context 取 <code class="inline-code">traceId</code> 放入 MDC：</li>
+            </ul>
+            <div class="code-block"><pre><code><span class="type">Hooks</span>.onEachOperator(fn -&gt; fn.contextView().getOrEmpty(<span class="str">"traceId"</span>)
+    .ifPresent(traceId -&gt; <span class="type">MDC</span>.put(<span class="str">"traceId"</span>, traceId)));</code></pre></div>
+            <ul>
+              <li><strong>方案二（手动管理）</strong>：用 <code class="inline-code">Mono.deferContextual</code> 读取后 <code class="inline-code">MDC.put</code>，配合 <code class="inline-code">doFinally</code> 执行 <code class="inline-code">MDC.remove</code>，精确控制但侵入代码。</li>
+            </ul>
+            <p><strong>全链路 traceId 传递</strong>：</p>
+            <ul>
+              <li><strong>WebFlux 层</strong>：WebFilter 从 HTTP Header 提取 <code class="inline-code">traceId</code> → <code class="inline-code">contextWrite</code> 写入 Reactor Context。</li>
+              <li><strong>Service 层</strong>：<code class="inline-code">deferContextual</code> 读取 <code class="inline-code">traceId</code> → 注入下游 RPC/WebClient Header。</li>
+              <li><strong>DB 层</strong>：MyBatis/R2DBC 拦截器从 MDC 读取 <code class="inline-code">traceId</code> → 写入 SQL 日志（前提是链内已恢复 MDC）。</li>
+              <li><strong>异步线程</strong>：使用 <code class="inline-code">Schedulers.boundedElastic()</code> 等切换调度器时，配合 <code class="inline-code">contextCapture()</code>（Reactor 3.5+）确保 Context 跨线程传播。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>Context 的可见范围由订阅关系决定而非线程：订阅建立时 Context 自下而上传递（<code class="inline-code">contextWrite</code> 影响其上游），数据发射时自上而下传播（<code class="inline-code">deferContextual</code> 读到的是下游写入的值）。"写入影响上游、读取见下游"是排错 Context 丢失的关键；若在 WebFilter 外层写 Context、Service 层却读不到，优先检查 <code class="inline-code">contextWrite</code> 是否位于读取操作符的下游。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -725,6 +758,29 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>错误处理与重试之外，响应式排错是高频考点——Reactor 的异步链让异常栈"没头没尾"，需要专门的工具链定位问题。</p>
+            <ul>
+              <li><strong>Hooks.onOperatorDebug()</strong>：全局开启后所有操作符记录装配栈（assembly trace），异常时打印完整操作符链调用栈而非只有异常发生处。性能开销大，仅排错时临时开启，生产禁止常开。</li>
+              <li><strong>checkpoint("name")</strong>：在关键操作符后加标记，异常时输出该标记点。只记录标记不记录完整栈，性能影响小，生产可用——建议在关键业务路径上添加。</li>
+              <li><strong>BlockHound</strong>：运行时检测响应式流中的阻塞调用（<code class="inline-code">Thread.sleep</code>、同步 IO），检测到即抛 <code class="inline-code">BlockingOperationException</code> 并附带调用栈。</li>
+              <li><strong>BlockHound 集成</strong>：<code class="inline-code">BlockHound.install()</code>，或 Spring Boot 配置 <code class="inline-code">spring.blockhound.enabled=true</code>；误报用 <code class="inline-code">BlockHound.builder().allowBlockingCallsInside(MyClass.class, "myMethod")</code> 白名单豁免。</li>
+            </ul>
+            <p><strong>常见排错场景</strong>：</p>
+            <ul>
+              <li><strong>"Assembly trace is not enabled"</strong>：异常信息提示未开启装配栈 → 开启 <code class="inline-code">Hooks.onOperatorDebug()</code> 或添加 <code class="inline-code">checkpoint()</code>。</li>
+              <li><strong>"Operator called without subscriber"</strong>：操作符链构建时机错误 → 用 <code class="inline-code">defer</code> 延迟到订阅时构建。</li>
+              <li><strong>"BlockHound detected blocking call"</strong>：响应式流中调用了阻塞 IO → 改为异步 API 或切 <code class="inline-code">boundedElastic()</code> 隔离。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p><code class="inline-code">onOperatorDebug</code> 与 <code class="inline-code">checkpoint</code> 的取舍：前者记录每个操作符的完整装配栈，信息全但开销大；后者只记一个命名标记，开销小。生产环境应"埋点式"使用 <code class="inline-code">checkpoint</code> 给链路贴标签，排障窗口期再临时全局开 <code class="inline-code">onOperatorDebug</code> 抓现场。BlockHound 的价值在于把"阻塞调用混入响应式链"这种运行时才暴露的问题提前到测试阶段发现。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -888,6 +944,33 @@ spring:
                 <li><strong>内存占用低估</strong>：虽每虚拟线程几 KB，但百万级虚拟线程仍占数 GB 内存，且栈深度大时栈帧占用增长，需按实际并发量评估内存。</li>
                 <li><strong>误以为启用即万能</strong>：<code class="inline-code">spring.threads.virtual.enabled=true</code> 只让 Tomcat 请求跑虚拟线程，自定义 <code class="inline-code">@Async</code>/<code class="inline-code">@Scheduled</code> 仍用配置的线程池，需单独配置 <code class="inline-code">TaskExecutor</code> 用虚拟线程。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>选型之外，两种并发模型在真实系统中常需共存——Reactor 链要调阻塞 JDBC、虚拟线程侧要调响应式服务，桥接边界设计是落地必修课。</p>
+            <ul>
+              <li><strong>互补而非替代</strong>：VT 是"同步代码 + 虚拟线程调度"模型，适合 IO 密集同步代码；Reactor 是"异步回调 + 事件循环"模型，适合背压 + 流式处理。</li>
+              <li><strong>VT 内的阻塞调用</strong>：<code class="inline-code">Thread.sleep</code> / 阻塞 IO 在 VT 中不会 pin（VT 可 unmount）；<code class="inline-code">synchronized</code> 块内的阻塞 IO 仍会 pin（JDK 21 已修复 <code class="inline-code">synchronized + Object.wait</code> 的 pinning，但 <code class="inline-code">synchronized + IO</code> 仍 pin）。</li>
+              <li><strong>JDBC 在 VT 中安全</strong>：主流 JDBC 驱动不使用 <code class="inline-code">synchronized + IO</code>，而是 <code class="inline-code">ReentrantLock</code>，阻塞可正常 unmount，是虚拟线程最大的受益场景。</li>
+            </ul>
+            <p><strong>桥接方案</strong>：</p>
+            <ul>
+              <li><strong>Reactor 调 VT</strong>：<code class="inline-code">Mono.fromCallable(() -&gt; blockingCall()).subscribeOn(Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor()))</code>——把阻塞调用放到虚拟线程调度器上，避免污染 EventLoop。</li>
+              <li><strong>VT 调 Reactor</strong>：<code class="inline-code">mono.block()</code> 在虚拟线程中安全——虚拟线程可以阻塞等待而不占用载体线程，是"合法阻塞点"。</li>
+            </ul>
+            <p><strong>混合编程风险</strong>：</p>
+            <ul>
+              <li>在 Reactor 非阻塞链中调用 <code class="inline-code">block()</code> 会抛 <code class="inline-code">blockAllowed() == false</code> 异常（<code class="inline-code">IllegalStateException</code>），这是框架对非阻塞线程调 block 的保护。</li>
+              <li>VT 中 <code class="inline-code">block()</code> 不影响载体线程，但每次阻塞都经历挂起/恢复调度，存在开销，不应滥用。</li>
+              <li><strong>最佳实践</strong>：IO 密集用 VT、背压/流式用 Reactor，两者通过 <code class="inline-code">fromCallable</code> / <code class="inline-code">block</code> 在边界收敛，禁止在 Reactor 链内裸调阻塞方法。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>为什么不能用 <code class="inline-code">boundedElastic()</code> 替代 VT 桥接？boundedElastic 线程池有上限（默认 10×CPU 核数），高并发阻塞调用会占满池子导致排队；虚拟线程数量近乎无限（每线程几 KB 栈），天然适合承接不可控数量的阻塞任务。因此"Reactor 主链路 + 虚拟线程承载阻塞调用"是比"Reactor + boundedElastic"更优的混合架构，也是面试高分答法。</p>
             </div>
           </div>
         </div>
@@ -1063,6 +1146,38 @@ flowchart LR
                 <li><strong>ThreadLocal/事务失效未处理</strong>：沿用 <code class="inline-code">@Transactional</code> 和 ThreadLocal（MDC/安全上下文），因线程切换静默失效，必须改用 <code class="inline-code">TransactionalOperator</code> 和 Reactor Context。</li>
                 <li><strong>为响应式而响应式</strong>：无流式背压需求、并发不高的 CRUD 系统强行全栈响应式，复杂度代价未换来收益，应优先 Virtual Threads + WebMVC。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>架构落地离不开质量保障——响应式链无法用传统 JUnit 直接验证，StepVerifier 是 Reactor 官方测试框架，也是面试必考的工具。</p>
+            <ul>
+              <li><strong>基本用法</strong>：<code class="inline-code">StepVerifier.create(Flux.just(1, 2, 3)).expectNext(1, 2, 3).verifyComplete()</code>——创建 → 断言元素 → 断言完成信号，测试才会真正触发订阅。</li>
+              <li><strong>虚拟时间（Virtual Time）</strong>：<code class="inline-code">StepVerifier.withVirtualTime(() -&gt; Flux.interval(Duration.ofSeconds(1)).take(3))</code>——虚拟时钟立即推进，无需真实等待；<code class="inline-code">thenAwait(Duration.ofSeconds(10))</code> 虚拟推进 10 秒，适合测试延迟、定时器。</li>
+              <li><strong>测试背压</strong>：<code class="inline-code">create(source, 0)</code> 初始 request 0，<code class="inline-code">thenRequest(n)</code> 分步拉取，<code class="inline-code">thenCancel()</code> 模拟下游取消订阅——用于验证背压传导是否正确。</li>
+              <li><strong>测试异常</strong>：<code class="inline-code">expectError(RuntimeException.class)</code> 验证异常类型，<code class="inline-code">expectErrorMessage("msg")</code> 验证异常消息。</li>
+              <li><strong>时序断言</strong>：<code class="inline-code">expectNoEvent(Duration.ofMillis(100))</code> 验证指定窗口内无事件，用于超时、限流等场景。</li>
+            </ul>
+            <div class="code-block"><pre><code><span class="com">// 虚拟时间 + 时序断言 + 取消 综合示例</span>
+<span class="type">StepVerifier</span>.withVirtualTime(() -&gt; <span class="type">Flux</span>.interval(<span class="type">Duration</span>.ofSeconds(<span class="num">1</span>)).take(<span class="num">3</span>))
+    .expectSubscription()
+    .expectNoEvent(<span class="type">Duration</span>.ofSeconds(<span class="num">1</span>))  <span class="com">// 1 秒内无事件</span>
+    .thenAwait(<span class="type">Duration</span>.ofSeconds(<span class="num">1</span>))
+    .expectNext(<span class="num">0L</span>)
+    .thenCancel()                       <span class="com">// 模拟下游取消</span>
+    .verify();</code></pre></div>
+            <p><strong>生产实践建议</strong>：</p>
+            <ul>
+              <li><strong>覆盖率</strong>：每个操作符链至少覆盖一个成功场景（<code class="inline-code">verifyComplete()</code>）和一个异常场景（<code class="inline-code">expectError()</code>）。</li>
+              <li><strong>边界测试</strong>：空 Flux、单元素 Flux、无限 Flux（用 <code class="inline-code">thenCancel</code> 截断）。</li>
+              <li><strong>时序测试</strong>：配合 <code class="inline-code">withVirtualTime</code> + <code class="inline-code">thenAwait</code>，避免测试依赖真实时钟导致慢且不稳定。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p><code class="inline-code">withVirtualTime</code> 的原理：StepVerifier 用 <code class="inline-code">TestScheduler</code> 替换默认 Scheduler，时间相关操作符在虚拟时钟上执行，测试瞬时完成。关键约束：<code class="inline-code">withVirtualTime</code> 必须传 Supplier（延迟构建 Publisher），若直接传已构建的 <code class="inline-code">Flux.interval()</code>，调度在虚拟时钟安装前已发生，虚拟时间失效。另外 <code class="inline-code">create(source, initialRequest)</code> 的第二个参数控制初始请求量，默认 <code class="inline-code">Long.MAX_VALUE</code>——测试背压必须显式传入 0 或小值。</p>
             </div>
           </div>
         </div>

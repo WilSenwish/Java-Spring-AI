@@ -346,6 +346,26 @@ pool.<span class="fn">shutdown</span>();                              <span clas
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>从 JDK 原生 <code class="inline-code">ThreadPoolExecutor</code> 到生产级 Web 容器，Tomcat 线程池做了大量定制化设计；而虚拟线程的引入进一步改变了线程池参数的语义，这一层补全两者的整合实践。</p>
+            <ul>
+              <li><strong>Tomcat 线程池三大核心参数</strong>：<code class="inline-code">maxThreads</code>（最大工作线程数，默认 200）控制并发处理能力上限；<code class="inline-code">acceptCount</code>（全连接队列长度，默认 100）是 TCP 完成三次握手后等待 Tomcat 线程接受的积压队列；<code class="inline-code">minSpareThreads</code>（核心线程数，默认 10）保持预热线程。三者关系：连接数 &gt; maxThreads + acceptCount 时新连接被操作系统拒绝。</li>
+              <li><strong>Tomcat 自定义 TaskQueue 的反直觉行为</strong>：Tomcat 的 <code class="inline-code">org.apache.tomcat.util.threads.TaskQueue</code> 继承 <code class="inline-code">LinkedBlockingQueue</code>，其 <code class="inline-code">offer</code> 方法在线程数未达 <code class="inline-code">maxThreads</code> 时<strong>返回 false</strong>，迫使 <code class="inline-code">ThreadPoolExecutor</code> 创建新线程而非排队等待——这与原生 <code class="inline-code">ThreadPoolExecutor</code> 的"核心→队列→最大"流程不同，Tomcat 实际行为是"核心→最大→队列"，优先用线程而非积压。</li>
+              <li><strong>拒绝策略</strong>：默认 <code class="inline-code">ThreadPoolExecutor.AbortPolicy</code>（抛 <code class="inline-code">RejectedExecutionException</code>），可配置为 <code class="inline-code">CallerRunsPolicy</code> 让提交线程（即 Tomcat Acceptor 线程）自己执行任务，起到背压效果。</li>
+              <li><strong>虚拟线程整合（JDK 21+）</strong>：设置 <code class="inline-code">spring.threads.virtual.enabled=true</code> 后，Tomcat 请求处理线程自动切换为虚拟线程，每个请求分配一个 VT，不受 <code class="inline-code">maxThreads</code> 限制（VT 数量可达百万级）。此时 <code class="inline-code">maxThreads</code> 退化为"平台线程数"限制，仅控制载体线程规模。</li>
+              <li><strong>VT 的 pinning 陷阱</strong>：VT 在 <code class="inline-code">synchronized</code> 块中执行阻塞 IO（如数据库查询、HTTP 调用）时会 pin 到 carrier thread 无法卸载，等效于平台线程，降低吞吐。JDK 21 已优化 <code class="inline-code">synchronized + Object.wait</code> 可卸载的场景，但 <code class="inline-code">synchronized + IO</code> 仍会 pin。</li>
+              <li><strong>混合模式建议</strong>：IO 密集型任务用 VT，CPU 密集型任务仍用平台线程池（如 <code class="inline-code">ForkJoinPool</code>），避免 VT 被 CPU 计算长期占用载体线程。</li>
+              <li><strong>生产实践</strong>：Spring Boot 3.2 + JDK 21，IO 密集场景单机 QPS 从 5000 提升到 30000+，但需配合 JVM 参数 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning 热点。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>Tomcat 的 <code class="inline-code">TaskQueue</code> 重写 <code class="inline-code">offer</code> 是理解 Tomcat 线程池行为的关键：原生 <code class="inline-code">ThreadPoolExecutor</code> 用 <code class="inline-code">LinkedBlockingQueue</code> 时 <code class="inline-code">offer</code> 总是成功（无界），导致 <code class="inline-code">maxThreads</code> 永远不触发；而 <code class="inline-code">TaskQueue</code> 在 <code class="inline-code">parent.getPoolSize() &lt; parent.getMaximumPoolSize()</code> 时返回 false，强制 <code class="inline-code">addWorker</code> 创建新线程。这意味着 Tomcat 的线程创建策略是"优先扩线程、最后才排队"，与原生 JDK 线程池"优先排队、最后扩线程"的语义相反。引入虚拟线程后，<code class="inline-code">maxThreads</code> 的语义从"并发请求上限"变为"载体线程上限"，百万级 VT 共享少量 carrier thread，IO 阻塞时 VT 自动 unmount 释放 carrier——但前提是阻塞点不被 <code class="inline-code">synchronized</code> pin 住，这也是为什么 MySQL JDBC 驱动在 JDK 21 早期版本仍存在 pinning 问题的根因。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -911,6 +931,26 @@ spring:
                 <li><strong>thenApply vs thenCompose 混淆</strong>：返回 CF 时用 thenApply 会得到嵌套 CF&lt;CF&gt;，应用 thenCompose。</li>
                 <li><strong>allOf 后忘记收集</strong>：allOf 返回 Void，需对各原 CF join 收集结果。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>CompletableFuture 的执行器可以切换为虚拟线程，但 Spring Boot 3.2 的虚拟线程自动配置有明确的作用范围与局限性，这一层补全自动配置的覆盖边界与实践陷阱。</p>
+            <ul>
+              <li><strong><code class="inline-code">spring.threads.virtual.enabled=true</code> 的作用范围</strong>：① Tomcat/Jetty/Undertow 的请求处理线程 → VT；② <code class="inline-code">@Async</code> 异步任务执行器 → VT；③ Spring <code class="inline-code">TaskExecutor</code> bean → VT。</li>
+              <li><strong>不受影响的组件</strong>：<code class="inline-code">ScheduledExecutor</code>、Stream <code class="inline-code">parallel()</code>、<code class="inline-code">CompletableFuture</code> 默认仍用 <code class="inline-code">ForkJoinPool.commonPool()</code>——需手动传 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 或注入 Spring 管理的 <code class="inline-code">TaskExecutor</code>。</li>
+              <li><strong>局限性一：synchronized 阻塞导致 pinning</strong>：<code class="inline-code">synchronized</code> 块内有阻塞 IO（如 DB 查询、HTTP 调用），VT 会固定在 carrier thread 上无法卸载，等效于平台线程。JDK 21 已优化 <code class="inline-code">synchronized + Object.wait</code> 可卸载，但 <code class="inline-code">synchronized + IO</code> 仍会 pin。</li>
+              <li><strong>局限性二：ThreadLocal 继承问题</strong>：VT 默认不继承父线程的 <code class="inline-code">ThreadLocal</code>，JDK 21 推荐使用 <code class="inline-code">ScopedValue</code>（预览特性）替代 <code class="inline-code">ThreadLocal</code> 做上下文传递。</li>
+              <li><strong>局限性三：第三方库未适配</strong>：MySQL JDBC 驱动在 <code class="inline-code">synchronized</code> 块内执行 IO 会 pin；Netty EventLoop 不支持 VT（VT 不适合事件驱动框架）。</li>
+              <li><strong>局限性四：监控与排查困难</strong>：jstack 中 VT 数量极多，传统线程分析工具（如 async-profiler）需适配。</li>
+              <li><strong>替代方案</strong>：Reactor/WebFlux 响应式模型在 IO 多路复用场景仍优于 VT（更低的内存开销），复杂流式编排与背压场景不应盲目迁移到 VT。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>Spring Boot 3.2 的 <code class="inline-code">spring.threads.virtual.enabled=true</code> 本质是通过 <code class="inline-code">VirtualThreadTaskExecutor</code> 替换默认的 <code class="inline-code">TaskExecutor</code>，但这个替换是<strong>选择性</strong>的——框架只替换它"主动管理"的执行器（请求线程、@Async、TaskExecutor bean），不触碰 JVM 级别的 <code class="inline-code">ForkJoinPool.commonPool()</code>。这意味着 <code class="inline-code">CompletableFuture.supplyAsync</code> 不传 executor 时仍用 commonPool，IO 阻塞会饿死整个 JVM 的并行流和默认 CF。正确做法：显式注入 Spring 的 <code class="inline-code">AsyncTaskExecutor</code>（开启 VT 后自动为 VT 执行器）传给 <code class="inline-code">supplyAsync</code>。此外，pinning 的排查需开启 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>，生产环境建议用 JFR（Java Flight Recorder）持续监控 pinning 事件，而非依赖 jstack 手动采样。</p>
             </div>
           </div>
         </div>

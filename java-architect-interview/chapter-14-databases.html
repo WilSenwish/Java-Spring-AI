@@ -552,6 +552,30 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>本题聚焦向量库内部架构，但真实 AI 应用中向量库几乎不会独立存在——业务数据在 MySQL（关系库），文本向量在 Milvus/Pinecone（向量库），两者如何保持一致是架构师必须答好的落地问题。</p>
+            <ul>
+              <li><strong>双写场景</strong>：AI 应用中，业务数据写入 <code class="inline-code">MySQL</code> 后，需同步将文本向量写入 <code class="inline-code">Milvus/Pinecone</code>。商品标题、描述变更时，Embedding 结果也必须同步更新，否则 RAG 检索命中旧内容。</li>
+              <li><strong>同步双写</strong>：应用层先写 MySQL，成功后写向量库。实现最简单，但向量库写入失败时数据不一致，且 Embedding 耗时（100ms+）会拖长主链路事务，仅适合低并发、可容忍短时不一致的场景。</li>
+              <li><strong>事务 + 消息（最终一致）</strong>：MySQL 事务提交后发 MQ，消费者异步执行 Embedding 并写向量库。延迟秒级，支持重试；配合向量库 upsert 幂等语义，消息重复消费也不会产生脏数据。</li>
+              <li><strong>CDC 方案（推荐）</strong>：<code class="inline-code">Debezium</code> 监听 MySQL Binlog，变更事件写入 Kafka，Embedding Worker 消费后更新向量库。对业务零侵入，不依赖应用侧发 MQ，改造存量系统最平滑。</li>
+              <li><strong>补偿机制</strong>：定时任务全量校验——扫描 MySQL 数据重新生成向量并与向量库比对，发现差异自动修复，兜底消息丢失、消费者宕机等异常场景。</li>
+            </ul>
+            <p><strong>向量库更新的特殊性</strong>：</p>
+            <ul>
+              <li><strong>不支持事务</strong>：向量库写入是 <code class="inline-code">upsert</code> 语义（存在则更新、不存在则插入），天然幂等，但无法与 MySQL 事务原子提交，只能靠最终一致。</li>
+              <li><strong>Embedding 耗时长</strong>：大文本重新向量化通常 100ms 以上，必须在异步管道中处理，不能同步阻塞主业务链路。</li>
+              <li><strong>删除也要同步</strong>：MySQL 删除记录时，Binlog 事件触发向量库按主键删除，否则成为检索死角。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>以商品系统为例：商品表（MySQL）→ Debezium 捕获 <code class="inline-code">UPDATE</code> → Kafka topic → Embedding Worker 批量向量化 → Milvus <code class="inline-code">upsert</code>。链路任一环节失败都能通过消息重投 + 补偿任务兜底，达到秒级最终一致。对比三种方案：同步双写一致性最差但最简单；事务 + 消息是通用折中；CDC 对业务无侵入但引入 Debezium/Kafka 运维成本——面试应给出"按一致性要求与改造成本取舍"的判断。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -1291,6 +1315,42 @@ flowchart TD
                 <li><strong>跨地域多活未评估网络延迟</strong>：地理分布式下提交延迟受限于副本距离。</li>
                 <li><strong>HTAP 不隔离资源</strong>：分析查询吃满 CPU/IO，拖垮在线交易。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>前述对比表只给出一行 OceanBase 摘要；作为蚂蚁自研的金融级数据库（TPC-C 榜首），其 Paxos 强一致、跨机房容灾与 MySQL 兼容性值得单独深挖。</p>
+            <ul>
+              <li><strong>Paxos 多副本强一致</strong>：每个 Partition 有 3+ 副本（1 Leader + 多 Follower），写入需多数派确认，任一节点故障数据不丢。</li>
+              <li><strong>跨机房部署</strong>：3 副本分布在不同机房，任一机房整体故障 <code class="inline-code">RPO=0</code>、RTO 秒级（自动切换），满足金融容灾要求。</li>
+              <li><strong>多租户</strong>：底层共享存储、上层逻辑隔离（类似 Oracle <code class="inline-code">CDB/PDB</code>），适合云上多业务共库降低成本。</li>
+            </ul>
+            <p><strong>金融级特性</strong>：</p>
+            <ul>
+              <li><strong>两阶段提交（2PC）</strong>：Coordinator 协调多个 Participant，保证跨 Partition / 跨库事务原子性。</li>
+              <li><strong>全局时间戳（GTS）</strong>：提供全局一致性读，解决跨 Partition 事务的可见性顺序问题。</li>
+              <li><strong>透明故障切换</strong>：Leader 故障后 Follower 秒级当选，应用经 OBProxy 无感切换，无需改连接配置。</li>
+              <li><strong>MySQL 兼容</strong>：OB MySQL 模式兼容大部分 MySQL 语法与协议，应用改造成本低，是蚂蚁对外输出的主推形态。</li>
+            </ul>
+            <p><strong>NewSQL 边界</strong>：适合 OLTP 高并发写入、金融级强一致、海量数据分库分表替代；不适合复杂 OLAP 分析（列存能力不如 ClickHouse/Doris）、超低延迟单点查询（Paxos 多数派确认增加 RTT）。</p>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p><strong>OceanBase vs TiDB 对比</strong>：</p>
+              <table class="compare-table">
+                <thead><tr><th>维度</th><th>OceanBase</th><th>TiDB</th></tr></thead>
+                <tbody>
+                  <tr><td>一致性协议</td><td>Paxos</td><td>Raft</td></tr>
+                  <tr><td>存储引擎</td><td>LSM-Tree</td><td>LSM-Tree（TiKV）</td></tr>
+                  <tr><td>分布式事务</td><td>2PC + GTS</td><td>2PC + TSO</td></tr>
+                  <tr><td>MySQL 兼容</td><td>高（OB MySQL 模式）</td><td>高（TiDB 协议层兼容）</td></tr>
+                  <tr><td>HTAP</td><td>支持（只读副本）</td><td>支持（TiFlash 列存）</td></tr>
+                  <tr><td>运维成熟度</td><td>商业支持完善</td><td>开源社区活跃</td></tr>
+                </tbody>
+              </table>
+              <p>选型落点：强一致要求极高、预算充足的金融核心倾向 OceanBase；需要活跃开源生态与灵活 HTAP 的互联网业务倾向 TiDB。</p>
             </div>
           </div>
         </div>

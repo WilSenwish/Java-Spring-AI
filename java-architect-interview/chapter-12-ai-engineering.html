@@ -407,6 +407,22 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>除 Agentic RAG 外，<strong>GraphRAG</strong> 是另一种增强 RAG 全局理解与多跳推理能力的范式，由 Microsoft 于 2024 年开源，核心是把"文本块检索"升级为"知识图谱 + 社区摘要检索"。</p>
+            <ul>
+              <li><strong>构建流程（离线）</strong>：① 用 LLM 从文档中抽取实体与关系（entity extraction）；② 以实体为节点、关系为边构建知识图谱；③ 用 <code class="inline-code">Leiden</code> 算法做社区发现，将图划分为层次化社区；④ LLM 为每个社区生成摘要（community summary）。</li>
+              <li><strong>查询路由</strong>：全局性/摘要类查询（"总结这份财报的主要风险"）走社区摘要检索；局部/实体类查询（"A 公司的子公司高管是谁"）走实体子图检索，图遍历天然支持多跳。</li>
+              <li><strong>与传统 RAG 的对比</strong>：传统 RAG 检索粒度是文本块，全局视角弱、多跳推理差但构建成本低、查询毫秒级；GraphRAG 检索粒度是实体/关系/社区摘要，全局视角强、多跳推理好但需 LLM 抽取+图构建（成本高）、查询秒级（图遍历+LLM 总结）。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>GraphRAG 的价值在于解决了传统 RAG 的"只见树木不见森林"问题——传统 RAG 只能检索局部文本块，无法回答需要跨文档综合的全局性问题。社区摘要提供了层次化的全局视角，Leiden 算法划分的社区天然形成"主题聚类"。但 GraphRAG 构建成本高（每篇文档都要 LLM 抽取实体），适合知识密度高、关系密集型场景（企业财报分析、法律案例图谱、医学文献）；简单事实查询用传统 RAG 更快更便宜。实践趋势是<strong>混合架构</strong>：简单问题走向量 RAG，全局/多跳问题走 GraphRAG，由路由层决策。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -538,6 +554,23 @@ flowchart TD
                 <li><strong>忽视向量更新</strong>：换了 Embedding 模型但没重建索引，新旧维度不一致直接报错或召回错乱。</li>
                 <li><strong>把向量库当关系库</strong>：向量检索是近似的、无事务的，不能替代 MySQL 做精确查询。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>向量存储与检索的"空间-精度"权衡，除了调维度和索引参数，还有两个工业级手段：<strong>Matryoshka 降维</strong>与<strong>向量量化</strong>。</p>
+            <ul>
+              <li><strong>Matryoshka Representation Learning (MRL)</strong>：训练时同时优化多个维度的嵌入损失（如 64/128/256/512/768/1024 维），向量是"嵌套"的——前 64 维就是 64 维嵌入，前 128 维就是 128 维嵌入。降维只需直接截断前 N 维，无需重新训练或 PCA。OpenAI <code class="inline-code">text-embedding-3-small</code> 已支持 MRL，调用时可指定 <code class="inline-code">dimensions</code> 参数返回不同维度。</li>
+              <li><strong>二值量化（Binary Quantization）</strong>：将浮点向量转为 0/1 二值（正数→1，负数→0），存储从 4N 字节降到 N/8 字节，32x 压缩。Qdrant 原生支持二值量化 + 原始向量重排序（先用二值快速召回，再用原始向量精排）。</li>
+              <li><strong>乘积量化（Product Quantization, PQ）</strong>：将向量分成子段，每段独立聚类编码，压缩 8-16x。Milvus 2.4+ 支持 PQ。</li>
+              <li><strong>标量量化（Scalar Quantization）</strong>：float32 → int8，4x 压缩，精度损失极小。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>组合策略威力最大：MRL 降维到 256 维 + 二值量化 = 存储从 1024B 降到 32B（32x 压缩），召回率仍保持 90%+。典型流水线：① MRL 截断到目标维度；② 二值/PQ 量化做粗排召回（汉明距离/非对称距离）；③ 用原始 float 向量做精排重排序（rerank top-k）。这种"粗排+精排"两阶段检索是亿级向量库的标配，Qdrant/Milvus 均已原生支持。选型时需评测压缩比与召回率的权衡曲线，而非盲目追求最大压缩。</p>
             </div>
           </div>
         </div>
@@ -1223,6 +1256,22 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>除 RAGAS 外，<strong>DeepEval</strong> 是另一个主流的 RAG/LLM 评估框架，差异在于采用 Python 单元测试风格，更贴合工程团队的 CI/CD 流程。</p>
+            <ul>
+              <li><strong>使用方式</strong>：<code class="inline-code">pip install deepeval</code>，继承 <code class="inline-code">BaseTestCase</code> 用 <code class="inline-code">@metric</code> 装饰器评估，与 pytest 集成：<code class="inline-code">deepeval test run test_rag.py</code>。</li>
+              <li><strong>核心指标</strong>：<code class="inline-code">Faithfulness</code>（忠实于上下文不幻觉）、<code class="inline-code">Answer Relevancy</code>（回答切题）、<code class="inline-code">Contextual Precision</code>（相关文档排名靠前）、<code class="inline-code">Contextual Recall</code>（检索覆盖所需上下文）、<code class="inline-code">Contextual Relevancy</code>（上下文不冗余，检索了无关内容会扣分）。</li>
+              <li><strong>与 RAGAS 对比</strong>：RAGAS 是脚本调用风格，需自定义集成 CI/CD，4 个核心指标；DeepEval 是 pytest 风格，原生支持 CI/CD，5+ 个指标，自定义指标用装饰器模式更简单，输出 HTML 报告 + pytest report。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>DeepEval 的核心优势是<strong>把 LLM 评估纳入工程化测试流水线</strong>——开发者像写单元测试一样写 RAG 评测用例，每个用例断言 Faithfulness &gt; 0.8、Contextual Recall &gt; 0.9 等阈值。在 GitHub Actions 中运行 <code class="inline-code">deepeval test run</code>，当 RAG 指标下降（如 Prompt 改动导致 Faithfulness 从 0.9 跌到 0.7）时自动阻止合并，实现"评估即测试"的防护栏。RAGAS 更适合离线批量评测与研究报告，DeepEval 更适合持续集成中的回归门禁，两者可组合使用。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -1340,6 +1389,22 @@ flowchart TD
                 <li><strong>忽视输出成本</strong>：输出比输入贵 3-5 倍，不限输出长度成本失控。</li>
                 <li><strong>盲目自部署</strong>：量不够 GPU 闲置比 API 还贵，需算盈亏平衡点。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>除了语义缓存（按 Query 语义匹配），<strong>Prompt 缓存</strong>是按"前缀匹配"的厂商级缓存机制，对固定 system prompt + 长上下文场景降本显著。</p>
+            <ul>
+              <li><strong>Anthropic Claude <code class="inline-code">cache_control</code></strong>：在 system prompt 或长上下文中标记 <code class="inline-code">"cache_control": {"type": "ephemeral"}</code>，标记段会被缓存，后续请求前缀匹配时命中。TTL 5 分钟（滑动窗口，每次命中刷新）。命中条件：前缀完全匹配（system prompt + tools 定义 + 历史消息）。缓存写入费用为标准 input 的 1.25 倍，缓存读取为标准 input 的 0.1 倍（10x 便宜）。</li>
+              <li><strong>OpenAI Prompt Caching（2024.10）</strong>：自动缓存，无需显式标记，前缀 1024+ tokens 自动缓存，TTL 5-10 分钟，缓存命中部分 input token 费用打 5 折。</li>
+              <li><strong>适用场景</strong>：长系统提示词（RAG 的 few-shot 示例、角色设定、工具定义）、多轮对话中重复的历史消息、文档问答中同一文档的多次提问。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>成本优化案例：10K tokens 的 system prompt + 100 次请求——无缓存需 100 × 10K = 1M input tokens；有缓存（Claude）需 1 × 10K × 1.25 + 99 × 10K × 0.1 = 12.5K + 99K = 111.5K input tokens，省 88%。Prompt 缓存与语义缓存互补：语义缓存命中"整条请求"，Prompt 缓存命中"共享前缀"。长 system prompt + 变量问题的场景，Prompt 缓存是唯一有效手段（语义缓存因问题不同而无法命中）。注意前缀稳定性：system prompt 和 tools 定义要固定不变，动态部分（用户问题）放在末尾。</p>
             </div>
           </div>
         </div>

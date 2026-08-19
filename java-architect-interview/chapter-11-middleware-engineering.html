@@ -1968,6 +1968,24 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>补齐 Kafka 控制平面（Controller）的完整链路：<strong>ZK 时代 Controller 选举 → KRaft 去 ZK → leader epoch 数据安全 → ISR 伸缩与选举</strong>，这是从"会用 Kafka"到"懂 Kafka"的分水岭。</p>
+            <ul>
+              <li><strong>ZooKeeper 模式下的 Controller 选举</strong>：所有 Broker 启动时在 ZK 的 <code class="inline-code">/controller</code> 路径创建<strong>临时节点</strong>，第一个创建成功的 Broker 成为 Controller；Broker 宕机或会话超时，临时节点消失，其余 Broker 监听 <code class="inline-code">/controller</code> 的 Watch 事件并重新抢注。Controller 职责：分区 Leader 选举、副本分配与迁移、ISR 变更、分区重平衡。痛点：Controller 依赖 ZK，ZK 集群故障会导致 Controller 无法选举、元数据不可用。</li>
+              <li><strong>KRaft 模式（Kafka 2.8 引入，3.x 推荐，4.0 起强制）</strong>：彻底移除 ZooKeeper，由 <strong>3+ 个 Controller 节点组成 Raft 集群</strong>；Active Controller 负责元数据管理与对外服务，Standby Controller 通过 Raft 复制元数据做<strong>热备</strong>，Leader 故障后自动接管。元数据不再存 ZK，而是写入内部 Topic <code class="inline-code">__cluster_metadata</code>（多副本存储）。优势：减少外部依赖、Controller 切换从秒级降到毫秒级、元数据操作延迟从秒级降到毫秒级、与数据面协议统一（都是日志复制）。</li>
+              <li><strong>Leader Epoch 机制</strong>：每个 Partition 维护单调递增的 <code class="inline-code">leader epoch</code> 号，Leader 每次切换时 <code class="inline-code">epoch + 1</code>。Follower 同步时携带自己记录的 epoch，Leader 若发现 Follower 的 epoch 落后，会通过 <code class="inline-code">LeaderEpochRequest</code> 告知 Follower 应截断的位点，防止 Follower 恢复后"回退"到低于 Leader 的日志位点。解决问题：旧机制仅靠 high watermark 截断，存在<strong>误导截断（可导致已提交数据丢失）</strong>风险；epoch 机制让截断判断基于 Leader 权威记录，杜绝误截。</li>
+              <li><strong>ISR 伸缩与 Leader 选举关系</strong>：副本落后 Leader 超过 <code class="inline-code">replica.lag.time.max.ms</code>（默认 30s）即被移出 ISR；追平后重新加入。Leader 选举<strong>优先从 ISR 内选</strong>（保证不丢已提交数据）；ISR 为空时，若开启 <code class="inline-code">unclean.leader.election.enable=true</code>（默认 false）才允许从非 ISR 副本选 Leader（会有数据丢失风险）。生产建议保持默认 false：<strong>宁可短暂不可用，也不丢数据</strong>，与 acks=all + min.insync.replicas=2 组合成完整的高可用数据安全基线。</li>
+            </ul>
+
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>面试深挖点：KRaft 与 ZK 模式最本质的差异不在"去掉了什么"，而在<strong>元数据一致性协议的统一</strong>——ZK 模式下元数据用 ZK 的 Zab 协议，数据面用 ISR 拉取，两套一致性机制并存；KRaft 下元数据与数据面同为"Leader 追加日志 + Follower 复制"的日志复制模型，一致性机制归一。回答"Kafka 为什么不用 Raft"（见深度追问）时要补一句：Kafka 确实在 KRaft 元数据层用了 Raft，只是数据面出于吞吐考量保留了 ISR 异步拉取——两种协议各司其职，并不矛盾。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- C11.12 API 网关的核心设计（限流、熔断、灰度发布）？ -->
@@ -2640,6 +2658,24 @@ spring:
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>上面的原理层讲了长轮询的"是什么"，这里补<strong>Nacos 长轮询的源码级实现与 1.x→2.x 的演进细节</strong>，让回答从"背结论"升级为"讲机制"。</p>
+            <ul>
+              <li><strong>客户端长轮询机制（Nacos 1.x）</strong>：客户端通过 <code class="inline-code">LongPollingRunnable</code> 周期性发起 HTTP 长轮询请求到 <code class="inline-code">/v1/cs/configs</code>（携带已订阅 DataId 的 MD5 列表），请求超时设置 30s；服务端收到请求后校验配置 MD5——<strong>有变更立即返回新内容，无变更则把请求挂起（Servlet 3.1 <code class="inline-code">AsyncContext</code> 异步化）放入 <code class="inline-code">allSubs</code> 队列</strong>，同时注册超时定时器；配置发布时服务端遍历 <code class="inline-code">allSubs</code>，找到匹配的挂起请求并立即响应；30s 超时仍无变更则返回空结果，客户端拿到空结果后<strong>立即发起下一轮长轮询</strong>，形成"挂起-唤醒"循环。</li>
+              <li><strong>Nacos 2.x：gRPC 长连接替代长轮询</strong>：改用 gRPC <strong>Bidirectional Streaming</strong>，客户端与服务端建立持久长连接，服务端通过 gRPC Stream <strong>主动推送（Push）</strong>变更，无需客户端轮询。优势：变更延迟从最长 30s 降到<strong>毫秒级</strong>；长连接复用大幅减少 HTTP 建连开销（官方数据性能提升约 10x）；连接状态可感知（断线可重连）。向后兼容：2.x 客户端连 1.x 服务端时<strong>自动降级为长轮询</strong>，保证升级平滑。</li>
+              <li><strong>MD5 校验机制（内容指纹去重）</strong>：客户端本地缓存已拉取配置的内容，并计算其 MD5，长轮询请求携带 DataId → MD5 映射列表；服务端用当前配置 MD5 与客户端上报值比对——<strong>一致说明客户端缓存已是最新，无需返回内容；不一致才返回完整新内容</strong>。这是一种"内容指纹"级的去重策略：大部分轮询"无变化"，传输的只是一个 MD5 列表而非全量配置，显著节省带宽与解析开销。</li>
+              <li><strong>与 Apollo 推模型对比</strong>：Apollo 是 <strong>HTTP 长轮询 + 客户端定时拉取双保险</strong>（长轮询通知变更 namespace，客户端再拉内容，另维护兜底轮询）；Nacos 2.x 是 <strong>gRPC 双向流推送</strong>，延迟更低、连接开销更小，但引入了 gRPC 依赖与长连接运维复杂度（连接数、心跳、断线重连）。两者都支持配置灰度发布与命名空间隔离，选型权衡点在：纯 Java 且已用 Nacos 生态 → Nacos；多语言、强治理后台、需要精细灰度规则 → Apollo。</li>
+            </ul>
+
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>面试深挖点：长轮询"挂起连接"的最大坑是<strong>连接泄漏与服务端线程占用</strong>——若客户端超时设置与服务端挂起超时不匹配，或客户端异常退出后服务端未及时清理 <code class="inline-code">allSubs</code>，挂起的 <code class="inline-code">AsyncContext</code> 会积压成连接 / 线程泄漏。这也是 Nacos 1.x 生产调优的重点（检查客户端超时 <code class="inline-code">long-polling.timeout</code> 与服务端一致性、监控挂起连接数）。理解这一点，面试时就能答出"长轮询不是没有代价，只是把轮询成本转移成了连接管理成本"——这也是 2.x 换 gRPC 长连接的根本动机之一。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -2862,6 +2898,24 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
               <p>压测时重点验证：① Kafka 顺序写 + 页缓存下的单 broker 吞吐上限；② RocketMQ 同步刷盘对吞吐的折损；③ 大促峰值下 MQ 缓冲能力与下游消费速度匹配（避免积压超阈值）。以上量级均为业界参考基准，需以自身生产压测数据替换。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>在掌握 Kafka vs RocketMQ 选型基础上，补齐三个业务落地高频细节：<strong>削峰填谷的落地策略、RocketMQ 死信 / 重试机制、消息轨迹</strong>。</p>
+            <ul>
+              <li><strong>削峰填谷落地策略</strong>：① <strong>消费者限流</strong>——用令牌桶控制消费速率，让消息在 Broker 端积压缓冲，下游按自身能力消费，避免瞬时洪峰打垮下游；② <strong>队列堆积告警 + 弹性扩容</strong>——监控消费 lag（如 RocketMQ 控制台 lag、Kafka consumer lag），超过阈值触发告警并自动扩容消费者实例（K8s HPA 按 lag 扩缩容）；③ <strong>分级降级</strong>——核心消息进高优队列优先消费（RocketMQ 多 Topic 分级 / 队列优先级），非核心消息延迟消费或降级丢弃，优先保障核心链路。</li>
+              <li><strong>RocketMQ 死信队列（DLQ）</strong>：命名规则 <code class="inline-code">%DLQ%ConsumerGroupName</code>（如 <code class="inline-code">%DLQ%order_consumer_group</code>），消息<strong>重试 16 次仍失败</strong>后自动转入该 Topic。DLQ 中的消息不会自动消费，需人工介入排查或定时任务扫描补偿。与 Kafka 对比：<strong>Kafka 没有内置 DLQ</strong>，需业务自行实现（消费失败写 error topic + 定时重放），这是 RocketMQ 在业务可靠性场景的明显优势。</li>
+              <li><strong>重试机制</strong>：RocketMQ 重试间隔<strong>按延迟 level 递增</strong>（1s, 5s, 10s, 30s, 1m, 2m, 3m, 4m, 5m, 6m, 7m, 8m, 9m, 10m, 20m, 30m, 1h, 2h，共 18 档）；重试消息存储在 <code class="inline-code">%RETRY%ConsumerGroupName</code> 私有 Topic 中。消费者处理返回 <code class="inline-code">RECONSUME_LATER</code> 触发下次重试，返回 <code class="inline-code">CONSUME_SUCCESS</code> 表示消费成功。</li>
+              <li><strong>消息轨迹（Message Trace）</strong>：开启 <code class="inline-code">traceTopic=RMQ_SYS_TRACE_TOPIC</code> 后，每条消息的生产-消费全链路被记录：发送时间、存储 Broker、消费时间、消费状态、消费耗时等。用途：排查<strong>消息丢失</strong>（生产未发出 / 消费未收到）、<strong>重复消费</strong>（同一消息多次消费记录）、<strong>消费延迟</strong>（消费耗时异常）三大问题，是生产排障的核心抓手。</li>
+            </ul>
+
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>面试深挖点：死信与重试的正确姿势是"<strong>重试用于瞬态故障，死信用于永久故障</strong>"——网络抖动、下游短暂不可用属于瞬态，交给重试（但要注意幂等）；业务异常、数据不合法属于永久，重试 16 次只会放大无效压力并阻塞队列，应尽早识别并转入 DLQ 做人工 / 定时补偿。RocketMQ 默认 16 次重试间隔总和达十几小时，生产上常把最大重试次数调小（如 3-5 次）+ 快速失败进 DLQ，配合对 DLQ 的监控告警与重放工具，形成"快速失败 → 兜底补偿"的可靠闭环。</p>
             </div>
           </div>
         </div>

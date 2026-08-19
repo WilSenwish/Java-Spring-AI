@@ -793,6 +793,26 @@ graph TD
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>能"读懂"GC 日志是 GC 调优的基本功，先掌握日志开关与关键字段：</p>
+            <ul>
+              <li><strong>日志开关演进</strong>：JDK 9+ 统一日志格式 <code class="inline-code">-Xlog:gc*:file=gc.log:time,uptime,level,tags</code>，替代 JDK 8 的 <code class="inline-code">-XX:+PrintGCDetails -XX:+PrintGCDateStamps</code>。</li>
+              <li><strong>Pause</strong>：STW 暂停时间，如 <code class="inline-code">Pause (G1 Evacuation Pause) (young) 23.456ms</code>——括号内是 GC 类型，末尾是耗时，是延迟优化的核心指标。</li>
+              <li><strong>GC Cause</strong>：触发原因，常见值 <code class="inline-code">System.gc()</code>（显式调用）、<code class="inline-code">Metadata GC Threshold</code>（元空间不足）、<code class="inline-code">Allocation Failure</code>（分配失败）、<code class="inline-code">GCLocker Initiated GC</code>（JNI 临界区阻塞），Cause 往往直接指向问题根因。</li>
+              <li><strong>Regions</strong>：G1 Region 数量变化，如 <code class="inline-code">23M-&gt;12M(64M)</code> 表示占用从 23M 回收到 12M，Region 池总量 64M。</li>
+              <li><strong>Heap / Metaspace</strong>：堆与元空间的 before/after 变化，用于计算单次回收效率与判断元空间是否持续增长。</li>
+              <li><strong>G1 日志关键阶段</strong>：Young Only（年轻代回收）→ Concurrent Mark（并发标记，含 root scan / remark / cleanup）→ Mixed GC（回收老年代 Region）→ Full GC（并发标记跟不上或晋升失败时的兜底，出现即需调优）。</li>
+              <li><strong>分析工具</strong>：GCViewer（离线图形化）、GCEasy（在线上传分析）、arthas <code class="inline-code">dashboard</code>（实时观察 GC 次数与耗时）。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>生产案例：某服务周期性出现数百毫秒 Full GC 停顿，吞吐下降。分析 GC 日志发现 Cause 固定为 <code class="inline-code">System.gc()</code>，排查确认是依赖库中手动调用了 System.gc()；加 <code class="inline-code">-XX:+DisableExplicitGC</code> 后 Full GC 完全消失。这体现了"日志驱动排查"的方法论——先看 Cause 定位触发源，再看 Pause 分布评估影响，最后看 Regions/Heap 变化判断回收效率，避免盲目调参。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->

@@ -1471,6 +1471,22 @@
         </ul>
       </div>
     </div>
+    <div class="qa-layer" data-layer="extension">
+      <div class="qa-layer-title">扩展补全</div>
+      <div class="qa-layer-body">
+        <p>上述方案解决了"数据量大"的横向扩展问题，但单分片的读 QPS 打满单机后仍需进一步拆分读写压力，此时要在分库分表之上叠加读写分离，形成<strong>两层叠加架构</strong>：第一层读写分离解决读 QPS 瓶颈（主库写 + 从库读），第二层分库分表解决单库单表数据量瓶颈（水平拆分），两者叠加后每个分片内部再做读写分离——主分片写 + 从分片读。</p>
+        <p><strong>联合路由策略（ShardingSphere 为例）</strong>：先按分片键路由到数据源组，再在组内做读写分离——写请求路由到主分片（如 <code class="inline-code">ds_0.master</code>），读请求路由到从分片（如 <code class="inline-code">ds_0.slave_0</code>），支持权重负载均衡。典型拓扑：<code class="inline-code">order_id % 4</code> 路由到 <code class="inline-code">ds_0</code>~<code class="inline-code">ds_3</code> 四个数据源组，每组内部配置一主多从，即"4 主 × N 从"整体结构，分片键路由与读写分离路由两级叠加。</p>
+        <p><strong>主从延迟问题</strong>：分片后写后立即读一致性更难保证（主从延迟被多分片放大）。解决方案三件套：① 写主库后短窗口内强制走主库（<code class="inline-code">@Master</code> 注解 / <code class="inline-code">HintManager.setMasterRouteOnly()</code>）；② 半同步复制，至少一个从库 ACK 后再应答；③ 延迟窗口期走 Redis 缓存兜底。ShardingSphere 通过 <code class="inline-code">readwrite-splitting</code> 与 <code class="inline-code">sharding</code> 联合配置实现"先分片、再读写分离"的路由链路。</p>
+        <p><strong>跨库事务</strong>：同一分片内仍可走本地事务（ACID 保证）；跨分片则必须选择分布式事务——XA 两阶段提交（ShardingSphere 集成 Atomikos/Narayana，强一致但性能差）或 Seata AT 模式（最终一致，适合订单核心链路），非关键链路用可靠消息最终一致。设计原则是事务边界最小化，尽量将业务收敛到单分片内。</p>
+        <p><strong>数据迁移与扩容</strong>：除倍增翻倍外，一致性 hash 分片可将扩容数据迁移量从 50% 降到 25%（只迁移环上受影响节点）；ShardingSphere 的 <code class="inline-code">scaling</code> 模块支持在线弹性扩缩容——先影子表同步 + 双写，校验一致后灰度切流，实现不停机扩容。</p>
+        <ul>
+          <li><strong>分层叠加顺序</strong>：先解决"数据量"再解决"读压力"，顺序不可颠倒；每个分片独立做主从，形成"主分片写 + 从分片读"的最小闭环</li>
+          <li><strong>写后读一致性</strong>：强制主库 + 半同步复制 + 缓存兜底三件套，按业务场景分级使用，避免一刀切</li>
+          <li><strong>事务边界最小化</strong>：跨分片事务要尽量收敛为单分片本地事务，无法收敛时优先最终一致方案</li>
+          <li><strong>扩容双路线</strong>：倍增翻倍（数据搬移少）与一致性 hash（搬移量降至 25%）按场景选择，配合双写与数据校验保障安全</li>
+        </ul>
+      </div>
+    </div>
   </div>
 
   <!-- S03.02 线上慢SQL优化实战 -->
@@ -4554,6 +4570,22 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
           <li><strong>切换演练缺失</strong>：很多团队建了异地多活但从没做过真实切流演练，故障时才发现路由配置、DNS 推送、数据校验全有问题，必须每月做一次演练。</li>
           <li><strong>脑裂防护形同虚设</strong>：Fencing 租约锁依赖的 ZK/ETCD 自身故障时锁失效，需设计租约锁的多副本与超时自动降级策略，避免锁服务单点。</li>
           <li><strong>忽略跨单元调用</strong>：单元化后仍存在跨单元的 RPC 调用（如全局配置、聚合查询），需在网关层显式拦截跨单元写，聚合查询走只读副本，否则破坏单元闭环。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="extension">
+      <div class="qa-layer-title">扩展补全</div>
+      <div class="qa-layer-body">
+        <p>蚂蚁集团的 LDC（Logical Data Center）是单元化架构的标杆实践，核心思想与上面"userId 取模划分单元"一致，但在单元角色、路由规则与容灾演进上做了体系化沉淀，可作为异地多活方案的设计范本。</p>
+        <p><strong>LDC 单元三角色</strong>：① <strong>GZone（Global Zone）</strong>：全局单元，存放无用户归属的全局数据（商品目录、系统配置、公共字典），所有 RZone 共享访问，通常只部署一个主（或主备），不按用户分片，读写都收敛在 GZone 内部；② <strong>RZone（Rover Zone）</strong>：用户单元，按 userId 取模分配，每个 RZone 内部闭环部署应用服务 + DB + 缓存 + MQ，同一 userId 的所有请求被路由到同一 RZone，从根本上避免跨单元写冲突；③ <strong>CZone（City Zone）</strong>：城市级缓存单元，做就近读缓存，异地用户访问时优先读本城市 CZone，未命中再跨城访问 GZone，减少跨城 RTT。</p>
+        <p><strong>路由规则细节</strong>：路由键不限于 userId，还包括 sellerId、orderId 等。实践中维护一张"userId % 1024 → RZone"的路由表（取 2 的幂便于二进制运算与分片迁移），支持动态调整——例如故障时将 0-512 分片从北京切到杭州，只需更新路由表并配合 Fencing 锁防止双写。跨单元调用必须收敛：全局数据走 GZone，聚合查询走 CZone 只读副本，跨用户写直接拒绝。</p>
+        <p><strong>跨单元事务处理</strong>：绝不跨单元做 XA 两阶段提交（跨城 RTT 30-50ms 下性能极差）。核心交易（如跨用户转账）采用 TCC 模式：Try 预冻结资金 → Confirm 扣款 → Cancel 解冻；非核心交易采用可靠消息（如 RocketMQ 事务消息）：本地事务 + 消息表 + 异步补偿，保证最终一致。</p>
+        <p><strong>容灾演进路径</strong>：同城双活（北京东西机房）→ 两地三中心（北京双活 + 杭州灾备）→ 异地多活（北京 + 杭州同时承载流量）。每次演进的三大核心挑战：数据同步延迟、路由切换原子性、脑裂防护。</p>
+        <ul>
+          <li><strong>单元角色分工</strong>：GZone 解决"无主数据"的共享访问，RZone 解决"有主数据"的水平扩展，CZone 解决"异地就近读"的延迟优化</li>
+          <li><strong>路由表取模设计</strong>：取 2 的幂（如 1024）而非 100，配合路由映射表可灵活支持分片迁移与故障切换</li>
+          <li><strong>跨单元事务铁律</strong>：强一致用 TCC，最终一致用可靠消息，禁止跨单元 XA</li>
+          <li><strong>演进节奏</strong>：先同城双活解决机房级故障，再两地三中心覆盖城市级故障，最后异地多活实现资源利用最大化</li>
         </ul>
       </div>
     </div>

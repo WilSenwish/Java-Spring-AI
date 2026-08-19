@@ -214,6 +214,31 @@ sequenceDiagram
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>JMM 定义的 happens-before 完整规则共 8 条，面试要求能完整列举并解释含义：</p>
+            <ol>
+              <li><strong>程序顺序规则</strong>：单线程内，前面的操作 happens-before 后面的操作（as-if-serial 语义，感觉上顺序执行）。</li>
+              <li><strong>监视器锁规则</strong>：对一个锁的 unlock 操作 happens-before 后续对同一把锁的 lock 操作（synchronized 可见性的来源）。</li>
+              <li><strong>volatile 变量规则</strong>：对一个 volatile 变量的写操作 happens-before 后续对这个变量的读操作。</li>
+              <li><strong>线程启动规则</strong>：<code class="inline-code">Thread.start()</code> 的调用 happens-before 该线程内的任意操作（start 前的准备工作对子线程可见）。</li>
+              <li><strong>线程终止规则</strong>：线程内的任意操作 happens-before 其他线程检测到该线程终止（<code class="inline-code">Thread.join()</code> 返回或 <code class="inline-code">isAlive() == false</code>）。</li>
+              <li><strong>线程中断规则</strong>：对线程的 <code class="inline-code">interrupt()</code> 调用 happens-before 被中断线程检测到中断（<code class="inline-code">Thread.interrupted()</code>）。</li>
+              <li><strong>对象终结规则</strong>：对象的构造函数执行完成 happens-before 该对象的 <code class="inline-code">finalize()</code> 方法开始执行。</li>
+              <li><strong>传递性规则</strong>：若 A happens-before B，且 B happens-before C，则 A happens-before C。</li>
+            </ol>
+            <ul>
+              <li><strong>语义澄清</strong>：happens-before 不是说"前一个操作一定先执行"，而是"<strong>前一个操作的结果对后一个操作可见</strong>"——它是可见性 + 有序性的约束，不是时序先后。</li>
+              <li><strong>面试易错</strong>：volatile 只保证单次读/写的可见性与有序性，<strong>不保证 i++ 这类复合操作的原子性</strong>（读-改-写三步可能交错），计数场景需用 <code class="inline-code">AtomicInteger</code> 或 synchronized。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>8 条规则是 JMM 向开发者的"契约"：JVM 只要在编译器优化、CPU 重排、缓存一致性层面不违反这些约束，其余情况可以任意重排。这解释了很多看似"玄学"的现象——例如子线程看不到主线程的普通变量赋值（无任何 hb 边），但把变量改为 volatile 后即可见（规则 3）；线程池中任务能看到提交前的修改（submit 内部有队列锁的 lock/unlock，规则 2 + 传递性）。分析并发正确性时，画出操作间的 happens-before 边是系统化的推导方法。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -511,6 +536,37 @@ graph LR
                 <li><strong>忘记自实现的 tryRelease 要先清 owner 再 setState</strong>：顺序反了会导致 isHeldExclusively 短暂返回错误值。state 是 volatile，写顺序有可见性影响。</li>
                 <li><strong>以为公平锁一定更好</strong>：公平锁吞吐比非公平低 10%~30%，只有"不能饥饿"的严格场景才用公平锁。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>AQS 之上构建的四大同步器（Semaphore / CountDownLatch / CyclicBarrier / Phaser）是并发协作的常用工具，面试常考对比：</p>
+            <ul>
+              <li><strong>Semaphore（信号量）</strong>：令牌限流。构造时指定 permits 数量，<code class="inline-code">acquire()</code> 获取令牌、<code class="inline-code">release()</code> 归还；release 必须放在 finally 块中防止令牌泄漏；支持公平/非公平模式。</li>
+              <li><strong>CountDownLatch（倒计时锁存器）</strong>：一次性，不可重置。<code class="inline-code">countDown()</code> 计数减一，<code class="inline-code">await()</code> 等待归零；适用于"等待 N 个线程全部完成"的场景（如服务启动等待依赖组件就绪）。</li>
+              <li><strong>CyclicBarrier（循环屏障）</strong>：可重置。所有线程到达 <code class="inline-code">await()</code> 后一起放行；支持 barrier action（放行前先执行一个动作，如合并各线程的局部结果）；适用于"分阶段并行计算"场景。</li>
+              <li><strong>Phaser（阶段器）</strong>：高级版 CyclicBarrier，支持动态注册/注销 parties 数量（<code class="inline-code">register()</code> / <code class="inline-code">arriveAndDeregister()</code>）与多阶段同步（<code class="inline-code">arriveAndAwaitAdvance()</code>），适合参与者数量动态变化的 ForkJoin 子任务协调。</li>
+            </ul>
+            <table>
+              <thead>
+                <tr><th>同步器</th><th>可重置</th><th>定位场景</th><th>典型用例</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Semaphore</td><td>N/A</td><td>限流</td><td>连接池、令牌桶</td></tr>
+                <tr><td>CountDownLatch</td><td>否</td><td>一次性等待</td><td>服务启动等待依赖就绪</td></tr>
+                <tr><td>CyclicBarrier</td><td>是</td><td>周期性同步</td><td>并行计算分阶段推进</td></tr>
+                <tr><td>Phaser</td><td>是</td><td>动态多阶段</td><td>ForkJoin 子任务协调</td></tr>
+              </tbody>
+            </table>
+            <ul>
+              <li><strong>易踩的坑</strong>：CountDownLatch 的 <code class="inline-code">countDown()</code> 不放在 finally 中，一旦业务代码抛异常计数永远到不了 0，<code class="inline-code">await()</code> 永久阻塞；CyclicBarrier 的 barrier action 由最后到达的线程执行，不应放耗时逻辑。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>四者的本质差异在于"状态语义"：Semaphore 的 state 是"剩余令牌数"，acquire/release 可不对称调用；CountDownLatch 的 state 是"倒计数"，单向递减到 0；CyclicBarrier 的状态是"到达人数 + 代（generation）"，满员后重置进入下一代；Phaser 则把"代"泛化为任意多阶段并允许参与者动态增减。它们全部基于 AQS（CyclicBarrier 内部借 ReentrantLock + Condition 实现，Phaser 自维护 treiber 栈 + 状态位），理解 state 的语义就能推断出每个 API 的行为边界。</p>
             </div>
           </div>
         </div>

@@ -1398,6 +1398,24 @@ flowchart TD
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>Raft 算法理解到位后，生产落地最关键的是<strong>etcd 的核心参数调优</strong>——参数不当会导致选举抖动、写入阻塞甚至集群不可用。</p>
+            <ul>
+              <li><strong>heartbeat-interval</strong>（默认 100ms）：Leader 发送心跳的间隔。网络延迟高的环境需适当减小此值，确保 Follower 及时感知 Leader 存活。</li>
+              <li><strong>election-timeout</strong>（默认 1000ms）：Follower 等待 Leader 心跳超时后发起选举。建议设为 heartbeat 的 <strong>10 倍</strong>，避免因正常网络抖动触发误选举。</li>
+              <li><strong>snapshot count</strong>（默认 10000）：日志条目达到此值时触发快照。快照过大影响写入性能（快照期间日志压缩需暂停写入），大规模集群需调大。</li>
+              <li><strong>quota-backend-bytes</strong>（默认 2GB）：etcd 数据文件大小上限，超过后拒绝写入（返回 <code class="inline-code">etcdserver: mvcc: database space exceeded</code>）。</li>
+              <li><strong>调优建议</strong>：① <strong>SSD 环境</strong>——heartbeat 50ms，election 500ms，可提升集群响应速度；② <strong>跨机房部署</strong>——heartbeat 200ms，election 2000ms，容忍网络抖动；③ <strong>大规模集群（&gt;5 节点）</strong>——增大 snapshot count 到 50000，减少快照 IO 压力。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p><strong>生产事故案例</strong>：etcd 磁盘满（超过 <code class="inline-code">quota-backend-bytes</code>）导致 K8s API Server 无法写入，所有 Pod 创建/更新/删除操作失败，集群表现为"假死"——已有 Pod 正常运行但无法调度新 Pod。根因：业务侧通过 etcd operator 写入大量 CRD（自定义资源）未做压缩。解决方案：① 监控 etcd 磁盘使用率（Prometheus <code class="inline-code">etcd_mvcc_db_total_size_in_bytes</code>），设 80% 告警；② 定期执行 <code class="inline-code">etcdctl compact</code> + <code class="inline-code">etcdctl defrag</code> 压缩碎片；③ 调大 <code class="inline-code">quota-backend-bytes</code> 到 8GB；④ 业务侧限制 CRD 写入频率与数量。此案例说明共识系统的<strong>存储容量治理</strong>与算法本身同等重要。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
 
@@ -1866,6 +1884,23 @@ flowchart LR
                 <li><strong>跨城同步用异步复制处理强一致数据</strong>：金融交易等强一致场景必须同步复制，否则 RPO > 0 不可接受。</li>
                 <li><strong>单元划分粒度太粗</strong>：如按省划分，导致热点单元流量不均。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>单元化是异地多活的落地形态，以<strong>蚂蚁集团 LDC（Logic Data Center）架构</strong>为业界标杆，其三角色分工与跨单元事务设计值得深入掌握。</p>
+            <ul>
+              <li><strong>蚂蚁 LDC 架构三角色</strong>：① <strong>GZone</strong>（Global Zone）——全局单元，存放无用户归属的全局数据（如商品目录、系统配置），所有 RZone 共享只读；② <strong>RZone</strong>（Rover Zone）——用户单元，按 userId 取模分配，单元内数据闭环（DB/缓存/MQ 独立），用户请求路由到归属 RZone 完成全链路读写；③ <strong>CZone</strong>（City Zone）——城市级单元，做就近读缓存，减少跨城 RTT。</li>
+              <li><strong>跨单元事务</strong>：① <strong>核心交易走 TCC</strong>（Try-Confirm-Cancel）——Try 阶段预留资源（冻结额度），Confirm 确认扣减，Cancel 释放预留，保证最终一致且不阻塞；② <strong>非核心交易走可靠消息</strong>（RocketMQ 事务消息）——本地事务 + 消息表 + 异步补偿，投递失败自动重试；③ <strong>绝不跨单元做 XA 两阶段提交</strong>——跨城网络延迟下 XA 锁持有时间过长，性能不可接受。</li>
+              <li><strong>数据路由原则</strong>：① <strong>写</strong>——必须路由到归属 RZone，跨单元写直接拒绝（避免数据冲突）；② <strong>读</strong>——优先本地 RZone，全局数据读 GZone，跨用户聚合查询走 CZone 只读副本。</li>
+              <li><strong>单元化 vs 分库分表</strong>：分库分表是<strong>数据层</strong>的水平拆分，仅解决存储与写入扩展；单元化是<strong>从接入层到数据层的全链路闭环隔离</strong>（包含路由、部署、容灾），每个单元是自包含的微缩系统。分库分表是单元化的数据层子集，单元化在其上叠加了路由、容灾、流量隔离能力。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>单元化架构的最大挑战不是技术实现，而是<strong>"全局数据"的治理</strong>。商品、配置等全局数据天然无法按用户分片，GZone 成了所有 RZone 的共享依赖——一旦 GZone 故障，全局读链路全部受影响。蚂蚁的解法是：<strong>GZone 多地多副本 + 本地 CZone 缓存</strong>，RZone 优先读 CZone 缓存（TTL 秒级），CZone 未命中再穿透到 GZone，形成两级读降级。同时全局数据的写入收敛到 GZone 主库，异步同步到各机房 GZone 从库，保证全局一致。这种<strong>"全局单点写 + 多级读缓存"</strong>模式是单元化架构处理全局数据的标准范式。</p>
             </div>
           </div>
         </div>

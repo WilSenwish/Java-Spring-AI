@@ -739,6 +739,23 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>索引设计不仅有定性原则，还有<strong>定量公式与统计信息增强</strong>手段，掌握这些才能在复杂场景做出精确决策。</p>
+            <ul>
+              <li><strong>索引选择性公式</strong>：<code class="inline-code">selectivity = cardinality / total_rows</code>，取值 0~1，越接近 1 越适合建索引。经验阈值：选择性 &gt; 0.2（即过滤后剩余 20% 以下行数）适合建索引；选择性 &lt; 0.1 的列建索引收益低，优化器倾向于全表扫描。</li>
+              <li><strong>前缀索引选择性计算</strong>：对长字符串（如 URL），通过 <code class="inline-code">SELECT COUNT(DISTINCT LEFT(col, N)) / COUNT(*)</code> 逐步增大 N，选择达到完整列选择性 90% 以上的最短前缀长度，兼顾索引体积与区分度。</li>
+              <li><strong>MySQL 8.0 直方图（Histogram）</strong>：解决优化器对<strong>非均匀分布列</strong>行数估算不准确的问题（如 status 列 99% 为 0、1% 为 1，优化器误以为 50% 匹配而选错索引）。类型分 <code class="inline-code">equi-height</code>（等高直方图）和 <code class="inline-code">singleton</code>（单值直方图）；创建命令 <code class="inline-code">ANALYZE TABLE t UPDATE HISTOGRAM ON col_name WITH 100 BUCKETS</code>。直方图不是索引、不加速查询，只增强统计信息帮助优化器选更优执行计划；对不适合建索引的列也可建直方图。</li>
+              <li><strong>ICP 细节</strong>：联合索引 <code class="inline-code">(a, b, c)</code> 查询 <code class="inline-code">WHERE a=1 AND c=2</code>，无 ICP 时对每个 a=1 的索引行回表取整行再过滤 c；有 ICP 时在索引层直接判断 c=2，只对满足条件的行回表，大幅减少回表次数。EXPLAIN Extra 显示 <code class="inline-code">Using index condition</code>。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>直方图与索引是<strong>互补而非替代</strong>关系。索引是物理结构（B+树），既加速查询也提供统计信息；直方图是元数据（统计信息），只辅助优化器估算行数。对于低选择性但分布不均的列（如订单状态 99% "已完成"、1% "处理中"），建索引意义不大但建直方图收益极高——优化器能精确识别"处理中"的查询匹配行数极少，从而选择索引扫描而非全表扫描。生产实践中，对枚举型低基数列优先考虑直方图，对高基数列用索引，两者配合最大化优化器决策质量。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->

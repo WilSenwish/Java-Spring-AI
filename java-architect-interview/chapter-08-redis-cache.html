@@ -796,6 +796,23 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>多级缓存解决了命中率问题，但<strong>热 key 的发现与治理</strong>需要一套完整的标准操作流程（SOP），从检测到拆分到降级形成闭环。</p>
+            <ul>
+              <li><strong>检测手段</strong>：① <code class="inline-code">redis-cli --hotkeys</code>（需开启 LFU 淘汰策略 <code class="inline-code">maxmemory-policy=allkeys-lfu</code>）；② <code class="inline-code">redis-cli --bigkeys</code>（顺带发现大 key）；③ MONITOR 命令（实时捕获所有命令，生产慎用，影响性能）；④ 代理层统计（Codis/Twemproxy 的 hotkey 统计）；⑤ 业务埋点（客户端本地 LRU 统计访问频次，超阈值上报）。</li>
+              <li><strong>拆分策略</strong>：① <strong>多副本读</strong>——将热 key 的值复制到 <code class="inline-code">key1, key2, key3...</code>，客户端随机选一个读，分散单分片压力；② <strong>本地缓存（Caffeine）</strong>——热 key 的值缓存在应用本地，设置短 TTL（如 5s），减少 Redis 访问；③ <strong>计算/存储分离</strong>——热 key 的计算结果预计算后存入多个 key。</li>
+              <li><strong>限流与降级</strong>：① <strong>令牌桶限流</strong>——对热 key 的访问限速，超限直接返回降级值（如缓存旧值或默认值）；② <strong>熔断</strong>——热 key 对应节点 CPU/带宽超阈值时，自动切换到本地缓存模式，保护 Redis 不被打挂。</li>
+              <li><strong>典型案例</strong>：秒杀商品详情页的 SKU 信息是典型热 key，QPS 可达 10 万+。解决方案：Caffeine 本地缓存（1s TTL）+ Redis 多副本读 + 令牌桶限流降级，三层防护确保 Redis 与 DB 均不被击穿。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>热 key 治理的核心矛盾是<strong>"检测滞后"与"突发流量"</strong>的冲突。被动检测（redis-cli --hotkeys）有延迟，秒杀场景需在流量到达前完成预热。生产最佳实践是<strong>主动+被动双引擎</strong>：被动引擎用 JD hotkey 或自研组件实时统计滑动窗口频次；主动引擎在大促前由运营平台预推热 key 列表到所有实例 L1。两者结合，既防突发又防遗漏。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -913,6 +930,23 @@ flowchart TB
                 <li><strong>Hash Tag 滥用导致热点</strong>：所有同 tag 的 key 落同节点，若 tag 是高频用户会打爆单分片。</li>
                 <li><strong>哨兵当 Cluster 用</strong>：哨兵不扩展写与容量，大数据量用哨兵是误选型。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>Redis Cluster 在单机房内运行良好，但<strong>跨机房部署</strong>会引入网络延迟、分区风险与锁续约等新问题，需要专门的同步方案设计。</p>
+            <ul>
+              <li><strong>Redis Cluster 跨机房部署</strong>：① <strong>同城双活</strong>——两个机房各部署部分 master+slave，master 在 A 机房、slave 在 B 机房（或反之），依赖同城低延迟专线；② <strong>异地灾备</strong>——主集群 + 异地从集群，通过 redis-shake/redis-sync 做异步复制；③ <strong>网络分区风险</strong>——跨机房 cluster 可能因网络抖动触发 failover，导致数据不一致，需配合 <code class="inline-code">cluster-node-timeout</code> 调大容忍窗口。</li>
+              <li><strong>Redisson 看门狗跨机房问题</strong>：看门狗默认 30s 续约，跨机房网络延迟可能导致续约失败→锁被误释放。解决方案：增大 <code class="inline-code">watchdogTimeout</code>，或使用 RedLock（多节点多数派加锁，5 个节点获 3 个即成功），容忍单机房网络故障。</li>
+              <li><strong>Proxy 层同步</strong>：① <strong>Codis</strong>——支持跨机房 proxy 集群，数据分片后可跨机房副本，支持在线扩缩容；② <strong>twemproxy</strong>——不支持动态扩缩容，适合静态分片场景，跨机房需上层做副本同步。</li>
+              <li><strong>异步复制延迟容忍度设计</strong>：① <strong>写后立即读一致性</strong>——用"读主"策略保证强一致，但牺牲性能（读走主库）；② <strong>最终一致</strong>——接受秒级延迟，业务侧用本地缓存补偿（先读本地缓存，未命中读从库，从库延迟则回退读主）；③ <strong>关键交易</strong>——写后强制同步等待 ACK（半同步复制），非关键走异步。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>跨机房同步的本质是<strong>在 CAP 三者间做分级取舍</strong>。同城双活因延迟低（&lt;1ms）可做同步复制，偏向 CP；异地多活延迟高（10~100ms）只能异步复制，偏向 AP。架构师需按业务链路分级：核心交易（支付）走半同步保证 RPO≈0；非核心（商品浏览）走异步容忍 RPO&gt;0。切忌一刀切——全同步则性能不可接受，全异步则数据安全无保障。</p>
             </div>
           </div>
         </div>
@@ -1232,6 +1266,23 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
                 <li><strong>忽视热 key 单分片瓶颈</strong>：Cluster 不能解决热 key，热 key 必须本地缓存或拆分。</li>
                 <li><strong>Lua 脚本写慢操作</strong>：Lua 内 KEYS/大集合遍历阻塞主线程，Lua 应短小快速。</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>bigkey 的根本治理是拆分，但当单 key 的 value 确实需要存储大容量数据（如 100MB 的 Hash/List）时，纯内存 Redis 成本不可承受，需要<strong>替代存储方案</strong>。</p>
+            <ul>
+              <li><strong>Pika</strong>（360 开源）：基于 RocksDB 的 SSD 存储，兼容 Redis 协议。适用于单 key 超大 value（如 100MB 的 Hash/List），SSD 成本远低于内存。读写性能：内存命中时接近 Redis，未命中时受 SSD IOPS 限制（毫秒级）。局限：不支持 Stream、部分命令行为与 Redis 不完全一致。</li>
+              <li><strong>Codis</strong>（豌豆荚开源）：分片中间件，将数据分散到多个 Redis 实例。支持在线扩缩容（slot 迁移），平滑扩展。bigkey 拆分：利用 hash tag 将大 Hash 拆分为多个小 Hash，分散到不同 slot。</li>
+              <li><strong>bigkey 拆分策略</strong>：① <strong>Hash tag</strong>——<code class="inline-code">key:{shard1}</code>、<code class="inline-code">key:{shard2}</code>，确保同一 shard 的 key 落在同一 slot，便于局部聚合；② <strong>前缀分片</strong>——<code class="inline-code">user:profile:{userId%100}</code>，将大集合拆为 100 个小集合；③ <strong>冷热分离</strong>——热数据存 Redis，冷数据转存 MongoDB/ES，定期迁移。</li>
+              <li><strong>阿里云 Tair</strong>（商业方案）：持久内存（PMem）+ 混合存储，支持 TB 级数据且延迟在微秒级，兼顾大容量与低延迟，适合预算充足且对延迟敏感的场景。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>bigkey 替代方案选型的核心是<strong>延迟敏感度与成本的权衡</strong>。Pika 用 SSD 换成本，延迟从微秒级降到毫秒级，适合可容忍毫秒延迟的场景（如用户画像、历史消息）。Tair 用持久内存兼顾两者，但成本高。Codis 不改变单 key 的物理限制，只是横向分散。最佳实践：<strong>先拆分（Codis + hash tag），拆不动的转 SSD（Pika），延迟敏感且预算充足上 Tair</strong>。同时，从架构源头避免 bigkey——用 Hash 替代大 String、用 Stream 替代大 List、限制单集合元素数。</p>
             </div>
           </div>
         </div>

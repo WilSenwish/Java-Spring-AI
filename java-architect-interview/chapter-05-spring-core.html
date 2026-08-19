@@ -406,6 +406,27 @@ sequenceDiagram
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>三级缓存解决了 setter/field 注入的循环依赖，但构造器注入的循环依赖仍需 <code class="inline-code">@Lazy</code> 兜底。这一层深入 <code class="inline-code">@Lazy</code> 的代理机制、与三级缓存的本质区别、以及循环依赖的重构方向。</p>
+            <ul>
+              <li><strong>@Lazy 的代理机制</strong>：Spring 在注入时不会真正实例化依赖 Bean，而是通过 <code class="inline-code">ProxyFactory</code> 生成一个代理对象注入。代理对象内部持有 <code class="inline-code">BeanFactory</code> 引用，首次调用方法时才触发 <code class="inline-code">getBean</code> 获取真实 Bean，后续调用直接委托给已初始化的目标。</li>
+              <li><strong>与三级缓存的关系</strong>：<code class="inline-code">@Lazy</code> 是"注入代理"策略，三级缓存是"提前暴露 ObjectFactory"策略，两者可叠加但不是同一机制。<code class="inline-code">@Lazy</code> 在注入点生效（构造器参数、setter 参数、field），三级缓存在 <code class="inline-code">getSingleton</code> 查询链中生效。即使关闭循环依赖允许开关，<code class="inline-code">@Lazy</code> 仍可工作。</li>
+              <li><strong>构造器注入的唯一解</strong>：构造器注入的循环依赖无法被三级缓存解决（实例化阶段未进入缓存），<code class="inline-code">@Lazy</code> 是唯一方案——注入代理对象使构造器参数满足，延迟真实依赖到方法调用时。</li>
+              <li><strong>Spring 6+ 语境下的 @Lazy</strong>：<code class="inline-code">spring.main.allow-circular-references=false</code>（Boot 3.x 默认）时，setter/field 循环依赖直接报错，但 <code class="inline-code">@Lazy</code> 标注的注入点仍可工作——因为代理对象打破了构造期的强依赖，Spring 不再检测到循环。</li>
+              <li><strong>@Lazy 的陷阱</strong>：代理对象调用方法时才初始化，若初始化失败会在<strong>业务调用时报错</strong>而非启动时报错，延迟了问题发现时机。生产环境中应避免对核心依赖使用 <code class="inline-code">@Lazy</code>，仅作为 legacy 代码的过渡方案。</li>
+              <li><strong>重构方向一：引入中间层</strong>：将 A↔B 的循环依赖拆为 A→C←B，把共享逻辑提取到第三方 Bean C，A 和 B 各自单向依赖 C，消除环。</li>
+              <li><strong>重构方向二：事件驱动解耦</strong>：A 和 B 通过 <code class="inline-code">ApplicationEvent</code> 交互，A 发布事件、B 监听事件，不直接依赖 B 的 Bean，用 <code class="inline-code">ApplicationEventPublisher</code> + <code class="inline-code">@EventListener</code> 实现松耦合。</li>
+              <li><strong>重构方向三：接口隔离</strong>：A 依赖 B 的接口（BInterface），B 实现该接口但不依赖 A；或引入 <code class="inline-code">ObjectProvider&lt;B&gt;</code> 延迟获取，语义比 <code class="inline-code">@Lazy</code> 更显式。</li>
+            </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p><code class="inline-code">@Lazy</code> 代理与三级缓存的 ObjectFactory 代理虽然都生成"代理对象"，但时机和机制完全不同。三级缓存的 <code class="inline-code">getEarlyBeanReference</code> 是在 Bean 实例化后、被其他 Bean 引用时触发，代理的是<strong>已实例化的半成品</strong>；而 <code class="inline-code">@Lazy</code> 代理是在注入时由 <code class="inline-code">ContextAnnotationAutowireCandidateResolver</code> 检测到 <code class="inline-code">@Lazy</code> 注解后，用 <code class="inline-code">ProxyFactory</code> 创建的<strong>完全独立的代理</strong>，目标 Bean 甚至还未开始实例化。这意味着 <code class="inline-code">@Lazy</code> 可以打破三级缓存无法处理的构造器循环——因为代理对象不依赖目标 Bean 的任何生命周期阶段。但代价是：首次方法调用的延迟（需触发完整 Bean 创建）、初始化错误的延迟暴露、以及代理方法的调用开销。架构师应将 <code class="inline-code">@Lazy</code> 视为"代码异味的技术债"，配合 TODO 标记和代码审查跟踪，最终通过重构消除。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->

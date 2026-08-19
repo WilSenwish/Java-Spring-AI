@@ -542,6 +542,18 @@
           </ul>
         </div>
 
+        <div class="epq-section">
+          <div class="epq-section-title">扩展补全：CAS 与 ABA 问题</div>
+          <ul class="epq-kp-list">
+            <li>CAS 原理：<code class="inline-code">compareAndSwap</code> 是硬件级原子操作，原子地比较内存值与预期值，相等则更新为新值并返回成功；不相等则不更新并返回失败</li>
+            <li>ABA 问题：CAS 只比较"当前值"，无法感知中间变化，需 <code class="inline-code">AtomicStampedReference</code> / <code class="inline-code">AtomicMarkableReference</code> 携带版本号或标记解决</li>
+            <li>CAS 性能陷阱：自旋重试在高竞争下 CPU 飙高，缓存行伪共享导致缓存行频繁失效</li>
+          </ul>
+          <p><strong>CAS 原理详解</strong>：CAS（Compare-And-Swap）是实现无锁并发的基础原语，三个操作数分别是内存位置 V、预期值 A、新值 B，只有当 V 的实际值等于 A 时才将 V 更新为 B，整个过程由 CPU 指令保证原子。硬件支撑方面，x86 平台依赖 <code class="inline-code">cmpxchg</code> 指令（配合 <code class="inline-code">lock</code> 前缀防止多核竞争），ARM 平台依赖 <code class="inline-code">LDREX/STREX</code> 独占访问指令对。Java 中的实现链路为 <code class="inline-code">Unsafe.compareAndSwapXxx()</code>（JDK 8 及以前）与 <code class="inline-code">VarHandle.compareAndSet()</code>（JDK 9+ 推荐的替代方案），<code class="inline-code">java.util.concurrent</code> 包的原子类（如 <code class="inline-code">AtomicInteger</code>）底层均基于此。CAS 失败后通常采用<strong>自旋重试</strong>（循环重试直到成功），自旋锁在低竞争场景开销极小，但高竞争场景下大量线程空转，CPU 占用飙升。</p>
+          <p><strong>ABA 问题</strong>：场景为线程 1 读取值为 A，线程 2 将值从 A 改为 B 再改回 A，此时线程 1 执行 CAS 仍会成功，因为它只比较"当前值"，无法感知中间被修改过。最典型的危害案例是<strong>无锁栈</strong>：线程 1 弹出栈顶节点（记为节点 X），线程 2 同时弹出并再次压入同一个节点 X，线程 1 的 CAS 虽然成功，但栈的实际结构已发生变化，可能引发悬垂引用或数据错乱。解决方案：① <code class="inline-code">AtomicStampedReference</code>：同时维护引用和版本号（stamp），每次修改版本号 +1，CAS 时同时比较引用与版本号；② <code class="inline-code">AtomicMarkableReference</code>：携带布尔标记（mark），适用于"是否被修改过"的二值场景（如判断数据是否过期）。</p>
+          <p><strong>CAS 性能问题</strong>：① 自旋开销：高并发下大量 CAS 失败重试，CPU 飙高，可改用 <code class="inline-code">LongAdder</code> 替代 <code class="inline-code">AtomicLong</code>——内部为 base + Cell[] 分段结构，各线程先累加到自己的 Cell，降低竞争，读时再求和；② 缓存行伪共享：多个变量落在同一缓存行时，任一变量被修改都会导致整行失效，CAS 频繁触发缓存一致性协议（MESI）开销，可通过 <code class="inline-code">@Contended</code> 注解填充缓存行隔离。</p>
+        </div>
+
         <div class="epq-tags">
           <span class="epq-tag">JMM</span>
           <span class="epq-tag">volatile</span>

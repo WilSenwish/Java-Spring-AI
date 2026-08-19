@@ -852,6 +852,34 @@ spec:
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p>在掌握 Istio 基础流量治理（金丝雀路由、熔断、mTLS）后，补齐三大高频实战考点：<strong>流量镜像、故障注入、限流协同</strong>，并厘清 Istio 与 Spring Cloud Gateway 的治理边界。</p>
+            <ul>
+              <li><strong>流量镜像（Mirroring）</strong>：在 VirtualService 中配置 <code class="inline-code">mirror</code> 字段（如 <code class="inline-code">mirror: { host: order-service, subset: v2 }</code>），把线上真实流量实时复制一份发给新版本，新版本<strong>只接收、不响应</strong>。用途：灰度发布前的真实流量验证——新版拿真实请求验证处理能力，且不改变用户体验。注意：镜像流量是<strong>异步</strong>的，不阻塞主流量，镜像目标异常也不影响主链路；需用 <code class="inline-code">mirrorPercentage</code> 控制镜像比例，避免瞬间打垮新版本。</li>
+              <li><strong>故障注入（Fault Injection）</strong>：<code class="inline-code">HTTPAbort</code> 模拟 HTTP 错误码（如 503），用于验证熔断降级逻辑是否生效；<code class="inline-code">HTTPDelay</code> 注入延迟（如 5s），用于验证超时与重试配置。本质区别：故障注入是<strong>主动注入错误来测试系统韧性</strong>（发布前演练 / 混沌测试），限流是<strong>被动防御</strong>（常态保护），两者目的不同、不可混为一谈。</li>
+              <li><strong>限流协同（Envoy Rate Limit Service）</strong>：Istio 限流走 Envoy，支持<strong>本地限流</strong>（token bucket，<code class="inline-code">local_rate_limit</code> Filter）与<strong>全局限流</strong>（独立的 rate-limit 服务 + Redis 后端）。与 Spring Cloud Gateway 对比：Istio 在 <strong>Sidecar 层</strong>限流，对应用<strong>透明</strong>，无需业务改造；Gateway 在<strong>网关入口</strong>限流，需业务感知与路由配置。生产最佳实践是<strong>联合使用</strong>：Istio 做全局限流（按服务 / 命名空间设 QPS 上限，保护基础设施），应用内再做细粒度限流（按用户维度，保护业务逻辑）。</li>
+            </ul>
+
+            <p><strong>Istio vs Spring Cloud Gateway（SCG）治理能力对比</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Istio</th><th>Spring Cloud Gateway</th></tr></thead>
+              <tbody>
+                <tr><td>限流位置</td><td>Sidecar（对应用透明）</td><td>网关入口</td></tr>
+                <tr><td>故障注入</td><td>原生支持（HTTPAbort / HTTPDelay）</td><td>需自行实现</td></tr>
+                <tr><td>流量镜像</td><td>原生支持</td><td>不支持</td></tr>
+                <tr><td>语言无关</td><td>是</td><td>仅 Java</td></tr>
+              </tbody>
+            </table>
+
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p>面试深挖点：为什么流量镜像"只收不应"仍能完成验证？因为镜像副本的价值在于<strong>用真实流量观测新版本的表现</strong>——是否抛异常、处理耗时、日志告警、依赖调用是否异常，全部通过可观测数据（指标 / 追踪 / 日志）验证，而非依赖镜像副本的响应。这也正是"镜像发布失败对用户零影响"的根本原因：主链路流量完全不受镜像结果左右。注意镜像只解决"验证"不解决"放量"——正式上线仍需配合金丝雀权重路由逐步切流，形成"镜像验证 → 金丝雀放量 → 全量"的完整灰度链路。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
