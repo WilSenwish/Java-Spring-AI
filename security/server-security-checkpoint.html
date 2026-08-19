@@ -76,6 +76,7 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <li><a href="#第-4-章-密码学">第 4 章 密码学</a></li>
 <li><a href="#第-5-章-错误处理与日志">第 5 章 错误处理与日志</a></li>
 <li><a href="#第-6-章-api-安全">第 6 章 API 安全</a></li>
+<li><a href="#第-7-章-威胁建模与安全架构">第 7 章 威胁建模与安全架构</a></li>
 <li><a href="#附录-aowasp-top-102025-映射对照表">附录 A：OWASP Top 10:2025 映射对照表</a></li>
 <li><a href="#附录-b算法推荐与废弃速查表">附录 B：算法推荐与废弃速查表</a></li>
 <li><a href="#附录-ccheckpoint-自检清单汇总">附录 C：Checkpoint 自检清单汇总</a></li>
@@ -1229,7 +1230,214 @@ public class TlsClientExample {
 <li>禁止无超时无限等待第三方响应（资源耗尽）</li>
 <li>禁止 CI/CD 不校验产物完整性</li>
 </ul>
+<h4>SCA 工具实操指南</h4>
+<p>SCA（Software Composition Analysis，软件成分分析）是供应链安全的核心手段，用于扫描项目依赖中的已知漏洞（CVE）与许可证合规风险。以下是主流 SCA 工具的实操方案。</p>
+
+<h4>① OWASP Dependency-Check（Maven 集成）</h4>
+<p>开源 SCA 工具，扫描 Maven/Gradle 依赖，匹配 NVD（National Vulnerability Database）CVE 数据库。</p>
+<pre><code>&lt;!-- pom.xml --&gt;
+&lt;plugin&gt;
+    &lt;groupId&gt;org.owasp&lt;/groupId&gt;
+    &lt;artifactId&gt;dependency-check-maven&lt;/artifactId&gt;
+    &lt;version&gt;9.2.0&lt;/version&gt;
+    &lt;configuration&gt;
+        &lt;failBuildOnCVSS&gt;7&lt;/failBuildOnCVSS&gt;  &lt;!-- CVSS ≥ 7 构建失败 --&gt;
+        &lt;suppressionFile&gt;owasp-suppressions.xml&lt;/suppressionFile&gt;
+        &lt;nvdApiKey&gt;${env.NVD_API_KEY}&lt;/nvdApiKey&gt;  &lt;!-- NVD API Key 提速 --&gt;
+    &lt;/configuration&gt;
+    &lt;executions&gt;
+        &lt;execution&gt;
+            &lt;goals&gt;&lt;goal&gt;check&lt;/goal&gt;&lt;/goals&gt;
+        &lt;/execution&gt;
+    &lt;/executions&gt;
+&lt;/plugin&gt;</code></pre>
+<p>执行命令：<code>mvn dependency-check:check</code>，生成报告在 <code>target/dependency-check-report.html</code>。CI/CD 中建议配置 NVD API Key（免费申请）避免限流，首次扫描需下载完整 NVD 数据库（约 500MB）。</p>
+
+<h4>② Trivy（容器镜像 + 文件系统扫描）</h4>
+<p>Aqua Security 开源的多维扫描工具，支持容器镜像、文件系统、Git 仓库、Kubernetes 配置扫描。</p>
+<pre><code># 扫描 Docker 镜像
+trivy image --severity HIGH,CRITICAL myapp:latest
+
+# 扫描项目文件系统（含 pom.xml / package.json / go.sum）
+trivy fs --severity HIGH,CRITICAL ./myproject
+
+# 扫描并生成 JSON 报告（CI/CD 集成）
+trivy fs --format json --output trivy-report.json ./myproject
+
+# CI/CD 中阻断构建（发现 CRITICAL 漏洞则退出码 1）
+trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed myapp:latest
+
+# 生成 SBOM（CycloneDX 格式）
+trivy image --format cyclonedx --output sbom.json myapp:latest</code></pre>
+<p>Trivy 的优势：无需联网即可扫描（内置漏洞数据库）、扫描速度快（秒级）、支持多种语言生态。CI/CD Pipeline 中建议在 Build Image 阶段和部署前各执行一次。</p>
+
+<h4>③ Syft + Grype（SBOM 生成 + 漏洞匹配）</h4>
+<p>Anchore 开源的 SBOM 工具链：Syft 生成 SBOM（软件物料清单），Grype 基于 SBOM 匹配已知漏洞。</p>
+<pre><code># 生成 SBOM（SPDX 格式）
+syft myapp:latest -o spdx-json > sbom.json
+
+# 基于 SBOM 扫描漏洞
+grype sbom://sbom.json --fail-on high
+
+# 直接扫描镜像
+grype myapp:latest --only-fixed  # 只显示有修复版本的漏洞</code></pre>
+<p>SBOM 是供应链安全的基石：欧盟网络与信息安全局（ENISA）和美国行政令 14028 均要求软件供应商提供 SBOM。生产环境建议每次构建自动生成 SBOM 并归档，便于漏洞爆发时快速排查影响范围。</p>
+
+<h4>④ Maven Enforcer 插件（依赖治理）</h4>
+<p>在 SCA 之外，Maven Enforcer 插件可在构建期强制依赖规则，防止依赖冲突与安全隐患。</p>
+<pre><code>&lt;plugin&gt;
+    &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+    &lt;artifactId&gt;maven-enforcer-plugin&lt;/artifactId&gt;
+    &lt;version&gt;3.4.1&lt;/version&gt;
+    &lt;executions&gt;
+        &lt;execution&gt;
+            &lt;id&gt;enforce&lt;/id&gt;
+            &lt;goals&gt;&lt;goal&gt;enforce&lt;/goal&gt;&lt;/goals&gt;
+            &lt;configuration&gt;
+                &lt;rules&gt;
+                    &lt;dependencyConvergence/&gt;  &lt;!-- 依赖版本统一 --&gt;
+                    &lt;bannedDependencies&gt;
+                        &lt;excludes&gt;
+                            &lt;exclude&gt;log4j:log4j:*:1.*&lt;/exclude&gt;  &lt;!-- 禁止 Log4j 1.x --&gt;
+                            &lt;exclude&gt;commons-collections:commons-collections:*:3.*&lt;/exclude&gt;
+                        &lt;/excludes&gt;
+                    &lt;/bannedDependencies&gt;
+                    &lt;requireUpperBoundDeps/&gt;  &lt;!-- 强制使用最高版本 --&gt;
+                &lt;/rules&gt;
+                &lt;fail&gt;true&lt;/fail&gt;
+            &lt;/configuration&gt;
+        &lt;/execution&gt;
+    &lt;/executions&gt;
+&lt;/plugin&gt;</code></pre>
+<ul>
+<li><strong>Checkpoint（SCA 实操）</strong></li>
+<li>CI/CD Pipeline 是否集成 SCA 扫描（Dependency-Check 或 Trivy）</li>
+<li>是否配置 CVSS ≥ 7 阻断构建</li>
+<li>是否每次构建生成 SBOM 并归档</li>
+<li>是否有依赖版本统一规则（Enforcer dependencyConvergence）</li>
+<li>是否有禁止依赖清单（bannedDependencies 排除 Log4j 1.x 等）</li>
+</ul>
+<h3 id="66-graphql-安全">6.6 GraphQL 安全</h3>
+<blockquote>对应 OWASP GraphQL 安全建议、CWE-200（信息泄露）、CWE-770（资源耗尽）</blockquote>
+<p>GraphQL 灵活的查询能力也引入了新的攻击面：客户端可构造任意深度、任意复杂度的查询，导致服务端资源耗尽或信息泄露。</p>
+
+<h4>GraphQL 特有安全风险</h4>
+<ul>
+<li><strong>内省查询攻击（Introspection）</strong>：GraphQL 内省机制允许客户端查询完整 Schema（所有类型、字段、关系）。生产环境开启内省等于泄露 API 结构蓝图，攻击者可据此构造精准攻击。</li>
+<li><strong>查询深度攻击（Query Depth）</strong>：递归嵌套查询（如 <code>user { friends { friends { friends { ... } } } }</code>）可无限嵌套，导致栈溢出或内存耗尽。</li>
+<li><strong>查询复杂度攻击（Query Complexity）</strong>：单次查询请求大量字段和嵌套关联，一次请求触发数百次数据库查询（N+1 问题放大）。</li>
+<li><strong>批量查询滥用（Batch Query Abuse）</strong>：单次请求包含多个 query，绕过限流（限流按请求计数，一个请求内含 100 个 query）。</li>
+<li><strong>字段建议信息泄露（Field Suggestion）</strong>：GraphQL 错误信息会提示相似字段名（"Did you mean 'password'?"），泄露内部字段命名。</li>
+<li><strong>授权粒度不足</strong>：GraphQL 的 per-field 授权难以实现，一个 query 可同时请求公开数据和私有数据，若仅在 Resolver 入口鉴权则存在越权风险。</li>
+</ul>
+
+<h4>防护措施</h4>
+<ul>
+<li><strong>关闭生产环境内省</strong>：<code>GraphQLSchema(graphql.SchemaOptions{DisableIntrospection: true})</code>（go-graphql）或 Apollo Server <code>introspection: false</code></li>
+<li><strong>查询深度限制</strong>：使用 <code>graphql-depth-limit</code> 中间件，限制最大嵌套深度（如 ≤ 7 层）</li>
+<li><strong>查询复杂度限制</strong>：为每个字段分配复杂度权重，单次查询总复杂度不超过阈值（如 ≤ 1000）
+<pre><code>// Node.js 示例（graphql-cost-analysis）
+import costAnalysis from 'graphql-cost-analysis';
+const costAnalyzer = costAnalysis({
+  maximumCost: 1000,
+  defaultCost: 1,
+  onComplete: (cost) =&gt; console.log(`Query cost: ${cost}`)
+});</code></pre></li>
+<li><strong>查询持久化（Persisted Queries）</strong>：客户端只发送 query hash，服务端从预注册的白名单中查找对应 query，完全杜绝任意查询</li>
+<li><strong>关闭字段建议</strong>：Apollo Server 设置 <code>formatError</code> 移除 <code>extensions.exception</code> 中的建议信息</li>
+<li><strong>Per-field 授权</strong>：在 Schema Directive 层实现字段级授权，而非仅依赖入口鉴权
+<pre><code>// Apollo Directive 授权示例
+const typeDefs = gql`
+  directive @auth(requires: String!) on FIELD_DEFINITION
+  type User {
+    id: ID!
+    email: String @auth(requires: "ADMIN")
+    salary: Float @auth(requires: "HR")
+  }
+`;</code></pre></li>
+<li><strong>限流策略调整</strong>：GraphQL 限流不能仅按请求数，应按查询复杂度限流（复杂度高的查询消耗更多令牌）</li>
+</ul>
+<ul>
+<li><strong>Checkpoint（GraphQL 安全）</strong></li>
+<li>生产环境是否关闭内省</li>
+<li>是否配置查询深度限制（建议 ≤ 7 层）</li>
+<li>是否配置查询复杂度限制</li>
+<li>是否实现 per-field 授权</li>
+<li>是否关闭字段建议信息</li>
+<li>限流是否按复杂度而非请求数</li>
+</ul>
+<ul>
+<li><strong>雷区清单</strong></li>
+<li>禁止生产环境开启 GraphQL 内省</li>
+<li>禁止无深度/复杂度限制的 GraphQL 端点</li>
+<li>禁止仅在 Resolver 入口鉴权（需 per-field 授权）</li>
+<li>禁止 GraphQL 错误信息泄露内部字段名</li>
+</ul>
 <hr>
+<h2 id="第-7-章-威胁建模与安全架构">第 7 章 威胁建模与安全架构</h2>
+<blockquote>对应 OWASP A06（不安全设计）、Microsoft STRIDE 模型</blockquote>
+
+<h3 id="71-stride-威胁建模概述">7.1 STRIDE 威胁建模概述</h3>
+<p>STRIDE 是 Microsoft 提出的威胁分类框架，将常见安全威胁分为 6 类，每类对应 CIA 三性 + 认证/授权/不可抵赖性的一个维度。威胁建模在系统设计阶段进行，目标是在编码前系统性识别和消减威胁。</p>
+
+<div class="table-wrap"><table><thead><tr><th>字母</th><th>威胁类型</th><th>安全属性</th><th>含义</th><th>典型攻击</th></tr></thead><tbody>
+<tr><td><strong>S</strong></td><td>伪装（Spoofing）</td><td>认证性</td><td>攻击者冒充合法用户或系统身份</td><td>弱口令爆破、JWT 伪造、证书仿冒、Kerberoasting</td></tr>
+<tr><td><strong>T</strong></td><td>篡改（Tampering）</td><td>完整性</td><td>未经授权修改数据或代码</td><td>中间人篡改、数据库注入、文件篡改、供应链投毒</td></tr>
+<tr><td><strong>R</strong></td><td>抵赖（Repudiation）</td><td>不可抵赖性</td><td>用户否认执行过某操作，系统无法证明</td><td>无审计日志、日志可篡改、缺少数字签名</td></tr>
+<tr><td><strong>I</strong></td><td>信息泄露（Information Disclosure）</td><td>机密性</td><td>敏感信息被未授权方获取</td><td>越权访问、错误信息泄露、日志泄露敏感数据、侧信道攻击</td></tr>
+<tr><td><strong>D</strong></td><td>拒绝服务（Denial of Service）</td><td>可用性</td><td>攻击者使系统不可用或降低服务质量</td><td>SYN Flood、慢速攻击、资源耗尽、放大攻击</td></tr>
+<tr><td><strong>E</strong></td><td>权限提升（Elevation of Privilege）</td><td>授权性</td><td>攻击者获得超出授权的权限</td><td>提权漏洞、绕过访问控制、注入执行任意代码</td></tr>
+</tbody></table></div>
+
+<h3 id="72-按组件的-stride-威胁映射">7.2 按组件的 STRIDE 威胁映射</h3>
+<p>威胁建模的核心方法是对系统架构图的每个组件（外部实体、进程、数据流、数据存储）逐一进行 STRIDE 分析。以下是典型微服务架构的威胁映射：</p>
+
+<div class="table-wrap"><table><thead><tr><th>组件</th><th>S 伪装</th><th>T 篡改</th><th>R 抵赖</th><th>I 信息泄露</th><th>D 拒绝服务</th><th>E 提权</th></tr></thead><tbody>
+<tr><td>Web 前端</td><td>钓鱼网站冒充</td><td>XSS 篡改页面</td><td>—</td><td>敏感数据存 localStorage</td><td>JS 资源阻塞</td><td>—</td></tr>
+<tr><td>API 网关</td><td>伪造 API Key</td><td>请求篡改</td><td>无访问日志</td><td>Header 泄露内部信息</td><td>SYN Flood</td><td>JWT alg=none</td></tr>
+<tr><td>应用服务</td><td>Session 劫持</td><td>SQL 注入</td><td>无操作审计</td><td>异常堆栈泄露</td><td>线程池耗尽</td><td>反序列化 RCE</td></tr>
+<tr><td>数据库</td><td>弱口令登录</td><td>直接改库</td><td>无变更日志</td><td>未加密敏感字段</td><td>慢查询拖垮</td><td>UDF 提权</td></tr>
+<tr><td>消息队列</td><td>伪造生产者</td><td>消息篡改</td><td>—</td><td>Topic 未授权访问</td><td>堆积 OOM</td><td>—</td></tr>
+<tr><td>Redis</td><td>—</td><td>Flushall</td><td>—</td><td>未加密内存数据</td><td>KEYS 阻塞</td><td>CONFIG SET 写文件</td></tr>
+<tr><td>CI/CD</td><td>凭证泄露</td><td>供应链投毒</td><td>—</td><td>构建日志泄密</td><td>—</td><td>恶意 PR 执行任意命令</td></tr>
+</tbody></table></div>
+
+<h3 id="73-dread-风险评级">7.3 DREAD 风险评级</h3>
+<p>识别威胁后需评估优先级。DREAD 模型从 5 个维度对每个威胁打分（1-10），取平均值确定风险等级。</p>
+<div class="table-wrap"><table><thead><tr><th>维度</th><th>含义</th><th>评分标准</th></tr></thead><tbody>
+<tr><td>Damage</td><td>潜在损害</td><td>1=无影响 → 10=完全瘫痪/数据全丢</td></tr>
+<tr><td>Reproducibility</td><td>可复现性</td><td>1=极难复现 → 10=每次必现</td></tr>
+<tr><td>Exploitability</td><td>可利用性</td><td>1=需高级技能 → 10=脚本小子可用</td></tr>
+<tr><td>Affected Users</td><td>影响范围</td><td>1=极少数 → 10=所有用户</td></tr>
+<tr><td>Discoverability</td><td>可发现性</td><td>1=深藏内部 → 10=公开可见</td></tr>
+</tbody></table></div>
+<p>风险等级：平均分 1-3 低风险（后续迭代修复）、4-7 中风险（本迭代修复）、8-10 高风险（阻断发布，立即修复）。</p>
+
+<h3 id="74-威胁建模工作流">7.4 威胁建模工作流</h3>
+<ol>
+<li><strong>绘制数据流图（DFD）</strong>：标出外部实体、进程、数据存储、数据流边界（信任边界）</li>
+<li><strong>识别信任边界</strong>：网络边界（DMZ/内网）、进程边界（应用/DB）、权限边界（用户/管理员）</li>
+<li><strong>逐组件 STRIDE 分析</strong>：对每个组件按 STRIDE 六类逐一提问"是否存在该类威胁？"</li>
+<li><strong>DREAD 评级</strong>：对识别出的威胁打分，确定优先级</li>
+<li><strong>制定消减措施</strong>：高/中风险必须在本迭代消减，低风险记录跟踪</li>
+<li><strong>定期复审</strong>：每次重大架构变更（新增组件、修改数据流）时更新威胁模型</li>
+</ol>
+<p><strong>实践建议</strong>：威胁建模不是一次性活动，而是持续的安全工程实践。建议每个 Epic/特性迭代做一次轻量级威胁建模（30 分钟会议），每次大版本发布做一次完整威胁建模（2-4 小时工作坊）。</p>
+
+<ul>
+<li><strong>Checkpoint（威胁建模）</strong></li>
+<li>新系统设计阶段是否执行威胁建模</li>
+<li>是否对每个外部输入点进行 STRIDE 分析</li>
+<li>是否有信任边界图并定期更新</li>
+<li>高危威胁是否在上线前消减</li>
+<li>是否对每次架构变更更新威胁模型</li>
+</ul>
+<ul>
+<li><strong>雷区清单</strong></li>
+<li>禁止跳过威胁建模直接编码（OWASP A06 不安全设计）</li>
+<li>禁止威胁模型"做完即弃"——需随架构演进持续更新</li>
+<li>禁止仅关注外部攻击者——内部威胁（内鬼、误操作）同样需建模</li>
+</ul>
 <h2 id="附录-aowasp-top-102025-映射对照表">附录 A：OWASP Top 10:2025 映射对照表</h2>
 <div class="table-wrap"><table><thead><tr><th>OWASP 2025 编号</th><th>类别</th><th>本文对应章节</th></tr></thead><tbody><tr><td>A01</td><td>访问控制失效（Broken Access Control）</td><td>1.4 授权模型、6.1 API 授权、3.4 SSRF</td></tr><tr><td>A02</td><td>安全配置错误（Security Misconfiguration）</td><td>5.3 信息泄露防护、6.4 API 生命周期</td></tr><tr><td>A03</td><td>软件供应链失败（Software Supply Chain Failures）</td><td>6.5 供应链安全</td></tr><tr><td>A04</td><td>加密失败（Cryptographic Failures）</td><td>第 4 章全部</td></tr><tr><td>A05</td><td>注入（Injection）</td><td>3.2 注入防御</td></tr><tr><td>A06</td><td>不安全设计（Insecure Design）</td><td>0.4 安全设计总原则</td></tr><tr><td>A07</td><td>身份认证失效（Authentication Failures）</td><td>1.1-1.3 认证、第 2 章会话</td></tr><tr><td>A08</td><td>软件或数据完整性失效（Software or Data Integrity Failures）</td><td>3.6 反序列化、4.5 MAC 与签名、6.5 供应链</td></tr><tr><td>A09</td><td>安全日志与告警失效（Security Logging Failures）</td><td>5.2 安全日志</td></tr><tr><td>A10</td><td>异常条件处理不当（Mishandling of Exceptional Conditions）</td><td>5.1 错误处理</td></tr></tbody></table></div>
 <hr>
