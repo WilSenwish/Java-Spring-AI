@@ -1210,10 +1210,88 @@ graph TD
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- ============================================================ -->
-      <!-- C02.09 如何进行 JVM 线上调优全流程？ -->
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：JFR 事件类型体系详解</div>
+          <div class="qa-layer-body">
+            <p><strong>背景</strong>：JFR 的核心能力来自其丰富的事件类型体系。JDK 11+ 将 JFR 开源后，事件类型从 JDK 8 的 ~50 个扩展到 JDK 21 的 <strong>150+ 个</strong>，覆盖 GC、内存、线程、类加载、编译、I/O、锁等全栈领域。理解事件分类是高效使用 JFR 的前提。</p>
+
+            <p><strong>JFR 事件分类与高频事件</strong>：</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>分类</th><th>核心事件</th><th>诊断场景</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td rowspan="3"><strong>GC 垃圾回收</strong></td><td><code>jdk.GCPhasePause</code></td><td>STW 暂停时长与阶段分解（Initial Mark → Remark → Final Mark）</td></tr>
+                  <tr><td><code>jdk.G1HeapSummary</code></td><td>G1 各 Region 使用率、Eden/Survivor/Old 区变化</td></tr>
+                  <tr><td><code>jdk.GCHeapConfiguration</code></td><td>堆配置快照（MaxHeapSize、NewRatio、UseG1GC 等）</td></tr>
+                  <tr><td rowspan="3"><strong>内存分配</strong></td><td><code>jdk.ObjectAllocationSample</code></td><td>对象分配采样（哪个线程/方法在 new 大对象）——定位分配热点</td></tr>
+                  <tr><td><code>jdk.ObjectCount</code></td><td>GC 结束时各类型对象数量与大小——内存泄漏排查利器</td></tr>
+                  <tr><td><code>jdk.TLABAllocation</code></td><td>TLAB 分配速率——判断是否需要增大 TLAB 或调参</td></tr>
+                  <tr><td rowspan="3"><strong>线程与锁</strong></td><td><code>jdk.JavaMonitorEnter</code></td><td>synchronized 进入等待时长——锁竞争热点定位</td></tr>
+                  <tr><td><code>jdk.ThreadPark</code></td><td>LockSupport.park 等待时长——线程阻塞原因（如 BlockingQueue.take）</td></tr>
+                  <tr><td><code>jdk.ThreadCPULoad</code></td><td>线程级 CPU 使用率——定位 CPU 热线程（比 top -H 更精确）</td></tr>
+                  <tr><td rowspan="2"><strong>编译</strong></td><td><code>jdk.Compilation</code></td><td>JIT 编译事件（方法名、Tier 层次、编译耗时）——分层编译决策</td></tr>
+                  <tr><td><code>jdk.CompilerFailure</code></td><td>JIT 编译失败（如 CodeCache 溢出导致 C2 停止）</td></tr>
+                  <tr><td rowspan="3"><strong>I/O</strong></td><td><code>jdk.SocketRead</code> / <code>jdk.SocketWrite</code></td><td>Socket 读写耗时——慢 SQL、外部调用超时定位</td></tr>
+                  <tr><td><code>jdk.FileRead</code> / <code>jdk.FileWrite</code></td><td>文件 I/O 耗时——磁盘瓶颈排查</td></tr>
+                  <tr><td><code>jdk.JavaExceptionThrow</code></td><td>异常抛出频率——大量异常创建对象导致 GC 压力</td></tr>
+                  <tr><td rowspan="2"><strong>类加载</strong></td><td><code>jdk.ClassLoad</code></td><td>类加载耗时——启动慢、Metaspace 扩张分析</td></tr>
+                  <tr><td><code>jdk.ClassUnload</code></td><td>类卸载事件——FullGC 后 Metaspace 回收</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><strong>查询 JFR 事件的两种方式</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># 1. jfr 工具（JDK 11+ 内置）命令行查询</span>
+jfr print --events jdk.GCPhasePause recording.jfr   <span class="com"># 只看 GC 暂停</span>
+jfr print --events jdk.JavaMonitorEnter recording.jfr <span class="com"># 只看锁竞争</span>
+jfr summary recording.jfr                             <span class="com"># 事件汇总统计</span>
+jfr view gc recording.jfr                            <span class="com"># GC 专用视图</span>
+
+<span class="com"># 2. JDK Mission Control (JMC) GUI</span>
+<span class="com"># JMC 7+ 支持事件流浏览、自动分析规则、火焰图</span>
+<span class="com"># 下载: https://jdk.java.net/jmc/</span>
+
+<span class="com"># 3. 程序化查询（JDK 16+ JFR Event Streaming API）</span>
+<span class="com">// 实时消费 JFR 事件流（无需写文件）</span>
+<span class="kw">try</span> (<span class="type">var</span> rs = <span class="type">EventStream</span>.openRepository()) {
+    rs.onEvent(<span class="str">"jdk.GCPhasePause"</span>, event -> {
+        System.out.println(<span class="str">"GC pause: "</span> + event.getDuration(<span class="str">"duration"</span>));
+    });
+    rs.start();  <span class="com">// 阻塞消费</span>
+}</code></pre></div>
+
+            <p><strong>生产实践要点</strong>：</p>
+            <ul>
+              <li><strong>持续录制</strong>：JDK 11+ 默认开启 JFR（<code class="inline-code">-XX:StartFlightRecording=duration=60s,filename=recording.jfr</code>），开销 &lt;1%，可 7×24 小时持续录制。故障时直接导出最近 5 分钟录制文件分析，无需等待现场复现。</li>
+              <li><strong>事件阈值</strong>：JFR 事件有 <code class="inline-code">threshold</code>（如只记录 &gt;10ms 的锁等待），避免事件过多。默认阈值合理，深度排查时可调低（<code class="inline-code">-XX:StartFlightRecording=threshold=0s</code>）。</li>
+              <li><strong>自定义事件</strong>：JDK 14+ 支持 <code class="inline-code">@Name</code> / <code class="inline-code">@Category</code> 注解自定义 JFR 事件，将业务关键操作（如订单处理耗时、缓存命中率）接入 JFR 体系，与 JVM 事件关联分析。</li>
+            </ul>
+
+            <div class="code-block"><pre><code><span class="com">// 自定义 JFR 事件示例</span>
+<span class="kw">public class</span> <span class="type">OrderProcessEvent</span> <span class="kw">extends</span> <span class="type">jdk.jfr.Event</span> {
+    <span class="type">@Label</span>(<span class="str">"Order ID"</span>)
+    <span class="type">@Description</span>(<span class="str">"订单唯一标识"</span>)
+    <span class="type">String</span> orderId;
+
+    <span class="type">@Label</span>(<span class="str">"Processing Duration"</span>)
+    <span class="type">@Timespan</span>(<span class="type">Timespan</span>.MILLISECONDS)
+    <span class="kw">long</span> duration;
+}
+
+<span class="com">// 使用</span>
+<span class="type">OrderProcessEvent</span> event = <span class="kw">new</span> <span class="type">OrderProcessEvent</span>();
+event.orderId = <span class="str">"ORD-001"</span>;
+event.begin();
+<span class="com">// ... 订单处理逻辑 ...</span>
+event.commit();  <span class="com">// 提交到 JFR 事件流</span></code></pre></div>
+
+            <p><strong>面试要点</strong>：回答 JFR 事件体系时需强调三点：① 150+ 事件覆盖全栈（GC/内存/线程/锁/编译/IO/类加载），不只看 GC；② JDK 16+ Event Streaming API 支持实时消费事件流（不落文件），可用于构建实时监控告警；③ 自定义事件可将业务指标接入 JFR，实现"JVM 事件 + 业务事件"关联分析。</p>
+          </div>
+        </div>
+      </div>
       <!-- ============================================================ -->
       <div class="qa-card" id="C02.09" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">

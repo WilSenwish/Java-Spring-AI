@@ -1556,7 +1556,7 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>暴力 kill</strong>：直接 SIGKILL，在途请求全部断，连接池/事务半途而废。</p>
             <p><strong>JVM Shutdown Hook</strong>：捕获 SIGTERM 做清理，但 Web 容器仍在接新请求，时序不可控。</p>
-            <p><strong>Spring Boot 2.3+ Graceful Shutdown</strong>：<code class="inline-code">server.shutdown=graceful</code>，停止接收新请求、等待活跃请求在超时内完成。</p>
+            <p><strong>Spring Boot 2.3+ Graceful Shutdown</strong>：<code class="inline-code">server.shutdown=graceful</code>，停止接收新请求、等待活跃请求在超时内完成。3.4 起<strong>默认开启</strong>优雅停机（所有内嵌 Web 服务器），无需显式配置。</p>
             <p><strong>K8s 探针协同</strong>：readiness（就绪，失败即摘流量）+ liveness（存活，失败重启）+ <code class="inline-code">terminationGracePeriodSeconds</code> + PreStop，把"摘流量"与"停机"解耦为可控时序。</p>
           </div>
         </div>
@@ -1631,6 +1631,7 @@ flowchart TD
             <p><strong>云原生诉求</strong>：容器高密度、Serverless 按需冷启、FaaS 毫秒计费的场景，倒逼"快启动 + 小内存"。</p>
             <p><strong>新选手</strong>：Quarkus（Red Hat，build-time 扩展 + 原生优先）、Micronaut（Oracle，编译期 DI/AOP，API 近似 Spring）；二者均拥抱 GraalVM Native Image。</p>
             <p><strong>Spring 反击</strong>：Spring Boot 3 引入 AOT（Ahead-Of-Time）处理 + <code class="inline-code">spring-boot-maven-plugin</code> build-image 支持原生镜像，缩小差距。</p>
+            <p><strong>Spring Boot 3.x 版本演进</strong>：① <strong>3.0（2022-11）</strong>：Java 17 基线 + Jakarta EE 迁移（javax→jakarta）+ AOT/Native Image 原生支持 + Micrometer Observation API 统一可观测性 + 声明式 HTTP 客户端（<code class="inline-code">@HttpExchange</code>）+ RFC 7807 Problem Details 标准错误响应；② <strong>3.1（2023-05）</strong>：Docker Compose 集成 + <code class="inline-code">@ServiceConnection</code>（Testcontainers 零配置）+ Spring Authorization Server 生产可用；③ <strong>3.2（2023-11）</strong>：虚拟线程支持（JDK 21，<code class="inline-code">spring.threads.virtual.enabled=true</code>）+ RestClient（RestTemplate 现代替代）+ JdbcClient + SSL Bundle 热重载 + CDS 启动加速；④ <strong>3.3（2024-05）</strong>：<strong>SBOM Actuator 端点</strong>（CycloneDX 格式，供应链安全透明度）+ 可观测性零配置扩展至 Spring Data 等组件 + WebSocket 虚拟线程支持 + Base64 资源内联配置 + SSL SNI 支持 + Antora 文档重构；⑤ <strong>3.4（2024-11）</strong>：<strong>原生结构化日志</strong>（JSON 日志开箱即用）+ <strong>优雅停机默认开启</strong>（所有内嵌 Web 服务器）+ RestClient/RestTemplate 自动配置多 HTTP 客户端（Apache HC / Reactor Netty / JDK HttpClient）+ Actuator 端点访问控制重构 + ARM 镜像构建 + MockMvcTester（AssertJ 风格）；⑥ <strong>3.5（2025-05）</strong>：3.x 系列最终小版本（4.0 计划 2025-11），Bean 后台初始化自动配置（并行 ApplicationContext 启动）+ 全局 HTTP 连接器配置 + Profile 命名规则收紧 + GraalVM Native Image 支持扩展。3.x 系列从"Java 17 基线 + 云原生"奠基，到虚拟线程、结构化日志、SBOM 安全透明度逐步演进，持续缩小与 Quarkus/Micronaut 的启动/内存差距。</p>
           </div>
         </div>
 

@@ -1329,7 +1329,7 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
             <p>纯 C2 模式下，方法必须积累足够热度才触发编译，而 C2 编译耗时长，启动阶段大量方法停留在解释执行，峰值来得慢。分层编译先用 C1（编译速度快 5~10 倍）快速把热点编译为质量"够用"的本地码，让应用尽早脱离解释执行；同时 C1 采集完整 Profile，等热度足够再交给 C2 做激进优化。这样<strong>启动期由 C1 主导（快出码），稳态期由 C2 主导（高质量码）</strong>，两者衔接使启动时间和峰值吞吐都优于纯 C2。</p>
 
             <p><strong>追问 2：GraalVM JIT 能否完全替代 C2？</strong></p>
-            <p>趋势上是，但当前仍有取舍。Graal（JVMCI 编译器）用 Java 实现，优化更激进（如部分逃逸分析 Partial Escape Analysis 强于 C2），且可维护性更好。但代价是：① 编译本身更慢（Java 写的编译器运行在 JVM 上，编译开销大），需要更长预热；② 需要额外引入 Graal 模块，体积增大；③ 极少数 C2 特有优化（如某些机器特定的 intrinsics）Graal 尚未完全覆盖。JDK 24（JEP 483）将 Graal JIT 正式转为生产可用，未来会逐步成为默认顶层编译器，但短期内 C2 仍是稳定默认。</p>
+            <p>趋势上是，但当前仍有取舍。Graal（JVMCI 编译器）用 Java 实现，优化更激进（如部分逃逸分析 Partial Escape Analysis 强于 C2），且可维护性更好。但代价是：① 编译本身更慢（Java 写的编译器运行在 JVM 上，编译开销大），需要更长预热；② 需要额外引入 Graal 模块，体积增大；③ 极少数 C2 特有优化（如某些机器特定的 intrinsics）Graal 尚未完全覆盖。JDK 24 起 Graal JIT 正式转为生产可用（注意：JEP 483 是 Ahead-of-Time Class Loading &amp; Linking，与 Graal JIT 转正无关；Graal JIT 的生产化通过 JVMCI 接口稳定化与 Graal 模块独立发布实现），未来会逐步成为默认顶层编译器，但短期内 C2 仍是稳定默认。</p>
 
             <p><strong>追问 3：CodeCache 满了会怎样？</strong></p>
             <p>CodeCache 接近满时触发<strong>分段降级</strong>：首先停止 Tier 4（C2）编译，只保留 C1 编译；继续紧张则停止所有 JIT 编译，新热点只能解释执行；最严重时触发<strong>批量逆优化（Sweep）</strong>——已编译的代码被标记为"not entrant"甚至"zombie"，方法回退到解释执行，性能断崖式下降（TPS 可能掉 50%+）。排查：<code class="inline-code">jcmd &lt;pid&gt; Compiler.CodeCache</code> 看各段使用率，<code class="inline-code">-XX:+PrintCodeCache</code> 看启动后占用。根因多为大量动态生成类（反射/CGlib/Lambda）产生海量编译产物，需扩容 CodeCache 或减少动态代码生成。</p>

@@ -358,7 +358,7 @@ pool.<span class="fn">shutdown</span>();                              <span clas
               <li><strong>虚拟线程整合（JDK 21+）</strong>：设置 <code class="inline-code">spring.threads.virtual.enabled=true</code> 后，Tomcat 请求处理线程自动切换为虚拟线程，每个请求分配一个 VT，不受 <code class="inline-code">maxThreads</code> 限制（VT 数量可达百万级）。此时 <code class="inline-code">maxThreads</code> 退化为"平台线程数"限制，仅控制载体线程规模。</li>
               <li><strong>VT 的 pinning 陷阱</strong>：VT 在 <code class="inline-code">synchronized</code> 块中执行阻塞 IO（如数据库查询、HTTP 调用）时会 pin 到 carrier thread 无法卸载，等效于平台线程，降低吞吐。JDK 21 已优化 <code class="inline-code">synchronized + Object.wait</code> 可卸载的场景，但 <code class="inline-code">synchronized + IO</code> 仍会 pin。</li>
               <li><strong>混合模式建议</strong>：IO 密集型任务用 VT，CPU 密集型任务仍用平台线程池（如 <code class="inline-code">ForkJoinPool</code>），避免 VT 被 CPU 计算长期占用载体线程。</li>
-              <li><strong>生产实践</strong>：Spring Boot 3.2 + JDK 21，IO 密集场景单机 QPS 从 5000 提升到 30000+，但需配合 JVM 参数 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning 热点。</li>
+              <li><strong>生产实践</strong>：典型 IO 密集场景下，Spring Boot 3.2 + JDK 21 的单机 QPS 可从 5000 提升至 30000+（实际提升幅度取决于 IO 等待占比和连接池配置），但需配合 JVM 参数 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning 热点。</li>
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>

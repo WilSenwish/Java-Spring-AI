@@ -477,8 +477,9 @@ flowchart TD
             <p><strong>ActiveMQ（2004，JMS 规范）</strong>：传统消息中间件，支持持久化但基于 Queue 的"推/拉"模型，单机吞吐万级。痛点：Master-Slave 主备切换弱、消息堆积性能下降、路由灵活但复杂。（新项目使用率下降：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar，此处仅作为 MQ 演进历史对比保留）</p>
             <p><strong>RabbitMQ（2007，AMQP）</strong>：Erlang 实现，灵活的 Exchange-Queue-Binding 路由模型，低延迟。痛点：吞吐仍受限（万级~十万级）、消息堆积后性能急剧下降、集群镜像队列开销大。</p>
             <p><strong>Kafka（2010，LinkedIn）</strong>：颠覆性设计——分布式提交日志（Partition+Segment 追加写）、零拷贝、页缓存、消费者 pull 模型、副本 ISR。吞吐百万级，消息堆积不影响性能（顺序读盘）。从"消息队列"重新定义为"分布式流平台"。</p>
+            <p><strong>Kafka 版本演进</strong>：① <strong>0.11（2017）</strong>：幂等生产者 + 事务，实现 Kafka 内部 Exactly-Once；② <strong>2.4（2019）</strong>：Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区，减少 rebalance 迁移量；③ <strong>2.8（2021）</strong>：KRaft 模式预览（Kafka Raft Metadata Mode），开始"去 ZooKeeper 化"；④ <strong>3.3（2022）</strong>：KRaft 模式生产可用（GA），新集群推荐直接使用 KRaft，ZK 模式标记废弃；⑤ <strong>3.5~3.6（2023）</strong>：ZK→KRaft 迁移工具生产可用，分层存储（Tiered Storage，KIP-405）引入——冷数据自动下沉到对象存储，降低本地磁盘压力；⑥ <strong>3.7（2024-02）</strong>：最后一个支持 ZooKeeper 模式的版本，动态 KRaft 仲裁支持无停机增删 Controller 节点；⑦ <strong>4.0（2025-03）</strong>：彻底移除 ZooKeeper 依赖，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议 GA（大幅缩短 rebalance 停顿），KIP-932 队列语义 Early Access（支持点对点消息模型），Broker 要求 Java 17、Client/Streams Java 11，MirrorMaker 1 移除。</p>
             <p><strong>Pulsar（2016，Yahoo）</strong>：计算存储分离——Broker 无状态（计算）、BookKeeper 分层存储（持久化）。原生多租户、跨地域复制、存算独立扩缩。弥补 Kafka 的存储与计算耦合、Rebalance 慢、多租户弱等痛点。</p>
-            <p><strong>趋势</strong>：① 从"消息队列"到"流平台"再到"事件流基础设施"——Kafka Streams/KSQL 流处理、Schema Registry；② 存算分离（Pulsar/Redpanda）成为新架构方向；③ 云原生 MQ——Serverless Kafka（Confluent Cloud/阿里云 MSK）、按需扩缩；④ 流批一体——Kafka 替代部分数据仓库 ETL 链路。</p>
+            <p><strong>趋势</strong>：① 从"消息队列"到"流平台"再到"事件流基础设施"——Kafka Streams/KSQL 流处理、Schema Registry；② 存算分离（Pulsar/Redpanda）成为新架构方向；③ 云原生 MQ——Serverless Kafka（Confluent Cloud/阿里云 MSK）、按需扩缩；④ 流批一体——Kafka 替代部分数据仓库 ETL 链路；⑤ Kafka 4.0（2025-03）彻底移除 ZooKeeper，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议大幅缩短 rebalance 停顿。</p>
           </div>
         </div>
 
@@ -555,7 +556,9 @@ unclean.leader.election.enable=<span class="kw">false</span>  <span class="com">
             <p><strong>追问 1：Kafka 的 Exactly-Once 如何实现？真的不丢不重吗？</strong></p>
             <p>Kafka 的 Exactly-Once 限定在"Kafka 内部"——生产端幂等+事务保证跨分区原子写、消费端 read_committed 只读已提交。但"消费-处理外部系统（如DB）-生产Kafka"的端到端 Exactly-Once 需配合事务外系统（如 Kafka Connect 的 sink 任务用 DB 事务 + offset 提交原子化）。跨外部系统的端到端 Exactly-Once 难以保证，常退化为 At-Least-Once + 消费幂等。</p>
             <p><strong>追问 2：消费者 rebalance 为何慢？如何优化？</strong></p>
-            <p>rebalance 需协调所有消费者重新分配分区，期间消费暂停（Stop-The-World）。优化：① 增大 session.timeout.ms 与 max.poll.interval.ms 避免误判离线；② 减少分区数；③ 用 StickyAssignor（粘性分配）减少迁移量；④ Kafka 2.4+ Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区。Pulsar 用"独占订阅+Broker 端游标"避免 rebalance。</p>
+            <p>rebalance 需协调所有消费者重新分配分区，期间消费暂停（Stop-The-World）。优化：① 增大 session.timeout.ms 与 max.poll.interval.ms 避免误判离线；② 减少分区数；③ 用 StickyAssignor（粘性分配）减少迁移量；④ Kafka 2.4+ Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区；⑤ Kafka 4.0 KIP-848 新消费组协议 GA，将 rebalance 协调从 Broker 侧移到 Consumer 侧，大幅缩短停顿时间。Pulsar 用"独占订阅+Broker 端游标"避免 rebalance。</p>
+            <p><strong>追问 3：KRaft 模式如何取代 ZooKeeper？迁移路径与影响？</strong></p>
+            <p>KRaft（Kafka Raft Metadata Mode）用 Kafka 自身的 Raft 共识协议替代 ZooKeeper 管理集群元数据（Broker 注册、Topic/Partition 分配、ISR 状态等）。架构上设 <strong>Controller Quorum</strong>（3~5 节点推荐），Controller 节点以 Raft 维护一份统一的元数据日志（<code class="inline-code">__cluster_metadata</code> topic），所有 Broker 从 Leader Controller 同步元数据。<strong>核心优势</strong>：① <strong>部署简化</strong>——无需独立 ZK 集群，减少组件与运维链路；② <strong>扩展性提升</strong>——ZK 元数据成为超大规模集群瓶颈（百万级 Partition 时 ZK 成瓶颈），KRaft 元数据日志原生支持更高 Partition 数；③ <strong>启动更快</strong>——Controller 可秒级选举，ZK 重新选主需数十秒。<strong>迁移路径</strong>：3.3~3.9 ZK 模式集群需先用内置迁移工具转为 KRaft 模式，再升级 4.0；直接从 ZK 模式升级 4.0 不可行。4.0 要求 Broker Java 17、Client/Streams Java 11，MirrorMaker 1 已移除需迁移到 MM2。</p>
           </div>
         </div>
 
@@ -571,6 +574,7 @@ unclean.leader.election.enable=<span class="kw">false</span>  <span class="com">
                 <li><strong>retries 无限 + 无幂等</strong>：重试导致消息乱序与重复。</li>
                 <li><strong>消费者自动提交 offset</strong>：enable.auto.commit 可能丢消息（先提交后处理失败）或重复（处理后提交前宕机），关键业务用手动提交。</li>
                 <li><strong>忽视 Page Cache 依赖</strong>：Kafka 高吞吐依赖 OS Page Cache，与其他内存密集型服务混部署会争抢缓存。</li>
+                <li><strong>忽视 KRaft 迁移窗口期</strong>：Kafka 4.0 完全移除 ZK 模式，ZK 集群必须先迁移到 KRaft 再升级 4.0，直接升级会启动失败；MirrorMaker 1 在 4.0 中已移除，需迁移到 MirrorMaker 2。</li>
               </ul>
             </div>
           </div>

@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>高频真实场景题 — Java 架构师面试问答</title>
   <link rel="stylesheet" href="assets/design-system.css">
-  <script defer src="shared/js/mermaid.min.js"></script>
   <style>
     /* 新增 layer 类型样式 */
     .qa-layer[data-layer="scenario"] .qa-layer-title::before { background: var(--accent); }
@@ -4352,7 +4351,103 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     </div>
   </div>
 
-</section>
+
+
+<div class="qa-card" id="S07.06" data-difficulty="architect" data-priority="p0">
+    <div class="qa-header">
+      <div class="qa-badge">S07.06</div>
+      <div class="qa-question">支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">分布式事务</span>
+      <span class="scenario-tag">对账系统</span>
+      <span class="scenario-tag">幂等</span>
+      <span class="scenario-tag">清结算</span>
+      <span class="scenario-tag">资金安全</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某支付平台日交易额过亿，日均交易笔数千万级（峰值 QPS 数万），需保证支付链路最终一致性，T+1 对账准确率 99.99%。链路横跨订单、库存、账户、风控、通道等多个子系统，任一环节失败都可能导致"钱货两失"或"重复扣款"。要求在保证资金绝对安全（防重复支付、防超卖、防透支）的前提下，实现高并发收银与 T+1 全量对账，并支持清结算的 T+0/T+1 灵活选型。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 支付链路跨服务一致性：创建订单→扣库存→扣余额→记流水需跨多个微服务原子完成；② 异常补偿与幂等：网络超时/重试导致的重复支付、掉单如何兜底；③ 对账系统设计：T+1 全量对账如何在亿级明细中找出差异并自动修复，准确率达 99.99%；④ 清结算架构：商户资金 T+1 结算与渠道 T+0 清算如何衔接；⑤ 资金安全：防重复支付、防超卖、防账户透支，任何一笔都不能错。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用"分布式事务 + 本地消息表 + 定时对账"的三层保障体系：<strong>第一层实时保障</strong>用 Saga/TCC 分布式事务保证链路最终一致；<strong>第二层可靠投递</strong>用本地消息表 + MQ 保证跨服务消息不丢不重；<strong>第三层兜底校验</strong>用定时对账（全量 + 差异 + 实时三级）发现并修复前两层漏掉的异常。三层叠加实现"宁可慢对账，不可错一分钱"的资金安全底线。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 支付链路（Saga 编排式）</strong>：用 Saga 编排器顺序执行 CreateOrder→DeductStock→DeductBalance→RecordFlow→NotifyChannel，每步带补偿动作（CancelOrder→RestoreStock→RefundBalance→ReverseFlow）。短事务（如扣余额）用 TCC 强化一致性，长链路用 Saga 保证最终一致。</p>
+        <p><strong>2. 幂等设计（Token + 分布式锁 + 状态机）</strong>：收银台下发一次性 Token，支付请求带 Token 校验防重复提交；Redis 分布式锁防并发重复扣款；订单状态机（INIT→PAYING→PAID→FAILED）用乐观锁 CAS 推进，非法状态转移直接拒绝。</p>
+        <p><strong>3. 对账系统（三级体系）</strong>：① 全量对账——T+1 拉取平台流水与渠道/银行账单逐笔比对；② 差异对账——对全量对账筛出的长款/短款做二次核验；③ 实时对账——支付成功即时与通道回执比对，秒级发现异常。</p>
+        <p><strong>4. 清结算</strong>：日终批处理按商户维度汇总待结算金额，T+1 批量出款；对 VIP 商户走实时清算（T+0），通过垫资账户 + 风控额度控制敞口。</p>
+        <p><strong>5. 异常处理</strong>：补偿队列（本地消息表驱动）自动重试失败步骤，重试耗尽转人工兜底工单，所有资金动作留痕可审计。</p>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code><span class="com">// Saga 编排式支付：每步执行 + 补偿动作，保证最终一致性</span>
+<span class="kw">public</span> <span class="type">PaymentResult</span> <span class="fn">pay</span>(<span class="type">PaymentRequest</span> req) {
+    <span class="com">// 幂等校验：Token + 状态机双重防护</span>
+    <span class="type">String</span> lockKey = <span class="str">"pay:lock:"</span> + req.<span class="fn">getPaymentId</span>();
+    <span class="kw">return</span> redisLock.<span class="fn">tryLock</span>(lockKey, <span class="num">5</span>, <span class="type">TimeUnit</span>.SECONDS, () -&gt; {
+        <span class="type">Order</span> order = orderService.<span class="fn">checkAndCas</span>(req.<span class="fn">getOrderId</span>(),
+                <span class="type">OrderStatus</span>.INIT, <span class="type">OrderStatus</span>.PAYING); <span class="com">// 状态机 CAS</span>
+        <span class="kw">if</span> (order == <span class="kw">null</span>) <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">duplicated</span>(); <span class="com">// 重复支付拦截</span>
+
+        <span class="type">SagaOrchestrator</span> saga = <span class="kw">new</span> <span class="type">SagaOrchestrator</span>(req)
+            .<span class="fn">step</span>(<span class="str">"deductStock"</span>,    stockSvc::deduct,     stockSvc::restore)
+            .<span class="fn">step</span>(<span class="str">"deductBalance"</span>,  accountSvc::debit,    accountSvc::refund)
+            .<span class="fn">step</span>(<span class="str">"recordFlow"</span>,    flowSvc::record,      flowSvc::reverse)
+            .<span class="fn">step</span>(<span class="str">"notifyChannel"</span>,  channelSvc::dispatch, channelSvc::cancel);
+        <span class="type">SagaResult</span> r = saga.<span class="fn">execute</span>(); <span class="com">// 任一步失败自动反向补偿</span>
+
+        <span class="kw">if</span> (r.<span class="fn">isSuccess</span>()) {
+            orderService.<span class="fn">cas</span>(order.<span class="fn">getId</span>(), <span class="type">OrderStatus</span>.PAYING, <span class="type">OrderStatus</span>.PAID);
+            <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">success</span>(r.<span class="fn">getTradeNo</span>());
+        }
+        orderService.<span class="fn">cas</span>(order.<span class="fn">getId</span>(), <span class="type">OrderStatus</span>.PAYING, <span class="type">OrderStatus</span>.FAILED);
+        <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">fail</span>(r.<span class="fn">getError</span>());
+    });
+}
+
+<span class="com">// 本地消息表：扣款与下游通知同库事务提交，保证最终一致</span>
+<span class="com">@Transactional</span>
+<span class="kw">public</span> <span class="kw">void</span> <span class="fn">debitAndEnqueue</span>(<span class="type">PaymentRequest</span> req) {
+    accountMapper.<span class="fn">debit</span>(req.<span class="fn">getUserId</span>(), req.<span class="fn">getAmount</span>());   <span class="com">// 扣余额</span>
+    messageMapper.<span class="fn">insert</span>(<span class="kw">new</span> <span class="type">LocalMessage</span>(req.<span class="fn">getPaymentId</span>(), <span class="str">"PAY_NOTIFY"</span>));
+    <span class="com">// 定时任务扫描 message 表投递 MQ，失败重试至确认，保证不丢不重</span>
+}</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">追问1：支付掉单（用户已付款但订单仍 INIT/PAYING）如何处理？</div><div class="followup-a">掉单根因是支付通道异步回调丢失或本服务宕机。处理三段式：① 主动查询——支付超时（如 30s）后定时任务调用通道"查单接口"主动核对订单状态；② 状态推进——查到已支付则补推状态机至 PAID 并补偿下游，查到未支付则触发关单/退款；③ 兜底对账——T+1 全量对账再核对一遍，确保无遗漏。核心是"不要依赖回调，主动查单兜底"。</div></li>
+          <li><div class="followup-q">追问2：对账发现差异后的自动修复流程？</div><div class="followup-a">差异分长款（平台有流水、渠道无）和短款（渠道有、平台无）。流程：① 差异落表进入待处理队列；② 自动核验——拉取通道原始凭证二次比对，排除时间窗、批次切分导致的假差异；③ 确认差异后按类型自动修复——长款触发冲正/挂账，短款触发补单/人工确认；④ 修复后回写对账结果并标记闭环。无法自动修复的转人工工单，所有修复动作可审计可回溯。</div></li>
+          <li><div class="followup-q">追问3：清结算 T+0 与 T+1 如何选型？</div><div class="followup-a">T+1 是默认方案：渠道 T+1 清算后商户 T+1 结算，平台零垫资、零敞口，适合中小商户。T+0（实时清算）适合 VIP/大商户的资金周转需求，但平台需垫资，存在渠道违约风险，必须配垫资账户 + 风控额度 + 商户资质审核。选型权衡三要素：商户资金周转诉求、平台垫资成本与风控能力、渠道清算节奏。通常 T+0 限量开放给优质商户，T+1 兜底大众。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>忽略网络超时导致的重复支付</strong>：只防用户重复点击（前端禁用按钮），不防网络超时重试。支付请求超时后客户端重试，服务端若不做幂等就会重复扣款。必须 Token + 状态机 + 分布式锁三重防护。</li>
+          <li><strong>对账只做总账不做明细</strong>：只对"平台总额 = 渠道总额"就认为无误，但总账相等不代表每笔一致（可能 A 多 B 少恰好抵消）。必须逐笔明细对账，再辅以总额校验作为快速预筛。</li>
+          <li><strong>幂等只做 Token 不做状态机校验</strong>：Token 仅防同一请求重复提交，但回调、查单、重试都可能绕过 Token 携带。状态机 CAS（INIT→PAYING→PAID）才是兜底，非法状态转移一律拒绝，确保一笔订单只会被成功支付一次。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  </section>
 
   <!-- S07.05 跨境电商平台全球多租户架构：数据合规与区域化部署设计 -->
   <div class="qa-card" id="S07.05" data-difficulty="expert" data-priority="p2">
@@ -5039,7 +5134,104 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       </div>
     </div>
   </div>
-</section>
+
+
+<div class="qa-card" id="S08.06" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S08.06</div>
+      <div class="qa-question">全链路可观测性建设：大促前订单链路偶发超时根因定位与告警降噪<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">可观测性</span>
+      <span class="scenario-tag">链路追踪</span>
+      <span class="scenario-tag">告警降噪</span>
+      <span class="scenario-tag">OpenTelemetry</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某电商平台订单链路（APP → 网关 → 订单服务 → 库存/支付/优惠券 → MQ → 积分）大促前出现「偶发下单超时」，SLA 99.95% 一度跌至 99.9%。现状：① 各团队日志各自为政、无统一 TraceId，两次超时分别排查 2 小时才定位到不同服务；② 监控指标零散（QPS/RT/CPU），无法还原「一笔请求在哪个环节慢」；③ 告警每天 200+ 条，值班团队麻木，真实故障反而被淹没。要求：大促期间任意一笔慢请求 10 分钟内定位到具体服务与原因，告警误报率下降 80%。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 链路贯穿——订单链路 10+ 服务、跨语言（Java/Go/前端）、跨线程池/异步 MQ，TraceId 如何不丢失；② 采样与成本——全量采集存储成本爆炸，采样不足又漏掉「偶发慢请求」这类低频异常；③ 三支柱割裂——Trace、Log、Metric 分属不同系统，无法按一笔请求关联检索；④ 告警降噪——阈值告警无关联、无抑制，噪音掩盖真实故障；⑤ 根因定位——从「链路慢」到「为什么慢」（SQL 慢？GC？锁？依赖超时？）需要上下文串联。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用<strong>"统一埋点 → 贯穿传递 → 关联检索 → 自动根因 → 告警降噪"</strong>五层。统一埋点：OpenTelemetry 标准（Trace+Metrics 同源）；贯穿传递：TraceId 经 HTTP 头/线程池包装/MQ 消息头全程透传；关联检索：日志携带 TraceId + 服务名 + 时间片，支持 trace → 日志 双向跳转；自动根因：黄金信号（延迟/流量/错误/饱和度）异常检测 + 依赖拓扑下钻；告警降噪：分级、聚合、静默、抑制、对账闭环。核心原则：先让「每一笔请求可追溯」，再谈采样与降噪。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 统一采集与埋点</strong>：全量接入 OpenTelemetry SDK（Java Agent 无侵入 + Go SDK），导出到 SkyWalking/Jeager 或自建（OTLP Collector → ClickHouse）；关键链路（下单/支付）单独配置「全量采样」，其余默认 10% 头部采样 + 尾部采样兜底（错误/慢请求强制采样率 100%）。</p>
+        <p><strong>2. TraceId 贯穿传递</strong>：网关生成/透传 <code class="inline-code">traceparent</code>（W3C 标准）；HTTP 用拦截器注入请求头；线程池用装饰器（<code class="inline-code">TtlRunnable</code> 或自定义包装）传递上下文；MQ 生产者塞消息头、消费者还原；异步回调/定时任务补建 trace 根。日志统一 MDC 携带 traceId+spanId，结构化 JSON 输出。</p>
+        <p><strong>3. 关联检索</strong>：日志平台支持「按 TraceId 一键拉全链路日志」，链路平台支持「按 traceId 跳转日志 + 按时间片拉取指标」；服务间调用关系由 trace 数据自动生成依赖拓扑（服务 × 接口 × 耗时分布矩阵）。</p>
+        <p><strong>4. 自动根因初筛</strong>：慢 Trace 自动关联其 span 耗时占比（哪个 span 耗时最大）、该 span 所在服务当前指标（CPU/GC/连接池/线程池）、SQL 执行计划耗时、下游依赖 RT；输出「候选根因列表」给值班人员，人工确认后沉淀为根因知识库。</p>
+        <p><strong>5. 告警降噪</strong>：告警分级（P0 核心链路不可用 / P1 高错误率 / P2 指标异常）+ 聚合（同类告警合并为一条）+ 静默（已知故障窗口 / 发布窗口自动静默）+ 抑制（下游故障只报根因不报所有下游级联）+ 告警对账（每日告警清单与根因复盘，持续收敛阈值）。</p>
+        <table class="compare-table">
+          <thead><tr><th>能力</th><th>落地前</th><th>落地后</th></tr></thead>
+          <tbody>
+            <tr><td>慢请求定位</td><td>2 小时人工翻日志</td><td>&lt; 10 分钟 trace 下钻</td></tr>
+            <tr><td>日志检索</td><td>按关键词猜服务</td><td>按 TraceId 一键关联</td></tr>
+            <tr><td>告警量</td><td>200+ 条/天</td><td>&lt; 30 条/天（聚合+抑制）</td></tr>
+            <tr><td>故障复盘</td><td>凭记忆</td><td>根因知识库沉淀</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code><span class="com">// 1. 线程池传递 TraceId（异步不丢链路）</span>
+<span class="kw">public class</span> <span class="type">TraceIdPropagator</span> {
+    <span class="kw">public static</span> <span class="type">ExecutorService</span> <span class="fn">wrap</span>(<span class="type">ExecutorService</span> pool) {
+        <span class="kw">return</span> <span class="kw">new</span> <span class="type">ExecutorServiceWrapper</span>(pool, <span class="type">Context</span>::<span class="fn">current</span>);
+    }
+    <span class="com">// 提交任务时快照当前 TraceContext，执行时还原</span>
+    <span class="com">// Spring 场景直接用 TransmittableThreadLocal（阿里 TTL）更彻底</span>
+}
+
+<span class="com">// 2. MQ 生产者透传 traceparent</span>
+<span class="type">Message</span> msg = <span class="kw">new</span> <span class="type">Message</span>();
+msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, <span class="type">W3CTraceContextPropagator</span>.<span class="fn">getInstance</span>()
+        .<span class="fn">extract</span>(<span class="type">Context</span>.<span class="fn">current</span>(), <span class="type">Map</span>.<span class="fn">of</span>(), <span class="fn">mapGetter</span>).toString());
+
+<span class="com">// 3. 日志 MDC 注入（logback pattern: %X{traceId} %X{spanId}）</span>
+<span class="kw">public class</span> <span class="type">TraceFilter</span> <span class="kw">extends</span> <span class="type">OncePerRequestFilter</span> {
+    <span class="kw">protected void</span> <span class="fn">doFilterInternal</span>(...) {
+        <span class="type">Span</span> span = <span class="type">TracerHolder</span>.<span class="fn">tracer</span>().<span class="fn">spanBuilder</span>(<span class="str">"http-in"</span>).<span class="fn">startSpan</span>();
+        <span class="type">MDC</span>.<span class="fn">put</span>(<span class="str">"traceId"</span>, span.<span class="fn">getSpanContext</span>().<span class="fn">getTraceId</span>());
+        <span class="kw">try</span> { chain.<span class="fn">doFilter</span>(req, res); }
+        <span class="kw">finally</span> { <span class="type">MDC</span>.<span class="fn">remove</span>(<span class="str">"traceId"</span>); span.<span class="fn">end</span>(); }
+    }
+}</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">采样率怎么定——既控成本又不漏偶发故障？</div><div class="followup-a">分场景：核心交易链路全量（量级可控）；普通接口头部采样 10% + 尾部采样兜底（错误、慢请求（RT &gt; P99×3）强制全采）；关键业务（支付、下单）可自定义采样规则 100%。成本大头在 span 存储，用「采样 + 过期策略（热 7 天 / 温 30 天 / 冷归档）+ 明细只存错误与慢请求」控成本。</div></li>
+          <li><div class="followup-q">Trace 与 Log、Metric 如何真正关联起来？</div><div class="followup-a">三个关联键：① TraceId（日志必须打印，链路平台与日志平台按 traceId 互跳）；② 服务+接口+时间片（无 trace 时的粗粒度关联，用指标看趋势、用日志看现场）；③ 依赖拓扑（服务间调用图由 trace 数据聚合生成，定位「下游哪一环最慢」）。关键前提：日志必须结构化 JSON，且与 trace 数据在同一时间轴上可对齐。</div></li>
+          <li><div class="followup-q">跨语言、跨进程的 TraceId 传递怎么做？</div><div class="followup-a">统一 W3C traceparent（trace-id/span-id/flags 三段式），HTTP 头、gRPC metadata、MQ 消息头、线程局部变量四类通道全部透传；网关统一解析并强制覆盖（缺失则生成新 trace 根，防止篡改）。跨语言 SDK 均实现 W3C 标准即可互认，不依赖单一厂商协议。</div></li>
+          <li><div class="followup-q">告警误报率下降 80% 具体靠哪些机制？</div><div class="followup-a">① 动态基线（基于历史分位数而非固定阈值，如 RT 用 P99 基线 + 波动检测）；② 告警聚合与抑制（同类合并、下游故障只报根因）；③ 发布/运维窗口静默（发布中 RT 抖动不告警）；④ 告警分级与值班路由（P0 才拉群电话）；⑤ 对账闭环——每周告警复盘，持续校准阈值与规则，误报规则直接下线。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>只埋点不贯穿</strong>：各服务各自生成 span、TraceId 不互传，链路断成一段段孤岛，等于没做。贯穿（HTTP/线程池/MQ）是第一步，比选型更重要。</li>
+          <li><strong>全量采集导致成本爆炸</strong>：10 亿级调用全量入库，存储成本翻几倍。必须采样 + 分级存储 + 明细只留错误与慢请求。</li>
+          <li><strong>日志不带 TraceId</strong>：链路平台找到慢 span，日志平台按 traceId 查不到对应日志，还得回到手工翻日志的老路。MDC 注入是硬性规范。</li>
+          <li><strong>告警无关联无抑制</strong>：一个 DB 故障触发 20 条告警（每个调用方各报一次），值班被噪音淹没。必须做根因告警 + 级联抑制 + 聚合。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  </section>
 <section class="scenario-group" id="group-9">
   <h2 class="group-title">
     <span class="group-number">九</span>
@@ -6479,100 +6671,7 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
       </div>
     </div>
   </div>
-  <div class="qa-card" id="S07.06" data-difficulty="architect" data-priority="p0">
-    <div class="qa-header">
-      <div class="qa-badge">S07.06</div>
-      <div class="qa-question">支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
-    </div>
-    <div class="scenario-tags">
-      <span class="scenario-tag tag-hot">高频</span>
-      <span class="scenario-tag">分布式事务</span>
-      <span class="scenario-tag">对账系统</span>
-      <span class="scenario-tag">幂等</span>
-      <span class="scenario-tag">清结算</span>
-      <span class="scenario-tag">资金安全</span>
-    </div>
-    <div class="qa-layer" data-layer="scenario">
-      <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某支付平台日交易额过亿，日均交易笔数千万级（峰值 QPS 数万），需保证支付链路最终一致性，T+1 对账准确率 99.99%。链路横跨订单、库存、账户、风控、通道等多个子系统，任一环节失败都可能导致"钱货两失"或"重复扣款"。要求在保证资金绝对安全（防重复支付、防超卖、防透支）的前提下，实现高并发收银与 T+1 全量对账，并支持清结算的 T+0/T+1 灵活选型。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="challenge">
-      <div class="qa-layer-title">核心挑战</div>
-      <div class="qa-layer-body"><p>① 支付链路跨服务一致性：创建订单→扣库存→扣余额→记流水需跨多个微服务原子完成；② 异常补偿与幂等：网络超时/重试导致的重复支付、掉单如何兜底；③ 对账系统设计：T+1 全量对账如何在亿级明细中找出差异并自动修复，准确率达 99.99%；④ 清结算架构：商户资金 T+1 结算与渠道 T+0 清算如何衔接；⑤ 资金安全：防重复支付、防超卖、防账户透支，任何一笔都不能错。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="principle">
-      <div class="qa-layer-title">分析框架</div>
-      <div class="qa-layer-body"><p>采用"分布式事务 + 本地消息表 + 定时对账"的三层保障体系：<strong>第一层实时保障</strong>用 Saga/TCC 分布式事务保证链路最终一致；<strong>第二层可靠投递</strong>用本地消息表 + MQ 保证跨服务消息不丢不重；<strong>第三层兜底校验</strong>用定时对账（全量 + 差异 + 实时三级）发现并修复前两层漏掉的异常。三层叠加实现"宁可慢对账，不可错一分钱"的资金安全底线。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="practice">
-      <div class="qa-layer-title">解决方案</div>
-      <div class="qa-layer-body">
-        <p><strong>1. 支付链路（Saga 编排式）</strong>：用 Saga 编排器顺序执行 CreateOrder→DeductStock→DeductBalance→RecordFlow→NotifyChannel，每步带补偿动作（CancelOrder→RestoreStock→RefundBalance→ReverseFlow）。短事务（如扣余额）用 TCC 强化一致性，长链路用 Saga 保证最终一致。</p>
-        <p><strong>2. 幂等设计（Token + 分布式锁 + 状态机）</strong>：收银台下发一次性 Token，支付请求带 Token 校验防重复提交；Redis 分布式锁防并发重复扣款；订单状态机（INIT→PAYING→PAID→FAILED）用乐观锁 CAS 推进，非法状态转移直接拒绝。</p>
-        <p><strong>3. 对账系统（三级体系）</strong>：① 全量对账——T+1 拉取平台流水与渠道/银行账单逐笔比对；② 差异对账——对全量对账筛出的长款/短款做二次核验；③ 实时对账——支付成功即时与通道回执比对，秒级发现异常。</p>
-        <p><strong>4. 清结算</strong>：日终批处理按商户维度汇总待结算金额，T+1 批量出款；对 VIP 商户走实时清算（T+0），通过垫资账户 + 风控额度控制敞口。</p>
-        <p><strong>5. 异常处理</strong>：补偿队列（本地消息表驱动）自动重试失败步骤，重试耗尽转人工兜底工单，所有资金动作留痕可审计。</p>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="practice">
-      <div class="qa-layer-title">关键代码</div>
-      <div class="qa-layer-body">
-        <div class="code-block"><pre><code><span class="com">// Saga 编排式支付：每步执行 + 补偿动作，保证最终一致性</span>
-<span class="kw">public</span> <span class="type">PaymentResult</span> <span class="fn">pay</span>(<span class="type">PaymentRequest</span> req) {
-    <span class="com">// 幂等校验：Token + 状态机双重防护</span>
-    <span class="type">String</span> lockKey = <span class="str">"pay:lock:"</span> + req.<span class="fn">getPaymentId</span>();
-    <span class="kw">return</span> redisLock.<span class="fn">tryLock</span>(lockKey, <span class="num">5</span>, <span class="type">TimeUnit</span>.SECONDS, () -&gt; {
-        <span class="type">Order</span> order = orderService.<span class="fn">checkAndCas</span>(req.<span class="fn">getOrderId</span>(),
-                <span class="type">OrderStatus</span>.INIT, <span class="type">OrderStatus</span>.PAYING); <span class="com">// 状态机 CAS</span>
-        <span class="kw">if</span> (order == <span class="kw">null</span>) <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">duplicated</span>(); <span class="com">// 重复支付拦截</span>
-
-        <span class="type">SagaOrchestrator</span> saga = <span class="kw">new</span> <span class="type">SagaOrchestrator</span>(req)
-            .<span class="fn">step</span>(<span class="str">"deductStock"</span>,    stockSvc::deduct,     stockSvc::restore)
-            .<span class="fn">step</span>(<span class="str">"deductBalance"</span>,  accountSvc::debit,    accountSvc::refund)
-            .<span class="fn">step</span>(<span class="str">"recordFlow"</span>,    flowSvc::record,      flowSvc::reverse)
-            .<span class="fn">step</span>(<span class="str">"notifyChannel"</span>,  channelSvc::dispatch, channelSvc::cancel);
-        <span class="type">SagaResult</span> r = saga.<span class="fn">execute</span>(); <span class="com">// 任一步失败自动反向补偿</span>
-
-        <span class="kw">if</span> (r.<span class="fn">isSuccess</span>()) {
-            orderService.<span class="fn">cas</span>(order.<span class="fn">getId</span>(), <span class="type">OrderStatus</span>.PAYING, <span class="type">OrderStatus</span>.PAID);
-            <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">success</span>(r.<span class="fn">getTradeNo</span>());
-        }
-        orderService.<span class="fn">cas</span>(order.<span class="fn">getId</span>(), <span class="type">OrderStatus</span>.PAYING, <span class="type">OrderStatus</span>.FAILED);
-        <span class="kw">return</span> <span class="type">PaymentResult</span>.<span class="fn">fail</span>(r.<span class="fn">getError</span>());
-    });
-}
-
-<span class="com">// 本地消息表：扣款与下游通知同库事务提交，保证最终一致</span>
-<span class="com">@Transactional</span>
-<span class="kw">public</span> <span class="kw">void</span> <span class="fn">debitAndEnqueue</span>(<span class="type">PaymentRequest</span> req) {
-    accountMapper.<span class="fn">debit</span>(req.<span class="fn">getUserId</span>(), req.<span class="fn">getAmount</span>());   <span class="com">// 扣余额</span>
-    messageMapper.<span class="fn">insert</span>(<span class="kw">new</span> <span class="type">LocalMessage</span>(req.<span class="fn">getPaymentId</span>(), <span class="str">"PAY_NOTIFY"</span>));
-    <span class="com">// 定时任务扫描 message 表投递 MQ，失败重试至确认，保证不丢不重</span>
-}</code></pre></div>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="deep">
-      <div class="qa-layer-title">深度追问</div>
-      <div class="qa-layer-body">
-        <ul class="followup-list">
-          <li><div class="followup-q">追问1：支付掉单（用户已付款但订单仍 INIT/PAYING）如何处理？</div><div class="followup-a">掉单根因是支付通道异步回调丢失或本服务宕机。处理三段式：① 主动查询——支付超时（如 30s）后定时任务调用通道"查单接口"主动核对订单状态；② 状态推进——查到已支付则补推状态机至 PAID 并补偿下游，查到未支付则触发关单/退款；③ 兜底对账——T+1 全量对账再核对一遍，确保无遗漏。核心是"不要依赖回调，主动查单兜底"。</div></li>
-          <li><div class="followup-q">追问2：对账发现差异后的自动修复流程？</div><div class="followup-a">差异分长款（平台有流水、渠道无）和短款（渠道有、平台无）。流程：① 差异落表进入待处理队列；② 自动核验——拉取通道原始凭证二次比对，排除时间窗、批次切分导致的假差异；③ 确认差异后按类型自动修复——长款触发冲正/挂账，短款触发补单/人工确认；④ 修复后回写对账结果并标记闭环。无法自动修复的转人工工单，所有修复动作可审计可回溯。</div></li>
-          <li><div class="followup-q">追问3：清结算 T+0 与 T+1 如何选型？</div><div class="followup-a">T+1 是默认方案：渠道 T+1 清算后商户 T+1 结算，平台零垫资、零敞口，适合中小商户。T+0（实时清算）适合 VIP/大商户的资金周转需求，但平台需垫资，存在渠道违约风险，必须配垫资账户 + 风控额度 + 商户资质审核。选型权衡三要素：商户资金周转诉求、平台垫资成本与风控能力、渠道清算节奏。通常 T+0 限量开放给优质商户，T+1 兜底大众。</div></li>
-        </ul>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="pitfall">
-      <div class="qa-layer-title">常见陷阱</div>
-      <div class="qa-layer-body">
-        <ul class="pitfall-list">
-          <li><strong>忽略网络超时导致的重复支付</strong>：只防用户重复点击（前端禁用按钮），不防网络超时重试。支付请求超时后客户端重试，服务端若不做幂等就会重复扣款。必须 Token + 状态机 + 分布式锁三重防护。</li>
-          <li><strong>对账只做总账不做明细</strong>：只对"平台总额 = 渠道总额"就认为无误，但总账相等不代表每笔一致（可能 A 多 B 少恰好抵消）。必须逐笔明细对账，再辅以总额校验作为快速预筛。</li>
-          <li><strong>幂等只做 Token 不做状态机校验</strong>：Token 仅防同一请求重复提交，但回调、查单、重试都可能绕过 Token 携带。状态机 CAS（INIT→PAYING→PAID）才是兜底，非法状态转移一律拒绝，确保一笔订单只会被成功支付一次。</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
+  </section>
 
 <section class="scenario-group" id="group-12">
   <h2 class="group-title">
@@ -7318,101 +7417,7 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
       </div>
     </div>
   </div>
-  <div class="qa-card" id="S08.06" data-difficulty="architect" data-priority="p1">
-    <div class="qa-header">
-      <div class="qa-badge">S08.06</div>
-      <div class="qa-question">全链路可观测性建设：大促前订单链路偶发超时根因定位与告警降噪<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
-    </div>
-    <div class="scenario-tags">
-      <span class="scenario-tag tag-hot">高频</span>
-      <span class="scenario-tag">可观测性</span>
-      <span class="scenario-tag">链路追踪</span>
-      <span class="scenario-tag">告警降噪</span>
-      <span class="scenario-tag">OpenTelemetry</span>
-    </div>
-    <div class="qa-layer" data-layer="scenario">
-      <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某电商平台订单链路（APP → 网关 → 订单服务 → 库存/支付/优惠券 → MQ → 积分）大促前出现「偶发下单超时」，SLA 99.95% 一度跌至 99.9%。现状：① 各团队日志各自为政、无统一 TraceId，两次超时分别排查 2 小时才定位到不同服务；② 监控指标零散（QPS/RT/CPU），无法还原「一笔请求在哪个环节慢」；③ 告警每天 200+ 条，值班团队麻木，真实故障反而被淹没。要求：大促期间任意一笔慢请求 10 分钟内定位到具体服务与原因，告警误报率下降 80%。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="challenge">
-      <div class="qa-layer-title">核心挑战</div>
-      <div class="qa-layer-body"><p>① 链路贯穿——订单链路 10+ 服务、跨语言（Java/Go/前端）、跨线程池/异步 MQ，TraceId 如何不丢失；② 采样与成本——全量采集存储成本爆炸，采样不足又漏掉「偶发慢请求」这类低频异常；③ 三支柱割裂——Trace、Log、Metric 分属不同系统，无法按一笔请求关联检索；④ 告警降噪——阈值告警无关联、无抑制，噪音掩盖真实故障；⑤ 根因定位——从「链路慢」到「为什么慢」（SQL 慢？GC？锁？依赖超时？）需要上下文串联。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="principle">
-      <div class="qa-layer-title">分析框架</div>
-      <div class="qa-layer-body"><p>采用<strong>"统一埋点 → 贯穿传递 → 关联检索 → 自动根因 → 告警降噪"</strong>五层。统一埋点：OpenTelemetry 标准（Trace+Metrics 同源）；贯穿传递：TraceId 经 HTTP 头/线程池包装/MQ 消息头全程透传；关联检索：日志携带 TraceId + 服务名 + 时间片，支持 trace → 日志 双向跳转；自动根因：黄金信号（延迟/流量/错误/饱和度）异常检测 + 依赖拓扑下钻；告警降噪：分级、聚合、静默、抑制、对账闭环。核心原则：先让「每一笔请求可追溯」，再谈采样与降噪。</p></div>
-    </div>
-    <div class="qa-layer" data-layer="practice">
-      <div class="qa-layer-title">解决方案</div>
-      <div class="qa-layer-body">
-        <p><strong>1. 统一采集与埋点</strong>：全量接入 OpenTelemetry SDK（Java Agent 无侵入 + Go SDK），导出到 SkyWalking/Jeager 或自建（OTLP Collector → ClickHouse）；关键链路（下单/支付）单独配置「全量采样」，其余默认 10% 头部采样 + 尾部采样兜底（错误/慢请求强制采样率 100%）。</p>
-        <p><strong>2. TraceId 贯穿传递</strong>：网关生成/透传 <code class="inline-code">traceparent</code>（W3C 标准）；HTTP 用拦截器注入请求头；线程池用装饰器（<code class="inline-code">TtlRunnable</code> 或自定义包装）传递上下文；MQ 生产者塞消息头、消费者还原；异步回调/定时任务补建 trace 根。日志统一 MDC 携带 traceId+spanId，结构化 JSON 输出。</p>
-        <p><strong>3. 关联检索</strong>：日志平台支持「按 TraceId 一键拉全链路日志」，链路平台支持「按 traceId 跳转日志 + 按时间片拉取指标」；服务间调用关系由 trace 数据自动生成依赖拓扑（服务 × 接口 × 耗时分布矩阵）。</p>
-        <p><strong>4. 自动根因初筛</strong>：慢 Trace 自动关联其 span 耗时占比（哪个 span 耗时最大）、该 span 所在服务当前指标（CPU/GC/连接池/线程池）、SQL 执行计划耗时、下游依赖 RT；输出「候选根因列表」给值班人员，人工确认后沉淀为根因知识库。</p>
-        <p><strong>5. 告警降噪</strong>：告警分级（P0 核心链路不可用 / P1 高错误率 / P2 指标异常）+ 聚合（同类告警合并为一条）+ 静默（已知故障窗口 / 发布窗口自动静默）+ 抑制（下游故障只报根因不报所有下游级联）+ 告警对账（每日告警清单与根因复盘，持续收敛阈值）。</p>
-        <table class="compare-table">
-          <thead><tr><th>能力</th><th>落地前</th><th>落地后</th></tr></thead>
-          <tbody>
-            <tr><td>慢请求定位</td><td>2 小时人工翻日志</td><td>&lt; 10 分钟 trace 下钻</td></tr>
-            <tr><td>日志检索</td><td>按关键词猜服务</td><td>按 TraceId 一键关联</td></tr>
-            <tr><td>告警量</td><td>200+ 条/天</td><td>&lt; 30 条/天（聚合+抑制）</td></tr>
-            <tr><td>故障复盘</td><td>凭记忆</td><td>根因知识库沉淀</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="practice">
-      <div class="qa-layer-title">关键代码</div>
-      <div class="qa-layer-body">
-        <div class="code-block"><pre><code><span class="com">// 1. 线程池传递 TraceId（异步不丢链路）</span>
-<span class="kw">public class</span> <span class="type">TraceIdPropagator</span> {
-    <span class="kw">public static</span> <span class="type">ExecutorService</span> <span class="fn">wrap</span>(<span class="type">ExecutorService</span> pool) {
-        <span class="kw">return</span> <span class="kw">new</span> <span class="type">ExecutorServiceWrapper</span>(pool, <span class="type">Context</span>::<span class="fn">current</span>);
-    }
-    <span class="com">// 提交任务时快照当前 TraceContext，执行时还原</span>
-    <span class="com">// Spring 场景直接用 TransmittableThreadLocal（阿里 TTL）更彻底</span>
-}
-
-<span class="com">// 2. MQ 生产者透传 traceparent</span>
-<span class="type">Message</span> msg = <span class="kw">new</span> <span class="type">Message</span>();
-msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, <span class="type">W3CTraceContextPropagator</span>.<span class="fn">getInstance</span>()
-        .<span class="fn">extract</span>(<span class="type">Context</span>.<span class="fn">current</span>(), <span class="type">Map</span>.<span class="fn">of</span>(), <span class="fn">mapGetter</span>).toString());
-
-<span class="com">// 3. 日志 MDC 注入（logback pattern: %X{traceId} %X{spanId}）</span>
-<span class="kw">public class</span> <span class="type">TraceFilter</span> <span class="kw">extends</span> <span class="type">OncePerRequestFilter</span> {
-    <span class="kw">protected void</span> <span class="fn">doFilterInternal</span>(...) {
-        <span class="type">Span</span> span = <span class="type">TracerHolder</span>.<span class="fn">tracer</span>().<span class="fn">spanBuilder</span>(<span class="str">"http-in"</span>).<span class="fn">startSpan</span>();
-        <span class="type">MDC</span>.<span class="fn">put</span>(<span class="str">"traceId"</span>, span.<span class="fn">getSpanContext</span>().<span class="fn">getTraceId</span>());
-        <span class="kw">try</span> { chain.<span class="fn">doFilter</span>(req, res); }
-        <span class="kw">finally</span> { <span class="type">MDC</span>.<span class="fn">remove</span>(<span class="str">"traceId"</span>); span.<span class="fn">end</span>(); }
-    }
-}</code></pre></div>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="deep">
-      <div class="qa-layer-title">深度追问</div>
-      <div class="qa-layer-body">
-        <ul class="followup-list">
-          <li><div class="followup-q">采样率怎么定——既控成本又不漏偶发故障？</div><div class="followup-a">分场景：核心交易链路全量（量级可控）；普通接口头部采样 10% + 尾部采样兜底（错误、慢请求（RT &gt; P99×3）强制全采）；关键业务（支付、下单）可自定义采样规则 100%。成本大头在 span 存储，用「采样 + 过期策略（热 7 天 / 温 30 天 / 冷归档）+ 明细只存错误与慢请求」控成本。</div></li>
-          <li><div class="followup-q">Trace 与 Log、Metric 如何真正关联起来？</div><div class="followup-a">三个关联键：① TraceId（日志必须打印，链路平台与日志平台按 traceId 互跳）；② 服务+接口+时间片（无 trace 时的粗粒度关联，用指标看趋势、用日志看现场）；③ 依赖拓扑（服务间调用图由 trace 数据聚合生成，定位「下游哪一环最慢」）。关键前提：日志必须结构化 JSON，且与 trace 数据在同一时间轴上可对齐。</div></li>
-          <li><div class="followup-q">跨语言、跨进程的 TraceId 传递怎么做？</div><div class="followup-a">统一 W3C traceparent（trace-id/span-id/flags 三段式），HTTP 头、gRPC metadata、MQ 消息头、线程局部变量四类通道全部透传；网关统一解析并强制覆盖（缺失则生成新 trace 根，防止篡改）。跨语言 SDK 均实现 W3C 标准即可互认，不依赖单一厂商协议。</div></li>
-          <li><div class="followup-q">告警误报率下降 80% 具体靠哪些机制？</div><div class="followup-a">① 动态基线（基于历史分位数而非固定阈值，如 RT 用 P99 基线 + 波动检测）；② 告警聚合与抑制（同类合并、下游故障只报根因）；③ 发布/运维窗口静默（发布中 RT 抖动不告警）；④ 告警分级与值班路由（P0 才拉群电话）；⑤ 对账闭环——每周告警复盘，持续校准阈值与规则，误报规则直接下线。</div></li>
-        </ul>
-      </div>
-    </div>
-    <div class="qa-layer" data-layer="pitfall">
-      <div class="qa-layer-title">常见陷阱</div>
-      <div class="qa-layer-body">
-        <ul class="pitfall-list">
-          <li><strong>只埋点不贯穿</strong>：各服务各自生成 span、TraceId 不互传，链路断成一段段孤岛，等于没做。贯穿（HTTP/线程池/MQ）是第一步，比选型更重要。</li>
-          <li><strong>全量采集导致成本爆炸</strong>：10 亿级调用全量入库，存储成本翻几倍。必须采样 + 分级存储 + 明细只留错误与慢请求。</li>
-          <li><strong>日志不带 TraceId</strong>：链路平台找到慢 span，日志平台按 traceId 查不到对应日志，还得回到手工翻日志的老路。MDC 注入是硬性规范。</li>
-          <li><strong>告警无关联无抑制</strong>：一个 DB 故障触发 20 条告警（每个调用方各报一次），值班被噪音淹没。必须做根因告警 + 级联抑制 + 聚合。</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
+  </section>
 
 
       <!-- 章节间导航 -->
@@ -7423,6 +7428,7 @@ msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, <s
     </main>
   </div>
 
+  <script defer src="shared/js/mermaid.min.js"></script>
   <script>
     // Mermaid 初始化
     document.addEventListener('DOMContentLoaded', function () {

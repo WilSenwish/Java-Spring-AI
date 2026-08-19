@@ -514,6 +514,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             <p><strong>部署形态演进</strong>：物理机 → 虚拟机（资源隔离）→ 容器（轻量隔离）→ 容器编排（K8s，集群调度）→ Serverless（免运维）。容器化的本质是<strong>把应用与依赖打包成可移植镜像</strong>，K8s 解决的是<strong>大规模容器的调度与生命周期管理</strong>。</p>
             <p><strong>Docker（2013）</strong>：镜像分层（UnionFS 联合文件系统，每条指令一层可复用缓存）+ 容器隔离（namespace 隔离视图 + cgroups 限制资源）。</p>
             <p><strong>Kubernetes（2014，Google 基于 Borg）</strong>：声明式 API + <strong>控制循环（reconcile）</strong>——用户声明期望状态，Controller 持续调谐实际状态向期望收敛。成为容器编排事实标准。</p>
+            <p><strong>K8s 版本演进关键里程碑</strong>：① <strong>1.0（2015）</strong>：首个稳定版，Pod/Service/ReplicationController 基础模型；② <strong>1.8（2017）</strong>：Workload API（Deployment/StatefulSet/DaemonSet）GA，确立现代声明式部署模型；③ <strong>1.16（2019）</strong>：重大 API 版本清理——extensions/v1beta1 等旧版本移除，统一迁移至 apps/v1，CRD v1 GA；④ <strong>1.20→1.24（2020→2022）</strong>：Dockershim 废弃（1.20）并移除（1.24），容器运行时从 Docker 切换至 <strong>containerd/CRI-O</strong>（CRI 标准），Docker 镜像仍可用但运行时不再依赖 dockershim；⑤ <strong>1.25（2022）</strong>：PodSecurityPolicy 移除，替代为 <strong>Pod Security Admission</strong>（命名空间级安全策略）；⑥ <strong>1.28（2023）</strong>：<strong>原生 Sidecar 容器</strong>（Beta），Sidecar 容器与主容器生命周期解耦，启动/退出顺序可控；Node Swap GA；⑦ <strong>1.31~1.33（2024~2025）</strong>：AppArmor GA、User Namespaces Beta（安全增强）、<strong>Pod 垂直弹性伸缩</strong>（In-place Pod Resize，1.33 GA）——不重启 Pod 即可调整 CPU/内存。K8s 保持约每年 3 个小版本、每版本约 1 年支持的发布节奏，面试需关注<strong> API 版本废弃迁移与运行时变更</strong>两大破坏性变更方向。</p>
             <p><strong>JVM 容器感知演进（关键考点）</strong>：</p>
             <ul>
               <li><strong>JDK 8u131 之前</strong>：JVM 看不到容器内存/CPU 限制，<strong>按宿主机总资源计算</strong>，容器内存远小于宿主机时 -Xmx 误设过大，直接被 OOM Killer 杀掉。</li>
@@ -670,14 +671,78 @@ spec:
                 <li><strong>镜像过大</strong>：用全量 JDK 镜像（数百 MB），应多阶段构建 + JRE/Alpine + jib。</li>
                 <li><strong>忽略 terminationGracePeriodSeconds</strong>：默认 30s 不够在途请求处理完，强杀丢请求。</li>
                 <li><strong>JDK 8 旧版本无容器感知</strong>：JVM 按宿主机算内存，容器内 OOM。</li>
+                <li><strong>忽视 K8s API 版本废弃迁移</strong>：extensions/v1beta1 等旧 API 在 1.16 移除、PodSecurityPolicy 在 1.25 移除，升级集群版本前需用 <code class="inline-code">kubectl convert</code> / deprecation 工具预检并迁移 YAML。</li>
+                <li><strong>Dockershim 移除后仍用 Docker 运行时</strong>：K8s 1.24+ 不再内置 dockershim，需切换到 containerd/CRI-O 或安装 cri-dockerd 作为过渡，否则节点 Kubelet 启动失败。</li>
               </ul>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- ============================================================ -->
-      <!-- C10.05 Service Mesh(Istio) 如何解耦微服务治理？ -->
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：K8s Operator — 将运维知识编码为自定义控制器</div>
+          <div class="qa-layer-body">
+            <p><strong>本质</strong>：K8s Operator 是<strong>将人类运维专家知识编码为软件</strong>的架构模式——通过自定义控制器（Custom Controller）+ 自定义资源（CRD, CustomResourceDefinition）将复杂应用的部署、扩缩容、故障恢复、备份升级等运维操作自动化。核心思想是"<strong>声明式期望状态 + 控制循环协调（Reconcile Loop）</strong>"。</p>
+
+            <p><strong>核心组件</strong>：</p>
+            <ul>
+              <li><strong>CRD（CustomResourceDefinition）</strong>：扩展 K8s API，定义新的资源类型（如 <code class="inline-code">MySQLCluster</code>、<code class="inline-code">KafkaTopic</code>）。用户像写 Deployment YAML 一样写 CRD 实例。</li>
+              <li><strong>Custom Controller</strong>：监听 CRD 变化，执行协调逻辑——比较期望状态（CRD 中声明的）与实际状态（集群中运行的），驱动实际状态向期望状态收敛。</li>
+              <li><strong>Operator SDK / Kubebuilder</strong>：Red Hat Operator SDK 与 Kubernetes SIGs Kubebuilder 是两个主流框架，提供脚手架生成 Controller 骨架、CRD 定义、测试框架。</li>
+            </ul>
+
+            <p><strong>工作原理（Reconcile Loop）</strong>：</p>
+            <div class="code-block"><pre><code><span class="com">// Operator 控制器核心：Reconcile 循环（伪代码）</span>
+<span class="kw">func</span> (r *MySQLClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    <span class="com">// 1. 读取 CRD 声明的期望状态</span>
+    var cluster mysqlv1.MySQLCluster
+    r.Get(ctx, req.NamespacedName, &amp;cluster)
+
+    <span class="com">// 2. 读取实际状态（当前运行的 Pod/Service/PVC）</span>
+    pods := r.listPodsForCluster(cluster)
+
+    <span class="com">// 3. 协调：实际 ≠ 期望 → 创建/删除/更新资源</span>
+    <span class="kw">if</span> len(pods) &lt; cluster.Spec.Replicas {
+        r.createMySQLPods(cluster, cluster.Spec.Replicas - len(pods))
+    }
+
+    <span class="com">// 4. 持续协调（周期性 Requeue）</span>
+    <span class="kw">return</span> ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+}</code></pre></div>
+
+            <p><strong>典型 Operator 场景</strong>：</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Operator</th><th>运维操作自动化</th><th>替代的人工操作</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Strimzi Kafka Operator</td><td>创建集群、扩缩容 Broker、创建 Topic、配置 ACL</td><td>手动部署 Kafka + ZooKeeper + 配置 topic/partition</td></tr>
+                  <tr><td>MySQL Operator (Oracle)</td><td>主从搭建、故障切换、备份恢复、版本升级</td><td>手动搭建主从 + MHA + xtrabackup</td></tr>
+                  <tr><td>Prometheus Operator</td><td>部署监控实例、配置告警规则、管理 ServiceMonitor</td><td>手动部署 + 配置文件管理 + 滚动更新</td></tr>
+                  <tr><td>ArgoCD / Flux (GitOps)</td><td>监听 Git 变更，自动同步到集群</td><td>手动 kubectl apply + 多环境配置管理</td></tr>
+                  <tr><td>Chaos Mesh</td><td>声明式注入网络/Pod/IO 故障实验</td><td>手动模拟故障 + 记录实验结果</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><strong>Operator vs Helm vs Deployment 对比</strong>：</p>
+            <ul>
+              <li><strong>Deployment</strong>：无状态应用部署。适合 Web 服务、API 服务。</li>
+              <li><strong>Helm</strong>：模板化部署工具，一次性渲染 YAML。适合"部署即完成"的简单应用。</li>
+              <li><strong>Operator</strong>：持续运行的控制器，不断协调状态。适合<strong>有状态应用</strong>（数据库/MQ/监控系统）——需要主从切换、数据迁移、版本灰度等复杂运维逻辑。</li>
+            </ul>
+
+            <p><strong>架构师视角</strong>：</p>
+            <ul>
+              <li><strong>何时自研 Operator</strong>：当应用有复杂运维流程（主从切换、数据迁移、多步骤升级）且 Deployment/Helm 无法覆盖时。自研成本：1-2 人月（Operator SDK 脚手架 + Reconcile 逻辑 + 测试）。</li>
+              <li><strong>何时用社区 Operator</strong>：优先使用 CNCF/官方维护的 Operator（Strimzi/Prometheus Operator/ArgoCD），避免自研维护负担。</li>
+              <li><strong>注意</strong>：Operator 本身是单点——Controller 宕机后协调停止。生产环境需部署 Operator 副本（Leader Election 机制保证只有一个活跃 Controller）。</li>
+            </ul>
+
+            <p><strong>面试要点</strong>：回答 K8s Operator 时需强调三点：① CRD 扩展了 K8s API 的能力边界（不只预置 Deployment/StatefulSet）；② Reconcile Loop 是"期望状态 vs 实际状态"的持续协调，不是一次性部署；③ Operator = CRD + Custom Controller，本质是"将运维知识代码化"，让 K8s 理解非原生应用的生命周期管理。</p>
+          </div>
+        </div>
+      </div>
       <!-- ============================================================ -->
       <div class="qa-card" id="C10.05" data-difficulty="expert" data-priority="p1">
         <div class="qa-header">
