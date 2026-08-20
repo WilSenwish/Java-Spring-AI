@@ -386,6 +386,10 @@ flowchart TD
             <p>InnoDB 数据按聚簇索引组织，行数据就在聚簇索引叶子节点；二级索引查询需回表聚簇索引。<strong>加锁本质是给索引项加锁</strong>——若无索引，InnoDB 必须扫描聚簇索引每一行并加锁，等效全表锁。因此"走索引"不只是性能问题，更是<strong>锁粒度问题</strong>——无索引的 UPDATE/DELETE 会锁全表。</p>
             <p><strong>追问 2：高并发下死锁检测的 CPU 开销如何处理？</strong></p>
             <p>8.0 默认 <code class="inline-code">innodb_deadlock_detect=ON</code>，每次锁等待都触发检测，高并发热点行更新下检测本身成为 CPU 瓶颈。方案：① 关闭死锁检测 + 业务层控制访问顺序避免死锁；② 拆分热点行（如将一行库存拆多行）；③ 用队列串行化热点更新（Redis 预扣减 + 异步落库）；④ <code class="inline-code">innodb_lock_wait_timeout</code> 调短快速失败。</p>
+            <p><strong>追问 3：除了行锁，还有哪些"隐形锁"在影响并发？自增锁会锁全表吗？</strong></p>
+            <p><strong>自增锁（AUTO-INC Lock）</strong>：为 INSERT 分配自增 ID 的表级锁。历史上是<strong>在语句结束才释放</strong>（<code class="inline-code">innodb_autoinc_lock_mode=0/1</code>），一次批量 INSERT 会阻塞其他插入——批量插入下表现为"锁表"。<strong>8.0 默认 mode=2</strong>，仅在分配瞬间取锁立即释放（interleaved），批量插入不再持锁，但要求 binlog 为 <strong>row 格式</strong>才能保证主从自增值一致。若用 statement 格式批量插入，主从可能生成不同自增 ID。</p>
+            <p><strong>元数据锁（MDL）</strong>：DDL 与 DML 之间的并发热点——<code class="inline-code">ALTER TABLE</code> 需 MDL 写锁，会等待所有正在执行的 DML 释放 MDL 读锁，长查询会卡住 DDL；反之 DDL 排队也会阻塞后续一切读。线上 <code class="inline-code">Show processlist</code> 常见 <code class="inline-code">waiting for table metadata lock</code> 即此链。排查要 <code class="inline-code">performance_schema.metadata_locks</code> 定位阻塞源。</p>
+            <p><strong>锁兼容矩阵本质</strong>：InnoDB 锁体系本质是一张<strong>加锁/等待矩阵</strong>——行锁、间隙锁（排他 + 插入意向锁）、意向锁、AUTO-INC、MDL 五个维度叠加，判断任意 SQL 会锁谁、被谁阻塞，才是真正的隔离级别并发放大了然于胸。</p>
           </div>
         </div>
 
@@ -971,6 +975,288 @@ slave_parallel_type = LOGICAL_CLOCK</code></pre></div>
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
+            <p><strong>GTID 复制详细配置</strong>：</p>
+            <p><strong>主库 GTID 配置</strong>：</p>
+            <pre><code>[mysqld]
+# 开启 GTID 模式
+gtid_mode=ON
+# 强制 GTID 一致性
+enforce_gtid_consistency=ON
+# 自动清理过期 GTID（默认0不清理，建议设置为3天）
+gtid_purged=3D
+# Binlog 格式必须为 ROW
+binlog_format=ROW
+# Binlog 保持时间（至少保留3天）
+expire_logs_days=3
+# 记录执行的GTID到信息
+log_slave_updates=ON</code></pre>
+            <p><strong>从库 GTID 复制搭建步骤</strong>：</p>
+            <pre><code>-- 1. 主库创建复制用户
+CREATE USER 'repl'@'%' IDENTIFIED BY 'password';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+
+-- 2. 主库导出全量数据（注意加 --master-data=2 不记录位置）
+mysqldump -uroot -p --single-transaction --flush-logs --master-data=2 --all-databases > master_data.sql
+
+-- 3. 从库导入数据
+mysql -uroot -p < master_data.sql
+
+-- 4. 从库配置 GTID 复制
+CHANGE MASTER TO
+    MASTER_HOST='master_host',
+    MASTER_USER='repl',
+    MASTER_PASSWORD='password',
+    MASTER_AUTO_POSITION=1,  -- GTID 自动定位
+    MASTER_PORT=3306;
+
+-- 5. 启动从库复制
+START SLAVE;
+
+-- 6. 验证 GTID 复制状态
+SHOW SLAVE STATUS\G
+-- 查看关键信息：
+-- Slave_IO_Running: Yes
+-- Slave_SQL_Running: Yes  
+-- Executed_Gtid_Set: 应该显示主库的 GTID
+-- Auto_Position: ON
+
+-- 7. 监控复制延迟
+SELECT 
+    MASTER_UUID,
+    MASTER_LOG_FILE,
+    MASTER_LOG_POS,
+    MASTER_AUTO_POSITION,
+    COUNT_TRANSACTIONS_IN_QUEUE
+FROM performance_schema.replication_connection_status
+WHERE CHANNEL_NAME = 'group_replication_recovery';</code></pre>
+
+            <p><strong>半同步复制详细配置</strong>：</p>
+            <p><strong>主库半同步复制配置</strong>：</p>
+            <pre><code>[mysqld]
+# 安装半同步复制插件（需要先安装）
+install plugin rpl_semi_sync_master soname 'semisync_master.so';
+install plugin rpl_semi_sync_slave soname 'semisync_slave.so';
+
+# 主库半同步开关
+rpl_semi_sync_master_enabled=ON
+# 超时时间（毫秒），默认10秒
+rpl_semi_sync_master_timeout=10000
+# 等待从库数量，默认1
+rpl_semi_sync_master_wait_for_slave_count=1
+# 等待ACK超时后降级为异步
+rpl_semi_sync_master_wait_no_slave=ON</code></pre>
+            <p><strong>从库半同步配置</strong>：</p>
+            <pre><code>[mysqld]
+# 从库半同步开关
+rpl_semi_sync_slave_enabled=ON
+# 自动向主库发送ACK
+rpl_semi_sync_slave_send_ack=ON
+# 等待主库发送事务的超时时间
+rpl_semi_sync_slave_timeout=10000</code></pre>
+            <p><strong>Java 监控半同步复制状态</strong>：</p>
+            <pre><code>@Service
+public class SemiSyncMonitorService {
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    
+    /**
+     * 检查主库半同步状态
+     */
+    public boolean isMasterSemiSyncEnabled() {
+        try {
+            String status = jdbcTemplate.queryForObject(
+                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_MASTER_STATUS'", 
+                String.class
+            );
+            return "ON".equals(status);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * 获取半同步等待的从库数量
+     */
+    public int getWaitingSlaveCount() {
+        try {
+            String count = jdbcTemplate.queryForObject(
+                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_MASTER_WAITING_SLAVE_COUNT'", 
+                String.class
+            );
+            return Integer.parseInt(count);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * 检查从库半同步状态
+     */
+    public boolean isSlaveSemiSyncEnabled() {
+        try {
+            String status = jdbcTemplate.queryForObject(
+                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_SLAVE_STATUS'", 
+                String.class
+            );
+            return "ON".equals(status);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * 监控半同步延迟
+     */
+    public void monitorSemiSyncDelay() {
+        try {
+            // 检查半同步是否正常
+            if (!isMasterSemiSyncEnabled()) {
+                logger.warn("主库半同步复制已关闭，可能存在数据丢失风险");
+                return;
+            }
+            
+            // 检查等待的从库数量
+            int waitingCount = getWaitingSlaveCount();
+            if (waitingCount == 0) {
+                logger.warn("没有从库等待半同步ACK，数据一致性可能存在问题");
+                return;
+            }
+            
+            // 检查复制延迟
+            Long secondsBehind = jdbcTemplate.queryForObject(
+                "SELECT MASTER_DELAY FROM performance_schema.replication_applier_status_by_worker", 
+                Long.class
+            );
+            
+            if (secondsBehind != null && secondsBehind > 5) {
+                logger.warn("复制延迟过大: {}秒", secondsBehind);
+            }
+        } catch (Exception e) {
+            logger.error("监控半同步复制状态失败", e);
+        }
+    }
+}</code></pre>
+
+            <p><strong>并行复制最佳实践参数</strong>：</p>
+            <p><strong>主库优化参数</strong>：</p>
+            <pre><code>[mysqld]
+# 事务持久性保证（主库必须为1保证数据安全）
+innodb_flush_log_at_trx_commit=1
+# Binlog 立即刷盘（主库必须为1保证数据安全）
+sync_binlog=1
+# Binlog 缓冲大小（根据并发调整）
+innodb_log_buffer_size=16M
+# 并行IO线程数
+innodb_read_io_threads=4
+innodb_write_io_threads=4
+# 提交组大小（MTS相关）
+innodb_commit_concurrency=0
+# 自动清理purge线程
+innodb_purge_threads=1</code></pre>
+            <p><strong>从库高并发参数</strong>：</p>
+            <pre><code>[mysqld]
+# 并行复制类型（推荐LOGICAL_CLOCK）
+slave_parallel_type=LOGICAL_CLOCK
+# 并行工作线程数（建议CPU核心数*2）
+slave_parallel_workers=8
+# 提交协调（提高并行效率）
+slave_preserve_commit_order=ON
+# 从库延迟优化（牺牲部分持久性）
+innodb_flush_log_at_trx_commit=2
+# 从库binlog优化（不立即刷盘）
+sync_binlog=0
+# 从库IO线程数
+slave_io_threads=4
+# 从库SQL线程数
+slave_sql_threads=4</code></pre>
+            <p><strong>Java 监控并行复制性能</strong>：</p>
+            <pre><code>@Service
+public class ParallelReplicationMonitorService {
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    
+    /**
+     * 监控并行复制性能
+     */
+    public void monitorParallelReplicationPerformance() {
+        try {
+            // 检查并行复制状态
+            Map<String, Object> slaveStatus = jdbcTemplate.queryForMap("SHOW SLAVE STATUS");
+            
+            // 检查IO线程状态
+            String ioRunning = (String) slaveStatus.get("Slave_IO_Running");
+            String sqlRunning = (String) slaveStatus.get("Slave_SQL_Running");
+            
+            if (!"Yes".equals(ioRunning)) {
+                logger.error("IO线程已停止: {}", ioRunning);
+            }
+            
+            if (!"Yes".equals(sqlRunning)) {
+                logger.error("SQL线程已停止: {}", sqlRunning);
+            }
+            
+            // 获取复制延迟
+            Long secondsBehind = (Long) slaveStatus.get("Seconds_Behind_Master");
+            if (secondsBehind != null && secondsBehind > 30) {
+                logger.warn("复制延迟过大: {}秒", secondsBehind);
+            }
+            
+            // 检查并行复制队列
+            Map<String, Object> queueStatus = jdbcTemplate.queryForMap(
+                "SELECT * FROM performance_schema.replication_applier_status_by_worker WHERE WORKER_ID > 0"
+            );
+            
+            int queueLength = (Integer) queueStatus.get("WORKER_ID");
+            if (queueLength > 10) {
+                logger.warn("并行复制队列过长: {}", queueLength);
+            }
+            
+            // 检查半同步状态
+            boolean semiSyncEnabled = isSemiSyncEnabled();
+            if (!semiSyncEnabled) {
+                logger.warn("半同步复制已关闭，数据一致性可能存在问题");
+            }
+            
+        } catch (Exception e) {
+            logger.error("监控并行复制性能失败", e);
+        }
+    }
+    
+    /**
+     * 获取复制延迟趋势
+     */
+    public List<Long> getReplicationDelayTrend(int minutes) {
+        String sql = String.format(
+            "SELECT MASTER_DELAY FROM replication_heartbeat_log WHERE time > NOW() - INTERVAL %d MINUTE ORDER BY time",
+            minutes
+        );
+        return jdbcTemplate.queryForList(sql, Long.class);
+    }
+    
+    /**
+     * 获取并行复制统计
+     */
+    public Map<String, Object> getParallelReplicationStats() {
+        String sql = "SELECT * FROM performance_schema.replication_applier_status_by_worker";
+        List<Map<String, Object>> workers = jdbcTemplate.queryForList(sql);
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("total_workers", workers.size());
+        stats.put("active_workers", workers.stream()
+            .filter(w -> "Running".equals(w.get("STATUS")))
+            .count());
+        stats.put("queue_length", workers.stream()
+            .mapToInt(w -> (Integer) w.get("REMAINING_DELAY"))
+            .sum());
+        
+        return stats;
+    }
+}</code></pre>
+
+
             <p><strong>延迟优化组合拳</strong>：① 开启 MTS 并行复制（WRITESET 模式）；② 拆分大事务（单事务 &lt; 1000 行变更）；③ 所有表必须有主键（ROW 格式应用效率）；④ 从库与主库同规格硬件、从库不跑重统计；⑤ <code class="inline-code">innodb_flush_log_at_trx_commit=2</code>（从库可牺牲部分持久性换吞吐，崩溃从主库重同步）；⑥ <code class="inline-code">sync_binlog=0</code>（从库 binlog 可不立即 fsync）。从库是为读扩展，数据可从主库重建。</p>
             <p><strong>读分离与延迟容忍</strong>：写主库后立即读从库可能读到旧数据。方案：① 关键写后读走主库（同会话或短时间窗口）；② 半同步复制降低延迟；③ 用 <code class="inline-code">gtid_executed</code> 等待从库追上指定 GTID 再读（<code class="inline-code">WAIT_FOR_EXECUTED_GTID_SET</code>）。</p>
           </div>

@@ -2260,6 +2260,16 @@ flowchart LR
             </div>
 
             <p><strong>演进驱动力</strong>：① <strong>分布式水平扩展</strong>——单机 Lucene 无法支撑 PB 级数据，ES 用分片+副本解决；② <strong>开箱即用</strong>——从 Solr 的繁琐 Schema 配置到 ES 的动态 Mapping + REST 接口；③ <strong>实时性</strong>——从 Solr 的近实时（NRT）到 ES 的 1 秒 Refresh；④ <strong>AI 时代向量检索</strong>——传统倒排索引无法做语义相似度，dense_vector + KNN 补齐语义搜索能力。</p>
+            <p><strong>ES 版本演进时间线（1.x→8.x）</strong>：</p>
+            <ul>
+              <li><strong>ES 1.x（2014）</strong>：新增 Aggregation（聚合）框架、Watcher 告警；分片策略初定为"一个类型默认 5 主分片"。</li>
+              <li><strong>ES 2.x（2015）</strong>：Query DSL 向 Query-bool 统一，新增 Pipeline Aggregation；推出 Ingest 预处理管道。</li>
+              <li><strong>ES 5.x（2016）</strong>：默认 5 主分片、引入 composite 聚合思想前身；移除 site plugin（kopf 等），强化 REST/安全栈（X-Pack 商业化整合）。</li>
+              <li><strong>ES 6.x（2017）</strong>：明确"<strong>一个 index 只保留一个 type</strong>"，为 7/8.x 移除 type 铺路；新增模板变量、时序索引治理（未来 ILM 前身），字段上限放宽。</li>
+              <li><strong>ES 7.x（2019）</strong>：<strong>正式弃用 mapping type</strong>（7.0 标记、8.0 彻底移除）；<strong>默认主分片改为 1</strong>（6.x 的 5 分片对多数场景过于碎片化）；7.7 起内置 <strong>dense_vector + 近似 KNN</strong>；自管理版 X-Pack 安全部分免费开源。</li>
+              <li><strong>ES 8.x（2022）</strong>：<strong>安全默认开启</strong>（TLS + 内置用户认证）、mapping type 彻底移除；8.8 引入 <strong>RRF（Reciprocal Rank Fusion）</strong>做词法 + 向量混合检索；8.11 起 <strong>ES|QL</strong> 管道式查询预览，朝"一站式搜索 + 分析"演进。</li>
+            </ul>
+            <p>面试亮点一句话：<strong>"从 6.x 的 5 分片到 7.x 的 1 分片、从 type 多类型到单索引、再到 8.x 安全默认开启 + RRF 混合检索"</strong>——版本演进本质是"更简单、更默认安全、更向量化"。</p>
           </div>
         </div>
 
@@ -2403,6 +2413,16 @@ flowchart LR
             </div>
 
             <p><strong>演进驱动力</strong>：① <strong>性能</strong>——微服务化后调用链路变长，JSON+HTTP/1.1 的文本解析与队头阻塞成为瓶颈；② <strong>跨语言契约</strong>——微服务多语言并存，需要 IDL 生成强类型 Stub；③ <strong>流式场景</strong>——实时音视频、推送、批量上报需要双向流，REST 的请求-响应模型无法表达；④ <strong>云原生生态</strong>——Envoy/Istio 原生支持 gRPC，成为 Service Mesh 的事实通信协议。</p>
+            <p><strong>Protobuf / gRPC 版本演进时间线</strong>：</p>
+            <ul>
+              <li><strong>Protobuf v2（2008）</strong>：Google 首个正式 IDL，引入 <code class="inline-code">required/optional/repeated</code> 字段与各语言代码生成，解决跨语言序列化。</li>
+              <li><strong>Protobuf v3（2016）</strong>：删除 <code class="inline-code">required</code>、标量字段默认值规一为 0、新增 <code class="inline-code">Any/Oneof/Map</code> 与语义精简；成为 gRPC 默认 schema。</li>
+              <li><strong>gRPC 1.0（2015-2016）</strong>：Google 开源，Java/Go/C++ 等首发多语言，基于 HTTP/2 + Protobuf，定义四调用模式。</li>
+              <li><strong>gRPC 1.x 能力增强（2016+）</strong>：补充 <strong>Server Reflection</strong>（反射发现 proto）、Health Checking、<strong>Retry 策略</strong>（客户端自动重试）、Interceptor 拦截器插件化、一致性哈希/权责负载均衡。</li>
+              <li><strong>gRPC-Web（2018）</strong>：浏览器无法直接处理 HTTP/2 Trailer 与长连接，经 <strong>Envoy 代理转译</strong>让前端可调 gRPC；Buf Connect（2019+）重新设计协议更贴合 HTTP 语义。</li>
+              <li><strong>xDS 与无 stub 治理（2019+）</strong>：gRPC 与 <strong>Envoy/Istio 的 xDS 协议</strong>打通，实现动态服务发现、负载均衡与流量治理，成为 Service Mesh 事实标准。</li>
+            </ul>
+            <p>面试亮点一句话：<strong>"从 protobuf2 的 required/optional 到 proto3 的 Any/Oneof、从 gRPC-Web 补浏览器短板到 xDS 进 Service Mesh，版本演进本质是'更精简、更可观测、更下沉到基础设施'"</strong>。</p>
           </div>
         </div>
 
@@ -3001,6 +3021,89 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
                 <li><strong>低估编写门槛</strong>：需 C + 内核知识，应直接用 bcc/Pixie/Cilium 而非从零写。</li>
                 <li><strong>加载未校验程序</strong>：绕过校验器有安全风险，必须走校验流程。</li>
                 <li><strong>与现有 APM 重复建设</strong>：应先明确 eBPF 管底层、Agent 管语义的分工。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C11.20 成本优化与 FinOps -->
+      <div class="qa-card" id="C11.20" data-difficulty="architect" data-priority="p2">
+        <div class="qa-header">
+          <div class="qa-badge">C11.20</div>
+          <div class="qa-question">成本优化 / FinOps：云账单失控背景下如何体系化降本与用云责任共担<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>FinOps 的本质不是"砍预算、压价"，而是<strong>把云成本变成"可测量、可归因、可持续优化"的工程问题</strong>。它考察你是否具备成本意识、能否用量化闭环把"事后看账单"升级为"<strong>事前预算 + 事中治理 + 事后复盘</strong>"。FinOps Foundation 提出的三大支柱：<strong>Inform（看见谁花了多少）→ Optimize（右尺寸/选型优化）→ Operate（预算·告警·责任到人）</strong>。成本公式只有一行：</p>
+            <p><strong>成本 = f(用量 × 单价)</strong>。降本只有两条路：<strong>减用量</strong>（右尺寸/缩容/清理闲置/数据冷化）或<strong>降单价</strong>（预留/Spot/包年/区域价差）。评判标准用<strong>单位成本 / 成本效率</strong>（每万请求成本、每 GB 存储成本、CU 利用率率）而非绝对金额——因为业务在增长，绝对额上升未必是浪费。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p>自建机房是<strong>重资产前置成本</strong>（买了就要用，容量定了就固定）；上云是<strong>按需弹性</strong>，省了前期资本却把成本转移到了"每一毫秒的波动"上。云的成本失控根源在两点：<strong>① 弹性=双刃剑</strong>——按需扩容很方便，代价是"没人为单笔开销负责、闲置资源无限堆积"；<strong>② 账单归属不清</strong>——费用下沉到了 K8s Pod 级别，没有人/团队对这个数字负责。</p>
+            <p>因此 2020 前后 FinOps 从"省钱运动"演化为<strong>"工程+财务+业务的协作文化"</strong>（FinOps Foundation 与云厂商共建）：用 Framework 三相 <strong>Inform / Optimize / Operate</strong> 把成本变成共享工程指标。实践中通常与"云账单治理、云成本分析（AWS Cost Explorer / FinOps Hub）、K8s 成本规控（Kubecost / OpenCost）"结合落地。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>成本三高：计算（占比最大）> 存储（低频膨胀）> 网络（流量黑洞）</strong>。K8s 场景下成本按 <code class="inline-code">request/limit</code> 与 Pod 归属分摊到 Namespace/团队。</p>
+            <p>六步闭环是落地主线：<strong>定义单位成本 → 成本归因（Tag/Label）→ 预算与预测 → 优化动作（右尺寸/Spot/预留/冷化）→ 效果度量 → 责任到人</strong>。每条都遵守"先看得见，再省得下"——没有归因就谈不上治理。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>先"看得到"（Inform）再"省得下"（Optimize），最后"管得住"（Operate）。成本治理的第一行动是<strong>加标签归因 + 建立单位成本基线</strong>，而不是急着降配。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>1. 成本可见与归因</strong>：全链路约定 Tag/Label（环境/项目/业务线/<code class="inline-code">owner</code>），云账单按 Tag 分摊到团队；定期生成"成本报告 + 周趋势"。K8s 用 OpenCost 按 Namespace 归因。</p>
+            <p><strong>2. 右尺寸与弹性</strong>：依据 CPU/RAM/流量监控指标对资源"降配"而非只"升配"；用 HPA + KEDA 让伸缩只按需放大，空闲时段自动缩容。</p>
+            <p><strong>3. 计算降单价</strong>：基线稳定负载用<strong>预留/承诺用量</strong>（包年包月成本腰斩），波动负载用按量，可将中断、无状态、可重入的批处理跑在 <strong>Spot/竞价实例</strong>；GPU 按"分时共享"拆给多个租户摊薄单价。</p>
+            <p><strong>4. 存储与数据成本</strong>：数据冷热分层——对象存储生命周期规则滚到低频/归档；<strong>TTL 清理</strong>日志、临时表、中间结果；镜像瘦身、标签去重防镜像长尾。</p>
+            <p><strong>5. 网络成本</strong>：CDN 分流热点、聚合跨境/跨 AZ 带宽、避免"免费期内最大、出站流量秒级爆表"的 EIP 泄漏。</p>
+            <p><strong>6. 运营闭环</strong>：成本预算 + 阈值告警（如预超预算 80% 即告警）；非生产环境"下班停机/按需冷启动"；月度"成本回顾"按 owner 出红黑榜。</p>
+            <div class="code-block"><pre><code><span class="com"># K8s 降本：为 Pod 设置贴近真实用量的 request，并启用 HPA</span>
+<span class="kw">apiVersion</span>: <span class="type">autoscaling/v2</span>
+<span class="kw">kind</span>: <span class="type">HorizontalPodAutoscaler</span>
+<span class="kw">spec</span>:
+  <span class="attr">scaleTargetRef</span>: { <span class="attr">kind</span>: <span class="type">Deployment</span>, <span class="attr">name</span>: web, <span class="attr">apiVersion</span>: <span class="type">apps/v1</span> }
+  <span class="attr">minReplicas</span>: <span class="num">2</span>; <span class="attr">maxReplicas</span>: <span class="num">20</span>
+  metrics:
+    - <span class="attr">type</span>: <span class="type">Resource</span>; resource: { <span class="attr">name</span>: cpu, target: { <span class="attr">type</span>: Utilization, <span class="attr">averageUtilization</span>: <span class="num">60</span> } }
+    - <span class="attr">type</span>: <span class="type">Pods</span>; pods: { metric: <span class="attr">name</span>: queued_jobs, target: { <span class="attr">type</span>: AverageValue, <span class="attr">averageValue</span>: <span class="num">10</span> } }</code></pre></div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：怎么让研发"主动"降本而不是靠行政命令？</strong> 核心是<strong>责任共担 + 反馈闭环</strong>：把成本按 Tag 分到每个团队"每天可见"（Inform），把"单位成本趋势 / 成本红黑榜"作为团队显性指标而非指令；配合"预算透明 + 超预算前先说明"的文化，避免一刀切砍功能。可落地的抓手：<strong>成本归属到负责人 + 超支预警给到 owner</strong>。</p>
+            <p><strong>追问 2：预留 / 按量 / Spot 怎么配比？</strong> 基线稳定负载用<strong>预留</strong>（包年省钱），弹性波动用<strong>按量</strong>，可中断批量用 <strong>Spot</strong>。典型配比如核心应用 <strong>60% 预留 + 30% 按量 + 10% Spot</strong>，跑批任务可到 80% Spot；配比随业务峰谷与容错能力动态调整，预留必须贴近基线、宁少勿多。</p>
+            <p><strong>追问 3：怎么证明我们真的"省了钱"？</strong> 不能只看总账单（业务量在涨），要用<strong>单位成本</strong>指标——每万请求成本、每用户月成本、CPU 利用率天花板；在<strong>同等业务量口径</strong>下做同比/环比，才能区分"真正的浪费"与"业务增长导致的合理上升"。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>只砍预算不砍用量</strong>：一刀切限配额会打乱业务弹性，正确做法是先归因定位浪费。</li>
+                <li><strong>只看绝对金额不看单位成本</strong>：业务增长被误判为超支，优化方向走偏。</li>
+                <li><strong>预留买多变成"新的浪费"</strong>：承诺用量必须贴近基线，宁少勿多，预留过量是长期包袱。</li>
+                <li><strong>忽略数据冷化与 TTL</strong>：存储是"最贵的沉默成本"，日志/临时表不加 TTL 会持续膨胀。</li>
+                <li><strong>没标签归因就谈 FinOps</strong>：看不见谁花的，就无从治理；先补 Tag 再谈优化。</li>
+                <li><strong>忽视 Spot 任务可重入性</strong>：Spot 会中断，必须设计"可重放/可恢复"的批处理，否则省了钱丢数据。</li>
               </ul>
             </div>
           </div>

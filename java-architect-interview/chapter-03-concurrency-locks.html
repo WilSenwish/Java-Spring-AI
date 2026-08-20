@@ -408,7 +408,7 @@ graph TD
           <div class="qa-layer-body">
             <p><strong>AQS 的四大基石</strong>：</p>
             <ul>
-              <li><strong>state（volatile int）</strong>：同步状态。ReentrantLock 用它表示锁被重入几次，Semaphore 用它表示剩余许可数，CountDownLatch 用它表示还剩多少个计数。</li>
+              <li><strong>state（volatile int）</strong>：同步状态。ReentrantLock 用它表示锁被重入几次，Semaphore 用它表示剩余许可数，CountDownLatch 用它表示还剩多少个计数。<strong>volatile 保证了 state 在多线程间的可见性，确保一个线程的更新对其他线程立即可见</strong>。</li>
               <li><strong>CLH 变体队列</strong>：双向链表，存放等待获取锁的线程封装节点（Node）。原始 CLH 是单向队列且基于自旋，AQS 改为双向并配合 park 阻塞。</li>
               <li><strong>CAS</strong>：对 state 和队列指针的无锁原子更新。</li>
               <li><strong>LockSupport.park/unpark</strong>：线程的阻塞与唤醒原语。</li>
@@ -470,6 +470,8 @@ graph LR
             <p><strong>公平 vs 非公平</strong>：非公平锁的 tryAcquire 上来就 CAS 抢，无视队列中有无等待者；公平锁会先调用 <code class="inline-code">hasQueuedPredecessors()</code> 检查队列前是否有等待者。非公平锁吞吐更高（减少线程切换），但可能导致队列线程"饥饿"。</p>
 
             <p><strong>共享模式</strong>：Semaphore/CountDownLatch 用共享模式，tryAcquireShared 返回值 ≥0 表示成功且可向后传播唤醒（<code class="inline-code">doReleaseShared</code> 传播唤醒后续共享节点），这是 CountDownLatch"最后一个 countDown 唤醒所有 await"的实现机制。</p>
+            <p><strong>共享模式 vs 独占模式的核心差异</strong>：独占模式（ReentrantLock）的 tryAcquire 返回 true/false 且传播性有限；共享模式（Semaphore）的 tryAcquireShared 返回 int ≥0（剩余许可数）并支持传播唤醒，允许多个线程同时持有锁资源。</p>
+            <p><strong>Semaphore 共享模式实现细节</strong>：tryAcquireShared(int permits) 尝试获取多个许可，成功时返回剩余许可数并传播唤醒其他等待者；doAcquireSharedInterruptibly 会阻塞直到获取足够许可或被中断。这种设计实现了"公平的多资源分配"。</p>
           </div>
         </div>
 
@@ -533,7 +535,7 @@ graph LR
               <ul>
                 <li><strong>误以为 AQS 队列是原始 CLH</strong>：AQS 是双向链表 + park 的 CLH 变体，与单向自旋的原始 CLH 不同。</li>
                 <li><strong>误以为 acquire 不可中断</strong>：<code class="inline-code">acquireInterruptibly</code> 可中断，<code class="inline-code">acquire</code> 会记录中断状态但不立即响应（park 被中断唤醒后会重新检查）。</li>
-                <li><strong>忘记自实现的 tryRelease 要先清 owner 再 setState</strong>：顺序反了会导致 isHeldExclusively 短暂返回错误值。state 是 volatile，写顺序有可见性影响。</li>
+                <li><strong>忘记自实现的 tryRelease 要先清 owner 再 setState</strong>：顺序反了会导致 isHeldExclusively 短暂返回错误值。state 是 volatile，写顺序有可见性影响。volatile 语义确保 owner 清空后 state 的更新对其他线程可见。</li>
                 <li><strong>以为公平锁一定更好</strong>：公平锁吞吐比非公平低 10%~30%，只有"不能饥饿"的严格场景才用公平锁。</li>
               </ul>
             </div>
@@ -545,7 +547,7 @@ graph LR
           <div class="qa-layer-body">
             <p>AQS 之上构建的四大同步器（Semaphore / CountDownLatch / CyclicBarrier / Phaser）是并发协作的常用工具，面试常考对比：</p>
             <ul>
-              <li><strong>Semaphore（信号量）</strong>：令牌限流。构造时指定 permits 数量，<code class="inline-code">acquire()</code> 获取令牌、<code class="inline-code">release()</code> 归还；release 必须放在 finally 块中防止令牌泄漏；支持公平/非公平模式。</li>
+              <li><strong>Semaphore（信号量）</strong>：令牌限流。构造时指定 permits 数量，<code class="inline-code">acquire()</code> 获取令牌、<code class="inline-code">release()</code> 归还；release 必须放在 finally 块中防止令牌泄漏；支持公平/非公平模式。<strong>共享模式下多个线程可以同时获取许可</strong>，常用于连接池限流、并发任务数控制等场景。</li>
               <li><strong>CountDownLatch（倒计时锁存器）</strong>：一次性，不可重置。<code class="inline-code">countDown()</code> 计数减一，<code class="inline-code">await()</code> 等待归零；适用于"等待 N 个线程全部完成"的场景（如服务启动等待依赖组件就绪）。</li>
               <li><strong>CyclicBarrier（循环屏障）</strong>：可重置。所有线程到达 <code class="inline-code">await()</code> 后一起放行；支持 barrier action（放行前先执行一个动作，如合并各线程的局部结果）；适用于"分阶段并行计算"场景。</li>
               <li><strong>Phaser（阶段器）</strong>：高级版 CyclicBarrier，支持动态注册/注销 parties 数量（<code class="inline-code">register()</code> / <code class="inline-code">arriveAndDeregister()</code>）与多阶段同步（<code class="inline-code">arriveAndAwaitAdvance()</code>），适合参与者数量动态变化的 ForkJoin 子任务协调。</li>

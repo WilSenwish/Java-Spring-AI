@@ -218,6 +218,7 @@
             <li><a href="#S08.04"><span class="toc-number">S08.04</span>服务故障自愈与切流</a></li>
             <li><a href="#S08.05"><span class="toc-number">S08.05</span>SLA 保障与容量规划</a></li>
             <li><a href="#S08.06"><span class="toc-number">S08.06</span>全链路可观测性建设</a></li>
+            <li><a href="#S08.07"><span class="toc-number">S08.07</span>分布式追踪专项：异构系统 TraceId 传递断裂与海量 Trace 数据治理</a></li>
           </ol>
         </div>
         <div class="toc-group">
@@ -276,13 +277,13 @@
       <div class="chapter-header">
         <div class="chapter-number">SCENARIO QUESTIONS / REAL-WORLD SYSTEM DESIGN</div>
         <h1 class="chapter-title">高频真实场景题</h1>
-        <p class="chapter-subtitle">基于 2026 面试招聘需求 · 64 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
+        <p class="chapter-subtitle">基于 2026 面试招聘需求 · 65 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
         <div class="chapter-meta">
-          <span>题目数：64</span>
+          <span>题目数：65</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×17</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×40</span>
+          <span>架构级 ×41</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×7</span>
           <span class="meta-divider">|</span>
@@ -4537,7 +4538,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
   <h2 class="group-title">
     <span class="group-number">八</span>
     高可用架构
-    <span class="group-count">6 题</span>
+    <span class="group-count">7 题</span>
   </h2>
 
   <!-- S08.01 异地多活架构设计 -->
@@ -5225,6 +5226,101 @@ msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, <s
           <li><strong>全量采集导致成本爆炸</strong>：10 亿级调用全量入库，存储成本翻几倍。必须采样 + 分级存储 + 明细只留错误与慢请求。</li>
           <li><strong>日志不带 TraceId</strong>：链路平台找到慢 span，日志平台按 traceId 查不到对应日志，还得回到手工翻日志的老路。MDC 注入是硬性规范。</li>
           <li><strong>告警无关联无抑制</strong>：一个 DB 故障触发 20 条告警（每个调用方各报一次），值班被噪音淹没。必须做根因告警 + 级联抑制 + 聚合。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- S08.07 分布式追踪专项 -->
+  <div class="qa-card" id="S08.07" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S08.07</div>
+      <div class="qa-question">分布式追踪专项：异构系统 TraceId 传递断裂与海量 Trace 数据治理<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">分布式追踪</span>
+      <span class="scenario-tag">TraceId 贯穿</span>
+      <span class="scenario-tag">采样成本</span>
+      <span class="scenario-tag">OpenTelemetry</span>
+      <span class="scenario-tag">W3C Trace Context</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某大型金融中台，核心链路为"App → 网关 → 交易服务(Java) → 风控(Go) → 清算(Python) → 消息(异步任务)"，业务自研了"手工打点 + Redis 存上下文"的简易追踪。异步重构、定时调度、线程池复用后追踪全面失准：压测定位一次跨服务根因耗时 3 小时；目前 TraceId 断裂率 &gt; 30%，Go 服务不认 Java 生成的 TraceId，全量 span 直写 ES 存储成本月增 40%+。要求：全链路任意一笔请求 5 分钟内还原完整调用瀑布并定位根因，存储成本下降 60% 以上，跨语言互认。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 传播正确性——跨语言协议统一、线程池线程复用/异步回调/定时任务/MQ 边界 TraceId 不丢失、调用树嵌套层级不被破坏；② 采样经济学——头部采样在高扇出下会漏下游链路，尾部采样内存开销大，如何权衡"成本与完整性"；③ 数据管道——span 高频写入的吞吐与存储选型、热温冷分级、按 TraceId 快速检索；④ 语义化——span 状态码、父子关系、服务拓扑聚合并可与日志/指标同键关联；⑤ 反哺——从 trace 数据提取每服务/每接口 P99、依赖调用频次，驱动容量规划与接口治理。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用<strong>"标准协议 → 全链路传播 → 分层采样 → 语义化入仓 → 拓扑反哺"</strong>五层。标准协议：OpenTelemetry + W3C traceparent 统一跨语言互认；传播：自动埋点 + 边界补全（线程池装饰器 / MQ 头透传 / 定时任务重建根）；采样：入口分层采样 + 尾部兜底（错误/慢请求全采）；入仓：OTLP Collector → Kafka 缓冲 → ClickHouse 列存（弃 ES 直写）；反哺：从 trace 聚合服务依赖拓扑与黄金指标。核心原则：先保证"一笔请求的调用树可完整还原并可跨进程寻址"，再谈采样与降本。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 统一标准与无侵入埋点</strong>：全栈接入 OTel——Java 用 Agent（字节码注入，不侵入业务代码），Go/Python 用官方 SDK；统一 W3C <code class="inline-code">traceparent</code>（trace-id / span-id / flags 三段式）。网关作为入口统一校验与归一：非法/超长/伪造的 traceparent 直接拒绝并重建新根，防止前端恶意注入污染链路。</p>
+        <p><strong>2. 边界传播补全（断裂根源）</strong>：① 线程池用 <code class="inline-code">TransmittableThreadLocal</code>（阿里 TTL）装饰器快照/还原 Context，解决线程复用导致的"上一个任务的 TraceId 串到下一个任务"；② MQ 生产者塞消息头、消费者还原，避免异步解耦断链；③ 定时/延迟任务（XXL-Job、延迟队列）无上游，手动 <code class="inline-code">startSpan</code> 重建根并打业务维度标签；④ WebClient/Reactive 用 <code class="inline-code">ReactorContext</code> 传播，R2DBC 放子 span；⑤ Redis/MySQL 客户端 SDK 自动埋"跨系统调用"span。</p>
+        <p><strong>3. 分层采样（控成本不漏异常）</strong>：核心交易链路全量（量级可控）；普通接口头部采样 10%；错误与慢请求（RT &gt; P99×3）用尾部采样强制全采；用 Baggage 把"入口采样是否保留"的标记传递到下游，保证同一条采样链路不因各节点独立随机而断裂。</p>
+        <p><strong>4. 数据管道与存储（降本核心）</strong>：Agent/SDK → OTLP Collector（gRPC 批量 + 背压降采样）→ Kafka 缓冲削峰 → 消费写入 ClickHouse（span 打平行，保留树根 + 父指针用于重建调用树；弃 ES 直写以规避高基数写入压力）。热 7 天 / 温 30 天（冷归档到对象存储）；明细只存错误与慢 span，正常 span 只留聚合指标。通过 span 打平 + 字典化 + 分级存储，存储成本整体下降 60%~80%。</p>
+        <p><strong>5. 语义化与拓扑反哺</strong>：span 状态码（OK / ERROR / UNAVAILABLE）与日志、指标共用 <code class="inline-code">trace_id</code> 关联键；从 trace 聚合服务依赖拓扑（服务 × 服务 × 接口 × 耗时矩阵），输出"谁调用我最多""我调谁最慢"；每接口 P99 / 错误率接入容量与 SLO 看板，驱动接口治理与资源扩容。</p>
+        <table class="compare-table">
+          <thead><tr><th>维度</th><th>自研"Redis 存上下文"</th><th>OTel + W3C Trace Context</th></tr></thead>
+          <tbody>
+            <tr><td>跨语言互认</td><td>仅 Java 单语言，Go 不认</td><td>W3C 标准，全语言互认</td></tr>
+            <tr><td>调用树还原</td><td>只能还原单点，嵌套层级丢失</td><td>Span 树形 parentId 完整还原</td></tr>
+            <tr><td>异步边界</td><td>Redis 存取时序不一致，断裂&gt;30%</td><td>线程池/MQ/定时任务全边界补全</td></tr>
+            <tr><td>成本</td><td>全量直写 ES，月增 40%+</td><td>分层采样 + 列存，下降 60%~80%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code><span class="com">// 1. 线程池传递 Trace 上下文（防线程复用串号）</span>
+<span class="kw">import</span> <span class="type">com.alibaba.ttl</span>.<span class="type">TransmittableThreadLocal</span>;
+<span class="kw">import</span> <span class="type">com.alibaba.ttl</span>.<span class="type">TtlExecutors</span>;
+<span class="type">ExecutorService</span> exec = <span class="type">Executors</span>.<span class="fn">newFixedThreadPool</span>(<span class="num">16</span>);
+<span class="com">// 提交任务时快照当前 OTel Context，执行时还原；可避免复用线程串入上一个任务的 TraceId</span>
+<span class="type">ExecutorService</span> ttlExec = <span class="type">TtlExecutors</span>.<span class="fn">getTtlExecutorService</span>(exec);
+
+<span class="com">// 2. MQ 生产者透传 traceparent（W3C 标准，读取当前 Span 上下文）</span>
+<span class="type">Map</span>&lt;<span class="type">String</span>, <span class="type">String</span>&gt; carrier = <span class="kw">new</span> <span class="type">HashMap</span>&lt;&gt;();
+<span class="type">W3CTraceContextPropagator</span>.<span class="fn">getInstance</span>()
+    .<span class="fn">inject</span>(<span class="type">Context</span>.<span class="fn">current</span>(), carrier, <span class="type">Map</span>::<span class="fn">put</span>);
+msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, carrier.<span class="fn">get</span>(<span class="str">"traceparent"</span>));
+
+<span class="com">// 3. 定时任务无上游，手动重建根 Span 并打业务标签</span>
+<span class="type">Span</span> root = <span class="type">TracerProvider</span>.<span class="fn">get</span>().<span class="fn">get</span>(<span class="str">"scheduler"</span>)
+    .<span class="fn">spanBuilder</span>(<span class="str">"job.execute"</span>)
+    .<span class="fn">setAttribute</span>(<span class="str">"job.batch"</span>, batchId)
+    .<span class="fn">startSpan</span>();
+<span class="kw">try</span> (Scope ignored = root.<span class="fn">makeCurrent</span>()) { <span class="fn">doJob</span>(); }
+<span class="kw">finally</span> { root.<span class="fn">end</span>(); }</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">为什么自研"Redis 存上下文"在异步场景必然失败？</div><div class="followup-a">三个致命点：① 无法表达调用树嵌套——Redis 只能存"一个当前 TraceId"，丢失父子 span 的层级关系，而标准方案用进程内 Context 栈 + Span 树形 parentId 天然表达嵌套；② 时序不一致——异步回调执行时上下文可能已被后续请求覆盖，取到的 TraceId 不是"发起请求的"；③ 无采样标记与跨进程标准头，无法在各服务间按同一规则续采。本质是"用一个键值对模拟调用栈"，缺少 Span 树与传播协议。</div></li>
+          <li><div class="followup-q">头部采样与尾部采样的取舍与落地？</div><div class="followup-a">头部采样在入口按固定比例丢弃，实现简单但异步/高扇出场景下游 span 可能因各节点独立随机而"父样本已被丢弃、子样本保留"的断裂；尾部采样在收集完成后依结果判定（错误/慢强制全采），完整但不实时、有内存驻留开销。落地通常组合：头部采样控主路径成本 + 尾部采样兜底异常 + 关键业务 100%，并用 Baggage 把入口采样决策传递下游保证整链一致。</div></li>
+          <li><div class="followup-q">Trace 数据量如何建模与降本？</div><div class="followup-a">先估量：每请求 span 数 × QPS × 平均字节；再优化：① 采样（见上）；② span 打平——只存根与慢 span 的调用栈，正常 span 降级为聚合指标；③ 压缩/字典化——服务名、接口名、attribute 键用短码映射；④ 分级存储——热(内存/SSD)→温→冷归档对象存储，热 7 天、温 30 天。按此链路，日亿级 span 可从直写 ES 的全量裸存压到列存集群的 20%~40% 成本。</div></li>
+          <li><div class="followup-q">如何防止它人伪造或篡改 TraceId 造成监控污染？</div><div class="followup-a">入口（网关/公共服务）做三道防线：① trace-id 必须是合法 32 位 hex、span-id 合法 16 位 hex，非法的重建；② 超长/超大 Baggage 截断或丢弃，限制头大小防放大攻击；③ 信任边界——内部服务间按"可信内网 + 签名/来源校验"决定是否采信上游，边缘暴露面一律由网关强制覆盖并打上"received_request"标识。防止攻击者注入假 trace 干扰根因分析与告警。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>只埋点不贯穿</strong>：各服务各自生成 span、TraceId 不互传，链路断成孤岛。贯穿（HTTP/线程池/MQ/定时任务）是第一步，比选型更重要；用"断裂率"指标持续度量。</li>
+          <li><strong>线程池复用不装 TTL</strong>：复用线程串入上一个任务 TraceId，产生"幽灵 span"，根因定位被带偏。必须用 TransmittableThreadLocal（Java）或等价机制。</li>
+          <li><strong>只用头部采样</strong>：高扇出/异步场景丢下游，关键故障反而查不到。必须头部+尾部组合，错误与慢请求强制全采。</li>
+          <li><strong>全量直写 ES</strong>：span 高基数字段（traceId）不做索引优化就会把 ES 写入打爆。上分布式缓冲 + 列存，明细只留错误与慢 span。</li>
+          <li><strong>Trace/Log/Metric 不同源</strong>：无统一关联键（trace_id），复盘时链路日志对不上。日志必须结构化并打 trace_id；span 状态码与错误日志/指标严格对齐。</li>
         </ul>
       </div>
     </div>

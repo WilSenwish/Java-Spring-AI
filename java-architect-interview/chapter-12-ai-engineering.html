@@ -4482,3 +4482,143 @@ flowchart LR
   <script src="assets/nav.js"></script>
 </body>
 </html>
+            <p><strong>传统召回评估指标</strong>：RAG效果不能仅靠人工抽样评估，需用客观数据驱动优化。核心评估维度：</p>
+            
+            <div class="code-block"><pre><code><span class="com">/**
+ * RAG 召回评估体系 - 传统召回指标计算
+ * 支持 Recall@K, Hit Rate, MRR, MAP@K 等核心指标
+ */</span>
+<span class="kw">public class</span> <span class="type">RagRecallMetrics</span> {
+
+    <span class="com">/**
+     * Recall@K: 在前K个结果中找到相关文档的比例
+     * 公式: |relevant_docs ∩ top_K_retrieved| / |relevant_docs|
+     */</span>
+    <span class="kw">public double</span> <span class="fn">calculateRecallAtK</span>(<span class="type">List</span>&lt;<span class="type">Document</span>&gt; retrievedDocs, 
+                                             <span class="type">List</span>&lt;<span class="type">Document</span>&gt; relevantDocs, 
+                                             <span class="type">int</span> k) {
+        <span class="kw">if</span> (relevantDocs.<span class="fn">isEmpty</span>()) <span class="kw">return</span> <span class="num">0.0</span>;
+        
+        <span class="type">int</span> <span class="var">relevantCount</span> = <span class="num">0</span>;
+        <span class="type">int</span> <span class="var">topK</span> = <span class="type">Math</span>.<span class="fn">min</span>(k, retrievedDocs.<span class="fn">size</span>());
+        
+        <span class="kw">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> < <span class="var">topK</span>; <span class="var">i</span>++) {
+            <span class="type">Document</span> <span class="var">doc</span> = retrievedDocs.<span class="fn">get</span>(<span class="var">i</span>);
+            <span class="kw">if</span> (relevantDocs.<span class="fn">contains</span>(doc)) {
+                <span class="var">relevantCount</span>++;
+            }
+        }
+        
+        <span class="kw">return</span> (<span class="type">double</span>) <span class="var">relevantCount</span> / relevantDocs.<span class="fn">size</span>();
+    }
+
+    <span class="com">/**
+     * Hit Rate: 至少有一个相关文档被查询到的比例
+     * 公式: 1 - (queries_with_no_relevant / total_queries)
+     */</span>
+    <span class="kw">public double</span> <span class="fn">calculateHitRate</span>(<span class="type">List</span>&lt;<span class="type">List</span>&lt;<span class="type">Document</span>&gt;&gt; allRetrievedDocs,
+                                          <span class="type">List</span>&lt;<span class="type">List</span>&lt;<span class="type">Document</span>&gt;&gt; allRelevantDocs) {
+        <span class="type">int</span> <span class="var">queriesWithRelevant</span> = <span class="num">0</span>;
+        <span class="type">int</span> <span class="var">totalQueries</span> = allRelevantDocs.<span class="fn">size</span>();
+        
+        <span class="kw">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> < <span class="var">totalQueries</span>; <span class="var">i</span>++) {
+            <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">relevant</span> = allRelevantDocs.<span class="fn">get</span>(<span class="var">i</span>);
+            <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">retrieved</span> = allRetrievedDocs.<span class="fn">get</span>(<span class="var">i</span>);
+            
+            <span class="kw">for</span> (<span class="type">Document</span> <span class="var">doc</span> : retrieved) {
+                <span class="kw">if</span> (relevant.<span class="fn">contains</span>(doc)) {
+                    <span class="var">queriesWithRelevant</span>++;
+                    <span class="kw">break</span>;
+                }
+            }
+        }
+        
+        <span class="kw">return</span> (<span class="type">double</span>) <span class="var">queriesWithRelevant</span> / <span class="var">totalQueries</span>;
+    }
+}</code></pre></div>
+            
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>指标</th>
+                  <th>计算公式</th>
+                  <th>适用场景</th>
+                  <th>阈值建议</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Recall@K</strong></td>
+                  <td>|relevant ∩ top_K| / |relevant|</td>
+                  <td>衡量前K个结果的覆盖度</td>
+                  <td>K=5时建议≥0.7<br>K=10时建议≥0.85</td>
+                </tr>
+                <tr>
+                  <td><strong>Hit Rate</strong></td>
+                  <td>1 - (无相关查询数/总查询数)</td>
+                  <td>至少命中一次相关文档的比例</td>
+                  <td>建议≥0.9</td>
+                </tr>
+                <tr>
+                  <td><strong>MRR</strong></td>
+                  <td>1/Σ(rank_i) / total_queries</td>
+                  <td>相关文档位置的倒数平均值</td>
+                  <td>建议≥0.6</td>
+                </tr>
+                <tr>
+                  <td><strong>MAP@K</strong></td>
+                  <td>(1/total_queries) * Σ(AP@K_i)</td>
+                  <td>考虑排名的精确率平均值</td>
+                  <td>K=10时建议≥0.7</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p><strong>评估策略</strong>：① <strong>分阶段评估</strong>——开发阶段用小型评测集快速迭代，上线后用全量真实数据；② <strong>自动化流水线</strong>——Git提交触发评估，指标退回自动告警；③ <strong>分层监控</strong>——系统级指标（整体性能）+ 查询级指标（实时异常）；④ <strong>多维度分析</strong>——按查询类型、用户画像、时间段分组分析，发现模式性问题。</p>
+            
+            <p><strong>RAGAS 自动化评估体系</strong>：传统指标无法评估生成质量，RAGAS提供全方位评估：</p>
+            
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>指标</th>
+                  <th>阈值建议</th>
+                  <th>影响因素</th>
+                  <th>优化策略</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>忠实度</strong></td>
+                  <td>≥0.85<br>(高:≥0.9, 中:≥0.8, 低:≥0.7)</td>
+                  <td>检索质量、prompt设计、模型能力</td>
+                  <td>增强检索、引用增强、链式推理</td>
+                </tr>
+                <tr>
+                  <td><strong>相关性</strong></td>
+                  <td>≥0.8<br>(高:≥0.9, 中:≥0.75, 低:≥0.6)</td>
+                  <td>query表达、检索策略、生成质量</td>
+                  <td>query改写、多轮检索、语义扩展</td>
+                </tr>
+                <tr>
+                  <td><strong>上下文精确率</strong></td>
+                  <td>≥0.75<br>(高:≥0.85, 中:≥0.7, 低:≥0.6)</td>
+                  <td>分块策略、过滤机制、重排序</td>
+                  <td>精准过滤、rerank模型、语义聚类</td>
+                </tr>
+                <tr>
+                  <td><strong>上下文召回率</strong></td>
+                  <td>≥0.8<br>(高:≥0.9, 中:≥0.75, 低:≥0.65)</td>
+                  <td>向量化质量、索引效率、检索深度</td>
+                  <td>多查询检索、混合检索、知识图谱</td>
+                </tr>
+                <tr>
+                  <td><strong>回答相关性</strong></td>
+                  <td>≥0.85<br>(高:≥0.9, 中:≥0.8, 低:≥0.7)</td>
+                  <td>prompt工程、指令设计、角色设定</td>
+                  <td>角色定制、few-shot示例、约束设计</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p><strong>数据不平衡问题解决方案</strong>：① <strong>分层抽样</strong>——按查询类型、复杂度分层构建评测集，确保各类型样本均衡；② <strong>合成数据增强</strong>——对稀少类型用LLM合成查询-答案对，补充覆盖度；③ <strong>权重调整</strong>——为稀有类型样本分配更高权重，平衡对整体评估的影响；④ <strong>分组评估</strong>——分别计算不同群体的指标，避免均值掩盖问题；⑤ <strong>长尾分析</strong>——专门分析低频但高价值的边缘案例。</p>
