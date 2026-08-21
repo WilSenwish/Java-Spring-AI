@@ -164,20 +164,18 @@
             </ul>
 
             <p><strong>EVAL vs Functions 对比</strong>：</p>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>维度</th><th>EVAL / EVALSHA (Lua 脚本)</th><th>FUNCTION LOAD / FCALL (Functions)</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>持久化</td><td>不持久化，重启后 SHA 丢失</td><td>持久化到 RDB/AOF，重启不丢失</td></tr>
-                  <tr><td>管理</td><td>无 API 查询已注册脚本</td><td>FUNCTION LIST / DUMP / DELETE 可管理</td></tr>
-                  <tr><td>集群复制</td><td>需客户端向每个主节点发送</td><td>自动通过 RDB/AOF 复制到从节点</td></tr>
-                  <tr><td>调用方式</td><td>EVAL script numkeys ... / EVALSHA sha1 ...</td><td>FCALL lib.func numkeys ...</td></tr>
-                  <tr><td>引入版本</td><td>Redis 2.6</td><td>Redis 7.0</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <table class="compare-table">
+              <thead>
+                <tr><th>维度</th><th>EVAL / EVALSHA (Lua 脚本)</th><th>FUNCTION LOAD / FCALL (Functions)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>持久化</td><td>不持久化，重启后 SHA 丢失</td><td>持久化到 RDB/AOF，重启不丢失</td></tr>
+                <tr><td>管理</td><td>无 API 查询已注册脚本</td><td>FUNCTION LIST / DUMP / DELETE 可管理</td></tr>
+                <tr><td>集群复制</td><td>需客户端向每个主节点发送</td><td>自动通过 RDB/AOF 复制到从节点</td></tr>
+                <tr><td>调用方式</td><td>EVAL script numkeys ... / EVALSHA sha1 ...</td><td>FCALL lib.func numkeys ...</td></tr>
+                <tr><td>引入版本</td><td>Redis 2.6</td><td>Redis 7.0</td></tr>
+              </tbody>
+            </table>
 
             <p><strong>选型建议</strong>：</p>
             <ul>
@@ -225,12 +223,11 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
             </ul>
 
             <p><strong>Redis 7.x vs 8.0 关键对比</strong>：</p>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>特性</th><th>Redis 7.x</th><th>Redis 8.0</th></tr>
-                </thead>
-                <tbody>
+            <table class="compare-table">
+              <thead>
+                <tr><th>特性</th><th>Redis 7.x</th><th>Redis 8.0</th></tr>
+              </thead>
+              <tbody>
                   <tr><td><strong>发行形态</strong></td><td>Redis CE + Redis Stack（模块需单独安装）</td><td>Redis Open Source（统一内置，无模块）</td></tr>
                   <tr><td><strong>I/O 多线程</strong></td><td>6.0 引入旧实现（网络读写）</td><td>全新实现，多核吞吐更高</td></tr>
                   <tr><td><strong>向量检索</strong></td><td>仅 Redis Search 模块</td><td>Vector Set 原生数据结构（Beta）+ Redis Search 内置</td></tr>
@@ -238,9 +235,8 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
                   <tr><td><strong>命令延迟</strong></td><td>基线</td><td>最高降低 87%</td></tr>
                   <tr><td><strong>副本内存</strong></td><td>基线</td><td>节省 35%</td></tr>
                   <tr><td><strong>全文检索评分</strong></td><td>TF-IDF 默认</td><td>BM25 默认（Redis Search）</td></tr>
-                </tbody>
-              </table>
-            </div>
+              </tbody>
+            </table>
 
             <p><strong>Vector Set 核心机制</strong>：Redis 8.0 新增的原生数据结构（Beta），由 antirez 从零重新实现 HNSW 索引。关键差异：① <strong>真实删除</strong>——<code class="inline-code">VREM</code> 立即解除节点链接并重连邻居（非 tombstone），内存即时回收；② <strong>链接双向强制</strong>——保证删除后图连通性不退化；③ <strong>谓词过滤扫描</strong>——图遍历时支持 JSON 属性过滤。默认使用 int8 量化（FP32 的 25% 内存，召回率几乎无损）。<code class="inline-code">VSIM</code> 采用多线程处理（antirez 认为向量操作天然慢，值得打破单线程约束）。核心命令：<code class="inline-code">VADD</code>/<code class="inline-code">VREM</code>/<code class="inline-code">VSIM</code>/<code class="inline-code">VRANDMEMBER</code>/<code class="inline-code">VGETATTR</code>/<code class="inline-code">VSETATTR</code>。antirez 实测 300 万向量 × 300 维，单机 VSIM（Top-10）可达 5~6 万 QPS。</p>
 

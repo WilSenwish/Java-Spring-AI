@@ -84,9 +84,9 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>本文档面向 Java 服务端开发与架构评审场景，提供系统性的安全自检参考。每节采用统一的三段式结构：<strong>关键要点</strong>阐述核心原则与选型依据，<strong>Checkpoint</strong> 列出代码评审与架构评审中需逐项确认的检查点，<strong>雷区清单</strong>以「禁止…」句式列出高风险反模式。第 4 章密码学为核心重点，额外补充基于 JCA（Java Cryptography Architecture）与 Bouncy Castle 的规范实现代码范例。</p>
 <p>文档可作为代码评审 checklist、架构评审 checkpoint 与安全培训材料使用。附录 C 提供可勾选版自检清单，便于上线评审时直接使用。</p>
 <h3 id="02-标准依据与版本声明">0.2 标准依据与版本声明</h3>
-<div class="table-wrap"><table><thead><tr><th>标准来源</th><th>版本</th><th>关键变更</th></tr></thead><tbody><tr><td>OWASP Top 10</td><td>2025（2025-11 发布）</td><td>A03 升级为「软件供应链失败」；A10 新增「异常条件处理不当」</td></tr><tr><td>OWASP ASVS</td><td>v5.0</td><td>V11 密码学、V12 安全通信、V14 数据保护</td></tr><tr><td>NIST SP 800-131A</td><td>Rev2</td><td>SHA-1/RSA-1024/3DES/DES/RC4 已禁用或弃用</td></tr><tr><td>NIST FIPS 203/204/205</td><td>2024 正式发布</td><td>后量子密码标准 ML-KEM/ML-DSA/SLH-DSA</td></tr><tr><td>NIST SP 800-63B</td><td>Rev3</td><td>数字身份指南，口令策略长度优先</td></tr><tr><td>NIST SP 800-90A</td><td>Rev1</td><td>随机数生成器标准</td></tr><tr><td>CWE</td><td>—</td><td>CWE-321/327/329/330/338/780/916 等</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>标准来源</th><th>版本</th><th>关键变更</th></tr></thead><tbody><tr><td>OWASP Top 10</td><td>2025（2025-11 发布）</td><td>A03 升级为「软件供应链失败」；A10 新增「异常条件处理不当」</td></tr><tr><td>OWASP ASVS</td><td>v5.0</td><td>V11 密码学、V12 安全通信、V14 数据保护</td></tr><tr><td>NIST SP 800-131A</td><td>Rev2</td><td>SHA-1/RSA-1024/3DES/DES/RC4 已禁用或弃用</td></tr><tr><td>NIST FIPS 203/204/205</td><td>2024 正式发布</td><td>后量子密码标准 ML-KEM/ML-DSA/SLH-DSA</td></tr><tr><td>NIST SP 800-63B</td><td>Rev3</td><td>数字身份指南，口令策略长度优先</td></tr><tr><td>NIST SP 800-90A</td><td>Rev1</td><td>随机数生成器标准</td></tr><tr><td>CWE</td><td>—</td><td>CWE-321/327/329/330/338/780/916 等</td></tr></tbody></table>
 <h3 id="03-术语表">0.3 术语表</h3>
-<div class="table-wrap"><table><thead><tr><th>术语</th><th>含义</th></tr></thead><tbody><tr><td>CIA 三性</td><td>机密性（Confidentiality）、完整性（Integrity）、可用性（Availability）</td></tr><tr><td>AEAD</td><td>认证加密，同时提供机密性与完整性（如 AES-GCM、ChaCha20-Poly1305）</td></tr><tr><td>前向保密（PFS）</td><td>会话密钥泄露不影响历史会话安全，依赖临时密钥交换（ECDHE）</td></tr><tr><td>KDF</td><td>密钥派生函数，从口令或共享密钥派生密钥（如 PBKDF2、HKDF、Argon2）</td></tr><tr><td>CSPRNG</td><td>密码学安全随机数生成器（如 Java <code>SecureRandom</code>）</td></tr><tr><td>HSM / KMS</td><td>硬件安全模块 / 密钥管理服务，用于密钥的安全存储与运算</td></tr><tr><td>MAC</td><td>消息认证码，带密钥的完整性校验（如 HMAC）</td></tr><tr><td>salt</td><td>口令哈希的随机盐，每用户唯一，非秘密</td></tr><tr><td>pepper</td><td>全局秘密盐，存于 HSM/配置，与数据库分离</td></tr><tr><td>nonce / IV</td><td>一次性随机数 / 初始化向量，加密中使用，不可重复</td></tr><tr><td>JCA</td><td>Java Cryptography Architecture，JDK 内置密码学框架</td></tr><tr><td>JCE</td><td>Java Cryptography Extension，JCA 的扩展部分</td></tr><tr><td>PQC</td><td>后量子密码，抵御量子计算机攻击的密码算法</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>术语</th><th>含义</th></tr></thead><tbody><tr><td>CIA 三性</td><td>机密性（Confidentiality）、完整性（Integrity）、可用性（Availability）</td></tr><tr><td>AEAD</td><td>认证加密，同时提供机密性与完整性（如 AES-GCM、ChaCha20-Poly1305）</td></tr><tr><td>前向保密（PFS）</td><td>会话密钥泄露不影响历史会话安全，依赖临时密钥交换（ECDHE）</td></tr><tr><td>KDF</td><td>密钥派生函数，从口令或共享密钥派生密钥（如 PBKDF2、HKDF、Argon2）</td></tr><tr><td>CSPRNG</td><td>密码学安全随机数生成器（如 Java <code>SecureRandom</code>）</td></tr><tr><td>HSM / KMS</td><td>硬件安全模块 / 密钥管理服务，用于密钥的安全存储与运算</td></tr><tr><td>MAC</td><td>消息认证码，带密钥的完整性校验（如 HMAC）</td></tr><tr><td>salt</td><td>口令哈希的随机盐，每用户唯一，非秘密</td></tr><tr><td>pepper</td><td>全局秘密盐，存于 HSM/配置，与数据库分离</td></tr><tr><td>nonce / IV</td><td>一次性随机数 / 初始化向量，加密中使用，不可重复</td></tr><tr><td>JCA</td><td>Java Cryptography Architecture，JDK 内置密码学框架</td></tr><tr><td>JCE</td><td>Java Cryptography Extension，JCA 的扩展部分</td></tr><tr><td>PQC</td><td>后量子密码，抵御量子计算机攻击的密码算法</td></tr></tbody></table>
 <h3 id="04-安全设计总原则">0.4 安全设计总原则</h3>
 <ul>
 <li>*最小权限**：每个组件、用户、进程仅授予完成任务所需的最小权限。权限默认拒绝，显式授予。</li>
@@ -125,7 +125,7 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <blockquote>对应 OWASP A04（加密失败）、A07（身份认证失效）、CWE-916、CWE-759/760</blockquote>
 <p>口令存储必须使用「加盐 + 自适应慢哈希」。工作因子可随硬件升级定期提升，使 GPU/ASIC 爆破成本始终高于攻击收益。</p>
 <p>算法推荐优先级（OWASP A04 明确建议）：</p>
-<div class="table-wrap"><table><thead><tr><th>优先级</th><th>算法</th><th>说明</th></tr></thead><tbody><tr><td>首选</td><td><strong>Argon2id</strong></td><td>PHC 获奖算法，抗 GPU/ASIC，内存困难型</td></tr><tr><td>次选</td><td>scrypt</td><td>内存困难型，抗 ASIC</td></tr><tr><td>可选</td><td>bcrypt</td><td>广泛使用，cost 可调</td></tr><tr><td>兼容</td><td>PBKDF2-HMAC-SHA-512</td><td>NIST 标准化，但抗 GPU 不如前三者</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>优先级</th><th>算法</th><th>说明</th></tr></thead><tbody><tr><td>首选</td><td><strong>Argon2id</strong></td><td>PHC 获奖算法，抗 GPU/ASIC，内存困难型</td></tr><tr><td>次选</td><td>scrypt</td><td>内存困难型，抗 ASIC</td></tr><tr><td>可选</td><td>bcrypt</td><td>广泛使用，cost 可调</td></tr><tr><td>兼容</td><td>PBKDF2-HMAC-SHA-512</td><td>NIST 标准化，但抗 GPU 不如前三者</td></tr></tbody></table>
 <p>口令策略应遵循 NIST SP 800-63B：重视长度（建议 ≥12 位）而非强制复杂度规则（大小写+数字+特殊字符的强制组合已弃用）。维护已知泄露口令黑名单，注册/修改口令时比对拦截。</p>
 <ul>
 <li>*Checkpoint**</li>
@@ -390,7 +390,7 @@ tbody tr:nth-child(even){background:var(--zebra);}
 </ul>
 <h3 id="37-输出编码与响应头安全">3.7 输出编码与响应头安全</h3>
 <p>安全响应头是深度防御的重要组成：</p>
-<div class="table-wrap"><table><thead><tr><th>响应头</th><th>作用</th></tr></thead><tbody><tr><td>Content-Security-Policy</td><td>限制脚本与资源来源，防 XSS</td></tr><tr><td>X-Content-Type-Options: nosniff</td><td>防止 MIME 类型嗅探</td></tr><tr><td>X-Frame-Options / CSP frame-ancestors</td><td>防点击劫持</td></tr><tr><td>Referrer-Policy</td><td>控制 Referer 泄露</td></tr><tr><td>Strict-Transport-Security</td><td>强制 HTTPS（HSTS）</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>响应头</th><th>作用</th></tr></thead><tbody><tr><td>Content-Security-Policy</td><td>限制脚本与资源来源，防 XSS</td></tr><tr><td>X-Content-Type-Options: nosniff</td><td>防止 MIME 类型嗅探</td></tr><tr><td>X-Frame-Options / CSP frame-ancestors</td><td>防点击劫持</td></tr><tr><td>Referrer-Policy</td><td>控制 Referer 泄露</td></tr><tr><td>Strict-Transport-Security</td><td>强制 HTTPS（HSTS）</td></tr></tbody></table>
 <p>API 响应应遵循最小化原则，不返回多余字段，不暴露内部堆栈或调试信息。</p>
 <ul>
 <li>*Checkpoint**</li>
@@ -413,7 +413,7 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>密码学工程的第一原则是「不要自己实现密码学」（Don't roll your own crypto）。应用层应使用经审计的标准库（JCA、Bouncy Castle、Conscrypt），而非自实现算法或协议。</p>
 <p>Kerckhoffs 原则要求安全性依赖密钥保密而非算法保密。任何依赖「算法不公开」来保障安全的设计（混淆）均不符合现代密码学要求。</p>
 <p>密码学原语各司其职，不可混用：</p>
-<div class="table-wrap"><table><thead><tr><th>安全属性</th><th>提供者</th><th>说明</th></tr></thead><tbody><tr><td>机密性</td><td>加密（对称/非对称）</td><td>防止数据被读取</td></tr><tr><td>完整性</td><td>MAC / 哈希 / 签名</td><td>检测数据是否被篡改</td></tr><tr><td>真实性</td><td>MAC / 签名</td><td>验证数据来源</td></tr><tr><td>不可否认性</td><td>数字签名</td><td>签名者无法否认（MAC 无法提供，因对称密钥双方共享）</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>安全属性</th><th>提供者</th><th>说明</th></tr></thead><tbody><tr><td>机密性</td><td>加密（对称/非对称）</td><td>防止数据被读取</td></tr><tr><td>完整性</td><td>MAC / 哈希 / 签名</td><td>检测数据是否被篡改</td></tr><tr><td>真实性</td><td>MAC / 签名</td><td>验证数据来源</td></tr><tr><td>不可否认性</td><td>数字签名</td><td>签名者无法否认（MAC 无法提供，因对称密钥双方共享）</td></tr></tbody></table>
 <p>加密不提供完整性。裸加密（如 AES-CBC 无 MAC）是可篡改的——攻击者可翻转密文位导致明文对应位翻转。始终优先使用认证加密（AEAD，如 AES-GCM），同时提供机密性与完整性。</p>
 <ul>
 <li>*Checkpoint**</li>
@@ -438,7 +438,7 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <ul>
 <li>*模式选型**（关键决策）：</li>
 </ul>
-<div class="table-wrap"><table><thead><tr><th>模式</th><th>是否 AEAD</th><th>推荐度</th><th>说明</th></tr></thead><tbody><tr><td>GCM</td><td>是</td><td>首选</td><td>同时提供机密性与完整性，性能好，硬件加速</td></tr><tr><td>ChaCha20-Poly1305</td><td>是</td><td>推荐</td><td>纯软件实现性能优，无硬件加速依赖</td></tr><tr><td>CTR + HMAC</td><td>否（需手动 MAC）</td><td>可用</td><td>需自行实现 Encrypt-then-MAC</td></tr><tr><td>CBC</td><td>否</td><td>不推荐</td><td>无内置完整性，易受 Padding Oracle 攻击</td></tr><tr><td>ECB</td><td>否</td><td>禁用</td><td>相同明文产生相同密文，泄露数据模式</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>模式</th><th>是否 AEAD</th><th>推荐度</th><th>说明</th></tr></thead><tbody><tr><td>GCM</td><td>是</td><td>首选</td><td>同时提供机密性与完整性，性能好，硬件加速</td></tr><tr><td>ChaCha20-Poly1305</td><td>是</td><td>推荐</td><td>纯软件实现性能优，无硬件加速依赖</td></tr><tr><td>CTR + HMAC</td><td>否（需手动 MAC）</td><td>可用</td><td>需自行实现 Encrypt-then-MAC</td></tr><tr><td>CBC</td><td>否</td><td>不推荐</td><td>无内置完整性，易受 Padding Oracle 攻击</td></tr><tr><td>ECB</td><td>否</td><td>禁用</td><td>相同明文产生相同密文，泄露数据模式</td></tr></tbody></table>
 <ul>
 <li>*IV / Nonce 要求**：GCM 模式的 nonce 在同一密钥下绝不可重复——重复会导致认证密钥泄露，进而可伪造密文并恢复明文。IV 必须每次随机生成且不可预测。</li>
 </ul>
@@ -648,7 +648,7 @@ public class EcdsaExample {
 <ul>
 <li>*算法选型**：</li>
 </ul>
-<div class="table-wrap"><table><thead><tr><th>算法</th><th>推荐度</th><th>说明</th></tr></thead><tbody><tr><td>SHA-256 / SHA-384 / SHA-512</td><td>推荐</td><td>SHA-2 家族，当前通用标准</td></tr><tr><td>SHA-3-256 / SHA-3-512</td><td>推荐</td><td>Keccak 结构，与 SHA-2 互补</td></tr><tr><td>BLAKE2 / BLAKE3</td><td>可用</td><td>高性能替代，适合非 NIST 合规场景</td></tr><tr><td>SHA-1</td><td>禁用</td><td>已被破解，数字签名 2014 年起禁用</td></tr><tr><td>MD5</td><td>禁用</td><td>碰撞已实战利用</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>算法</th><th>推荐度</th><th>说明</th></tr></thead><tbody><tr><td>SHA-256 / SHA-384 / SHA-512</td><td>推荐</td><td>SHA-2 家族，当前通用标准</td></tr><tr><td>SHA-3-256 / SHA-3-512</td><td>推荐</td><td>Keccak 结构，与 SHA-2 互补</td></tr><tr><td>BLAKE2 / BLAKE3</td><td>可用</td><td>高性能替代，适合非 NIST 合规场景</td></tr><tr><td>SHA-1</td><td>禁用</td><td>已被破解，数字签名 2014 年起禁用</td></tr><tr><td>MD5</td><td>禁用</td><td>碰撞已实战利用</td></tr></tbody></table>
 <p>哈希函数用途包括：完整性校验、数据指纹、HMAC 构造、KDF 派生。通用哈希函数（SHA-256）速度快，不适合口令存储（需慢哈希，见 4.6）。</p>
 <ul>
 <li>*Java 规范实现：SHA-256 / SHA-3 哈希**</li>
@@ -694,7 +694,7 @@ public class HashExample {
 <ul>
 <li>*MAC 与加密的组合顺序**：</li>
 </ul>
-<div class="table-wrap"><table><thead><tr><th>顺序</th><th>安全性</th><th>说明</th></tr></thead><tbody><tr><td>Encrypt-then-MAC</td><td>安全</td><td>先加密再对密文做 MAC，推荐</td></tr><tr><td>MAC-then-Encrypt</td><td>不安全</td><td>Padding Oracle 攻击风险</td></tr><tr><td>Encrypt-and-MAC</td><td>不安全</td><td>明文可能从 MAC 泄露</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>顺序</th><th>安全性</th><th>说明</th></tr></thead><tbody><tr><td>Encrypt-then-MAC</td><td>安全</td><td>先加密再对密文做 MAC，推荐</td></tr><tr><td>MAC-then-Encrypt</td><td>不安全</td><td>Padding Oracle 攻击风险</td></tr><tr><td>Encrypt-and-MAC</td><td>不安全</td><td>明文可能从 MAC 泄露</td></tr></tbody></table>
 <p>使用 AEAD（如 GCM）时无需手动组合，AEAD 内部已正确处理。</p>
 <ul>
 <li>*常量时间比较**：比较 MAC 或哈希时必须使用常量时间比较，防止通过响应时间差异推断正确字节数（时序攻击）。Java 中使用 <code>MessageDigest.isEqual()</code>。</li>
@@ -742,7 +742,7 @@ public class HmacExample {
 <ul>
 <li>*口令存储算法选型**（OWASP A04 推荐优先级）：</li>
 </ul>
-<div class="table-wrap"><table><thead><tr><th>优先级</th><th>算法</th><th>内存困难</th><th>说明</th></tr></thead><tbody><tr><td>首选</td><td>Argon2id</td><td>是</td><td>PHC 获奖算法，抗 GPU/ASIC，参数可调（内存、迭代、并行度）</td></tr><tr><td>次选</td><td>scrypt</td><td>是</td><td>内存困难型，抗 ASIC</td></tr><tr><td>可选</td><td>bcrypt</td><td>否</td><td>广泛使用，cost 可调，但仅 CPU 困难</td></tr><tr><td>兼容</td><td>PBKDF2-HMAC-SHA-512</td><td>否</td><td>NIST 标准化，迭代次数需 ≥600000</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>优先级</th><th>算法</th><th>内存困难</th><th>说明</th></tr></thead><tbody><tr><td>首选</td><td>Argon2id</td><td>是</td><td>PHC 获奖算法，抗 GPU/ASIC，参数可调（内存、迭代、并行度）</td></tr><tr><td>次选</td><td>scrypt</td><td>是</td><td>内存困难型，抗 ASIC</td></tr><tr><td>可选</td><td>bcrypt</td><td>否</td><td>广泛使用，cost 可调，但仅 CPU 困难</td></tr><tr><td>兼容</td><td>PBKDF2-HMAC-SHA-512</td><td>否</td><td>NIST 标准化，迭代次数需 ≥600000</td></tr></tbody></table>
 <ul>
 <li>*salt**：每用户唯一的随机盐，16 字节以上。salt 非秘密，可与哈希结果一同存储。salt 使相同口令产生不同哈希，使彩虹表预计算不可行。</li>
 </ul>
@@ -868,7 +868,7 @@ public class HkdfExample {
 <ul>
 <li>*不同场景的随机数需求**：</li>
 </ul>
-<div class="table-wrap"><table><thead><tr><th>场景</th><th>最小长度</th><th>说明</th></tr></thead><tbody><tr><td>会话令牌</td><td>128 位（16 字节）</td><td>防暴力枚举</td></tr><tr><td>对称密钥</td><td>与算法匹配（AES-256 = 32 字节）</td><td>KeyGenerator 生成</td></tr><tr><td>IV / Nonce</td><td>GCM: 96 位（12 字节）</td><td>每次唯一随机</td></tr><tr><td>salt</td><td>128 位（16 字节）</td><td>每用户唯一</td></tr><tr><td>JWT ID</td><td>128 位</td><td>防碰撞</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>场景</th><th>最小长度</th><th>说明</th></tr></thead><tbody><tr><td>会话令牌</td><td>128 位（16 字节）</td><td>防暴力枚举</td></tr><tr><td>对称密钥</td><td>与算法匹配（AES-256 = 32 字节）</td><td>KeyGenerator 生成</td></tr><tr><td>IV / Nonce</td><td>GCM: 96 位（12 字节）</td><td>每次唯一随机</td></tr><tr><td>salt</td><td>128 位（16 字节）</td><td>每用户唯一</td></tr><tr><td>JWT ID</td><td>128 位</td><td>防碰撞</td></tr></tbody></table>
 <p><code>java.util.Random</code> 与 <code>Math.random()</code> 使用线性同余生成器，仅统计随机，输出可预测，禁止用于安全场景。<code>UUID.randomUUID()</code> 内部使用 <code>SecureRandom</code>，可用于生成标识符，但不应作为会话令牌（UUID v4 格式固定，熵利用不充分）。</p>
 <ul>
 <li>*Java 规范实现：SecureRandom 生成各类安全随机值**</li>
@@ -1018,7 +1018,7 @@ public class KeyCleanupExample {
 <ul>
 <li>*TLS 版本与密码套件**：</li>
 </ul>
-<div class="table-wrap"><table><thead><tr><th>项目</th><th>推荐</th><th>禁用</th></tr></thead><tbody><tr><td>TLS 版本</td><td>TLS 1.3（首选）、TLS 1.2</td><td>SSLv3、TLS 1.0、TLS 1.1</td></tr><tr><td>密钥交换</td><td>ECDHE（前向保密）</td><td>RSA 密钥交换（无 PFS）</td></tr><tr><td>对称加密</td><td>AES-GCM、ChaCha20-Poly1305</td><td>CBC、RC4、3DES</td></tr><tr><td>证书签名</td><td>RSA-PSS、ECDSA</td><td>RSA-PKCS#1v1.5、MD5、SHA-1</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>项目</th><th>推荐</th><th>禁用</th></tr></thead><tbody><tr><td>TLS 版本</td><td>TLS 1.3（首选）、TLS 1.2</td><td>SSLv3、TLS 1.0、TLS 1.1</td></tr><tr><td>密钥交换</td><td>ECDHE（前向保密）</td><td>RSA 密钥交换（无 PFS）</td></tr><tr><td>对称加密</td><td>AES-GCM、ChaCha20-Poly1305</td><td>CBC、RC4、3DES</td></tr><tr><td>证书签名</td><td>RSA-PSS、ECDSA</td><td>RSA-PKCS#1v1.5、MD5、SHA-1</td></tr></tbody></table>
 <ul>
 <li>*证书校验**：客户端必须严格校验证书链、主机名、有效期、吊销状态（OCSP / CRL）。禁止信任所有证书（<code>TrustManager</code> 返回 true、<code>-DtrustAll</code> 参数），否则 TLS 降级为明文等效（CWE-295）。</li>
 </ul>
@@ -1092,7 +1092,7 @@ public class TlsClientExample {
 <hr>
 <h3 id="410-密码算法雷区总清单">4.10 密码算法雷区总清单</h3>
 <p>以下为本章核心汇总。每行为一条禁用项，标注风险与推荐替代方案及标准依据，可作为代码评审速查表使用。</p>
-<div class="table-wrap"><table><thead><tr><th>类别</th><th>禁用 / 不推荐项</th><th>风险</th><th>推荐替代</th><th>依据</th></tr></thead><tbody><tr><td>对称算法</td><td>DES / 3DES / RC4 / Blowfish</td><td>弱密钥、已破解</td><td>AES-128 / AES-256</td><td>NIST SP 800-131A</td></tr><tr><td>对称模式</td><td>ECB</td><td>相同明文→相同密文，泄露模式</td><td>GCM / CTR</td><td>CWE-327</td></tr><tr><td>对称模式</td><td>CBC（无认证）</td><td>Padding Oracle</td><td>GCM（AEAD）</td><td>OWASP A04</td></tr><tr><td>IV / Nonce</td><td>固定 / 复用 / 全零</td><td>密钥恢复、信息泄露</td><td>每次随机且唯一</td><td>CWE-329/323</td></tr><tr><td>裸加密</td><td>无 MAC 的加密</td><td>密文可篡改</td><td>AEAD（GCM）或 Encrypt-then-MAC</td><td>OWASP A04</td></tr><tr><td>哈希</td><td>MD5</td><td>碰撞已实战利用</td><td>SHA-256+</td><td>NIST</td></tr><tr><td>哈希</td><td>SHA-1</td><td>已被破解</td><td>SHA-256 / SHA-3</td><td>NIST SP 800-131A</td></tr><tr><td>口令哈希</td><td>MD5 / SHA 直接哈希</td><td>GPU 秒级爆破</td><td>Argon2id / bcrypt / PBKDF2</td><td>OWASP A04, CWE-916</td></tr><tr><td>口令哈希</td><td>无 salt / 共享 salt</td><td>彩虹表攻击</td><td>每用户随机 salt</td><td>CWE-759/760</td></tr><tr><td>口令哈希</td><td>工作因子过低</td><td>爆破成本过低</td><td>bcrypt cost≥10, PBKDF2≥210000</td><td>OWASP A04</td></tr><tr><td>非对称</td><td>RSA &lt;2048 位</td><td>已可破解</td><td>RSA≥2048（推荐 3072）</td><td>NIST, CNSA 2.0</td></tr><tr><td>非对称填充</td><td>RSA PKCS#1 v1.5</td><td>Bleichenbacher 攻击</td><td>RSA-OAEP / PSS</td><td>CWE-780</td></tr><tr><td>非对称</td><td>DSA</td><td>已弃用</td><td>ECDSA / EdDSA</td><td>NIST</td></tr><tr><td>签名</td><td>ECDSA 随机 k 复用 / 弱随机</td><td>私钥泄露</td><td>确定性签名 RFC 6979</td><td>—</td></tr><tr><td>随机数</td><td>java.util.Random / Math.random()</td><td>可预测</td><td>SecureRandom</td><td>CWE-338</td></tr><tr><td>随机数</td><td>固定种子 / 时间戳种子</td><td>可预测</td><td>不手动 setSeed</td><td>CWE-336/335</td></tr><tr><td>MAC 比较</td><td><code>==</code> / <code>Arrays.equals()</code></td><td>时序攻击</td><td><code>MessageDigest.isEqual()</code></td><td>—</td></tr><tr><td>MAC 组合</td><td>MAC-then-Encrypt</td><td>Padding Oracle</td><td>Encrypt-then-MAC 或 AEAD</td><td>—</td></tr><tr><td>密钥存储</td><td>硬编码 / 配置明文 / 默认密钥</td><td>永久泄露</td><td>HSM / KMS / KeyStore</td><td>CWE-321/260</td></tr><tr><td>密钥类型</td><td>String 存储密钥</td><td>无法清零</td><td>byte[] + Arrays.fill</td><td>—</td></tr><tr><td>密钥使用</td><td>一钥多用</td><td>跨用途泄露</td><td>密钥分离，各用途独立</td><td>—</td></tr><tr><td>TLS 版本</td><td>1.0 / 1.1 / SSLv3</td><td>协议漏洞</td><td>≥1.2（优选 1.3）</td><td>NIST</td></tr><tr><td>TLS 套件</td><td>RSA 交换 / CBC / RC4</td><td>无 PFS / 漏洞</td><td>ECDHE + GCM</td><td>OWASP A04</td></tr><tr><td>证书校验</td><td>trustAll / 忽略校验</td><td>MITM</td><td>严格校验链 + 主机名 + 有效期</td><td>CWE-295</td></tr><tr><td>TLS 协议</td><td>STARTTLS</td><td>降级攻击</td><td>隐式 TLS</td><td>—</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>类别</th><th>禁用 / 不推荐项</th><th>风险</th><th>推荐替代</th><th>依据</th></tr></thead><tbody><tr><td>对称算法</td><td>DES / 3DES / RC4 / Blowfish</td><td>弱密钥、已破解</td><td>AES-128 / AES-256</td><td>NIST SP 800-131A</td></tr><tr><td>对称模式</td><td>ECB</td><td>相同明文→相同密文，泄露模式</td><td>GCM / CTR</td><td>CWE-327</td></tr><tr><td>对称模式</td><td>CBC（无认证）</td><td>Padding Oracle</td><td>GCM（AEAD）</td><td>OWASP A04</td></tr><tr><td>IV / Nonce</td><td>固定 / 复用 / 全零</td><td>密钥恢复、信息泄露</td><td>每次随机且唯一</td><td>CWE-329/323</td></tr><tr><td>裸加密</td><td>无 MAC 的加密</td><td>密文可篡改</td><td>AEAD（GCM）或 Encrypt-then-MAC</td><td>OWASP A04</td></tr><tr><td>哈希</td><td>MD5</td><td>碰撞已实战利用</td><td>SHA-256+</td><td>NIST</td></tr><tr><td>哈希</td><td>SHA-1</td><td>已被破解</td><td>SHA-256 / SHA-3</td><td>NIST SP 800-131A</td></tr><tr><td>口令哈希</td><td>MD5 / SHA 直接哈希</td><td>GPU 秒级爆破</td><td>Argon2id / bcrypt / PBKDF2</td><td>OWASP A04, CWE-916</td></tr><tr><td>口令哈希</td><td>无 salt / 共享 salt</td><td>彩虹表攻击</td><td>每用户随机 salt</td><td>CWE-759/760</td></tr><tr><td>口令哈希</td><td>工作因子过低</td><td>爆破成本过低</td><td>bcrypt cost≥10, PBKDF2≥210000</td><td>OWASP A04</td></tr><tr><td>非对称</td><td>RSA &lt;2048 位</td><td>已可破解</td><td>RSA≥2048（推荐 3072）</td><td>NIST, CNSA 2.0</td></tr><tr><td>非对称填充</td><td>RSA PKCS#1 v1.5</td><td>Bleichenbacher 攻击</td><td>RSA-OAEP / PSS</td><td>CWE-780</td></tr><tr><td>非对称</td><td>DSA</td><td>已弃用</td><td>ECDSA / EdDSA</td><td>NIST</td></tr><tr><td>签名</td><td>ECDSA 随机 k 复用 / 弱随机</td><td>私钥泄露</td><td>确定性签名 RFC 6979</td><td>—</td></tr><tr><td>随机数</td><td>java.util.Random / Math.random()</td><td>可预测</td><td>SecureRandom</td><td>CWE-338</td></tr><tr><td>随机数</td><td>固定种子 / 时间戳种子</td><td>可预测</td><td>不手动 setSeed</td><td>CWE-336/335</td></tr><tr><td>MAC 比较</td><td><code>==</code> / <code>Arrays.equals()</code></td><td>时序攻击</td><td><code>MessageDigest.isEqual()</code></td><td>—</td></tr><tr><td>MAC 组合</td><td>MAC-then-Encrypt</td><td>Padding Oracle</td><td>Encrypt-then-MAC 或 AEAD</td><td>—</td></tr><tr><td>密钥存储</td><td>硬编码 / 配置明文 / 默认密钥</td><td>永久泄露</td><td>HSM / KMS / KeyStore</td><td>CWE-321/260</td></tr><tr><td>密钥类型</td><td>String 存储密钥</td><td>无法清零</td><td>byte[] + Arrays.fill</td><td>—</td></tr><tr><td>密钥使用</td><td>一钥多用</td><td>跨用途泄露</td><td>密钥分离，各用途独立</td><td>—</td></tr><tr><td>TLS 版本</td><td>1.0 / 1.1 / SSLv3</td><td>协议漏洞</td><td>≥1.2（优选 1.3）</td><td>NIST</td></tr><tr><td>TLS 套件</td><td>RSA 交换 / CBC / RC4</td><td>无 PFS / 漏洞</td><td>ECDHE + GCM</td><td>OWASP A04</td></tr><tr><td>证书校验</td><td>trustAll / 忽略校验</td><td>MITM</td><td>严格校验链 + 主机名 + 有效期</td><td>CWE-295</td></tr><tr><td>TLS 协议</td><td>STARTTLS</td><td>降级攻击</td><td>隐式 TLS</td><td>—</td></tr></tbody></table>
 <hr>
 <h2 id="第-5-章-错误处理与日志">第 5 章 错误处理与日志</h2>
 <blockquote>对应 OWASP Top 10:2025 A09（安全日志与告警失效）、A10（异常条件处理不当）</blockquote>
@@ -1376,19 +1376,19 @@ const typeDefs = gql`
 <h3 id="71-stride-威胁建模概述">7.1 STRIDE 威胁建模概述</h3>
 <p>STRIDE 是 Microsoft 提出的威胁分类框架，将常见安全威胁分为 6 类，每类对应 CIA 三性 + 认证/授权/不可抵赖性的一个维度。威胁建模在系统设计阶段进行，目标是在编码前系统性识别和消减威胁。</p>
 
-<div class="table-wrap"><table><thead><tr><th>字母</th><th>威胁类型</th><th>安全属性</th><th>含义</th><th>典型攻击</th></tr></thead><tbody>
+<table class="compare-table"><thead><tr><th>字母</th><th>威胁类型</th><th>安全属性</th><th>含义</th><th>典型攻击</th></tr></thead><tbody>
 <tr><td><strong>S</strong></td><td>伪装（Spoofing）</td><td>认证性</td><td>攻击者冒充合法用户或系统身份</td><td>弱口令爆破、JWT 伪造、证书仿冒、Kerberoasting</td></tr>
 <tr><td><strong>T</strong></td><td>篡改（Tampering）</td><td>完整性</td><td>未经授权修改数据或代码</td><td>中间人篡改、数据库注入、文件篡改、供应链投毒</td></tr>
 <tr><td><strong>R</strong></td><td>抵赖（Repudiation）</td><td>不可抵赖性</td><td>用户否认执行过某操作，系统无法证明</td><td>无审计日志、日志可篡改、缺少数字签名</td></tr>
 <tr><td><strong>I</strong></td><td>信息泄露（Information Disclosure）</td><td>机密性</td><td>敏感信息被未授权方获取</td><td>越权访问、错误信息泄露、日志泄露敏感数据、侧信道攻击</td></tr>
 <tr><td><strong>D</strong></td><td>拒绝服务（Denial of Service）</td><td>可用性</td><td>攻击者使系统不可用或降低服务质量</td><td>SYN Flood、慢速攻击、资源耗尽、放大攻击</td></tr>
 <tr><td><strong>E</strong></td><td>权限提升（Elevation of Privilege）</td><td>授权性</td><td>攻击者获得超出授权的权限</td><td>提权漏洞、绕过访问控制、注入执行任意代码</td></tr>
-</tbody></table></div>
+</tbody></table>
 
 <h3 id="72-按组件的-stride-威胁映射">7.2 按组件的 STRIDE 威胁映射</h3>
 <p>威胁建模的核心方法是对系统架构图的每个组件（外部实体、进程、数据流、数据存储）逐一进行 STRIDE 分析。以下是典型微服务架构的威胁映射：</p>
 
-<div class="table-wrap"><table><thead><tr><th>组件</th><th>S 伪装</th><th>T 篡改</th><th>R 抵赖</th><th>I 信息泄露</th><th>D 拒绝服务</th><th>E 提权</th></tr></thead><tbody>
+<table class="compare-table"><thead><tr><th>组件</th><th>S 伪装</th><th>T 篡改</th><th>R 抵赖</th><th>I 信息泄露</th><th>D 拒绝服务</th><th>E 提权</th></tr></thead><tbody>
 <tr><td>Web 前端</td><td>钓鱼网站冒充</td><td>XSS 篡改页面</td><td>—</td><td>敏感数据存 localStorage</td><td>JS 资源阻塞</td><td>—</td></tr>
 <tr><td>API 网关</td><td>伪造 API Key</td><td>请求篡改</td><td>无访问日志</td><td>Header 泄露内部信息</td><td>SYN Flood</td><td>JWT alg=none</td></tr>
 <tr><td>应用服务</td><td>Session 劫持</td><td>SQL 注入</td><td>无操作审计</td><td>异常堆栈泄露</td><td>线程池耗尽</td><td>反序列化 RCE</td></tr>
@@ -1396,17 +1396,17 @@ const typeDefs = gql`
 <tr><td>消息队列</td><td>伪造生产者</td><td>消息篡改</td><td>—</td><td>Topic 未授权访问</td><td>堆积 OOM</td><td>—</td></tr>
 <tr><td>Redis</td><td>—</td><td>Flushall</td><td>—</td><td>未加密内存数据</td><td>KEYS 阻塞</td><td>CONFIG SET 写文件</td></tr>
 <tr><td>CI/CD</td><td>凭证泄露</td><td>供应链投毒</td><td>—</td><td>构建日志泄密</td><td>—</td><td>恶意 PR 执行任意命令</td></tr>
-</tbody></table></div>
+</tbody></table>
 
 <h3 id="73-dread-风险评级">7.3 DREAD 风险评级</h3>
 <p>识别威胁后需评估优先级。DREAD 模型从 5 个维度对每个威胁打分（1-10），取平均值确定风险等级。</p>
-<div class="table-wrap"><table><thead><tr><th>维度</th><th>含义</th><th>评分标准</th></tr></thead><tbody>
+<table class="compare-table"><thead><tr><th>维度</th><th>含义</th><th>评分标准</th></tr></thead><tbody>
 <tr><td>Damage</td><td>潜在损害</td><td>1=无影响 → 10=完全瘫痪/数据全丢</td></tr>
 <tr><td>Reproducibility</td><td>可复现性</td><td>1=极难复现 → 10=每次必现</td></tr>
 <tr><td>Exploitability</td><td>可利用性</td><td>1=需高级技能 → 10=脚本小子可用</td></tr>
 <tr><td>Affected Users</td><td>影响范围</td><td>1=极少数 → 10=所有用户</td></tr>
 <tr><td>Discoverability</td><td>可发现性</td><td>1=深藏内部 → 10=公开可见</td></tr>
-</tbody></table></div>
+</tbody></table>
 <p>风险等级：平均分 1-3 低风险（后续迭代修复）、4-7 中风险（本迭代修复）、8-10 高风险（阻断发布，立即修复）。</p>
 
 <h3 id="74-威胁建模工作流">7.4 威胁建模工作流</h3>
@@ -1435,21 +1435,21 @@ const typeDefs = gql`
 <li>禁止仅关注外部攻击者——内部威胁（内鬼、误操作）同样需建模</li>
 </ul>
 <h2 id="附录-aowasp-top-102025-映射对照表">附录 A：OWASP Top 10:2025 映射对照表</h2>
-<div class="table-wrap"><table><thead><tr><th>OWASP 2025 编号</th><th>类别</th><th>本文对应章节</th></tr></thead><tbody><tr><td>A01</td><td>访问控制失效（Broken Access Control）</td><td>1.4 授权模型、6.1 API 授权、3.4 SSRF</td></tr><tr><td>A02</td><td>安全配置错误（Security Misconfiguration）</td><td>5.3 信息泄露防护、6.4 API 生命周期</td></tr><tr><td>A03</td><td>软件供应链失败（Software Supply Chain Failures）</td><td>6.5 供应链安全</td></tr><tr><td>A04</td><td>加密失败（Cryptographic Failures）</td><td>第 4 章全部</td></tr><tr><td>A05</td><td>注入（Injection）</td><td>3.2 注入防御</td></tr><tr><td>A06</td><td>不安全设计（Insecure Design）</td><td>0.4 安全设计总原则</td></tr><tr><td>A07</td><td>身份认证失效（Authentication Failures）</td><td>1.1-1.3 认证、第 2 章会话</td></tr><tr><td>A08</td><td>软件或数据完整性失效（Software or Data Integrity Failures）</td><td>3.6 反序列化、4.5 MAC 与签名、6.5 供应链</td></tr><tr><td>A09</td><td>安全日志与告警失效（Security Logging Failures）</td><td>5.2 安全日志</td></tr><tr><td>A10</td><td>异常条件处理不当（Mishandling of Exceptional Conditions）</td><td>5.1 错误处理</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>OWASP 2025 编号</th><th>类别</th><th>本文对应章节</th></tr></thead><tbody><tr><td>A01</td><td>访问控制失效（Broken Access Control）</td><td>1.4 授权模型、6.1 API 授权、3.4 SSRF</td></tr><tr><td>A02</td><td>安全配置错误（Security Misconfiguration）</td><td>5.3 信息泄露防护、6.4 API 生命周期</td></tr><tr><td>A03</td><td>软件供应链失败（Software Supply Chain Failures）</td><td>6.5 供应链安全</td></tr><tr><td>A04</td><td>加密失败（Cryptographic Failures）</td><td>第 4 章全部</td></tr><tr><td>A05</td><td>注入（Injection）</td><td>3.2 注入防御</td></tr><tr><td>A06</td><td>不安全设计（Insecure Design）</td><td>0.4 安全设计总原则</td></tr><tr><td>A07</td><td>身份认证失效（Authentication Failures）</td><td>1.1-1.3 认证、第 2 章会话</td></tr><tr><td>A08</td><td>软件或数据完整性失效（Software or Data Integrity Failures）</td><td>3.6 反序列化、4.5 MAC 与签名、6.5 供应链</td></tr><tr><td>A09</td><td>安全日志与告警失效（Security Logging Failures）</td><td>5.2 安全日志</td></tr><tr><td>A10</td><td>异常条件处理不当（Mishandling of Exceptional Conditions）</td><td>5.1 错误处理</td></tr></tbody></table>
 <hr>
 <h2 id="附录-b算法推荐与废弃速查表">附录 B：算法推荐与废弃速查表</h2>
 <h3 id="对称加密">对称加密</h3>
-<div class="table-wrap"><table><thead><tr><th>算法 / 模式</th><th>状态</th><th>推荐</th></tr></thead><tbody><tr><td>AES-256-GCM</td><td>推荐</td><td>首选 AEAD</td></tr><tr><td>AES-128-GCM</td><td>推荐</td><td>可用 AEAD</td></tr><tr><td>ChaCha20-Poly1305</td><td>推荐</td><td>无硬件加速场景首选</td></tr><tr><td>AES-CTR + HMAC</td><td>可用</td><td>需手动 Encrypt-then-MAC</td></tr><tr><td>AES-CBC</td><td>不推荐</td><td>无完整性，Padding Oracle</td></tr><tr><td>AES-ECB</td><td>禁用</td><td>泄露数据模式</td></tr><tr><td>DES / 3DES / RC4 / Blowfish</td><td>禁用</td><td>NIST 已禁用</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>算法 / 模式</th><th>状态</th><th>推荐</th></tr></thead><tbody><tr><td>AES-256-GCM</td><td>推荐</td><td>首选 AEAD</td></tr><tr><td>AES-128-GCM</td><td>推荐</td><td>可用 AEAD</td></tr><tr><td>ChaCha20-Poly1305</td><td>推荐</td><td>无硬件加速场景首选</td></tr><tr><td>AES-CTR + HMAC</td><td>可用</td><td>需手动 Encrypt-then-MAC</td></tr><tr><td>AES-CBC</td><td>不推荐</td><td>无完整性，Padding Oracle</td></tr><tr><td>AES-ECB</td><td>禁用</td><td>泄露数据模式</td></tr><tr><td>DES / 3DES / RC4 / Blowfish</td><td>禁用</td><td>NIST 已禁用</td></tr></tbody></table>
 <h3 id="哈希函数">哈希函数</h3>
-<div class="table-wrap"><table><thead><tr><th>算法</th><th>状态</th><th>用途</th></tr></thead><tbody><tr><td>SHA-256 / SHA-512</td><td>推荐</td><td>通用哈希、HMAC</td></tr><tr><td>SHA-3-256 / SHA-3-512</td><td>推荐</td><td>与 SHA-2 互补</td></tr><tr><td>BLAKE2 / BLAKE3</td><td>可用</td><td>高性能场景</td></tr><tr><td>SHA-1</td><td>禁用</td><td>已破解</td></tr><tr><td>MD5</td><td>禁用</td><td>碰撞已实战</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>算法</th><th>状态</th><th>用途</th></tr></thead><tbody><tr><td>SHA-256 / SHA-512</td><td>推荐</td><td>通用哈希、HMAC</td></tr><tr><td>SHA-3-256 / SHA-3-512</td><td>推荐</td><td>与 SHA-2 互补</td></tr><tr><td>BLAKE2 / BLAKE3</td><td>可用</td><td>高性能场景</td></tr><tr><td>SHA-1</td><td>禁用</td><td>已破解</td></tr><tr><td>MD5</td><td>禁用</td><td>碰撞已实战</td></tr></tbody></table>
 <h3 id="口令哈希">口令哈希</h3>
-<div class="table-wrap"><table><thead><tr><th>算法</th><th>优先级</th><th>工作因子建议</th></tr></thead><tbody><tr><td>Argon2id</td><td>首选</td><td>内存 64MB+，迭代 3+</td></tr><tr><td>scrypt</td><td>次选</td><td>N=2^16, r=8, p=1</td></tr><tr><td>bcrypt</td><td>可选</td><td>cost ≥10</td></tr><tr><td>PBKDF2-HMAC-SHA-512</td><td>兼容</td><td>迭代 ≥210000</td></tr><tr><td>MD5 / SHA 直接哈希</td><td>禁用</td><td>GPU 秒级爆破</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>算法</th><th>优先级</th><th>工作因子建议</th></tr></thead><tbody><tr><td>Argon2id</td><td>首选</td><td>内存 64MB+，迭代 3+</td></tr><tr><td>scrypt</td><td>次选</td><td>N=2^16, r=8, p=1</td></tr><tr><td>bcrypt</td><td>可选</td><td>cost ≥10</td></tr><tr><td>PBKDF2-HMAC-SHA-512</td><td>兼容</td><td>迭代 ≥210000</td></tr><tr><td>MD5 / SHA 直接哈希</td><td>禁用</td><td>GPU 秒级爆破</td></tr></tbody></table>
 <h3 id="非对称加密与签名">非对称加密与签名</h3>
-<div class="table-wrap"><table><thead><tr><th>算法</th><th>状态</th><th>参数要求</th></tr></thead><tbody><tr><td>RSA-OAEP</td><td>推荐</td><td>≥2048 位，优选 3072</td></tr><tr><td>RSA-PSS</td><td>推荐</td><td>≥2048 位</td></tr><tr><td>ECDSA (P-256/P-384)</td><td>推荐</td><td>确定性 nonce (RFC 6979)</td></tr><tr><td>EdDSA (Ed25519)</td><td>推荐</td><td>确定性签名</td></tr><tr><td>RSA-PKCS#1 v1.5</td><td>禁用</td><td>Bleichenbacher 攻击</td></tr><tr><td>DSA</td><td>禁用</td><td>已弃用</td></tr><tr><td>RSA &lt;2048 位</td><td>禁用</td><td>NIST 已禁用</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>算法</th><th>状态</th><th>参数要求</th></tr></thead><tbody><tr><td>RSA-OAEP</td><td>推荐</td><td>≥2048 位，优选 3072</td></tr><tr><td>RSA-PSS</td><td>推荐</td><td>≥2048 位</td></tr><tr><td>ECDSA (P-256/P-384)</td><td>推荐</td><td>确定性 nonce (RFC 6979)</td></tr><tr><td>EdDSA (Ed25519)</td><td>推荐</td><td>确定性签名</td></tr><tr><td>RSA-PKCS#1 v1.5</td><td>禁用</td><td>Bleichenbacher 攻击</td></tr><tr><td>DSA</td><td>禁用</td><td>已弃用</td></tr><tr><td>RSA &lt;2048 位</td><td>禁用</td><td>NIST 已禁用</td></tr></tbody></table>
 <h3 id="随机数">随机数</h3>
-<div class="table-wrap"><table><thead><tr><th>API</th><th>状态</th><th>用途</th></tr></thead><tbody><tr><td>SecureRandom</td><td>推荐</td><td>所有安全场景</td></tr><tr><td>KeyGenerator</td><td>推荐</td><td>密钥生成</td></tr><tr><td>java.util.Random</td><td>禁用</td><td>可预测</td></tr><tr><td>Math.random()</td><td>禁用</td><td>可预测</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>API</th><th>状态</th><th>用途</th></tr></thead><tbody><tr><td>SecureRandom</td><td>推荐</td><td>所有安全场景</td></tr><tr><td>KeyGenerator</td><td>推荐</td><td>密钥生成</td></tr><tr><td>java.util.Random</td><td>禁用</td><td>可预测</td></tr><tr><td>Math.random()</td><td>禁用</td><td>可预测</td></tr></tbody></table>
 <h3 id="tls">TLS</h3>
-<div class="table-wrap"><table><thead><tr><th>项目</th><th>推荐</th><th>禁用</th></tr></thead><tbody><tr><td>TLS 版本</td><td>1.3（首选）、1.2</td><td>1.0、1.1、SSLv3</td></tr><tr><td>密钥交换</td><td>ECDHE</td><td>RSA 交换</td></tr><tr><td>对称加密</td><td>AES-GCM、ChaCha20-Poly1305</td><td>CBC、RC4、3DES</td></tr><tr><td>证书签名</td><td>RSA-PSS、ECDSA</td><td>PKCS#1 v1.5、SHA-1</td></tr><tr><td>证书校验</td><td>严格校验</td><td>trustAll</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>项目</th><th>推荐</th><th>禁用</th></tr></thead><tbody><tr><td>TLS 版本</td><td>1.3（首选）、1.2</td><td>1.0、1.1、SSLv3</td></tr><tr><td>密钥交换</td><td>ECDHE</td><td>RSA 交换</td></tr><tr><td>对称加密</td><td>AES-GCM、ChaCha20-Poly1305</td><td>CBC、RC4、3DES</td></tr><tr><td>证书签名</td><td>RSA-PSS、ECDSA</td><td>PKCS#1 v1.5、SHA-1</td></tr><tr><td>证书校验</td><td>严格校验</td><td>trustAll</td></tr></tbody></table>
 <hr>
 <h2 id="附录-ccheckpoint-自检清单汇总">附录 C：Checkpoint 自检清单汇总</h2>
 <p>以下为全文 Checkpoint 的可勾选汇总，用于代码评审与上线评审。</p>
@@ -1544,7 +1544,7 @@ const typeDefs = gql`
 </ul>
 <hr>
 <h2 id="附录-d参考资料与权威链接">附录 D：参考资料与权威链接</h2>
-<div class="table-wrap"><table><thead><tr><th>来源</th><th>说明</th></tr></thead><tbody><tr><td>OWASP Top 10:2025</td><td><a href="https://owasp.org/Top10/" target="_blank" rel="noopener">https://owasp.org/Top10/</a></td></tr><tr><td>OWASP ASVS v5.0</td><td><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">https://owasp.org/www-project-application-security-verification-standard/</a></td></tr><tr><td>OWASP Cheat Sheet Series</td><td><a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/</a></td></tr><tr><td>NIST SP 800-131A Rev2</td><td>密码算法迁移指南</td></tr><tr><td>NIST FIPS 203 / 204 / 205</td><td>后量子密码标准（ML-KEM / ML-DSA / SLH-DSA）</td></tr><tr><td>NIST SP 800-63B</td><td>数字身份指南（口令策略）</td></tr><tr><td>NIST SP 800-90A</td><td>随机数生成器标准</td></tr><tr><td>CWE-321</td><td>硬编码密钥</td></tr><tr><td>CWE-327</td><td>使用已破解或风险的密码算法</td></tr><tr><td>CWE-329</td><td>IV 不可预测性失败</td></tr><tr><td>CWE-338</td><td>使用密码学不安全的 PRNG</td></tr><tr><td>CWE-780</td><td>RSA PKCS#1 v1.5 填充</td></tr><tr><td>CWE-916</td><td>口令哈希使用不足迭代次数</td></tr></tbody></table></div>
+<table class="compare-table"><thead><tr><th>来源</th><th>说明</th></tr></thead><tbody><tr><td>OWASP Top 10:2025</td><td><a href="https://owasp.org/Top10/" target="_blank" rel="noopener">https://owasp.org/Top10/</a></td></tr><tr><td>OWASP ASVS v5.0</td><td><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">https://owasp.org/www-project-application-security-verification-standard/</a></td></tr><tr><td>OWASP Cheat Sheet Series</td><td><a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/</a></td></tr><tr><td>NIST SP 800-131A Rev2</td><td>密码算法迁移指南</td></tr><tr><td>NIST FIPS 203 / 204 / 205</td><td>后量子密码标准（ML-KEM / ML-DSA / SLH-DSA）</td></tr><tr><td>NIST SP 800-63B</td><td>数字身份指南（口令策略）</td></tr><tr><td>NIST SP 800-90A</td><td>随机数生成器标准</td></tr><tr><td>CWE-321</td><td>硬编码密钥</td></tr><tr><td>CWE-327</td><td>使用已破解或风险的密码算法</td></tr><tr><td>CWE-329</td><td>IV 不可预测性失败</td></tr><tr><td>CWE-338</td><td>使用密码学不安全的 PRNG</td></tr><tr><td>CWE-780</td><td>RSA PKCS#1 v1.5 填充</td></tr><tr><td>CWE-916</td><td>口令哈希使用不足迭代次数</td></tr></tbody></table>
 <div class="footer-note">服务端开发安全 Checkpoint 手册 · 基于 OWASP Top 10:2025 / NIST / ASVS v5.0</div>
 </div>
 </body>
