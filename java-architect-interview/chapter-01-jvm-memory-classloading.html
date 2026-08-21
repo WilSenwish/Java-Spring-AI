@@ -25,6 +25,7 @@
         <li><a href="#C01.08"><span class="toc-number">C01.08</span>JDK 9 模块系统与类加载</a></li>
         <li><a href="#C01.09"><span class="toc-number">C01.09</span>JIT 编译器 C1/C2/GraalVM</a></li>
         <li><a href="#C01.10"><span class="toc-number">C01.10</span>JDK 17/21 新特性与升级迁移</a></li>
+        <li><a href="#C01.11"><span class="toc-number">C01.11</span>OS 虚拟内存与页表机制</a></li>
       </ol>
     </aside>
 
@@ -43,15 +44,15 @@
         <h1 class="chapter-title">JVM 内存与类加载</h1>
         <p class="chapter-subtitle">从运行时数据区到模块化类加载：理解 JVM 内存模型的演进、第一性原理与工程边界</p>
         <div class="chapter-meta">
-          <span>题目数：10</span>
+          <span>题目数：11</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×6</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×3</span>
+          <span>架构级 ×4</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：90 分钟</span>
+          <span>预计复习：100 分钟</span>
         </div>
       </div>
 
@@ -1436,6 +1437,87 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
                 <li><strong>强封装导致反射失败</strong>：旧库依赖内部 API 在新 JDK 启动即报错，须升级依赖。</li>
                 <li><strong>误以为 ZGC 默认开启</strong>：JDK 17 单代 ZGC 仍需 <code class="inline-code">-XX:+UseZGC</code>；JDK 21 的 Generational ZGC 才成熟可用。</li>
                 <li><strong>LTS 选择模糊</strong>：新项目应锚定 17 基线、21 用于虚拟线程，而非停留在 8。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C01.11 OS 虚拟内存与页表机制：JVM 内存之上的操作系统地基 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C01.11" data-difficulty="architect" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">C01.11</div>
+          <div class="qa-question">操作系统内存管理：虚拟内存、分页/分段、页表与 TLB 如何工作？为何 JVM 堆大小其实是一个"页表视图"？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察的是<strong>运行时内存的系统级本质</strong>：进程看到的是一段连续的虚拟地址空间，而磁盘/物理内存只是它背后的稀疏映射。JVM 的 <code class="inline-code">-Xmx</code>、直接内存、栈——最终都落在 OS 的<strong>虚拟内存 + 页表</strong>之上。能讲清 <strong>页表 → TLB → 缺页中断</strong> 这条链，才真正理解"堆为什么可以是逻辑大而物理小的"、GC 扫描为何怕 swap、以及透明大页对停顿的影响。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>单一地址空间</strong>：早期进程直接使用物理地址，无隔离、无保护，一个程序崩溃整机受影响。</p>
+            <p><strong>分段（Segmentation）</strong>：按逻辑段（代码/数据/栈）划分，<strong>段表</strong>映射 <code class="inline-code">段号 + 偏移</code>，保护语义好，但碎片化和难以共享。</p>
+            <p><strong>分页（Paging）</strong>：把内存与地址空间切成固定大小页（常见 4KB），<strong>页表</strong>完成虚拟页 → 物理页帧的映射，是当代主流（x86-64、ARM 64 均采用），叠加"按需换页 + 写入时复制"。</p>
+            <p><strong>现代多级页表 + TLB</strong>：为解决单级页表过大，演进为 <strong>4 级页表（PML4/PDPT/PD/PT）</strong> 稀疏结构，并用 <strong>TLB</strong>（页表高速缓存）加速地址翻译。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>虚拟内存</strong>：每个进程有独立的虚拟地址空间（64 位下理论极大），通过一级级页表索引到物理页。<strong>虚拟 ≠ 物理常驻</strong>：访问的页可以尚不存在于物理内存，命中时通过 <strong>缺页中断（Page Fault）</strong> 才加载。</p>
+            <p><strong>页表结构</strong>：x86-64 下 <code class="inline-code">48 位线性地址 + 4 级页表</code>（PML4→PDPT→PD→PT→Offset），每级页表只分配被实际使用的部分，从而稀疏；Linux 用 <code class="inline-code">mmap</code> 建立映射、文件映射页可 <strong>延迟加载</strong>（lazy load）。</p>
+            <p><strong>TLB 与命中率</strong>：地址翻译每访问一次内存都查页表太慢，故用 TLB 缓存最近翻译；<strong>大页（Huge Pages / 2MB / 1GB）</strong> 让一个 TLB 项覆盖更多空间、显著提升命中率——这是 JVM 上大堆 GC 吞吐改善的底层原因。</p>
+            <p><strong>换页（Paging/Swap）</strong>：物理内存不足时 OS 把冷页换出到磁盘。对 GC 而言，<strong>换页导致扫描时需要回读磁盘页</strong>，停顿呈数量级恶化，必须避免堆被换出。</p>
+            <div class="code-block"><pre><code><span class="com">// Java 侧观察虚拟内存 / 驻留集大小的常见命令</span>
+$ jcmd &lt;pid&gt; VM.flags | grep -i huge       <span class="com">// 查看是否用大页</span>
+$ pmap -x &lt;pid&gt; | tail -5                 <span class="com">// 进程地址空间分布</span>
+$ cat /proc/&lt;pid&gt;/smaps | grep -i rss      <span class="com">// 每段物理驻留大小</span>
+$ jcmd &lt;pid&gt; GC.heap_info                  <span class="com">// JVM 视角的堆视图</span></code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p><strong>JVM 堆 = 一块由 mmap 映射的虚拟地址区间</strong>；物理页只在真正写入时才由缺页中断分配。所以 <code class="inline-code">-Xmx 大</code> 不必然立即消耗同等物理内存，但 commit 之后访问就会占物理页——理解这条才能解释"堆没用到却 RSS 高"。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>避免堆被 Swap</strong>：线上大堆服务应 <code class="inline-code">vm.swappiness</code> 调低（如 1~10），并监控 <code class="inline-code">si/so</code>（swap in/out）与 GC 停顿相关性；一旦出现频繁换页，优先收缩堆或扩容而非调 GC 参数。</p>
+            <p><strong>透明大页 THP 的双刃剑</strong>：Linux THP 后台线程聚合页可能造成<strong>瞬时 CPU 尖峰与长停顿</strong>，大堆 JVM 常见做法是 <code class="inline-code">echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled</code>，G1 建议显式评估而非默认开启。</p>
+            <p><strong>直接内存与页对齐</strong>：NIO/Netty 的 <code class="inline-code">DirectByteBuffer</code> 走 mmap/direct 分配，按页对齐；想让它用大页可用 <code class="inline-code">-XX:+UseLargePages</code> + 配置大页池，但需内核与 numactl 配合。</p>
+            <p><strong>容器内内存可见性</strong>：容器（cgroup）限制下 /proc 常显示宿主机内存，需结合 cgroup 统计判断真实 RSS，避免把"容器配额"误当"OS 物理内存"。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：为什么多级页表反而比单级省内存？</strong> 单级页表需为整个地址空间预留，多级则只逐级分配"实际被占用"的页（Leaf 表才按需分配），索引结构开销摊到稀疏访问上。</p>
+            <p><strong>追问 2：COW（写时复制）如何配合 fork/JVM？</strong> 父进程 <code class="inline-code">fork</code> 后子进程共享同一组物理页（页表指向同一页并标记只读），任一写才复制新页。JVM 基于该机制做 <code class="inline-code">-XX:+UseSerialGC</code> 下的某些优化，也解释了进程数与内存的"假共享"现象。</p>
+            <p><strong>追问 3：大页为什么能降低 GC 停顿方差？</strong> 页更大 → TLB 命中率更高 → 堆遍历/对象搬运时地址翻译开销显著下降，尤其对 10GB+ 大堆在 G1/ZGC 下可降低扫描的 CPU 时间与波动。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>"虚拟内存 = 磁盘交换文件"</strong>：虚拟内存是地址空间抽象，swap 只是其可选实现，概念混淆会答偏。</li>
+                <li><strong>"TMP/THP 一律开大页"</strong>：THP 实时聚合可能引入长停顿，需结合负载评估，不能无脑开启。</li>
+                <li><strong>"堆设多大就占多大物理内存"</strong>：未触碰的虚拟页不占物理页，只看 <code class="inline-code">-Xmx</code> 判断物理占用是错的。</li>
+                <li><strong>忽略 swap 对 GC 的放大</strong>：频繁换页会让单次 GC 从毫秒级恶化到秒级，先治换页再谈调参。</li>
+                <li><strong>容器里读 /proc/meminfo 当宿主机</strong>：需用 cgroup 限定视角，否则内存水位判断失真。</li>
               </ul>
             </div>
           </div>

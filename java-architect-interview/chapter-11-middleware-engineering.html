@@ -34,6 +34,10 @@
         <li><a href="#C11.17"><span class="toc-number">C11.17</span>数据库迁移 Flyway/Liquibase</a></li>
         <li><a href="#C11.18"><span class="toc-number">C11.18</span>Kafka vs RocketMQ 选型</a></li>
         <li><a href="#C11.19"><span class="toc-number">C11.19</span>eBPF 无侵入可观测</a></li>
+        <li><a href="#C11.20"><span class="toc-number">C11.20</span>成本优化 / FinOps</a></li>
+        <li><a href="#C11.21"><span class="toc-number">C11.21</span>分布式任务调度框架选型</a></li>
+        <li><a href="#C11.22"><span class="toc-number">C11.22</span>时间轮与延时任务</a></li>
+        <li><a href="#C11.23"><span class="toc-number">C11.23</span>分布式定时任务一致性</a></li>
       </ol>
     </aside>
 
@@ -52,11 +56,11 @@
         <h1 class="chapter-title">中间件与工程化</h1>
         <p class="chapter-subtitle">jBPM→Activiti→Flowable→Camunda 的工作流引擎演进、硬编码→脚本→规则引擎→决策引擎的业务规则演进、OAuth1.0→2.0→2.1 的授权演进、Session→JWT→双Token 的认证演进、Jenkins→GitLab CI→GitOps(ArgoCD) 的 CI/CD 演进、日志→APM→OpenTelemetry→eBPF 的可观测性演进：直击 BPMN 2.0 执行原理、QLExpress/Drools 选型、授权码+PKCE、双 Token 续期、Java Agent 字节码增强、TraceId 透传、OTel Collector、混沌工程稳态假设</p>
         <div class="chapter-meta">
-          <span>题目数：19</span>
+          <span>题目数：23</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×10</span>
+          <span>架构级 ×14</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
@@ -3106,6 +3110,198 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
                 <li><strong>忽视 Spot 任务可重入性</strong>：Spot 会中断，必须设计"可重放/可恢复"的批处理，否则省了钱丢数据。</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C11.21 分布式任务调度框架选型 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C11.21" data-difficulty="architect" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">C11.21</div>
+          <div class="qa-question">分布式定时任务调度框架对比与选型？Quartz / XXL-Job / Elastic-Job 各自的适用场景？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>考察的是<strong>"单机定时任务 → 分布式调度"的架构演进认知</strong>：能否说清 Quartz 单机与集群的局限、XXL-Job 与 Elastic-Job 为解决"任务不重、不空跑、可水平扩展"分别走了哪条路线。2026 头部大厂的调度器普遍已从自建轮子走向 XXL-Job / Elastic-Job / 云厂商（阿里 SchedulerX、腾讯）。选型不是"谁更牛"，而是匹配<strong>任务规模、分片需求、运维成本、社区与公司既有技术栈</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>JDK Timer(1996)</strong>：单线程、按固定速率/延迟、单任务阻塞会影响其他任务、任务抛异常即中断，只适合极简单场景。</p>
+            <p><strong>JDK ScheduledThreadPoolExecutor(CU)</strong>：线程池 + DelayedWorkQueue 最小堆，多线程并行、异常隔离于各任务，仍是单机的进程内调度，挂在哪个节点就只在哪个节点跑。</p>
+            <p><strong>Quartz(单机→集群)</strong>：先以 DB 存储 JobDetail/Trigger（RAMJobStore→JobStoreTX），QRTZ 三表做分布式独占锁；集群解决"多实例跑同任务需互斥"，但痛点明显——<strong>基于 DB 行锁抢独占，性能差、不支持分片</strong>。</p>
+            <p><strong>XXL-Job(2016)</strong>：调度中心 Admin + 执行器 Executor 分离，调度中心统一触发，执行器通过 <strong>RPC 回调注册 + 按 IP 分片广播</strong>；支持动态扩缩执行器、失败重试、报警，运维简单，是中小团队最常用。</p>
+            <p><strong>Elastic-Job(当当)</strong>：社区并入 Apache 后改名 ShardingSphere-ElasticJob，基于 <strong>ZooKeeper 协调，(2,1) 模式主从选主 + 任务分片</strong>，天然面向数据分片任务，适合大数据搬运/ETL，比 XXL-Job 更控制面重但分片语义更内建。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p>分布式调度要解决的三个公理：<strong>不重（同一分片同时只被一个执行器跑）</strong>、<strong>不丢（漏跑要有补偿与重试通道）</strong>、<strong>可扩（任务随业务量水平扩展，而非困在单节点）</strong>。所有框架的差异本质是协调者去哪：Quartz 用 DB 锁（弱一致、易成单点），XXL-Job 用<strong>集中式调度中心 + 心跳 + 路由策略</strong>，Elastic-Job 用<strong>ZooKeeper 临时节点选主 + 一致性分片</strong>。选型即选择"协调基础设施与任务形态的匹配度"。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>轻量单机/秒级</strong>：优先 <code class="inline-code">@Scheduled</code> + 分布式锁（悲观锁/Redis SETNX）兜底，避免引入框架。</p>
+            <p><strong>中小规模（几十~几百任务）</strong>：XXL-Job 开箱即用，CRON + 失败重试 + 报警 + 控制台可视化，成本最低。</p>
+            <p><strong>数据分片/ETL/大数据</strong>：Elastic-Job 的 Sharding 让 N 台执行器按分片挂载数据，如 <code class="inline-code">分片项 % 执行器数</code> 分片路由，天然适配"百万行批量搬运"。</p>
+            <p><strong>粒度与高可用</strong>：调度中心建议部署多实例 + DB 高可用；执行器按任务重要性决定是否多机房冗余；所有框架都会存在"时钟不一致/执行慢于 CRON 周期"需要幂等兜底。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p>追问一：XXL-Job 的"分片广播"与"轮询/一致性哈希"路由策略区别？——分片广播是执行器各自领一个分片并行处理；轮询/哈希是调度中心把触发请求派给某个执行器执行。</p>
+            <p>追问二：为什么 XXL-Job 不用 ZK 而 Elastic-Job 用 ZK？——XXL-Job 强调"轻量 + 明确的任务管理心智"，用 DB + 内存即可；Elastic-Job 从分片一致性出发，ZK 的临时节点天然表达"执行器存活与选主"。</p>
+            <p>追问三：调度中心挂了一种可能漏任务，如何兜底？——多实例 + 健康检查 + 失败告警 + 幂等；对关键链路提供<strong>补跑入口</strong>（手动/补偿任务）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>低估 Quartz 集群的 DB 锁瓶颈</strong>：QRTZ 行锁在高频任务下成为热点，集群越大性能越差。</li>
+              <li><strong>任务执行时间 &gt; CRON 周期</strong>：不加并发控制会导致上一轮没跑完下一轮已触发，需阻塞/单实例 <= 1 保护。</li>
+              <li><strong>执行器水平扩容但任务没有分片</strong>：多执行器只带来冗余，不带来吞吐，除非任务可拆。</li>
+              <li><strong>用 CRON 调度"非常规步长"</strong>：如"每 90 秒"，CRON 不好表达，应改用固定延时（initialDelay+fixedDelay）。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C11.22 时间轮与延时任务 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C11.22" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C11.22</div>
+          <div class="qa-question">时间轮（HashedWheelTimer）与延时任务的实现原理？时间轮 / DelayQueue / Redis 的取舍？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>考察对<strong>延时任务"数据结构与调度驱动"的底层理解</strong>：时间轮不是新的调度算法，而是把"到期判定"从 O(n) 遍历优化成<strong>O(1) 指针拨动 + 桶内按轮数分级</strong>。常见定时/延时任务实现只有三类驱动：<strong>轮询扫描</strong>（DelayQueue 最小堆）、<strong>刻度拨盘</strong>（时间轮）、<strong>外部原子队列+轮询</strong>（Redis ZSET）。本质上要回答"到期事件如何被以最低成本发现"。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>DelayQueue / ScheduledThreadPoolExecutor</strong>：用二叉最小堆保证堆顶即最近到期，取出线程 <code class="inline-code">take()</code> 阻塞到点；O(log n) 插入删除，实现简单，是 JUC 标准方案。</p>
+            <p><strong>时间轮 HashedWheelTimer（Netty）</strong>：一个环形数组（tick）按固定 tickDuration 拨动，每 tick 处理当前槽内的任务链表；为解决长延时，给任务带 <code class="inline-code">remainingRounds</code> 轮数，几圈后再取出执行。插入 O(1)，到达时仅触发当前槽，避免全局扫描，<strong>吞吐远高于最小堆</strong>，但存在"到点误差 ≤ tickDuration + 并发槽处理延迟"。</p>
+            <p><strong>Redis 实现延时队列</strong>：ZSET（score=到期时间戳）+ 轮询 <code class="inline-code">zrangebyscore</code> 取到期任务 + 预取补偿；跨节点共享、可持久化，是分布式延时任务的通行方案（Redisson DelayedQueue 底层即 ZSET + 发布订阅）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p>延时任务本质是<strong>"事件队列 + 时间索引"</strong>，复杂度来自"到期判断"：最小堆以额外 log 代价换取任意精确到期；时间轮以固定抗震（tick 粒度）换取 O(1) 批处理吞吐；Redis 把队列搬到共享存储换取分布式一致性。工程取舍铁律：<strong>同机大量任务、毫秒级抖动可容忍 → 时间轮；全局有序小任务 → 最小堆；跨实例/宕机可恢复 → Redis/消息队列延时消息</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p>秒杀/订单超时关闭通常三种落法：<strong>Redis ZSET + 定时扫描</strong>（简单，吞吐足够）、<strong>消息队列延时消息</strong>（RocketMQ 延时等级 / RabbitMQ TTL+DLX），以及<strong>时间轮 + 本地优先</strong>（要求高吞吐的网关/连接中超时，如 Netty IdleState 检测底层即时间轮）。</p>
+            <p>经验：业务"超过 24h 未支付自动关闭"这类分钟级宽松延时，不需要精确到毫秒，用 Redis 轮询即可；"毫秒级会话超时/废防止重连"才需要时间轮的高吞吐。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p>追问一：时间轮为什么会有微小的误差？——处理器被慢 tick 的溢出槽阻塞，或槽内任务过多导致单 tick 处理超时，出现 <code class="inline-code">sheak</code> 误差；对精确到点敏感的任务要放大 tick 或改用最小堆。</p>
+            <p>追问二：时间轮如何实现"超长延时"？——remainingRounds 分级，每次到槽只减 1 轮，等于把巨大刻度摊到多圈，空间与 O(1) 保持。</p>
+            <p>追问三：Redisson DelayedQueue 的实现？——Redis ZSET 按 score 排序 + 客户端 <code class="inline-code">poll(millis)</code> 拉取到期元素 + 发布订阅通知抢占者，配合空值预取。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>tickDuration 设得太粗/太细</strong>：太细空转浪费 CPU，太粗放大到期误差；要按业务精度定刻度。</li>
+              <li><strong>单槽任务积压拖垮所有 tick</strong>：同槽任务链表极长会让后续任务集体延迟，需关注热点桶分布。</li>
+              <li><strong>Redis ZSET 轮询粒度不当</strong>：轮询太频繁压力大，太稀疏会晚触发；用 <code class="inline-code">pop/mv 竞争 + 通知</code> 减少空转。</li>
+              <li><strong>把"延时任务"当"定时任务"用</strong>：CRON 固定周期用定时器，一次性到期用延时队列，别混用。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C11.23 分布式定时任务一致性 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C11.23" data-difficulty="architect" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">C11.23</div>
+          <div class="qa-question">如何保证分布式定时任务不重不漏？幂等、动态分片、故障转移与多机房如何处理？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>事件的本质：分布式环境下任何"定时触发"都不能依赖单点先验，<strong>唯一性必须落到任务执行侧的幂等与锁</strong>。所谓"不重"靠<strong>分布式锁 / 唯一约束 / 幂等表</strong>；"不漏"靠<strong>分片 + 故障转移 + 补跑</strong>。它考察的是把"单机 for 循环"升级为"可横向扩展、可在任意节点失败恢复"的系统能力，而非某框架的 API。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>单机</strong>：只跑一个实例即可，天然不重不漏，但单点故障即停摆。</p>
+            <p><strong>高可用（主备）</strong>：主动/被动互斥——靠 DB 唯一键或 <code class="inline-code">SELECT ... FOR UPDATE</code> / Redis SETNX 抢"锁记录"，抢到的实例执行，另一台不执行；解决了不重，但机器故障期间任务空窗。</p>
+            <p><strong>分布式调度</strong>：XXL-Job/Elastic-Job 把这些能力内建为"调度中心统一触发 + 执行器抢执行/分片 + 心跳失联重派"。故障转移 = 执行器超时未回报，调度中心把该分片重新派给存活执行器。</p>
+            <p><strong>多机房 / 云原生</strong>：任务提高可用性可跨机房冗余，但一致性风险上升，通常结合"单机房执行 + 异地只读"或"业务侧幂等表"收敛。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p>分布式一致性的根本约束是<strong>CAP 无法兼得</strong>：调度触发属于"写"，跨机房保证不重放弃强一致、用最终一致 + 幂等补偿。落点的公理只有一条：<strong>触发可以重复，处理必须幂等</strong>。因此"不重"不是靠调度器保证，而是靠业务侧对同一业务主键的<strong>唯一处理</strong>（幂等表 / 分布式锁 / 数据库唯一索引）收敛重复触发。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>幂等三件套</strong>：① 唯一业务键（如 orderId）建唯一索引，重复插入被拒；② 幂等表/消息去重（插入先查已处理）；③ 分布式锁（Redis SETNX + 过期时间，或 ZK 临时节点）包裹任务主体。</p>
+            <p><strong>动态分片</strong>：把数据按 <code class="inline-code">id % 分片数</code> 或主键范围路由，执行器增减时分片重算并触发一次重分布；用"轮询/一致性哈希"减少迁移量。</p>
+            <p><strong>故障转移与补跑</strong>：执行器心跳超时 → 调度中心重派；同时提供补跑入口（手动触发某分片/某天任务）。对关键任务设置失败重试上限 + 告警。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p>追问一：分布式锁实现不重的边界？——锁需要原子 + 过期时间（防死锁），但过期时间可能未执行完就过期导致重复，需用"续期 + 业务幂等"双保险。</p>
+            <p>追问二：分片数变更时老数据会不会漏跑？——分片重算后需对"已分片但未完成任务"做一次补偿扫描，否则切换窗口漏数据。</p>
+            <p>追问三：多机房主备还是双活？——金融场景常用"主机房执行 + 备机房待命，主挂自动切换并补跑窗口任务"，同时用幂等表防切换覆盖。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>只防不重不防不丢</strong>：调度器重复触发被幂等挡住，但故障空窗漏掉的任务没人补，必须设计补跑。</li>
+              <li><strong>锁过期时间拍脑袋</strong>：设太短导致未执行完锁已失效、重复执行；设太长阻塞新的故障切换。</li>
+              <li><strong>分片与数据分布耦合</strong>：数据倾斜是分片常态，按主键哈希相对均衡，按日期/区域可能热点。</li>
+              <li><strong>把"幂等"当成"去重即等于幂等"</strong>：去重只能拦重复触发，业务状态还需"重复触发时结果一致"才是真幂等。</li>
+            </ul>
           </div>
         </div>
       </div>

@@ -353,6 +353,20 @@
           <li><a href="#E11.03"><span class="toc-number">E11.03</span>Prometheus 监控告警</a></li>
         </ol>
       </div>
+
+      <div class="toc-group">
+        <div class="toc-group-title">十二、数据结构与算法</div>
+        <ol>
+          <li><a href="#E12.01"><span class="toc-number">E12.01</span>Java 常用数据结构选型</a></li>
+          <li><a href="#E12.02"><span class="toc-number">E12.02</span>树与索引 B+/B 树</a></li>
+          <li><a href="#E12.03"><span class="toc-number">E12.03</span>跳表与布隆过滤器</a></li>
+          <li><a href="#E12.04"><span class="toc-number">E12.04</span>LRU/LFU 缓存结构</a></li>
+          <li><a href="#E12.05"><span class="toc-number">E12.05</span>排序算法与 Java 选用</a></li>
+          <li><a href="#E12.06"><span class="toc-number">E12.06</span>链表/数组高频算法</a></li>
+          <li><a href="#E12.07"><span class="toc-number">E12.07</span>二分查找/双指针/滑动窗口</a></li>
+          <li><a href="#E12.08"><span class="toc-number">E12.08</span>遍历/递归/DP/贪心</a></li>
+        </ol>
+      </div>
     </aside>
 
     <!-- ============ 主体内容 ============ -->
@@ -366,12 +380,14 @@
       <!-- 章节头部 -->
       <div class="chapter-header epq-chapter-header">
         <div class="chapter-number">EIGHT-PART ESSAY / 高频八股文速查</div>
-        <h1 class="chapter-title">高频八股文 48 题</h1>
+        <h1 class="chapter-title">高频八股文 58 题</h1>
         <p class="chapter-subtitle">聚焦 2026 头部大厂仍在深入考察的核心原理，精炼四层结构速查导向</p>
         <div class="chapter-meta">
-          <span>题目数：48</span>
+          <span>题目数：58</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×27</span>
+          <span>高级开发 ×35</span>
+          <span class="meta-divider">|</span>
+          <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
           <span>架构级 ×21</span>
           <span class="meta-divider">|</span>
@@ -3169,6 +3185,391 @@
           <span class="epq-tag">Grafana</span>
           <span class="epq-tag">监控</span>
           <span class="epq-tag">可观测性</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.01 Java 常用数据结构选型 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.01" data-difficulty="senior" data-priority="p0">
+        <div class="epq-header">
+          <div class="epq-badge">E12.01</div>
+          <div class="epq-question">Java 常用数据结构选型：数组 / 链表 / 栈 / 队列 / HashMap 底层与复杂度<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>数组：随机访问 O(1)，插入删除 O(n)（需搬移），扩容为新数组拷贝；适合读多写少、下标访问</li>
+            <li>链表：插入删除 O(1)（给定节点），随机访问 O(n)，节点分散、缓存不友好；适合频繁增删</li>
+            <li>栈/队列：栈 LIFO（JVM 方法栈、括号匹配、深度优先），队列 FIFO（BFS、任务缓冲）；Java 常用 ArrayDeque 双端队列实现</li>
+            <li>HashMap：数组 + 链表/红黑树，负载因子 0.75，默认 16，扩容 2 倍；链表长度 ≥8 转红黑树、≤6 退回链表，减少极端哈希冲突</li>
+            <li>有序结构：TreeMap（红黑树，按键有序）、LinkedHashMap（保插入/访问序，可做 LRU）；ConcurrentHashMap 采用数组 + CAS + 红黑树并发安全</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>ArrayList 底层 Object[]，默认容量 10，扩容按 1.5 倍并 System.arraycopy；LinkedList 单/双链表，头尾操作 O(1) 但中间访问 O(n)。大量随机访问优先 ArrayList，其数组连续内存利于 CPU 缓存局部性。</p>
+          <p>HashMap 1.7 用头插法，并发下扩容可能形成环链表导致死循环；1.8 改为尾插法并引入红黑树，虽仍非线程安全，但避免了死链。put 流程：hash 扰动（高 16 位异或低 16 位）→ 定位桶 → 空则直接放，冲突则链/树化；树化要求同时满足容量 ≥64。</p>
+          <p>LinkedHashMap 重写 get/put 的 hook，accessOrder=true 时每次访问把节点移到链表尾部，天然实现 LRU 雏形；最老节点在头部可驱逐。TreeMap 所有操作 O(log n)，适合区间/顺序遍历需求。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>选型口诀：需要下标/极致读性能用数组；频繁增删且不关心顺序用链表（或 ArrayDeque 模拟）；键值查找用 HashMap 将 key → bucket 索引；需要有序/顺序遍历用 LinkedHashMap 或 TreeMap。并发写场景用 ConcurrentHashMap 而非同步包装的 Hashtable。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 为什么树化阈值选 8？</span><span class="a">A: 基于泊松分布，负载因子 0.75 时链表长度达 8 的概率已低于千万分之一，此时是哈希函数设计有问题的信号，树化兜底极端冲突。</span></li>
+            <li><span class="q">Q: 负载因子为什么取 0.75？</span><span class="a">A: 取 0.75 是时间（越少碰撞次数越少）与空间（越大扩容越迟）的折中；过小浪费空间，过大冲突增多。</span></li>
+            <li><span class="q">Q: ArrayList 与 LinkedList 谁更省内存？</span><span class="a">A: ArrayList 更省，只是连续对象引用；LinkedList 每个节点额外存前后指针，且节点分散导致缓存命中率低。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">数据结构</span>
+          <span class="epq-tag">HashMap</span>
+          <span class="epq-tag">集合</span>
+          <span class="epq-tag">复杂度</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.02 树与索引 B+/B 树 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.02" data-difficulty="expert" data-priority="p0">
+        <div class="epq-header">
+          <div class="epq-badge">E12.02</div>
+          <div class="epq-question">树与索引：二叉树 / BST / B 树 / B+ 树，为何 MySQL 用 B+ 树<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>二叉树：无序；BST：左小右大，平均 O(log n)，但插入有序数据退化为链表 O(n)</li>
+            <li>平衡树：AVL 严格平衡（旋转多）、红黑树近似平衡（旋转少、最多 2log(n+1)），删除场景红黑树更优</li>
+            <li>B 树：多路平衡树，节点多个键和子树，同一节点存数据，减少磁盘 IO 次数（层级低）</li>
+            <li>B+ 树：内节点只存键做路由，数据全在叶子；叶子间以链表相连支持范围扫描</li>
+            <li>MySQL InnoDB 聚簇索引用 B+ 树：扇出大 → 高度低（千万行仅 3~4 层）→ 每次查询磁盘 IO 极少；叶子有序支持高效范围查询与排序</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>为什么是 B+ 树而非 B 树：① B+ 树内节点不含数据，一个页可存更多键，扇出更大、树更矮、IO 更少；② 数据都集中在叶子且有序，范围查询、ORDER BY、GROUP BY 直接沿叶子链表遍历，无需回溯中序遍历；③ 叶子节点可做预读聚簇，缓存命中率高。</p>
+          <p>为什么不用哈希索引：哈希只支持等值 O(1)，不支持范围查询与排序（MongoDB 等用 Hash）；为什么不用红黑树：红黑树是二叉（扇出小，高度高），存储于磁盘时树高意味着更多次磁盘 IO，B+ 树单节点多路显著压低高度。</p>
+          <p>主键选择对聚簇索引的影响：InnoDB 主键即聚簇索引，自增整形主键顺序写入、避免页分裂与碎片；UUID 乱序主键导致大量随机插入、频繁页分裂与碎片。二级索引叶子存主键值回表。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>索引设计：前缀索引、复合索引遵循最左前缀；覆盖索引避免回表并可下推（ICP）；区分度低的列（性别）不适合建索引。大批量写入用自增主键；磁盘存储引擎上线前评估索引扇出。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: B 树与 B+ 树在数据存储上的核心差异？</span><span class="a">A: B 树所有节点都可存数据、且只有一个 Key 一个值；B+ 树仅叶子存数据并构成有序链表，内节点只是索引路由。</span></li>
+            <li><span class="q">Q: 为什么 UUID 主键会降低写入性能？</span><span class="a">A: UUID 无序导致插入随机落在已有页，触发频繁页分裂，B+ 树叶子页乱序、索引碎片化，扇出与命中率下降。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">树</span>
+          <span class="epq-tag">索引</span>
+          <span class="epq-tag">B+树</span>
+          <span class="epq-tag">数据库</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.03 跳表与布隆过滤器 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.03" data-difficulty="senior" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E12.03</div>
+          <div class="epq-question">跳表 SkipList 与布隆过滤器 BloomFilter 原理与典型应用<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>跳表：有序链表之上叠加多层索引，逐层跳跃查找，期望 O(log n)，支持范围查询与 O(log n) 插入删除，实现简单、天然有序</li>
+            <li>典型应用：Redis 有序集合（zset）底层用跳表，因为实现简单、易支持区间和 ZRANGE 排名场景</li>
+            <li>布隆过滤器：位数组 + k 个哈希函数，插入把 k 个位置置 1，查询 k 个位置是否全 1</li>
+            <li>结论语义：返回「不存在」是<strong>必定</strong>不存在；返回「存在」仅<strong>可能</strong>存在（有误判）；无法删除元素</li>
+            <li>典型应用：缓存穿透防御、URL/黑名单去重、数据库防读穿透、分布式系统判重</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>跳表查找：从最高层指针对应小与目标则右移、大则下降一层，直到底层定位；新区插入按概率 p（通常 0.5）决定层高随机生成。相比红黑树跳表不需频繁旋转，代码简单，适合内存中的有序结构。</p>
+          <p>布隆过滤器误判率与参数关系：位数组大小 m 越大误判越低；元素 n 越多误判越高；哈希函数个数 k 最优取 m/n·ln2。一次查询与插入都是 O(k)，空间远小于存整元素。无法删除是最大不足，可引入计数布隆过滤器（每个槽计数）支持删除，但占用更多空间。</p>
+          <p>工程中常与缓存结合：请求先过布隆过滤器，若不存在则直接返回，避免大量不存在 key 打到 DB（缓存穿透）；元素会被定期重建以吸收新增数据。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>防缓存穿透：把合法 key 集合建布隆过滤器（Guava/Redisson），拦截不存在的 key；配合空值缓存 + 过期时间兜底。跳表适合需要有序 + 区间的内存结构，分布式排序结构或对写敏感的索引可优先考虑。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: Redis zset 为什么用跳表而不用红黑树？</span><span class="a">A: 跳表实现简单、修改不需大幅旋转，且天然支持按序区间遍历；红黑树需额外维护顺序遍历复杂度更高，工程取舍。</span></li>
+            <li><span class="q">Q: 布隆过滤器误判会带来什么问题？</span><span class="a">A: 会把少量不存在的 key 误判为存在而放行去查 DB，代价是「多一次无害的 DB 查询」，不会漏过真实存在的数据。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">跳表</span>
+          <span class="epq-tag">布隆过滤器</span>
+          <span class="epq-tag">Redis</span>
+          <span class="epq-tag">缓存</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.04 LRU/LFU 缓存结构 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.04" data-difficulty="senior" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E12.04</div>
+          <div class="epq-question">LRU / LFU 缓存结构设计与一致性哈希<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>LRU：最近最少使用；实现 = 双向链表 + HashMap，get/put 均 O(1)；命中节点移到表头，表尾为最久未用可驱逐</li>
+            <li>LFU：访问频率最低优先淘汰，对抗「一次突发不常用」的缓存污染，但实现更复杂，需按频率维护桶</li>
+            <li>Java 实现：LinkedHashMap 设置 accessOrder=true 天然做 LRU；并发可用 ConcurrentHashMap + 自管理或直接用 Redis 淘汰策略</li>
+            <li>一致性哈希：把 key 与节点映射到哈希环，顺时针找最近节点；加入虚拟节点使分布更均匀，增删节点只影响相邻一段 key，迁移量小</li>
+            <li>典型应用：本地缓存/HTTP 缓存淘汰、Redis maxmemory-policy allkeys-lru、分布式缓存节点寻址</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>LRU 操作：get 命中把节点移到头部；put 时若容量满则移除尾节点（最久未用）再插入头部。双向链表的相邻节点引用在换出时 O(1) 完成，配合 HashMap 的 key→节点映射实现 O(1) 定位，否则链表查找是 O(n)。</p>
+          <p>LFU vs LRU：LFU 统计累计访问频率，能抵抗「一次性热点」污染，但对访问模式变化不敏感（旧高频项难被换出）；LRU 只关心最近访问时间，实现简单、成本低。微服务本地缓存、数据库缓冲池常用近似 LRU（如 MySQL 自适应哈希 + LRU 分代）。</p>
+          <p>一致性哈希在哈希环分布有数据倾斜问题时，通过为每个物理节点加若干虚拟节点（映射到环上多个位置）使负载更均匀；删除/新增节点仅重哈希该节点到下一节点之间的 key，命中率波动小而稳定。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>选型：读热点稳定、又要防污染 → LFU；实现简单、写多读少 → LRU。分布式缓存路由避免直接取模（%N），取模在节点增减时几乎所有 key 都会重新映射，一致性哈希把影响范围缩到最小。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 如何用 O(1) 实现 LRU？</span><span class="a">A: HashMap 存 key→Node，Node 组成双向链表；get 命中节点摘除插头部，put 满时删尾部，全部 O(1)。</span></li>
+            <li><span class="q">Q: 一致性哈希为什么能减少缓存迁移？</span><span class="a">A: 节点在环上只有加入/移除位置相邻的一段 key 会切换目标节点，其余 key 的映射不变，命中率不受全局影响。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">LRU</span>
+          <span class="epq-tag">LFU</span>
+          <span class="epq-tag">一致性哈希</span>
+          <span class="epq-tag">缓存</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.05 排序算法与 Java 选用 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.05" data-difficulty="senior" data-priority="p0">
+        <div class="epq-header">
+          <div class="epq-badge">E12.05</div>
+          <div class="epq-question">排序算法：复杂度 / 稳定性、快排 / 归并 / 堆排，Java 排序的选用<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>O(n²)：冒泡（稳定）、选择（不稳定）、插入（稳定）；数据规模小/局部有序时插入表现好</li>
+            <li>快排：分治就地交换，平均 O(n log n)，最坏 O(n²)，不稳定；常数小、速度快</li>
+            <li>归并：分治 + 合并，稳定，需 O(n) 额外空间，适合外部排序与链表排序</li>
+            <li>堆排：利用最大/最小堆，O(n log n)，不稳定，就地、最坏仍 O(n log n)</li>
+            <li>Java：Arrays.sort 基本类型用双轴快排（DualPivotQuickSort），对象类型用归并（TimSort），保证稳定性与友好数据</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>稳定性意义：需要多级排序时（先按时间再按优先级）稳定性保证同优先级元素保持原始相对顺序。快排不稳定因交换会打乱相等元素次序；归并稳定因合并时等值取左序列。</p>
+          <p>快排最坏退化的避免：基准选择用随机化或三数取中；当递归区间很小时改插入排序。归并适合无法原地（链表、外存）的场景，外部排序（海量数据不落内存）用归并多路合并 + 败者树。</p>
+          <p>Java 对象数组用 TimSort——归并的改良，对已排序/接近有序数据近乎 O(n)，且稳定；所以自定义对象用 Collection.sort 结果稳定、基本类型排序不稳定。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>面试手写多考快排/归并模板；生产直接交给标准库。海量数据（GB 级）排序走外部排序：分块读入内存排好写临时文件，再 K 路归并，配合败者树减少比较。稳定优先用归并，性能优先用快排。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 快排最坏情况是什么时候？</span><span class="a">A: 每次基准都选到极值（如已有序数据仍固定取首元素）时退化为 O(n²)；随机化或三数取中可避免。</span></li>
+            <li><span class="q">Q: 稳定的排序算法有哪些？</span><span class="a">A: 冒泡、插入、归并稳定；选择、快排、堆排不稳定。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">排序算法</span>
+          <span class="epq-tag">复杂度</span>
+          <span class="epq-tag">稳定性</span>
+          <span class="epq-tag">算法</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.06 链表/数组高频算法 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.06" data-difficulty="senior" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E12.06</div>
+          <div class="epq-question">链表 / 数组高频算法：反转、环形检测（快慢指针）、合并有序序列<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>反转链表：迭代（prev/curr/next 三指针）与递归（先反转后半再拼头）两种模板，迭代 O(1) 额外空间</li>
+            <li>环形链表：快慢指针，快指针每次走两步、慢一步，若相遇则有环，能证明且可求环入口</li>
+            <li>合并两个有序链表：虚拟头节点 + 双指针逐个取小；数组版归并同理</li>
+            <li>删除倒数第 N 个节点：双指针先走 N 步再同步走，一次遍历定位</li>
+            <li>数组场景：三数之和/两数之和用排序 + 双指针对撞；原地去重用快慢指针</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>反转链表核心是不丢失对后继的引用：先把 next 暂存，再让当前节点指向前驱，然后前驱与当前整体前移。递归写法从尾到头逐层让下一节点指向自己，最后新头是原尾节点。</p>
+          <p>快慢指针判环：两者在某时刻相遇说明 slow 已经「转圈」追上 fast；求环入口——相遇后让一指针回原点、二者同速走，再次相遇点即环入口（步数关系：起点到环口 = 相遇点到环口）。时间 O(n)、空间 O(1)，优于哈希表记录已访问节点。</p>
+          <p>合并有序链表设置 dummy 哨兵节点避免讨论头节点为空的情况，最后直接返回 dummy.next；两数之和排序后用头尾指针，小于目标左移右、大于目标右移左。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>这些是手敲高频题，建议把「反转、判环、合并、找中点（快慢）、删除倒数第 k」背成模板；面试关注边界（空链表、单节点、k&gt;长度）处理是否健壮。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 快慢指针判环为什么要快走两步？</span><span class="a">A: 若快每次也走一步永远追不上；走两步保证在有限步内追上慢指针（环内相对速度 1 步/轮，不会跳过）。</span></li>
+            <li><span class="q">Q: 递归反转的空间复杂度？</span><span class="a">A: O(n)，因递归栈深度为链表长度；迭代只 O(1)，海量链表用迭代。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">链表</span>
+          <span class="epq-tag">双指针</span>
+          <span class="epq-tag">快慢指针</span>
+          <span class="epq-tag">算法题</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.07 二分查找/双指针/滑动窗口 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.07" data-difficulty="senior" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E12.07</div>
+          <div class="epq-question">二分查找、双指针、滑动窗口的模板与边界处理<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>二分查找前提：有序（或满足单调性）；mid 用 <code class="inline-code">mid = lo + (hi - lo) / 2</code> 防溢出</li>
+            <li>三类模板：找精确值（lo &lt;= hi）、找左边界、找右边界；边界收缩不同，易错点在于是否会死循环或漏查</li>
+            <li>双指针对撞：有序数组两数之和、三数之和、接雨水等，O(n)</li>
+            <li>滑动窗口：定长与不定长（维护窗口内满足条件），通常 O(n)；经典为无重复最长子串、最小覆盖子串</li>
+            <li>二分亦可应用于旋转数组查找、有序矩阵搜索、二分答案（最值可行性判断）</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>二分模板关键统一：精确查找 while (lo &lt;= hi) 时 mid 命中即返回；找边界用左闭右开 [lo, hi)，循环不变量是「lo 侧恒小于目标、hi 侧恒大于等于目标」，结束时 lo 即插入位置。注意 int 相加溢出与 1 未更新导致的死循环。</p>
+          <p>滑动窗口：right 右扩加入元素并更新状态，当窗口违规时 left 收缩直至重新合法，期间记录最优解；用数组/计数维护窗口内容。整体每个元素进出窗口各一次，时间复杂度 O(n)。</p>
+          <p>二分答案：当问题可转化为「给定阈值判断可行性」且可行性随阈值单调，就能二分阈值求最值（如最小化最大值、贪心可行性二分）。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>面试优先把模板背熟（找边界 + 滑窗标准结构），代码要能跑通边界用例：空数组、单个元素、目标小于所有/大于所有。不要手工写易错的循环次数，用模板 + 单元自证。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 二分查不到时插入位置怎么确定？</span><span class="a">A: 用左界模板，循环结束时 lo 即是第一个大于等于目标的位置，即应插入下标。</span></li>
+            <li><span class="q">Q: 滑动窗口何时适用？</span><span class="a">A: 子数组/子串满足单调可收缩条件、求最优连续段时；窗口随右界单调推进可一次扫描完成。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">二分查找</span>
+          <span class="epq-tag">双指针</span>
+          <span class="epq-tag">滑动窗口</span>
+          <span class="epq-tag">模板</span>
+        </div>
+      </div>
+
+      <!-- ============================== -->
+      <!-- E12.08 遍历/递归/DP/贪心 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E12.08" data-difficulty="expert" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E12.08</div>
+          <div class="epq-question">图与树遍历、递归、动态规划与贪心的适用边界<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>DFS：递归/栈，适合路径、连通性、回溯；BFS：队列，适合最短步数、分层扩散、拓扑排序（入度法）</li>
+            <li>递归三要素：终止条件、递推关系、返回值；注意栈深度（深树会栈溢出，可改迭代 + 显式栈）</li>
+            <li>动态规划：最优子结构 + 重叠子问题；自底向上填表或自顶向下记忆化；经典背包、最长公共子序列、爬楼梯/斐波那契</li>
+            <li>贪心：每一步取当前局部最优，仅在证明「局部最优 = 全局最优」（贪心选择性质）时可用，如区间调度、找零（特定币值）</li>
+            <li>回溯：试探 + 撤销（状态回滚），解决排列组合、八皇后；本质是 DFS 加剪枝</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p>DFS vs BFS：DFS 实现简单但可能访问深而浪费，BFS 保证逐层找到最短步数（无权图）。Java 递归受线程栈限制（默认约 512KB)，深度超过万级会 StackOverflow，大数据深树/图遍历需改显式栈或迭代。</p>
+          <p>动态规划要点：先定义 dp 数组含义 → 写状态转移 → 定初始值 → 定遍历顺序。贪心与之区别：贪心不保存子问题结果、只走一条路；DP 记录并依赖所有子问题；判断用贪心需验证「最优子结构 + 贪心选择」，反例（如分数背包 vs 0-1 背包）说明 DP 与贪心的边界。</p>
+          <p>记忆化优化：递归 + memo 缓存已解子问题（自顶向下）等价于自底向上填表，避免重复计算；二叉树遍历（前/中/后序递归、层序 BFS）是 DFS/BFS 最小模型。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>树/图题先判断用 BFS 还是 DFS：求最优步数、层序用 BFS；求存在性、路径枚举用 DFS + 回溯。DP 先写暴力递归再改 memo 是最稳妥的推导路线；能用贪心就尽量用贪心（复杂度最低），但要能给出正确性证明或至少反例不存在的理由。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: DP 与贪心的本质区别？</span><span class="a">A: DP 依赖并复用所有子问题的最优解（探索全部状态），贪心只做无回溯的局部最优决策，仅在问题具有贪心选择性质时成立。</span></li>
+            <li><span class="q">Q: 什么时候用记忆化（自顶向下）？</span><span class="a">A: 状态含大量不可达组合、只想求部分子问题时记忆化更省；状态全可达时自底向上递推更简单直接。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">DFS</span>
+          <span class="epq-tag">BFS</span>
+          <span class="epq-tag">动态规划</span>
+          <span class="epq-tag">贪心</span>
         </div>
       </div>
 

@@ -26,6 +26,7 @@
         <li><a href="#C13.09"><span class="toc-number">C13.09</span>WebSocket 握手、心跳与断线重连设计</a></li>
         <li><a href="#C13.10"><span class="toc-number">C13.10</span>DNS 解析原理与智能调度</a></li>
         <li><a href="#C13.11"><span class="toc-number">C13.11</span>io_uring 异步 IO 与 Loom</a></li>
+        <li><a href="#C13.12"><span class="toc-number">C13.12</span>OS 系统调用与内核交互</a></li>
       </ol>
     </aside>
 
@@ -45,15 +46,15 @@
         <h1 class="chapter-title">网络与高性能 IO</h1>
         <p class="chapter-subtitle">从 OSI 七层到 TCP/IP 四层到 QUIC 的协议演进、从 BIO 到 NIO 到 AIO 的 IO 模型演进、从 HTTP/1.1 到 HTTP/2 到 HTTP/3 的 Web 协议演进、从轮询到长轮询到 SSE 到 WebSocket 的实时通信演进、从传统拷贝到 sendfile 到 mmap 到 DMA 的数据传输演进：直击 TCP 状态机与拥塞控制、TLS 握手与证书链、Java NIO Selector/Reactor、Netty EventLoop/Pipeline/ByteBuf 池化、零拷贝实现、WebSocket 长连接设计、DNS 智能调度与 HTTPDNS</p>
         <div class="chapter-meta">
-          <span>题目数：11</span>
+          <span>题目数：12</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×4</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×6</span>
+          <span>架构级 ×7</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：210 分钟</span>
+          <span>预计复习：230 分钟</span>
         </div>
       </div>
 
@@ -1615,6 +1616,88 @@ $ dig www.example.com | grep "ANSWER SECTION" -A 2</code></pre></div>
                 <li><strong>误以为 JDK 已原生支持 io_uring</strong>：JDK 21 虚拟线程底层仍用 epoll，主线 JDK 没有原生 io_uring 支持。要用 io_uring 得靠 Netty incubator 模块或 JNI 自封装，别在面试或选型里说"JDK 21 用了 io_uring"。</li>
                 <li><strong>忽略 io_uring 的内核版本要求</strong>：io_uring 自 Linux 5.1 引入，但 SQPOLL、Buffer Ring 等高级特性需要更高内核版本（5.6+/5.13+）。生产部署前必须核对宿主机/容器内核版本，否则运行时报 ENOSYS。</li>
                 <li><strong>混淆事件驱动（epoll）与完成驱动（io_uring）</strong>：epoll 告诉你"fd 就绪"，你还得自己 read；io_uring 告诉你"IO 已完成"，数据已在缓冲区。把 io_uring 当成"另一个 epoll"来用，会错失它完成驱动的核心价值。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C13.12 OS 系统调用与内核交互：Java 网络/IO 背后的内核边界 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C13.12" data-difficulty="architect" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">C13.12</div>
+          <div class="qa-question">操作系统系统调用（System Call）与内核交互：用户态/内核态切换、read/write/epoll/sendfile 等系统调用如何支撑 Java 高性能网络 IO？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察<strong>Java 高性能 IO 之上那层"不可见的契约"</strong>：你写的 <code class="inline-code">SocketChannel.write()</code>、Netty 的 epoll、零拷贝的 sendfile——最终都通过 <strong>系统调用</strong>穿过用户态/内核态边界进入内核。能讲清 <strong>syscall 是什么、代价在哪、epoll/sendfile 等核心调用解决什么问题</strong>，才能解释"为什么 NIO 比 BIO 快、为什么零拷贝省内存、为什么跨语言底层都依赖同一批内核原语"。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>为什么需要系统调用</strong>：出于安全隔离，用户程序不能直接访问硬件/内核数据结构。凡涉及<strong>文件、网络、内存分配、进程线程、时间</strong>的操作都要<strong>陷入内核</strong>，通过 syscall 请求内核代为完成。</p>
+            <p><strong>IO 模型背后的 syscall 演进</strong>：阻塞 <code class="inline-code">read/write</code> → 多路复用 <code class="inline-code">select/poll → epoll</code>（事件驱动）→ 异步完成 <code class="inline-code">io_uring</code>。每一步都降低"用户态-内核态往返"与"忙碌轮询"的代价。</p>
+            <p><strong>数据拷贝 syscall 演进</strong>：传统 <code class="inline-code">read+write</code> 多次用户态/内核态拷贝 → <code class="inline-code">sendfile</code> 内核内直接搬移 → <code class="inline-code">mmap</code> 让用户态直接映射内核页 → <code class="inline-code">DMA</code> 让硬件直接访问内存，拷贝次数逐级下降。</p>
+            <p><strong>统一入口</strong>：现代内核用 <code class="inline-code">syscall</code> 指令 + <code class="inline-code">syscall table</code>（x86-64 的 <code class="inline-code">syscall</code> 指令更快，替代旧 <code class="inline-code">int 0x80</code>），libc/JVM 通过该机制完成一切系统级服务请求。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>用户态/内核态切换</strong>：CPU 通过<strong>特权级</strong>隔离——用户态（Ring 3）无法执行特权指令，<code class="inline-code">syscall</code> 指令触发<strong>陷入（trap）</strong>切换到内核态（Ring 0）执行，用 <code class="inline-code">syscall number + 参数寄存器</code> 定位内核函数，返回时再切回用户态。切换有 TLB/流水线开销，故业界追求<strong>减少系统调用次数</strong>。</p>
+            <p><strong>epoll 为何高效</strong>：<code class="inline-code">epoll_create/epoll_ctl/epoll_wait</code> 三调用。内核维护兴趣列表（红黑树）+ 就绪队列（链表），数据到达由内核<strong>事件回调</strong>放入就绪队列，用户 <code class="inline-code">epoll_wait</code> 只取结果，<strong>O(1)</strong> 感知就绪 fd，无需像 select 那样线性扫描并反复传整个 fd 集。</p>
+            <p><strong>sendfile 零拷贝本质</strong>：一次 <code class="inline-code">sendfile</code> 调用在<strong>内核态</strong>完成 文件→page cache→socket 的数次拷贝（配合 DMA 无需经过用户态缓冲区），把"用户态往返 + 用户缓冲拷贝"省掉。Java 的 <code class="inline-code">FileChannel.transferTo()</code> 底层即在 Linux 上走 sendfile。</p>
+            <p><strong>系统调用向量对照</strong>：BIO 的 read 阻塞、NIO 用 epoll_wait 多路复用、Netty 通过 epoll 事件驱动、零拷贝用 sendfile/mmap——<strong>Java 各层框架只是把不同的内核 syscall 封装得更易用</strong>，性能差距的根源在底层调用选择。</p>
+            <div class="code-block"><pre><code><span class="com">// Java 层对应内核系统调用的映射</span>
+SocketChannel.read(...)          <span class="com">// -&gt; read() / recvfrom()</span>
+SelectableChannel.register(...)   <span class="com">// NIO: epoll_ctl（Linux）</span>
+Selector.select()                <span class="com">// NIO: epoll_wait（Linux）</span>
+FileChannel.transferTo(...)      <span class="com">// 零拷贝: sendfile（Linux）</span>
+MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）</span></code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p><strong>"高性能网络编程"比拼的核心之一，就是选对并减少系统调用</strong>：epoll 减少轮询、sendfile 减少拷贝、io_uring 减少"就绪后再发起 IO"的多次往返——理解 syscall 代价，就理解了所有高并发框架为何如此设计。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>选择正确的 IO 通道</strong>：长连接/高并发网络服务用 <code class="inline-code">NIO</code>（Base 上 epoll）+ 多路复用，而非每连接一线程的 BIO；文件大传输用 <code class="inline-code">transferTo</code> 走零拷贝，避免在大文件上反复 <code class="inline-code">read/write</code> 造成用户态拷贝。</p>
+            <p><strong>关注 syscalls 指标</strong>：用 <code class="inline-code">strace -f -c -p &lt;pid&gt;</code> 统计进程系统调用分布，定位是否因大量重复 syscall（如频繁 read/write 小包）而性能虚高耗时；<code class="inline-code">perf trace</code> 可看每调用耗时。</p>
+            <p><strong>Netty 底层开关</strong>：Netty 可通过 <code class="inline-code">EpollEventLoopGroup</code>（优于默认 NIO 的 epoll 路径）、开启 ByteBuf <code class="inline-code">allocateDirect</code>（减少堆外/堆内拷贝），从"调用选择"层面榨取 syscall 性价比。</p>
+            <p><strong>io_uring 的新选择</strong>：JDK 21+ 借助 <code class="inline-code">liburing</code>/Loom 或在 C 层使用 io_uring 可获得比 epoll 更低的延迟与更高吞吐；Java 生态虽原生支持有限，但可作为选型论证点（见 C13.11）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：为什么 select 在 fd 多时低效？</strong> select 每次调用需把整个 fd 集合拷贝进内核并线性扫描，fd 多时拷贝与遍历开销线性增长；epoll 只在注册/取消时传 fd，就绪由内核回调维持，复杂度与 fd 总数关系更优。</p>
+            <p><strong>追问 2：mmap 与 sendfile 有何取舍？</strong> mmap 适合<strong>读写双向</strong>、用户态可直接访问映射页（如缓存文件、MQ disk 索引）；sendfile 只适合<strong>只读向 socket 发送</strong>、无法写文件。用错场景反而引入 page fault 或语义限制。</p>
+            <p><strong>追问 3：为什么系统调用比普通函数调用慢？</strong> 需切换特权级、保存/恢复上下文、可能触发 TLB 失效与流水线停顿；现代 CPU 的 <code class="inline-code">syscall</code> 指令已优化，但每次仍有几十到数百周期的固有开销，故高频路径要批量/异步化（如 io_uring、sendfile 一次性做多步）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>"NIO 靠魔法变快"</strong>：本质是底层改用 epoll 等多路复用 syscall，减少阻塞与轮询，而非 Java 自身优化。</li>
+                <li><strong>混淆"零拷贝"含义</strong>：通常指<strong>避免用户态/内核态间拷贝</strong>，显著减少 CPU 拷贝，而非完全不拷贝。</li>
+                <li><strong>误以为 syscall 免费</strong>：每次陷入内核都有切换开销，高频调用应合并/异步化应对。</li>
+                <li><strong>select/epoll 混为一谈</strong>：二者实现与复杂度不同，面试需能讲出 Red-Black 树 + 就绪队列差异。</li>
+                <li><strong>忽略跨语言一致性</strong>：Go/Java/Rust 底层最终都调到同一批内核 syscall，选型差异只在"谁封装得更好"。</li>
               </ul>
             </div>
           </div>

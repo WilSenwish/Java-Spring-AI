@@ -26,6 +26,7 @@
         <li><a href="#C03.09"><span class="toc-number">C03.09</span>ForkJoinPool 分治与工作窃取</a></li>
         <li><a href="#C03.10"><span class="toc-number">C03.10</span>线程安全计数器实现</a></li>
         <li><a href="#C03.11"><span class="toc-number">C03.11</span>Disruptor 无锁队列</a></li>
+        <li><a href="#C03.12"><span class="toc-number">C03.12</span>OS 进程线程模型与上下文切换</a></li>
       </ol>
     </aside>
 
@@ -44,15 +45,15 @@
         <h1 class="chapter-title">并发编程与锁机制</h1>
         <p class="chapter-subtitle">从 JMM 内存屏障到 AQS 同步器框架：理解锁的演进哲学、CAS 无锁编程与高并发计数器的性能边界</p>
         <div class="chapter-meta">
-          <span>题目数：11</span>
+          <span>题目数：12</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×8</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×1</span>
+          <span>架构级 ×2</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：130 分钟</span>
+          <span>预计复习：145 分钟</span>
         </div>
       </div>
 
@@ -1647,6 +1648,86 @@ disruptor.<span class="fn">start</span>();
                 <li><strong>混淆 BatchEventProcessor 和 WorkProcessor</strong>：BatchEventProcessor 是"每个消费者独立 Sequence，可并行处理同一批事件"（发布订阅）；WorkProcessor 是"多个 Worker 共享一个 Sequence 池，每个事件只被一个 Worker 处理"（工作分发）。选错会导致事件被重复处理或漏处理。</li>
                 <li><strong>误用 WaitStrategy 导致 CPU 空转</strong>：BusySpinStrategy 在没有事件时 100% 占满 CPU，非绑核场景用它会拖垮整机；通用场景应用 SleepingStrategy 或 BlockingStrategy，只有极致低延迟且已绑核才用 BusySpin。</li>
                 <li><strong>持有 Event 引用</strong>：Event 对象是复用的，onEvent 处理后不能将其存入集合或异步引用，否则会被生产者下次覆盖，导致数据错乱。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C03.12 OS 进程线程模型与上下文切换：Java 线程的底层骨架 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C03.12" data-difficulty="architect" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">C03.12</div>
+          <div class="qa-question">操作系统进程/线程模型：用户态与内核态线程、上下文切换代价、线程与进程的区别？Java 线程为何是 1:1 映射内核线程？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察对<strong>并发底层载体的系统级认识</strong>：线程并非凭空存在，而是由 OS 内核调度的执行单元。能否说清 <strong>进程与线程的区别、内核态/用户态切换、上下文切换的开销构成</strong>，直接决定你对"线程池该开多大、协程/虚拟线程为何省资源、为什么并发量大要降低线程数"的判断力。它把 Java 并发 API 与真实硬件/内核行为连在了一起。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>进程（Process）</strong>：资源分配与调度的基本单位，拥有独立地址空间、文件描述符等，隔离强但创建/切换成本高（需换页表/快表）。</p>
+            <p><strong>线程（Thread）</strong>：进程内的执行流，<strong>共享地址空间与资源</strong>，只保留独立栈与寄存器上下文，创建和切换比进程轻量，但共享意味着要自己加同步。</p>
+            <p><strong>线程实现模型</strong>：① 用户级线程（M:1，调度在用户态，无内核感知，阻塞会卡死整组）；② 内核级线程（1:1，由内核调度）；③ 混合模型（M:N）。主流现代内核（Linux 6.9+ 也支持 N:1 用户线程）走 <strong>1:1 内核线程</strong>。</p>
+            <p><strong>Java 演进</strong>：<code class="inline-code">java.lang.Thread</code> 长期 1:1 映射内核线程；直到 <strong>Project Loom</strong> 在 JDK 21 引入 <strong>虚拟线程（Virtual Threads）</strong>，改为 <strong>M:N 用户态调度</strong>，解决高并发下内核线程数受限、切换昂贵的问题。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>上下文切换开销构成</strong>：保存/恢复 CPU 寄存器、换页表（进程级）、刷新 TLB、切换内核栈与调度器记账。一次上下文切换（内核态-内核态）约 <strong>微秒级（1~2µs）</strong>，看似小，但线程频繁让出 CPU 时累计显著，且破坏缓存与 TLB 局部性。</p>
+            <p><strong>内核态/用户态切换</strong>：调用系统调用（syscall）要从用户态陷入内核态。线程创建本身 <code class="inline-code">clone</code> 就是系统调用；<strong>线程切换是由系统调用完成的</strong>（阻塞/让出），比"业务代码"想象的贵得多。</p>
+            <p><strong>CPU 密集 vs 线程数</strong>：纯计算型，最优线程数 ≈ CPU 核数；含 IO/阻塞时，利用"阻塞占比较高"提高并发度（公式：<code class="inline-code">线程数 ≈ 核数 × (1 + 等待时间/计算时间)</code>），本质是<strong>用线程并行掩盖 IO 等待</strong>。</p>
+            <div class="code-block"><pre><code><span class="com">// 直观观察线程/进程开销（Linux）</span>
+$ /usr/bin/time -v java -jar app.jar          <span class="com">// 进程级资源与耗时</span>
+$ cat /proc/&lt;pid&gt;/status | grep Threads        <span class="com">// 内核线程数（1:1 时 ≈ 用户线程数）</span>
+$ ulimit -u                                   <span class="com">// 每进程线程/进程上限</span>
+$ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下文切换计数</span></code></pre></div>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p><strong>Java 平台线程 = 1 个内核线程</strong>，所以几十万并发连接用普通线程会创建几十万内核线程导致 OOM/调度崩溃；虚拟线程把"线程"搬到用户态，用少量内核线程调度海量逻辑线程，是 2026 年高并发服务的首选底座。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>线程池参数推断</strong>：IO 密集（等待/计算 大）→ 线程数可设为 <code class="inline-code">核数 × (1 + 等待/计算)</code>；CPU 密集 → 约等于核数，避免过多线程造成<strong>上下文切换反噬</strong>。</p>
+            <p><strong>避免线程饥饿与无界线程</strong>：高并发异步场景改用 <code class="inline-code">CompletableFuture</code> + 有界线程池；阻塞型中间件（如配合阻塞 IO 的日志/DB）要 <code class="inline-code">setDaemon=false</code> 且限制数量。</p>
+            <p><strong>虚拟线程落地</strong>：JDK 21+ 的 IO 密集服务可用 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 平替平台线程；注意虚拟线程<strong>不要占用在 synchronized/CPU 密集关键段</strong>，否则无法体现"空载让出"优势。</p>
+            <p><strong>定位线程问题</strong>：<code class="inline-code">jstack</code> 看 RUNNABLE/BLOCKED 分布、<code class="inline-code">top -H</code> 看每线程 CPU、<code class="inline-code">vmstat</code> 看 <code class="inline-code">cs</code>（context switch）曲线，衡量是否因线程过多而上下文切换偏高。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：上下文切换到底贵在哪？</strong> 不止"保存寄存器"——还有 TLB 刷新（进程切换）、内核栈切换、调度器锁竞争，以及切走后<strong>缓存/TLB 局部性丢失</strong>，故高频切换的代价远高于"微秒级"字面值。</p>
+            <p><strong>追问 2：线程 vs 协程的关键差异？</strong> 线程由内核调度、抢占式、1:1；协程/虚拟线程由用户态调度、协作式或经 Loom 调度器在阻塞点让出，创建数量级更低（十万/百万级）、切换成本更低。</p>
+            <p><strong>追问 3：为什么虚拟线程碰上 synchronized 表现不佳？</strong> <code class="inline-code">synchronized</code> 会 pin 到底层平台线程，阻塞时无法释放给其他虚拟线程复用，导致"虚拟线程退化为平台线程"。用 <code class="inline-code">ReentrantLock</code> 等可避免 pinning。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>"线程越多越快"</strong>：超过负载后上下文切换开销大于并行收益，吞吐反而下降。</li>
+                <li><strong>"进程与线程切换成本一样"</strong>：进程切换还需换地址空间与刷 TLB，通常更昂贵。</li>
+                <li><strong>把虚拟线程当万能药</strong>：CPU 密集或大量 synchronized 场景收益有限甚至退化。</li>
+                <li><strong>忽略创建即系统调用</strong>：高频创建短命线程会频繁 clone/syscall，应用线程池或虚拟线程。</li>
+                <li><strong>混淆平台线程与协程调度</strong>：虚拟线程并非"更快的内核线程"，而是用户态轻量线程。</li>
               </ul>
             </div>
           </div>
