@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第 07 篇 · MySQL 深度 — 思维导图 | Java 架构师心智地图</title>
+  <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+  <style>
+    .map-hero { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 1rem; text-align: center; }
+    .map-hero h1 { font-size: 2rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+    .map-hero .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 820px; margin: 0 auto 1rem; }
+    .map-legend { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink); }
+    .map-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .map-body { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 3rem; }
+    .map-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin: var(--space-lg) 0; }
+    .map-col { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--bg2); }
+    .map-col h2 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .map-col ul { list-style: none; padding: 0; margin: 0; }
+    .map-col li { font-size: 0.9rem; color: var(--ink); padding: 0.4rem 0 0.4rem 1rem; border-bottom: 1px dashed var(--rule); position: relative; }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before { content: ""; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+    details.map-card { border: 1px solid var(--rule); border-radius: var(--radius-md); margin: var(--space-sm) 0; background: #fff; overflow: hidden; }
+    details.map-card summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-weight: 600; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before { content: "▸"; color: var(--accent); transition: transform 0.2s; }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text { padding: 0 var(--space-md) var(--space-xs,0.75rem); color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    details.map-card .map-tags { padding: 0 var(--space-md) var(--space-sm); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .map-tag { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+    .map-tag.t-c { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: #1d4ed8; }
+    .map-tag.t-e { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.3); color: #047857; }
+    .map-tag.t-s { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #6d28d9; }
+    .theme-h { font-size: 1.1rem; font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); padding-left: 0.5rem; border-left: 4px solid var(--accent); color: var(--ink); }
+    .qline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    .map-note { font-size: 0.8rem; color: var(--muted); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--rule); }
+    @media (max-width: 760px) { .map-overview { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <section class="map-hero">
+    <h1>第 07 篇 · MySQL 深度</h1>
+    <p class="subtitle">从"索引与事务引擎"到"分布式扩展"的单库全栈。主干 C07.01–C07.15，并入八股（B+ 树、MVCC、慢查询、主从、MyBatis、索引树）与场景（分库分表、慢 SQL、主从延迟、迁移），覆盖事务隔离、锁、高可用与 ORM。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>章节 · 深度 Q&amp;A</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>八股文 · 并入</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>场景题 · 并入</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 索引与事务引擎</h2>
+        <ul>
+          <li>B+ 树索引与 MVCC</li>
+          <li>锁机制（行/间隙/临键）</li>
+          <li>Redo/Undo/Binlog 协同</li>
+          <li>死锁检测与排查</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② 优化与扩展</h2>
+        <ul>
+          <li>慢 SQL 排查优化</li>
+          <li>索引设计原则</li>
+          <li>EXPLAIN 解读</li>
+          <li>分库分表与 DDL</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 高可用与 ORM</h2>
+        <ul>
+          <li>主从复制与延迟优化</li>
+          <li>高可用选型</li>
+          <li>MyBatis 缓存/插件</li>
+          <li>MyBatis-Plus vs JPA</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["第07篇 MySQL 深度<br/>章节15 · 八股6 · 场景4"]
+  root --> t1["① 索引与事务引擎"]
+  root --> t2["② 优化与扩展"]
+  root --> t3["③ 高可用与 ORM"]
+
+  t1 --> n101["B+ 树索引原理"]
+  t1 --> n102["MVCC RC/RR 隔离"]
+  t1 --> n103["行锁/间隙锁/临键锁"]
+  t1 --> n104["Redo/Undo/Binlog ACID"]
+  t1 --> n111["死锁检测与排查"]
+  t1 --> e101["八股 B+ 树索引"]
+  t1 --> e102["八股 MVCC 实现"]
+  t1 --> e105["八股 树与索引"]
+  t2 --> n105["慢 SQL 排查优化"]
+  t2 --> n106["索引设计原则"]
+  t2 --> n110["EXPLAIN 解读"]
+  t2 --> n107["分库分表落地"]
+  t2 --> n114["隐式转换索引失效"]
+  t2 --> n113["在线 DDL 治理"]
+  t2 --> n112["自增主键空洞"]
+  t2 --> e103["八股 慢查询优化"]
+  t2 --> s103["场景 线上慢 SQL 优化"]
+  t2 --> s101["场景 亿级分库分表"]
+  t3 --> n108["主从复制与延迟"]
+  t3 --> n109["高可用选型"]
+  t3 --> n115["MyBatis vs JPA 选型"]
+  t3 --> e104["八股 主从备份高可用"]
+  t3 --> e106["八股 MyBatis 缓存"]
+  t3 --> s103["场景 主从延迟解决"]
+  t3 --> s102["场景 数据迁移切流"]
+      </div>
+      <div class="chart-caption">图 07 MySQL 深度心智图：引擎 → 优化扩展 → 高可用 ORM</div>
+    </div>
+
+    <h2 id="detail" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">主题卡详情</h2>
+
+    <h3 class="theme-h">① 索引与事务引擎 <span class="qline">· 章节题 + 八股</span></h3>
+
+    <details class="map-card" open>
+      <summary>C07.01 InnoDB B+树为何比 B树更适合数据库</summary>
+      <div class="map-body-text">B+树非叶子不存数据、内部节点可容纳更多 key 降低树高；叶子形成有序链表支撑范围扫描与顺序 IO；页式存储命中率高。对比 B 树：范围查询、磁盘 IO 次数、聚簇与二级索引回表。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">B+树</span><span class="map-tag t-c">索引</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.02 MVCC 如何实现 RC 和 RR 两种隔离级别</summary>
+      <div class="map-body-text">undo log 版本链 + Read View：RR 快照在首次读时生成（一致性读），RC 每次读都重新生成。trx_id 可见性算法判断当前行对事务是否可见，配合间隙锁弥补 RR 幻读。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">MVCC</span><span class="map-tag t-c">隔离级别</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.03 行锁/间隙锁/临键锁如何工作</summary>
+      <div class="map-body-text">Record Lock 锁单行；Gap Lock 锁索引区间防插入；Next-Key Lock=记录+前置间隙，RR 默认，防幻读。答要点：锁是加在索引上、按辅助索引定位时的间隙范围、与隔离级别的配合。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">锁</span><span class="map-tag t-c">间隙锁</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.04 Redo/Undo/Binlog 如何协同保证 ACID</summary>
+      <div class="map-body-text">Redo 崩溃恢复（持久性，物理日志，WAL 先行）；Undo 回滚+MVCC（原子性，逻辑日志）；Binlog 主从/归档。两阶段提交（redo prepare + binlog）保证 redo/binlog 一致。答"三日志职责 + 提交顺序"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">日志</span><span class="map-tag t-c">ACID</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.11 MySQL 死锁检测原理与排查实战</summary>
+      <div class="map-body-text">InnoDB 依赖等待图检测死锁，victim 回滚代价小的事务；partially rollback。排查：SHOW ENGINE INNODB STATUS、LATESTDETECTEDDEADLOCK、统一加锁顺序、减少锁范围、索引优化命中。是事务并发的高频坑。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">死锁</span></div>
+    </details>
+
+    <h3 class="theme-h">② 优化与扩展 <span class="qline">· 章节题 + 八股 + 场景</span></h3>
+
+    <details class="map-card">
+      <summary>C07.05 慢 SQL 如何排查与优化</summary>
+      <div class="map-body-text">慢日志→执行计划→定位全表扫描/回表/排序压力→加覆盖索引/改写 SQL/分页优化。口诀：explain 看 type/key/rows/extra（Using filesort/using temporary 是信号）。与 S03.02 实战互通。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">慢SQL</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.06 索引设计原则与优化策略</summary>
+      <div class="map-body-text">最左前缀、覆盖索引、区分度、避免冗余索引、小基数用不上索引、联合索引列序设计、失效场景（函数/隐式转换/反向/OR/like 前置%）。在"建什么索引"问题上展示成本意识。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">索引设计</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.07 分库分表如何设计与落地</summary>
+      <div class="map-body-text">垂直（按域分表）→水平（按 sharding key 取模/范围）；路由、扩容、分布式事务与跨分片查询是代价。核心：选对分片键保证扩展与查询局部性，配平滑扩容与配套中间件（ShardingSphere 等）。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">分库分表</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.10 EXPLAIN 执行计划如何解读</summary>
+      <div class="map-body-text">关键列：type(all→index→range→ref→eq_ref→const)、key/possible_keys、rows 估算、Extra(filesort/temporary/using index)。答"由 type 与 rows 判断是否走索引 + 定位瓶颈点"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">EXPLAIN</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.12 在线变更(DDL)方案选型与治理</summary>
+      <div class="map-body-text">原生 ONLINE DDL、pt-osc/gh-ost 影子表切换、copy 方式的代价评估；锁表窗口、主从延迟、回滚预案、灰度分批。是"大表变更不动摇线上"的工程范式。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">DDL</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.13 隐式类型转换索引失效与自增空洞</summary>
+      <div class="map-body-text">字符列 vs 数值比较触发隐式转换→索引失效；自增主键空洞源于回滚/删除，主从可能错位需调 auto_increment_increment。答"类型一致性 + 自增语义"两个易错点。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">隐式转换</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 高可用与 ORM <span class="qline">· 章节题 + 八股 + 场景</span></h3>
+
+    <details class="map-card">
+      <summary>C07.08 MySQL 主从复制原理与延迟优化</summary>
+      <div class="map-body-text">binlog→IO 线程拷贝 relay log→SQL 线程重放；异步/半同步/组复制；延迟源（大事务/慢 SQL/并行度）与治理（并行复制、单条拆分、链路监控）。与 S03.03 主从延迟实战互通。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">主从</span><span class="map-tag t-c">复制</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.09 MySQL 高可用方案选型</summary>
+      <div class="map-body-text">主从+keepalived、MMM、MHA（半同步+自动故障转移）、MGR（组复制，Paxos 风格）；结合 GTID 与读写分离。选型看 RPO/RTO、数据一致性要求与运维复杂度。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">高可用</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.14 MyBatis 缓存、插件与 #{} vs ${}</summary>
+      <div class="map-body-text">一级缓存（session 级，默认）、二级缓存（namespace 级）；Interceptor 拦截四大对象；#{} 预编译防注入、${} 拼接有注入风险。是"ORM 下层原理 + 安全红线"的结合题。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">MyBatis</span><span class="map-tag t-c">防注入</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C07.15 MyBatis-Plus vs JPA 选型</summary>
+      <div class="map-body-text">MyBatis-Plus 偏 SQL 可控、分页插件/乐观锁(@Version)实现简单、批量友好；JPA/Hibernate 偏对象化、复杂关联映射强、缓存/懒加载完善。按团队 SQL 掌控力与数据复杂度选型。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">ORM选型</span></div>
+    </details>
+
+    <h3 class="theme-h">① 八股并入党：索引/事务速记 <span class="qline">· 八股文</span></h3>
+
+    <details class="map-card">
+      <summary>八股 E05.01 InnoDB B+树：聚簇/二级/覆盖/最左前缀</summary>
+      <div class="map-body-text">聚簇索引叶子存数据、二级存主键；覆盖索引免回表；最左前缀是联合索引核心。与 C07.01/C07.06 同题。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">B+树</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E05.02 MVCC 实现：Read View/版本链/可见性</summary>
+      <div class="map-body-text">undo 版本链 + trx_id 比较，RC/RR 的 Read View 差异。与 C07.02 完全同题。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">MVCC</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E05.03 慢查询优化：执行计划/索引失效/改写</summary>
+      <div class="map-body-text">explain 定位、索引失效规避、覆盖索引、SQL 改写、深分页优化。与 C07.05 同题、S03.02 场景落地。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">慢查询</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E05.04 主从复制与高可用</summary>
+      <div class="map-body-text">binlog 链路、半同步/异步/组复制、GTID、延迟治理与 MHA/MGR。与 C07.08/C07.09 同题。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">主从</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E12.02 树与索引：为何 MySQL 用 B+树</summary>
+      <div class="map-body-text">二叉树/BST/B树/B+树演进，磁盘 IO 与范围扫描视角。与 C07.01 同题，属"算法地基"八股。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">B+树</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E04.05 MyBatis：缓存/插件/SQL 执行</summary>
+      <div class="map-body-text">一级/二级缓存、插件拦截原理、SQL 执行流程、懒加载。与 C07.14 同题。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">MyBatis</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 场景题并入 <span class="qline">· 场景题</span></h3>
+
+    <details class="map-card">
+      <summary>场景 S03.01 亿级数据分库分表方案</summary>
+      <div class="map-body-text">先垂直后水平、选分片键（订单 id/user id）、路由与扩容策略、跨分片查询与全局 id、灰度迁移。与 C07.07 完整印证。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">分库分表</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S03.02 线上慢 SQL 优化实战</summary>
+      <div class="map-body-text">一次真实慢查询止血：抓慢日志→explain→定位索引失效/深翻页→覆盖索引+改写→回归压测。是"慢 SQL 排查全链路"样板。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">慢SQL</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S03.03 MySQL 主从延迟解决</summary>
+      <div class="map-body-text">读多主少场景的延迟根因（大事务/并行不足）与治理：并行复制、拆分大事务、弱一致性读降级、读写分离路由。与 C07.08 互通。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">主从延迟</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S07.04 数据迁移与零停机发布：Oracle 迁 MySQL</summary>
+      <div class="map-body-text">双写→追平→切读→回滚预案的灰度切流路径；分库分表同步历史数据、校验与回滚。是"数据库迁移不断服"的综合方案（关联 C07.07）。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">数据迁移</span></div>
+    </details>
+
+    <p class="map-note">注：本页为 chapter-07-mysql-deep.html 的思维导图式总览，并入八股 E04.05/E05.01~04/E12.02 与场景 S03.01~03/S07.04。索引与事务是根基，扩展与高可用是工程，ORM 是落地，层层递进。</p>
+
+  </div>
+
+  <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>

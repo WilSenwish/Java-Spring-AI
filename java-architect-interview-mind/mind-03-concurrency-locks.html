@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第 03 篇 · 并发编程与锁机制 — 思维导图 | Java 架构师心智地图</title>
+  <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+  <style>
+    .map-hero { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 1rem; text-align: center; }
+    .map-hero h1 { font-size: 2rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+    .map-hero .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 820px; margin: 0 auto 1rem; }
+    .map-legend { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink); }
+    .map-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .map-body { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 3rem; }
+    .map-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin: var(--space-lg) 0; }
+    .map-col { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--bg2); }
+    .map-col h2 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .map-col ul { list-style: none; padding: 0; margin: 0; }
+    .map-col li { font-size: 0.9rem; color: var(--ink); padding: 0.4rem 0 0.4rem 1rem; border-bottom: 1px dashed var(--rule); position: relative; }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before { content: ""; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+    details.map-card { border: 1px solid var(--rule); border-radius: var(--radius-md); margin: var(--space-sm) 0; background: #fff; overflow: hidden; }
+    details.map-card summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-weight: 600; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before { content: "▸"; color: var(--accent); transition: transform 0.2s; }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text { padding: 0 var(--space-md) var(--space-xs,0.75rem); color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    details.map-card .map-tags { padding: 0 var(--space-md) var(--space-sm); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .map-tag { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+    .map-tag.t-c { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: #1d4ed8; }
+    .map-tag.t-e { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.3); color: #047857; }
+    .map-tag.t-s { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #6d28d9; }
+    .theme-h { font-size: 1.1rem; font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); padding-left: 0.5rem; border-left: 4px solid var(--accent); color: var(--ink); }
+    .qline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    .map-note { font-size: 0.8rem; color: var(--muted); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--rule); }
+    @media (max-width: 760px) { .map-overview { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <section class="map-hero">
+    <h1>第 03 篇 · 并发编程与锁机制</h1>
+    <p class="subtitle">并发三问：可见性怎么保证、原子性怎么实现、同步怎么排队。主干 C03.01–C03.12，并入八股（HashMap/CHM、AQS、synchronized 升级、CAS），从内存语义一路到无锁 Disruptor 与 OS 线程模型。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>章节 · 深度 Q&amp;A</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>八股文 · 并入</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>场景题 · 并入</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 内存语义与同步原语</h2>
+        <ul>
+          <li>volatile：可见 &amp; 原子性界限</li>
+          <li>synchronized 锁升级 / Mark Word</li>
+          <li>JMM / CAS 与 ABA</li>
+          <li>ReentrantLock vs synchronized</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② 并发容器与等待通知</h2>
+        <ul>
+          <li>AQS CLH 队列 · Condition</li>
+          <li>ConcurrentHashMap 并发安全</li>
+          <li>并发集合选型</li>
+          <li>LockSupport 等待/通知</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 高性能与 OS 模型</h2>
+        <ul>
+          <li>ForkJoin 分治工作窃取</li>
+          <li>线程安全计数器</li>
+          <li>Disruptor 无锁队列</li>
+          <li>用户态/内核态线程模型</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["第03篇 并发编程与锁机制<br/>章节12 · 八股5"]
+  root --> t1["① 内存语义与同步原语"]
+  root --> t2["② 并发容器与等待通知"]
+  root --> t3["③ 高性能与 OS 模型"]
+
+  t1 --> n101["volatile 可见性"]
+  t1 --> n102["synchronized 锁升级"]
+  t1 --> n103["CAS 与 ABA"]
+  t1 --> n104["ReentrantLock 选型"]
+  t1 --> e107["八股 synchronized 升级"]
+  t1 --> e108["八股 CAS / LongAdder"]
+  t2 --> n201["AQS CLH 队列"]
+  t2 --> n202["ConcurrentHashMap"]
+  t2 --> n203["并发集合选型"]
+  t2 --> n204["Condition / LockSupport"]
+  t2 --> e101["八股 HashMap 底层"]
+  t2 --> e103["八股 ConcurrentHashMap"]
+  t2 --> e104["八股 AQS 原理"]
+  t3 --> n301["ForkJoin 工作窃取"]
+  t3 --> n302["线程安全计数器"]
+  t3 --> n303["Disruptor 无锁队列"]
+  t3 --> n304["OS 线程模型"]
+      </div>
+      <div class="chart-caption">图 03 并发编程与锁机制心智图：内存语义 → 同步排队 → 高性能与模型</div>
+    </div>
+
+    <h2 id="detail" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">主题卡详情</h2>
+
+    <h3 class="theme-h">① 内存语义与同步原语 <span class="qline">· 章节题 + 八股</span></h3>
+
+    <details class="map-card" open>
+      <summary>C03.01 volatile 如何保证可见性、为何不保证原子性</summary>
+      <div class="map-body-text">volatile 通过在其周围插入内存屏障（写-StoreStore/StoreLoad、读-LoadLoad/LoadStore）保证读取总是取主内存最新值并禁止重排；但它不提供复合操作原子性，count++ 仍是读-改-写三步，多线程自增会丢更新，须用原子类/锁。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">volatile</span><span class="map-tag t-c">内存屏障</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.02 synchronized 的锁升级过程</summary>
+      <div class="map-body-text">无锁→偏向锁（同线程重入免同步，JDK15 默认废弃）→轻量级锁（CAS 自旋，多线程竞争小）→重量级锁（互斥量，OS 调度）。升级由 Mark Word 低位状态 + 竞争程度驱动。JDK 强调锁消除/偏向字段重排，回答要落到 Mark Word 位图。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">锁升级</span><span class="map-tag t-c">Mark Word</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.03 AQS 的 CLH 队列与 CAS 如何实现同步</summary>
+      <div class="map-body-text">AQS 以 volatile state + FIFO CLH 变体队列为骨架：获取同步节点入队，CAS 改 state；释放时唤醒后继。独占（ReentrantLock 用 lock/unlock 模板）与共享（Semaphore/CountDownLatch）两模式。核心是"状态 + 队列 + 模板方法"三件套。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">AQS</span><span class="map-tag t-c">CLH</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.04 CAS 与 ABA 问题如何解决</summary>
+      <div class="map-body-text">CAS 用 Unsafe.compareAndSwap 原子比较并交换，失败重试；ABA＝中间被改回原值被误判成功。解法：AtomicStampedReference/AtomicMarkableReference 加版本号；业务上"值不重要、关键在终态"时 ABA 未必有害，需按一致性要求取舍。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">CAS</span><span class="map-tag t-c">ABA</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.05 ReentrantLock 与 synchronized 如何选择</summary>
+      <div class="map-body-text">都需要可重入；ReentrantLock 提供公平锁、可中断、超时、多 Condition 精确唤醒；synchronized 由 JVM 优化升级更简洁、异常自动释放。默认选 synchronized；需超时/中断/多条件时切 ReentrantLock。答要讲"场景驱动"而非背差异。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">ReentrantLock</span></div>
+    </details>
+
+    <h3 class="theme-h">② 并发容器与等待通知 <span class="qline">· 章节题 + 八股</span></h3>
+
+    <details class="map-card">
+      <summary>C03.06 ConcurrentHashMap 并发安全如何保证</summary>
+      <div class="map-body-text">JDK8 以 Node + CAS + synchronized（锁桶头）替代 JDK7 Segment；get 无锁读、put 全程线程安全、扩容并发分段迁移（forwarding node + helpTransfer）。读多写少高效；复合操作仍需外层原子封装。与八股 E03.01 演进视角互通。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">CHM</span><span class="map-tag t-c">桶锁</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.07 Condition 与 LockSupport 等待/通知</summary>
+      <div class="map-body-text">Condition 绑定 ReentrantLock 提供 await/signal 的精确唤醒队列（比 wait/notifyAll 细粒度）；LockSupport.park/unpark 可直接阻塞/唤醒任意线程（底层 Unsafe），是 AQS 挂起机制基础。答：唤醒粒度与失联场景是进阶分水岭。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Condition</span><span class="map-tag t-c">LockSupport</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.08 Java 并发集合与各自场景</summary>
+      <div class="map-body-text">CopyOnWrite(读多写少)、ConcurrentHashMap、ConcurrentLinkedQueue、BlockingQueue 族（Array/Linked/Synchronous/Delay/Priority）、ConcurrentSkipListMap。选型按读写比、有序、阻塞需求分档；答用"数据结构 + 保证维度"收敛。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">并发集合</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 高性能与 OS 模型 <span class="qline">· 章节题</span></h3>
+
+    <details class="map-card">
+      <summary>C03.09 ForkJoin 分治与工作窃取</summary>
+      <div class="map-body-text">ForkJoin 把任务拆到足够细再 join 聚合，双端队列 + 工作窃取（空闲线程从别队尾偷任务）摊薄负载；适合递归分治（快排、归并、并行流底层）。避免拆分过细导致队列开销>计算。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">ForkJoin</span><span class="map-tag t-c">工作窃取</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.10 线程安全计数器</summary>
+      <div class="map-body-text">低竞争用 AtomicInteger（CAS）；高并发累加用 LongAdder（分段 cell 摊薄热点，sum 汇总求得近似）；需要版本语义用 AtomicStampedReference。扩展到无锁数据结构与聚合场景均适用。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">LongAdder</span><span class="map-tag t-c">计数器</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.11 Disruptor 无锁队列原理</summary>
+      <div class="map-body-text">环形缓冲区预分配避免 GC + 序号 Sequence 配合内存屏障（缓存行填充防伪共享）实现无锁单/多生产者消费者；用 CAS 与屏障数组交换状态而非互斥锁。适合超高频事件；权衡是复杂度与调试成本。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Disruptor</span><span class="map-tag t-c">环形缓冲</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C03.12 用户态/内核态线程模型</summary>
+      <div class="map-body-text">OS 线程 1:1 内核映射，上下文切换进内核、成本高；Java 平台线程即 OS 线程；虚拟线程由 JVM 调度挂载到少数平台线程，阻塞自动卸载，把"阻塞式编程"带回高并发。答对比用户线程/协程、切换代价、pinning。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">线程模型</span><span class="map-tag t-c">OS/内核</span></div>
+    </details>
+
+    <h3 class="theme-h">② 八股并入党：并发速记 <span class="qline">· 八股文</span></h3>
+
+    <details class="map-card">
+      <summary>八股 E01.02 HashMap 底层：扩容 / 扰动 / 红黑树 / 并发死链</summary>
+      <div class="map-body-text">数组+链表，扰动函数降哈希冲突；扩容 resize 且 th 触发；树化阈值 8；JDK7 并发扩容成环死链，JDK8 改尾部插入解决。并发场景应换 CHM。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">HashMap</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E03.01 CHM 1.7 vs 1.8：Segment 到 CAS+synchronized</summary>
+      <div class="map-body-text">从分段锁粒度到锁桶头+无锁读，读并发更高、扩容更平滑；与 C03.06 同题互证双视角。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">演进</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E03.04 AQS：CLH 变体、独占/共享、ReentrantLock/Semaphore</summary>
+      <div class="map-body-text">状态+等待队列通用骨架，模板方法留钩子；ReentrantLock 独占重入、Semaphore 共享计数。与 C03.03 深度一致。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">AQS</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E03.07 synchronized 偏向废弃与 JEP 491 虚拟线程适配</summary>
+      <div class="map-body-text">偏向锁因维护成本废弃；虚拟线程下 synchronized 会 pinning，JEP 491 优化唤醒与调度；与 C03.02/C04.09 联动。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">JEP491</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E03.08 CAS 原子类与 LongAdder：VarHandle/StampedLock</summary>
+      <div class="map-body-text">AtomicInteger 瓶颈在热点 CAS；LongAdder 分段压热点；VarHandle 替代 Unsafe；StampedLock 乐观读适合读写比高的场景。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">CAS 优化</span></div>
+    </details>
+
+    <p class="map-note">注：本页为 chapter-03-concurrency-locks.html 的思维导图式总览，并入八股 E01.02、E03.01/04/07/08。无直接场景题并入（相关场景分布在第 09/04 章），本页聚焦语言层并发原语。</p>
+
+  </div>
+
+  <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>

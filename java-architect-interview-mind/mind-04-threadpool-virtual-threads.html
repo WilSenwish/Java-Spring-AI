@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第 04 篇 · 线程池与虚拟线程 — 思维导图 | Java 架构师心智地图</title>
+  <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+  <style>
+    .map-hero { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 1rem; text-align: center; }
+    .map-hero h1 { font-size: 2rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+    .map-hero .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 820px; margin: 0 auto 1rem; }
+    .map-legend { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink); }
+    .map-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .map-body { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 3rem; }
+    .map-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin: var(--space-lg) 0; }
+    .map-col { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--bg2); }
+    .map-col h2 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .map-col ul { list-style: none; padding: 0; margin: 0; }
+    .map-col li { font-size: 0.9rem; color: var(--ink); padding: 0.4rem 0 0.4rem 1rem; border-bottom: 1px dashed var(--rule); position: relative; }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before { content: ""; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+    details.map-card { border: 1px solid var(--rule); border-radius: var(--radius-md); margin: var(--space-sm) 0; background: #fff; overflow: hidden; }
+    details.map-card summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-weight: 600; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before { content: "▸"; color: var(--accent); transition: transform 0.2s; }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text { padding: 0 var(--space-md) var(--space-xs,0.75rem); color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    details.map-card .map-tags { padding: 0 var(--space-md) var(--space-sm); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .map-tag { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+    .map-tag.t-c { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: #1d4ed8; }
+    .map-tag.t-e { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.3); color: #047857; }
+    .map-tag.t-s { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #6d28d9; }
+    .theme-h { font-size: 1.1rem; font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); padding-left: 0.5rem; border-left: 4px solid var(--accent); color: var(--ink); }
+    .qline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    .map-note { font-size: 0.8rem; color: var(--muted); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--rule); }
+    @media (max-width: 760px) { .map-overview { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <section class="map-hero">
+    <h1>第 04 篇 · 线程池与虚拟线程</h1>
+    <p class="subtitle">从"平台线程怎么管"到"虚拟线程怎么颠覆"。主干 C04.01–C04.10，并入八股（线程池、ThreadLocal、VT pinning）与场景 S06.01（虚拟线程网关迁移），涵盖调参、编排、结构化并发与上下文传递。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>章节 · 深度 Q&amp;A</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>八股文 · 并入</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>场景题 · 并入</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 线程池治理</h2>
+        <ul>
+          <li>7 参数调优与拒绝策略</li>
+          <li>工作流程与状态流转</li>
+          <li>ThreadLocal 泄漏与避免</li>
+          <li>CompletableFuture 编排</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② 虚拟线程革命</h2>
+        <ul>
+          <li>VT 重构并发模型</li>
+          <li>Spring Boot 落地</li>
+          <li>pinning 排查治理</li>
+          <li>ScopedValue 传上下文</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 并发设计范式</h2>
+        <ul>
+          <li>响应式 vs Servlet</li>
+          <li>结构化并发管理</li>
+          <li>场景：VT 网关迁移</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["第04篇 线程池与虚拟线程<br/>章节10 · 八股3 · 场景1"]
+  root --> t1["① 线程池治理"]
+  root --> t2["② 虚拟线程革命"]
+  root --> t3["③ 并发设计范式"]
+
+  t1 --> n101["7 参数与拒绝策略"]
+  t1 --> n102["工作流程状态流转"]
+  t1 --> n103["ThreadLocal 泄漏"]
+  t1 --> n106["CompletableFuture 编排"]
+  t1 --> e103["八股 线程池/Executors"]
+  t1 --> e105["八股 ThreadLocal"]
+  t2 --> n104["VT 重构并发模型"]
+  t2 --> n105["Spring Boot 落地 VT"]
+  t2 --> n109["pinning 排查治理"]
+  t2 --> n110["ScopedValue 上下文"]
+  t2 --> e106["八股 VT pinning"]
+  t2 --> s101["场景 VT 网关迁移"]
+  t3 --> n107["响应式 vs Servlet"]
+  t3 --> n108["结构化并发"]
+      </div>
+      <div class="chart-caption">图 04 线程池与虚拟线程心智图：平台线程治理 → 虚拟线程 → 范式</div>
+    </div>
+
+    <h2 id="detail" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">主题卡详情</h2>
+
+    <h3 class="theme-h">① 线程池治理 <span class="qline">· 章节题 + 八股</span></h3>
+
+    <details class="map-card" open>
+      <summary>C04.01 线程池 7 参数调优与拒绝策略</summary>
+      <div class="map-body-text">核心/最大线程数、空闲存活、时间单位、任务队列、线程工厂、拒绝策略五选（Abort/Discard/DiscardOldest/CallerRuns/自定义）。核心公式：core≈CPU×N；IO 密集可调大；队列用有界+饱和策略兜底，避免无界吞任务。拒绝用 CallerRuns 降速保削峰。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">7参数</span><span class="map-tag t-c">拒绝策略</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C04.02 线程池工作流程与状态流转</summary>
+      <div class="map-body-text">提交→核心线程满则入队、队列满才扩到最大、再满走拒绝。状态 RUNNING→SHUTDOWN（不再收新任务）→STOP→TIDYING→TERMINATED。答流程要呈现"核心→队列→最大→拒绝"四级演进与优雅关闭 shutdown/awaitTermination。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">状态机</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C04.03 ThreadLocal 为何内存泄漏、如何避免</summary>
+      <div class="map-body-text">ThreadLocalMap 的 Entry 用 ThreadLocal 弱引用作 key，value 强引用残留于存活线程导致泄漏（尤其线程池复用线程）。避免：主动 remove（finally）、线程池用后清理、避免大对象、InheritableThreadLocal 在池化场景要慎用。配 TransmittableThreadLocal 做跨上下文透传。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">ThreadLocal</span><span class="map-tag t-c">弱引用</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C04.06 CompletableFuture 如何编排异步任务</summary>
+      <div class="map-body-text">thenApply/thenCompose（依赖）、thenCombine/allOf（聚合）、exceptionally/handle（异常兜底）、supplyAsync(线程池) 控制执行池。避免回调地狱与线程池放大（Async 版单独指定池），用超时+取消防悬挂。构建可读的异步 DAG。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">CompletableFuture</span></div>
+    </details>
+
+    <h3 class="theme-h">② 虚拟线程革命 <span class="qline">· 章节题 + 八股 + 场景</span></h3>
+
+    <details class="map-card">
+      <summary>C04.04 Virtual Threads 如何重构并发模型</summary>
+      <div class="map-body-text">JVM 级纤程，由虚拟线程调度器挂载到少量平台线程，阻塞 IO 时自动卸载，一个平台线程可承载数十万 VT。核心收益：百万级并发会话、代码仍是顺序阻塞风格。注意：synchronized/native 会 pinning、CPU 密集任务慎用 VT（无卸载收益）。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Virtual Threads</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C04.05 Virtual Threads 在 Spring Boot 落地</summary>
+      <div class="map-body-text">`spring.threads.virtual.enabled=true` 让 Tomcat 用虚拟线程处理请求；配合 `-Djdk.tracePinnedThreads=full` 排查 pinning。收益立竿见影（连接数不再卡在平台线程上限）；限制是 JDBC 阻塞与外部阻塞也要能卸载，纯 CPU 与锁竞争无收益。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Spring Boot</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C04.09 虚拟线程 pinning 排查与治理</summary>
+      <div class="map-body-text">pinning＝VT 在 synchronized 或 native 方法中无法卸载，钉死平台线程。定位用 JFR VT 事件 + tracePinnedThreads；治理：避免 synchronized 保护阻塞点、换 ReentrantLock、减少 native 调用、控制单平台线程上的 pinning 路径。是 VT 生产核心坑。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">pinning</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C04.10 ScopedValue 安全传递上下文</summary>
+      <div class="map-body-text">JEP 429，作用域继承，快于 ThreadLocal 且不可变、避免"跨任务误传"，受限范围自动清理。在 VT 时代替代 ThreadLocal 传 TraceId/用户态更安全。答要点：绑定作用域与可变性的取舍，是上下文传递的新范式。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">ScopedValue</span><span class="map-tag t-c">JEP429</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 并发设计范式 <span class="qline">· 章节题</span></h3>
+
+    <details class="map-card">
+      <summary>C04.07 响应式 vs 传统 Servlet 本质差异</summary>
+      <div class="map-body-text">Servlet=阻塞+每请求一线程；WebFlux=事件驱动+少量线程承载海量并发，带来背压与组合式 API，但调试复杂、心智成本高。选型看 IO 密集度与团队。呼应 C15 响应式章双入口。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">WebFlux</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C04.08 Structured Concurrency 管理并发任务</summary>
+      <div class="map-body-text">JEP 453 结构化并发把子任务视为一个作用域单元，整体失败/超时统一取消，避免线程孤儿化。用 StructuredTaskScope 聚合并行子任务，成功/失败/取消语义清晰。是"任务归属"思维的工程化表达。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">结构化并发</span></div>
+    </details>
+
+    <h3 class="theme-h">② 八股并入党：线程池速记 <span class="qline">· 八股文</span></h3>
+
+    <details class="map-card">
+      <summary>八股 E03.03 Java 线程池：Executors 缺陷与 ForkJoinPool 窃取</summary>
+      <div class="map-body-text">newFixed/单例线程池默认无界队列隐患；推荐 ThreadPoolExecutor 显式参数；ForkJoinPool 工作窃取用于并行流。与 C04.01/C03.09 互通。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">Executors</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E03.05 ThreadLocal：Map/弱引用/泄漏/TTL</summary>
+      <div class="map-body-text">ThreadLocalMap 结构、弱引用 key、value 残留泄漏、Inheritable/TransmittableThreadLocal 透传。与 C04.03 完全同题双入口。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">ThreadLocal</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E03.06 VT pinning 诊断与治理</summary>
+      <div class="map-body-text">载体线程钉住机制、synchronized/native 钉住、JFR 监控治理。与 C04.09/E03.07 联动。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">pinning</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 场景题并入 <span class="qline">· 场景题</span></h3>
+
+    <details class="map-card">
+      <summary>场景 S06.01 Java 21 虚拟线程落地：高并发网关迁移</summary>
+      <div class="map-body-text">网关从平台线程迁 VT：开开关、削连接数上限、查 pinning（避免业务代码 synchronized 阻塞 IO）、配合线程池改虚拟线程执行；验收以压测对比线程数与 P99。是"VT 收益+坑"的完整样板。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">网关迁移</span></div>
+    </details>
+
+    <p class="map-note">注：本页为 chapter-04-threadpool-virtual-threads.html 的思维导图式总览，并入八股 E03.03/05/06 与场景题 S06.01。虚拟线程是 2026 高并发会话类业务的默认新范式，需叠加 C04.07/C15 响应式对比做选型定调。</p>
+
+  </div>
+
+  <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>

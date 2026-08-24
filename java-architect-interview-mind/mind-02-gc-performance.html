@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第 02 篇 · GC 算法与性能调优 — 思维导图 | Java 架构师心智地图</title>
+  <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+  <style>
+    .map-hero { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 1rem; text-align: center; }
+    .map-hero h1 { font-size: 2rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+    .map-hero .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 820px; margin: 0 auto 1rem; }
+    .map-legend { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink); }
+    .map-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .map-body { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 3rem; }
+    .map-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin: var(--space-lg) 0; }
+    .map-col { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--bg2); }
+    .map-col h2 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .map-col ul { list-style: none; padding: 0; margin: 0; }
+    .map-col li { font-size: 0.9rem; color: var(--ink); padding: 0.4rem 0 0.4rem 1rem; border-bottom: 1px dashed var(--rule); position: relative; }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before { content: ""; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+    details.map-card { border: 1px solid var(--rule); border-radius: var(--radius-md); margin: var(--space-sm) 0; background: #fff; overflow: hidden; }
+    details.map-card summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-weight: 600; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before { content: "▸"; color: var(--accent); transition: transform 0.2s; }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text { padding: 0 var(--space-md) var(--space-xs,0.75rem); color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    details.map-card .map-tags { padding: 0 var(--space-md) var(--space-sm); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .map-tag { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+    .map-tag.t-c { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: #1d4ed8; }
+    .map-tag.t-e { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.3); color: #047857; }
+    .map-tag.t-s { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #6d28d9; }
+    .theme-h { font-size: 1.1rem; font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); padding-left: 0.5rem; border-left: 4px solid var(--accent); color: var(--ink); }
+    .qline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    .map-note { font-size: 0.8rem; color: var(--muted); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--rule); }
+    @media (max-width: 760px) { .map-overview { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <section class="map-hero">
+    <h1>第 02 篇 · GC 算法与性能调优</h1>
+    <p class="subtitle">从「怎么判死 → 怎么回收 → 该用谁 → 出事了怎么排」四步串起 GC 与排查。主干 C02.01–C02.12，并入八股（GC 演进、调优/OOM、ZGC 染色指针）与场景题（线上 OOM、CPU 100%），把理论落到 Arthas/JFR/Prometheus 实操。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>章节 · 深度 Q&amp;A</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>八股文 · 并入</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>场景题 · 并入</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 回收本质与收集器演进</h2>
+        <ul>
+          <li>GC Roots 可达性 · 三算法本质</li>
+          <li>CMS / G1 / ZGC / Shenandoah 差异</li>
+          <li>Generational ZGC 生产调优</li>
+          <li>选型按场景给推荐配置</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② 参数·优化·监控闭环</h2>
+        <ul>
+          <li>JVM 参数与 GC 选型</li>
+          <li>逃逸分析 / 标量替换</li>
+          <li>Arthas · JFR · 异步 profiling</li>
+          <li>Micrometer+Prometheus 驱动告警</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 线上排障与场景实战</h2>
+        <ul>
+          <li>CPU 100% 快速定位</li>
+          <li>FullGC 频繁排查</li>
+          <li>线上调优全流程</li>
+          <li>场景：OOM / CPU 排查</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["第02篇 GC 算法与性能调优<br/>章节12 · 八股3 · 场景2"]
+  root --> t1["① 回收本质与收集器"]
+  root --> t2["② 参数优化与监控"]
+  root --> t3["③ 线上排障与场景"]
+
+  t1 --> n101["GC Roots · 三算法"]
+  t1 --> n102["CMS/G1/ZGC/Shenandoah"]
+  t1 --> n103["分代 ZGC 调优"]
+  t1 --> n104["收集器选型配置"]
+  t1 --> e101["八股 GC 算法演进"]
+  t1 --> e104["八股 ZGC 染色指针"]
+  t2 --> n201["JVM 参数设置"]
+  t2 --> n202["逃逸分析 · 标量替换"]
+  t2 --> n203["Arthas 实战"]
+  t2 --> n204["JFR / 异步 profiling"]
+  t2 --> n205["GC 指标监控闭环"]
+  t2 --> e203["八股 调优/OOM 排查"]
+  t3 --> n301["CPU 100% 定位"]
+  t3 --> n302["FullGC 频繁排查"]
+  t3 --> n303["线上调优全流程"]
+  t3 --> s301["场景 OOM 排查实战"]
+  t3 --> s302["场景 CPU 100% 定位"]
+      </div>
+      <div class="chart-caption">图 02 GC 与性能调优心智图：四步闭环 → 收集器 → 排障场景</div>
+    </div>
+
+    <h2 id="detail" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">主题卡详情</h2>
+
+    <h3 class="theme-h">① 回收本质与收集器演进 <span class="qline">· 章节题 + 八股</span></h3>
+
+    <details class="map-card" open>
+      <summary>C02.01 GC Roots 与三种 GC 算法的本质权衡</summary>
+      <div class="map-body-text">GC Roots（栈变量、静态字段、常量、JNI、活跃线程）出发的可达性决定回收与否。三算法=标记-清除（快但碎片）、标记-整理（无碎片但移动）、复制（无碎片高效但有内存占用，适合新生代）。权衡本质是"吞吐 vs 延迟 vs 内存 vs 碎片"，没有银弹。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">GC Roots</span><span class="map-tag t-c">三算法</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.02 CMS/G1/ZGC/Shenandoah 差异与选型</summary>
+      <div class="map-body-text">CMS 并发标记清除、老年代关注延迟但有碎片与并发失败；G1 Region 化+可预期停顿、默认当代；ZGC 染色指针+读屏障，亚 10ms 大堆；Shenandoah 并发整理（G1 派生）。选型口诀：吞吐优先 Parallel、延迟敏感中小堆 G1、超大堆 ZGC、特殊低延迟 Shenandoah。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">收集器选型</span><span class="map-tag t-c">ZGC</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.03 JVM 参数如何设置</summary>
+      <div class="map-body-text">先定停顿与堆目标再选收集器：-Xms/-Xmx 相等免扩容振荡；新生代比例、-XX:MaxGCPauseMillis 设置停顿目标；-XX:+UseZGC 等选收集器；避免堆设过大吞本地内存或过小频繁 FullGC。参数是"目标驱动的约束"，非背数值。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">JVM 参数</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.04 线上 CPU 100% 快速定位</summary>
+      <div class="map-body-text">`top -Hp` 找 CPU 最高线程 → `jstack <pid>线程ID转十六进制` 看堆栈 → 对应代码定位死循环/GC 线程/锁自旋。GC 型 100% 转查 GC 日志与内存；业务型看是否热点计算、无限循环、空转轮询。用 Arthas `thread -n 3` 一键抓最热线程。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">CPU100%</span><span class="map-tag t-c">jstack</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.05 线上 FullGC 频繁排查</summary>
+      <div class="map-body-text">看 GC 日志确认 FullGC 频率与耗时 → 判断是晋升过大（结合 CPU/内存确认）还是元空间、大对象/并发修改、缓存无上限。手段：堆转储 MAT 找大对象与 GC Roots、检查弱引用集合/ThreadLocal、JStat 观察各区。原则用数据驱动治本而非加大堆掩盖。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">FullGC</span><span class="map-tag t-c">堆转储</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.06 各场景 GC 收集器推荐配置</summary>
+      <div class="map-body-text">高吞吐批处理：Parallel + 大新生代；在线低延迟：G1 + 合理 pause target；超大堆延迟敏感：ZGC/Shenandoah；压测对比吞吐与 P99 后定。给"场景→收集器→关键参数"的组合，体现工程判断。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">推荐配置</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.07 Arthas 核心命令与诊断</summary>
+      <div class="map-body-text">`dashboard` 总览线程/内存/GC；`thread` 线程栈与阻塞；`trace/top -n` 定位高频方法；`jad/decompile` 反编译、`watch` 观测方法出入参、`heapdump`、`ognl` 动态执行。线上零侵入、即插即得的排查利器，配合承载的文件动态加载。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Arthas</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.08 JFR 与异步 profiling</summary>
+      <div class="map-body-text">JFR 低开销采样（GC/分配/锁/方法样本）无需 `-XX:+UnlockCommercialFeatures`，`jcmd <pid> JFR.start/stop/dump`；异步 profiler 生成火焰图定位 CPU 热点与分配热点。对比线程 dump 是"瞬时快照 vs 持续画像"。适合压测与长期驻留排查。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">JFR</span><span class="map-tag t-c">火焰图</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.09 JVM 线上调优全流程</summary>
+      <div class="map-body-text">确立目标（吞吐/延迟/稳定）→ 基线压测拿数据 → 分析瓶颈（GC/内存/锁/IO 分层归因）→ 针对调参/改码 → 复测验证 → 固化配置与监控告警。全程"测量→定位→优化→验证"循环，拒绝拍脑袋改 -Xmx。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">调优流程</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.10 逃逸分析与标量替换</summary>
+      <div class="map-body-text">方法内对象若未逃逸，JIT 可做栈上分配、锁消除、标量替换（对象拆成字段寄存器态）。受益于 C2，减少堆分配与 GC 压力。答点：逃逸分析是"编译器把不可见对象变本地"，也是衡量 JIT 深度优化的门面。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">逃逸分析</span><span class="map-tag t-c">标量替换</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.11 Generational ZGC 生产调优</summary>
+      <div class="map-body-text">分代 ZGC（JDK21）年轻代用标记-复制、老年代并发整理，吞吐较单代提升 10–20%、停顿仍亚 10ms。调优：`-XX:+ZGenerational`、关注 `ZGC Cycles` 与分配速率、避免把堆设到让年轻代长期满导致高晋升量。适合超大堆 + 低延迟 + 中高吞吐兼备。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Generational ZGC</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C02.12 GC/JVM 指标监控闭环</summary>
+      <div class="map-body-text">Micrometer 暴露 `jvm.gc.*`/内存/线程指标 → Prometheus 抓取 → Grafana 展示 → 阈值告警驱动调优。建设"GC 耗时/FullGC 次数/堆水位"核心大盘，把调优从救火变常态化。这是可观测性落地到 JVM 层的范本。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">可观测</span><span class="map-tag t-c">Prometheus</span></div>
+    </details>
+
+    <h3 class="theme-h">② 八股并入党：GC 原理速记 <span class="qline">· 八股文</span></h3>
+
+    <details class="map-card">
+      <summary>八股 E02.01 GC 算法演进：Serial→Parallel→CMS→G1→ZGC</summary>
+      <div class="map-body-text">一条脉络看演进驱动力（吞吐→延迟→低延迟大堆），与 C02.02 深度一致，答题按"为什么换"讲人话。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">演进</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E02.03 JVM 调优与 OOM 排查</summary>
+      <div class="map-body-text">参数、GC 日志分析、内存 Dump、线上应急四件套；OOM 分类归因（堆/元空间/栈/直接内存）。与 C01.05/C02.05/09 贯通。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">OOM</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E02.04 ZGC 染色指针与读屏障</summary>
+      <div class="map-body-text">64 位指针借用高位做状态位（Finalizable/Remapped/Marked），读屏障感知转移未完成自愈；多视图映射与分代 ZGC 是其内在实现，解答时可联 C02.11 双写互证。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">染色指针</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 场景题并入：线上排障实战 <span class="qline">· 场景题</span></h3>
+
+    <details class="map-card">
+      <summary>场景 S05.01 线上 OOM 排查：百万级订单服务内存泄漏定位</summary>
+      <div class="map-body-text">保留现场 → 堆转储 → MAT 支配树找泄漏（订单上下文/静态缓存/ThreadLocal），治本（清引用/定容量）+ 兜底（告警与自动重启）。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">OOM 定位</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S05.02 CPU 100%：支付服务线程死循环定位</summary>
+      <div class="map-body-text">行为路径=top 定位线程 → jstack/Arthas 数栈 → 还原死循环条件（不变量/脱敏循环）；根因是并发下 token 复用或条件漏更新，验收以压测回归。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">死循环</span></div>
+    </details>
+
+    <p class="map-note">注：本页为 chapter-02-gc-performance.html 的思维导图式总览，并入八股 E02.01/03/04 与场景题 S05.01/02。调优判定锚点取 P99 停顿与吞吐，审查用 GC 报告而非参数背默。</p>
+
+  </div>
+
+  <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>

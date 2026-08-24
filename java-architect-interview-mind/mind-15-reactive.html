@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第 15 篇 · 响应式 — 思维导图 | Java 架构师心智地图</title>
+  <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+  <style>
+    .map-hero { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 1rem; text-align: center; }
+    .map-hero h1 { font-size: 2rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+    .map-hero .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 820px; margin: 0 auto 1rem; }
+    .map-legend { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink); }
+    .map-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .map-body { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 3rem; }
+    .map-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin: var(--space-lg) 0; }
+    .map-col { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--bg2); }
+    .map-col h2 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .map-col ul { list-style: none; padding: 0; margin: 0; }
+    .map-col li { font-size: 0.9rem; color: var(--ink); padding: 0.4rem 0 0.4rem 1rem; border-bottom: 1px dashed var(--rule); position: relative; }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before { content: ""; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+    details.map-card { border: 1px solid var(--rule); border-radius: var(--radius-md); margin: var(--space-sm) 0; background: #fff; overflow: hidden; }
+    details.map-card summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-weight: 600; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before { content: "▸"; color: var(--accent); transition: transform 0.2s; }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text { padding: 0 var(--space-md) var(--space-xs,0.75rem); color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    details.map-card .map-tags { padding: 0 var(--space-md) var(--space-sm); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .map-tag { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+    .map-tag.t-c { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: #1d4ed8; }
+    .map-tag.t-e { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.3); color: #047857; }
+    .map-tag.t-s { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #6d28d9; }
+    .theme-h { font-size: 1.1rem; font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); padding-left: 0.5rem; border-left: 4px solid var(--accent); color: var(--ink); }
+    .qline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    .map-note { font-size: 0.8rem; color: var(--muted); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--rule); }
+    @media (max-width: 760px) { .map-overview { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <section class="map-hero">
+    <h1>第 15 篇 · 响应式</h1>
+    <p class="subtitle">从"背压与 Reactor"到"VT vs Reactive 选型"的并发范式总章。主干 C15.01–C15.06，与 ch04 虚拟线程、ch13 网络 IO 构成"高并发 IO"三视图，探讨响应式全栈落地的代价与收益。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>章节 · 深度 Q&amp;A</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>八股文 · 并入</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>场景题 · 并入</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 背压与核心</h2>
+        <ul>
+          <li>Reactor 背压机制</li>
+          <li>响应式错误/重试</li>
+          <li>R2DBC 数据访问</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② 并发范式比较</h2>
+        <ul>
+          <li>WebFlux vs MVC</li>
+          <li>VT vs Reactive 选型</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 全栈落地</h2>
+        <ul>
+          <li>响应式架构全栈落地</li>
+          <li>同主题互为印证</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["第15篇 响应式<br/>章节06"]
+  root --> t1["① 背压与核心"]
+  root --> t2["② 并发范式比较"]
+  root --> t3["③ 全栈落地"]
+
+  t1 --> n101["Reactor 背压机制"]
+  t1 --> n104["错误处理与重试"]
+  t1 --> n103["R2DBC 数据访问"]
+  t2 --> n102["WebFlux vs MVC"]
+  t2 --> n105["VT vs Reactive"]
+  t3 --> n106["响应式全栈落地"]
+      </div>
+      <div class="chart-caption">图 15 响应式心智图：背压核心 → 范式比较 → 全栈落地</div>
+    </div>
+
+    <h2 id="detail" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">主题卡详情</h2>
+
+    <h3 class="theme-h">① 背压与核心 <span class="qline">· 章节题</span></h3>
+
+    <details class="map-card" open>
+      <summary>C15.01 Project Reactor 背压机制</summary>
+      <div class="map-body-text">发布者-订阅者 Pull 模型、request(n) 需求信号、Mono/Flux 操作符组合；Backpressure 防止下游被冲垮。是响应式"少资源扛大并发"的本质。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Reactor</span><span class="map-tag t-c">背压</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C15.02 WebFlux vs MVC 选型</summary>
+      <div class="map-body-text">WebFlux 事件驱动、少量线程 + 背压 vs MVC 阻塞式、每请求一线程；选型看 IO 密集度、团队心智与生态。呼应 ch04 VT 对比。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">WebFlux</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C15.03 R2DBC 响应式数据访问</summary>
+      <div class="map-body-text">异步非阻塞数据库驱动、Reactive Streams 流式取数；与 JDBC 阻塞原语差异、事务与连接池模型。让"全链路响应式"不卡在数据层。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">R2DBC</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C15.04 响应式错误处理与重试</summary>
+      <div class="map-body-text">onErrorResume/retryBackoff/超时兜底、错误传播与流终止语义；构成响应式链的可靠性防线，避免异常沉默。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">错误处理</span></div>
+    </details>
+
+    <h3 class="theme-h">② 并发范式比较 <span class="qline">· 章节题</span></h3>
+
+    <details class="map-card">
+      <summary>C15.05 Virtual Threads vs Reactive 并发模型选型</summary>
+      <div class="map-body-text">VT 让阻塞式代码承载海量并发、Reactive 以事件驱动+背压获得并发；VT 心智低、Reactive 背压强。高 IO 会话场景是 2026 选型重点，与 ch04 紧密联动。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">VT vs Reactive</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 全栈落地 <span class="qline">· 章节题</span></h3>
+
+    <details class="map-card">
+      <summary>C15.06 响应式全栈架构落地</summary>
+      <div class="map-body-text">从网关→WebFlux→R2DBC/Mongo→消息的端到端响应式、线程模型与运营成本；明确"何时值得投入响应式"的权衡结论。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">全栈落地</span></div>
+    </details>
+
+    <p class="map-note">注：本页为 chapter-15-reactive.html 的思维导图式总览。响应式与 ch04 虚拟线程、ch13 网络 IO 构成"高并发 IO"三视图，本页为收尾选型章：无独立八股/场景并入，以跨章印证为主调。</p>
+
+  </div>
+
+  <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>

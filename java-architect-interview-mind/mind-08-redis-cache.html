@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第 08 篇 · Redis 缓存 — 思维导图 | Java 架构师心智地图</title>
+  <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+  <style>
+    .map-hero { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 1rem; text-align: center; }
+    .map-hero h1 { font-size: 2rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+    .map-hero .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 820px; margin: 0 auto 1rem; }
+    .map-legend { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink); }
+    .map-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .map-body { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 3rem; }
+    .map-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin: var(--space-lg) 0; }
+    .map-col { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--bg2); }
+    .map-col h2 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .map-col ul { list-style: none; padding: 0; margin: 0; }
+    .map-col li { font-size: 0.9rem; color: var(--ink); padding: 0.4rem 0 0.4rem 1rem; border-bottom: 1px dashed var(--rule); position: relative; }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before { content: ""; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+    details.map-card { border: 1px solid var(--rule); border-radius: var(--radius-md); margin: var(--space-sm) 0; background: #fff; overflow: hidden; }
+    details.map-card summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-weight: 600; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before { content: "▸"; color: var(--accent); transition: transform 0.2s; }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text { padding: 0 var(--space-md) var(--space-xs,0.75rem); color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    details.map-card .map-tags { padding: 0 var(--space-md) var(--space-sm); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .map-tag { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+    .map-tag.t-c { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: #1d4ed8; }
+    .map-tag.t-e { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.3); color: #047857; }
+    .map-tag.t-s { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #6d28d9; }
+    .theme-h { font-size: 1.1rem; font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); padding-left: 0.5rem; border-left: 4px solid var(--accent); color: var(--ink); }
+    .qline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    .map-note { font-size: 0.8rem; color: var(--muted); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--rule); }
+    @media (max-width: 760px) { .map-overview { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <section class="map-hero">
+    <h1>第 08 篇 · Redis 缓存</h1>
+    <p class="subtitle">从"数据与持久化"到"一致性/锁/集群"的缓存心智。主干 C08.01–C08.11，并入八股（一致性、锁、持久化、跳表/布隆、LRU）与场景（一致性、三大问题），覆盖穿透击穿雪崩、多级缓存与消息队列用法。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>章节 · 深度 Q&amp;A</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>八股文 · 并入</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>场景题 · 并入</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 数据与持久化</h2>
+        <ul>
+          <li>5+4 种数据结构应用</li>
+          <li>RDB vs AOF 权衡</li>
+          <li>过期与内存淘汰</li>
+          <li>Redis Stream 队列</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② 一致性与锁</h2>
+        <ul>
+          <li>缓存穿透/击穿/雪崩</li>
+          <li>缓存与库一致性</li>
+          <li>Redisson 可重入+看门狗</li>
+          <li>多级缓存架构</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 集群与防护</h2>
+        <ul>
+          <li>Cluster 工作原理</li>
+          <li>布隆过滤器防穿透</li>
+          <li>高并发常见问题优化</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["第08篇 Redis 缓存<br/>章节11 · 八股5 · 场景2"]
+  root --> t1["① 数据与持久化"]
+  root --> t2["② 一致性与锁"]
+  root --> t3["③ 集群与防护"]
+
+  t1 --> n101["5+4 数据结构与应用"]
+  t1 --> n102["RDB vs AOF 持久化"]
+  t1 --> n109["过期与内存淘汰"]
+  t1 --> n111["Stream 消息队列"]
+  t1 --> e103["八股 持久化 RDB/AOF"]
+  t1 --> e104["八股 LRU/LFU 淘汰"]
+  t2 --> n103["穿透/击穿/雪崩"]
+  t2 --> n104["缓存与库一致性"]
+  t2 --> n105["Redisson 可重入锁"]
+  t2 --> n106["多级缓存架构"]
+  t2 --> e101["八股 缓存一致性"]
+  t2 --> e102["八股 分布式锁"]
+  t2 --> s101["场景 缓存与库一致性"]
+  t2 --> s102["场景 Redis 三大问题"]
+  t3 --> n107["Cluster 工作原理"]
+  t3 --> n108["布隆过滤器防穿透"]
+  t3 --> n110["高并发常见问题优化"]
+  t3 --> e105["八股 跳表/布隆过滤器"]
+      </div>
+      <div class="chart-caption">图 08 Redis 缓存心智图：数据结构 → 缓存治理 → 集群扩展</div>
+    </div>
+
+    <h2 id="detail" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">主题卡详情</h2>
+
+    <h3 class="theme-h">① 数据与持久化 <span class="qline">· 章节题 + 八股</span></h3>
+
+    <details class="map-card" open>
+      <summary>C08.01 Redis 的 5+4 种数据结构与应用场景</summary>
+      <div class="map-body-text">5 基础：String/Hash/List/Set/ZSet；4 扩展：BitMap/HyperLogLog/GEO/Stream。选型映射场景（计数、漏斗、排行榜、布隆去重、附近的人、消息队列）。答"场景→结构"反推是加分项。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">数据结构</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.02 RDB 与 AOF 持久化的权衡</summary>
+      <div class="map-body-text">RDB 快照体积小、恢复快、可能丢最后一次快照；AOF 记录每次写、可加大 fsync 保障、重写控制体积；混合模式（AOF 头+RDB）+ 合适 fsync 策略是生产默认。答"丢失窗口 vs 性能"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">持久化</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.09 过期策略与内存淘汰机制</summary>
+      <div class="map-body-text">惰性删除 + 定期抽样删除；内存满时按 maxmemory-policy：noeviction/allkeys-lru/volatile-lru/lfu/random。配合过期键避免"过期键堆积"，LRU/LFU 选型与业务热点匹配。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">淘汰</span><span class="map-tag t-c">过期</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.11 Redis Stream 作为消息队列的设计</summary>
+      <div class="map-body-text">持久化消息、消费组/ACK/pending list；对比 List 简陋消息队列。适用"需可靠+多消费者组"的场景，配合 XADD/XREADGROUP/XACK 理解投递语义，避免重复/丢失。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Stream</span><span class="map-tag t-c">消息队列</span></div>
+    </details>
+
+    <h3 class="theme-h">② 一致性与锁 <span class="qline">· 章节题 + 八股 + 场景</span></h3>
+
+    <details class="map-card">
+      <summary>C08.03 缓存穿透/击穿/雪崩的区别与解决</summary>
+      <div class="map-body-text">穿透=查不存在（布隆/空值缓存）；击穿=热点 key 过期（互斥锁/逻辑过期）；雪崩=大量 key 同时失效或 Redis 宕（随机过期/多级/高可用）。三问常联考，要能区分并给方案。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">穿透击穿雪崩</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.04 缓存与数据库一致性如何保证</summary>
+      <div class="map-body-text">Cache Aside 更新改"先更新库再删缓存"；延迟双删、Canal 订阅 binlog 异步删；最终一致 + 失败重试。弱一致场景接受短暂不一致，强一致场景慎用缓存。是 2026 高频题与 S02.05 互通。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">一致性</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.05 Redisson 分布式锁如何可重入与看门狗</summary>
+      <div class="map-body-text">基于 Lua 保证加锁原子性，hash 结构计数实现可重入；看门狗后台续期默认 30s 防业务未结束锁被释放；解锁 Lua 判断持有者。讨论与 RedLock 争议、以及"锁粒度+自动续期+并发安全"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">分布式锁</span><span class="map-tag t-c">看门狗</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.06 多级缓存架构如何设计</summary>
+      <div class="map-body-text">L1 本地缓存（Caffeine）+L2 Redis+L3 DB，配一致性推送/失效广播与回源保护；针对热点读设计"就近越快"。评估一致性、命中率与内存治理。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">多级缓存</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.10 高并发场景常见问题与优化</summary>
+      <div class="map-body-text">大 key/热 key 打散与拆分、Pipeline 批量、连接池复用、读写分离、避免慢命令（大 Range、Keys）、热点读写放大。答"识别问题→针对性手段"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">高并发优化</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 集群与防护 <span class="qline">· 章节题 + 八股</span></h3>
+
+    <details class="map-card">
+      <summary>C08.07 Redis Cluster 的工作原理</summary>
+      <div class="map-body-text">16384 槽位映射到节点、client 重定向(moved/ask)、主从复制 + 节点间 gossip；无中心、故障转移。对比哨兵：Cluster 面向海量数据分片，Sentinel 面向主从高可用。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Cluster</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C08.08 布隆过滤器原理与缓存穿透防护</summary>
+      <div class="map-body-text">m bit + k hash 函数，判断"一定不存在"高的假阳率；空间最优、不可删除。用于拦截不存在 key 的穿透请求。关联 E12.03 跳表/布隆速记。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">布隆过滤器</span></div>
+    </details>
+
+    <h3 class="theme-h">② 八股并入党：缓存速记 <span class="qline">· 八股文</span></h3>
+
+    <details class="map-card">
+      <summary>八股 E06.01 Redis 缓存一致性：Cache Aside/延迟双删/Canal</summary>
+      <div class="map-body-text">Cache Aside + 延迟双删 + Canal 订阅 binlog。与 C08.04、S02.05 同题三入口。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">一致性</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E06.02 Redis 分布式锁：Redisson 看门狗 vs RedLock</summary>
+      <div class="map-body-text">看门狗续期机制、RedLock 多节点过半、争议（时钟跳跃/仅建议）。与 C08.05 同题。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">分布式锁</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E06.03 Redis 持久化：RDB/AOF/混合/重写</summary>
+      <div class="map-body-text">snapshot 与增量的权衡、AOF 重写、混合模式。与 C08.02 同题。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">持久化</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E12.04 LRU/LFU 缓存结构与一致性哈希</summary>
+      <div class="map-body-text">LRU(双向链表+hash)/LFU 计数，淘汰策略语义；一致性哈希缓解扩容抖动。缓存侧印证 C08.09；哈希部分呼应 ch09 C09.07。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">LRU/LFU</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E12.03 跳表 SkipList 与布隆过滤器</summary>
+      <div class="map-body-text">ZSet 底层用跳表实现有序、O(logN)；布隆查看似存在。与 C08.01/C08.08 印证，属算法地基。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">跳表</span><span class="map-tag t-e">布隆</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 场景题并入 <span class="qline">· 场景题</span></h3>
+
+    <details class="map-card">
+      <summary>场景 S02.05 缓存与数据库一致性</summary>
+      <div class="map-body-text">高并发下写库+删缓存的双写策略、延迟双删、Canal 订阅、异常兜底重试与最终一致。与 C08.04 完整印证。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">一致性</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S03.04 Redis 缓存三大问题</summary>
+      <div class="map-body-text">真实线上穿透/击穿/雪崩的识别、应急处置（布隆、互斥、随机过期、降级）与事后治理。与 C08.03 同题。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">三大问题</span></div>
+    </details>
+
+    <p class="map-note">注：本页为 chapter-08-redis-cache.html 的思维导图式总览，并入八股 E06.01~03/E12.03~04 与场景 S02.05/S03.04。缓存与一致性是红线，锁与集群是扩展，需与 ch09 分布式锁/一致性哈希、ch07 数据一致性联动。</p>
+
+  </div>
+
+  <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>

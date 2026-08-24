@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>第 13 篇 · 网络 IO — 思维导图 | Java 架构师心智地图</title>
+  <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+  <style>
+    .map-hero { max-width: 1100px; margin: 0 auto; padding: 3rem 1.5rem 1rem; text-align: center; }
+    .map-hero h1 { font-size: 2rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+    .map-hero .subtitle { color: var(--muted); font-size: 0.95rem; max-width: 820px; margin: 0 auto 1rem; }
+    .map-legend { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink); }
+    .map-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .map-body { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 3rem; }
+    .map-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin: var(--space-lg) 0; }
+    .map-col { border: 1px solid var(--rule); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--bg2); }
+    .map-col h2 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .map-col ul { list-style: none; padding: 0; margin: 0; }
+    .map-col li { font-size: 0.9rem; color: var(--ink); padding: 0.4rem 0 0.4rem 1rem; border-bottom: 1px dashed var(--rule); position: relative; }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before { content: ""; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+    details.map-card { border: 1px solid var(--rule); border-radius: var(--radius-md); margin: var(--space-sm) 0; background: #fff; overflow: hidden; }
+    details.map-card summary { cursor: pointer; padding: var(--space-sm) var(--space-md); font-weight: 600; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before { content: "▸"; color: var(--accent); transition: transform 0.2s; }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text { padding: 0 var(--space-md) var(--space-xs,0.75rem); color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
+    details.map-card .map-tags { padding: 0 var(--space-md) var(--space-sm); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .map-tag { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+    .map-tag.t-c { background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.3); color: #1d4ed8; }
+    .map-tag.t-e { background: rgba(5,150,105,0.08); border-color: rgba(5,150,105,0.3); color: #047857; }
+    .map-tag.t-s { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.3); color: #6d28d9; }
+    .theme-h { font-size: 1.1rem; font-weight: 700; margin: var(--space-lg) 0 var(--space-sm); padding-left: 0.5rem; border-left: 4px solid var(--accent); color: var(--ink); }
+    .qline { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+    .map-note { font-size: 0.8rem; color: var(--muted); margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--rule); }
+    @media (max-width: 760px) { .map-overview { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <section class="map-hero">
+    <h1>第 13 篇 · 网络 IO</h1>
+    <p class="subtitle">从"分层模型/TCP/HTTP/TLS"到"NIO/Netty/零拷贝"的网络与 IO 双线。主干 C13.01–C13.12，并入八股（Netty、TLS）与场景（长连接、粘包、协议、WebSocket、连接池），覆盖协议栈与高性能通信实现。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>章节 · 深度 Q&amp;A</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>八股文 · 并入</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>场景题 · 并入</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 协议栈</h2>
+        <ul>
+          <li>OSI/TCP/IP 与封装</li>
+          <li>TCP 握手挥手状态机</li>
+          <li>HTTP1.1/2/3 演进</li>
+          <li>HTTPS/TLS 握手</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② NIO 与 Netty</h2>
+        <ul>
+          <li>Selector/Channel/Buffer</li>
+          <li>Netty 线程模型</li>
+          <li>ByteBuf 池化与泄漏</li>
+          <li>零拷贝实现</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 应用与内核</h2>
+        <ul>
+          <li>WebSocket/DNS 调度</li>
+          <li>io_uring 与 Loom</li>
+          <li>系统调用与内核交互</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["第13篇 网络 IO<br/>章节12 · 八股2 · 场景5"]
+  root --> t1["① 协议栈"]
+  root --> t2["② NIO 与 Netty"]
+  root --> t3["③ 应用与内核"]
+
+  t1 --> n101["OSI/TCP-IP 与封装"]
+  t1 --> n102["TCP 握手挥手状态机"]
+  t1 --> n103["HTTP/1.1/2/3 演进"]
+  t1 --> n104["TLS 1.2/1.3 握手"]
+  t1 --> e102["八股 HTTPS/TLS"]
+  t1 --> s103["场景 HTTP2/gRPC/QUIC"]
+  t2 --> n105["NIO Selector/Channel"]
+  t2 --> n106["Netty 线程模型"]
+  t2 --> n107["ByteBuf 池化与泄漏"]
+  t2 --> n108["零拷贝实现"]
+  t2 --> e101["八股 Netty 高性能"]
+  t2 --> s101["场景 Netty 长连接网关"]
+  t2 --> s102["场景 TCP 粘包拆包"]
+  t2 --> s105["场景 连接池调优"]
+  t3 --> n109["WebSocket 推送设计"]
+  t3 --> n110["DNS 解析与 CDN 调度"]
+  t3 --> n111["io_uring 与 Loom"]
+  t3 --> n112["系统调用与内核"]
+  t3 --> s104["场景 WebSocket 行情推送"]
+      </div>
+      <div class="chart-caption">图 13 网络 IO 心智图：协议栈 → NIO/Netty → 应用与内核</div>
+    </div>
+
+    <h2 id="detail" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">主题卡详情</h2>
+
+    <h3 class="theme-h">① 协议栈 <span class="qline">· 章节题 + 八股 + 场景</span></h3>
+
+    <details class="map-card" open>
+      <summary>C13.01 OSI 七层与 TCP/IP 四层映射</summary>
+      <div class="map-body-text">七层与四层对应关系、各层核心协议与数据封装（帧/段/包）；答"从应用层到链路层的逐层拆解"体现纵深理解。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">分层模型</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.02 TCP 三次握手/四次挥手状态机</summary>
+      <div class="map-body-text">握手建立连接、挥手释放连接、TIME_WAIT 与 CLOSE_WAIT 根因与处理；答状态机 + 实际排查（大量 TIME_WAIT 的调优）。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">TCP</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.03 HTTP/1.1 vs 2 vs 3</summary>
+      <div class="map-body-text">1.1 队头阻塞/连接复用；2 多路复用+二进制帧但 TCP 队头；3 基于 QUIC/UDP 彻底去队头。选型看弱网与连接数诉求。S10.03 协议升级印证。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">HTTP</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.04 HTTPS/TLS 1.2 与 1.3 握手</summary>
+      <div class="map-body-text">证书链验证、密钥交换（RSA vs ECDHE）、前向安全、1.3 简化握手(1-RTT/0-RTT)；把"为什么安全"讲清。E09.02 八股同题。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">TLS</span></div>
+    </details>
+
+    <h3 class="theme-h">② NIO 与 Netty <span class="qline">· 章节题 + 八股 + 场景</span></h3>
+
+    <details class="map-card">
+      <summary>C13.05 Java NIO：Selector/Channel/Buffer</summary>
+      <div class="map-body-text">Selector 多路复用 IO 事件、Channel 双向通道、Buffer 读写翻转（flip/clear）；一个线程管理多连接是高并发接入的关键。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">NIO</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.06 Netty 线程模型与 ChannelPipeline</summary>
+      <div class="map-body-text">Boss/Worker EventLoop 线程模型、ChannelPipeline+Handler 流水线、异步驱动；Reactor 多线程变体。是 Java 网络框架的地基。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Netty</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.07 ByteBuf 池化、引用计数与泄漏排查</summary>
+      <div class="map-body-text">池化减少分配、引用计数(release)、泄漏检测(LeakDetector)；答"池化生命周期 + 泄漏元凶与排查手段"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">ByteBuf</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.08 零拷贝：sendfile/mmap/DMA</summary>
+      <div class="map-body-text">减少用户态/内核态拷贝：sendfile 内核直传、mmap 映射、DMA 硬件搬移；Java 中 FileChannel.transferTo 落地。是高性能 IO 的核心抓手。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">零拷贝</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 应用与内核 <span class="qline">· 章节题 + 场景</span></h3>
+
+    <details class="map-card">
+      <summary>C13.09 WebSocket 握手、心跳与断线重连</summary>
+      <div class="map-body-text">HTTP Upgrade 握手、Frame 传输、心跳保活与断线重连策略、粘包处理。S10.04 行情推送印证。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">WebSocket</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.10 DNS 解析与智能调度</summary>
+      <div class="map-body-text">递归/迭代解析、缓存 TTL、HTTPDNS 防劫持、CDN 边缘调度；理解"就近访问"与"故障切换"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">DNS</span><span class="map-tag t-c">CDN</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.11 io_uring 异步 IO 与 Loom</summary>
+      <div class="map-body-text">io_uring 内核异步接口、与 JDK Project Loom 虚拟线程的关系；理解"异步化如何支撑 Java 高性能网络"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">io_uring</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>C13.12 系统调用与内核交互</summary>
+      <div class="map-body-text">用户态/内核态切换、read/write/epoll/sendfile 系统调用如何支撑 Java 网络；答"从应用到内核的 IO 全路径"。</div>
+      <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">系统调用</span></div>
+    </details>
+
+    <h3 class="theme-h">② 八股并入党：网络速记 <span class="qline">· 八股文</span></h3>
+
+    <details class="map-card">
+      <summary>八股 E09.01 Netty 高性能：Reactor/零拷贝</summary>
+      <div class="map-body-text">Reactor 线程模型、零拷贝(sendfile/mmap/DirectBuffer)。与 C13.06/C13.08 同题、S10.01 落地。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">Netty</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>八股 E09.02 HTTPS/TLS 1.3 握手</summary>
+      <div class="map-body-text">证书链、密钥交换、前向安全。与 C13.04 完全同题，安全篇密码学章可再印证。</div>
+      <div class="map-tags"><span class="map-tag t-e">八股</span><span class="map-tag t-e">TLS</span></div>
+    </details>
+
+    <h3 class="theme-h">③ 场景题并入 <span class="qline">· 场景题</span></h3>
+
+    <details class="map-card">
+      <summary>场景 S10.01 Netty 百万级长连接网关</summary>
+      <div class="map-body-text">千万在线 IM 接入层：EventLoop 规划、编解码、心跳、连接管理与会话状态。与 C13.05/06 印证。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">长连接</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S10.02 TCP 粘包拆包与自定义协议</summary>
+      <div class="map-body-text">物联网百万设备上行解析：LengthFieldBased、分隔符、定长；自定义协议设计与无符号解析。与 C13.06 印证。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">粘包拆包</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S10.03 HTTP/2、gRPC、QUIC 选型</summary>
+      <div class="map-body-text">微服务内网通信协议升级的权衡与落地。与 C13.03、ch11 gRPC 印证。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">协议选型</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S10.04 WebSocket 实时推送</summary>
+      <div class="map-body-text">百万并发证券行情推送：接入架构、广播/路由、多通道与可靠性。与 C13.09 印证。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">WebSocket</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>场景 S10.05 高并发连接池与网络延迟优化</summary>
+      <div class="map-body-text">下游调用性能治理：连接池参数、超时/重试、延迟优化与网络瓶颈定位。与 C13.08 印证。</div>
+      <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">连接池</span></div>
+    </details>
+
+    <p class="map-note">注：本页为 chapter-13-network-io.html 的思维导图式总览，并入八股 E09.01~02 与场景 S10.01~05。网络是"协议栈 + 高性能 IO"双线，与 ch15 响应式、ch04 虚拟线程共享"IO 高效"主题，选型时需打通。</p>
+
+  </div>
+
+  <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>
