@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>架构师核心心智地图 — 思维 · 方法论 · 原则</title>
+  <link rel="stylesheet" href="java-architect-interview/assets/design-system.css" />
+  <style>
+    /* ===== 思维导图页面专属样式 ===== */
+    .map-hero {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 1rem;
+      text-align: center;
+    }
+    .map-hero h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+    }
+    .map-hero .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 760px;
+      margin: 0 auto 1rem;
+    }
+    .map-legend {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .map-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      color: var(--ink);
+    }
+    .map-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .map-body {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 3rem;
+    }
+
+    /* 三栏对照总览 */
+    .map-overview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-md);
+      margin: var(--space-lg) 0;
+    }
+    .map-col {
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      background: var(--bg2);
+    }
+    .map-col h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .map-col ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .map-col li {
+      font-size: 0.9rem;
+      color: var(--ink);
+      padding: 0.4rem 0 0.4rem 1rem;
+      border-bottom: 1px dashed var(--rule);
+      position: relative;
+    }
+    .map-col li:last-child { border-bottom: none; }
+    .map-col li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.85rem;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .map-col.col-think li::before { background: var(--accent); }
+    .map-col.col-method li::before { background: var(--success); }
+    .map-col.col-principle li::before { background: var(--accent2); }
+
+    /* 细节折叠卡片 */
+    details.map-card {
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-md);
+      margin: var(--space-sm) 0;
+      background: #fff;
+      overflow: hidden;
+    }
+    details.map-card summary {
+      cursor: pointer;
+      padding: var(--space-sm) var(--space-md);
+      font-weight: 600;
+      color: var(--ink);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    details.map-card summary::-webkit-details-marker { display: none; }
+    details.map-card summary::before {
+      content: "▸";
+      color: var(--accent);
+      transition: transform 0.2s;
+    }
+    details.map-card[open] summary::before { transform: rotate(90deg); }
+    details.map-card .map-body-text {
+      padding: 0 var(--space-md) var(--space-md);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    details.map-card .map-tags {
+      padding: 0 var(--space-md) var(--space-sm);
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .map-tag {
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--rule);
+      color: var(--muted);
+    }
+    .map-tag.t-think { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.3); color: #1d4ed8; }
+    .map-tag.t-method { background: rgba(5, 150, 105, 0.08); border-color: rgba(5, 150, 105, 0.3); color: #047857; }
+    .map-tag.t-principle { background: rgba(124, 58, 237, 0.08); border-color: rgba(124, 58, 237, 0.3); color: #6d28d9; }
+
+    .map-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: var(--space-md);
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--rule);
+    }
+
+    @media (max-width: 760px) {
+      .map-overview { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Hero -->
+  <section class="map-hero">
+    <h1>架构师核心心智地图</h1>
+    <p class="subtitle">整合 多源 权威素材，把 Java 架构师从高级开发到专家的能力主干压缩为「思维 → 方法论 → 原则」三层心智模型。思维决定怎么想，方法论决定怎么做，原则决定守哪条底线。</p>
+    <div class="map-legend">
+      <span><span class="map-dot" style="background:var(--accent)"></span>思维模式（脑子怎么想）</span>
+      <span><span class="map-dot" style="background:var(--success)"></span>方法论（怎么做事）</span>
+      <span><span class="map-dot" style="background:var(--accent2)"></span>原则（守哪条底线）</span>
+    </div>
+  </section>
+
+  <div class="map-body">
+
+    <!-- ============ 一、三栏对照总览 ============ -->
+    <section class="map-overview" aria-label="三层对照总览">
+      <div class="map-col col-think">
+        <h2 style="color:var(--accent)">① 思维模式</h2>
+        <ul>
+          <li>第一性原理（本质）思维</li>
+          <li>抽象与系统思维</li>
+          <li>全局思维</li>
+          <li>分类思维</li>
+          <li>边界与分层思维</li>
+          <li>解耦与组合思维</li>
+          <li>权衡与取舍思维</li>
+          <li>演进与变化思维</li>
+          <li>失败与不确定性思维</li>
+          <li>并发与异步思维</li>
+          <li>数据与状态思维</li>
+          <li>成本与效率思维</li>
+          <li>安全与信任思维</li>
+          <li>复杂度控制思维</li>
+          <li>面向问题与业务思维</li>
+          <li>系统所有权 / 二阶效应</li>
+          <li>判断力 / 技术前瞻思维</li>
+        </ul>
+      </div>
+      <div class="map-col col-method">
+        <h2 style="color:var(--success)">② 方法论</h2>
+        <ul>
+          <li>领域驱动设计 DDD</li>
+          <li>整洁 / 六边形 / 洋葱架构</li>
+          <li>设计模式与持续重构</li>
+          <li>TDD / BDD 测试驱动</li>
+          <li>CI/CD 与 DevOps</li>
+          <li>可观测性工程</li>
+          <li>性能工程方法论</li>
+          <li>容量与稳定性（SRE）</li>
+          <li>安全开发生命周期</li>
+          <li>敏捷 / 精益 / 看板</li>
+          <li>分布式一致性（CAP/BASE/Saga）</li>
+          <li>架构决策记录（ADR）</li>
+          <li>AI-Native 应用架构</li>
+          <li>Agentic / LLM 工作流编排</li>
+        </ul>
+      </div>
+      <div class="map-col col-principle">
+        <h2 style="color:var(--accent2)">③ 原则</h2>
+        <ul>
+          <li>SOLID 设计原则</li>
+          <li>DRY / KISS / YAGNI</li>
+          <li>组合优于继承 / 迪米特法则</li>
+          <li>依赖方向 / 无环依赖</li>
+          <li>关注点分离 / 显式优于隐式</li>
+          <li>约定优于配置 / 代码即文档</li>
+          <li>可测试 / 可观测 / 可回滚</li>
+          <li>无状态优先 / 不可变优先</li>
+          <li>面向失败 / 优雅降级 / 幂等</li>
+          <li>安全默认 / 最小权限 / 纵深防御</li>
+          <li>度量驱动 / 小步提交 / 自动化</li>
+          <li>CUPID 属性（现代补充）</li>
+          <li>以价值 / 影响衡量成果</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 二、Mermaid 思维导图 ============ -->
+    <div class="mermaid-container">
+      <div class="mermaid">
+flowchart LR
+  root["架构师心智模型:<br/>思维 × 方法论 × 原则"]
+  root --> think["思维模式"]
+  root --> method["方法论"]
+  root --> principle["原则"]
+  think --> a0["第一性原理"]
+  think --> a1["抽象与系统"]
+  think --> a2["边界与分层"]
+  think --> a3["解耦与组合"]
+  think --> a4["权衡与取舍"]
+  think --> a5["演进与变化"]
+  think --> a6["失败与不确定"]
+  think --> a7["并发与异步"]
+  think --> a8["数据与状态"]
+  think --> a9["成本与效率"]
+  think --> a10["安全与信任"]
+  think --> a11["复杂度控制"]
+  think --> a12["面向问题与业务"]
+  think --> a13["所有权/二阶效应"]
+  think --> a14["判断力/技术前瞻"]
+  think --> a15["全局思维"]
+  think --> a16["分类思维"]
+  method --> b1["DDD 领域驱动"]
+  method --> b2["整洁/六边形/洋葱"]
+  method --> b3["设计模式与重构"]
+  method --> b4["TDD / BDD"]
+  method --> b5["CI/CD DevOps"]
+  method --> b6["可观测性工程"]
+  method --> b7["性能工程"]
+  method --> b8["容量与稳定性 SRE"]
+  method --> b9["安全开发生命周期"]
+  method --> b10["敏捷 / 精益 / 看板"]
+  method --> b11["分布式一致性"]
+  method --> b12["架构决策记录 ADR"]
+  method --> b13["AI-Native 架构"]
+  method --> b14["Agentic/LLM 编排"]
+  principle --> c1["SOLID"]
+  principle --> c2["DRY / KISS / YAGNI"]
+  principle --> c3["组合优于继承"]
+  principle --> c4["依赖倒置 / 无环"]
+  principle --> c5["关注点分离"]
+  principle --> c6["显式优于隐式"]
+  principle --> c7["可测试 / 观测 / 回滚"]
+  principle --> c8["无状态 / 不可变"]
+  principle --> c9["面向失败 / 幂等"]
+  principle --> c10["安全默认 / 最小权限"]
+  principle --> c11["度量驱动 / 自动化"]
+  principle --> c12["CUPID 属性"]
+  principle --> c13["以价值/影响衡量"]
+      </div>
+      <div class="chart-caption">图 1 架构师核心心智地图：三大支柱 → 48 个能力节点</div>
+    </div>
+
+    <!-- ============ 三、① 思维模式细节 ============ -->
+    <h2 id="sec-think" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent)">① 思维模式 — 脑子里怎么想</h2>
+    <p style="color:var(--muted);font-size:0.9rem">决定你看待系统的方式：先回到本质，再看整体、辨类别、建层次，剥离抽象，在约束下权衡，并为失败与变化预留空间。融合百度"架构思维五要素"（全局/分类/分层/抽象/变化）与《面试核心方法论总结》序章①②组。</p>
+
+    <details class="map-card">
+      <summary>第一性原理 / 本质思维</summary>
+      <div class="map-body-text">无论面对多复杂的问题，先剥离"通常做法/行业惯例/已知结论"，回到问题的最基本事实与不可再拆分的原理，从本质出发重新推理，而非盲目类比或套模板。这是大厂面试最看重的核心：考察"解决未知问题的能力"而非"处理已知需求"。做法：连续问"为什么"到底层物理/数学/业务约束，再逐层重建。</div>
+      <div class="map-tags"><span class="map-tag t-think">本质思考</span><span class="map-tag t-think">反直觉推理</span><span class="map-tag t-think">未知问题求解</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>抽象与系统思维</summary>
+      <div class="map-body-text">从业务中识别核心概念、实体、流程，而非直接堆代码；把系统视为相互作用的整体，追问改动如何波及上下游。抽象讲究"度"：过低被细节淹没，过高脱离现实。Java 落地：接口、抽象类、泛型、领域模型、DTO/VO/Entity 分层。</div>
+      <div class="map-tags"><span class="map-tag t-think">纵向剥离</span><span class="map-tag t-think">横向关联</span><span class="map-tag t-think">抽象度</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>全局思维</summary>
+      <div class="map-body-text">看架构先看整片森林，再看一棵树：先回答系统核心目标、服务对象、主要构成、相互影响与成功标准，再深入细节。局部优化不等于整体优秀——若与核心需求无关或破坏模块连贯，反而是负担。落地：先画一张只含目标/对象/核心模块/外部环境/关键关系的全景图，建立坐标系再细化。</div>
+      <div class="map-tags"><span class="map-tag t-think">局部服从整体</span><span class="map-tag t-think">全景图</span><span class="map-tag t-think">整体与局部平衡</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>分类思维</summary>
+      <div class="map-body-text">复杂不是要素多，而是不同性质的要素混在一起。分类思维按合理标准把信息分到正确位置，降低理解与管理成本。有效分类三条件：标准服务当前目标、同一层级标准统一、类别少重叠且无重大遗漏。对应"边界"心法的横向维度——先辨类别，再定边界。</div>
+      <div class="map-tags"><span class="map-tag t-think">标准服务于目标</span><span class="map-tag t-think">同级统一标准</span><span class="map-tag t-think">少重叠无遗漏</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>边界与分层思维</summary>
+      <div class="map-body-text">分类解决横向归组，分层解决纵向秩序：按职责/抽象度/逻辑顺序划层，每层只处理本层问题，上层管方向约束、下层管落实支撑，避免越级依赖。对应边界心法。Java 落地：Maven/Gradle 模块化、Spring 分层、六边形架构、ArchUnit 守护依赖方向。</div>
+      <div class="map-tags"><span class="map-tag t-think">纵向分层</span><span class="map-tag t-think">依赖方向</span><span class="map-tag t-think">越级依赖</span><span class="map-tag t-think">模块化</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>解耦与组合思维</summary>
+      <div class="map-body-text">优先通过组合、接口、事件、消息解耦，而非继承与直接调用。核心原则：高内聚、低耦合、依赖倒置。Java 落地：依赖注入、AOP、事件驱动、策略模式、SPI 机制。</div>
+      <div class="map-tags"><span class="map-tag t-think">组合优于继承</span><span class="map-tag t-think">依赖注入</span><span class="map-tag t-think">事件驱动</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>权衡与取舍思维</summary>
+      <div class="map-body-text">没有银弹，任何方案都有代价：性能 vs 可读性、一致性 vs 可用性、微服务 vs 单体。架构师的核心能力是在约束下做出可解释、可回退的决策。参考 ATAM 识别敏感点与权衡点。</div>
+      <div class="map-tags"><span class="map-tag t-think">Trade-off</span><span class="map-tag t-think">约束决策</span><span class="map-tag t-think">ATAM</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>演进与变化思维</summary>
+      <div class="map-body-text">不追求一次设计完美，而保证系统能持续重构与演进。核心：让变更成本低、影响可控、可测试、可回滚。识别稳定部分与易变部分，为变化预留空间，但不过度设计。</div>
+      <div class="map-tags"><span class="map-tag t-think">增量演进</span><span class="map-tag t-think">稳定/易变分离</span><span class="map-tag t-think">避免过度设计</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>失败与不确定性思维</summary>
+      <div class="map-body-text">分布式系统中网络、磁盘、时钟、第三方都可能失败。默认所有调用都可能超时、重复、乱序、丢失。设计时先问：如果这一步失败，系统会怎样？复杂度三大症状之一即"未知未知"。</div>
+      <div class="map-tags"><span class="map-tag t-think">默认失败</span><span class="map-tag t-think">故障前置</span><span class="map-tag t-think">未知未知</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>并发与异步思维</summary>
+      <div class="map-body-text">理解 JMM、happens-before、线程池、锁、CAS、CompletableFuture、虚拟线程。核心：共享可变状态是万恶之源，优先不可变与无状态。异步不是目的，解耦与吞吐才是。</div>
+      <div class="map-tags"><span class="map-tag t-think">不可变优先</span><span class="map-tag t-think">异步为吞吐</span><span class="map-tag t-think">虚拟线程</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>数据与状态思维</summary>
+      <div class="map-body-text">系统本质是数据的流转与状态的变更。区分事实数据、派生数据、会话状态、缓存、持久化状态。核心问题：这个数据属于谁？生命周期多长？一致性要求多高？</div>
+      <div class="map-tags"><span class="map-tag t-think">数据归属</span><span class="map-tag t-think">状态管理</span><span class="map-tag t-think">一致性</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>成本与效率思维</summary>
+      <div class="map-body-text">架构决策需考虑开发、运维、机器、人力、时间成本。不是技术越新越好，而是"合适的技术解决合适的问题"。可对照四大成本类别（直接/运营/团队/机会成本）做技术经济评估。</div>
+      <div class="map-tags"><span class="map-tag t-think">全成本视角</span><span class="map-tag t-think">合适即最优</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>安全与信任思维</summary>
+      <div class="map-body-text">不信任任何输入，包括内部服务之间的调用。默认最小权限、安全默认值、纵深防御。将安全贯穿所有主题：拆分增攻击面、冗余需加密、缓存需鉴权。</div>
+      <div class="map-tags"><span class="map-tag t-think">零信任</span><span class="map-tag t-think">最小权限</span><span class="map-tag t-think">纵深防御</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>复杂度控制思维</summary>
+      <div class="map-body-text">高级开发与初级最大的鸿沟。复杂度的三个症状：变更放大、认知负荷（Ousterhout）、未知未知。用分而治之、信息隐藏、正交性、深模块与最小依赖关系控制复杂度，让每次变更最小化。</div>
+      <div class="map-tags"><span class="map-tag t-think">认知负荷</span><span class="map-tag t-think">变更放大</span><span class="map-tag t-think">分而治之</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>面向问题与业务思维</summary>
+      <div class="map-body-text">为用技术而硬造场景是反面教材。先定义要解决的业务问题与价值，再选择技术。以 ROI 与业务目标为导向，避免"技术傲慢"。对应《方法论》中"面向问题而非面向技术"。</div>
+      <div class="map-tags"><span class="map-tag t-think">业务价值</span><span class="map-tag t-think">ROI 导向</span><span class="map-tag t-think">不做氛围组</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>系统所有权 / 二阶效应思维</summary>
+      <div class="map-body-text">高级/架构师的边界不止于"写完自己的代码"，而是端到端拥有功能的长期行为与演化：了解代码如何融入更大的系统，并主动为未来变化负责。核心是二阶效应：每个技术决策都在创造约束或可能性，同时累积技术债或灵活性，需预判连锁影响而不做过早优化。</div>
+      <div class="map-tags"><span class="map-tag t-think">端到端所有权</span><span class="map-tag t-think">二阶效应</span><span class="map-tag t-think">技术债复利</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>判断力 / 技术前瞻思维</summary>
+      <div class="map-body-text">高级工程师区别于初中级的关键是判断力（judgment）而非堆码：在模糊与信息不全时做合理的取舍，并用清晰语言向各方解释风险。同时具备技术前瞻性——关注 AI 工程化、云原生、Serverless 等趋势，判断其适用边界而非盲目追新，让每个决策兼顾当下与未来。</div>
+      <div class="map-tags"><span class="map-tag t-think">判断力</span><span class="map-tag t-think">模糊决策</span><span class="map-tag t-think">风险表达</span><span class="map-tag t-think">技术前瞻</span></div>
+    </details>
+
+    <!-- ============ 四、② 方法论细节 ============ -->
+    <h2 id="sec-method" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--success)">② 方法论 — 怎么做事</h2>
+    <p style="color:var(--muted);font-size:0.9rem">把思维落到可执行的流程与做法：先建模、再分层，用工程实践保障质量与稳定，并拥抱 AI 原生的新范式。对应《面试核心方法论总结》序章③组。</p>
+
+    <details class="map-card">
+      <summary>领域驱动设计 DDD</summary>
+      <div class="map-body-text">战略设计：限界上下文、上下文映射、子域划分；战术设计：实体、值对象、聚合、领域服务、仓储、领域事件。适用于复杂业务系统，帮助统一语言、划分服务边界。</div>
+      <div class="map-tags"><span class="map-tag t-method">战略设计</span><span class="map-tag t-method">战术设计</span><span class="map-tag t-method">统一语言</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>整洁架构 / 六边形 / 洋葱</summary>
+      <div class="map-body-text">核心思想：业务核心不依赖框架、数据库、Web 等外部细节。依赖规则：外层依赖内层，内层通过接口定义端口，适配器实现端口。C4 模型与 4+1 视图用于表达架构。</div>
+      <div class="map-tags"><span class="map-tag t-method">依赖倒置</span><span class="map-tag t-method">端口适配器</span><span class="map-tag t-method">C4 / 4+1</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>设计模式与持续重构</summary>
+      <div class="map-body-text">23 种经典设计模式是词汇表不是教条。重构是日常行为而非专项。核心：识别坏味道、小步重构、用测试保护。参考 Refactoring 目录与代码坏味道清单。</div>
+      <div class="map-tags"><span class="map-tag t-method">词汇表</span><span class="map-tag t-method">小步重构</span><span class="map-tag t-method">坏味道</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>TDD / BDD 测试驱动</summary>
+      <div class="map-body-text">TDD：红-绿-重构，先写测试再写实现，保证可测试性与设计。BDD：用业务语言描述行为，拉通业务、开发、测试。Java 落地：JUnit 5、Mockito、AssertJ、Cucumber、Testcontainers。</div>
+      <div class="map-tags"><span class="map-tag t-method">红-绿-重构</span><span class="map-tag t-method">测试金字塔</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>CI/CD 与 DevOps</summary>
+      <div class="map-body-text">代码提交即构建、测试、静态检查、打包、部署。核心：自动化一切、快速反馈、小步提交、主干开发。Java 落地：Jenkins、GitLab CI、GitHub Actions、Docker、Kubernetes。</div>
+      <div class="map-tags"><span class="map-tag t-method">自动化</span><span class="map-tag t-method">主干开发</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>可观测性工程</summary>
+      <div class="map-body-text">三大支柱：日志、指标、链路追踪。不是出问题才看日志，而是系统设计时就埋点。Java 落地：SLF4J/Logback、Micrometer、Prometheus、Grafana、OpenTelemetry、SkyWalking。</div>
+      <div class="map-tags"><span class="map-tag t-method">日志</span><span class="map-tag t-method">指标</span><span class="map-tag t-method">链路追踪</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>性能工程方法论</summary>
+      <div class="map-body-text">不要过早优化，但要有性能预算与基准。步骤：测量 → 定位 → 优化 → 验证。Java 落地：JMH 基准测试、JFR/JMC、Async Profiler、GC 日志分析、Arthas。</div>
+      <div class="map-tags"><span class="map-tag t-method">先测量再优化</span><span class="map-tag t-method">性能预算</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>容量与稳定性（SRE）</summary>
+      <div class="map-body-text">核心：SLO/SLI、错误预算、容量规划、限流、熔断、降级、隔离、弹性伸缩。把稳定性当工程问题而非救火。Java 落地：Resilience4j、Sentinel、Hystrix、线程池/信号量隔离。</div>
+      <div class="map-tags"><span class="map-tag t-method">SLO/错误预算</span><span class="map-tag t-method">限流熔断</span><span class="map-tag t-method">隔离</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>安全开发生命周期</summary>
+      <div class="map-body-text">安全左移：需求阶段威胁建模、开发阶段安全编码、测试阶段 SAST/DAST。依赖管理：定期扫描 CVE。Java 落地：OWASP Top 10、Spring Security、OWASP ZAP、Dependency-Check。</div>
+      <div class="map-tags"><span class="map-tag t-method">安全左移</span><span class="map-tag t-method">威胁建模</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>敏捷 / 精益 / 看板</summary>
+      <div class="map-body-text">核心：快速交付价值、持续改进、消除浪费、限制 WIP。架构要支持迭代交付，而非大而全的前期设计。演进式架构与 TDD、重构结合支撑持续交付。</div>
+      <div class="map-tags"><span class="map-tag t-method">快速交付</span><span class="map-tag t-method">限制 WIP</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>分布式一致性方法论</summary>
+      <div class="map-body-text">CAP/BASE/PACELC 决定取舍；Saga/TCC 处理长事务补偿；幂等性支撑重试。对应《方法论》高可用篇的分布式一致性、消息可靠性方法论。</div>
+      <div class="map-tags"><span class="map-tag t-method">CAP</span><span class="map-tag t-method">Saga/TCC</span><span class="map-tag t-method">幂等</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>架构决策记录（ADR）</summary>
+      <div class="map-body-text">把架构决策显式化、可回溯：背景、决策、取舍、结果四要素。避免被遗忘的决策与拍脑袋式选择，是"约束下可解释决策"的工程化载体。</div>
+      <div class="map-tags"><span class="map-tag t-method">背景</span><span class="map-tag t-method">决策</span><span class="map-tag t-method">取舍</span><span class="map-tag t-method">结果</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>AI-Native 应用架构</summary>
+      <div class="map-body-text">生成式 AI 已从单模型调用演进为多层协同的工程化系统，围绕可组合性、可观测性、可治理性三大支柱重构。核心范式：模型即构件（Model-as-Component）、提示即接口（Prompt-as-Interface）、反馈即编译（Feedback-as-Compile）。现代架构以数据流、任务编排与反馈闭环为驱动，而非以模型为中心。</div>
+      <div class="map-tags"><span class="map-tag t-method">可组合</span><span class="map-tag t-method">可观测</span><span class="map-tag t-method">可治理</span><span class="map-tag t-method">模型即构件</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>Agentic / LLM 工作流编排</summary>
+      <div class="map-body-text">单一的 Chatbot 已无法满足复杂业务，取而代之的是 Multiple-Agent 协同的智能体验（Agentic Workflow）。落地依赖成熟 Agent 框架构建具备规划、反思、工具调用（Tool Use）能力的系统，并把确定性工程体系与业务流深度融合。Java 生态关注 LangChain4j、Spring AI、语义缓存与可治理的编排层。</div>
+      <div class="map-tags"><span class="map-tag t-method">多智能体</span><span class="map-tag t-method">规划反思</span><span class="map-tag t-method">工具调用</span><span class="map-tag t-method">Spring AI</span></div>
+    </details>
+
+    <!-- ============ 五、③ 原则细节 ============ -->
+    <h2 id="sec-principle" style="font-size:1.3rem;margin-top:var(--space-xl);color:var(--accent2)">③ 原则 — 守哪条底线</h2>
+    <p style="color:var(--muted);font-size:0.9rem">把思维与方法论固化为不可逾越的纪律，避免回到技术债与混乱；也把架构师的贡献锚定在可衡量的价值与影响上。对应《面试核心方法论总结》序章④⑤组。</p>
+
+    <details class="map-card">
+      <summary>SOLID 设计原则</summary>
+      <div class="map-body-text">S 单一职责、O 开闭原则、L 里氏替换、I 接口隔离、D 依赖倒置。面向对象的基石；在现代分布式系统中可向 CUPID 属性（可组合/可预测/惯用/领域）与时俱进。</div>
+      <div class="map-tags"><span class="map-tag t-principle">单一职责</span><span class="map-tag t-principle">开闭</span><span class="map-tag t-principle">依赖倒置</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>DRY / KISS / YAGNI</summary>
+      <div class="map-body-text">DRY 不要重复自己；KISS 保持简单；YAGNI 你不会需要它、不要提前实现。简洁三原则是控制复杂度与认知负荷的第一道防线。</div>
+      <div class="map-tags"><span class="map-tag t-principle">不重复</span><span class="map-tag t-principle">保持简单</span><span class="map-tag t-principle">不过早实现</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>组合优于继承 / 迪米特法则</summary>
+      <div class="map-body-text">优先组合/委托而非继承，避免继承破坏封装；迪米特法则（最少知识原则）减少耦合。关注点分离让业务、技术、基础设施分开。</div>
+      <div class="map-tags"><span class="map-tag t-principle">组合</span><span class="map-tag t-principle">最少知识</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>依赖方向 / 无环依赖</summary>
+      <div class="map-body-text">稳定依赖原则：依赖指向更稳定的模块；无环依赖原则：包/模块之间不能形成循环依赖。用 ArchUnit 在构建期守护依赖方向，防止架构腐化。</div>
+      <div class="map-tags"><span class="map-tag t-principle">依赖方向</span><span class="map-tag t-principle">无环</span><span class="map-tag t-principle">ArchUnit</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>关注点分离</summary>
+      <div class="map-body-text">业务、技术、基础设施分开，让每个关注点能独立演化与测试。这是"边界与分层思维"在工程上的强制落地。</div>
+      <div class="map-tags"><span class="map-tag t-principle">业务/技术/基础设施</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>显式优于隐式 / 约定优于配置</summary>
+      <div class="map-body-text">关键逻辑不要藏在魔法与反射里（显式优于隐式）；框架默认配置合理以减少样板代码（约定优于配置）。二者平衡：默认约定，关键处显式。</div>
+      <div class="map-tags"><span class="map-tag t-principle">显式</span><span class="map-tag t-principle">约定</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>可测试 / 可观测 / 可回滚</summary>
+      <div class="map-body-text">可测试：任何模块能方便地单元测试；可观测：任何请求可追踪、任何状态可查询；可回滚：上线必须安全、可灰度、可回滚。三者是工程可靠性的三根柱子。</div>
+      <div class="map-tags"><span class="map-tag t-principle">可测试</span><span class="map-tag t-principle">可观测</span><span class="map-tag t-principle">可回滚</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>无状态优先 / 不可变优先</summary>
+      <div class="map-body-text">服务尽量无状态、状态外置到 Redis/DB，才可水平扩展；不可变对象更安全，尤其并发场景。是"并发与异步思维"落到编码的强制要求。</div>
+      <div class="map-tags"><span class="map-tag t-principle">无状态</span><span class="map-tag t-principle">不可变</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>面向失败 / 优雅降级 / 幂等</summary>
+      <div class="map-body-text">超时、重试、限流、熔断、降级、隔离六板斧；优雅降级保核心链路；所有写操作尽量幂等以支持重试。是"失败与不确定性思维"的工程保障。</div>
+      <div class="map-tags"><span class="map-tag t-principle">超时重试</span><span class="map-tag t-principle">优雅降级</span><span class="map-tag t-principle">幂等</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>安全默认 / 最小权限 / 纵深防御</summary>
+      <div class="map-body-text">安全默认值、最小权限、纵深防御是"安全与信任思维"的三条强制底线，贯穿所有主题：拆分增攻击面、冗余需加密、缓存需鉴权、排障需审计日志。</div>
+      <div class="map-tags"><span class="map-tag t-principle">安全默认</span><span class="map-tag t-principle">最小权限</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>度量驱动 / 小步提交 / 自动化</summary>
+      <div class="map-body-text">用数据说话，优化前先测量；每次提交小而完整，方便回滚与审查；构建、测试、部署、监控、告警全自动化。是"成本与效率思维"与工程实践的结合。</div>
+      <div class="map-tags"><span class="map-tag t-principle">度量驱动</span><span class="map-tag t-principle">小步提交</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>CUPID 属性（现代补充）</summary>
+      <div class="map-body-text">Dan North 提出的现代设计属性：Composable 可组合、Unix 理念（做好一件事）、Predictable 可预测、Idiomatic 惯用、Domain-based 基于领域。作为 SOLID 的演进视角，聚焦可观测与可演化性。</div>
+      <div class="map-tags"><span class="map-tag t-principle">可组合</span><span class="map-tag t-principle">可预测</span><span class="map-tag t-principle">惯用</span><span class="map-tag t-principle">基于领域</span></div>
+    </details>
+
+    <details class="map-card">
+      <summary>以价值 / 影响衡量成果</summary>
+      <div class="map-body-text">架构师的价值不由代码量或技术选型的"先进程度"衡量，而由对业务、工程质量与长期可演化性的真实影响衡量。对应 2026 大厂的晋升审视：关注你如何理解端到端影响、如何在关键节点用判断力做出别人做不到的取舍，并用可度量的成果（性能、可用性、交付效率、成本）证明贡献。</div>
+      <div class="map-tags"><span class="map-tag t-principle">影响力</span><span class="map-tag t-principle">端到端价值</span><span class="map-tag t-principle">可度量成果</span></div>
+    </details>
+
+    <p class="map-note">注：本页为《面试核心方法论总结》(chapter-core-methodology.html) 的思维导图式总览，三列内容去重合并自 多源 份素材，并依据 2026 年大厂 Java 架构师 / 高级开发 / 专家能力要求做了补充调研，新增全局思维、分类思维、系统所有权 / 二阶效应、判断力 / 技术前瞻等思维，AI-Native / Agentic 两类方法论，以价值衡量成果原则，并补入 CUPID、复杂度三症状、ATAM 等现代框架。方法论计 74 卡、对应五主题详见原篇。</p>
+
+  </div>
+
+  <!-- Mermaid 与脚注脚本，流程简单、不加外部导航 -->
+  <script defer src="java-architect-interview/shared/js/mermaid.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'neutral',
+        securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+      });
+    });
+  </script>
+</body>
+</html>
