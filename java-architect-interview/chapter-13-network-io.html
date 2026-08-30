@@ -248,7 +248,7 @@ flowchart LR
             <p><strong>Reno（1990）</strong>：新增快速恢复（Fast Recovery）——丢包后不降到 1，而是降到 cwnd/2 + 3，保持管道中有数据 inflight，避免吞吐量断崖。但多个包同时丢时恢复效率低。</p>
             <p><strong>NewReno（1995）</strong>：优化部分 ACK 处理——在一个窗口内多个包丢失时，每收到一个部分 ACK 就重传一个丢失包，直到所有丢失包补完，避免 Reno 的窗口膨胀问题。</p>
             <p><strong>CUBIC（2006，Linux 2.6.19+ 默认）</strong>：用三次方函数替代线性增长，在远离上一次丢包窗口时增长快、接近时增长慢，兼顾高带宽长肥网络的利用率与稳定性。但基于丢包的探测在高随机丢包网络（如 WiFi）表现差。</p>
-            <p><strong>BBR（2016，Google）</strong>：不依赖丢包，而是主动探测<strong>瓶颈带宽（BtlBw）</strong>和<strong>最小 RTT（MinRTT）</strong>，发送速率 = BtlBw，inflight = BtlBw × MinRTT。在高丢包网络（如蜂窝/卫星）表现远超 CUBIC，Google 内部 YTB 吞吐量提升 27%。</p>
+            <p><strong>BBR（2016，Google）</strong>：不依赖丢包，而是主动探测<strong>瓶颈带宽（BtlBw）</strong>和<strong>最小 RTT（MinRTT）</strong>，发送速率 = BtlBw，inflight = BtlBw × MinRTT。在高丢包网络（如蜂窝/卫星）表现远超 CUBIC，Google 内部测试显示在高丢包/长肥网络下较 CUBIC 吞吐显著提升（官方文献报告可达两位数百分比量级，约 2~3 成），但非所有网络都占优，需结合 RTT 与丢包率评估。</p>
             <p><strong>演进驱动力</strong>：从"<strong>丢包=拥塞</strong>"（Tahoe/Reno 假设）到"<strong>主动测量网络容量</strong>"（BBR），反映网络环境从低丢包有线到高丢包无线/长距离的变化。</p>
           </div>
         </div>
@@ -306,6 +306,14 @@ sequenceDiagram
               <li><strong>防止旧连接数据包干扰新连接</strong>：若立即复用端口，网络中延迟的旧数据包可能被新连接误收。等待 2MSL 让旧包全部消亡。</li>
             </ol>
             <p><strong>CLOSE_WAIT 堆积根因</strong>：被动方收到 FIN 发了 ACK，但<strong>应用层未调用 close()</strong>，导致状态卡在 CLOSE_WAIT。常见原因：① 程序 bug 未关闭 Socket；② 后端处理耗时，应用层数据未发完；③ 连接池泄漏。危害：每个 CLOSE_WAIT 占用一个文件描述符，大量堆积会耗尽句柄，导致“Too many open files”。</p>
+
+            <p><strong>TIME_WAIT 关键辨析：主动关闭方、端口复用、内核参数与负载均衡影响</strong>：</p>
+            <ul>
+              <li><strong>主动关闭方视角</strong>：TIME_WAIT 只出现在<strong>主动发起 FIN 并发送最后 ACK 的那一方</strong>（通常是先调用 close() 的一方）。被动关闭方收到最后 ACK 后即进入 CLOSED，不会停留 TIME_WAIT。短连接场景若由客户端先关闭，TIME_WAIT 落在客户端；若服务端主动关闭（如超时踢掉空闲连接），TIME_WAIT 就落在服务端，高并发短连接下服务端会堆积大量 TIME_WAIT。</li>
+              <li><strong>端口复用</strong>：<code class="inline-code">SO_REUSEADDR</code> 允许绑定处于 TIME_WAIT 状态的本地地址，使服务进程重启时能立即 bind 同一端口（否则需等 2MSL）；<code class="inline-code">SO_REUSEPORT</code>（Linux 3.9+）允许多个进程/线程绑定同一端口、由内核分发连接，现代多核服务（Nginx、Netty 的 <code class="inline-code">ChannelOption.SO_REUSEPORT</code>）借此把连接摊到各核，缓解单套接字 TIME_WAIT 堆积。二者语义不同：SO_REUSEADDR 只解决"地址可复用"，SO_REUSEPORT 才允许多进程监听同端口。</li>
+              <li><strong>内核参数</strong>：<code class="inline-code">net.ipv4.tcp_tw_reuse</code>（默认 0，仅对<strong>客户端</strong>出站连接生效，需配合时间戳选项）可复用 TIME_WAIT 套接字发起新出站连接；<code class="inline-code">net.ipv4.tcp_fin_timeout</code> 控制 FIN_WAIT_2 超时；<code class="inline-code">net.ipv4.tcp_max_tw_buckets</code> 限制 TIME_WAIT 总量，超量后内核直接回收（可能丢包）；<code class="inline-code">net.ipv4.tcp_tw_recycle</code> 已在 Linux 4.12 移除，且启用后在 NAT 场景会因时间戳错乱导致连接失败，切勿再使用。</li>
+              <li><strong>负载均衡影响</strong>：四层负载均衡（L4 LB）做 SNAT 时，真实服务器看到的源地址是 LB，大量来自不同客户端的连接复用同一 (LB IP, LB 端口)，会使 realserver 上同一本地端口对应的 TIME_WAIT 急剧放大；反之网关/反向代理自身作为客户端向上游发起连接时，TIME_WAIT 落在本机客户端侧，此时 <code class="inline-code">tcp_tw_reuse</code> 才有意义。高并发服务端更稳妥的做法是<strong>让客户端先关</strong>（被动关闭）或开启 SO_REUSEPORT，而非盲目调小 2MSL。</li>
+            </ul>
 
             <p><strong>拥塞控制核心机制（慢启动 / 拥塞避免 / 快速重传）</strong>：发送方维护<strong>拥塞窗口 cwnd</strong>，实际发送窗口 = min(cwnd, 接收窗口 rwnd)。① <strong>慢启动</strong>：初始 cwnd 较小，每收到一个 ACK 指数增长（×2），快速探明可用带宽；② <strong>拥塞避免</strong>：cwnd 达到慢启动阈值 ssthresh 后转线性增长（+1/cwnd 每 RTT），避免激进；③ <strong>丢包响应</strong>：Reno 类在收到 3 个重复 ACK（快速重传）后进入快速恢复，cwnd 降到 ssthresh（约 cwnd/2）再线性恢复；④ <strong>超时</strong>：cwnd 直接归 1 重新慢启动（最严重）。</p>
             <table class="compare-table">
@@ -407,7 +415,7 @@ flowchart LR
             </div>
 
             <p><strong>HTTP/1.0（1996）</strong>：每个请求独立 TCP 连接，三次握手开销大，无法复用。</p>
-            <p><strong>HTTP/1.1（1997，RFC 2616）</strong>：引入<strong>持久连接</strong>（Connection: keep-alive，默认开启）、<strong>管道化</strong>（Pipelining，允许连续发请求不等待响应）、<strong>分块传输</strong>（Chunked Transfer）、<strong>Host 头</strong>（支持虚拟主机）。但管道化有响应顺序依赖，未被广泛实现；浏览器仍限制同域名 6-8 个并发连接。</p>
+            <p><strong>HTTP/1.1（1997 RFC 2068 首版；1999 RFC 2616 修订）</strong>：引入<strong>持久连接</strong>（Connection: keep-alive，默认开启）、<strong>管道化</strong>（Pipelining，允许连续发请求不等待响应）、<strong>分块传输</strong>（Chunked Transfer）、<strong>Host 头</strong>（支持虚拟主机）。但管道化有响应顺序依赖，未被广泛实现；浏览器仍限制同域名 6-8 个并发连接。</p>
             <p><strong>HTTP/2（2015，RFC 7540）</strong>：Google SPDY 标准化。核心创新：<strong>二进制分帧</strong>（替代文本报文）、<strong>多路复用</strong>（单连接并发多请求）、<strong>头部压缩 HPACK</strong>、<strong>Server Push</strong>（已废弃：HTTP/3 已移除 Server Push，命中率低、缓存复杂，推荐用 Preload / Link 头替代）。但所有流共享一个 TCP 连接，<strong>TCP 层丢包会阻塞所有流</strong>（TCP 队头阻塞）。</p>
             <p><strong>HTTP/3（2022，RFC 9114）</strong>：基于 QUIC（UDP 之上实现可靠传输）。QUIC 把"连接"从四元组（源 IP/端口+目的 IP/端口）解耦为<strong>连接 ID</strong>，网络切换（WiFi↔4G）不断连；每个流独立拥塞控制与丢包恢复，<strong>彻底消除队头阻塞</strong>；支持 0-RTT/1-RTT 握手；头部压缩升级为 QPACK。</p>
             <p><strong>演进驱动力</strong>：从"<strong>连接复用</strong>"（HTTP/1.1）到"<strong>连接内并发</strong>"（HTTP/2）到"<strong>无阻塞+连接迁移</strong>"（HTTP/3），每一步都在降低延迟、提升连接鲁棒性，适应移动互联网与实时交互场景。</p>
@@ -428,7 +436,7 @@ flowchart LR
                 <tr><td>传输层</td><td>TCP</td><td>TCP</td><td>UDP + QUIC</td></tr>
                 <tr><td>队头阻塞</td><td>应用层严重</td><td>应用层消除，TCP 层存在</td><td>完全消除</td></tr>
                 <tr><td>连接数</td><td>同域 6-8 个</td><td>单连接多路复用</td><td>单连接多路复用</td></tr>
-                <tr><td>握手延迟</td><td>1-RTT + TCP 握手</td><td>1-RTT + TCP 握手 + TLS</td><td>0-RTT/1-RTT（QUIC 内含 TLS）</td></tr>
+                <tr><td>握手延迟（首字节）</td><td>明文 1-RTT(TCP)；TLS 1.2 共 3-RTT、TLS 1.3 共 2-RTT</td><td>与 HTTP/1.1 一致（复用同一 TCP+TLS 连接，无额外 RTT）</td><td>1-RTT（QUIC 内含 TLS 1.3）；重连可用 0-RTT（PSK）</td></tr>
                 <tr><td>连接迁移</td><td>四元组变则断</td><td>四元组变则断</td><td>连接 ID 不变不断</td></tr>
                 <tr><td>头部压缩</td><td>无（gzip 压 body）</td><td>HPACK（静态+动态表）</td><td>QPACK（避免队头阻塞）</td></tr>
                 <tr><td>Server Push</td><td>无</td><td>有（实际少用）</td><td>移除（推荐 Preload / Link 头替代）</td></tr>
@@ -443,6 +451,8 @@ flowchart LR
 
             <p><strong>HPACK vs QPACK：头部压缩的演进</strong></p>
             <p>HTTP/2 的 HPACK 用静态表（预定义常见头）+ 动态表（连接级共享，先进先出）压缩头部。但动态表更新必须按序，若某个包丢失，后续依赖动态表的头部无法解码，形成压缩层队头阻塞。HTTP/3 的 QPACK 把动态表更新与请求流解耦，用独立单向流传递表更新，消除此阻塞。</p>
+
+            <p><strong>TLS 集成与版本边界（容易被忽略）</strong>：三个版本对 TLS 的要求不同——HTTP/1.1 可跑在任意 TLS 版本（甚至明文）；HTTP/2 在浏览器中<strong>强制 TLS 1.2+</strong>（明文 h2c 仅用于服务端间内部通信，浏览器不支持），且必须通过 <strong>ALPN</strong> 协商出 <code class="inline-code">h2</code> 协议标识；HTTP/3 的 QUIC <strong>强制内嵌 TLS 1.3</strong>，没有明文等价物。因此"升级到 HTTP/3 就一定更快"的前提是客户端与服务端都支持 TLS 1.3 与 UDP/QUIC，且中间网络不阻断 UDP。</p>
           </div>
         </div>
 
@@ -532,7 +542,7 @@ flowchart LR
             </div>
 
             <p><strong>TLS 1.0/1.1（已废弃）</strong>：基于 SSL 3.0，存在 BEAST、POODLE、RC4 弱点，主流浏览器 2020 起禁用，当前推荐 TLS 1.3。</p>
-            <p><strong>TLS 1.2（2008，当前兼容主流）</strong>：支持 AEAD 加密（AES-GCM）、SHA-256/384、灵活的密码套件协商。完整握手需 2-RTT（TCP 1-RTT + TLS 1-RTT = 共 3-RTT 才能发应用数据）。</p>
+            <p><strong>TLS 1.2（2008，当前兼容主流）</strong>：支持 AEAD 加密（AES-GCM）、SHA-256/384、灵活的密码套件协商。完整握手需 <strong>2 次 TLS 往返</strong>（ClientHello→ServerHello(+Cert+KeyExch)+ServerHelloDone 为 1 RTT，ClientKeyExchange+Finished→Server Finished 为第 2 RTT）；叠加 TCP 三次握手 1 RTT，首字节约 3 RTT。</p>
             <p><strong>TLS 1.3（2018，RFC 8446）</strong>：最大变革是<strong>握手简化</strong>——把协商轮次从 2-RTT 降到 1-RTT，重连可 0-RTT；废除 RSA 密钥交换（无前向安全，仅支持前向安全的 ECDHE）及大量旧密码套件（CBC/MD5/SHA-1，仅保留 AEAD）；密码套件从几十种精简到 5 种（减少攻击面）；加密更多握手字段（除 ClientHello 外几乎全部加密）。</p>
             <p><strong>演进驱动力</strong>：① <strong>延迟敏感</strong>——移动互联网要求首包极致快，1-RTT/0-RTT 直接提升用户体验；② <strong>安全加固</strong>——RSA 无 PFS，泄露私钥可解密历史流量，必须淘汰；③ <strong>减少攻击面</strong>——TLS 1.2 的密码套件太多，很多已不安全，1.3 大刀阔斧精简。</p>
           </div>
@@ -583,6 +593,8 @@ sequenceDiagram
               <li>客户端从下往上验证：① 叶子证书域名与访问域名匹配（SNI）；② 每个证书的签名用上级的公钥验证；③ 检查有效期、吊销状态（CRL 或 OCSP）；④ 根 CA 在信任库中。</li>
             </ol>
             <p><strong>OCSP Stapling</strong>：传统 OCSP 需客户端额外发请求查证书是否吊销，增加延迟。OCSP Stapling 让服务器定期向 CA 查询 OCSP 响应并<strong>在 TLS 握手时附带</strong>，客户端直接验证，省一次往返。</p>
+
+            <p><strong>SNI 与 ALPN：握手阶段的两个关键扩展</strong>：<strong>SNI（Server Name Indication）</strong>在 ClientHello 中携带请求域名，让一台 IP 上托管多个证书的服务器知道该返回哪张证书（否则只能返回默认证书），是 HTTPS 虚拟主机的基础。<strong>ALPN（Application-Layer Protocol Negotiation）</strong>在 TLS 握手内协商上层应用协议，HTTP/2 必须通过 ALPN 协商出 <code class="inline-code">h2</code>、HTTP/3 协商出 <code class="inline-code">h3</code>，否则浏览器会拒绝用该版本通信。二者都在握手早期完成、不增加额外 RTT：SNI 解决"返回哪张证书"，ALPN 解决"用哪个应用协议"。</p>
 
             <p><strong>前向安全（Perfect Forward Secrecy, PFS）</strong>：</p>
             <p>传统 RSA 密钥交换（TLS 1.3 已废弃，无前向安全）中，Pre-Master Secret 用服务器公钥加密传输。若服务器私钥未来泄露，攻击者可解密所有历史流量。<strong>ECDHE（临时椭圆曲线 Diffie-Hellman）密钥交换</strong>每次握手生成临时密钥对，会话密钥派生后临时密钥即丢弃。即使私钥泄露，也无法推算历史会话密钥——<strong>保护的是"过去"</strong>。</p>
@@ -687,12 +699,16 @@ flowchart LR
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>Selector 的底层：IO 多路复用</strong></p>
-            <p>Selector 是 Java 对操作系统 IO 多路复用（Linux epoll / macOS kqueue / Windows IOCP）的封装。核心思想：<strong>用一个系统调用同时监视多个文件描述符的可读/可写状态</strong>，只有就绪的才处理，避免为每个连接浪费线程。</p>
+            <p>Selector 是 Java 对操作系统<strong>就绪通知式（readiness）</strong> IO 多路复用的封装：Linux 用 epoll、macOS/BSD 用 kqueue、Windows 由 JDK 通过辅助线程模拟就绪（历史上并非直接复用 IOCP，IOCP 是完成驱动模型、由 Java AIO 使用）。核心思想：<strong>用一个系统调用同时监视多个文件描述符的可读/可写状态</strong>，只有就绪的才处理，避免为每个连接浪费线程。</p>
             <ul>
               <li><strong>select/poll（旧）</strong>：遍历所有 fd，O(n) 复杂度，fd 数量受限（1024）。</li>
               <li><strong>epoll（Linux 2.6+）</strong>：事件驱动，内核维护就绪事件列表，O(1) 触发，fd 数量只受内存限制。<code class="inline-code">epoll_create</code> 创建实例 → <code class="inline-code">epoll_ctl</code> 注册 fd → <code class="inline-code">epoll_wait</code> 阻塞等待事件。</li>
               <li><strong>kqueue（BSD/macOS）</strong>：类似 epoll，但更早出现，支持更多事件类型（文件、进程、信号）。</li>
             </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p><strong>平台差异与就绪语义（避免"epoll 即 Selector"的过度对应）</strong>：① <strong>就绪 vs 完成</strong>——epoll/kqueue 是"事件驱动/就绪通知"，内核告诉你"fd 可读了"，你仍需自己 read；Windows 的 IOCP 是"完成驱动"，内核直接把数据搬到缓冲区再通知，二者模型不同，Java NIO 的 Selector 抽象统一为就绪模型；② <strong>Windows 实现</strong>——JDK 在 Windows 上并非直接走 IOCP，而是用 <code class="inline-code">WindowsSelectorProvider</code> 借助辅助线程模拟就绪（WEP），因此 Linux 特有的"epoll 空轮询 bug"在 Windows 不存在，但 Windows 实现有自身开销；③ <strong>就绪集合语义</strong>——<code class="inline-code">selectedKeys()</code> 返回的是"自上次 select 以来就绪的键集合"，必须遍历并 <code class="inline-code">remove()</code>，否则会重复处理（事件重复）；若只读了部分数据却不再注册 <code class="inline-code">OP_READ</code>，则可能错过后续可读事件（事件丢失）；④ <strong>事件丢失/重复</strong>——Netty 等框架通过"读到底（read 返回 0/EAGAIN 才退出循环）"和显式重设 <code class="inline-code">interestOps</code> 来规避，纯 JDK NIO 需开发者自己保证。</p>
+            </div>
 
             <p><strong>NIO 三大组件协作</strong>：</p>
             <div class="mermaid-container">
@@ -820,7 +836,7 @@ flowchart TD
             <p><strong>Netty 版本演进</strong>：</p>
             <p><strong>Netty 2.x（2004）</strong>：JBoss 内部项目，基于 Java NIO，API 粗糙。</p>
             <p><strong>Netty 3.x（2008，已淘汰）</strong>：独立于 JBoss，引入 Channel、ChannelPipeline、ChannelHandler 核心抽象。但存在 inbound/outbound 概念混淆、线程模型不够清晰的问题，当前主流为 4.1.x。</p>
-            <p><strong>Netty 4.x（2013）</strong>：重大重构——统一 EventLoop（取代 3.x 的 ChannelFactory+Boss/Worker 分离，该模型已废弃）、引入 ByteBuf（替代 ByteBuffer）、简化 Handler 接口（ChannelInboundHandler/ChannelOutboundHandler 分离清晰）。成为业界标准，RocketMQ、Dubbo、gRPC、Elasticsearch 均基于 Netty 4。</p>
+            <p><strong>Netty 4.x（2013）</strong>：重大重构——用统一的 <code class="inline-code">EventLoop</code>/<code class="inline-code">EventLoopGroup</code> 抽象取代 3.x 中分离的 Boss/Worker 线程池类型（注意：主从 Reactor 的 Boss 负责 accept、Worker 负责 IO 这一<strong>分工模型并未废弃</strong>，Netty 4 至今仍是 Boss EventLoopGroup + Worker EventLoopGroup）；引入 ByteBuf（替代 ByteBuffer）、简化 Handler 接口（ChannelInboundHandler/ChannelOutboundHandler 分离清晰）。成为业界标准，RocketMQ、Dubbo、gRPC、Elasticsearch 均基于 Netty 4。</p>
             <p><strong>Netty 5.x（暂缓）</strong>：曾计划统一 Buffer API、优化内存管理，但因改动大、收益不确定，官方已搁置，4.x 持续演进（当前 4.1.x）。</p>
             <p><strong>演进驱动力</strong>：从"NIO 编程太复杂"到"事件驱动+责任链+内存池"的工程化封装，Netty 把 Java NIO 的底层细节（epoll bug、半包粘包、ByteBuffer 限制）全部屏蔽，让开发者聚焦业务。</p>
           </div>
@@ -876,6 +892,8 @@ ch.pipeline()
     .addLast(<span class="str">"bizHandler"</span>, <span class="kw">new</span> <span class="type">BusinessHandler</span>())
     .addLast(<span class="str">"protobufEncoder"</span>, <span class="kw">new</span> <span class="type">ProtobufEncoder</span>());</code></pre></div>
             <p><strong>设计哲学</strong>：① <strong>关注点分离</strong>——编解码、日志、心跳、限流、业务各用一个 Handler，复用组合；② <strong>双向链表</strong>——Inbound 从头向后，Outbound 从尾向前，天然支持拦截器模式；③ <strong>上下文传递</strong>——<code class="inline-code">ChannelHandlerContext</code> 持有 Channel、Pipeline、EventLoop 引用，Handler 间通过 <code class="inline-code">fireChannelRead()</code> 或 <code class="inline-code">write()</code> 传递事件。</p>
+
+            <p><strong>Pipeline 中的异常传播</strong>：入站异常（如解码失败、Handler 抛出 RuntimeException）会沿 Pipeline <strong>向后</strong>（从当前 Inbound Handler 往前）触发各 Inbound Handler 的 <code class="inline-code">exceptionCaught()</code>，直到某个 Handler 处理（消费）它；若一路无人处理，默认由 <code class="inline-code">TailContext</code> 记录并丢弃（生产环境应至少有一个 Handler 兜底日志）。出站异常（如 write 失败）不走到 <code class="inline-code">exceptionCaught</code>，而是通过返回的 <code class="inline-code">ChannelFuture</code>/<code class="inline-code">ChannelPromise</code> 的 <code class="inline-code">addListener</code> 或 <code class="inline-code">cause()</code> 暴露。理解这点才能正确排查"异常被吞掉"类问题。</p>
           </div>
         </div>
 
@@ -929,7 +947,7 @@ ch.pipeline()
                 <li><strong>忘记释放 ByteBuf</strong>：引用计数到 0 才回收，不 release 会内存泄漏。Inbound 消息通常由最后一个 Handler 释放，Outbound 由 Netty 在写完成后释放。</li>
                 <li><strong>Handler 顺序错误</strong>：解码器必须在业务 Handler 之前，编码器在之后。顺序反了会导致类型转换异常。</li>
                 <li><strong>认为 Netty 只能做 Server</strong>：Netty 的 Bootstrap 同样用于 Client，Dubbo Consumer、gRPC Client 都基于 Netty。</li>
-                <li><strong>忽视 Backlog 与 SO_BACKLOG</strong>：全连接队列（sync queue）满后新连接被丢弃，高并发场景需调大 <code class="inline-code">server.bootstrap().option(ChannelOption.SO_BACKLOG, 1024)</code>。</li>
+                <li><strong>忽视 Backlog 与 SO_BACKLOG</strong>：全连接队列（accept 队列）满后，内核会丢弃客户端发来的 ACK（或按 <code class="inline-code">tcp_abort_on_overflow</code> 回 RST），新连接建不上，高并发场景需调大 <code class="inline-code">ServerBootstrap.option(ChannelOption.SO_BACKLOG, 1024)</code>（注意是父 Channel 的 option，不是 childOption）。</li>
               </ul>
             </div>
           </div>
@@ -975,7 +993,7 @@ ch.pipeline()
             <p><strong>Netty 3.x（已淘汰）</strong>：使用 JDK ByteBuffer 或自定义 ChannelBuffer，无统一内存池，高并发下 GC 压力大，当前主流为 Netty 4.1。</p>
             <p><strong>Netty 4.0（2013）</strong>：引入 ByteBuf 统一抽象，提供 Unpooled（非池化）与 Pooled（池化）两种分配器。PoolArena 借鉴 jemalloc 思想，解决堆外内存管理问题。</p>
             <p><strong>Netty 4.1（当前主流）</strong>：优化 PoolArena 的并发分配（每个线程绑定 PoolThreadCache 减少锁竞争）、引入 Tiny/Small 分类、完善内存泄漏检测（ResourceLeakDetector）。</p>
-            <p><strong>演进驱动力</strong>：堆外内存不受 JVM GC 管理，手动 malloc/free 易泄漏且分配慢；jemalloc 思想（按大小分档、线程缓存、伙伴系统）被引入 Netty，实现"GC 无关+高吞吐+低碎片"的内存管理。</p>
+            <p><strong>演进驱动力</strong>：堆外内存不受 JVM GC 管理，手动 malloc/free 易泄漏且分配慢；jemalloc 风格思想（按大小分档、线程缓存、buddy 伙伴分配）被引入 Netty 自研的 PoolArena（并非直接链接 C 语言 jemalloc 库），实现“GC 无关+高吞吐+低碎片”的内存管理。</p>
           </div>
         </div>
 
@@ -1021,7 +1039,7 @@ flowchart TD
               <li><strong>ADVANCED</strong>：抽样 1%，记录完整访问路径。</li>
               <li><strong>PARANOID</strong>：100% 检测，性能损耗大，仅调试。</li>
             </ul>
-            <p>开启方式：<code class="inline-code">-Dio.netty.leakDetectionLevel=advanced</code>。泄漏日志会打印 ByteBuf 创建时的栈轨迹，定位未 release 的代码路径。</p>
+            <p>开启方式：<code class="inline-code">-Dio.netty.leakDetection.level=advanced</code>（旧属性名 <code class="inline-code">io.netty.leakDetectionLevel</code> 仍兼容）。泄漏日志会打印 ByteBuf 创建时的栈轨迹，定位未 release 的代码路径。</p>
           </div>
         </div>
 
@@ -1072,6 +1090,7 @@ flowchart TD
                 <li><strong>跨线程传递 ByteBuf 不 retain</strong>：ByteBuf 与创建它的 EventLoop 绑定，跨线程传递前必须 retain，否则可能在目标线程使用前被原线程释放。</li>
                 <li><strong>忽视 SIMPLE 模式的抽样率</strong>：默认 1%，小流量泄漏可能抽不到，怀疑泄漏时应切 ADVANCED/PARANOID。</li>
                 <li><strong>混用 Pooled 与 Unpooled</strong>：Unpooled 的 ByteBuf 也支持引用计数，但归还给 GC 而非 Pool，频繁使用会触发 Full GC。</li>
+                <li><strong>在 SimpleChannelInboundHandler 中重复 release</strong>：该基类在 <code class="inline-code">channelRead0</code> 返回后会<strong>自动 release</strong> 入站消息；若已手动 release 或想向下游传递，必须先 <code class="inline-code">retain()</code>，否则会触发 "refCnt: 0，already released" 或计数异常。</li>
               </ul>
             </div>
           </div>
@@ -1159,6 +1178,10 @@ flowchart LR
               <li><code class="inline-code">MappedByteBuffer</code>：mmap 的 Java 封装，force() 刷盘。</li>
               <li><strong>Netty CompositeByteBuf</strong>：逻辑零拷贝（不移动数据，只组装描述符）。</li>
             </ul>
+            <div class="callout callout-deep">
+              <div class="callout-title">深入解析</div>
+              <p><strong>零拷贝的平台 / API 生效条件（避免混写）</strong>：① <strong>sendfile</strong> 是 Linux 特有系统调用（BSD/macOS 也有同名但语义略异，Windows 对应 <code class="inline-code">TransmitFile</code>）；Java 的 <code class="inline-code">FileChannel.transferTo()</code> 在 Linux 走 sendfile、Windows 走 TransmitFile，<strong>不支持的平台会自动降级为 read+write 循环</strong>，此时不再是零拷贝。② <strong>mmap / FileChannel.map()</strong> 基于 POSIX <code class="inline-code">mmap</code>，各 Unix 通用，Windows 用 <code class="inline-code">MapViewOfFile</code>，映射大文件会占用大量虚拟地址空间。③ <strong>DMA gather（sendfile + SG）</strong> 需网卡支持 scatter-gather，否则内核退回"CPU 拷到 Socket 缓冲区"的 2 拷贝版本。④ <strong>加密/压缩会让零拷贝失效</strong>——数据必须进用户空间才能被 TLS/应用处理（除非用 kTLS 下沉加密）。因此"用 transferTo 就一定零拷贝"只在"同构 Linux + 明文/ kTLS + 网卡支持 SG"时才严格成立。</p>
+            </div>
           </div>
         </div>
 
@@ -1200,7 +1223,7 @@ flowchart LR
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>认为零拷贝 = 不拷贝</strong>：零拷贝指"<strong>CPU 不拷贝</strong>"，DMA 拷贝仍存在（磁盘↔内存）。</li>
-                <li><strong>在 SSL/TLS 场景用 sendfile</strong>：sendfile 的数据不进用户空间，无法加密，HTTPS 文件下载不能直接用 sendfile。</li>
+                <li><strong>在 SSL/TLS 场景用 sendfile</strong>：传统软件 TLS 下 sendfile 数据不进用户空间、无法加密，HTTPS 文件下载不能直接用 sendfile。但 <strong>内核 TLS（kTLS，Linux 4.13+）</strong>把 TLS 记录加密下沉到内核，配合支持 kTLS 的 sendfile（如 Nginx 的 <code class="inline-code">ssl_sendfile</code>）即可实现"加密 + 零拷贝"，前提是内核、TLS 库与网卡都支持。</li>
                 <li><strong>认为 mmap 一定比 read 快</strong>：mmap 适合随机访问，顺序大文件读用 sendfile 更优；mmap 缺页中断有开销。</li>
                 <li><strong>忽视 transferTo 的大小限制</strong>：Linux 2.4.8 前 transferTo 一次最多 2GB，需循环发送。</li>
                 <li><strong>把 DirectByteBuffer 当万能解</strong>：DirectByteBuffer 分配/释放比 Heap 慢，小数据量或短生命周期用 Heap 更优。</li>
@@ -1674,7 +1697,7 @@ MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）
             <p><strong>选择正确的 IO 通道</strong>：长连接/高并发网络服务用 <code class="inline-code">NIO</code>（Base 上 epoll）+ 多路复用，而非每连接一线程的 BIO；文件大传输用 <code class="inline-code">transferTo</code> 走零拷贝，避免在大文件上反复 <code class="inline-code">read/write</code> 造成用户态拷贝。</p>
             <p><strong>关注 syscalls 指标</strong>：用 <code class="inline-code">strace -f -c -p &lt;pid&gt;</code> 统计进程系统调用分布，定位是否因大量重复 syscall（如频繁 read/write 小包）而性能虚高耗时；<code class="inline-code">perf trace</code> 可看每调用耗时。</p>
             <p><strong>Netty 底层开关</strong>：Netty 可通过 <code class="inline-code">EpollEventLoopGroup</code>（优于默认 NIO 的 epoll 路径）、开启 ByteBuf <code class="inline-code">allocateDirect</code>（减少堆外/堆内拷贝），从"调用选择"层面榨取 syscall 性价比。</p>
-            <p><strong>io_uring 的新选择</strong>：JDK 21+ 借助 <code class="inline-code">liburing</code>/Loom 或在 C 层使用 io_uring 可获得比 epoll 更低的延迟与更高吞吐；Java 生态虽原生支持有限，但可作为选型论证点（见 C13.11）。</p>
+            <p><strong>io_uring 的新选择</strong>：通过 Netty incubator transport（底层 JNI 调用 <code class="inline-code">liburing</code>）或在 C 层直接使用 io_uring，可获得比 epoll 更低的延迟与更高吞吐；需注意虚拟线程（Project Loom）本身<strong>仍基于 epoll</strong>，并不直接使用 io_uring，二者是内核侧两条独立演进路线，选型时不可混为一谈（见 C13.11）。Java 生态对 io_uring 的原生支持仍有限，主要作为选型论证点。</p>
           </div>
         </div>
 

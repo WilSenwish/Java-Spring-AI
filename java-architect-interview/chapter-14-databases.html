@@ -79,7 +79,7 @@
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart LR
-    A["文档型 DB<br/>MongoDB 1.x<br/>（2009）<br/>单机 BSON"] --> B["分片集群<br/>2.2-3.x<br/>（2012）<br/>水平扩展"]
+    A["文档型 DB<br/>MongoDB 1.x<br/>（2009）<br/>单机 BSON"] --> B["分片集群<br/>1.6引入/2.2成熟<br/>（2010/2012）<br/>水平扩展"]
     B --> C["副本集+WiredTiger<br/>3.0（2015）<br/>高可用+MVCC"]
     C --> D["多文档事务<br/>4.0（2018）<br/>跨文档 ACID"]
     D --> E["时间窗事务<br/>5.0（2021）<br/>长事务支持"]
@@ -93,8 +93,8 @@ flowchart LR
             </div>
 
             <p><strong>MongoDB 1.x（2009）</strong>：单机文档数据库，BSON 文档模型解决关系库 schema 僵化问题，但无水平扩展、无事务、无高可用，定位"高性能读写的灵活存储"。</p>
-            <p><strong>分片集群（2.2-3.x，2012-2014）</strong>：引入 Sharded Cluster，通过 mongos 路由 + Config Server 元数据 + Shard 分片实现水平扩展。数据按分片键分到不同 Shard，Chunk 迁移自动均衡。从此 MongoDB 可承载 TB 级数据。</p>
-            <p><strong>副本集 + WiredTiger（3.0，2015）</strong>：默认存储引擎从 MMAPv1 切换到 WiredTiger（B+ 树 + MVCC + 文档级锁），并发与压缩大幅提升；副本集（Replica Set）提供自动故障转移，弥补早期单点问题。</p>
+            <p><strong>分片集群（1.6 引入于 2010，2.2-3.x 生产成熟 2012-2014）</strong>：引入 Sharded Cluster，通过 mongos 路由 + Config Server 元数据 + Shard 分片实现水平扩展。数据按分片键分到不同 Shard，Chunk 迁移自动均衡。从此 MongoDB 可承载 TB 级数据。</p>
+            <p><strong>副本集 + WiredTiger（3.0 引入 2015，3.2 成为默认）</strong>：存储引擎从 MMAPv1 切换到 WiredTiger（B+ 树 + MVCC + 文档级锁），并发与压缩大幅提升；副本集（Replica Set）提供自动故障转移，弥补早期单点问题。</p>
             <p><strong>多文档事务（4.0，2018）</strong>：副本集内支持多文档 ACID 事务；4.2 扩展到分片集群跨分片事务（两阶段提交 2PC）。这是 MongoDB 从" NoSQL"向"NewSQL 兼容"的关键转身，但仍不鼓励大事务。</p>
             <p><strong>时间窗事务（5.0，2021）</strong>：放宽事务执行时间限制，支持更长窗口的事务（如对账、ETL），同时引入在线分片集合重新分片（resharding）。</p>
             <p><strong>Queryable Encryption（7.0，2023）</strong>：支持对加密字段做等值、范围查询而无需解密，密钥仅在客户端持有，满足金融/医疗合规场景。</p>
@@ -279,7 +279,7 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>为何用 MongoDB 做向量检索</strong>：核心价值是"<strong>数据同库，免去同步</strong>"。RAG/推荐场景中，文档正文、元数据（作者/时间/权限）、向量 embedding 是强相关的——分库存需双写保持一致（文档更新要同步重建向量），增加系统复杂度与一致性风险。Atlas Vector Search 让三者同存于一个 MongoDB 集合，$vectorSearch 直接在文档上做向量检索并用元数据过滤，省去同步管道。代价是<strong>规模与极致性能不及专用向量库</strong>。</p>
 
-            <p><strong>HNSW 图结构（多层跳表）</strong>：Atlas Vector Search 底层用 HNSW（Hierarchical Navigable Small World）。构建多层图，顶层稀疏（入口少、长程跳转）、底层稠密（精细近邻）。查询从顶层入口点贪心向更近节点跳，逐层下降到底层，在底层邻域返回 top-k。复杂度 O(log N)，召回率 95%+ 易达。关键参数 <code class="inline-code">efConstruction</code>（建图质量）、<code class="inline-code">numCandidates</code>（查询候选队列大小，越大越准越慢）。</p>
+            <p><strong>HNSW 图结构（多层跳表）</strong>：Atlas Vector Search 底层用 HNSW（Hierarchical Navigable Small World）。构建多层图，顶层稀疏（入口少、长程跳转）、底层稠密（精细近邻）。查询从顶层入口点贪心向更近节点跳，逐层下降到底层，在底层邻域返回 top-k。复杂度 O(log N)，在合理参数与数据分布下召回率通常可达 95%+。关键参数 <code class="inline-code">efConstruction</code>（建图质量）、<code class="inline-code">numCandidates</code>（查询候选队列大小，越大越准越慢）。</p>
 
             <p><strong>$vectorSearch 聚合阶段</strong>：Atlas 把向量检索封装为聚合管道的首个阶段，与后续 $match/$project 等阶段组合：</p>
             <div class="code-block"><pre><code><span class="com">// $vectorSearch: 在向量字段上做 ANN 检索</span>
@@ -294,7 +294,7 @@ flowchart LR
   }
 }</code></pre></div>
 
-            <p><strong>ANN vs KNN</strong>：KNN（K-Nearest Neighbors）是精确检索——遍历全部向量算距离，召回 100% 但 O(N) 不可扩展。ANN（Approximate Nearest Neighbor）用索引结构（HNSW/IVF）近似搜索，牺牲少量召回（典型 95%-99%）换取 O(log N) 速度，是大规模向量检索的工程必然。AI 检索场景 ANN 召回损失可被后续 LLM 容忍（top-k 多取几条再重排即可）。</p>
+            <p><strong>ANN vs KNN</strong>：KNN（K-Nearest Neighbors）是精确检索——遍历全部向量算距离，召回 100% 但 O(N) 不可扩展。ANN（Approximate Nearest Neighbor）用索引结构（HNSW/IVF）近似搜索，牺牲少量召回（典型区间约 95%-99%，取决于索引与数据分布）换取 O(log N) 速度，是大规模向量检索的工程必然。AI 检索场景 ANN 召回损失可被后续 LLM 容忍（top-k 多取几条再重排即可）。</p>
 
             <p><strong>混合查询：向量+结构化过滤</strong>：实际 RAG 常需"语义相似且满足权限/时间过滤"。两种执行策略：</p>
             <ul>
@@ -323,7 +323,7 @@ flowchart LR
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>Spring AI + MongoDB VectorStore 集成 RAG</strong>：Spring AI 提供 <code class="inline-code">MongoDBAtlasVectorStore</code>，自动建索引、存文档与向量、支持相似度检索与过滤。</p>
-            <div class="code-block"><pre><code><span class="com">// 1. 依赖: spring-ai-mongodb-store-spring-boot-starter</span>
+            <div class="code-block"><pre><code><span class="com">// 1. 依赖: org.springframework.ai:spring-ai-mongodb-atlas-store (Spring AI 1.0)</span>
 <span class="com">// 2. 配置 VectorStore（向 embedding 字段写入向量）</span>
 <span class="ann">@Configuration</span>
 <span class="kw">public</span> <span class="type">class</span> <span class="type">VectorStoreConfig</span> {
@@ -332,7 +332,7 @@ flowchart LR
         <span class="kw">return</span> <span class="type">MongoDBAtlasVectorStore</span>.builder(mongo, model)
             .collectionName(<span class="str">"kb_docs"</span>)
             .pathName(<span class="str">"embedding"</span>)        <span class="com">// 向量字段</span>
-            .indexName(<span class="str">"vector_index"</span>)
+            .vectorIndexName(<span class="str">"vector_index"</span>)        <span class="com">// 注意 builder 方法名为 vectorIndexName(非 indexName)</span>
             .metadataFieldsToFilter(List.of(<span class="str">"source"</span>, <span class="str">"status"</span>))
             .build();
     }
@@ -356,7 +356,7 @@ vectorStore.add(List.of(doc));
 <span class="type">String</span> <span class="var">answer</span> = chatClient.prompt().user(question + <span class="str">"\n资料:\n"</span> + context).call().content();</code></pre></div>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
-              <p>MongoDB 向量检索四要点：① <strong>向量字段与文档同集合</strong>——文档更新时同步重建向量，保证一致；② <strong>建向量索引前先定好维度</strong>——索引维度必须与 embedding 模型输出一致，改模型需重建索引；③ <strong>过滤字段建索引</strong>——$vectorSearch 的 filter 字段应建常规索引，否则 pre-filter 全表扫；④ <strong>numCandidates 调召回</strong>——先设为 limit 的 10-20 倍基准测试召回率，再按 QPS 权衡下调。</p>
+              <p>MongoDB 向量检索四要点：① <strong>向量字段与文档同集合</strong>——文档更新时同步重建向量，保证一致；② <strong>建向量索引前先定好维度</strong>——索引维度必须与 embedding 模型输出一致，改模型需重建索引；③ <strong>过滤字段建索引</strong>——$vectorSearch 的 filter 字段应建常规索引，否则 pre-filter 全表扫；④ <strong>numCandidates 调召回</strong>——先设为 limit 的 10-20 倍作为基线，结合具体数据集评测召回率，再按 QPS 权衡下调。</p>
             </div>
           </div>
         </div>
@@ -365,7 +365,7 @@ vectorStore.add(List.of(doc));
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：MongoDB 向量检索的性能边界在哪？</strong></p>
-            <p>Atlas Vector Search 用 HNSW，图结构需常驻内存，单节点向量数受内存约束（千万级 768 维约几十 GB 内存）。规模上限与集群分片数、节点内存正相关，典型在<strong>千万级向量</strong>内表现良好；上亿级则专用向量库（Milvus 存算分离/DiskANN 落盘）更合适。延迟上，毫秒级 top-10 检索可达，但高 QPS 下需关注 HNSW 的 CPU 占用与 numCandidates 调参。若数据量超 MongoDB 单分片内存承载或 QPS 极高，应迁移专用向量库。</p>
+            <p>Atlas Vector Search 用 HNSW，图结构需常驻内存，单节点向量数受内存约束（768 维向量千万条量级约几十 GB 内存）。规模上限与集群分片数、节点内存正相关，在合理内存配置下<strong>千万级向量量级</strong>内表现良好；上亿级则专用向量库（Milvus 存算分离/DiskANN 落盘）更合适。延迟上，毫秒级 top-10 检索可达，但高 QPS 下需关注 HNSW 的 CPU 占用与 numCandidates 调参。若数据量超 MongoDB 单分片内存承载或 QPS 极高，应迁移专用向量库。</p>
             <p><strong>追问 2：向量与结构化过滤的执行顺序如何优化？</strong></p>
             <p>关键看过滤的选择性：① <strong>低选择性过滤（命中率高）</strong>——用 pre-filter，候选集大，HNSW 仍高效；② <strong>高选择性过滤（命中率低）</strong>——pre-filter 会让候选集过小、HNSW 图剪枝严重退化，此时应 post-filter 取更大候选（如 top-100）再过滤，或对过滤字段建复合索引加速；③ <strong>极端选择性</strong>——先结构化查询拿候选 ID 集合，再在 ID 集合上做向量检索。Atlas 的 filter 内部已做一定优化，但架构师应评测不同选择性下的召回与延迟，必要时调 numCandidates 或改查询结构。</p>
           </div>
@@ -488,23 +488,25 @@ flowchart TD
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>Milvus Java SDK 示例</strong>：建 Collection → 建索引 → load → 插入 → 检索。</p>
-            <div class="code-block"><pre><code><span class="com">// 1. 建集合：主键 + 向量(1024维) + 标量字段</span>
+            <div class="code-block"><pre><code><span class="com">// Milvus Java SDK v2（io.milvus:v2-client）示例：建集合 → 建索引 → load → 检索</span>
+<span class="com">// 1. 建集合：主键 + 向量(1024维) + 标量字段（v2 用 AddFieldReq + .field()）</span>
 <span class="type">CreateCollectionReq</span> <span class="var">schema</span> = <span class="type">CreateCollectionReq</span>.builder()
     .collectionName(<span class="str">"kb_vectors"</span>)
-    .addField(<span class="type">FieldSchema</span>.builder().name(<span class="str">"id"</span>).isPrimaryKey(<span class="kw">true</span>).dataType(<span class="type">DataType</span>.Int64).autoID(<span class="kw">true</span>).build())
-    .addField(<span class="type">FieldSchema</span>.builder().name(<span class="str">"embedding"</span>).dataType(<span class="type">DataType</span>.FloatVector).dimension(<span class="num">1024</span>).build())
-    .addField(<span class="type">FieldSchema</span>.builder().name(<span class="str">"source"</span>).dataType(<span class="type">DataType</span>.VarChar).maxLength(<span class="num">64</span>).build())
+    .field(<span class="type">AddFieldReq</span>.builder().fieldName(<span class="str">"id"</span>).isPrimaryKey(<span class="kw">true</span>).dataType(<span class="type">DataType</span>.Int64).autoID(<span class="kw">true</span>).build())
+    .field(<span class="type">AddFieldReq</span>.builder().fieldName(<span class="str">"embedding"</span>).dataType(<span class="type">DataType</span>.FloatVector).dimension(<span class="num">1024</span>).build())
+    .field(<span class="type">AddFieldReq</span>.builder().fieldName(<span class="str">"source"</span>).dataType(<span class="type">DataType</span>.VarChar).maxLength(<span class="num">64</span>).build())
     .build();
 client.createCollection(schema);
 
 <span class="com">// 2. 建 HNSW 索引（千万级、精度优先）</span>
 <span class="type">IndexParam</span> <span class="var">index</span> = <span class="type">IndexParam</span>.builder()
     .fieldName(<span class="str">"embedding"</span>)
+    .indexName(<span class="str">"vector_index"</span>)
     .indexType(<span class="type">IndexParam</span>.IndexType.HNSW)
     .metricType(<span class="type">IndexParam</span>.MetricType.COSINE)
     .extraParams(<span class="type">Map</span>.of(<span class="str">"M"</span>, <span class="num">16</span>, <span class="str">"efConstruction"</span>, <span class="num">200</span>))
     .build();
-client.createIndex(<span class="type">CreateIndexReq</span>.builder().collectionName(<span class="str">"kb_vectors"</span>).indexParams(index).build());
+client.createIndex(<span class="type">CreateIndexReq</span>.builder().collectionName(<span class="str">"kb_vectors"</span>).indexParams(<span class="type">List</span>.of(index)).build());
 
 <span class="com">// 3. load 到内存（查询前必须）</span>
 client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().collectionName(<span class="str">"kb_vectors"</span>).build());
@@ -512,12 +514,12 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
 <span class="com">// 4. 检索：向量 + 标量过滤，调 ef 调召回</span>
 <span class="type">SearchReq</span> <span class="var">req</span> = <span class="type">SearchReq</span>.builder()
     .collectionName(<span class="str">"kb_vectors"</span>)
-    .data(List.of(queryVec))
+    .data(<span class="type">List</span>.of(<span class="kw">new</span> <span class="type">FloatVec</span>(queryVec)))
     .topK(<span class="num">10</span>)
     .filter(<span class="str">"source == 'policy'"</span>)           <span class="com">// 标量过滤</span>
     .searchParams(<span class="type">Map</span>.of(<span class="str">"ef"</span>, <span class="num">128</span>))      <span class="com">// HNSW 查询参数</span>
     .build();
-<span class="type">SearchResults</span> <span class="var">resp</span> = client.search(req);</code></pre></div>
+<span class="type">SearchResp</span> <span class="var">resp</span> = client.search(req);   <span class="com">// v2 返回 SearchResp</span></code></pre></div>
             <p><strong>索引选型指南</strong>：索引参数调优实战经验与 RAG 场景治理详见 C12.21。无论哪种，上线前都需<strong>离线评测召回率</strong>（与暴力检索对比，目标 95%+）。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
@@ -663,7 +665,7 @@ client.createPayloadIndexAsync(<span class="str">"kb_points"</span>, <span class
 <span class="type">PointStruct</span> <span class="var">point</span> = <span class="type">PointStruct</span>.newBuilder()
     .setId(<span class="type">PointId</span>.newBuilder().setNum(1L).build())
     .setVectors(<span class="type">Vectors</span>.newBuilder().setVector(
-        <span class="type">Vector</span>.newBuilder().addAllData(vecList).build()).build())
+        <span class="type">FloatVectors</span>.newBuilder().addAllData(vecList).build()).build())
     .putPayload(<span class="str">"source"</span>, value(<span class="str">"policy"</span>))
     .putPayload(<span class="str">"ts"</span>, value(<span class="num">1700000000</span>))
     .build();
@@ -676,8 +678,13 @@ client.upsertAsync(<span class="str">"kb_points"</span>, List.of(point)).get();
     .addMust(<span class="type">FieldCondition</span>.newBuilder().setKey(<span class="str">"ts"</span>)
         .setRange(<span class="type">Range</span>.newBuilder().setGt(<span class="num">1699000000</span>).build()).build())
     .build();
-<span class="type">List</span>&lt;<span class="type">ScoredPoint</span>&gt; <span class="var">hits</span> = client.searchAsync(<span class="str">"kb_points"</span>,
-    vecList, <span class="kw">null</span>, <span class="num">10</span>, filter, <span class="kw">null</span>, <span class="kw">null</span>, <span class="num">0</span>).get();</code></pre></div>
+<span class="type">List</span>&lt;<span class="type">ScoredPoint</span>&gt; <span class="var">hits</span> = client.searchAsync(
+    <span class="type">SearchPoints</span>.newBuilder()
+        .setCollectionName(<span class="str">"kb_points"</span>)
+        .addAllVector(vecList)
+        .setFilter(filter)
+        .setLimit(<span class="num">10</span>)
+        .build()).get();</code></pre></div>
             <p><strong>Collection 与分区设计</strong>：① <strong>按租户/业务分 Collection</strong>——隔离资源与权限；② <strong>用 Payload 分区而非物理分片</strong>——Qdrant 通过 Payload 过滤实现逻辑分区，配合索引高效裁剪；③ <strong>向量+Payload 同点写入</strong>——保证一致，避免双写。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
@@ -756,7 +763,7 @@ flowchart LR
             <p><strong>TiDB（2015，PingCAP）</strong>：开源 NewSQL，架构分三层——TiDB（SQL 层，无状态）+ TiKV（分布式 KV 行存，Raft 多副本）+ PD（Placement Driver，调度）。兼容 MySQL 协议，应用迁移成本低。用 Raft 替代 Paxos（更易理解实现），用 Percolator 替代 TrueTime（无需原子钟）。</p>
             <p><strong>HTAP（TiFlash）</strong>：引入 TiFlash 列存节点，通过 Raft Learner 异步复制 TiKV 行存数据成列存。OLTP 走 TiKV（行存点查快），OLAP 走 TiFlash（列存扫描快），<strong>行列物理隔离互不干扰</strong>，强一致（TiFlash 可配强一致读）。</p>
             <p><strong>演进驱动力</strong>：① <strong>透明扩展</strong>——分库分表应用侵入大，NewSQL 对应用透明；② <strong>一致性</strong>——分库分表跨库事务难，NewSQL 原生分布式 ACID；③ <strong>行列共存</strong>——OLTP 与 OLAP 分库（MySQL+ClickHouse）数据同步复杂，HTAP 一套搞定。</p>
-            <p><strong>TiDB 版本演进</strong>：⑤ <strong>TiDB 5.x（2021-2022）</strong>——TiFlash GA、HTAP 成熟、TiDB Cloud 上线；⑥ <strong>TiDB 6.x（2022-2023）</strong>——Placement Rules（按标签将 Region 调度到指定节点，实现冷热数据分离与多租户资源隔离）、TiFlash 资源隔离（独立计算资源池）、并行 DDL（大表加索引速度提升数倍）；⑦ <strong>TiDB 7.x（2023-2024）</strong>——Resource Control（资源组限流，按租户/优先级分配 CPU/IO 配额）、Global Sort（分布式排序解决大规模 DDL 回填的内存瓶颈）、TiDB Cloud Serverless（按量付费的 Serverless HTAP）；⑧ <strong>TiDB 8.x（2024+）</strong>——Vector Search（向量检索，支持 AI/RAG 场景）、Distributed Task Framework（分布式后台任务调度，替代 TiDB Lightning 的部分场景）。选型要点：6.x 的 Placement Rules + 资源隔离是生产级 HTAP 的关键里程碑；7.x 的 Resource Control 使多租户隔离可行；8.x 的 Vector Search 使 TiDB 兼具关系 + 向量检索能力。</p>
+            <p><strong>TiDB 版本演进</strong>：④ <strong>TiDB 4.x（2020）</strong>——TiFlash 列存 GA，HTAP 起步（行列共存，分析走列存）；⑤ <strong>TiDB 5.x（2021-2022）</strong>——HTAP 成熟（MPP 引擎增强）、TiDB Cloud 上线；⑥ <strong>TiDB 6.x（2022-2023）</strong>——Placement Rules（按标签将 Region 调度到指定节点，实现冷热数据分离与多租户资源隔离）、TiFlash 资源隔离（独立计算资源池）、并行 DDL（大表加索引速度提升数倍）；⑦ <strong>TiDB 7.x（2023-2024）</strong>——Resource Control（资源组限流，按租户/优先级分配 CPU/IO 配额）、Global Sort（分布式排序解决大规模 DDL 回填的内存瓶颈）、TiDB Cloud Serverless（按量付费的 Serverless HTAP）；⑧ <strong>TiDB 8.x（2024+）</strong>——Vector Search（向量检索，支持 AI/RAG 场景）、Distributed Task Framework（分布式后台任务调度）。选型要点：4.x 的 TiFlash 是 HTAP 起点；6.x 的 Placement Rules + 资源隔离是生产级 HTAP 里程碑；7.x 的 Resource Control 使多租户隔离可行；8.x 的 Vector Search 使 TiDB 兼具关系 + 向量检索能力。</p>
           </div>
         </div>
 
@@ -912,7 +919,7 @@ flowchart LR
             <p><strong>ClickHouse（2016，Yandex 开源）</strong>：为 OLAP 分析极致优化的列存 DBMS。核心特点：向量化执行（SIMD）、MergeTree 引擎（有序+分区+Part 合并）、高压缩比、单机查询极快。原为 Yandex.Metrika 网站分析设计，后成为开源 OLAP 标杆。</p>
             <p><strong>物化视图/预聚合（实时数仓）</strong>：用物化视图预聚合（如按分钟/小时聚合），查询命中物化视图秒级返回；ReplacingMergeTree 利用版本去重支持幂等更新。使 ClickHouse 从"离线分析"走向"实时数仓"。</p>
             <p><strong>演进驱动力</strong>：① <strong>分析 IO 效率</strong>——行存分析读整行浪费，列存只读所需列；② <strong>压缩降成本</strong>——列存同类型压缩率高，PB 级数据省存储；③ <strong>向量化榨干 CPU</strong>——SIMD 一次处理一批数据，分析查询吞吐量百倍提升；④ <strong>实时性</strong>——物化视图让分析从 T+1 走向秒级实时。</p>
-            <p><strong>ClickHouse 版本演进</strong>：⑤ <strong>22.x（2022）</strong>——Window 函数增强（新增 <code class="inline-code">GROUP BY</code> 修饰符 <code class="inline-code">WITH ROLLUP/CUBE</code>）、Object 类型实验性支持、S3 表函数成熟；⑥ <strong>23.x（2023）</strong>——Variant 类型（动态类型列，单列存不同类型值）、Union Merge 引擎、Query Cache（结果级缓存，重复查询秒级命中）、<code class="inline-code">Lightweight DELETE</code>（轻量删除，不再依赖 <code class="inline-code">ALTER TABLE … DELETE</code> 突变机制）；⑦ <strong>24.x（2024）</strong>——JSON 类型（原生 JSON 列存，替代用 String 手动 parse）、Async Insert 批量化（降低小批量写入开销）、Tiered Storage（冷热分层存储，SSD + HDD + S3 多层）、<code class="inline-code">CLUSTER BY</code>（自动分片均衡）；⑧ <strong>25.x（2025）</strong>——进一步优化 Vector Search（向量检索能力）、改进 <code class="inline-code">PROJECTION</code>（预投影，类似物化视图的自动路由）、强化 Streaming（Kafka/Vector 引擎集成成熟）。选型要点：23.x 的 Query Cache + Lightweight DELETE 是从"纯分析"走向"准实时数仓"的关键；24.x 的 JSON 类型 + 分层存储是 PB 级降本的重要手段。</p>
+            <p><strong>ClickHouse 版本演进</strong>：⑤ <strong>22.x（2022）</strong>——Window 函数增强（新增 <code class="inline-code">GROUP BY</code> 修饰符 <code class="inline-code">WITH ROLLUP/CUBE</code>）、Object 类型实验性支持、S3 表函数成熟、Lightweight DELETE（22.8 起，轻量删除不再依赖 <code class="inline-code">ALTER TABLE … DELETE</code> 突变机制）；⑥ <strong>23.x（2023）</strong>——Union Merge 引擎、Query Cache（结果级缓存，重复查询秒级命中）、Parallel Replicas（并行副本读取，实验性）、JSON 类型实验性预览；⑦ <strong>24.x（2024）</strong>——JSON 类型（原生 JSON 列存，替代用 String 手动 parse）、Variant 类型（动态类型列，24.3 实验性、24.8 正式）、Async Insert 批量化（降低小批量写入开销）、Tiered Storage（冷热分层存储，SSD + HDD + S3 多层）、<code class="inline-code">CLUSTER BY</code>（自动分片均衡）；⑧ <strong>25.x（2025）</strong>——进一步优化 Vector Search（向量检索能力）、改进 <code class="inline-code">PROJECTION</code>（预投影，类似物化视图的自动路由）、强化 Streaming（Kafka/Vector 引擎集成成熟）。选型要点：22.x 的 Lightweight DELETE 与 23.x 的 Query Cache 是从"纯分析"走向"准实时数仓"的关键；24.x 的 JSON/Variant 类型 + 分层存储是 PB 级降本的重要手段。</p>
           </div>
         </div>
 
@@ -1215,6 +1222,7 @@ flowchart TD
                 <li><strong>把所有数据塞进图库</strong>：图库不擅长大量属性存储与事务型 CRUD，主体业务数据应留关系库，只把关系子图放图库。</li>
                 <li><strong>忽视 Fabric 跨分片性能</strong>：分片后跨实例遍历性能下降，应按业务子图切分减少跨分片查询。</li>
                 <li><strong>关系建模无方向/属性</strong>：关系不带方向与属性丢失语义，应明确方向（OUTGOING/INCOMING）与关系属性。</li>
+                <li><strong>不看执行计划就上线 Cypher</strong>：复杂查询应先用 <code class="inline-code">EXPLAIN/PROFILE</code> 验证是否走节点索引（NodeIndexSeek）而非全图扫描（AllNodesScan），深遍历需确认 Planner 的 Expand 策略，避免误以为索引生效实则全图扫描。</li>
               </ul>
             </div>
           </div>
@@ -1274,7 +1282,7 @@ flowchart TD
               <thead><tr><th>产品</th><th>兼容协议</th><th>存储/事务</th><th>最新版本特性</th><th>亮点</th></tr></thead>
               <tbody>
                 <tr><td>TiDB</td><td>MySQL</td><td>TiKV(RocksDB+Raft)+PD；Percolator 事务</td><td>8.x：Placement Rules + Resource Control + Vector Search</td><td>HTAP（TiFlash 列存）、生态成熟、AI 向量检索</td></tr>
-                <tr><td>OceanBase</td><td>MySQL/Oracle</td><td>Paxos 多副本；LSM</td><td>4.x（2023+）：MySQL 8.0 兼容增强、HTAP 列存（OBKV）</td><td>金融级、TPC-C 冠军、多租户</td></tr>
+                <tr><td>OceanBase</td><td>MySQL/Oracle</td><td>Paxos 多副本；LSM</td><td>4.x（2023+）：MySQL 8.0 兼容增强、HTAP 列存副本（4.0 起支持列存副本 + 向量化执行）</td><td>金融级、TPC-C 冠军、多租户</td></tr>
                 <tr><td>CockroachDB</td><td>PostgreSQL</td><td>Range 分片 + Raft</td><td>23.x（2024+）：Zone Config 多区域策略、Unbounded Datadriven Transactions</td><td>地理分布友好、强一致、Survive 机制（区域级故障自愈）</td></tr>
                 <tr><td>YugabyteDB</td><td>PostgreSQL</td><td>DocDB(tablet+Raft)</td><td>2024.x：YSQL PG 15 兼容、Cluster-level Read Replicas、xCluster 跨集群异步复制</td><td>PG 兼容度高、云原生、多区域同步复制</td></tr>
               </tbody>

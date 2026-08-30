@@ -254,7 +254,7 @@ spring:
               <li><strong>灰度路由</strong>：按流量染色标签路由到灰度实例。</li>
             </ol>
 
-            <p><strong>Spring Cloud Gateway 原理</strong>：Route = Predicate（匹配条件）+ Filter（处理逻辑）。请求进入后由 RoutePredicateHandlerMapping 评估 Predicate 并选中 Route；选中的 Route 内置 GatewayFilter 与全局 GlobalFilter 会按 order 合并成一个链。order 小的 Filter 在前置阶段先执行，响应阶段通常按相反方向回流；真正转发由路由类 Filter 完成。它是 Reactor 异步非阻塞模型，但并非“无线程数瓶颈”，EventLoop、连接池和下游能力仍需压测规划。</p>
+            <p><strong>Spring Cloud Gateway 原理</strong>：Route = Predicate（匹配条件）+ Filter（处理逻辑）。请求进入后由 RoutePredicateHandlerMapping 评估 Predicate 并选中 Route；选中的 Route 内置 GatewayFilter 与全局 GlobalFilter 会按 order 合并成一个链。order 小的 Filter 在前置阶段先执行，响应阶段通常按相反方向回流；真正发起下游转发的是 <code class="inline-code">NettyRoutingFilter</code>（全局 Filter，位于链最末端、order = Ordered.LOWEST_PRECEDENCE）。它是 Reactor 异步非阻塞模型，但并非“无线程数瓶颈”，EventLoop、连接池和下游能力仍需压测规划。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -509,7 +509,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
     }
 
     <span class="com">// 方法名可自定义；关键是业务入参一致，并追加要处理的异常。</span>
-    <span class="kw">private</span> <span class="type">OrderResult</span> <span class="fn">fallback</span>(<span class="type">OrderRequest</span> request, <span class="type">RuntimeException</span> cause) {
+    <span class="kw">private</span> <span class="type">OrderResult</span> <span class="fn">fallback</span>(<span class="type">OrderRequest</span> request, <span class="type">Throwable</span> cause) {
         <span class="kw">return</span> <span class="type">OrderResult</span>.<span class="fn">degraded</span>(request.orderId(), cause);
     }
 }</code></pre></div>
@@ -586,7 +586,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             <p><strong>部署形态演进</strong>：物理机 → 虚拟机（资源隔离）→ 容器（轻量隔离）→ 容器编排（K8s，集群调度）→ Serverless（免运维）。容器化的本质是<strong>把应用与依赖打包成可移植镜像</strong>，K8s 解决的是<strong>大规模容器的调度与生命周期管理</strong>。</p>
             <p><strong>Docker（2013）</strong>：镜像分层（UnionFS 联合文件系统，每条指令一层可复用缓存）+ 容器隔离（namespace 隔离视图 + cgroups 限制资源）。</p>
             <p><strong>Kubernetes（2014，Google 基于 Borg）</strong>：声明式 API + <strong>控制循环（reconcile）</strong>——用户声明期望状态，Controller 持续调谐实际状态向期望收敛。成为容器编排事实标准。</p>
-            <p><strong>K8s 版本演进关键里程碑</strong>：① <strong>1.0（2015）</strong>：首个稳定版，Pod/Service/ReplicationController 基础模型；② <strong>1.8（2017）</strong>：Workload API（Deployment/StatefulSet/DaemonSet）GA，确立现代声明式部署模型；③ <strong>1.16（2019）</strong>：重大 API 版本清理——extensions/v1beta1 等旧版本移除，统一迁移至 apps/v1，CRD v1 GA；④ <strong>1.20→1.24（2020→2022）</strong>：Dockershim 废弃（1.20）并移除（1.24），容器运行时从 Docker 切换至 <strong>containerd/CRI-O</strong>（CRI 标准），Docker 镜像仍可用但运行时不再依赖 dockershim；⑤ <strong>1.25（2022）</strong>：PodSecurityPolicy 移除，替代为 <strong>Pod Security Admission</strong>（命名空间级安全策略）；⑥ <strong>1.28~1.29（2023）</strong>：<strong>原生 Sidecar 容器</strong>（1.28 Beta，1.29 起对应 feature gate 默认启用），Sidecar 容器与主容器生命周期解耦，启动/退出顺序可控；Node Swap 处于 Beta，启用方式仍受节点配置与版本约束；⑦ <strong>1.31~1.33（2024~2025）</strong>：AppArmor GA、User Namespaces Beta（安全增强）、<strong>Pod 垂直弹性伸缩</strong>（In-place Pod Resize，1.33 GA）——不重启 Pod 即可调整 CPU/内存。K8s 保持约每年 3 个小版本、每版本约 1 年支持的发布节奏，面试需关注<strong> API 版本废弃迁移与运行时变更</strong>两大破坏性变更方向。</p>
+            <p><strong>K8s 版本演进关键里程碑</strong>：① <strong>1.0（2015）</strong>：首个稳定版，Pod/Service/ReplicationController 基础模型；② <strong>1.8（2017）</strong>：Workload API（Deployment/StatefulSet/DaemonSet）GA，确立现代声明式部署模型；③ <strong>1.16（2019）</strong>：重大 API 版本清理——extensions/v1beta1 等旧版本移除，统一迁移至 apps/v1，CRD v1 GA；④ <strong>1.20→1.24（2020→2022）</strong>：Dockershim 废弃（1.20）并移除（1.24），容器运行时从 Docker 切换至 <strong>containerd/CRI-O</strong>（CRI 标准），Docker 镜像仍可用但运行时不再依赖 dockershim；⑤ <strong>1.25（2022）</strong>：PodSecurityPolicy 移除，替代为 <strong>Pod Security Admission</strong>（命名空间级安全策略）；⑥ <strong>1.28~1.29（2023）</strong>：<strong>原生 Sidecar 容器</strong>（1.28 Beta，1.29 起对应 feature gate 默认启用），Sidecar 容器与主容器生命周期解耦，启动/退出顺序可控；Node Swap 处于 Beta，启用方式仍受节点配置与版本约束；⑦ <strong>1.31~1.33（2024~2025）</strong>：AppArmor GA、User Namespaces Beta（安全增强）、<strong>Pod 垂直弹性伸缩</strong>（In-place Pod Resize，1.27 Alpha → 1.33 Beta，默认启用 InPlacePodVerticalScaling gate，仍非 GA）——不重启 Pod 即可调整 CPU/内存。K8s 保持约每年 3 个小版本、每版本约 1 年支持的发布节奏，面试需关注<strong> API 版本废弃迁移与运行时变更</strong>两大破坏性变更方向。</p>
             <p><strong>JVM 容器感知演进（关键考点）</strong>：</p>
             <ul>
               <li><strong>JDK 8u131 之前</strong>：JVM 看不到容器内存/CPU 限制，<strong>按宿主机总资源计算</strong>，容器内存远小于宿主机时 -Xmx 误设过大，直接被 OOM Killer 杀掉。</li>
@@ -1454,7 +1454,7 @@ spring:
               </tbody>
             </table>
 
-            <p><strong>全链路灰度</strong>：微服务下，一次请求经过多个服务，灰度标签必须在<strong>全链路透传</strong>——入口/网关染色（加 Header 如 X-Gray-Tag=v2）→ 服务 A 识别标签路由到 A 的 v2 → A 调 B 时透传标签 → B 路由到 B 的 v2 → 跨 MQ 也要透传。实现前提按平台分层确认：Spring Cloud 用注册中心元数据 + LoadBalancer 过滤；Dubbo 用 TagRouter/标签附件；Ingress/API Gateway 需要路由规则支持 Header/权重；Service Mesh 由 Sidecar 执行路由；MQ 要求生产者和消费者都携带并处理版本标签。缺少任一环，标签只是“可见”，不能保证“可路由”。</p>
+            <p><strong>全链路灰度</strong>：微服务下，一次请求经过多个服务，灰度标签必须在<strong>全链路透传</strong>——入口/网关染色（加 Header 如 X-Gray-Tag=v2）→ 服务 A 识别标签路由到 A 的 v2 → A 调 B 时透传标签 → B 路由到 B 的 v2 → 跨 MQ 也要透传。实现前提按平台分层确认：Spring Cloud 用注册中心元数据 + LoadBalancer 过滤；Dubbo 用 TagRouter/标签附件；Ingress/API Gateway 需要路由规则支持 Header/权重；Service Mesh 由 Sidecar 执行路由；MQ 要求生产者和消费者都携带并处理版本标签。此外，金丝雀/灰度若要求同一用户稳定命中同一版本，需要路由层支持会话亲和（sticky session）或基于用户标识的一致性哈希；这类能力取决于 Ingress/Service Mesh/LB 的具体实现，并非所有平台默认可用，规划时需先确认平台能力边界。缺少任一环，标签只是“可见”，不能保证“可路由”。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -2810,11 +2810,11 @@ flowchart TD
                 <tr><td>AdaptCachedBodyGlobalFilter</td><td>-2147482648（Integer.MIN+888）</td><td>读取请求 Body 缓存，供后续 Filter 重读</td></tr>
                 <tr><td>（自定义鉴权 GlobalFilter 推荐放这里）</td><td>~ -100 ~ 10000</td><td>JWT 解析、权限校验、灰度打标（必须在路由前）</td></tr>
                 <tr><td>NettyWriteResponseFilter</td><td>-1</td><td>将后端响应写回客户端</td></tr>
-                <tr><td>NettyRoutingFilter</td><td>Ordered.LOWEST_PRECEDENCE - 1</td><td>真正发请求到后端服务（转发核心）</td></tr>
+                <tr><td>NettyRoutingFilter</td><td>Ordered.LOWEST_PRECEDENCE（2147483647）</td><td>真正发请求到后端服务（转发核心，与 ForwardRoutingFilter 同为最低优先级）</td></tr>
                 <tr><td>ForwardRoutingFilter</td><td>Ordered.LOWEST_PRECEDENCE（2147483647）</td><td>本地 forward，非外部调用</td></tr>
               </tbody>
             </table>
-            <p>核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong>（即 &lt; LOWEST_PRECEDENCE - 1），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 放最后倒数第二是因为它是"出站的最后一步"——前面的 Filter 改完请求、鉴权通过、限流通过，最后由它真正转发。</p>
+            <p>核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong>（即 &lt; LOWEST_PRECEDENCE = 2147483647），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 位于链最末端，与 <code class="inline-code">ForwardRoutingFilter</code> 同处最低优先级区间（均 = LOWEST_PRECEDENCE）、前者负责外部转发、后者负责本地 forward，二者通过 <code class="inline-code">isAlreadyRouted</code> 标记避免重复转发；鉴权/限流等必须在它之前（order 更小）完成。它（NettyRoutingFilter）位于出站的最末端——前面的 Filter 改完请求、鉴权通过、限流通过，最后一步才由它真正转发。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -2824,7 +2824,7 @@ flowchart LR
     B --> C["自定义 GrayGlobalFilter<br/>(order=-50) 灰度标签路由决策"]
     C --> D["GatewayMetricsFilter<br/>(order=0) 记录指标开始时间"]
     D --> E["NettyWriteResponseFilter<br/>(order=-1，后置写响应)"]
-    E --> F["NettyRoutingFilter<br/>(LOWEST_PRECEDENCE-1) 真正转发到后端"]
+    E --> F["NettyRoutingFilter<br/>(LOWEST_PRECEDENCE=2147483647) 真正转发到后端"]
     F --> OUT["后端服务 → 响应回流 → NettyWriteResponseFilter 写回"]
     style B fill:#ede9fe,stroke:#7c3aed
     style F fill:#dbeafe,stroke:#2563eb
@@ -2941,8 +2941,8 @@ flowchart LR
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
-            <p><strong>追问 1：NettyRoutingFilter 为什么 order 是 LOWEST_PRECEDENCE - 1 而不是最小？你写的鉴权 GlobalFilter 应该放在哪个 order 值之前？</strong></p>
-            <p>Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 放"最大倒数第二"因为它是<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong>，即 &lt; LOWEST_PRECEDENCE - 1（&lt; 2147483646），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。</p>
+            <p><strong>追问 1：NettyRoutingFilter 为什么 order 是 LOWEST_PRECEDENCE（最大）而不是最小？你写的鉴权 GlobalFilter 应该放在哪个 order 值之前？</strong></p>
+            <p>Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 的 order = <code class="inline-code">Ordered.LOWEST_PRECEDENCE</code>（Integer.MAX_VALUE = 2147483647），与 <code class="inline-code">ForwardRoutingFilter</code> 同处最低优先级，位于<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong>，即 &lt; LOWEST_PRECEDENCE（&lt; 2147483647），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。</p>
             <p><strong>追问 2：堆外内存 OOM 与堆内 OOM 的现象与排查路径差异？</strong></p>
             <p><strong>堆内 OOM（Java heap space）</strong>：现象——GC 次数频繁且耗时很长（G1 Young GC 从 50ms 变 2s+）、Old Gen 占用接近 -Xmx、<code class="inline-code">jmap -histo:live</code> 能看到某类业务对象（如 HashMap/byte[]）数量爆炸。排查：<code class="inline-code">jmap -dump:live,format=b</code> 堆转储 + Eclipse MAT 看泄漏嫌疑报告。<br/>
             <strong>堆外 OOM（OutOfDirectMemoryError / Native memory）</strong>：现象——堆使用正常（老年代 < 60%）、但进程 RSS 持续飙升远超 -Xmx、<code class="inline-code">jcmd VM.native_memory summary</code> 中 Internal 类别占几 GB、dmesg 或 hs_err_pid 日志报 Direct Memory。排查：开 <code class="inline-code">-Dio.netty.leakDetection.level=paranoid</code> 复现看堆栈、用 <code class="inline-code">pmap</code> 看匿名内存段大小、Heap dump 搜 <code class="inline-code">PooledByteBuf</code> 反向找持有引用的类、用 perf/async-profiler 搜 <code class="inline-code">allocateDirect</code> 调用栈。根本差异：堆内 OOM 靠 GC 回收，堆外 OOM 靠显式 <code class="inline-code">release()</code> 回收，GC 管不到。</p>
@@ -2986,8 +2986,8 @@ flowchart LR
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Spring Cloud 早期（Boot 1.5 / 2.x，Dalston ~ 2021.x）</strong>：引入 Bootstrap 上下文机制，通过 <code class="inline-code">spring.factories</code> 加载 <code class="inline-code">BootstrapApplicationListener</code>，父上下文提前加载注册/配置 Bean，与主 <code class="inline-code">application.yml</code> 分层加载，保证"Nacos 先连上、再创建业务 Bean"的顺序。</p>
-            <p><strong>Spring Boot 3.0 / Spring Cloud 2022.0.x（TBD 2022-11）</strong>：<strong>移除了 Bootstrap 上下文的自动加载</strong>，改为用 <code class="inline-code">spring.config.import</code> 机制显式声明配置来源（如 <code class="inline-code">spring.config.import=nacos:</code>），不再自动扫描 bootstrap.yml；想恢复老行为需额外加依赖 <code class="inline-code">spring-cloud-starter-bootstrap</code>。</p>
-            <p><strong>Spring Boot 3.2+（2024 ~ 至今）</strong>：<code class="inline-code">spring.config.import</code> 支持多配置中心优先级；<code class="inline-code">@RefreshScope</code> 与 <code class="inline-code">@ConfigurationProperties</code> 刷新等价，两者行为对齐。</p>
+            <p><strong>Spring Boot 3.0 / Spring Cloud 2022.0.x（Kilburn，2022-11/12，与 Boot 3.0 同期）</strong>：<strong>停止自动创建 Bootstrap 上下文</strong>，配置中心集成（Nacos/Consul/Config Server）改为通过 <code class="inline-code">spring.config.import</code> 声明配置来源（如 <code class="inline-code">spring.config.import=nacos:</code>），不再自动扫描 bootstrap.yml；想恢复老行为需额外加依赖 <code class="inline-code">spring-cloud-starter-bootstrap</code>。注意：<code class="inline-code">spring.config.import</code> / ConfigData 这一套机制本身在 <strong>Spring Boot 2.4（2020）</strong>就已引入，这里只是"用 import 接管 bootstrap 职责"的迁移节点，并非新机制诞生点。</p>
+            <p><strong>Spring Boot 3.2+（2024 ~ 至今）</strong>：<code class="inline-code">spring.config.import</code> 支持多配置中心优先级与可选 required 标记；<code class="inline-code">@RefreshScope</code> 与 <code class="inline-code">@ConfigurationProperties</code> 都能实现配置热更新，但刷新路径不同——<code class="inline-code">@ConfigurationProperties</code> 走 <code class="inline-code">ConfigurationPropertiesRebinder</code> 重新绑定，<code class="inline-code">@RefreshScope</code> 走 <code class="inline-code">RefreshScope.cache.clear()</code> 重建 target，二者不可混为一谈。</p>
           </div>
         </div>
 
@@ -3138,10 +3138,10 @@ flowchart TD
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Spring Cloud Sleuth 1.x（2017，Dalston）</strong>：基于 Brave 4.x，MDC 自动注入 traceId/spanId，默认 B3 传播格式，Zipkin 作为默认后端。</p>
-            <p><strong>Spring Cloud Sleuth 2.x（2019 ~ 2022，Hoxton ~ 2021.x）</strong>：升级 Brave 5.x + Zipkin Reporter 2.x，开始支持 OTel Bridge 试验性集成，增加 Async/Reactor 自动传播。</p>
+            <p><strong>Spring Cloud Sleuth 2.x（2019 ~ 2020，Hoxton，对应 Boot 2.2/2.3）</strong>：升级 Brave 5.x + Zipkin Reporter 2.x，增强 Reactor/异步自动传播；<strong>Sleuth 3.x（2020 ~ 2022，Ilford ~ 2021.0，对应 Boot 2.4~2.7）</strong>：新增 <code class="inline-code">spring-cloud-sleuth-otel</code> 试验性桥接，但 OTel 的正式、长期支持路径是后续独立的 Micrometer Tracing，而非 Sleuth 自身。</p>
             <p><strong>Spring Boot 3.0（2022-11）</strong>：Sleuth 停止维护，功能迁移到 <strong>Micrometer Tracing 1.0+</strong>（Spring 官方观测栈）+ Spring Cloud 2022.0.x 只保留少量桥接适配。关键收益：观测 API 从 Spring Cloud 下沉到 Micrometer，与 Metrics/Logging 三合一，不再需要 Spring Cloud 全家桶也能用到链路追踪（比如只写 Spring MVC 单体也能上）。</p>
             <p><strong>Micrometer Tracing 1.2+（2024）</strong>：支持 Brave + OpenTelemetry 两套桥接实现，功能完全对齐。</p>
-            <p><strong>2025 Micrometer Tracing 1.3+ + OTel SDK 1.35+</strong>：W3C TraceContext 默认传播格式，B3 可通过配置切换。</p>
+            <p><strong>2024~2025 Micrometer Tracing 1.2/1.3+（配套 OTel Java SDK 同期演进）</strong>：W3C TraceContext 为默认传播格式（自 Micrometer Tracing 1.0 / Boot 3.0 起），B3 仍可通过配置切换用于老系统兼容。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -3178,7 +3178,7 @@ flowchart LR
             <table class="compare-table">
               <thead><tr><th>格式</th><th>Header 示例</th><th>是否默认</th><th>说明</th></tr></thead>
               <tbody>
-                <tr><td><strong>W3C TraceContext</strong>（RFC）</td><td><code class="inline-code">traceparent: 00-{traceId 32hex}-{spanId 16hex}-{flags 2hex}</code><br/><code class="inline-code">tracestate: vendor1=xxx,vendor2=yyy</code></td><td>✅ Spring 3.2+ 默认</td><td>RFC 标准，跨厂商兼容，flags 第二位是采样位。</td></tr>
+                <tr><td><strong>W3C TraceContext</strong>（RFC）</td><td><code class="inline-code">traceparent: 00-{traceId 32hex}-{spanId 16hex}-{flags 2hex}</code><br/><code class="inline-code">tracestate: vendor1=xxx,vendor2=yyy</code></td><td>✅ Spring Boot 3.0+ 默认（Micrometer Tracing 1.0 起）</td><td>RFC 标准，跨厂商兼容，flags 第二位是采样位。</td></tr>
                 <tr><td><strong>B3 多头</strong>（Zipkin 老格式）</td><td><code class="inline-code">X-B3-TraceId</code> / <code class="inline-code">X-B3-SpanId</code> / <code class="inline-code">X-B3-Sampled</code></td><td>❌ 旧系统兼容</td><td>Spring Boot 2.x Sleuth 默认，老系统对接常见。</td></tr>
                 <tr><td><strong>B3 单头</strong></td><td><code class="inline-code">b3: {traceId}-{spanId}-{sampled}-{parentSpanId}</code></td><td>❌</td><td>把 5 个 Header 压成 1 个，减少跨服务 Header 数量。</td></tr>
                 <tr><td><strong>Uber Jaeger</strong></td><td><code class="inline-code">uber-trace-id</code>: traceId:spanId:parentId:flags</td><td>❌</td><td>Jaeger 早期自家格式，已全面转向 W3C。</td></tr>
@@ -3845,7 +3845,7 @@ flowchart TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>Dubbo</strong>：阿里 2011 开源（2.x，Netty + Hessian），停更数年后由 Apache 接管，2.7/3.x 引入 <strong>Triple 协议</strong>（gRPC over HTTP/2）、应用级服务发现，解决跨语言与 URL 爆炸。</p>
+            <p><strong>Dubbo</strong>：阿里 2011 开源（2.x，Netty + Hessian），停更数年后由 Apache 接管；<strong>Dubbo 2.7（2019）</strong>强化元数据/配置中心，<strong>Dubbo 3.x（2021）</strong>引入 <strong>Triple 协议</strong>（gRPC over HTTP/2）与应用级服务发现，解决跨语言与 URL 爆炸。</p>
             <p><strong>Spring Cloud</strong>：Netflix OSS（Eureka/Ribbon/Hystrix）起步，后因 Netflix 停更转向官方/Spring Cloud Alibaba（Nacos/Sentinel/Seata），以 OpenFeign（HTTP）做声明式调用，配套 Gateway/Config/Sleuth 全家桶。</p>
             <p><strong>新变量</strong>：gRPC、Service Mesh（Sidecar 接管通信，框架变薄）正在重塑选型。</p>
           </div>

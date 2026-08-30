@@ -121,7 +121,20 @@ flowchart LR
               </tbody>
             </table>
 
-            <p><strong>Scheduler 线程模型</strong>：Reactor 用 <code class="inline-code">publishOn(scheduler)</code>（影响下游）和 <code class="inline-code">subscribeOn(scheduler)</code>（影响上游）切换线程。内置调度器：<code class="inline-code">parallel()</code>（CPU 密集，线程数=CPU 核数）、<code class="inline-code">boundedElastic()</code>（IO 密集，有界弹性池，默认 10×CPU 核数上限）、<code class="inline-code">single()</code>（单线程，适合串行）。<strong>禁止用 elastic()</strong>（已弃用，无界线程池）。</p>
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    A["① Subscriber 调用<br/>subscription.request(n)<br/>主动拉取 n 个"] --> B["② Subscription 记录<br/>累计请求额度"]
+    B --> C["③ Publisher 按额度<br/>onNext 推送 ≤ n 个<br/>绝不超量"]
+    C --> D["④ 消费慢则停止 request<br/>Publisher 暂停推送<br/>背压反向传导, 避免 OOM"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style C fill:#f3e8ff,stroke:#7c3aed
+    style D fill:#dcfce7,stroke:#059669
+              </div>
+              <div class="chart-caption">图 15.1-2 背压 request(n) 拉取模型：Subscriber 主动拉取、Publisher 不超量推送、消费慢则反压暂停——与 publishOn/subscribeOn 调度、Reactor Context 上下文传播是三个独立机制</div>
+            </div>
+
+            <p><strong>Scheduler 线程模型</strong>：Reactor 用 <code class="inline-code">publishOn(scheduler)</code>（影响下游）和 <code class="inline-code">subscribeOn(scheduler)</code>（影响上游）切换线程。内置调度器：<code class="inline-code">parallel()</code>（CPU 密集，线程数=CPU 核数）、<code class="inline-code">boundedElastic()</code>（IO 密集，有界弹性池，默认 10×CPU 核数上限）、<code class="inline-code">single()</code>（单线程，适合串行）。<strong>禁止用 elastic()</strong>（已弃用并在 Reactor 3.5+ 移除，无界线程池）。</p>
 
             <p><strong>主流响应式框架对比</strong>：</p>
             <table class="compare-table">
@@ -301,7 +314,7 @@ flowchart TD
             </div>
 
             <p><strong>Servlet/WebMVC（2003+，Thread-per-Request）</strong>：每个 HTTP 请求分配一个线程（Tomcat 默认 200 线程），线程在等待 IO（DB/下游服务）时阻塞挂起。优点是<strong>编程模型简单</strong>（同步代码、栈可调试、ThreadLocal 可用），缺点是<strong>线程昂贵</strong>（每线程 MB 级栈），高并发下线程数是瓶颈，IO 等待期间线程资源被浪费。</p>
-            <p><strong>WebFlux（Spring 5.0，2017）</strong>：基于 Reactor + Netty（或 Servlet 3.1+ 异步），用少量 EventLoop 线程（默认 CPU 核数×2）处理所有请求，IO 等待时不阻塞线程而是释放回 EventLoop，回调就绪后继续处理。吞吐显著提升，但要求<strong>全链路非阻塞</strong>——一处阻塞就污染整个 EventLoop。</p>
+            <p><strong>WebFlux（Spring 5.0，2017）</strong>：基于 Reactor + Netty（或 Servlet 3.1+ 异步），用少量 EventLoop 线程（默认 CPU 核数×2）处理所有请求，IO 等待时不阻塞线程而是释放回 EventLoop，回调就绪后继续处理。在<strong>IO 密集 + 高并发场景</strong>下吞吐显著提升，但前提仍是<strong>全链路非阻塞</strong>——一处阻塞就污染整个 EventLoop，吞吐优势随之消失。</p>
             <p><strong>Virtual Threads（JDK 21，JEP 444，2023 GA）</strong>：JVM 管理的用户态轻量线程，阻塞时只挂起虚拟线程不占用 OS 载体线程，<strong>用同步代码风格获得响应式级别的吞吐</strong>。Spring Boot 3.2+ 支持 <code class="inline-code">spring.threads.virtual.enabled=true</code> 让 WebMVC + JDBC 直接跑在虚拟线程上，<strong>削弱了 WebFlux 的核心价值</strong>。</p>
             <p><strong>演进驱动力</strong>：① <strong>资源效率</strong>——线程是昂贵资源，IO 密集场景下大量线程在阻塞，浪费内存与上下文切换开销；② <strong>编程简洁性</strong>——响应式虽高效但调试难、心智负担重，业界一直在追求"高效且简单"的方案，Virtual Threads 是这一方向的突破；③ <strong>微服务高并发</strong>——服务间调用链长，每跳 IO 等待累积，非阻塞能显著降低资源占用。</p>
           </div>
@@ -332,6 +345,19 @@ flowchart TD
                 <tr><td>生态成熟度</td><td>极成熟（所有库兼容）</td><td>需响应式驱动（部分库不兼容）</td></tr>
                 <tr><td>背压支持</td><td>无（Push 模型）</td><td>有（Pull 模型，全链路传导）</td></tr>
                 <tr><td>适用场景</td><td>CRUD/传统业务/混合 IO+CPU</td><td>高并发 IO 密集/SSE/流式</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>迁移成本矩阵（WebMVC → WebFlux，需先做依赖画像）</strong>：响应式迁移不是"加个 starter"就完事，必须按<strong>依赖画像</strong>逐层评估——只有全栈非阻塞才有吞吐收益，遗留阻塞依赖必须隔离或替换，否则"假响应式"反而更糟：</p>
+            <table class="compare-table">
+              <thead><tr><th>迁移维度</th><th>现状（WebMVC）</th><th>目标（WebFlux）</th><th>改造成本</th><th>阻塞隔离 / 替代手段</th></tr></thead>
+              <tbody>
+                <tr><td>数据访问</td><td>JdbcTemplate/JPA（阻塞）</td><td>R2DBC（非阻塞）</td><td>高</td><td>重写 Repository + 响应式事务（TransactionalOperator，非 @Transactional）</td></tr>
+                <tr><td>下游调用</td><td>RestTemplate/OpenFeign（阻塞）</td><td>WebClient（非阻塞）</td><td>中</td><td>逐接口迁移；保留阻塞客户端时用 boundedElastic 隔离（非全栈非阻塞）</td></tr>
+                <tr><td>上下文传递</td><td>ThreadLocal/MDC（线程绑定）</td><td>Reactor Context</td><td>中</td><td>contextWrite/deferContextual + Hooks 钩子恢复 MDC</td></tr>
+                <tr><td>调试排障</td><td>栈清晰可断点</td><td>操作符栈（需 checkpoint）</td><td>中</td><td>checkpoint 埋点 + BlockHound（仅开发期）</td></tr>
+                <tr><td>生态兼容</td><td>全库兼容</td><td>需响应式驱动</td><td>高</td><td>无响应式驱动的遗留库用 boundedElastic 包装（假响应式，需评估代价）</td></tr>
+                <tr><td>吞吐收益前提</td><td>—</td><td>全栈非阻塞</td><td>—</td><td>任一环节阻塞即破坏全链路，先画依赖画像再决定</td></tr>
               </tbody>
             </table>
           </div>
@@ -651,7 +677,7 @@ flowchart LR
             </div>
 
             <p><strong>try-catch（同步时代）</strong>：命令式代码用 try-catch-finally 捕获异常，栈展开机制保证异常沿调用链向上传播。但在响应式链中，异常发生在异步回调里，try-catch 包不住——<strong>异步错误无法用 try-catch 捕获</strong>。</p>
-            <p><strong>onError 信号（Reactive Streams）</strong>：响应式链用 <code class="inline-code">onError</code> 信号传播错误，它是<strong>终止信号</strong>——一旦发出，流终止，不再发射数据。错误沿操作符链向上游传播（类似 try-catch 的栈展开，但在异步链中），直到被 <code class="inline-code">onErrorResume/onErrorReturn/doOnError</code> 捕获，否则传到 Subscriber 的 <code class="inline-code">onError</code> 回调。</p>
+            <p><strong>onError 信号（Reactive Streams）</strong>：响应式链用 <code class="inline-code">onError</code> 信号传播错误，它是<strong>终止信号</strong>——一旦发出，流终止，不再发射数据。错误作为终止信号沿操作符链<strong>向下游（朝 Subscriber 方向）</strong>传播（注意：这与 try-catch 的栈展开"向上调用栈"方向相反，响应式是沿数据流"向下游"），直到被下游的 <code class="inline-code">onErrorResume/onErrorReturn/doOnError</code> 拦截，否则最终到达 Subscriber 的 <code class="inline-code">onError</code> 回调；未处理则抛到全局（<code class="inline-code">Hooks.onErrorDropped</code>）。</p>
             <p><strong>retry(n) 固定重试</strong>：出错后立即重试 n 次，简单但粗暴——不退避、不区分错误类型，对瞬时故障有效但对持续故障会快速耗尽重试次数，且无退避可能压垮下游。</p>
             <p><strong>retryWhen + 指数退避（Exponential Backoff）</strong>：出错后按指数递增间隔重试（1s→2s→4s→8s），加抖动（Jitter）避免重试风暴。Reactor 3.x 用 <code class="inline-code">Retry.backoff(maxAttempts, minDuration)</code> 流式配置，支持过滤可重试异常。</p>
             <p><strong>断路器 + 降级（Resilience4j）</strong>：当错误率超阈值时断路器熔断，直接走降级逻辑不再调用下游，保护系统不被故障服务拖垮。Spring Cloud Circuit Breaker + Resilience4j 提供响应式断路器（<code class="inline-code">CircuitBreakerOperator</code>）。</p>
@@ -675,6 +701,22 @@ flowchart LR
                 <tr><td>降级 onErrorResume</td><td>出错切到降级流</td><td>保可用、容忍部分失败</td><td>降级数据可能不准</td></tr>
               </tbody>
             </table>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart TD
+    SRC["上游错误源<br/>操作符/数据源抛异常"] --> ERR["onError(t) 终止信号<br/>沿数据流向下游传播"]
+    ERR --> Q{"下游是否有<br/>错误处理操作符?"}
+    Q -->|"onErrorResume"| FB["切换降级流<br/>链路恢复"]
+    Q -->|"onErrorReturn"| DEF["返回默认值"]
+    Q -->|"doOnError"| LOG["仅记日志<br/>不消费错误, 继续下传"]
+    Q -->|"无处理"| SUB["到达 Subscriber.onError<br/>仍未处理 → Hooks.onErrorDropped"]
+    style ERR fill:#fee2e2,stroke:#dc2626
+    style FB fill:#dcfce7,stroke:#059669
+    style SUB fill:#fef3c7,stroke:#d97706
+              </div>
+              <div class="chart-caption">图 15.4-2 onError 信号传播：向下游传播（非向上游），错误处理操作符按位置就近拦截；retry 在前、onErrorResume 在后构成"先重试后降级"</div>
+            </div>
 
             <p><strong>retryWhen 指数退避原理</strong>：Reactor 的 <code class="inline-code">retryWhen(Retry)</code> 基于 <code class="inline-code">RetrySignal</code> 流实现——每次出错发射一个信号到内部重试流，重试流决定是否重订阅上游。<code class="inline-code">Retry.backoff(3, Duration.ofSeconds(1))</code> 表示最多重试 3 次，初始间隔 1 秒，按指数递增（1s→2s→4s），可加 <code class="inline-code">.maxBackoff(Duration.ofSeconds(10))</code> 封顶、<code class="inline-code">.jitter(0.5)</code> 加 50% 抖动。关键：<code class="inline-code">.filter(ex -&gt; ex instanceof IOException)</code> 只对可重试异常重试。</p>
 
@@ -768,7 +810,7 @@ flowchart LR
               <li><strong>Hooks.onOperatorDebug()</strong>：全局开启后所有操作符记录装配栈（assembly trace），异常时打印完整操作符链调用栈而非只有异常发生处。性能开销大，仅排错时临时开启，生产禁止常开。</li>
               <li><strong>checkpoint("name")</strong>：在关键操作符后加标记，异常时输出该标记点。只记录标记不记录完整栈，性能影响小，生产可用——建议在关键业务路径上添加。</li>
               <li><strong>BlockHound</strong>：运行时检测响应式流中的阻塞调用（<code class="inline-code">Thread.sleep</code>、同步 IO），检测到即抛 <code class="inline-code">BlockingOperationException</code> 并附带调用栈。</li>
-              <li><strong>BlockHound 集成</strong>：<code class="inline-code">BlockHound.install()</code>，或 Spring Boot 配置 <code class="inline-code">spring.blockhound.enabled=true</code>；误报用 <code class="inline-code">BlockHound.builder().allowBlockingCallsInside(MyClass.class, "myMethod")</code> 白名单豁免。</li>
+              <li><strong>BlockHound 集成（开发/测试期检测，非生产熔断）</strong>：标准做法在应用启动早期调用 <code class="inline-code">BlockHound.install()</code>（常配合 <code class="inline-code">@Profile("!prod")</code> 仅开发/测试启用，避免生产性能开销）；误报用 <code class="inline-code">BlockHound.builder().allowBlockingCallsInside(MyClass.class, "myMethod")</code> 白名单豁免。注意区分：BlockHound 是<strong>开发期阻塞调用检测器</strong>，生产环境的过载保护应交给 Resilience4j 断路器（<code class="inline-code">CircuitBreakerOperator</code>），二者职责不同、不可混用。</li>
             </ul>
             <p><strong>常见排错场景</strong>：</p>
             <ul>
@@ -829,7 +871,7 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>Virtual Threads 调度机制</strong>：虚拟线程由 JVM 调度器（<code class="inline-code">ForkJoinPool</code> 共享池，载体线程数=CPU 核数）管理。当虚拟线程执行<strong>阻塞操作</strong>（IO/<code class="inline-code">BlockingQueue.take()</code>）时，JVM 把它的栈帧从载体线程 unmount（卸载），载体线程立即运行下一个虚拟线程；阻塞就绪后 JVM 把栈帧 mount（装载）回某载体线程恢复执行。<strong>关键：阻塞调用不占 OS 线程</strong>，这就是"同步代码、异步效率"的原理。</p>
 
-            <p><strong>Pinning（载体线程固定）问题</strong>：这是 Virtual Threads 的核心陷阱。当虚拟线程在 <code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时，<strong>无法 unmount</strong>，载体线程被固定（pinned），退化为传统阻塞——此时虚拟线程与 OS 线程 1:1 绑定，失去并发优势。JDK 21 中 <code class="inline-code">synchronized</code> 导致的 pinning 仍未完全解决（JDK 24 已修复）。<strong>解决方案</strong>：用 <code class="inline-code">ReentrantLock</code> 替代 <code class="inline-code">synchronized</code>，<code class="inline-code">ReentrantLock.lock()</code> 阻塞时虚拟线程可正常 unmount。检测方法：<code class="inline-code">-Djdk.tracePinnedThreads=full</code>。</p>
+            <p><strong>Pinning（载体线程固定）问题</strong>：这是 Virtual Threads 的核心陷阱。当虚拟线程在 <code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时，<strong>无法 unmount</strong>，载体线程被固定（pinned），退化为传统阻塞——此时虚拟线程与 OS 线程 1:1 绑定，失去并发优势。JDK 21 中 <code class="inline-code">synchronized</code> 导致的 pinning 仍未完全解决（JDK 24 由 JEP 491 修复，并继承到 JDK 25 LTS）。<strong>解决方案</strong>：在 JDK 21–23 用 <code class="inline-code">ReentrantLock</code> 替代 <code class="inline-code">synchronized</code>，<code class="inline-code">ReentrantLock.lock()</code> 阻塞时虚拟线程可正常 unmount；JDK 24+ 可直接用 synchronized。检测方法：<code class="inline-code">-Djdk.tracePinnedThreads=full</code>（JDK 24+ 因 synchronized pinning 已消除，该开关相应退出）。</p>
 
             <p><strong>结构化并发（Structured Concurrency，JEP 453 起多次预览，最新 JEP 499/505）</strong>：<code class="inline-code">StructuredTaskScope</code> 让并发任务的父子关系显式化——父任务等待所有子任务完成，子任务异常可取消兄弟任务，避免任务泄漏。这是配合 Virtual Threads 的并发编排 API，让并发代码更安全可维护。</p>
 
@@ -849,6 +891,19 @@ flowchart TD
                 <tr><td>背压</td><td>无</td><td>有（全链路传导）</td><td>无（Push 模型）</td></tr>
                 <tr><td>流式背压场景</td><td>不适用</td><td>强（SSE/流式）</td><td>弱（需手动控制）</td></tr>
                 <tr><td>JDK 版本要求</td><td>JDK 8+</td><td>JDK 8+</td><td>JDK 21+ GA</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>虚拟线程兼容性分场景评估（迁移结论不绝对化）</strong>：Virtual Threads 与 Reactive 的选型必须按<strong>具体容器、JDBC 驱动、Redis 客户端与线程模型</strong>分别评估，不能一刀切"上 VT 就完事"：</p>
+            <table class="compare-table">
+              <thead><tr><th>场景 / 组件</th><th>兼容性</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>Tomcat（WebMVC）</td><td>✅ 直接启用</td><td><code class="inline-code">spring.threads.virtual.enabled=true</code>，每请求跑在虚拟线程，同步 JDBC/HTTP 直接受益</td></tr>
+                <tr><td>Netty EventLoop（WebFlux）</td><td>⚠️ 不同模型</td><td>EventLoop 已是非阻塞，VT 不叠加其上；WebFlux 仍走 Reactor</td></tr>
+                <tr><td>JDBC 驱动（MySQL/PG/HikariCP）</td><td>✅ 安全</td><td>主流驱动用 ReentrantLock 而非 synchronized，阻塞可正常 unmount</td></tr>
+                <tr><td>Redis 客户端 Lettuce</td><td>✅ 原生响应式</td><td>Netty 非阻塞，无需 VT</td></tr>
+                <tr><td>Redis 客户端 Jedis</td><td>⚠️ 阻塞</td><td>阻塞调用跑 VT 或 boundedElastic 隔离</td></tr>
+                <tr><td>CPU 密集任务</td><td>❌ 不适合</td><td>协作式不抢占，占住载体线程饿死其他 VT，用 parallel()/ForkJoinPool</td></tr>
               </tbody>
             </table>
           </div>
@@ -1061,6 +1116,7 @@ flowchart LR
     <span class="kw">private final</span> <span class="type">VehicleRepository</span> vehicleRepo;      <span class="com">// R2DBC</span>
     <span class="kw">private final</span> <span class="type">ReactiveRedisTemplate</span>&lt;<span class="type">String</span>, <span class="type">Vehicle</span>&gt; redis;  <span class="com">// Reactive Redis</span>
     <span class="kw">private final</span> <span class="type">WebClient</span> pricingClient;             <span class="com">// 非阻塞 HTTP</span>
+    <span class="kw">private final</span> <span class="type">OrderRepository</span> orderRepo;             <span class="com">// R2DBC 订单</span>
     <span class="kw">private final</span> <span class="type">TransactionalOperator</span> txOp;         <span class="com">// 响应式事务</span>
 
     <span class="kw">public</span> <span class="type">Mono</span>&lt;<span class="type">RentResult</span>&gt; <span class="fn">rent</span>(<span class="type">String</span> code, <span class="type">String</span> userId) {
@@ -1068,8 +1124,10 @@ flowchart LR
         <span class="kw">return</span> redis.opsForValue().get(<span class="str">"vehicle:"</span> + code)
             <span class="com">// 缓存未命中查 R2DBC</span>
             .switchIfEmpty(vehicleRepo.findByCode(code)
-                .doOnNext(v -&gt; redis.opsForValue()
-                    .set(<span class="str">"vehicle:"</span> + code, v, <span class="type">Duration</span>.ofMinutes(<span class="num">10</span>)).subscribe()))
+                <span class="com">// 缓存回写必须绑定到响应式链, 禁止手动 subscribe() 破坏 WebFlux 请求契约</span>
+                .flatMap(v -&gt; redis.opsForValue()
+                    .set(<span class="str">"vehicle:"</span> + code, v, <span class="type">Duration</span>.ofMinutes(<span class="num">10</span>))
+                    .thenReturn(v)))
             <span class="com">// 2. 并发调用定价服务 (WebClient 非阻塞)</span>
             .flatMap(vehicle -&gt; pricingClient.get()
                     .uri(<span class="str">"/price/{code}"</span>, code)
@@ -1086,9 +1144,14 @@ flowchart LR
     }
 
     <span class="kw">private</span> <span class="type">Mono</span>&lt;<span class="type">RentResult</span>&gt; <span class="fn">doRentInTransaction</span>(<span class="type">RentResult</span> r) {
+        <span class="com">// 事务边界内: 更新车辆状态 + 创建订单, 二者同生同灭 (由上层 .as(txOp::transactional) 包裹)</span>
         <span class="kw">return</span> vehicleRepo.findByCode(r.getCode())
-            .flatMap(v -&gt; { v.setAvailable(<span class="kw">false</span>); <span class="kw">return</span> vehicleRepo.save(v); })
-            .then(Mono.just(r));
+            .flatMap(v -&gt; {
+                v.setAvailable(<span class="kw">false</span>);
+                <span class="kw">return</span> vehicleRepo.save(v)
+                    .then(orderRepo.save(<span class="kw">new</span> <span class="type">RentOrder</span>(v.getId(), r.getUserId())));
+            })
+            .thenReturn(r);  <span class="com">// 事务成功返回结果</span>
     }
 }
 

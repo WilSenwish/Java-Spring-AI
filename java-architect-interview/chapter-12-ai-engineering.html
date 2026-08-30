@@ -96,9 +96,9 @@
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Spring 生态的范式跃迁</strong>：Spring MVC（2009）统一 Web 请求 → Spring Data（2011）统一数据访问 → Spring Cloud（2014）统一微服务治理 → <strong>Spring AI（2025 GA）统一 AI 应用开发</strong>。每一次都是"<strong>统一抽象 + 可插拔实现 + 自动配置 Starter</strong>"模式降维整合一个新领域。</p>
-            <p><strong>Spring AI 0.8（2024 里程碑）</strong>：<code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code> 底层模型接口、<code class="inline-code">ChatClient</code>/<code class="inline-code">EmbeddingClient</code> 高层 API（1.0 M 阶段 <code class="inline-code">EmbeddingClient</code> 更名为 <code class="inline-code">EmbeddingModel</code>，<code class="inline-code">ChatClient</code> 保留为高层 Fluent API）、OpenAI 实现、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。仅同步调用，需手动拼 Prompt。</p>
+            <p><strong>Spring AI 0.8.x（2024 初，首个公开可用版本）</strong>：提供 <code class="inline-code">ChatModel</code>/<code class="inline-code">EmbeddingModel</code> 底层模型接口（早期里程碑曾命名 <code class="inline-code">EmbeddingClient</code>，后统一为 <code class="inline-code">EmbeddingModel</code>）、<code class="inline-code">VectorStore</code> 抽象（PgVector/Redis/Chroma）。此时<strong>只有底层 API、需手动拼 Prompt、且仅同步调用</strong>；<strong>高层 <code class="inline-code">ChatClient</code> Fluent API 在 1.0.0-M1（2024-05）才引入</strong>，并非 0.8 即有。</p>
             <p><strong>Spring AI 1.0 M（2024）</strong>：引入 <code class="inline-code">ChatClient</code> 高层 Fluent API、<code class="inline-code">Advisor</code> 链（前置/后置拦截，支持 RAG/日志/重试）、Structured Output（JSON → POJO）、声明式 Function Calling。同步/流式/异步全支持。</p>
-            <p><strong>Spring AI 1.0 GA（2025）+ MCP</strong>：支持 Model Context Protocol（Anthropic 主导标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排能力（<code class="inline-code">ChatClientAgent</code> [规划中]）逐步落地。</p>
+            <p><strong>Spring AI 1.0 GA（2025）+ MCP</strong>：支持 Model Context Protocol（Anthropic 主导标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排在 1.0 由 Tool Calling + Advisor 链承载，后续版本（1.1+/2.0）持续增强 Agentic 模式与图编排能力，并非单一 <code class="inline-code">ChatClientAgent</code> 类。</p>
             <p><strong>趋势</strong>：向 Agentic AI 演进——多 Agent 协作、长记忆（Long-term Memory）、工具自主编排；与 Spring Boot AOT/Native 集成优化冷启动；多模态（图像/音频/视频）统一抽象；Spring AI Alibaba 生态（通义/百炼/Gemini 插件）补足国产链路。</p>
 
             <div class="mermaid-container">
@@ -199,11 +199,11 @@ flowchart TD
     <span class="kw">@PostMapping</span>(<span class="str">"/ask"</span>)
     <span class="kw">public</span> <span class="type">String</span> <span class="fn">ask</span>(<span class="kw">@RequestParam</span> <span class="type">String</span> sessionId,
                        <span class="kw">@RequestBody</span> <span class="type">String</span> question) {
-        <span class="com">// Advisor 链: RAG 检索注入 + 会话记忆 (Spring AI 1.0 GA 推荐 Builder 模式: QuestionAnswerAdvisor.builder(vectorStore).build() / MessageChatMemoryAdvisor.builder(chatMemory).build(), PromptChatMemoryAdvisor 已更名为 MessageChatMemoryAdvisor)</span>
+        <span class="com">// Advisor 链: RAG 检索注入 + 会话记忆。Spring AI 1.0 GA 两种记忆 Advisor 并存：PromptChatMemoryAdvisor 将记忆注入 system 文本，MessageChatMemoryAdvisor 将记忆作为消息集合注入 Prompt；均推荐用 builder 构建</span>
         <span class="type">QuestionAnswerAdvisor</span> <span class="var">rag</span> =
-            <span class="kw">new</span> <span class="type">QuestionAnswerAdvisor</span>(vectorStore);  <span class="com">// Spring AI 1.0 GA 推荐: QuestionAnswerAdvisor.builder(vectorStore).build()</span>
+            <span class="kw">new</span> <span class="type">QuestionAnswerAdvisor</span>(vectorStore);  <span class="com">// 亦可用 QuestionAnswerAdvisor.builder(vectorStore).build()</span>
         <span class="type">PromptChatMemoryAdvisor</span> <span class="var">mem</span> =
-            <span class="kw">new</span> <span class="type">PromptChatMemoryAdvisor</span>(chatMemory);  <span class="com">// Spring AI 1.0 GA 已更名 MessageChatMemoryAdvisor, 推荐: MessageChatMemoryAdvisor.builder(chatMemory).build()</span>
+            <span class="kw">new</span> <span class="type">PromptChatMemoryAdvisor</span>(chatMemory);  <span class="com">// 与 MessageChatMemoryAdvisor 并存(前者注入 system 文本); 亦可用 PromptChatMemoryAdvisor.builder(chatMemory).build()</span>
         <span class="kw">return</span> chatClient.prompt()
             .user(question)
             .advisors(rag, mem)
@@ -550,7 +550,7 @@ flowchart TD
                 <li><strong>用错距离度量</strong>：模型用余弦训练却用 L2 索引（未归一化时结果错乱），需对齐模型训练度量或先归一化。</li>
                 <li><strong>不评测召回率</strong>：未与暴力检索对比，HNSW/IVF 实际召回率可能只有 70%，应离线建 ground truth 评测。</li>
                 <li><strong>ef_search/nprobe 设太小</strong>：追求速度把召回率拉胯，应按业务精度要求调参。</li>
-                <li><strong>中文用英文 Embedding</strong>：text-embedding-ada-002（已废弃：OpenAI 第一代 Embedding，中文表现差，2026 推荐 bge-m3 / text-embedding-3 / text-embedding-v3（通义）等替代）中文场景换 bge-m3/Qwen-Embedding。</li>
+                <li><strong>中文用英文 Embedding</strong>：text-embedding-ada-002（OpenAI 第二代 Embedding，2022 年发布、1536 维，已非最新；2024 起官方推荐 text-embedding-3 系列，中文场景可换 bge-m3 / text-embedding-v3（通义））中文场景换 bge-m3/Qwen-Embedding。</li>
                 <li><strong>忽视向量更新</strong>：换了 Embedding 模型但没重建索引，新旧维度不一致直接报错或召回错乱。</li>
                 <li><strong>把向量库当关系库</strong>：向量检索是近似的、无事务的，不能替代 MySQL 做精确查询。</li>
               </ul>
@@ -570,7 +570,7 @@ flowchart TD
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
-              <p>组合策略威力最大：MRL 降维到 256 维 + 二值量化 = 存储从 1024B 降到 32B（32x 压缩），召回率仍保持 90%+。典型流水线：① MRL 截断到目标维度；② 二值/PQ 量化做粗排召回（汉明距离/非对称距离）；③ 用原始 float 向量做精排重排序（rerank top-k）。这种"粗排+精排"两阶段检索是亿级向量库的标配，Qdrant/Milvus 均已原生支持。选型时需评测压缩比与召回率的权衡曲线，而非盲目追求最大压缩。</p>
+              <p>组合策略威力最大：以 1024 维 float32（4096B/向量）为基准，MRL 截断到 256 维后 = 1024B，再二值量化 = 256/8 = 32B，相对 256 维 float32 压缩 32x、相对原始 1024 维 float32 全流程压缩 128x（容量公式：字节 = 维度数 × 每维字节数，float32=4B、binary=0.125B）。召回率仍保持 90%+ 的前提是保留原始向量做精排。典型流水线：① MRL 截断到目标维度；② 二值/PQ 量化做粗排召回（汉明距离/非对称距离）；③ 用原始 float 向量做精排重排序（rerank top-k）。这种"粗排+精排"两阶段检索是亿级向量库的标配，Qdrant/Milvus 均已原生支持。选型时需评测压缩比与召回率的权衡曲线，而非盲目追求最大压缩。</p>
             </div>
           </div>
         </div>
@@ -674,7 +674,7 @@ parentStore.put(parentId, parentChunk);  <span class="com">// 生成用</span></
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：块大小到底定多少合适？有黄金值吗？</strong></p>
-            <p>没有放之四海的黄金值，取决于<strong>文档类型与 Embedding 模型最大输入</strong>。经验区间：FAQ/短问答用 128-256 tokens（一个问题一个块）；通用文档 300-500 tokens；长篇技术文档 500-800 tokens。Embedding 模型有最大输入限制（bge-m3 支持 8K，ada-002 支持 8K；ada-002 为 OpenAI 第一代已废弃 Embedding，2026 推荐 bge-m3 / text-embedding-3 / text-embedding-v3（通义）等替代，此处仅作演进对比），块不能超过此限。正确做法：<strong>建一个评测集（问题+正确文档），用不同块大小跑召回率曲线</strong>，选召回率拐点。块大小还影响生成——块越大塞进 Prompt 的块数越少，需平衡。</p>
+            <p>没有放之四海的黄金值，取决于<strong>文档类型与 Embedding 模型最大输入</strong>。经验区间：FAQ/短问答用 128-256 tokens（一个问题一个块）；通用文档 300-500 tokens；长篇技术文档 500-800 tokens。Embedding 模型有最大输入限制（bge-m3 支持 8K，ada-002 支持 8K；ada-002 为 OpenAI 第二代 Embedding（2022 年发布、1536 维，已非最新；2024 起官方推荐 text-embedding-3 系列），此处仅作演进对比），块不能超过此限。正确做法：<strong>建一个评测集（问题+正确文档），用不同块大小跑召回率曲线</strong>，选召回率拐点。块大小还影响生成——块越大塞进 Prompt 的块数越少，需平衡。</p>
             <p><strong>追问 2：父子分块如何实现？存储与检索怎么关联？</strong></p>
             <p>实现：原文档先切成<strong>父块</strong>（大，如 800 tokens），每个父块再切成<strong>子块</strong>（小，如 200 tokens）。子块入向量库（带 <code class="inline-code">parentId</code> 元数据），父块存文档库（KV/关系库）。检索时：① 向量检索召回子块 top-k；② 按子块 <code class="inline-code">parentId</code> 去重取对应父块；③ 父块送 Prompt 生成。变体：<strong>Sentence Window</strong>——检索单句，送生成时扩展为前后 N 句窗口。核心都是"<strong>检索粒度小、生成粒度大</strong>"，解耦两个环节的不同需求。</p>
           </div>
@@ -900,33 +900,33 @@ sequenceDiagram
 
             <p><strong>关键机制</strong>：</p>
             <ol>
-              <li><strong>Schema 声明</strong>：Spring AI 把 <code class="inline-code">@Bean Function&lt;Req,Resp&gt;</code> 的请求类型用 Jackson 反射出 JSON Schema（参数名/类型/描述），随请求发给 LLM。LLM 据 schema 理解"有什么工具、怎么用"。</li>
+              <li><strong>Schema 声明</strong>：Spring AI 通过 <code class="inline-code">@Tool</code> 注解（或 <code class="inline-code">FunctionToolCallback</code>）为方法/函数自动生成 JSON Schema（参数名/类型/描述），随请求发给 LLM；也可用 <code class="inline-code">@Bean Function&lt;Req,Resp&gt;</code> 配合 <code class="inline-code">FunctionToolCallback.builder()</code> 注册为工具。LLM 据 schema 理解"有什么工具、怎么用"。</li>
               <li><strong>LLM 决策</strong>：模型在训练时学过"何时该调工具"，根据用户问题判断是否调用、调哪个、参数填什么。注意：LLM <strong>不执行</strong>工具，只输出调用意图。</li>
               <li><strong>宿主执行</strong>：Spring AI 拦截 <code class="inline-code">tool_call</code> 响应，用 Jackson 把 args JSON 反序列化为 Req 对象，反射调用对应 Function Bean，拿到 Resp。</li>
               <li><strong>结果回填</strong>：把 Resp 序列化为 tool result 消息，拼进上下文发<strong>第二轮</strong>请求。LLM 基于结果继续推理——可能再调工具（多轮），可能直接回答。</li>
               <li><strong>循环终止</strong>：LLM 输出不含 <code class="inline-code">tool_call</code> 的纯文本，循环结束。需设<strong>最大轮次</strong>防死循环。</li>
             </ol>
 
-            <div class="code-block"><pre><code><span class="com">// Spring AI Function Calling: 声明工具 + 调用</span>
-<span class="com">// 1. 用 @Bean 注册 Function（函数名=Bean 名，或 @Description 描述）</span>
-<span class="kw">@Configuration</span>
-<span class="kw">static class</span> <span class="type">Tools</span> {
-    <span class="kw">@Bean</span>
-    <span class="com">@Description</span>(<span class="str">"查询某城市某天数车辆日租金（元/天）"</span>)  <span class="com">// 描述给 LLM 看</span>
-    <span class="kw">public</span> <span class="type">Function</span>&lt;<span class="type">RentRequest</span>, <span class="type">RentResponse</span>&gt; <span class="fn">getRent</span>() {
-        <span class="kw">return</span> req -&gt; rentService.query(req.city(), req.days());
+            <div class="code-block"><pre><code><span class="com">// Spring AI Function Calling (1.0 GA): @Tool 注解声明工具 + ChatClient 调用</span>
+<span class="com">// 1. 用 @Tool 把普通方法暴露为 LLM 可调用工具（自动生成 JSON Schema）</span>
+<span class="kw">@Component</span>
+<span class="kw">public class</span> <span class="type">RentTools</span> {
+    <span class="kw">@Tool</span>(description = <span class="str">"查询某城市某天数车辆日租金（元/天）"</span>)  <span class="com">// 描述给 LLM 看，选工具的唯一依据</span>
+    <span class="kw">public</span> <span class="type">RentResponse</span> <span class="fn">getRent</span>(<span class="kw">@ToolParam</span>(description = <span class="str">"城市"</span>) <span class="type">String</span> city,
+                                <span class="kw">@ToolParam</span>(description = <span class="str">"租期天数"</span>) <span class="type">Integer</span> days) {
+        <span class="kw">return</span> rentService.query(city, days);
     }
 }
 
-<span class="com">// 2. 调用时声明可用工具</span>
+<span class="com">// 2. 调用时把工具对象交给 ChatClient（1.0 GA 自动扫描 @Tool 方法）</span>
 <span class="type">String</span> <span class="var">answer</span> = chatClient.prompt()
     .user(<span class="str">"北京租3天车要多少钱？"</span>)
-    .tools(<span class="str">"getRent"</span>)             <span class="com">// 注册可用工具 Bean 名（Spring AI 1.0 GA）</span>
+    .tools(<span class="kw">new</span> <span class="type">RentTools</span>())             <span class="com">// 注册含 @Tool 方法的对象（或按名引用 ToolCallback Bean）</span>
     .call()
     .content();
 <span class="com">// LLM 自主决策: 调 getRent({city:"北京", days:3}) -> 拿结果 -> 答"共XXX元"</span>
 
-<span class="com">// 3. 请求/响应记录（LLM 看到的 schema）</span>
+<span class="com">// 3. 请求/响应记录（LLM 看到的 schema 由 @Tool + @ToolParam 自动生成）</span>
 <span class="kw">record</span> <span class="type">RentRequest</span>(<span class="type">String</span> city, <span class="type">Integer</span> days) {}
 <span class="kw">record</span> <span class="type">RentResponse</span>(<span class="type">String</span> city, <span class="type">Double</span> pricePerDay, <span class="type">Double</span> total) {}</code></pre></div>
             <p><strong>参数校验与错误处理</strong>：LLM 填的参数可能非法（类型错/缺字段），宿主必须校验；工具执行失败应把<strong>错误信息回填给 LLM</strong>（而非抛异常中断），让 LLM 决定重试或换工具——这是 Agent 韧性的关键。</p>
@@ -1048,7 +1048,7 @@ flowchart TB
             <ul>
               <li><strong>解决的问题</strong>：每个 LLM 应用要接 N 个工具，M×N 集成爆炸。MCP 统一工具/资源/Prompt 的<strong>发现与调用接口</strong>，变成 M+N。</li>
               <li><strong>三大原语</strong>：<strong>Tools</strong>（可执行函数，如查库存）、<strong>Resources</strong>（可读数据，如文件/数据库）、<strong>Prompts</strong>（可复用 Prompt 模板）。</li>
-              <li><strong>架构</strong>：MCP Server（工具提供方，独立进程）↔ MCP Client（Agent/IDE，如 Claude Desktop/Cursor）经 JSON-RPC 通信。一个 Client 可连多个 Server，一个 Server 可被多个 Client 复用。</li>
+              <li><strong>架构</strong>：MCP Server（工具提供方，独立进程）↔ MCP Client（Agent/IDE，如 Claude Desktop/Cursor）经 JSON-RPC 2.0 通信。一个 Client 可连多个 Server，一个 Server 可被多个 Client 复用。传输层支持 stdio（本地子进程）与 Streamable HTTP（远程/多 Client 共享）两种，二者均基于 JSON-RPC 2.0，Client 与 Server 解耦于具体传输方式。</li>
               <li><strong>价值</strong>：工具<strong>一次封装到处可用</strong>——同一个"查库存"MCP Server，Claude/Cursor/Spring AI Agent 都能调，无需重复集成。</li>
             </ul>
 
@@ -1851,7 +1851,7 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察对 <strong>"Java 生态如何用声明式抽象降低 AI 应用开发门槛"</strong> 的架构理解。核心要回答三个问题：LangChain4j 为什么选择 Java 而非让开发者直接用 Python LangChain（Java 企业级 AI 应用的工程需求）？AiServices 接口代理抽象的核心价值是什么（声明式 vs 命令式，类比 MyBatis Mapper）？框架中立（同时支持 Spring Boot/Quarkus/Micronaut）的工程意义？这是架构师做多框架选型与集成时的关键题。</p>
+            <p>注意：LangChain4j 与 Spring AI 是<strong>两条独立的 Java AI 框架血脉</strong>——前者受 Python LangChain 启发但独立设计 API，后者是 Spring 官方原生项目，二者互为补充而非子集/替代品。这道题考察对 <strong>"Java 生态如何用声明式抽象降低 AI 应用开发门槛"</strong> 的架构理解。核心要回答三个问题：LangChain4j 为什么选择 Java 而非让开发者直接用 Python LangChain（Java 企业级 AI 应用的工程需求）？AiServices 接口代理抽象的核心价值是什么（声明式 vs 命令式，类比 MyBatis Mapper）？框架中立（同时支持 Spring Boot/Quarkus/Micronaut）的工程意义？这是架构师做多框架选型与集成时的关键题。</p>
           </div>
         </div>
 
@@ -2468,7 +2468,7 @@ define flow
             <p><strong>阶段 2：SSE(Server-Sent Events)</strong>。基于 HTTP 长连接，服务端逐 Token 推送 <code class="inline-code">data: ...</code> 事件，浏览器原生 EventSource API 消费。单向推送、自动重连、协议简单，成为 LLM 流式输出的事实标准。</p>
             <p><strong>阶段 3：WebSocket 双向流</strong>。全双工通信，适合需要客户端中途取消/插话的场景。但协议更重、需额外心跳维护、CDN/代理支持不如 SSE 普遍，LLM 场景多数不需要双向。</p>
             <p><strong>阶段 4：Spring WebFlux Flux 响应式流</strong>。Spring 5 引入 Reactor，<code class="inline-code">Flux&lt;T&gt;</code> 表示 0..N 异步序列，天然适配流式输出，背压(Backpressure)机制保护消费者不被生产者淹没。</p>
-            <p><strong>阶段 5：Spring AI 1.0 stream() API</strong>。<code class="inline-code">ChatClient.prompt().stream()</code> 返回 <code class="inline-code">Flux&lt;ChatResponse&gt;</code>，封装 SSE 事件序列，与 Spring WebFlux 端点无缝集成，一行代码实现流式输出。</p>
+            <p><strong>阶段 5：Spring AI 1.0 stream() API</strong>。<code class="inline-code">ChatClient.prompt().stream()</code> 返回流式构建器，经 <code class="inline-code">.chatResponse()</code>/<code class="inline-code">.content()</code> 得到 <code class="inline-code">Flux&lt;ChatResponse&gt;</code>/<code class="inline-code">Flux&lt;String&gt;</code>，封装 SSE 事件序列，与 Spring WebFlux 端点无缝集成，一行代码实现流式输出。</p>
             <p><strong>阶段 6：流式 Function Calling 与流式 Tool 执行(2025)</strong>。流式输出中实时检测 Tool Call 标记，暂停流式生成→执行工具→将工具结果注入→恢复流式输出，实现流式 Agent 交互。</p>
           </div>
         </div>
@@ -2506,6 +2506,7 @@ define flow
             .<span class="fn">stream</span>()
             .<span class="fn">content</span>()                      <span class="com">// Flux&lt;String&gt; 逐 Token</span>
             .<span class="fn">onBackpressureBuffer</span>(<span class="str">100</span>)       <span class="com">// 背压缓冲</span>
+            .<span class="fn">onErrorResume</span>(e -&gt; <span class="type">Flux</span>.<span class="fn">just</span>(<span class="str">"[ERROR]"</span>))  <span class="com">// 错误信号: 异常转错误事件, 避免 Flux 直接终止导致前端断连无提示</span>
             .<span class="fn">concatWith</span>(<span class="type">Flux</span>.<span class="fn">just</span>(<span class="str">"[DONE]"</span>));   <span class="com">// 结束标记</span>
     }
 }</code></pre></div>
@@ -3168,24 +3169,30 @@ flowchart TD
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>十亿级 Milvus 部署与调优</strong>（某租赁平台全车型知识库 + 行业政策库，约 12 亿 chunk）：</p>
-            <div class="code-block"><pre><code><span class="com">// Milvus 集群: 存算分离 + 分片 + IVF_PQ 索引</span>
+            <div class="code-block"><pre><code><span class="com">// Milvus 2.x Java SDK (io.milvus:milvus-sdk-java): 存算分离 + 分片 + IVF_PQ 索引</span>
 <span class="com">// collection schema: id(int64) + embedding(float32[1024]) + metadata</span>
+<span class="com">// 关键: extra param 统一为 JSON 字符串 (Map 序列化), 并非链式 key-value 双参</span>
 
 <span class="com">// 索引参数: IVF_PQ 适配十亿级内存敏感场景</span>
-<span class="type">IndexParams</span> <span class="var">idx</span> = <span class="type">IndexParams</span>.<span class="fn">new</span>()
+<span class="type">IndexParam</span> <span class="var">idx</span> = <span class="type">IndexParam</span>.<span class="fn">newBuilder</span>()
+    .<span class="fn">withCollectionName</span>(<span class="str">"car_knowledge"</span>)
+    .<span class="fn">withFieldName</span>(<span class="str">"embedding"</span>)
     .<span class="fn">withIndexType</span>(<span class="type">IndexType</span>.IVF_PQ)
     .<span class="fn">withMetricType</span>(<span class="type">MetricType</span>.IP)
-    .<span class="fn">withExtraParam</span>(<span class="str">"nlist"</span>, <span class="str">8192</span>)      <span class="com">// 聚类中心, 12亿量级</span>
-    .<span class="fn">withExtraParam</span>(<span class="str">"m"</span>, <span class="str">64</span>)           <span class="com">// PQ 子向量数, 1024/64=16维/子</span>
-    .<span class="fn">withExtraParam</span>(<span class="str">"nbits"</span>, <span class="num">8</span>);        <span class="com">// 每子向量 8bit, 压缩 64 倍</span>
+    .<span class="fn">withExtraParam</span>(<span class="str">"{\"nlist\":8192,\"m\":64,\"nbits\":8}"</span>)  <span class="com">// nlist 聚类中心 / m PQ子向量 / nbits 每子向量位数</span>
+    .<span class="fn">build</span>();
 
-<span class="com">// 查询参数: nprobe 在线调, 召回率-延迟权衡</span>
-<span class="type">SearchParam</span> <span class="var">sp</span> = <span class="type">SearchParam</span>.<span class="fn">new</span>()
-    .<span class="fn">withVector</span>(queryVec)
-    .<span class="fn">withTopK</span>(<span class="num">50</span>)                  <span class="com">// 粗排取 50, 再 Rerank 到 5</span>
-    .<span class="fn">withExtraParam</span>(<span class="str">"nprobe"</span>, <span class="str">64</span>);     <span class="com">// 探查 64 簇, 召回~92%</span>
+<span class="com">// 查询参数: nprobe 在线可调, 召回率-延迟权衡 (具体值需评测集实测, 非固定)</span>
+<span class="type">SearchParam</span> <span class="var">sp</span> = <span class="type">SearchParam</span>.<span class="fn">newBuilder</span>()
+    .<span class="fn">withCollectionName</span>(<span class="str">"car_knowledge"</span>)
+    .<span class="fn">withVectorFieldName</span>(<span class="str">"embedding"</span>)
+    .<span class="fn">withTopK</span>(<span class="num">50</span>)                           <span class="com">// 粗排取 50, 再 Rerank 到 5</span>
+    .<span class="fn">withMetricType</span>(<span class="type">MetricType</span>.IP)
+    .<span class="fn">withParams</span>(<span class="str">"{\"nprobe\":64}"</span>)                  <span class="com">// 探查 64 簇; 召回率随 nprobe 升高而提升</span>
+    .<span class="fn">withVectors</span>(<span class="type">Collections</span>.<span class="fn">singletonList</span>(queryVec))
+    .<span class="fn">build</span>();
 
-<span class="com">// 分片: 按 tenant_id 分 16 shard, 物理隔离多租户</span>
+<span class="com">// 分片: 建 collection 时指定 shardNum=16, 按 tenant_id 物理隔离多租户</span>
 <span class="com">// 集群: querynode 内存 64G x 8 节点, datanode SSD</span></code></pre></div>
             <p><strong>调优经验</strong>：① <strong>分片按业务维度</strong>——按 tenant_id/time 分 shard，查询带过滤减少扫描量；② <strong>读写分离</strong>——写入走 datanode，查询走 querynode，避免写入影响查询；③ <strong>efSearch/nprobe 在线调</strong>——压测确定 baseline，低峰调高保召回、高峰调低保延迟；④ <strong>Rerank 补精度</strong>——IVF_PQ 召回有损，top50 粗排后用 Cross-Encoder Rerank 到 top5，最终精度追平 HNSW；⑤ <strong>监控召回率</strong>——固定测试集定期跑，召回率下降告警（索引膨胀/数据分布漂移）。</p>
             <div class="callout callout-tip">
@@ -3620,7 +3627,7 @@ flowchart TD
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>断连恢复核心：状态外置 + id 续传</strong>。每个 token 事件带递增 <code class="inline-code">id</code>，服务端把已生成内容存 Redis（key=sessionId）。重连时客户端带 <code class="inline-code">Last-Event-ID: N</code>，服务端从 Redis 取 id&gt;N 的内容续传。若生成已结束则直接返回剩余；若生成还在进行则接入正在生成的流。</p>
-            <p><strong>背压三策略</strong>：① <strong>有限缓冲</strong>——<code class="inline-code">onBackpressureBuffer(N)</code> 缓冲 N 个 token，超限报错（适合 N 大、偶发抖动）；② <strong>丢弃</strong>——<code class="inline-code">onBackpressureDrop()</code> 丢弃消费不过来的 token（LLM 场景不可用，token 丢失导致回答残缺）；③ <strong>背压传导</strong>——让上游（模型生成）感知下游慢而减速，如 Reactor 的 <code class="inline-code">limitRate()</code> 控制预取，或用阻塞队列让生成线程阻塞等待。LLM 流式<strong>token 不可丢</strong>，通常用有限缓冲 + 背压传导组合。</p>
+            <p><strong>背压三策略</strong>：① <strong>有限缓冲</strong>——<code class="inline-code">onBackpressureBuffer(N)</code> 缓冲 N 个 token，超限报错（适合 N 大、偶发抖动）；② <strong>丢弃</strong>——<code class="inline-code">onBackpressureDrop()</code> 丢弃消费不过来的 token（LLM 场景不可用，token 丢失导致回答残缺）；③ <strong>有界缓冲 + 续传兜底</strong>——<code class="inline-code">onBackpressureBuffer(N, DROP_OLDEST)</code> 保留最新 N 个 token，缓冲满丢弃最旧 token 避免 OOM；因每个 token 已存 Redis（id 续传），重连从 <code class="inline-code">Last-Event-ID</code> 补发全量，缓冲内丢弃的旧 token 由 Redis 补偿，<strong>不真正丢失</strong>。</p>
             <p><strong>跨节点恢复</strong>：长连接是 sticky 的，但断连重连可能到不同节点。若生成状态在原节点内存，跨节点无法恢复。故状态必须外置 Redis，任意节点都能从 Redis 恢复继续。生成任务可设计为<strong>状态机持久化</strong>，节点重启/切换不丢进度。</p>
           </div>
         </div>
@@ -3644,15 +3651,15 @@ flowchart TD
     <span class="type">Flux</span>&lt;<span class="type">TokenEvent</span>&gt; <span class="var">flux</span> = chatOrchestrator.<span class="fn">streamOrResume</span>(sessionId)
         .<span class="fn">index</span>((i, tok) -&gt; <span class="kw">new</span> <span class="type">TokenEvent</span>(<span class="fn">nextId</span>(sessionId, i), tok))
         .<span class="fn">doOnNext</span>(e -&gt; redis.<span class="fn">append</span>(sessionId, e))       <span class="com">// 持久化</span>
-        .<span class="fn">onBackpressureBuffer</span>(<span class="str">256</span>, BufferOverflowStrategy.<span class="type">BLOCK</span>)  <span class="com">// 背压阻塞传导</span>
+        .<span class="fn">onBackpressureBuffer</span>(<span class="str">256</span>, BufferOverflowStrategy.<span class="type">DROP_OLDEST</span>)  <span class="com">// 有界缓冲保留最新 token, 旧 token 由 Redis 续传补偿</span>
         .<span class="fn">timeout</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="str">15</span>));            <span class="com">// chunk 间隔超时</span>
     <span class="fn">subscribeToEmitter</span>(flux, emitter);
     <span class="kw">return</span> emitter;
 }</code></pre></div>
-            <p><strong>关键实践</strong>：① <strong>网关禁用缓冲</strong>——Nginx <code class="inline-code">proxy_buffering off</code>、<code class="inline-code">proxy_read_timeout 300s</code>、HTTP/1.1 长连接，否则缓冲破坏流式且超时断连；② <strong>chunk 间隔超时</strong>——两个 chunk 间隔超 10-15s 视为卡死，关闭流让客户端重连续传；③ <strong>Redis 状态 TTL</strong>——会话状态 TTL 30min，超时清理，避免内存泄漏；④ <strong>背压用 BLOCK 策略</strong>——缓冲满后阻塞生成线程（而非丢弃），让模型生成减速，token 不丢。</p>
+            <p><strong>关键实践</strong>：① <strong>网关禁用缓冲</strong>——Nginx <code class="inline-code">proxy_buffering off</code>、<code class="inline-code">proxy_read_timeout 300s</code>、HTTP/1.1 长连接，否则缓冲破坏流式且超时断连；② <strong>chunk 间隔超时</strong>——两个 chunk 间隔超 10-15s 视为卡死，关闭流让客户端重连续传；③ <strong>Redis 状态 TTL</strong>——会话状态 TTL 30min，超时清理，避免内存泄漏；④ <strong>背压用 DROP_OLDEST 有界缓冲</strong>——缓冲保留最新 token 避免 OOM，配合 Redis 状态外置，重连从 lastId 续传已持久化的全量 token，旧 token 由 Redis 补偿，不真正丢失。</p>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
-              <p>① <strong>状态外置 Redis 是跨节点恢复前提</strong>——别把生成状态留在节点内存，否则节点重启/切换全丢；② <strong>背压 token 不可丢</strong>——用有限缓冲 + 阻塞传导，绝不用 drop；③ <strong>重连要续传不重生成</strong>——Last-Event-ID + Redis 缓存，省算力且不重复显示。</p>
+              <p>① <strong>状态外置 Redis 是跨节点恢复前提</strong>——别把生成状态留在节点内存，否则节点重启/切换全丢；② <strong>背压不 OOM 且 token 不丢</strong>——用有限缓冲（DROP_OLDEST 保留最新）+ Redis 续传兜底，绝不用无界缓冲；③ <strong>重连要续传不重生成</strong>——Last-Event-ID + Redis 缓存，省算力且不重复显示。</p>
             </div>
           </div>
         </div>
@@ -3664,8 +3671,8 @@ flowchart TD
             <p>移动端弱网高频断连（切后台/网络切换/信号差），EventSource 自动重连可能频繁触发，且弱网下重连慢。优化：① <strong>指数退避重连</strong>——避免频繁重连雪崩，重连间隔 1s/2s/4s/8s；② <strong>客户端本地缓存 + 离线续传</strong>——已收 token 存本地，重连后只续传未收部分，弱网也能渐进显示；③ <strong>降级为非流式</strong>——多次重连失败则降级为同步请求（等完整生成一次性返回），牺牲流式体验保可用；④ <strong>压缩传输</strong>——SSE 文本可 gzip 压缩，弱网下减少传输量。</p>
             <p><strong>追问 2：生成还在进行时断连重连，如何"接入正在生成的流"？</strong></p>
             <p>难点：原生成在原节点线程中跑，新连接到了另一节点。方案：① <strong>生成任务化 + 消息队列</strong>——生成任务把 token 推到 Redis Stream/MQ，所有连接订阅该 stream，重连后从 lastId 续消费，天然支持多节点；② <strong>生成与推送解耦</strong>——生成进程只写 Redis，推送进程读 Redis 推 SSE，推送断连不影响生成，重连续推即可；③ <strong>单节点 sticky + 状态外置兜底</strong>——优先 sticky 路由回原节点（快），失败则跨节点从 Redis 恢复（兜底）。方案 1 最优雅，适合高并发。</p>
-            <p><strong>追问 3：背压用 BLOCK 阻塞生成线程，会不会影响模型服务？</strong></p>
-            <p>BLOCK 会让生成线程阻塞等待下游消费，若生成是同步调用模型 API，阻塞期间占用 HTTP 连接与线程，过多阻塞可能耗尽连接池。缓解：① <strong>响应式非阻塞生成</strong>——用 Reactor Flux 异步生成，阻塞只是暂停发射不占线程；② <strong>有限缓冲 + 超时</strong>——缓冲 256 个 token，阻塞超 30s 则主动关闭流让客户端重连，避免无限阻塞；③ <strong>监控阻塞指标</strong>——Reactor 的 <code class="inline-code">Metrics</code> 监控 buffer 占用与阻塞时长，异常告警。生产中 BLOCK 配合响应式与非阻塞 IO 才安全。</p>
+<p><strong>追问 3：缓冲满丢弃旧 token，会不会影响回答完整性？</strong></p>
+<p>单独看 DROP_OLDEST 会丢最旧 token，但本方案每个 token 已持久化到 Redis（带递增 id）。缓冲只是传输层缓冲，重连时客户端带 <code class="inline-code">Last-Event-ID</code> 从 Redis 取 id&gt;N 的全量内容续传，缓冲内丢弃的旧 token 被 Redis 补偿，回答前后文完整。缓解：① <strong>响应式非阻塞生成</strong>——用 Reactor Flux 异步生成，背压只是暂停发射不占线程；② <strong>有限缓冲 + 超时</strong>——缓冲 256 个 token（DROP_OLDEST 保留最新），下游长时间不消费则超时主动关闭流让客户端重连，避免无限堆积；③ <strong>监控缓冲指标</strong>——Reactor 的 <code class="inline-code">Metrics</code> 监控 buffer 占用，异常告警。生产中 DROP_OLDEST 有界缓冲 + Redis 续传兜底才安全。</p>
           </div>
         </div>
 
@@ -3677,7 +3684,7 @@ flowchart TD
               <ul>
                 <li><strong>状态留节点内存</strong>：节点重启/切换/扩缩容时生成状态全丢，无法恢复。必须外置 Redis。</li>
                 <li><strong>背压无限缓冲 OOM</strong>：<code class="inline-code">onBackpressureBuffer()</code> 无上限，慢客户端堆积导致 OOM。必须有限缓冲 + 阻塞/超时。</li>
-                <li><strong>背压用 drop 丢 token</strong>：回答残缺且难以察觉。LLM token 不可丢，用 buffer + block。</li>
+                <li><strong>背压用无界缓冲 OOM</strong>：<code class="inline-code">onBackpressureBuffer()</code> 无上限，慢客户端堆积 OOM。必须有限缓冲（DROP_OLDEST）+ Redis 续传补偿。</li>
                 <li><strong>网关未禁缓冲</strong>：Nginx 默认缓冲整个响应，流式变同步，且超时断连。必须 <code class="inline-code">proxy_buffering off</code>。</li>
                 <li><strong>无 chunk 间隔超时</strong>：模型卡死时连接挂起不释放，资源泄漏。必须设 chunk 间隔超时兜底。</li>
               </ul>
@@ -3696,7 +3703,7 @@ flowchart TD
                 <tr><td>每会话生成状态 Redis 占用</td><td>~2–5 KB / 会话</td><td>含已输出 token 与工具中间态，TTL 30min 防内存泄漏</td></tr>
                 <tr><td>万级并发 SSE 的 Redis 内存</td><td>~50–100 MB</td><td>1w 会话 × 5KB 量级，可作为容量规划基准</td></tr>
                 <tr><td>单节点 SSE 长连接数</td><td>~1–2w（受句柄 / 内存限）</td><td>Netty/Reactor 需调优句柄上限，超出水平扩容</td></tr>
-                <tr><td>写水位与背压丢弃率</td><td>high=64KB / low=32KB，丢弃率 &lt;0.1%</td><td>触发 high 水位暂停推 token，BLOCK 传导而非 drop</td></tr>
+                <tr><td>写水位与背压策略</td><td>high=64KB / low=32KB，DROP_OLDEST 保留最新</td><td>触发 high 水位暂停推 token，旧 token 由 Redis 续传补偿而非全丢</td></tr>
               </tbody>
             </table>
             <div class="callout callout-tip">
@@ -3773,33 +3780,33 @@ flowchart LR
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>Redis 语义缓存（Spring AI Advisor）</strong>：</p>
-            <div class="code-block"><pre><code><span class="com">// 语义缓存 Advisor: 命中则直接返回, 跳过模型调用</span>
-<span class="kw">public class</span> <span class="type">SemanticCacheAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {  <span class="com">// Spring AI 1.0 GA 映射: BaseAdvisor→CallAdvisor, adviseRequest/adviseResponse→adviseCall(ChatClientRequest,CallAdvisorChain) 链式</span>
+            <div class="code-block"><pre><code><span class="com">// 语义缓存 Advisor: 命中则直接返回, 跳过模型调用 (Spring AI 1.0 CallAroundAdvisor SPI)</span>
+<span class="kw">public class</span> <span class="type">SemanticCacheAdvisor</span> <span class="kw">implements</span> <span class="type">CallAroundAdvisor</span> {
 
     <span class="kw">private final</span> <span class="type">EmbeddingModel</span> embedModel;
     <span class="kw">private final</span> <span class="type">RedisVectorStore</span> cacheStore;  <span class="com">// 缓存向量库</span>
     <span class="kw">private final</span> <span class="kw">double</span> threshold = <span class="str">0.92</span>;      <span class="com">// 相似度阈值</span>
 
     <span class="kw">@Override</span>
-    <span class="kw">public</span> <span class="type">AdvisedResponse</span> <span class="fn">adviseResponse</span>(<span class="type">AdvisedResponse</span> resp, <span class="type">Map</span> ctx) {
-        <span class="com">// 响应后写缓存: query向量 + 答案, TTL 7天</span>
-        <span class="type">String</span> <span class="var">q</span> = (<span class="type">String</span>) ctx.<span class="fn">get</span>(<span class="str">"query"</span>);
-        <span class="type">String</span> <span class="var">a</span> = resp.<span class="fn">content</span>();
-        cacheStore.<span class="fn">add</span>(<span class="kw">new</span> <span class="type">Document</span>(a, <span class="fn">mapOf</span>(<span class="str">"query"</span>, q,
-            <span class="str">"vec"</span>, embedModel.<span class="fn">embed</span>(q))));
-        <span class="kw">return</span> resp;
-    }
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getName</span>() { <span class="kw">return</span> <span class="str">"SemanticCacheAdvisor"</span>; }
 
     <span class="kw">@Override</span>
-    <span class="kw">public</span> <span class="type">AdvisedRequest</span> <span class="fn">adviseRequest</span>(<span class="type">AdvisedRequest</span> req, <span class="type">Map</span> ctx) {
-        <span class="type">String</span> <span class="var">q</span> = req.<span class="fn">userText</span>();
-        <span class="com">// 查相似 query, 命中则短路(用标记跳过模型调用)</span>
+    <span class="kw">public int</span> <span class="fn">getOrder</span>() { <span class="kw">return</span> <span class="type">Ordered</span>.<span class="type">HIGHEST_PRECEDENCE</span>; }
+
+    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="type">AdvisedResponse</span> <span class="fn">adviseCall</span>(<span class="type">ChatClientRequest</span> request, <span class="type">CallAdvisorChain</span> chain) {
+        <span class="type">String</span> <span class="var">q</span> = request.<span class="fn">prompt</span>().<span class="fn">getUserMessage</span>().<span class="fn">getText</span>();
+        <span class="com">// 1. 查相似 query, 命中则短路返回缓存答案, 跳过模型调用</span>
         <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="var">hits</span> = cacheStore.<span class="fn">similaritySearch</span>(
             <span class="type">SearchRequest</span>.builder().query(q).topK(<span class="num">1</span>).similarityThreshold(threshold).build());
         <span class="kw">if</span> (!hits.<span class="fn">isEmpty</span>()) {
-            ctx.<span class="fn">put</span>(<span class="str">"cache_hit"</span>, hits.<span class="fn">get</span>(<span class="num">0</span>).<span class="fn">getText</span>());  <span class="com">// 直接返回缓存答案</span>
+            <span class="kw">return new</span> <span class="type">AdvisedResponse</span>(hits.<span class="fn">get</span>(<span class="num">0</span>).<span class="fn">getText</span>(), request);
         }
-        <span class="kw">return</span> req;
+        <span class="com">// 2. 未命中: 调下游, 响应后写缓存 (query向量 + 答案, TTL 7天)</span>
+        <span class="type">AdvisedResponse</span> <span class="var">resp</span> = chain.<span class="fn">nextAroundCall</span>(request);
+        cacheStore.<span class="fn">add</span>(<span class="kw">new</span> <span class="type">Document</span>(resp.<span class="fn">content</span>(),
+            <span class="type">Map</span>.<span class="fn">of</span>(<span class="str">"query"</span>, q, <span class="str">"vec"</span>, embedModel.<span class="fn">embed</span>(q))));
+        <span class="kw">return</span> resp;
     }
 }</code></pre></div>
             <p><strong>降本效果数据</strong>（某租赁平台客服，月 1000 万请求）：语义缓存命中率 32%（省 320 万次调用）、分级路由 65% 走小模型、上下文裁剪平均输入 token 从 3200 降到 1400。综合月成本从 ~$48k 降到 ~$11k，降 77%。</p>
@@ -4115,7 +4122,7 @@ flowchart LR
               <li><strong>版本化</strong>：评测集带版本，模型效果对比需同评测集版本，避免评测集变更与模型变更混淆。</li>
             </ul>
             <p><strong>评测方法</strong>：① <strong>LLM-as-Judge</strong>——用更强模型当裁判，按维度（准确性/完整性/相关性/安全性）打分，成本低但可能有偏见（偏爱同源模型/长答案）；② <strong>RAGAS</strong>——专评 RAG，忠实度/上下文精确率/召回率，可量化；③ <strong>规则校验</strong>——格式/字段/引用合法性用正则或 schema 校验，零成本；④ <strong>人工抽检</strong>——自动化评测外抽 5-10% 人工复核，校准自动评测准确性。</p>
-            <p><strong>CI 卡门设计</strong>：① <strong>核心指标阈值</strong>——如忠实度 ≥ 0.85、格式合格率 ≥ 98%、关键事实准确率 ≥ 90%，低于阈值阻塞合并；② <strong>回归容忍度</strong>——指标下降超 2% 阻塞（防渐进劣化）；③ <strong>分级卡门</strong>——P0 指标硬阻塞、P1 指标告警不阻塞、P2 指标仅记录；④ <strong>新 case 增量评测</strong>——本次 PR 新增的 case 必须通过，防新功能引入问题。</p>
+            <p><strong>CI 卡门设计（阈值须有统计前提）</strong>：阈值不可拍脑袋，须明确统计前提：① <strong>评测集规模与代表性</strong>——阈值基于固定评测集（建议 ≥200 条、覆盖业务分布）计算，评测集过小则指标方差大、阈值不可靠；② <strong>方差与置信区间</strong>——指标带 95% 置信区间，单次波动须落在区间内才可信，避免噪声误阻塞；③ <strong>统计显著性</strong>——与基线对比用 t 检验/卡方，p&lt;0.05 方认定真劣化，否则视为随机波动；④ <strong>人工评审比例</strong>——主观维度（LLM-as-Judge/RAGAS）抽 5%–10% 人工复核交叉验证，防 Judge 偏见致阈值失真；⑤ <strong>分级卡门</strong>——P0 硬阻塞、P1 告警、P2 仅记录；⑥ <strong>回归容忍度</strong>——指标下降超 2% 且统计显著才阻塞。示例阈值（均须在上述前提下解读）：忠实度 ≥ 0.85、格式合格率 ≥ 98%、关键事实准确率 ≥ 90%。</p>
           </div>
         </div>
 
@@ -4141,7 +4148,7 @@ flowchart LR
         }
         <span class="type">Metrics</span> <span class="var">m</span> = <span class="type">MetricsAggregator</span>.<span class="fn">aggregate</span>(results);
 
-        <span class="com">// 卡门: 核心指标低于阈值或回归超容忍度则阻塞</span>
+        <span class="com">// 卡门: 核心指标低于阈值(须在 ≥200 条评测集 + 95% 置信区间 + p&lt;0.05 显著前提下) 或回归超容忍度则阻塞</span>
         <span class="kw">if</span> (m.<span class="fn">faithfulness</span> &lt; <span class="str">0.85</span>
             || m.<span class="fn">formatPassRate</span> &lt; <span class="str">0.98</span>
             || m.<span class="fn">accuracy</span> &lt; baseline.<span class="fn">accuracy</span> - <span class="str">0.02</span>) {
@@ -4363,18 +4370,25 @@ flowchart LR
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>分层记忆 + 脱敏 + 合规删除 Advisor</strong>：</p>
-            <div class="code-block"><pre><code><span class="com">// 隐私治理 Advisor: 脱敏输入 + 分层记忆 + 合规删除</span>
-<span class="kw">public class</span> <span class="type">PrivacyMemoryAdvisor</span> <span class="kw">implements</span> <span class="type">BaseAdvisor</span> {
+            <div class="code-block"><pre><code><span class="com">// 隐私治理 Advisor: 脱敏输入 + 分层记忆 + 合规删除 (Spring AI 1.0 CallAroundAdvisor SPI)</span>
+<span class="kw">public class</span> <span class="type">PrivacyMemoryAdvisor</span> <span class="kw">implements</span> <span class="type">CallAroundAdvisor</span> {
 
     <span class="kw">private final</span> <span class="type">PiiDetector</span> piiDetector;        <span class="com">// NER/正则 PII 识别</span>
     <span class="kw">private final</span> <span class="type">ShortTermMemory</span> shortTerm;    <span class="com">// Redis 当前会话</span>
     <span class="kw">private final</span> <span class="type">LongTermMemory</span> longTerm;      <span class="com">// DB 摘要记忆</span>
     <span class="kw">private final</span> <span class="type">ConsentService</span> consent;        <span class="com">// 用户授权</span>
+    <span class="kw">private final</span> <span class="type">VectorStore</span> vectorStore;       <span class="com">// 用户相关向量</span>
 
     <span class="kw">@Override</span>
-    <span class="kw">public</span> <span class="type">AdvisedRequest</span> <span class="fn">adviseRequest</span>(<span class="type">AdvisedRequest</span> req, <span class="type">Map</span> ctx) {
-        <span class="type">String</span> <span class="var">user</span> = (<span class="type">String</span>) ctx.<span class="fn">get</span>(<span class="str">"user_id"</span>);
-        <span class="type">String</span> <span class="var">text</span> = req.<span class="fn">userText</span>();
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getName</span>() { <span class="kw">return</span> <span class="str">"PrivacyMemoryAdvisor"</span>; }
+
+    <span class="kw">@Override</span>
+    <span class="kw">public int</span> <span class="fn">getOrder</span>() { <span class="kw">return</span> <span class="num">0</span>; }
+
+    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="type">AdvisedResponse</span> <span class="fn">adviseCall</span>(<span class="type">ChatClientRequest</span> request, <span class="type">CallAdvisorChain</span> chain) {
+        <span class="type">String</span> <span class="var">user</span> = (<span class="type">String</span>) request.<span class="fn">prompt</span>().<span class="fn">getUserMessage</span>().<span class="fn">getMetadata</span>().<span class="fn">get</span>(<span class="str">"user_id"</span>);
+        <span class="type">String</span> <span class="var">text</span> = request.<span class="fn">prompt</span>().<span class="fn">getUserMessage</span>().<span class="fn">getText</span>();
         <span class="com">// 1. 注入长期记忆(需用户授权)</span>
         <span class="kw">if</span> (consent.<span class="fn">hasMemoryConsent</span>(user)) {
             <span class="type">String</span> <span class="var">mem</span> = longTerm.<span class="fn">getProfile</span>(user);
@@ -4382,17 +4396,13 @@ flowchart LR
         }
         <span class="com">// 2. 短期记忆注入(最近 N 轮)</span>
         text = shortTerm.<span class="fn">recent</span>(user) + <span class="str">"\n"</span> + text;
-        <span class="kw">return</span> req.<span class="fn">withUserText</span>(text);
-    }
-
-    <span class="kw">@Override</span>
-    <span class="kw">public</span> <span class="type">AdvisedResponse</span> <span class="fn">adviseResponse</span>(<span class="type">AdvisedResponse</span> resp, <span class="type">Map</span> ctx) {
-        <span class="type">String</span> <span class="var">user</span> = (<span class="type">String</span>) ctx.<span class="fn">get</span>(<span class="str">"user_id"</span>);
+        <span class="type">ChatClientRequest</span> <span class="var">enriched</span> = request.<span class="fn">mutate</span>().<span class="fn">user</span>(text).<span class="fn">build</span>();
+        <span class="com">// 3. 调下游, 存短期记忆(原文 TTL 1小时) + 长期脱敏摘要</span>
+        <span class="type">AdvisedResponse</span> <span class="var">resp</span> = chain.<span class="fn">nextAroundCall</span>(enriched);
         <span class="type">String</span> <span class="var">ans</span> = resp.<span class="fn">content</span>();
-        <span class="com">// 3. 存短期记忆(原文, TTL 1小时, 用于多轮)</span>
         shortTerm.<span class="fn">append</span>(user, ans, <span class="type">Duration</span>.<span class="fn">ofHours</span>(<span class="num">1</span>));
-        <span class="com">// 4. 长期记忆只存脱敏后摘要(会话结束时异步摘要)</span>
         <span class="type">String</span> <span class="var">sanitized</span> = piiDetector.<span class="fn">sanitize</span>(ans);  <span class="com">// PII -&gt; [PHONE] 等</span>
+        longTerm.<span class="fn">appendSummary</span>(user, sanitized);         <span class="com">// 仅存脱敏后摘要</span>
         <span class="kw">return</span> resp;
     }
 
