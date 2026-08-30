@@ -205,7 +205,7 @@ flowchart LR
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：finishBeanFactoryInitialization 之前已经创建了哪些 Bean？</strong></p>
             <p>第 11 步之前，已创建的 Bean 包括：所有 BeanFactoryPostProcessor（第 5 步调用前必须实例化）、所有 BeanPostProcessor（第 6 步注册前必须实例化）、以及它们直接依赖的 Bean。这就是为什么 <strong>BPP 必须提前实例化</strong>——否则普通 Bean 在第 11 步创建时就拿不到 BPP。这也意味着 BPP 之间不能依赖普通 Bean，会导致普通 Bean 被迫提前实例化而错过某些 BPP。</p>
 
@@ -246,7 +246,7 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-body">
             <div class="qa-layer-title">本质问题</div>
-            <p>这道题是 Spring 源码考察的"皇冠题"，直接检验候选人是否真正读过 <code class="inline-code">AbstractAutowireCapableBeanFactory</code> 的 <code class="inline-code">getSingleton</code>/<code class="inline-code">createBean</code> 链路。它考察三层认知：① 三级缓存（singletonObjects/earlySingletonObjects/singletonFactories）各自存什么、如何协作打破环；② <strong>为什么是三级而不是二级</strong>——核心是 AOP 代理的"提前暴露"与"只创建一次代理"的保证；③ 哪些循环依赖无法解决（构造器、prototype、Spring 6 的默认收紧）。能讲清第二点，才算触及源码本质。</p>
+<p>这道题是 Spring 源码考察的"皇冠题"，直接检验候选人是否真正读过 <code class="inline-code">AbstractAutowireCapableBeanFactory</code> 的 <code class="inline-code">getSingleton</code>/<code class="inline-code">createBean</code> 链路。它考察三层认知：① 三级缓存（singletonObjects/earlySingletonObjects/singletonFactories）各自存什么、如何协作打破环；② <strong>为什么是三级而不是二级</strong>——核心是 AOP 代理的"提前暴露"与"只创建一次代理"的保证；③ 哪些循环依赖无法解决（构造器、prototype、Spring Boot 2.6+ 的默认收紧）。能讲清第二点，才算触及源码本质。</p>
           </div>
         </div>
 
@@ -255,7 +255,7 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>早期 Spring</strong>：用一级成品缓存 <code class="inline-code">singletonObjects</code> + 二级半成品缓存 <code class="inline-code">earlySingletonObjects</code> 解决 setter 循环依赖；A 实例化后立即放入二级缓存，再填充属性时发现需要 B；B 实例化后填充属性需要 A，从二级缓存拿到 A 的半成品，B 完成；A 继续完成。</p>
             <p><strong>引入三级缓存（AOP 时代）</strong>：当 A 需要被 AOP 代理时，二级缓存存的是 A 的原始对象，而 B 注入的应是 A 的代理对象——若 B 注入了原始对象，代理失效。于是引入第三级 <code class="inline-code">singletonFactories</code>（ObjectFactory），为保证代理对象正确暴露，在需要时才调用 <code class="inline-code">getEarlyBeanReference</code> <strong>提前生成代理</strong>，并升级到二级缓存。这是为 AOP 服务的精细设计。</p>
-            <p><strong>Spring 6.x 收紧（2022）</strong>：<code class="inline-code">spring.main.allow-circular-references</code> 默认 <strong>false</strong>，Boot 启动时若有循环依赖直接报错。这是"用框架强制纠错"的演进——循环依赖本质是设计缺陷，官方态度从"尽力解决"转为"默认禁止，需显式开启"。同时 <code class="inline-code">spring.main.allow-bean-definition-overriding</code> 也默认 false。架构师应理解：未来循环依赖是 code smell，而非可依赖的特性。</p>
+<p><strong>Spring Boot 2.6+ 收紧（2021）</strong>：<code class="inline-code">spring.main.allow-circular-references</code> 默认 <strong>false</strong>，Boot 启动时若有循环依赖直接报错。注意这是 Spring Boot 层面的默认收紧（Boot 2.6 引入），不是 Spring Framework 6 的框架层变更。这是"用框架强制纠错"的演进——循环依赖本质是设计缺陷，官方态度从"尽力解决"转为"默认禁止，需显式开启"。同时 <code class="inline-code">spring.main.allow-bean-definition-overriding</code> 也默认 false。架构师应理解：未来循环依赖是 code smell，而非可依赖的特性。</p>
           </div>
         </div>
 
@@ -372,14 +372,14 @@ sequenceDiagram
 
             <div class="callout callout-tip">
               <div class="callout-title">架构建议</div>
-              <p>循环依赖是设计缺陷的信号。Spring 6 默认禁止循环依赖是正确方向。架构治理应：① 构建期用 <code class="inline-code">--add-opens</code> 或 Actuator 的 <code class="inline-code">/beans</code> 端点检测循环依赖；② 通过重构抽取公共依赖（引入第三个 Bean 承载共享逻辑）消除环；③ 实在无法消除的 legacy 代码，用 <code class="inline-code">@Lazy</code> 作为过渡方案并加注释与 TODO，而非依赖框架特性。推崇"构造器注入"——它让循环依赖在编译期暴露，强制解决，而非隐藏到运行期。</p>
+              <p>循环依赖是设计缺陷的信号。Spring Boot 2.6+ 默认禁止循环依赖是正确方向。架构治理应：① 构建期用 Actuator 的 <code class="inline-code">/beans</code> 端点检测循环依赖；② 通过重构抽取公共依赖（引入第三个 Bean 承载共享逻辑）消除环；③ 实在无法消除的 legacy 代码，用 <code class="inline-code">@Lazy</code> 作为过渡方案并加注释与 TODO，而非依赖框架特性。推崇"构造器注入"——它让循环依赖在编译期暴露，强制解决，而非隐藏到运行期。</p>
             </div>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：三级缓存里 ObjectFactory 的 getEarlyBeanReference 具体做了什么？</strong></p>
             <p>它遍历所有 <code class="inline-code">SmartInstantiationAwareBeanPostProcessor</code>（核心是 <code class="inline-code">AbstractAutoProxyCreator</code>），调用 <code class="inline-code">getEarlyBeanReference</code> 判断是否需要代理，需要则用 <code class="inline-code">ProxyFactory</code> 创建代理返回。这就是"提前 AOP"的实现。如果 Bean 不需要 AOP（无切面匹配），<code class="inline-code">getEarlyBeanReference</code> 原样返回原始对象，三级缓存退化为"存原始对象的工厂"。</p>
 
@@ -399,7 +399,7 @@ sequenceDiagram
               <ul>
                 <li><strong>误以为三级缓存能解决构造器循环依赖</strong>：构造器阶段 Bean 未实例化，无法进入任何缓存，必报错。</li>
                 <li><strong>误以为 prototype 作用域有三级缓存</strong>：prototype 不使用缓存，每次 getBean 都新建，循环依赖直接报错。</li>
-                <li><strong>忽略 Spring 6 默认禁止循环依赖</strong>：升级到 Boot 3.x 后循环依赖默认报错，需显式 <code class="inline-code">spring.main.allow-circular-references=true</code>，但这是技术债，应重构消除。</li>
+                <li><strong>忽略 Spring Boot 2.6+ 默认禁止循环依赖</strong>：升级到 Spring Boot 2.6 及以上后循环依赖默认报错，需显式 <code class="inline-code">spring.main.allow-circular-references=true</code>，但这是技术债，应重构消除。</li>
                 <li><strong>三级缓存 = 解决性能问题</strong>：三级缓存的根本动机是 AOP 代理正确性（保证 B 注入代理），性能优化只是副作用，不要本末倒置。</li>
                 <li><strong>误以为 @Lazy 是"延迟到调用时才创建整个 Bean"</strong>：@Lazy 注入的是代理，首次方法调用触发 getBean，但 Bean 的创建仍是完整的（含三级缓存机制）。</li>
               </ul>
@@ -415,7 +415,7 @@ sequenceDiagram
               <li><strong>@Lazy 的代理机制</strong>：Spring 在注入时不会真正实例化依赖 Bean，而是通过 <code class="inline-code">ProxyFactory</code> 生成一个代理对象注入。代理对象内部持有 <code class="inline-code">BeanFactory</code> 引用，首次调用方法时才触发 <code class="inline-code">getBean</code> 获取真实 Bean，后续调用直接委托给已初始化的目标。</li>
               <li><strong>与三级缓存的关系</strong>：<code class="inline-code">@Lazy</code> 是"注入代理"策略，三级缓存是"提前暴露 ObjectFactory"策略，两者可叠加但不是同一机制。<code class="inline-code">@Lazy</code> 在注入点生效（构造器参数、setter 参数、field），三级缓存在 <code class="inline-code">getSingleton</code> 查询链中生效。即使关闭循环依赖允许开关，<code class="inline-code">@Lazy</code> 仍可工作。</li>
               <li><strong>构造器注入的主要方案</strong>：构造器注入的循环依赖无法被三级缓存解决（实例化阶段未进入缓存），<code class="inline-code">@Lazy</code> 是主要方案——注入代理对象使构造器参数满足，延迟真实依赖到方法调用时。</li>
-              <li><strong>Spring 6+ 语境下的 @Lazy</strong>：<code class="inline-code">spring.main.allow-circular-references=false</code>（Boot 3.x 默认）时，setter/field 循环依赖直接报错，但 <code class="inline-code">@Lazy</code> 标注的注入点仍可工作——因为代理对象打破了构造期的强依赖，Spring 不再检测到循环。</li>
+              <li><strong>Spring Boot 2.6+ 语境下的 @Lazy</strong>：<code class="inline-code">spring.main.allow-circular-references=false</code>（默认）时，setter/field 循环依赖直接报错，但 <code class="inline-code">@Lazy</code> 标注的注入点仍可工作——因为代理对象打破了构造期的强依赖，Spring 不再检测到循环。</li>
               <li><strong>@Lazy 的陷阱</strong>：代理对象调用方法时才初始化，若初始化失败会在<strong>业务调用时报错</strong>而非启动时报错，延迟了问题发现时机。生产环境中应避免对核心依赖使用 <code class="inline-code">@Lazy</code>，仅作为 legacy 代码的过渡方案。</li>
               <li><strong>重构方向一：引入中间层</strong>：将 A↔B 的循环依赖拆为 A→C←B，把共享逻辑提取到第三方 Bean C，A 和 B 各自单向依赖 C，消除环。</li>
               <li><strong>重构方向二：事件驱动解耦</strong>：A 和 B 通过 <code class="inline-code">ApplicationEvent</code> 交互，A 发布事件、B 监听事件，不直接依赖 B 的 Bean，用 <code class="inline-code">ApplicationEventPublisher</code> + <code class="inline-code">@EventListener</code> 实现松耦合。</li>
@@ -451,7 +451,7 @@ sequenceDiagram
             <p><strong>Spring 2.x</strong>：默认 JDK 动态代理（需目标实现接口）；若要用 CGLIB 需 <code class="inline-code">&lt;aop:config proxy-target-class="true"&gt;</code>。此时 CGLIB 还需额外引入 cglib 与 asm 依赖。</p>
             <p><strong>Spring 3.2</strong>：CGLIB 与 asm 被<strong>打包进 spring-core</strong>（<code class="inline-code">org.springframework.cglib</code> 命名空间重打包），无需额外依赖，降低使用门槛。</p>
             <p><strong>Spring 4.x</strong>：策略不变——目标类实现接口则用 JDK Proxy，否则用 CGLIB。需显式配置 <code class="inline-code">@EnableAspectJAutoProxy(proxyTargetClass=true)</code> 强制 CGLIB。</p>
-            <p><strong>Spring 5.x / Spring Boot 2.x</strong>：<strong>默认策略改为 CGLIB</strong>（<code class="inline-code">spring.aop.proxy-target-class=true</code>）。原因是 JDK Proxy 基于接口，注入时只能用接口类型，否则报 <code class="inline-code">BeanNotOfRequiredTypeException</code>，开发者困扰多。CGLIB 基于子类，注入类类型或接口类型均可，更符合直觉。</p>
+            <p><strong>Spring Boot 2.x（自动配置收紧）</strong>：<strong>Boot 自动配置默认改为 CGLIB</strong>（<code class="inline-code">spring.aop.proxy-target-class=true</code>）。注意这是 Spring Boot 2.x 的 AopAutoConfiguration 默认值，不是 Spring Framework 的通用默认——Framework 原生 <code class="inline-code">@EnableAspectJAutoProxy</code> 仍默认 JDK 代理。原因是 JDK Proxy 基于接口，注入时只能用接口类型，否则报 <code class="inline-code">BeanNotOfRequiredTypeException</code>，开发者困扰多。CGLIB 基于子类，注入类类型或接口类型均可，更符合直觉。</p>
             <p><strong>超越 Spring AOP：AspectJ 编译时织入</strong>。Spring AOP 是<strong>运行时代理</strong>（代理对象在 Bean 生命周期生成），有局限：只能代理 public 方法、自调用不走代理、性能有反射开销。AspectJ 提供<strong>编译时织入（CTW）</strong>和<strong>加载时织入（LTW）</strong>，在字节码层面织入切面，无代理对象，支持字段/构造器/非 public 方法。性能敏感或需要细粒度织入时考虑 AspectJ，但复杂度高，Spring AOP 已覆盖 90% 场景。</p>
           </div>
         </div>
@@ -470,7 +470,7 @@ sequenceDiagram
                   <tr><td>调用机制</td><td><code class="inline-code">InvocationHandler.invoke</code> 反射调用目标方法</td><td><code class="inline-code">MethodInterceptor.intercept</code> 通过 FastClass 索引调用（避免反射）</td></tr>
                   <tr><td>性能</td><td>创建快，调用稍慢（反射）</td><td>创建慢（生成字节码），调用快（FastClass 索引）</td></tr>
                   <tr><td>注入类型</td><td>只能用接口类型注入</td><td>接口或类类型均可注入</td></tr>
-                  <tr><td>Spring 5+ 默认</td><td>否</td><td>是（proxyTargetClass=true）</td></tr>
+                  <tr><td>Boot 2.x+ 默认</td><td>否</td><td>是（spring.aop.proxy-target-class=true）</td></tr>
                 </tbody>
               </table>
             
@@ -547,7 +547,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：CGLIB 的 FastClass 机制如何避免反射？</strong></p>
             <p>CGLIB 为目标类和代理类各生成一个 FastClass 子类，为每个方法分配一个 index。调用时通过 index 直接调用对应的 switch 分支方法（<code class="inline-code">invoke(index, obj, args)</code> 内部是 switch-case 直接调用方法），而非 <code class="inline-code">Method.invoke</code> 反射。这是 CGLIB 调用快于 JDK Proxy 的根本原因。代价是多生成两个 FastClass 类，增加类加载开销。</p>
 
@@ -659,7 +659,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
             <p><strong>事务失效的 7 大场景与根因</strong>：</p>
             <ol>
               <li><strong>自调用（同类方法互调）</strong>：不经过代理对象，事务拦截器不触发。解决：<code class="inline-code">@Autowired self</code> 或 <code class="inline-code">AopContext.currentProxy()</code>。</li>
-              <li><strong>方法非 public</strong>：<code class="inline-code">@Transactional</code> 默认只对 public 方法生效（Spring 6 起 protected/package 也可配 <code class="inline-code">publicMethodsOnly=false</code>，但不推荐）。</li>
+              <li><strong>方法非 public</strong>：<code class="inline-code">@Transactional</code> 默认只对 public 方法生效（Spring 5.1 起可通过 <code class="inline-code">@EnableTransactionManagement(publicMethodsOnly=false)</code> 扩展到 protected/package 方法，但不推荐——丧失 AOP 代理语义的一致性）。</li>
               <li><strong>异常被 catch 吞掉</strong>：异常未抛出到 <code class="inline-code">TransactionInterceptor</code>，拦截器认为正常返回而提交。解决：catch 后 rethrow，或手动 <code class="inline-code">TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()</code>。</li>
               <li><strong>异常类型不匹配</strong>：抛出受检异常但未配 <code class="inline-code">rollbackFor</code>，默认不回滚。解决：<code class="inline-code">@Transactional(rollbackFor = Exception.class)</code>。</li>
               <li><strong>类非 Spring Bean</strong>：<code class="inline-code">new</code> 出来的对象不被 IoC 管理，无代理。解决：交给容器管理。</li>
@@ -671,7 +671,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
 <span class="kw">public class</span> <span class="type">OrderService</span> {
     <span class="kw">@Transactional</span>
     <span class="kw">public void</span> <span class="fn">createOrder</span>() {
-        <span class="fn">saveOrder</span>();          <span class="com">// 1. 自调用 this.saveOrder() 不走代理,事务生效（外层事务）</span>
+        <span class="fn">saveOrder</span>();          <span class="com">// 1. 自调用 this.saveOrder() 不走代理;若 saveOrder 标注 @Transactional 则注解失效</span>
         <span class="kw">try</span> {
             <span class="fn">deductStock</span>();     <span class="com">// 2. 自调用,异常被吞</span>
         } <span class="kw">catch</span> (<span class="type">Exception</span> e) {
@@ -706,7 +706,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：REQUIRED 下内层异常被 catch，外层提交为何还报 UnexpectedRollbackException？</strong></p>
             <p>因为内外是同一事务，内层抛异常时 <code class="inline-code">TransactionInterceptor</code> 已将事务标记为 <code class="inline-code">rollback-only</code>（即使外层 catch 住异常，事务标记无法清除）。外层方法正常返回后 <code class="inline-code">commit</code> 时检测到 rollback-only，抛 <code class="inline-code">UnexpectedRollbackException</code> 提示"事务已被标记回滚"。这是 REQUIRED 的强一致性保证——要么全成功，要么全回滚。若要内层失败不影响外层，用 REQUIRES_NEW（独立事务）或 NESTED（savepoint 局部回滚）。</p>
 
@@ -854,7 +854,7 @@ flowchart LR
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：@TransactionalEventListener 在无事务环境下如何表现？</strong></p>
             <p>默认 <code class="inline-code">fallbackExecution=false</code>，无事务时事件被<strong>丢弃</strong>（不执行监听器，仅 DEBUG 日志）。这是因为该注解设计初衷是绑定事务，无事务则无意义。若希望无事务时也执行，设 <code class="inline-code">fallbackExecution=true</code>。常见坑：单元测试无事务环境，事件监听器不触发，误以为代码有 bug。</p>
 
@@ -968,7 +968,7 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：IoC/DI 与工厂模式的关系？</strong></p>
             <p>IoC 容器本质是一个<strong>超级工厂</strong>（BeanFactory），但它反转了控制——传统工厂由调用方主动调用工厂方法获取对象，IoC 由容器主动把对象注入到需要的地方（DI）。DI 是 IoC 的实现方式，工厂是 IoC 的底层载体。可以说 IoC = 工厂模式 + 控制反转 + 依赖注入的组合升华。</p>
 
@@ -996,21 +996,24 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
           </div>
         </div>
         <div class="qa-layer" data-layer="production">
-          <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+          <div class="qa-layer-title">生产实践：Spring 设计模式在中间件与框架扩展中的落地</div>
           <div class="qa-layer-body">
-            <p><strong>设计模式的真实价值体现在自研中间件落地后的可量化收益——RT 下降与规则开发提效，需用压测数据证明框架扩展性不是空谈。</strong></p>
+            <p><strong>设计模式的价值不在于"背了多少种"，而在于理解 Spring 如何用它们构建可扩展的框架骨架。架构师设计自研中间件时，往往沿用同样的模式组合。</strong></p>
             <table class="compare-table">
-              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <thead><tr><th>设计模式</th><th>Spring 内置实现</th><th>自研中间件对应场景</th></tr></thead>
               <tbody>
-                <tr><td>网关 RT P99</td><td>接入自研限流/灰度中间件后：5w QPS 下 80ms → 25ms</td><td>责任链模式组织 Filter 链，零侵入拦截</td></tr>
-                <tr><td>规则开发提效</td><td>新规则开发 3 天 → 0.5 天</td><td>责任链 + 策略模式，规则即插件</td></tr>
-                <tr><td>中间件自身开销</td><td>10w QPS 下 CPU 增量 &lt;3%</td><td>压测无栈溢出/规则遗漏</td></tr>
-                <tr><td>压测稳定性</td><td>10w QPS 长稳压测无栈溢出</td><td>规则匹配时间复杂度可控</td></tr>
+                <tr><td>工厂模式</td><td>BeanFactory / FactoryBean</td><td>RPC 框架的代理 Bean 工厂（如 Dubbo <code class="inline-code">ReferenceBean</code>）</td></tr>
+                <tr><td>代理模式</td><td>AOP Proxy（JDK/CGLIB）</td><td>声明式事务、声明式缓存、声明式限流的统一入口</td></tr>
+                <tr><td>责任链模式</td><td>HandlerInterceptor 链 / Filter 链</td><td>网关 Filter 链、中间件拦截器链（鉴权→限流→灰度）</td></tr>
+                <tr><td>模板方法模式</td><td>JdbcTemplate / refresh() 流程骨架</td><td>自研 ORM / 消息中间件的固定流程骨架 + 可覆写钩子</td></tr>
+                <tr><td>策略模式</td><td>Resource 加载策略 / AopProxy 策略</td><td>配置源策略（本地/远程/加密）、序列化策略切换</td></tr>
+                <tr><td>观察者模式</td><td>ApplicationEvent / ApplicationListener</td><td>配置变更通知、服务上下线事件广播</td></tr>
+                <tr><td>适配器模式</td><td>AdvisorAdapter / HandlerAdapter</td><td>多协议 RPC 适配、多消息队列连接器适配</td></tr>
               </tbody>
             </table>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p>用责任链/策略模式把"限流、灰度、鉴权"抽象为可插拔 Filter，新规则开发从 3 天缩到 0.5 天；中间件自身 overhead &lt;3%（10w QPS 下 CPU 增量 &lt;3%），接入后网关 P99 从 80ms 降到 25ms，且长稳压测无栈溢出/规则遗漏。（以上为业界参考基准，需以自身生产数据替换）</p>
+              <p>面试时回答"Spring 用了哪些设计模式"，不应只背模式名，而是能指着 Spring 源码说明"这里用了代理模式，是为了 AOP 织入；这里用了责任链，是为了拦截器链执行"。设计自研中间件时，用工厂 + 代理模式做声明式入口，用责任链 + 策略模式做规则引擎，用观察者模式做事件通知，用模板方法模式固化流程骨架——这就是"模式在框架中的真实价值"。</p>
             </div>
           </div>
         </div>
@@ -1148,7 +1151,7 @@ flowchart TD
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：BeanDefinitionRegistryPostProcessor 与 BeanFactoryPostProcessor 的区别？</strong></p>
             <p>BeanDefinitionRegistryPostProcessor 继承 BeanFactoryPostProcessor，新增 <code class="inline-code">postProcessBeanDefinitionRegistry</code> 方法。区别：BFPP 的 <code class="inline-code">postProcessBeanFactory</code> 操作<strong>已注册</strong>的 BeanDefinition（修改），而 BDRPP 的 <code class="inline-code">postProcessBeanDefinitionRegistry</code> 可<strong>动态注册新的</strong> BeanDefinition。执行顺序上，BDRPP 先于普通 BFPP 执行，因为注册新 BeanDefinition 必须在修改之前。Spring 内置的 <code class="inline-code">ConfigurationClassPostProcessor</code> 就是 BDRPP，它扫描注解注册新 BeanDefinition。</p>
 
@@ -1156,6 +1159,11 @@ flowchart TD
             <p>BPP 在 refresh 第6步 <code class="inline-code">registerBeanPostProcessors</code> 实例化，早于第11步的普通 Bean。这是为了让普通 Bean 创建时所有 BPP 就绪。但若 BPP A 依赖普通 Bean B（如 <code class="inline-code">@Autowired</code> B），B 会被迫在第6步提前实例化，此时其他 BPP（如处理 <code class="inline-code">@Autowired</code> 的 AutowiredAnnotationBPP）可能尚未注册，导致 B 的注入失效。Spring 对此打 WARN：<code class="inline-code">"Bean X is not eligible for getting processed by all BeanPostProcessors"</code>。设计原则：BPP 只依赖 BeanFactory 本身（用 <code class="inline-code">getBean</code> 延迟获取），不直接 <code class="inline-code">@Autowired</code> 业务 Bean。</p>
 
             <p><strong>追问 3：InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation 有何特殊用途？</strong></p>
+            <p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p>
+            <p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p>
+            <ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul>
+            <p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p>
+            <p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于"提前引用"状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
             <p>它在实例化<strong>之前</strong>调用，若返回非 null 对象，则<strong>跳过 Spring 的实例化流程</strong>，直接用返回的对象。典型应用：Spring AOP 的 <code class="inline-code">AbstractAutoProxyCreator</code> 利用它实现 <code class="inline-code">@Aspect</code> 的 target 缓存；MyBatis 用它为 Mapper 接口直接生成代理（Mapper 无实现类，无法反射实例化）。这是一个"短路"扩展点，慎用——返回的对象不会经历 populateBean/initializeBean，需自行完成装配。</p>
           </div>
         </div>
@@ -1262,7 +1270,7 @@ flowchart TD
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：ApplicationContext 内部的 BeanFactory 是什么？</strong></p>
             <p>ApplicationContext 本身不直接管理 Bean，而是委托给内部的 <code class="inline-code">DefaultListableBeanFactory</code>（通过 <code class="inline-code">getBeanFactory()</code> 获取）。GenericApplicationContext 持有一个 DefaultListableBeanFactory 字段，所有 getBean/registerBeanDefinition 调用都委托给它。所以 ApplicationContext 是 BeanFactory 的"门面 + 增强器"，底层仍是 BeanFactory 实现。</p>
 
@@ -1398,7 +1406,7 @@ flowchart LR
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：Converter 与 GenericConverter 的区别？</strong></p>
             <p>Converter 是一对一（单一源类型→单一目标类型），最简单。GenericConverter 是多对多，可声明多个ConvertiblePair，并接收 TypeDescriptor（带泛型信息），适合需要根据泛型上下文决策的转换（如 Collection&lt;String&gt;→Collection&lt;Integer&gt;，需知道元素类型）。ConditionalGenericConverter 还可加 <code class="inline-code">matches</code> 条件判断是否处理。优先用 Converter，复杂场景才用 GenericConverter。</p>
 
@@ -1536,9 +1544,9 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
-          <div class="qa-layer-body"><p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p><p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p><ul><li><strong>PriorityOrdered 优先级最高</strong>：如 ConfigurationClassPostProcessor、AutowiredAnnotationBeanPostProcessor，核心框架内置，保证基础功能先执行。</li><li><strong>Ordered 次之</strong>：用户自定义可设置 Ordered.getOrder()，数值越小越优先执行。</li><li><strong>无序最后</strong>：未实现 Ordered 接口，按 BeanDefinition 注册顺序执行。</li></ul><p><strong>不同类型 BPP 的协作关系</strong>：Spring Boot 的自动装配依赖这个顺序链，正确顺序是：<code class="inline-code">ConfigurationClassPostProcessor</code>（扫描@Config）→ <code class="inline-code">AutowiredAnnotationBeanPostProcessor</code>（收集@Autowired）→ <code class="inline-code">CommonAnnotationBeanPostProcessor</code>（处理@Resource）→ <code class="inline-code">AbstractAutoProxyCreator</code>（AOP代理）。这个顺序决定了能否正确处理注解注入和AOP增强。</p><p><strong>SmartInstantiationAwareBeanPostProcessor 的特殊地位</strong>：它继承了 InstantiationAwareBeanPostProcessor，在<code class="inline-code">getEarlyBeanReference</code>方法中支持循环依赖的提前代理。当Bean处于“提前引用”状态时，只有实现了 SmartInstantiationAware 的BPP能参与代理创建，这是AOP与循环依赖能够同时工作的关键。普通的BeanPostProcessor只能在初始化阶段（postProcessAfterInitialization）看到完整代理。</p>
+          <div class="qa-layer-body">
             <p><strong>追问 1：SpEL 的性能瓶颈在哪？如何优化？</strong></p>
-            <p>瓶颈在<strong>反射</strong>——SpEL 默认用反射访问属性/调用方法，比直接调用慢 10-100 倍。优化手段：① <strong>缓存 Expression</strong>，避免重复 parseExpression（解析开销大）；② <strong>SpelCompiler 编译为字节码</strong>，<code class="inline-code">SpelParserConfiguration.setCompilerMode(IMMEDIATE)</code>，将 AST 编译为真实 Java 字节码，高频表达式接近原生速度；③ AOT 预编译表达式。低频场景（如 <code class="inline-code">@Value</code> 启动时求值一次）无需优化，高频场景（如每次请求求值缓存 key）务必缓存 Expression。</p>
+            <p>瓶颈在<strong>反射</strong>——SpEL 默认用反射访问属性/调用方法，比直接调用慢 10-100 倍。优化需分层看待：<strong>@Value</strong> 中的 SpEL 在启动时求值一次，属于低频场景，无需编译优化；<strong>@ConditionalOnExpression</strong> 是 Boot 条件注解，在 BeanDefinition 注册阶段求值（每个匹配的 Bean 一次），也不是高频热点；<strong>@Cacheable key/condition</strong> 等运行时每次调用都求值的场景才是高频热点，需要缓存 Expression 并启用 <code class="inline-code">SpelCompiler</code> 编译为字节码（<code class="inline-code">SpelParserConfiguration.setCompilerMode(IMMEDIATE)</code>）。注意 <strong>AOT/Native Image 限制</strong>：GraalVM Native Image 不支持运行时字节码生成，SpelCompiler 在 AOT 模式下不可用，SpEL 会降级为纯反射求值，且需为 SpEL 引用的类型注册反射元数据——这是 Spring 6 AOT 对 SpEL 表达式做预编译处理的原因。</p>
 
             <p><strong>追问 2：SpEL 注入漏洞如何发生与防范？</strong></p>
             <p>若把用户输入拼入 SpEL 表达式（如 <code class="inline-code">parser.parseExpression(userInput)</code>），攻击者可构造 <code class="inline-code">T(Runtime).getRuntime().exec('rm -rf /')</code> 执行任意命令。防范：① 表达式<strong>完全静态</strong>，用户数据通过 setVariable 作为变量传入，表达式内用 <code class="inline-code">#userInput</code> 引用；② 用 <code class="inline-code">SimpleEvaluationContext.forReadOnlyDataBinding()</code>，禁用类型引用与构造器，从上下文层面杜绝危险操作；③ 永不 <code class="inline-code">new StandardEvaluationContext()</code> 求值不可信表达式。</p>
@@ -1582,11 +1590,11 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
         <li><span class="src-title">Juergen Hoeller 等. Spring Framework Reference Documentation 5.x / 6.x. — IoC 容器、Bean 生命周期、AOP、事务、事件、扩展点体系官方文档</span></li>
         <li><span class="src-title">Spring Framework 源码. AbstractAutowireCapableBeanFactory.doCreateBean / DefaultSingletonBeanRegistry.getSingleton / AbstractApplicationContext.refresh. — 三级缓存与生命周期源码</span></li>
         <li><span class="src-title">Craig Walls. Spring in Action (6th Edition). — Spring 核心概念、AOP、事务、Spring Boot 实战</span></li>
-        <li><span class="src-title">Spring Framework 6 Release Notes. — 默认禁止循环依赖(allow-circular-references=false)、AOT 处理、 GraalVM Native Image 支持</span></li>
+        <li><span class="src-title">Spring Boot 2.6 Release Notes. — 默认禁止循环依赖(spring.main.allow-circular-references=false)、Spring Framework 6 Release Notes. — AOT 处理、 GraalVM Native Image 支持</span></li>
         <li><span class="src-title">Spring Boot 2.x Reference. — spring.aop.proxy-target-class 默认 CGLIB、@TransactionalEventListener、事件机制自动配置</span></li>
         <li><span class="src-title">Ramin Farhanian 等. Pro Spring 6. — BeanPostProcessor/BeanFactoryPostProcessor 扩展点体系、SpEL、类型转换深度解析</span></li>
         <li><span class="src-title">Erich Gamma 等. Design Patterns: Elements of Reusable Object-Oriented Software. Addison-Wesley, 1994. — GoF 设计模式，Spring 框架设计模式应用的理论基础</span></li>
-        <li><span class="src-title">Spring Framework GitHub Issues &amp; Blog. — Spring 6 循环依赖收紧讨论、@Async 循环依赖失效问题、SpEL 注入安全公告</span></li>
+        <li><span class="src-title">Spring Framework GitHub Issues &amp; Blog. — Spring Boot 2.6 循环依赖收紧讨论、@Async 循环依赖失效问题、SpEL 注入安全公告</span></li>
       </ol>
     </div>
   </footer>

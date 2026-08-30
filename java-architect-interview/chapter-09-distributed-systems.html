@@ -81,7 +81,7 @@
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>起源：Brewer 2000 PODC keynote 提出 CAP 猜想</strong>。Eric Brewer 在"Towards Robust Distributed Systems"中首次提出分布式系统无法同时满足一致性(Consistency)、可用性(Availability)、分区容忍性(Partition Tolerance)，只能三选二。</p>
-            <p><strong>形式化证明：Gilbert &amp; Lynch 2002</strong>。MIT 两位学者在"Brewer's Conjecture and the Feasibility of Consistent, Available, Partition-Tolerant Web Services"中严格证明了 CAP——在异步网络模型下，发生分区时不存在一个协议能同时保证线性一致性与总可用性。CAP 从猜想成为定理。</p>
+            <p><strong>形式化证明：Gilbert &amp; Lynch 2002</strong>。两位 MIT 学者在"Brewer's Conjecture and the Feasibility of Consistent, Available, Partition-Tolerant Web Services"中严格证明了 CAP——在异步网络模型下，发生分区时不存在一个协议能同时保证线性一致性与总可用性。CAP 从猜想成为定理。</p>
             <p><strong>修正与反思：Brewer 2012 "CAP Twelve Years Later"</strong>。Brewer 公开承认"三选二是误导性的"——P 不是可选项而是必然（网络总会分区），实际选择是分区发生时在 C 与 A 之间权衡；且分区是少发的，无分区时系统可同时提供 C 与 A。<strong>PACELC（Abadi 2010）</strong>进一步扩展：分区时(P)权衡 A 与 C，无分区时(E)权衡 L(延迟) 与 C，更贴近工程实际。</p>
             <p><strong>BASE 理论：eBay Dan Pritchett 2008 提出</strong>。作为对 CAP 中 AP 选择的实践指南：Basically Available（基本可用，允许损失部分可用性如响应时间增加、降级）、Soft state（软状态，允许中间状态存在）、Eventually consistent（最终一致性，副本最终收敛）。BASE 让"最终一致"从模糊口号变为可工程化的设计原则。</p>
             <p><strong>趋势</strong>：① 从 ACID（强一致）→ CAP（理论边界）→ BASE（实践妥协）→ PACELC（精细化权衡）的演进，本质是对分布式权衡的认知不断精确化；② 现代系统多采用"分层一致性"——核心链路 CP（如账户、库存扣减）、非核心链路 AP（如商品展示、评论）+最终一致；③ CRDT（无冲突复制数据类型）、Calvin 等新理论在探索弱一致性下更强的可编程性。</p>
@@ -110,8 +110,8 @@ flowchart TD
         P["Partition Tolerance 分区容忍<br/>网络分区时继续工作（必然）"]
     end
     P -.->|"网络分区发生"| F{"权衡选择"}
-    F -->|"选 C: 拒绝响应未同步节点"| CP["CP 系统<br/>ZK/etcd/Spanner<br/>牺牲可用性"]
-    F -->|"选 A: 允许返回旧数据"| AP["AP 系统<br/>Cassandra/Eureka/Redis<br/>牺牲一致性"]
+    F -->|"选 C: 拒绝响应未同步节点"| CP["偏 CP 默认<br/>etcd/Spanner 等<br/>分区时牺牲可用性"]
+    F -->|"选 A: 允许返回旧数据"| AP["偏 AP 默认<br/>Eureka 等<br/>牺牲线性一致"]
     style CP fill:#dbeafe,stroke:#2563eb
     style AP fill:#ede9fe,stroke:#7c3aed
     style P fill:#fef3c7,stroke:#d97706
@@ -156,7 +156,7 @@ flowchart TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：CAP 中 P 真的不可选吗？单机系统是不是 CA？</strong></p>
-            <p>严格说单机无网络分区，是 CA。但分布式系统跨网络，分区不可避免（交换机故障、GC 长停顿、网络抖动）。所以工程上"P 必选"是指分布式系统必须容忍分区，而非"可以选择不要 P"。放弃 P 等于放弃分布式。</p>
+            <p>CAP 定理的证明对象是异步分布式系统，不是给任意组件贴标签的通用模型。单机数据库通常有 ACID 和本地可用性，但不建议简单写成“CA”；它没有分布式网络分区这一参与方。分布式系统跨网络，分区不可避免（交换机故障、GC 长停顿、网络抖动），工程上“P 必选”是指必须容忍分区，而非可以选择不要 P。</p>
             <p><strong>追问 2：最终一致性的"最终"到底是多久？</strong></p>
             <p>无理论上界。工程上通过监控收敛时间（如副本 lag、消息消费延迟）量化。常用手段：Read Repair（读时发现不一致立即修复）、反熵协议（Anti-Entropy，节点间定期 gossip/Merkle Tree 比对修复）、T+1 对账兜底。Spanner 用 TrueTime + Paxos 将收敛控制在承诺的 SLA 内（外部一致性）。</p>
           </div>
@@ -175,6 +175,20 @@ flowchart TD
                 <li><strong>把"最终一致"等同于"不需要处理不一致"</strong>：最终一致仍需补偿、对账、监控机制保证收敛。</li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p><strong>OpenTelemetry 语义要分清</strong>：</p>
+            <ul>
+              <li><strong>OTLP</strong>：OpenTelemetry 的线协议，支持 Trace、Metrics、Logs 等遥测数据；可使用 gRPC 或 HTTP 传输，但 OTLP 不等于某个后端。</li>
+              <li><strong>Collector</strong>：官方定位是 vendor-agnostic 的接收、处理和导出管道。它适合协议转换、批量重试、脱敏/过滤和后端解耦，但 Collector 本身不是长期查询存储。</li>
+              <li><strong>Java Agent</strong>：官方称为 zero-code instrumentation，可挂在 Java 8+ 应用上，对"many popular libraries and frameworks"注入字节码；它只在支持的库、版本和用法上自动生成边界遥测。自定义业务 Span、应用内指标和敏感字段治理仍需要 API/SDK/规则配置。</li>
+              <li><strong>演进时间线</strong>：OpenTracing 与 OpenCensus 合并为 OpenTelemetry 是项目起点；OpenTracing/OpenCensus 处于兼容/迁移阶段，新系统不应把它们当作并行演进方向。Three Pillars 是概念模型，OTel 内部是 Resource + Scope + 信号的数据模型。</li>
+              <li><strong>落地指标</strong>：除业务 RED 指标外，还要监控导出队列/重试丢弃、Collector 接收与导出失败、采样器命中、Agent/SDK 版本分布、插桩覆盖率和遥测成本。灰度时先影子管道，再逐步切换真实后端。</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -198,10 +212,10 @@ flowchart TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>2PC（两阶段提交，X/Open DTP，1970s）</strong>：协调者发起 Prepare（各参与者锁资源）→ Commit/Rollback。痛点：同步阻塞、协调者单点、参与者超时不一致。数据库层 XA 协议是其实现。</p>
-            <p><strong>3PC（三阶段提交）</strong>：加 CanCommit（试探不锁）+ PreCommit（锁）+ DoCommit，引入超时让参与者超时后自动提交（降低阻塞）。但仍无法解决网络分区下的不一致，且多一轮 RTT，实际很少用。</p>
+            <p><strong>2PC（两阶段提交）</strong>：协调者发起 Prepare（各参与者锁资源）→ Commit/Rollback。两阶段提交思想可追溯到 20 世纪 70 年代数据库研究，X/Open DTP 是后来的工业规范映射，不是证明 2PC 一定诞生于该规范。痛点：同步阻塞、协调者单点、参与者超时后无法凭局部信息决定最终决议。</p>
+            <p><strong>3PC（三阶段提交）</strong>：加 CanCommit（试探不锁）+ PreCommit + DoCommit，并用超时降低协调者故障后的无限等待。参与者超时动作依赖所处状态：收到 PreCommit 后通常继续提交；未收到而超时则按中止处理。3PC降低了某些阻塞场景，但仍不能消除网络分区下的不一致，且多一轮 RTT，实际很少用。</p>
             <p><strong>TCC（Try-Confirm-Cancel，2007）</strong>：业务两阶段——Try（预留资源，如冻结额度）→ Confirm（确认）/Cancel（释放）。将数据库锁改为业务层"软锁"，无阻塞但要求业务侵入设计三个接口。</p>
-            <p><strong>Seata AT（Auto Transaction，2019）</strong>：无侵入的自动补偿事务。基于 undo log 自动生成反向 SQL 回滚。一阶段拦截 SQL 解析前后镜像存 undo log + 本地事务提交（不持全局锁）；二阶段异步删除 undo log（提交）或用 undo log 反向回滚。引入全局锁解决脏写。</p>
+            <p><strong>Seata AT（Auto Transaction）</strong>：无侵入的自动补偿事务。一阶段拦截 SQL，解析执行前后镜像，把 undo_log 与业务变更放进同一本地事务，并在本地事务提交前向 TC 注册分支、按表名+主键获取行级全局锁；本地提交后全局锁仍受全局事务约束。二阶段提交异步删除 undo_log；回滚根据 beforeImage 生成反向 SQL 还原数据。具体注册、锁获取与补偿细节随 Seata 版本演进，示例必须按所用版本核对。</p>
             <p><strong>SAGA（1987 论文，现代实现如 Seata/Axon）</strong>：长事务拆分为本地事务序列 T1...Tn，每个 Ti 配补偿 C1...Cn。失败时反向执行补偿。适合长流程（跨多个服务、秒级以上）。</p>
             <p><strong>可靠消息最终一致（本地消息表/RocketMQ 事务消息）</strong>：本地事务+消息表原子写入，异步投递消费端。最轻量，但只适合"最终一致+异步"场景。</p>
 
@@ -260,7 +274,7 @@ sequenceDiagram
               </tbody>
             </table>
 
-            <p><strong>Seata AT 原理</strong>：① 一阶段：拦截业务 SQL，解析执行前镜像(beforeImage)与执行后镜像(afterImage)存入 undo_log 表，本地事务提交（释放本地锁），并向 TC 注册分支事务申请<strong>全局锁</strong>（key=表名+主键值）；② 二阶段提交：异步批量删除 undo_log；③ 二阶段回滚：根据 beforeImage 生成反向 SQL 还原数据。全局锁保证：分支事务本地提交后、全局事务回滚前，其他全局事务不能写该行（防脏写）。</p>
+            <p><strong>Seata AT 原理</strong>：① 一阶段：拦截业务 SQL，解析执行前镜像(beforeImage)与执行后镜像(afterImage)，undo_log 与业务变更进入同一本地事务；本地事务提交前向 TC 注册分支事务并申请<strong>全局锁</strong>（key=表名+主键值）；② 二阶段提交：异步批量删除 undo_log；③ 二阶段回滚：根据 beforeImage 生成反向 SQL 还原数据。全局锁保证：分支事务本地提交后、全局事务回滚前，其他 AT 全局事务不能写该行（防脏写）。</p>
 
             <p><strong>SAGA 补偿</strong>：T1→T2→T3 成功，若 T4 失败则反向执行 C3→C2→C1。需保证每个补偿 Ci 满足<strong>语义补偿</strong>（如"扣款"的补偿是"退款"而非"加相同金额"，因中间可能有人工操作）。SAGA 不保证隔离性，需业务容忍中间状态可见。</p>
 
@@ -311,7 +325,7 @@ sequenceDiagram
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Seata AT 的全局锁如何解决脏写？又带来什么问题？</strong></p>
-            <p>一阶段本地事务提交后释放本地锁，但向 TC 申请全局锁（key=表+主键）。全局事务回滚前持有全局锁，其他全局事务要写该行需先获全局锁，从而防止"分支已提交、全局回滚"期间被其他事务覆盖（脏写）。代价：全局锁成性能瓶颈，热点行高并发写退化；且全局锁与本地锁解耦后，非 AT 事务（如直接 SQL）不受全局锁约束，可能写入被 AT 回滚的数据——需保证所有写入都走 AT。</p>
+            <p>一阶段在本地事务提交前向 TC 注册分支并获取全局锁（key=表+主键），本地锁随本地事务提交释放，但全局锁在全局事务回滚前仍约束其他 AT 分支，防止“分支已提交、全局回滚”期间被其他全局事务覆盖（脏写）。代价：全局锁成性能瓶颈，热点行高并发写退化；且全局锁与本地锁解耦后，非 AT 事务（如直接 SQL）不受全局锁约束，可能写入被 AT 回滚的数据——需保证同一行的相关写入都走 AT 或另行纳入冲突控制。</p>
             <p><strong>追问 2：TCC 的 Confirm/Cancel 失败怎么办？</strong></p>
             <p>TC 会不断重试 Confirm/Cancel（默认有重试次数与间隔）。因 Confirm/Cancel 必须幂等，重试安全。若重试耗尽仍失败，需人工介入或告警。TCC 框架（Seata/Hmily）内置重试与事务表状态机。</p>
             <p><strong>追问 3：SAGA 的补偿顺序与并发问题？</strong></p>
@@ -335,6 +349,13 @@ sequenceDiagram
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">版本证据</div>
+          <div class="qa-layer-body">
+            <p>截至 2026-08-30 复核：Apache Seata GitHub release 元数据显示 <code class="inline-code">v2.6.0</code>、发布时间 <code class="inline-code">2026-01-28</code>、<code class="inline-code">prerelease=false</code>；2.x 源码样例 <code class="inline-code">application.raft.example.yml</code> 包含 <code class="inline-code">server.raft</code> 和 <code class="inline-code">store.mode: raft</code>。该证据只说明相关版本线提供 Raft 配置方向，不等同于“成熟默认/GA 推荐”；上线前应核对目标版本 release notes、兼容矩阵、存储与恢复行为，并完成压测和演练。</p>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -349,7 +370,7 @@ sequenceDiagram
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>本质考察三种分布式锁的<strong>底层机制、正确性边界、性能权衡</strong>。核心区分维度是<strong>CP vs AP</strong>：Redis 锁是 AP（高可用但主从切换可能丢锁），ZK 锁是 CP（强一致但性能低），数据库锁是折中。理解 RedLock 争议（antirez vs Martin Kleppmann）是关键，它揭示了"非拜占庭故障下锁的正确性仍受 GC/时钟影响"。</p>
+            <p>本质考察分布式锁的<strong>底层机制、正确性边界、性能权衡</strong>。不要只背 CP/AP：Redis 常见主从异步配置在切换时可能丢锁，ZK/etcd 用多数派和 session/lease 提供更强协调保证，数据库依赖本地事务和唯一约束；每种实现都仍需处理进程暂停、时钟/租约、重连和业务幂等。理解 RedLock 争议（antirez vs Martin Kleppmann）是关键，它揭示了"非拜占庭故障下锁的正确性仍受 GC/时钟影响"。</p>
           </div>
         </div>
 
@@ -358,10 +379,10 @@ sequenceDiagram
           <div class="qa-layer-body">
             <p><strong>数据库唯一索引（最早）</strong>：利用唯一索引/for update 行锁实现互斥。简单可靠，但性能差、锁超时难控制、DB 压力大。</p>
             <p><strong>Redis setnx（高性能）</strong>：<code class="inline-code">SET key value NX PX timeout</code> 原子加锁+过期。问题：单点故障丢锁、主从异步复制切换丢锁、超时后误删他人锁（需 value 唯一标识 + Lua 校验删除）。</p>
-            <p><strong>RedLock（2014，antirez 提出）</strong>：向 N（奇数）个独立 Redis 节点申请锁，多数（N/2+1）成功才算加锁成功。试图解决单点 RedLock 的主从切换丢锁。但 Martin Kleppmann 2016 质疑：① 客户端 GC pause 期间锁过期，他人获锁，导致两客户端持锁；② 依赖系统时钟，时钟跳变破坏正确性。antirez 反驳：实践中 GC 与时钟问题可控。争议至今未决，RedLock 在工业界使用减少。</p>
-            <p><strong>Redisson（生产首选）</strong>：封装 Lua 加锁（Hash 结构记录可重入计数）+ WatchDog 看门狗自动续期（默认 30s，每 10s 续期）+ RedLock 支持。兼顾易用与可靠性。</p>
+            <p><strong>RedLock（2014，antirez 提出）</strong>：向 N（奇数）个独立 Redis 节点申请锁，多数（N/2+1）成功才算加锁成功。试图解决单 Redis 主从切换丢锁。但 Martin Kleppmann 2016 质疑：① 客户端 GC pause 期间锁过期，他人获锁，导致两客户端持锁；② 依赖系统时钟，时钟跳变破坏正确性。antirez 反驳：实践中 GC 与时钟问题可控。该结论应放到所用 Redis/Redisson 版本和故障模型下评估，不能写成跨时间的固定工业共识。</p>
+            <p><strong>Redisson（生产常用）</strong>：封装 Lua 加锁（Hash 结构记录可重入计数）+ WatchDog 看门狗自动续期（默认 30s，每 10s 续期）。历史 RedLock 封装 <code class="inline-code">RedissonRedLock</code> 在较新版本已标记废弃；引入任何多数派锁都要核对版本语义。</p>
             <p><strong>ZK 临时顺序节点（CP）</strong>：创建临时顺序节点，最小序号获锁，其余 watch 前一个节点。强一致（ZAB 协议）、客户端宕机自动释放（临时节点 session 失效）。改进：从"watch 所有节点"（惊群）→"watch 前一个节点"（公平锁，避免惊群）。</p>
-            <p><strong>趋势</strong>：① 高性能场景用 Redisson（AP，接受极端情况丢锁）；② 强一致场景用 ZK/etcd（CP，基于 Raft/ZAB）；③ etcd（K8s 内置）逐渐替代 ZK，成为云原生锁首选；④ RedLock 争议后，社区倾向"按正确性需求选 CP（etcd/ZK）或 AP（Redis），而非 RedLock 折中"。</p>
+            <p><strong>趋势</strong>：① 高性能场景评估 Redisson，接受极端情况锁边界并用业务兜底；② 正确性敏感的协调评估 ZK/etcd（多数派 + session/lease），仍要唯一约束/状态机或资源端 fencing；③ etcd 在 K8s 生态更常见，但“云原生锁首选”取决于团队运维、协议和故障模型；④ RedLock 争议后，很多团队更倾向按正确性需求选协调服务或按性能需求选 Redis，而非默认折中。</p>
           </div>
         </div>
 
@@ -403,7 +424,7 @@ flowchart TD
             <table class="compare-table">
               <thead><tr><th>维度</th><th>Redis(Redisson)</th><th>ZooKeeper</th><th>数据库</th></tr></thead>
               <tbody>
-                <tr><td><strong>一致性</strong></td><td>AP（主从异步，切换可能丢锁）</td><td>CP（ZAB 强一致）</td><td>单库强一致</td></tr>
+                <tr><td><strong>一致性</strong></td><td>常见异步主从配置偏 AP，切换可能丢锁</td><td>ZAB 多数派，偏 CP</td><td>单库事务强一致</td></tr>
                 <tr><td><strong>性能</strong></td><td>极高（内存，万级 QPS）</td><td>中（需集群写 quorum）</td><td>低（DB IO）</td></tr>
                 <tr><td><strong>可靠性</strong></td><td>中（极端丢锁）</td><td>高（CP + 临时节点自动释放）</td><td>高（但 DB 单点）</td></tr>
                 <tr><td><strong>锁释放</strong></td><td>过期+主动删</td><td>客户端 session 失效自动删</td><td>事务提交/回滚释放</td></tr>
@@ -418,8 +439,8 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>选型建议</strong>：① 互联网高并发（如防重复提交、秒杀限流）→ <strong>Redisson</strong>，接受极端情况丢锁，业务做幂等兜底；② 金融/配置/选主 → <strong>ZK/etcd</strong>，强一致优先；③ 简单防重、并发低 → <strong>数据库唯一索引</strong>，无需引入中间件。</p>
-            <p><strong>Redisson 锁核心特性</strong>：可重入（Hash 结构 key=锁名 field=线程ID value=计数）、看门狗续期（lockWatchdogTimeout 默认 30s，每 1/3 时间续期）、公平锁（RLock→RFairLock）、读写锁（RReadWriteLock）、RedLock（RLock→RedissonRedLock）。</p>
+            <p><strong>选型建议</strong>：① 互联网高并发（如防重复提交、秒杀限流）→ <strong>Redisson</strong>，接受极端情况丢锁，业务做幂等和唯一约束兜底；② 金融/配置/选主 → 先落库约束/状态机，再按版本与故障模型评估 <strong>ZK/etcd</strong>；③ 简单防重、并发低 → <strong>数据库唯一索引</strong>，无需引入中间件。</p>
+            <p><strong>Redisson 锁核心特性</strong>：可重入（Hash 结构 key=锁名 field=线程ID value=计数）、看门狗续期（lockWatchdogTimeout 默认 30s，每 1/3 时间续期）、公平锁与读写锁等；历史 RedLock 封装 <code class="inline-code">RedissonRedLock</code> 已标记废弃，按所用版本确认替代能力。</p>
             <div class="callout callout-tip">
               <div class="callout-title">正确性兜底原则</div>
               <p>分布式锁无法 100% 可靠（GC/网络/时钟）。<strong>锁只是"减少并发"，业务必须做幂等与状态校验兜底</strong>。如扣库存：获锁后仍要 SQL where stock&gt;=n 原子扣减，不能只依赖锁。</p>
@@ -431,7 +452,7 @@ flowchart TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：RedLock 争议的本质是什么？</strong></p>
-            <p>本质是<strong>"非拜占庭故障模型下，锁的正确性是否依赖时钟与进程暂停"</strong>。Kleppmann 指出：客户端 GC pause 期间锁过期，恢复后仍以为持锁，与后获锁者并发；且 RedLock 依赖各节点时钟一致，NTP 时钟跳变会破坏 TTL 计算。antirez 认为通过合理 fence token（单调递增令牌，写入时校验）可解决。结论：若正确性要求极高（如金融），用 CP 系统（etcd/ZK）+ fence token；若容忍极端丢锁，单 Redis 足矣，RedLock 折中价值不大。</p>
+            <p>本质是<strong>"非拜占庭故障模型下，锁的正确性是否依赖时钟与进程暂停"</strong>。Kleppmann 指出：客户端 GC pause 期间锁过期，恢复后仍以为持锁，与后获锁者并发；且 RedLock 依赖各节点时钟一致，NTP 时钟跳变会破坏 TTL 计算。antirez 讨论 fencing token（单调递增令牌）作为缓解手段；关键在资源端必须比较单调 token 后才执行，而不是把 Redis 锁或 ZK/etcd 直接当资源访问授权。结论：正确性要求极高时，先以唯一约束/状态机兜底，再按版本与故障模型选协调系统；容忍极端丢锁时，单 Redis 加业务兜底常比 RedLock 更简单。</p>
             <p><strong>追问 2：ZK 锁的"羊群效应"如何避免？</strong></p>
             <p>早期实现所有等待者 watch 最小节点，锁释放时全部被唤醒争抢（惊群）。改进为 watch 前一个节点（顺序节点），每个节点只在前驱删除时被唤醒，形成链式通知。Curator 的 InterProcessMutex 即此实现。</p>
           </div>
@@ -477,7 +498,7 @@ flowchart TD
             <p><strong>ActiveMQ（2004，JMS 规范）</strong>：传统消息中间件，支持持久化但基于 Queue 的"推/拉"模型，单机吞吐万级。痛点：Master-Slave 主备切换弱、消息堆积性能下降、路由灵活但复杂。（新项目使用率下降：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar，此处仅作为 MQ 演进历史对比保留）</p>
             <p><strong>RabbitMQ（2007，AMQP）</strong>：Erlang 实现，灵活的 Exchange-Queue-Binding 路由模型，低延迟。痛点：吞吐仍受限（万级~十万级）、消息堆积后性能急剧下降、集群镜像队列开销大。</p>
             <p><strong>Kafka（2010，LinkedIn）</strong>：颠覆性设计——分布式提交日志（Partition+Segment 追加写）、零拷贝、页缓存、消费者 pull 模型、副本 ISR。吞吐百万级，消息堆积不影响性能（顺序读盘）。从"消息队列"重新定义为"分布式流平台"。</p>
-            <p><strong>Kafka 版本演进</strong>：① <strong>0.11（2017）</strong>：幂等生产者 + 事务，实现 Kafka 内部 Exactly-Once；② <strong>2.4（2019）</strong>：Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区，减少 rebalance 迁移量；③ <strong>2.8（2021）</strong>：KRaft 模式预览（Kafka Raft Metadata Mode），开始"去 ZooKeeper 化"；④ <strong>3.3（2022）</strong>：KRaft 模式生产可用（GA），新集群推荐直接使用 KRaft，ZK 模式标记废弃；⑤ <strong>3.5~3.6（2023）</strong>：ZK→KRaft 迁移工具生产可用，分层存储（Tiered Storage，KIP-405）引入——冷数据自动下沉到对象存储，降低本地磁盘压力；⑥ <strong>3.7（2024-02）</strong>：最后一个支持 ZooKeeper 模式的版本，动态 KRaft 仲裁支持无停机增删 Controller 节点；⑦ <strong>4.0（2025-03）</strong>：彻底移除 ZooKeeper 依赖，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议 GA（大幅缩短 rebalance 停顿），KIP-932 队列语义 Early Access（支持点对点消息模型），Broker 要求 Java 17、Client/Streams Java 11，MirrorMaker 1 移除。</p>
+            <p><strong>Kafka 版本演进</strong>：① <strong>0.11（2017）</strong>：幂等生产者 + 事务，实现 Kafka 内部 Exactly-Once；② <strong>2.4（2019）</strong>：Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区，减少 rebalance 迁移量；③ <strong>2.8（2021）</strong>：KRaft 模式预览（Kafka Raft Metadata Mode），开始"去 ZooKeeper 化"；④ <strong>3.3（2022）</strong>：KRaft 模式生产可用（GA），新集群推荐直接使用 KRaft，ZK 模式进入迁移路径；⑤ <strong>3.5~3.7（2023-2024）</strong>：ZK→KRaft 迁移与分层存储（Tiered Storage，KIP-405）能力逐步落地；3.7 支持动态 KRaft 仲裁增删 Controller 节点；⑥ <strong>3.9</strong>：ZooKeeper 模式的最后支持版本，也是升级 Kafka 4.0 前的迁移中间站；⑦ <strong>4.0（2025-03）</strong>：彻底移除 ZooKeeper 依赖，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议 GA（大幅缩短 rebalance 停顿），KIP-932 队列语义 Early Access（支持点对点消息模型），Broker 要求 Java 17、Client/Streams Java 11，MirrorMaker 1 移除。</p>
             <p><strong>Pulsar（2016，Yahoo）</strong>：计算存储分离——Broker 无状态（计算）、BookKeeper 分层存储（持久化）。原生多租户、跨地域复制、存算独立扩缩。弥补 Kafka 的存储与计算耦合、Rebalance 慢、多租户弱等痛点。</p>
             <p><strong>趋势</strong>：① 从"消息队列"到"流平台"再到"事件流基础设施"——Kafka Streams/KSQL 流处理、Schema Registry；② 存算分离（Pulsar/Redpanda）成为新架构方向；③ 云原生 MQ——Serverless Kafka（Confluent Cloud/阿里云 MSK）、按需扩缩；④ 流批一体——Kafka 替代部分数据仓库 ETL 链路；⑤ Kafka 4.0（2025-03）彻底移除 ZooKeeper，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议大幅缩短 rebalance 停顿。</p>
           </div>
@@ -525,7 +546,7 @@ flowchart LR
             </table>
 
             <p><strong>幂等生产者（0.11+）</strong>：Producer 分配 PID（Producer ID），每条消息带 sequence number。Broker 按 (PID, partition, seq) 去重，解决重试导致的重复。<code class="inline-code">enable.idempotence=true</code>。</p>
-            <p><strong>事务（0.11+）</strong>：跨分区原子写——生产者开启事务，写多分区后 commit/abort，消费者读已提交（isolation.level=read_committed）。基于两阶段提交 + transactional.id epoch 防僵尸。用于"消费-处理-生产"流的 Exactly-Once。</p>
+            <p><strong>事务（0.11+）</strong>：跨分区原子写——生产者必须配置稳定的 <code class="inline-code">transactional.id</code>，调用 <code class="inline-code">initTransactions()</code> 初始化，写多分区后在 <code class="inline-code">beginTransaction()</code> / <code class="inline-code">commitTransaction()</code> / <code class="inline-code">abortTransaction()</code> 边界内提交或中止；消费者用 <code class="inline-code">isolation.level=read_committed</code> 只读已提交结果。事务协议配合 producer epoch/fence 防僵尸实例。它用于"消费-处理-生产"的 Kafka 内部原子边界，不是外部数据库事务。</p>
             <p><strong>顺序性</strong>：Kafka 保证<strong>单 Partition 内消息有序</strong>（追加写顺序），不保证 Topic 多 Partition 全局有序。需全局有序则单分区（牺牲并行）。生产者按 key 路由分区，保证同 key 消息进同分区有序。</p>
           </div>
         </div>
@@ -544,6 +565,32 @@ max.in.flight.requests.per.connection=<span class="num">5</span>  <span class="c
 replication.factor=<span class="num">3</span>              <span class="com"># 3 副本</span>
 min.insync.replicas=<span class="num">2</span>            <span class="com"># 至少2副本同步才算成功</span>
 unclean.leader.election.enable=<span class="kw">false</span>  <span class="com"># 禁止非ISR副本当Leader,防丢消息</span></code></pre></div>
+
+            <p><strong>事务生产者可编译骨架</strong>：</p>
+            <div class="code-block"><pre><code><span class="type">Properties</span> props = <span class="kw">new</span> <span class="type">Properties</span>();
+props.<span class="fn">put</span>(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+props.<span class="fn">put</span>(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+props.<span class="fn">put</span>(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+props.<span class="fn">put</span>(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, <span class="str">"true"</span>);
+props.<span class="fn">put</span>(ProducerConfig.TRANSACTIONAL_ID_CONFIG, <span class="str">"order-tx-producer-01"</span>);
+
+<span class="kw">try</span> (<span class="type">KafkaProducer</span>&lt;<span class="type">String</span>, <span class="type">String</span>&gt; producer = <span class="kw">new</span> <span class="type">KafkaProducer</span>&lt;&gt;(props)) {
+    producer.<span class="fn">initTransactions</span>();
+    <span class="kw">try</span> {
+        producer.<span class="fn">beginTransaction</span>();
+        producer.<span class="fn">send</span>(<span class="kw">new</span> <span class="type">ProducerRecord</span>&lt;&gt;(<span class="str">"orders"</span>, orderId, payload), metadata -&gt; {
+            <span class="kw">if</span> (metadata.<span class="fn">exception</span>() != <span class="kw">null</span>) <span class="kw">throw new</span> <span class="type">KafkaException</span>(metadata.<span class="fn">exception</span>());
+        });
+        producer.<span class="fn">commitTransaction</span>();
+    } <span class="kw">catch</span> (<span class="type">ProducerFencedException</span> | <span class="type">OutOfOrderSequenceException</span> | <span class="type">AuthorizationException</span> fatal) {
+        producer.<span class="fn">close</span>(Duration.<span class="fn">ofSeconds</span>(<span class="num">5</span>)); <span class="com">// 实例被更新 epoch 或授权失效，重建生产者</span>
+        <span class="kw">throw</span> fatal;
+    } <span class="kw">catch</span> (<span class="type">KafkaException</span> retryable) {
+        producer.<span class="fn">abortTransaction</span>(); <span class="com">// 可按业务决定重试整个事务边界</span>
+        <span class="kw">throw</span> retryable;
+    }
+}</code></pre></div>
+            <p>消费侧处理该事务输出时，显式设置 <code class="inline-code">isolation.level=read_committed</code>；消费-DB-生产链路仍要用数据库事务或幂等表把外部效果与 offset/事件状态绑定，不能假设 Kafka 事务覆盖数据库。</p>
 
             <p><strong>分区设计</strong>：分区数 = max(期望吞吐/单分区吞吐, 消费者并发数)。单分区吞吐约 10MB/s，百万 QPS 消息（1KB）约需 100 分区。分区数不宜过多（ Broker 元数据开销、rebalance 慢）。</p>
             <p><strong>顺序消费</strong>：同一业务 key（如 orderId）路由到同分区，消费者单线程消费该分区保证顺序。需多消费者并行则按 key 哈希分区分组。</p>
@@ -593,7 +640,7 @@ unclean.leader.election.enable=<span class="kw">false</span>  <span class="com">
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>本质考察线上消息积压的<strong>紧急处理方法论</strong>：止血（扩消费组/跳过）→ 根因分析 → 数据回溯 → 预防。核心是理解积压的本质<strong>"消费速率 &lt; 生产速率"持续累积</strong>，处理逻辑围绕"提升消费速率"或"降低生产速率"或"临时跳过堆积后回溯"展开，且受分区数（Kafka）与消费组机制约束。</p>
+            <p>本质考察线上消息积压的<strong>紧急处理方法论</strong>：止血 → 定位根因 → 补偿回溯 → 预防。核心是理解积压的本质<strong>"消费速率 &lt; 生产速率"持续累积</strong>；止血时优先提升消费速率或降低生产速率，确需跳过堆积前必须先记录/转存旧区间，再移动消费位点，并受分区数（Kafka）与消费组机制约束。</p>
           </div>
         </div>
 
@@ -621,7 +668,7 @@ flowchart TD
     C --> F{"消费仍追不上?"}
     F -->|"是"| D
     F -->|"否"| G["等待消化,监控收敛"]
-    D --> H["1、消费者改为'只消费最新offset'<br/>2、积压消息转存死信/备份Topic<br/>3、异步慢速回放回溯"]
+    D --> H["1、记录当前待处理区间并转存<br/>2、实时组切到最新offset<br/>3、异步限速回放补偿"]
     H --> I["业务恢复后,离线回溯补偿"]
     E --> G
     style D fill:#fee2e2,stroke:#dc2626
@@ -630,7 +677,7 @@ flowchart TD
               <div class="chart-caption">图 9.5-1 消息积压紧急处理决策树</div>
             </div>
 
-            <p><strong>关键约束</strong>：Kafka 一个分区只能被消费组内一个消费者消费，故消费者实例数 ≤ 分区数才有意义。若分区数=8，扩到 16 个消费者只有 8 个工作。此时要提升消费速率只能：① 增加分区数（需重建 Topic，不可在线）；② 单消费者多线程（破坏分区顺序，需线程内保证 key 顺序）；③ 跳过堆积后回溯。</p>
+            <p><strong>关键约束</strong>：Kafka 一个分区在消费组内同一时刻只分配给一个消费者，故消费者实例数 ≤ 分区数才有意义。若分区数=8，扩到 16 个消费者只有 8 个工作。Kafka 支持在线增加分区，但不支持减少分区；扩分区只影响后续消息路由，不能重排已写入数据，且同 key 顺序可能因分区数变化被打断。此时可考虑：① 在发布窗口评估增加分区；② 单消费者多线程（破坏分区顺序，需业务侧保证 key 顺序）；③ 先转存再跳过堆积后回溯。</p>
           </div>
         </div>
 
@@ -648,13 +695,14 @@ kafka-consumer-groups --bootstrap-server <span class="var">$BS</span> \
 <span class="com"># 3. 确认 rebalance 完成, lag 开始下降</span></code></pre></div>
 
             <p><strong>步骤 2：跳过堆积（分区数不足、消费追不上时）</strong>——保护实时业务，积压转存后慢速回溯：</p>
-            <div class="code-block"><pre><code><span class="com"># 1. 原消费者改为从最新 offset 消费(跳过堆积)</span>
-<span class="com">#    auto.offset.reset=latest, 或手动 seekToEnd()</span>
+            <div class="code-block"><pre><code><span class="com"># 1. 先记录消费组当前 offset 与日志结束 offset</span>
+<span class="com">#    启动转存消费者消费该区间, 写入备份Topic/补偿表</span>
+<span class="com">#    备份Topic分区数按回溯吞吐规划, 并保留原事件顺序映射</span>
 
-<span class="com"># 2. 启动'转存消费者'把积压消息(旧offset区间)写到备份Topic</span>
-<span class="com">#    备份Topic分区数=原Topic×4, 后续多消费者并行回溯</span>
+<span class="com"># 2. 转存位点确认后, 再把实时消费组 seekToEnd/latest</span>
+<span class="com">#    或使用新的消费组消费后续消息</span>
 
-<span class="com"># 3. 实时业务恢复后, 启动'回溯消费者'慢速消费备份Topic</span>
+<span class="com"># 3. 实时业务恢复后, 启动'回溯消费者'限速消费备份Topic</span>
 <span class="com">#    限速回放, 不冲击实时链路, 业务做幂等</span></code></pre></div>
 
             <p><strong>步骤 3：根因排查</strong>——常见根因：① 消费者处理慢（慢 SQL、外部接口超时）；② 消费者 OOM/频繁 FullGC；③ 消费者线程数配置错误；④ 生产端突发流量；⑤ 消费者 bug 抛异常导致持续重试（毒药消息）。</p>
@@ -668,7 +716,7 @@ kafka-consumer-groups --bootstrap-server <span class="var">$BS</span> \
             <p><strong>追问 1：单消费者多线程消费如何保证顺序？</strong></p>
             <p>消费者拉取后按 key 哈希分发到固定线程（内存队列），同 key 进同线程顺序处理。注意：多线程下 offset 提交复杂（不能按拉取批次提交，需跟踪每条处理完成），通常用"处理完才提交 offset"或"按分区最小已处理 offset 提交"。破坏了 Kafka 原生分区顺序保证，需谨慎。</p>
             <p><strong>追问 2：跳过堆积后如何回溯不丢数据？</strong></p>
-            <p>跳过前必须先把积压区间 [当前offset, latest] 的消息转存到备份 Topic（多分区以支持后续并行回溯）。回溯时从备份 Topic 消费，业务做幂等（因实时链路可能已处理部分）。若数据源有 binlog（MySQL），也可用 Canal 重新拉取该时间段 binlog 重建状态。</p>
+            <p>先确定当前消费组 offset 与 latest 的区间并完成转存确认，再把实时消费组移动到最新 offset。回溯时从备份 Topic 消费，业务用事件 ID/业务唯一键做幂等（因实时链路可能已处理相邻消息）。若数据源有 binlog（MySQL），也可用 Canal/Debezium 按时间段与主键顺序重建状态，但必须处理 CDC 重放和乱序。</p>
           </div>
         </div>
 
@@ -709,8 +757,8 @@ kafka-consumer-groups --bootstrap-server <span class="var">$BS</span> \
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>UUID（RFC 4122）</strong>：本地生成、无协调、绝对唯一。痛点：无序（作主键致 B+ 树页分裂与索引膨胀）、长度长（128bit）、无业务语义。</p>
-            <p><strong>雪花算法 Snowflake（Twitter 2010）</strong>：64 位 = 1 符号 + 41 时间戳 + 10 机器ID + 12 序列。趋势递增、本地生成、高性能（百万级/秒）。痛点：依赖时钟、时钟回拨导致重复 ID。</p>
+            <p><strong>UUID（RFC 4122）</strong>：本地生成、无协调；在生成器正确实现和不考虑密码学碰撞攻击的常规前提下，碰撞概率工程上可忽略。痛点：多数版本无序（作主键易造成 B+ 树页分裂与写放大）、长度长（128bit）、无业务语义。</p>
+            <p><strong>雪花算法 Snowflake（Twitter 2010）</strong>：常见实现采用 64 位布局 = 1 符号 + 41 毫秒时间戳 + 10 机器ID + 12 序列；具体位宽、epoch 和分配方式是实现约定。趋势递增、本地生成、单节点理论吞吐约 4096/ms。痛点：依赖时钟、时钟回拨处理不当可能重复 ID。</p>
             <p><strong>号段模式 Leaf-Segment（美团 2017）</strong>：DB 存号段上限，应用批量取号（如每次取 1000），本地发号。双 buffer 预加载：当前 buffer 用到 10% 时异步加载下一个，无缝切换。性能高、趋势递增、无时钟依赖。</p>
             <p><strong>Leaf 双模式（美团）</strong>：Leaf-Segment（号段，DB 依赖）+ Leaf-Snowflake（雪花，ZK 协调机器 ID + 时钟回拨处理）。两种模式按场景选择。</p>
             <p><strong>Tinyid（百度）</strong>：号段模式改进，支持多 DB、号段生成可分离为独立服务。</p>
@@ -738,7 +786,7 @@ flowchart LR
 
             <p>同一毫秒内序列号自增，同机器同毫秒最多 4096 个 ID。时间戳使 ID 趋势递增（B+ 树顺序插入，无页分裂）。</p>
 
-            <p><strong>时钟回拨问题与解法</strong>：系统时钟回拨（NTP 同步、手动调整）后，时间戳变小，可能生成与回拨前重复的 ID。解法：① <strong>回拨小（&lt; 阈值如 5ms）</strong>：等待追平后再发号；② <strong>回拨大</strong>：报错拒绝、或借用扩展位、或用历史最大时间戳（需持久化 lastTimestamp）；③ Leaf-Snowflake 用 ZK 持久化 lastTimestamp，回拨时若 ZK 记录的时间大于当前时间则报警拒绝。</p>
+            <p><strong>时钟回拨问题与解法</strong>：系统时钟回拨（NTP 同步、手动调整）后，时间戳变小，与已生成时间戳重叠时可能重复。解法：① 等待追平历史最大时间戳（阈值按业务和时钟管理策略设定，如 5ms 只是示例）；② 超过阈值报错拒绝、切换实例或使用实现明确保证唯一性的扩展方案；③ 持久化 lastTimestamp/workerId（Leaf-Snowflake 用 ZK 记录，回拨时报警并按预设策略处理）。</p>
 
             <p><strong>Leaf-Segment 双 buffer 原理</strong>：</p>
             <div class="code-block"><pre><code><span class="com">// DB 表: leaf_alloc(biz_tag, max_id, step, version)</span>
@@ -749,7 +797,7 @@ flowchart LR
 
 <span class="com">// 2. 发号: current.value++ (本地原子, 无 DB 交互)</span>
 
-<span class="com">// 3. 预加载: current 用到 10% 时, 异步线程取下一号段存入 next</span>
+<span class="com">// 3. 预加载: 剩余约 10% 时, 异步线程取下一号段存入 next</span>
 <span class="kw">if</span> (current.used &gt; step * <span class="num">0.9</span> &amp;&amp; next == <span class="kw">null</span>) {
     asyncLoadNextSegment();  <span class="com">// 异步, 不阻塞发号</span>
 }
@@ -760,9 +808,9 @@ flowchart LR
             <table class="compare-table">
               <thead><tr><th>方案</th><th>唯一性</th><th>有序性</th><th>性能</th><th>依赖</th><th>缺点</th></tr></thead>
               <tbody>
-                <tr><td>UUID</td><td>全局唯一</td><td>无序</td><td>极高(本地)</td><td>无</td><td>作主键页分裂、占空间</td></tr>
+                <tr><td>UUID</td><td>正确实现下常规场景唯一</td><td>多数版本无序</td><td>极高(本地)</td><td>无</td><td>作主键随机写、占空间</td></tr>
                 <tr><td>Snowflake</td><td>全局唯一</td><td>趋势递增</td><td>极高(本地)</td><td>时钟</td><td>时钟回拨</td></tr>
-                <tr><td>Leaf-Segment</td><td>全局唯一</td><td>趋势递增</td><td>高(批量取)</td><td>DB</td><td>DB 依赖、重启丢号段</td></tr>
+                <tr><td>Leaf-Segment</td><td>全局唯一</td><td>趋势递增</td><td>高(批量取)</td><td>DB</td><td>DB 依赖；重启可能丢弃已预分配但未发出的号</td></tr>
                 <tr><td>Leaf-Snowflake</td><td>全局唯一</td><td>趋势递增</td><td>极高</td><td>ZK</td><td>ZK 依赖</td></tr>
                 <tr><td>Redis INCR</td><td>全局唯一</td><td>严格递增</td><td>高</td><td>Redis</td><td>Redis 依赖、持久化窗口丢号</td></tr>
               </tbody>
@@ -777,7 +825,7 @@ flowchart LR
             <p><strong>Snowflake 工程要点</strong>：workerId 分配用 ZK/etcd 持久化顺序节点（启动注册、宕机回收），避免硬编码冲突；时钟回拨必须处理（Leaf-Snowflake 持久化 lastTimestamp 到 ZK）；序列号用位运算保证原子（CAS 或 synchronized）。</p>
             <div class="callout callout-tip">
               <div class="callout-title">主键选型原则</div>
-              <p>MySQL InnoDB 主键必须是<strong>趋势递增的整数</strong>，避免 UUID（无序致页分裂与二级索引膨胀）。Snowflake 生成的 long 型 ID 是理想主键。</p>
+              <p>MySQL InnoDB 更适合<strong>趋势递增且较短的主键</strong>；随机 UUID 会增加页分裂、页写放大和二级索引存储成本，具体影响需用目标表结构和写入模型压测。Snowflake 生成的 long 型 ID 常用于该场景，但必须保证 workerId 与时钟回拨安全。</p>
             </div>
           </div>
         </div>
@@ -786,7 +834,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：雪花算法的 workerId 如何动态分配？</strong></p>
-            <p>用 ZK 持久顺序节点：服务启动时在 /leaf/snowflake 下创建临时顺序节点，序号即 workerId（0~1023）；宕机 session 失效节点删除，workerId 回收。Leaf-Snowflake 即此方案。也可用 etcd lease + KV。静态配置 workerId 易因部署错误导致冲突。</p>
+            <p>常见方案是 ZK/etcd 注册与持久化已分配 workerId：服务启动申请或校验 workerId，同时写入租约/临时节点；正常下线和异常过期后按实现回收，并保证同一业务集群内不重复。静态配置 workerId 易因部署错误导致冲突。回收策略必须考虑时钟未完全同步或旧实例仍处理请求的窗口。</p>
             <p><strong>追问 2：号段模式重启丢号怎么办？</strong></p>
             <p>号段模式应用重启会丢失当前未用完的号段（已从 DB max_id 扣除但未发号）。这是"用预分配换性能"的代价，业务需容忍号段级浪费。Leaf-Segment 通过 step 调优（如 step=1000，每次最多丢 1000 号）控制浪费。若号不能丢（如严格递增发票号），退化为 Redis INCR 或 DB 单点取号（性能差）。</p>
           </div>
@@ -798,7 +846,7 @@ flowchart LR
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>UUID 作 MySQL 主键</strong>：无序致页分裂、二级索引（存主键）空间膨胀 3-4 倍。</li>
+                <li><strong>UUID 作 MySQL 主键</strong>：无序随机写入易造成页分裂和写放大；具体索引膨胀倍数取决于行长、页填充因子、版本与负载，不能使用固定倍数。</li>
                 <li><strong>Snowflake 不处理时钟回拨</strong>：NTP 同步回拨导致重复 ID。</li>
                 <li><strong>workerId 硬编码且多实例重复</strong>：容器化部署易配置错误，必须动态分配。</li>
                 <li><strong>号段 step 设过大</strong>：重启丢号多、号段跳跃明显；过小：频繁取 DB。需按业务调优。</li>
@@ -813,18 +861,18 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>分布式 ID 选型应以"发号 QPS、时钟回拨安全性、对索引写入性能的影响"量化——号段与雪花的核心是"高并发下不拖慢 DB、不产生重复 ID"。</strong></p>
             <table class="compare-table">
-              <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
+              <thead><tr><th>指标</th><th>压测模板</th><th>说明</th></tr></thead>
               <tbody>
-                <tr><td>Leaf-segment 发号 QPS</td><td>~5w（号段本地缓存，DB 每号段仅 1 次写）</td><td>号段预取使发号基本无 DB 实时交互，DB 压力极低</td></tr>
-                <tr><td>Leaf-snowflake 协调依赖</td><td>ZK 持久化 workerId + lastTimestamp</td><td>解决 workerId 冲突与时钟回拨，避免重复 ID</td></tr>
-                <tr><td>时钟回拨事故</td><td>回拨 5ms 致 workerId+timestamp 碰撞→重复 ID→重复下单/脏数据</td><td>优化：回拨&gt;5ms 拒绝 + 时钟回拨检测</td></tr>
-                <tr><td>UUID 作主键影响</td><td>无序致 B+ 树页分裂，写入 RT +30%（索引膨胀）</td><td>号段/雪花趋势递增对索引友好，避免页分裂</td></tr>
-                <tr><td>号段 step 调优</td><td>step=1000 时重启最多丢 1000 号</td><td>按业务 QPS 调 step，平衡号段浪费与取 DB 频率</td></tr>
+                <tr><td>Leaf-segment 发号 QPS</td><td>记录单实例 P99/最大 QPS、step、双 buffer 加载耗时与 DB TPS</td><td>号段预取降低 DB 实时交互，但上限受 CPU、锁实现、step 和故障切换策略影响</td></tr>
+                <tr><td>Leaf-snowflake 协调依赖</td><td>记录 ZK/etcd 的 workerId 分配延迟、租约超时和 lastTimestamp 存储位置</td><td>解决 workerId 冲突与时钟回拨，避免重复 ID</td></tr>
+                <tr><td>时钟回拨处理</td><td>注入 1ms/5ms/50ms 回拨，验证等待、拒绝和降级路径</td><td>5ms 只是示例阈值，必须由实现与运维策略明确</td></tr>
+                <tr><td>UUID 作主键影响</td><td>同表分别压测 UUID、Snowflake、自增主键的写入 TPS、页分裂、索引体积和 P99 RT</td><td>号段/雪花趋势递增通常对索引更友好，具体差异需目标负载实测</td></tr>
+                <tr><td>号段 step 调优</td><td>step=1000 时，实例崩溃最多浪费当前号段中未发出的号</td><td>按业务 QPS、实例数和可接受浪费调 step，并持久化/审计已分配区间</td></tr>
               </tbody>
             </table>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p>选型核心量化点：Leaf-segment 单实例 ~5w QPS（DB 压力极低）、雪花须处理时钟回拨（&gt;5ms 拒绝）避免重复 ID、趋势递增 ID 相比 UUID 写入 RT 优约 30%。以上为参考基准，需以自身生产数据替换。</p>
+              <p>选型核心不是固定 QPS 或固定性能倍数，而是验证唯一性、时钟/workerId 安全、重启浪费边界和主键写入影响。表中数字是压测模板与示例参数；上线结论必须来自目标数据规模、实例数和硬件下的实测数据。</p>
             </div>
           </div>
         </div>
@@ -849,9 +897,9 @@ flowchart LR
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>哈希取模 hash(key) % N</strong>：简单直接。痛点：节点数 N 变化（扩缩容）时，几乎所有 key 的目标节点改变，迁移量 ≈ 全部数据。</p>
+            <p><strong>哈希取模 hash(key) % N</strong>：简单直接。痛点：节点数 N 从 N 扩到 N+1 时，均匀哈希下只有约 <code class="inline-code">1/(N+1)</code> 的 key 恰好仍映射到原节点，其余约 <code class="inline-code">1 - 1/(N+1)</code> 需要迁移；N=3 时约 75%。</p>
             <p><strong>一致性哈希（Consistent Hashing，Karger 1997）</strong>：将哈希空间组织成 0~2³² 的环，节点与 key 都映射到环上，key 顺时针找到的第一个节点。扩缩容只影响相邻区间的 key，迁移量 ≈ 1/N。痛点：节点少时数据倾斜（节点在环上分布不均）。</p>
-            <p><strong>虚拟节点（VNode）</strong>：每个物理节点对应多个虚拟节点（如 150 个），虚拟节点均匀分布在环上，解决倾斜。Memcached、Cassandra 采用。</p>
+            <p><strong>虚拟节点（VNode）</strong>：每个物理节点对应多个虚拟节点，虚拟节点尽量均匀分布在环上，解决倾斜。Ketama 常被 Memcached 客户端使用；Cassandra 等系统也有自己的 vnode/令牌机制。数量需按数据分布、节点数和实现压测确定，不存在通用绝对值。</p>
             <p><strong>哈希槽（Redis Cluster）</strong>：固定 16384 个槽，节点负责槽区间。扩缩容迁移的是槽（离散单元），而非连续区间。本质是"预分配固定槽 + 节点负责槽区间"的折中方案，避免一致性哈希的虚拟节点管理复杂度。</p>
           </div>
         </div>
@@ -882,23 +930,23 @@ flowchart TD
             <table class="compare-table">
               <thead><tr><th>方案</th><th>扩容1节点迁移量</th><th>定位复杂度</th></tr></thead>
               <tbody>
-                <tr><td>哈希取模 hash%N</td><td>≈ N/(N+1) 全量</td><td>O(1)</td></tr>
-                <tr><td>一致性哈希(无虚拟节点)</td><td>≈ 1/(N+1)</td><td>O(log N) 环查找</td></tr>
-                <tr><td>一致性哈希+虚拟节点</td><td>≈ 1/(N+1)</td><td>O(log(VN)) V=虚拟节点数</td></tr>
+                <tr><td>哈希取模 hash%N</td><td>≈ 1 - 1/(N+1)</td><td>O(1)</td></tr>
+                <tr><td>一致性哈希(无虚拟节点)</td><td>≈ 1/(N+1)</td><td>平衡树/有序数组 O(log N)；完整点表 O(1)</td></tr>
+                <tr><td>一致性哈希+虚拟节点</td><td>≈ 1/(N+1)，vnode 足够时更均匀</td><td>平衡树/有序数组 O(log V_total)；完整点表 O(1)</td></tr>
                 <tr><td>哈希槽(Redis)</td><td>迁移部分槽</td><td>O(1) 槽表</td></tr>
               </tbody>
             </table>
 
-            <p><strong>虚拟节点解决倾斜</strong>：3 个物理节点在环上随机分布，可能聚集导致某节点负载过高。每节点映射 150 个虚拟节点均匀撒在环上，key 命中虚拟节点再映射到物理节点，使各物理节点负载均衡（方差随虚拟节点数增加而减小）。</p>
+            <p><strong>虚拟节点解决倾斜</strong>：少量物理节点的哈希点在环上可能聚集，导致负载不均。每个物理节点映射多个 vnode 后，key 命中 vnode 再映射到物理节点；均匀哈希和足够 vnode 下，各物理节点负责的环区间更均衡，但 vnode 增加会占用内存并影响增删节点时的定位与维护开销。</p>
 
-            <p><strong>哈希槽 vs 一致性哈希</strong>：Redis Cluster 用固定 16384 槽，CRC16(key) % 16384 算槽，节点负责槽区间。扩缩容迁移槽区间。优点：槽表 O(1) 定位、迁移以槽为单位可控；缺点：槽数固定（16384），节点数受槽约束。一致性哈希虚拟节点数可动态调整，更灵活但定位略慢。</p>
+            <p><strong>哈希槽 vs 一致性哈希</strong>：Redis Cluster 用固定 16384 槽，CRC16(key) % 16384 算槽，节点负责槽集合。扩缩容按槽迁移。槽号到节点可查表得 O(1)；一致性哈希若用平衡树实现则是 <code class="inline-code">O(log V_total)</code>，若把全部 vnode 哈希放入有序数组并二分也是 <code class="inline-code">O(log V_total)</code>，只有维护完整槽/点表时才是 O(1)。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>虚拟节点数配置</strong>：通常 150~200 个/物理节点。过少倾斜明显，过多内存与查找开销增加。可通过压测观察各节点 QPS/内存方差调整。</p>
+            <p><strong>虚拟节点数配置</strong>：150~200 只是一些实现/资料中的经验示例，不是标准。数量应结合物理节点数、key 分布、负载方差、内存和增删节点耗时确定，并通过压测观察各节点 QPS、内存和命中率方差调整。</p>
             <p><strong>一致性哈希客户端实现</strong>（TreeMap 模拟环）：</p>
             <div class="code-block"><pre><code><span class="com">// 一致性哈希环: TreeMap 按 hash 排序, ceilingEntry 顺时针查找</span>
 <span class="kw">public class</span> <span class="type">ConsistentHash</span> {
@@ -970,10 +1018,10 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>天然幂等</strong>：查询（GET）、删除（DELETE 幂等，删一次与多次结果相同）、按绝对值更新（update balance=100）。这些无需额外设计。</p>
             <p><strong>唯一索引（DB 层防重）</strong>：对业务唯一键建唯一索引，重复插入抛 DuplicateKeyException。最简单可靠，适合"创建类"接口。</p>
-            <p><strong>Token 机制（防重复提交）</strong>：前端先获取一次性 Token，提交时携带，后端校验后删除。解决前端重复点击/网络重试。</p>
+            <p><strong>Token 机制（防重复提交）</strong>：前端先获取一次性 Token，提交时携带，后端原子校验并置为已用；Token 适合挡住前端重复点击/网络重试，但关键业务仍必须有数据库唯一约束或状态机兜底。</p>
             <p><strong>乐观锁 version（并发更新）</strong>：update ... where version=?，并发更新只有一个成功。解决并发覆盖。</p>
             <p><strong>状态机（业务流转）</strong>：订单状态流转校验，重复请求因状态已变更而拒绝。解决业务状态幂等。</p>
-            <p><strong>分布式锁（防并发）</strong>：Redis/ZK 锁，同一业务 key 串行化。从单机幂等到分布式幂等。</p>
+            <p><strong>分布式锁（防并发）</strong>：Redis/ZK 锁，同一业务 key 串行化，缩短并发冲突窗口；锁不是幂等事实来源，锁失效、超时释放或主从切换后仍需唯一约束/状态机。</p>
           </div>
         </div>
 
@@ -987,7 +1035,7 @@ flowchart TD
               <thead><tr><th>方案</th><th>原理</th><th>适用场景</th><th>局限</th></tr></thead>
               <tbody>
                 <tr><td><strong>唯一索引</strong></td><td>DB 唯一约束，重复插入失败</td><td>创建订单、注册、发券</td><td>仅防新增，需业务唯一键</td></tr>
-                <tr><td><strong>Token</strong></td><td>前置获取一次性令牌，校验后删除</td><td>前端表单提交防重复点击</td><td>需额外获取 Token 接口</td></tr>
+                <tr><td><strong>Token</strong></td><td>前置获取一次性令牌，原子置为已用</td><td>前端表单提交防重复点击；配合业务唯一约束</td><td>需额外接口；Redis/内存 Token 不是持久事实来源，失败语义需定义</td></tr>
                 <tr><td><strong>乐观锁 version</strong></td><td>update where version=?，CAS 更新</td><td>并发更新（改地址、改库存）</td><td>更新失败需业务重试</td></tr>
                 <tr><td><strong>状态机</strong></td><td>状态流转校验，已变更状态拒绝</td><td>订单取消、支付回调</td><td>需明确状态流转图</td></tr>
                 <tr><td><strong>分布式锁</strong></td><td>同 key 串行化</td><td>防并发操作（如重复提现）</td><td>锁失效需配合其他幂等</td></tr>
@@ -1006,12 +1054,13 @@ sequenceDiagram
     B->>R: SET token_value EX 600
     B-->>F: 返回 token_value
     F->>B: 2. POST /order (Header: X-Idempotent-Token)
-    B->>R: GET token + DEL (Lua 原子)
-    Note over B: token 存在则校验通过并删除,不存在则拒绝(重复提交)
+    B->>R: CHECK token + SET used (Lua 原子)
+    Note over B: token 存在则置为已用;不存在则按重复/过期处理
     B->>B: 3. 执行业务(创建订单)
+    B->>B: 4. DB 唯一约束/状态机兜底;失败补偿或标记重试
     B-->>F: 返回结果
               </div>
-              <div class="chart-caption">图 9.8-1 Token 幂等机制：一次性令牌 + Lua 原子校验删除</div>
+              <div class="chart-caption">图 9.8-1 Token 快路径：Lua 原子置为已用，数据库约束/状态机兜底</div>
             </div>
 
             <p><strong>乐观锁与状态机组合（支付回调幂等）</strong>：</p>
@@ -1046,7 +1095,7 @@ sequenceDiagram
           <div class="qa-layer-body">
             <p><strong>场景方案选择</strong>：</p>
             <ul>
-              <li><strong>创建类（下单、注册）</strong> → 唯一索引（业务唯一键如 orderNo）或 Token。</li>
+              <li><strong>创建类（下单、注册）</strong> → 业务唯一键唯一索引；Token 只做前置快路径。</li>
               <li><strong>更新类（改地址、改库存）</strong> → 乐观锁 version。</li>
               <li><strong>回调类（支付回调、MQ 消费）</strong> → 状态机 + 唯一索引防重表。</li>
               <li><strong>并发操作类（重复提现、重复领券）</strong> → 分布式锁 + 唯一索引。</li>
@@ -1061,8 +1110,8 @@ sequenceDiagram
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
-            <p><strong>追问 1：Token 删除后请求处理失败怎么办？</strong></p>
-            <p>Token 已删但业务异常，用户重试因无 Token 被拒。解法：① Token 校验与业务在同一事务（Token 存 DB 而非 Redis，事务回滚则 Token 恢复）；② 业务失败后重新颁发 Token；③ Token 不删除而是标记已用+设置短 TTL，业务失败可重试。实际中方案②最简单：失败返回新 Token 让前端重试。</p>
+            <p><strong>追问 1：Token 置为已用后业务失败怎么办？</strong></p>
+            <p>先分清失败类型。可安全重试的业务：把 Token/幂等记录落库为 <code class="inline-code">PROCESSING/FAILED</code>，失败后允许同 Token 补偿或重试，成功后置为 <code class="inline-code">CONFIRMED</code>；不能确定结果的业务：先查询状态或对账，再决定返回原结果、补偿还是重试。Redis Token 只是快路径：不可用时，关键写接口要么拒绝并要求用户安全重建请求，要么改用数据库幂等键；不要把 Redis 失败静默降级为“直接执行”。已用 Token 按业务完成时间和审计需求清理。</p>
             <p><strong>追问 2：乐观锁的 ABA 问题如何影响幂等？</strong></p>
             <p>纯 version 乐观锁存在 ABA（A→B→A，version 相同）。业务幂等若依赖"version 不变"可能误判。解决：① version 严格递增不重用（DB 自增）；② 状态机+version 组合（状态已变更即拒绝，不依赖 version 单独判断）；③ 加时间戳或唯一流水号。实际订单场景用状态机+CAS（where status=?）更安全。</p>
           </div>
@@ -1075,7 +1124,7 @@ sequenceDiagram
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>唯一索引未覆盖业务唯一键</strong>：用自增主键唯一，但业务上可重复创建。</li>
-                <li><strong>Token 非原子校验删除</strong>：get+del 两步并发下双通过，必须 Lua 原子。</li>
+                <li><strong>Token 非原子校验置用</strong>：get+del/更新两步并发下可能双通过，必须原子；且不能替代 DB 唯一约束。</li>
                 <li><strong>乐观锁更新失败不重试</strong>：并发更新失败应业务重试或返回明确提示。</li>
                 <li><strong>状态机设计不全</strong>：遗漏中间状态流转，重复请求误执行。</li>
                 <li><strong>MQ 消费不幂等</strong>：依赖 MQ Exactly-Once，重投递导致重复扣款。</li>
@@ -1107,7 +1156,7 @@ sequenceDiagram
           <div class="qa-layer-body">
             <p><strong>简单投递（fire-and-forget）</strong>：生产者发完即忘，无确认。可靠性最低，丢消息无感知。</p>
             <p><strong>生产确认 + 重试</strong>：Producer 等待 Broker ACK，失败重试。RabbitMQ publisher confirm/return（见工程实践）、Kafka acks（<a href="#C09.04" class="internal-link">详见 C09.04</a>）。解决生产端丢失。</p>
-            <p><strong>持久化存储 + 副本</strong>：Broker 落盘 + 多副本。Kafka acks=all + min.insync.replicas + ISR（<a href="#C09.04" class="internal-link">详见 C09.04</a>）；RocketMQ 同步复制刷盘；<strong>RabbitMQ 镜像队列</strong>（HA policy，queue 镜像到多节点，主节点故障自动切备节点，见工程实践增量）。解决 Broker 故障丢失。</p>
+            <p><strong>持久化存储 + 副本</strong>：Broker 落盘 + 多副本。Kafka acks=all + min.insync.replicas + ISR（<a href="#C09.04" class="internal-link">详见 C09.04</a>）；RocketMQ 同步复制刷盘；RabbitMQ 4.x 使用 <strong>Quorum Queue</strong>（Raft 多数派复制；classic queue mirroring 已在 4.0 移除，见工程实践增量）。解决 Broker 故障丢失。</p>
             <p><strong>消费手动 ACK</strong>：消费者处理完成后才 ACK，未 ACK 的消息重新入队。解决消费端丢失。</p>
             <p><strong>死信队列</strong>：多次消费失败的消息转入死信队列，避免毒药消息阻塞。RabbitMQ DLX（Dead-Letter Exchange，绑定死信队列自动路由）、Kafka 需自建。</p>
             <p><strong>本地消息表 / 事务消息</strong>：生产端"本地事务 + 消息表"原子，异步投递；RocketMQ 事务消息（半消息+回查，见工程实践完整示例）。解决"生产端业务与消息发送的原子性"。</p>
@@ -1129,7 +1178,7 @@ flowchart LR
     end
     subgraph B["Broker"]
         B1["持久化落盘"]
-        B2["多副本同步<br/>（ISR/镜像）"]
+        B2["多副本同步<br/>（ISR/Quorum）"]
     end
     subgraph C["消费端"]
         C1["手动ACK"]
@@ -1149,7 +1198,7 @@ flowchart LR
             <p><strong>三段可靠性保障</strong>：</p>
             <ol>
               <li><strong>生产端不丢</strong>：① 本地消息表——业务事务与消息表插入原子，后台扫描消息表异步发送，成功后标记已发送；② RocketMQ 事务消息——发送半消息（对消费者不可见）→ 执行本地事务 → 提交/回滚半消息，Broker 回查本地事务状态；③ <strong>RabbitMQ confirm/return 双机制</strong>（见工程实践代码示例）。解决"业务成功但消息发送失败"或"消息未路由到 queue"。</li>
-              <li><strong>Broker 不丢</strong>：持久化（同步刷盘或副本同步）+ 多副本。Kafka acks=all + min.insync.replicas 多副本细节（<a href="#C09.04" class="internal-link">详见 C09.04</a>）；RocketMQ 同步复制刷盘；RabbitMQ 镜像队列 HA policy（见工程实践配置示例）。</li>
+              <li><strong>Broker 不丢</strong>：持久化（同步刷盘或副本同步）+ 多副本。Kafka acks=all + min.insync.replicas 多副本细节（<a href="#C09.04" class="internal-link">详见 C09.04</a>）；RocketMQ 同步复制刷盘；RabbitMQ Quorum Queue 依赖 Raft 多数派，publisher confirm 在消息复制到多数派后返回（见工程实践配置示例）。</li>
               <li><strong>消费端不丢</strong>：手动 ACK（处理完再确认）+ 幂等（防重投递重复，见工程实践通用幂等双写设计）+ 死信队列（毒药消息隔离）。</li>
             </ol>
 
@@ -1170,9 +1219,9 @@ flowchart LR
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>1. RocketMQ 事务消息（半消息+反查机制）</strong>：</p>
-            <div class="code-block"><pre><code><span class="com">// 1. 发送半消息(对消费者不可见)</span>
+            <div class="code-block"><pre><code><span class="com">// RocketMQ 5.x 事务消息: 半消息对消费者不可见</span>
 <span class="type">TransactionMQProducer</span> producer = <span class="kw">new</span> <span class="type">TransactionMQProducer</span>(group);
-producer.<span class="fn">setTransactionListener</span>(<span class="kw">new</span> <span class="type">TransactionListener</span>() {  <span class="com">// 注：RocketMQ 4.7.0+ 已废弃，推荐使用 setTransactionChecker + TransactionChecker</span>
+producer.<span class="fn">setTransactionListener</span>(<span class="kw">new</span> <span class="type">TransactionListener</span>() {  <span class="com">// RocketMQ 5.3.3 仍是当前事务监听接口; 旧 TransactionCheckListener 才已废弃</span>
     <span class="annotation">@Override</span>
     <span class="kw">public</span> <span class="type">LocalTransactionState</span> <span class="fn">executeLocalTransaction</span>(<span class="type">Message</span> msg, <span class="type">Object</span> arg) {
         <span class="com">// 执行本地事务(扣库存等)</span>
@@ -1210,7 +1259,7 @@ consumer.<span class="fn">registerMessageListener</span>(<span class="kw">new</s
     }
 });</code></pre></div>
 
-            <p><strong>3. RabbitMQ confirm/return 机制与镜像队列</strong>：</p>
+            <p><strong>3. RabbitMQ confirm/return 与 Quorum Queue</strong>：</p>
             <div class="code-block"><pre><code><span class="com">// ========== 生产端 confirm + return 双确认 ==========</span>
 <span class="type">ConnectionFactory</span> factory = <span class="kw">new</span> <span class="type">ConnectionFactory</span>();
 factory.<span class="fn">setPublisherConfirmType</span>(<span class="type">ConfirmType</span>.CORRELATED);  <span class="com">// 开启 confirm 异步回调</span>
@@ -1223,19 +1272,19 @@ template.<span class="fn">setReturnsCallback</span>(returned -> {
     log.<span class="fn">error</span>(<span class="str">"消息未路由到 queue: exchange={}, routingKey={}, reply={}"</span>,
         returned.<span class="fn">getExchange</span>(), returned.<span class="fn">getRoutingKey</span>(), returned.<span class="fn">getReplyText</span>());
 });
+template.<span class="fn">setMandatory</span>(<span class="kw">true</span>);  <span class="com">// mandatory=true 时不可路由消息才触发 return</span>
 template.<span class="fn">convertAndSend</span>(<span class="str">"order.exchange"</span>, <span class="str">"order.create"</span>, msg,
     <span class="kw">new</span> <span class="type">CorrelationData</span>(UUID.randomUUID().<span class="fn">toString</span>()));
 
-<span class="com">// ========== Broker 镜像队列 HA policy(命令行配置) ==========</span>
-<span class="com"># 对 ha. 前缀的所有 queue 启用镜像, 镜像到集群所有节点, ha-sync-mode=automatic 自动同步</span>
-<span class="com">rabbitmqctl set_policy ha-all "^ha\." '{"ha-mode":"all","ha-sync-mode":"automatic"}'</span>
-<span class="com"># 或镜像到恰好 N 个节点</span>
-<span class="com">rabbitmqctl set_policy ha-nodes "^ha\." '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}'</span></code></pre></div>
+<span class="com">// ========== Broker 副本: Quorum Queue(RabbitMQ 3.8+; 4.x 默认复制队列方向) ==========</span>
+<span class="com"># 声明 queue 时设置 x-queue-type=quorum; 队列成员基于 Raft 复制</span>
+<span class="com"># classic queue mirroring 已在 RabbitMQ 4.0 移除, 不要用 ha-mode policy 做新方案</span>
+<span class="com"># 推荐为 quorum queue 配置 delivery-limit 和死信/监控, 处理毒药消息</span></code></pre></div>
 
             <p><strong>4. 通用幂等设计（业务唯一键 + Redis SETNX / DB UNIQUE 双写）</strong>：Exactly-Once 在端到端(跨外部系统)场景无法绝对保证，工程退化为<strong>At-Least-Once + 消费幂等</strong>。双保险策略：</p>
-            <div class="code-block"><pre><code><span class="com">// 消费幂等：Redis SETNX(快路径) + DB 唯一约束(慢路径兜底)</span>
+            <div class="code-block"><pre><code><span class="com">// 消费幂等：Redis 标记(快路径) + DB 事务内去重表/唯一约束(事实兜底)</span>
 <span class="kw">public void</span> <span class="fn">onOrderCreated</span>(<span class="type">String</span> eventId, <span class="type">OrderEvent</span> event) {
-    <span class="com">// 1. 快路径: Redis SETNX 原子抢占, 过期时间>业务最大处理时间</span>
+    <span class="com">// 1. 快路径: Redis 原子抢占, 过期时间>业务最大处理时间</span>
     <span class="type">Boolean</span> first = redisTemplate.<span class="fn">opsForValue</span>()
         .<span class="fn">setIfAbsent</span>(<span class="str">"mq:idempotent:"</span> + eventId, <span class="str">"1"</span>, <span class="num">24</span>, <span class="type">TimeUnit</span>.HOURS);
     <span class="kw">if</span> (Boolean.<span class="fn">FALSE</span>.<span class="fn">equals</span>(first)) {
@@ -1247,7 +1296,7 @@ template.<span class="fn">convertAndSend</span>(<span class="str">"order.exchang
         jdbcTemplate.<span class="fn">update</span>(<span class="str">"INSERT INTO t_mq_consume_record(event_id, created_at) VALUES (?, NOW())"</span>, eventId);
         orderService.<span class="fn">create</span>(event);  <span class="com">// 与去重表插入同一 DB 事务, DB UNIQUE 兜底</span>
     } <span class="kw">catch</span> (<span class="type">DuplicateKeyException</span> e) {
-        log.<span class="fn">warn</span>(<span class="str">"DB 兜底拦截重复消费 eventId={}"</span>, eventId);  <span class="com">// Redis 故障/过期时由 DB 兜底</span>
+        log.<span class="fn">warn</span>(<span class="str">"DB 兜底拦截重复消费 eventId={}"</span>, eventId);  <span class="com">// Redis 故障/过期/误标记时由 DB 兜底; 业务失败需补偿并清理/修正标记</span>
     }
 }</code></pre></div>
 
@@ -1331,7 +1380,7 @@ flowchart LR
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>FLP 不可能定理（Fischer, Lynch, Paterson 1985）</strong>：异步网络中，即使只有一个节点崩溃，也不存在一个确定性协议能同时保证<strong>safety（不会决定错误值）+ liveness（最终达成共识）</strong>。工程上的妥协：放弃严格 liveness，用"最终达成"+随机化/超时保证实际可用（Paxos/Raft 都允许少数情况下多轮重试）。</p>
+            <p><strong>FLP 不可能定理（Fischer, Lynch, Paterson 1985）</strong>：其前提是<strong>异步、确定性消息传递模型</strong>。在该模型中，即使只有一个崩溃故障，也不存在确定性协议能同时保证 safety（不会决定错误值）和 liveness（最终达成共识）。工程系统通过引入超时（部分同步假设）、随机化或可探测的故障变化来换取实际可用性；这不推翻 FLP，而是改变定理前提。</p>
 
             <p><strong>Paxos 核心</strong>：两阶段——Prepare（Proposer 提议编号 n，Acceptor 承诺不再接受 &lt;n 的提议）+ Accept（Proposer 发 accept，Acceptor 多数派批准）。关键：<strong>多数派交集</strong>保证不同多数派必有共同 Acceptor，从而保证已决值不被覆盖。Paxos 难在"多 Proposer 活锁"与"工程拆分（Multi-Paxos）"。</p>
 
@@ -1406,17 +1455,18 @@ flowchart TD
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">扩展补全</div>
           <div class="qa-layer-body">
-            <p>Raft 算法理解到位后，生产落地最关键的是<strong>etcd 的核心参数调优</strong>——参数不当会导致选举抖动、写入阻塞甚至集群不可用。</p>
+            <p>Raft 算法理解到位后，生产落地最关键的是<strong>按目标 etcd 版本核对参数语义与默认值</strong>。下面以 etcd v3.6 Tuning 文档为参照；升级时不能沿用旧版口头记忆，必须对照目标版本文档和变更记录。</p>
             <ul>
-              <li><strong>heartbeat-interval</strong>（默认 100ms）：Leader 发送心跳的间隔。网络延迟高的环境需适当减小此值，确保 Follower 及时感知 Leader 存活。</li>
-              <li><strong>election-timeout</strong>（默认 1000ms）：Follower 等待 Leader 心跳超时后发起选举。建议设为 heartbeat 的 <strong>10 倍</strong>，避免因正常网络抖动触发误选举。</li>
-              <li><strong>snapshot count</strong>（默认 10000）：日志条目达到此值时触发快照。快照过大影响写入性能（快照期间日志压缩需暂停写入），大规模集群需调大。</li>
-              <li><strong>quota-backend-bytes</strong>（默认 2GB）：etcd 数据文件大小上限，超过后拒绝写入（返回 <code class="inline-code">etcdserver: mvcc: database space exceeded</code>）。</li>
-              <li><strong>调优建议</strong>：① <strong>SSD 环境</strong>——heartbeat 50ms，election 500ms，可提升集群响应速度；② <strong>跨机房部署</strong>——heartbeat 200ms，election 2000ms，容忍网络抖动；③ <strong>大规模集群（&gt;5 节点）</strong>——增大 snapshot count 到 50000，减少快照 IO 压力。</li>
+              <li><strong>heartbeat-interval</strong>（v3.6 默认 100ms）：Leader 发送心跳的间隔。官方建议取成员间平均 RTT 的约 0.5-1.5 倍；跨机房 RTT 变大时通常<strong>增大</strong>该值，而不是机械调小。</li>
+              <li><strong>election-timeout</strong>（v3.6 默认 1000ms）：Follower 多久未收到心跳后发起选举。官方要求至少为 RTT 的 10 倍，并结合心跳与网络抖动设置；所有成员必须使用相同值。</li>
+              <li><strong>snapshot-count</strong>（v3.6 默认 10000）：按变更数量触发快照，从而支持压缩旧日志。写入密集且内存/磁盘压力高时，官方文档建议可调低以更频繁快照；"大规模就必须调大"不是通用结论。</li>
+              <li><strong>quota-backend-bytes</strong>：etcd 后端存储配额。默认值与版本/部署配置有关，达到配额会拒绝写入；上线前按目标版本设置、监控并演练恢复。</li>
+              <li><strong>快照语义</strong>：快照/压缩是有成本的后台操作，但<strong>"快照期间全局暂停写入"不准确</strong>。应根据磁盘 fsync 延迟、写入速率和压缩状态评估影响，并在低风险窗口演练。</li>
+              <li><strong>调优方法</strong>：先测量成员间 RTT、磁盘 fsync P99、CPU 和网络抖动，再按目标版本调参。避免套用"SSD 固定 50/500ms、跨机房固定 200/2000ms、大集群固定 50000"这类无前提模板。</li>
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
-              <p><strong>生产事故案例</strong>：etcd 磁盘满（超过 <code class="inline-code">quota-backend-bytes</code>）导致 K8s API Server 无法写入，所有 Pod 创建/更新/删除操作失败，集群表现为"假死"——已有 Pod 正常运行但无法调度新 Pod。根因：业务侧通过 etcd operator 写入大量 CRD（自定义资源）未做压缩。解决方案：① 监控 etcd 磁盘使用率（Prometheus <code class="inline-code">etcd_mvcc_db_total_size_in_bytes</code>），设 80% 告警；② 定期执行 <code class="inline-code">etcdctl compact</code> + <code class="inline-code">etcdctl defrag</code> 压缩碎片；③ 调大 <code class="inline-code">quota-backend-bytes</code> 到 8GB；④ 业务侧限制 CRD 写入频率与数量。此案例说明共识系统的<strong>存储容量治理</strong>与算法本身同等重要。</p>
+              <p><strong>容量治理</strong>：etcd 空间达到配额后会使控制面写入失败，K8s 表现为已有工作负载可能继续运行，但创建、更新、删除和调度受限。治理顺序是：先用 <code class="inline-code">etcd_mvcc_db_total_size_in_bytes</code> 等指标建立容量告警；按官方流程在备份、健康检查和逐节点窗口内做 compact/defrag；必要时按容量规划调整配额；最后限制无界 CRD 和事件写入。不要把"调大配额"当作第一响应，也不应在无备份时直接对多节点执行 defrag。</p>
             </div>
           </div>
         </div>
@@ -1445,7 +1495,7 @@ flowchart TD
             <p><strong>日志时代（2000s）</strong>：ELK（Elasticsearch + Logstash + Kibana）栈为主，日志分散在各节点，grep 排查故障。问题是日志量爆炸、无上下文关联、跨服务定位困难。</p>
             <p><strong>Metrics 时代（2010s）</strong>：时序数据库 Prometheus + Grafana 可视化，聚焦"数值型指标"（QPS/Latency/ErrorRate）。但 Metrics 是聚合的，丢失了单次请求的完整路径。</p>
             <p><strong>Tracing 时代（2010s中后期）</strong>：Google Dapper 论文（2010）奠定了分布式链路追踪基础。Trace → Span → Annotation 模型，通过 TraceID 串联跨服务调用链。Zipkin（Twitter）、Jaeger（Uber）、SkyWalking（Apache）相继开源。</p>
-            <p><strong>统一可观测性（2020s）</strong>：OpenTelemetry（CNCF，2019 合并 OpenTracing + OpenCensus）成为跨语言标准，统一 SDK/API/Collector。云厂商推出托管可观测服务（AWS X-Ray、阿里云 ARMS）。趋势：<strong>从三支柱独立走向融合（TraceID 关联 Log + Metrics）</strong>，以及 eBPF 无侵入采集。</p>
+            <p><strong>统一可观测性（2020s）</strong>：OpenTelemetry（CNCF，2019 合并 OpenTracing + OpenCensus）提供跨语言 API/SDK、OTLP 数据协议和 Collector；云厂商后端接受 OTLP 或通过 exporter/collector 适配。趋势：<strong>从三支柱独立走向融合（TraceID 关联 Log + Metrics）</strong>，并用自动插桩、Agent 或 eBPF 降低侵入，但其覆盖范围以官方支持矩阵为准。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -1453,7 +1503,7 @@ flowchart LR
     LOG["Logging<br/>文本/结构化<br/>ELK/Loki"] --> OBS["统一可观测性<br/>OpenTelemetry"]
     MET["Metrics<br/>时序指标<br/>Prometheus"] --> OBS
     TRA["Tracing<br/>链路追踪<br/>Jaeger/SkyWalking"] --> OBS
-    OBS --> EBPF["eBPF 无侵入采集<br/>内核级观测"]
+    OBS --> AUTO["自动插桩/Agent/eBPF<br/>仅覆盖受支持组件"]
     style OBS fill:#dbeafe,stroke:#2563eb
               </div>
               <div class="chart-caption">图 9.11-1 可观测性演进：从独立三支柱到统一 OpenTelemetry</div>
@@ -1464,9 +1514,9 @@ flowchart LR
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>Trace 核心模型</strong>：一次请求产生一个 <strong>Trace</strong>，由多个 <strong>Span</strong> 组成有向无环图。每个 Span 包含：TraceID（全局唯一）、SpanID（本段唯一）、ParentSpanID（调用来源）、timestamp、duration、tags/logs。</p>
+            <p><strong>Trace 核心模型</strong>：一次请求产生一个 <strong>Trace</strong>，由多个 <strong>Span</strong> 组成有向无环图。OpenTelemetry 的 Span 主要包含 TraceID、SpanID、ParentSpanID、时间与时长、attributes 和 events；旧 APM 中的 tags/logs 对应现代规范里的 attributes/events，但也可能包含 Span 状态等字段。</p>
 
-            <p><strong>上下文传递（Context Propagation）</strong>：跨进程通过 HTTP Header / MQ Header / RPC Attachment 传递 TraceID。标准格式：W3C traceparent（<code>00-traceId-parentId-flags</code>）。进程内通过 ThreadLocal / Context 传递，异步线程（线程池/Reactive）需手动或使用 Instrumentation 传递。</p>
+            <p><strong>上下文传递（Context Propagation）</strong>：跨进程通过 HTTP Header / MQ Header / RPC Attachment 传递 W3C Trace Context（如 <code>traceparent</code>）。进程内使用语言 SDK 的 Context 存储传递；传统 Servlet 场景底层可能落到 ThreadLocal，线程池和 Reactive 流仍需显式包装、instrumentation 或框架提供的传播机制。</p>
 
             <p><strong>Metrics 三大黄金指标</strong>：</p>
             <ul>
@@ -1476,7 +1526,7 @@ flowchart LR
 
             <p><strong>Logging 结构化</strong>：JSON 格式 + TraceID 字段，实现"从错误日志反查整条链路"。避免纯文本日志，因为无法被程序解析关联。</p>
 
-            <p><strong>Sampling（采样）</strong>：全量 Trace 性能开销大（尤其高 QPS）。头部采样（Head-based：请求入口处决定是否采样） vs 尾部采样（Tail-based：请求完成后根据是否有错误/慢延迟再决定是否保留）。生产环境通常 1%~10% 采样，但错误/慢请求 100% 保留。</p>
+            <p><strong>Sampling（采样）</strong>：头部采样在请求入口决定是否采样；尾部采样等完整链路后按错误、延迟或业务规则保留。采样率应结合延迟 SLO、错误率、流量峰值和存储成本压测确定，不能固定为"1%~10%"。</p>
           </div>
         </div>
 
@@ -1487,12 +1537,12 @@ flowchart LR
             <table class="compare-table">
               <thead><tr><th>组件</th><th>定位</th><th>特点</th><th>适用</th></tr></thead>
               <tbody>
-                <tr><td>SkyWalking</td><td>APM 全链路</td><td>Agent 无侵入、自动埋点、UI 强大、国产</td><td>Java 主流，功能全</td></tr>
+                <tr><td>SkyWalking</td><td>APM 全链路</td><td>Agent 自动埋点、UI 强大、国产</td><td>Java 主流，功能全</td></tr>
                 <tr><td>Jaeger</td><td>Tracing</td><td>CNCF、云原生、与 OpenTelemetry 原生集成</td><td>K8s 云原生环境</td></tr>
                 <tr><td>Zipkin</td><td>Tracing</td><td>轻量、简单、社区老</td><td>小型系统、快速验证</td></tr>
                 <tr><td>Prometheus</td><td>Metrics</td><td>拉模型、PromQL、Alertmanager</td><td>指标采集标准</td></tr>
                 <tr><td>ELK / Loki</td><td>Logging</td><td>全文检索 / 轻量标签检索</td><td>日志存储分析</td></tr>
-                <tr><td>OpenTelemetry</td><td>标准 SDK</td><td>统一 API、Exporter 可插拔</td><td>长期演进方向</td></tr>
+                <tr><td>OpenTelemetry</td><td>API/SDK/OTLP/Collector</td><td>统一 API、Exporter 可插拔</td><td>长期演进方向</td></tr>
               </tbody>
             </table>
 
@@ -1509,7 +1559,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Trace 采样率设为多少合适？全量采集有什么问题？</strong></p>
-            <p>常规流量 1%~5% 采样即可满足趋势分析；错误/慢请求建议 100% 保留（Tail-based Sampling）。全量采集的问题：① Agent 字节码增强带来 5%~15% CPU/内存开销；② 存储成本随 QPS 线性爆炸（日均百亿 Span 可达 TB 级）；③ 网络带宽占用。折中方案：核心链路全采、非核心链路低采样。</p>
+            <p>先定义问题：如果目标是趋势分析和容量画像，可对常规流量采样；如果目标是一次线上故障的证据链，错误/慢请求应尽量保留（可用尾部采样）。全量采集会增加 Agent CPU/内存、网络带宽和后端存储成本；具体开销必须用目标 Agent 版本和真实流量压测，不能引用固定百分比。</p>
             <p><strong>追问 2：异步/Reactive 编程中 Trace 上下文如何传递？</strong></p>
             <p>ThreadLocal 在异步场景失效。方案：① 线程池包装（SkyWalking 提供 RunnableWrapper/CallableWrapper）；② Project Reactor 的 Context 透传；③ Kotlin Coroutine 的 ThreadContextElement。本质是"将 Context 绑定到执行单元（而非线程）"。</p>
           </div>
@@ -1544,52 +1594,55 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察<strong>Cache-DB 一致性</strong>的经典问题：读缓存加速、写 DB 持久化，两者数据不一致时如何取舍与修复。核心回答：不存在"强一致"的银弹，只能在<strong>最终一致、延迟、复杂度</strong>之间做工程权衡；理解 Cache Aside、Read/Write Through、Write Behind 三种模式的适用边界。</p>
+            <p>考察<strong>Cache-DB 一致性</strong>的经典问题：读缓存加速、写 DB 持久化，两者数据不一致时如何取舍与修复。核心回答：先区分业务允许的是<strong>强一致、单调读、读己之写还是最终一致</strong>，再选择读写路径、失效策略、失败补偿和监控；延迟双删只是特定竞态下的补救，不是所有缓存一致性方案的必然步骤。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>Cache Aside（旁路缓存，最常用）</strong>：读时先查缓存，miss 则读 DB 并回填；写时先更新 DB，再删缓存（或更新缓存）。简单、可控，但存在"删缓存失败"或"并发读写"导致不一致的窗口。</p>
-            <p><strong>Read/Write Through（读写穿透）</strong>：应用只与缓存交互，缓存层负责同步读写 DB。由缓存组件（如 Guava CacheLoader、Caffeine）或外部中间件（如 Redis 配合 DB）实现。一致性更好，但缓存层复杂。</p>
-            <p><strong>Write Behind（异步写回）</strong>：写时只更新缓存，异步批量写回 DB。极致性能，但数据丢失风险高，适用于非关键计数、日志等可丢场景。</p>
-            <p><strong>趋势</strong>：① 大型系统多用 <strong>Cache Aside + 消息补偿/延迟双删</strong>；② 本地缓存（Caffeine）+ 分布式缓存（Redis）二级架构，需解决本地缓存同步；③ 向"计算存储分离"演进，缓存即计算节点（Redis 做分布式锁、限流、队列）。</p>
+            <p><strong>Cache Aside（旁路缓存，常用）</strong>：读时先查缓存，miss 则读 DB、校验版本/条件并回填；写路径通常更新 DB 后失效缓存。它实现简单、可控，但删除失败和并发读写会产生不一致窗口，必须有 TTL、重试和对账兜底。</p>
+            <p><strong>Read/Write Through</strong>：应用只与缓存/访问层交互，缓存层负责同步读写 DB。若底层使用支持事务或线性一致性的存储/协调器，可提供更强语义；普通进程内缓存包装 DB 只是封装差异，不会自动变强一致。</p>
+            <p><strong>Write Behind（异步写回）</strong>：写时先更新缓存，异步批量写回 DB。写入吞吐高，但存在丢数据和乱序风险，只适合计数、日志等明确可补偿/可丢的数据；必须有持久队列、幂等写库、对账和降级开关。</p>
+            <p><strong>趋势</strong>：① 按业务等级选择 <strong>Cache Aside + 补偿</strong>、条件写入、版本化缓存或直读 DB；② 本地缓存（Caffeine）+ 分布式缓存（Redis）需设计失效广播/版本号/TTL；③ Redis 生态还承担分布式锁、限流、队列等用途，这些场景的一致性要求要单独建模，不能套用普通缓存失效策略。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>Cache Aside 经典问题：为什么是"删缓存"而非"更新缓存"？</strong></p>
-            <p>并发场景下，两个写请求 A、B 同时更新同一数据：若用"更新缓存"，A 先更新 DB，B 后更新 DB，但 B 先写缓存、A 后写缓存，最终缓存中是 A 的旧值（DB 已是 B 的新值）。若用"删缓存"，写请求只删缓存，下次读从 DB 回填最新值，避免了并发写导致的缓存脏数据。</p>
+            <p><strong>为什么常用"失效缓存"，但不是唯一答案？</strong></p>
+            <p>并发更新时，"应用层先算好值再更新缓存"可能乱序：A、B 更新 DB 的顺序与写缓存顺序不同，缓存可能保留 A 的旧值。失效缓存让下一次读回源，减少写入序与缓存序耦合，因此成为常用默认。但在读多写少、成本高的派生视图里，也可以<strong>更新缓存</strong>，前提是用版本号、逻辑时钟、分布式锁或单分区写入消除乱序，并写明失败时如何失效缓存。</p>
 
-            <p><strong>Cache Aside 不一致窗口</strong>：写 DB → 删缓存之间存在延迟，若此时有读请求命中旧缓存，会返回脏数据。解决方案：</p>
+            <p><strong>Cache Aside 的失败语义</strong>：即使"先更新 DB，后删缓存"，第二步也可能失败、超时或读到旧副本；"先删缓存，后写 DB"则更依赖后续补偿，否则旧值可能回填。方案应组合使用：</p>
             <ul>
-              <li><strong>延迟双删</strong>：删缓存 → 写 DB →  sleep（如 500ms）→ 再删缓存。缩短不一致窗口。</li>
-              <li><strong>消息补偿</strong>：Canal/Debezium 监听 Binlog，缓存删除失败时由消息队列异步补偿删除。</li>
-              <li><strong>设置短 TTL</strong>：让脏数据自然过期，最简单但牺牲实时性。</li>
+              <li><strong>失败标记/重试</strong>：删除失败写入重试队列或 outbox，带 key、版本、重试次数和过期时间。</li>
+              <li><strong>Binlog/CDC 补偿</strong>：Canal/Debezium 监听变更后触发失效；同一个 key 的事件要按版本/顺序消费，消费失败进入死信和人工兜底。</li>
+              <li><strong>TTL</strong>：所有脏数据必须有上限窗口；TTL 是一致性边界，不只是性能参数。</li>
+              <li><strong>延迟双删</strong>：用于"删缓存 → 写 DB → 读旧值回填"这类竞态。延迟必须按主从延迟、回源耗时和压测分布设定，并保留第二次删除失败重试；它不能替代版本化和对账。</li>
+              <li><strong>版本化 key</strong>：写路径生成新版本 key 并切换指针，旧 key 短 TTL 存活；适合可接受短暂旧读且读多写少的场景。</li>
             </ul>
 
-            <p><strong>本地缓存 + Redis 二级缓存同步</strong>：本地缓存命中率高但存在多节点不一致。方案：① Redis Pub/Sub 或广播通知各节点失效本地缓存；② 设置极短本地 TTL（如 10s），牺牲一定实时性换性能。</p>
+            <p><strong>本地缓存 + Redis 二级缓存同步</strong>：广播通知可能丢失，节点重启后也可能错过事件。除 Redis Pub/Sub/MQ 广播外，还应保留短 TTL、版本号或定期拉取变更；强一致读必须绕开本地缓存。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>选型对比</strong>：</p>
+            <p><strong>按一致性目标选型</strong>：</p>
             <table class="compare-table">
               <thead><tr><th>模式</th><th>一致性</th><th>复杂度</th><th>性能</th><th>适用</th></tr></thead>
               <tbody>
-                <tr><td>Cache Aside</td><td>最终一致</td><td>低</td><td>高</td><td>通用场景，优先选用</td></tr>
-                <tr><td>Read Through</td><td>较好</td><td>中</td><td>高</td><td>读多写少，缓存组件支持</td></tr>
-                <tr><td>Write Through</td><td>强</td><td>高</td><td>中</td><td>数据强一致要求</td></tr>
-                <tr><td>Write Behind</td><td>弱</td><td>高</td><td>极高</td><td>计数、日志、可丢数据</td></tr>
+                <tr><td>Cache Aside</td><td>最终一致，窗口取决于 TTL/补偿</td><td>低-中</td><td>高</td><td>可容忍短暂旧读的通用读路径</td></tr>
+                <tr><td>Read Through + 条件回填</td><td>可减少旧写覆盖</td><td>中</td><td>高</td><td>读多写少，缓存组件支持版本/条件</td></tr>
+                <tr><td>Write Through / 支持事务的访问层</td><td>取决于底层存储和失败协议</td><td>高</td><td>中</td><td>关键数据；不达标时业务直接读 DB</td></tr>
+                <tr><td>Write Behind</td><td>最终一致且可能丢/乱序</td><td>高</td><td>极高</td><td>计数、日志等可重建数据</td></tr>
+                <tr><td>版本化失效/单写入口</td><td>可做到读己之写或单调读</td><td>高</td><td>中-高</td><td>核心视图、权限、余额等敏感数据</td></tr>
               </tbody>
             </table>
 
-            <p><strong>生产建议</strong>：① 写操作用"更新 DB + 删缓存"，不用"更新缓存"；② 高并发写场景配合<strong>延迟双删</strong>或<strong>Canal 监听 Binlog 异步删缓存</strong>；③ 本地缓存 TTL 不宜过长，建议 5~30s；④ 缓存必须设过期时间，避免死数据永久驻留；⑤ 热点 Key 打散（如拼随机后缀）避免缓存击穿。</p>
+            <p><strong>生产建议</strong>：① 为每类数据写明一致性目标和不一致窗口；② 写操作明确顺序、失败重试、版本和清理策略；③ 所有缓存和空值设 TTL；④ 本地缓存 TTL 按业务可接受旧读窗口评估，不套用固定 5~30s；⑤ 监控删除失败率、补偿延迟、TTL 内旧读估计、回源 QPS、击穿/穿透和对账差异。</p>
           </div>
         </div>
 
@@ -1599,7 +1652,7 @@ flowchart LR
             <p><strong>追问 1：缓存穿透、击穿、雪崩的区别与应对？</strong></p>
             <p><strong>穿透</strong>：查询不存在数据，每次都打到 DB。解法：布隆过滤器拦截、缓存空值（短 TTL）。<strong>击穿</strong>：热点 Key 过期瞬间大量请求打到 DB。解法：互斥锁（单线程回源）、逻辑过期（永不过期，异步刷新）。<strong>雪崩</strong>：大量 Key 同时过期或缓存集群宕机。解法：随机 TTL、高可用集群、熔断降级、多级缓存。</p>
             <p><strong>追问 2：如何保证本地缓存与 Redis 的一致性？</strong></p>
-            <p>本地缓存（Caffeine）提升单机性能，但多节点本地缓存独立。推荐：① 本地缓存 TTL 极短（5~10s），容忍短暂不一致；② 数据变更时通过 Redis Pub/Sub 或 MQ 广播"失效通知"，各节点收到后清除本地缓存；③ 对强一致数据不走本地缓存，只走 Redis。</p>
+            <p>本地缓存（Caffeine）提升单机性能，但多节点本地缓存独立，广播也不可靠。工程组合是：① 用短 TTL 定义兜底窗口；② 变更时通过 Redis Pub/Sub、MQ 或配置中心广播 key + 版本；③ 节点启动和重连后刷新版本；④ 强一致数据不走本地缓存。若业务要求"写后读自己最新值"，可在写后为该用户/会话失效或降级。</p>
           </div>
         </div>
 
@@ -1609,12 +1662,28 @@ flowchart LR
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>写操作先删缓存再写 DB</strong>：删缓存后 DB 更新前，读请求会回源旧数据并回填缓存，导致长期不一致。应先写 DB 再删缓存。</li>
+                <li><strong>把某个顺序当成永久真理</strong>：先更新 DB 再失效缓存是常见默认，但删除失败仍会脏读；先删缓存则有旧值回填竞态。关键是为失败路径设计补偿。</li>
+                <li><strong>把延迟双删当标准答案</strong>：sleep 值没有业务依据时，可能过长影响性能，也可能过短错过主从延迟；它只是竞态补救。</li>
+                <li><strong>CDC 只做"尽力删除"</strong>：必须记录版本、保证单 key 顺序、处理重复/乱序和死信，并对账 Redis 与 DB。</li>
                 <li><strong>缓存空值不设 TTL</strong>：导致内存被无效 Key 占满。</li>
                 <li><strong>本地缓存 TTL 过长</strong>：多节点数据严重不一致，引发业务 bug。</li>
                 <li><strong>忽视缓存组件的内存上限</strong>：未配置 maxmemory 与淘汰策略导致 OOM。</li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p><strong>缓存一致性治理清单</strong>：</p>
+            <ul>
+              <li><strong>一致性等级</strong>：强一致（关键扣减/权限，通常绕缓存或使用支持线性一致性的存储）、读己之写（用户写后立刻读到新值）、单调读（同一用户不看到旧值回退）、最终一致（页面/推荐/统计）。同一系统可按数据域分级。</li>
+              <li><strong>写路径模板</strong>：DB 事务提交 → 生成带版本/key 的失效事件 → 同步删除一次 → 失败入重试队列/outbox → CDC 或定时任务补偿 → 达到重试上限后告警并记录待修复 key。不允许"删失败只打日志"。</li>
+              <li><strong>读路径模板</strong>：缓存 miss → 读 DB/从库 → 校验版本或至少校验业务有效性 → 回填 TTL → 回源失败走默认值或降级。禁止把异常对象、超大对象和无 TTL 数据写进缓存。</li>
+              <li><strong>顺序与幂等</strong>：同一 key 的事件按版本或分区顺序处理；消费端以 key + 版本幂等。Redis 失效操作可重复执行，但补偿标记必须幂等。</li>
+              <li><strong>可观测性</strong>：跟踪 DB 与缓存差异对账率、失效延迟 P99、删除失败率、CDC lag、死信数、缓存命中率、回源 QPS、击穿锁等待和热点分片均匀度。演练内容应包括删除失败、Redis 主从切换、CDC 阻塞和本地缓存节点重启。</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -1641,8 +1710,8 @@ flowchart LR
             <p><strong>Sticky Session（会话粘滞）</strong>：负载均衡器按 IP/Hash 将同一用户固定路由到同一节点。简单、无改造，但节点宕机会话丢失、无法弹性扩缩容、负载可能不均。</p>
             <p><strong>Session Replication（会话复制）</strong>：Tomcat 等容器间互相复制 Session。节点间全量同步，小规模可用，节点增多时网络与内存开销指数级增长。</p>
             <p><strong>集中式 Session（Redis/Memcached）</strong>：Session 存到外部缓存，各节点共享。Spring Session 提供透明集成，成为主流方案。</p>
-            <p><strong>JWT / Token（无状态）</strong>：服务端不存 Session，用户态全在客户端 Token 中（JWT）。天然适合分布式与微服务，但 Token 无法主动失效、体积大、刷新机制复杂。</p>
-            <p><strong>趋势</strong>：微服务/云原生时代，<strong>JWT + Redis 黑名单/刷新令牌</strong>成为主流；传统 Java Web 用 <strong>Spring Session + Redis</strong> 过渡。</p>
+            <p><strong>JWT / Token（可无服务端会话）</strong>：服务端可以不保存完整 Session，用户态和声明放在客户端 Token 中（JWT）。适合分布式与微服务，但主动吊销、敏感声明、体积和刷新机制都需要额外设计。</p>
+            <p><strong>趋势</strong>：微服务/云原生时代，常见组合是 <strong>短有效期 JWT + Refresh Token + 吊销状态</strong>；传统 Java Web 用 <strong>Spring Session + Redis</strong>。无论哪种方案，都必须有传输加密、认证隔离和防伪造身份头边界。</p>
           </div>
         </div>
 
@@ -1651,9 +1720,9 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>Sticky Session</strong>：基于负载均衡算法（IP Hash / Cookie-based）。Nginx 用 <code>ip_hash</code> 或 <code>sticky cookie</code>。本质是"牺牲弹性换零改造成本"，不适合云原生。</p>
 
-            <p><strong>集中式 Redis Session</strong>：Spring Session 提供 <code>SessionRepositoryFilter</code>，替换 Servlet HttpSession 实现，自动将 Session 序列化到 Redis。支持过期 TTL、事件监听（Session 创建/销毁/过期）。序列化方式：JDK（默认，体积大）→ JSON（可读性好）→ 自定义。</p>
+            <p><strong>集中式 Redis Session</strong>：Spring Session 提供 <code>SessionRepositoryFilter</code>，替换 Servlet HttpSession 实现，自动将 Session 序列化到 Redis。支持过期 TTL、事件监听（Session 创建/销毁/过期）。序列化方式：JDK（默认，体积大）→ JSON（可读性好）→ 自定义。Redis 必须启用 TLS、认证、ACL 和网络隔离；跨信任域共享 Session 时还要限制 key 命名空间和过期时间，避免"一个缓存集群等于一个信任边界"。</p>
 
-            <p><strong>JWT 结构</strong>：Header.Payload.Signature。Payload 含用户ID、角色、过期时间等。服务端用密钥验签即可解析，无需查库。问题：① Token 一旦签发无法主动撤销（需黑名单/短 TTL）；② Payload 过大增加请求体积；③ 敏感信息不能放 Payload（仅 Base64，未加密）。</p>
+            <p><strong>JWT 结构</strong>：Header.Payload.Signature。Payload 含用户ID、角色、过期时间、签发方和 jti 等声明。服务端校验签名、 issuer、audience、exp/nbf 后解析，无需查完整 Session。问题与边界：① 签名不等于吊销；主动失效需要短 TTL、版本号、denylist 或状态端点；② Payload 过大增加请求体积；③ Payload 仅 Base64URL，未加密，敏感信息不应放入；若必须加密应使用 JWE 并按目标库验证算法；④ 验签密钥必须有 kid、轮换和算法白名单。</p>
 
             <p><strong>Refresh Token 机制</strong>：Access Token 有效期短（如 15 分钟），Refresh Token 有效期长（如 7 天）。Access Token 过期后用 Refresh Token 换取新的，减少用户重新登录频率，同时保持安全（被盗的 Access Token 很快失效）。</p>
           </div>
@@ -1668,16 +1737,16 @@ flowchart LR
               <tbody>
                 <tr><td>Sticky Session</td><td>强（单节点）</td><td>高</td><td>低</td><td>小规模、临时过渡</td></tr>
                 <tr><td>Session Replication</td><td>最终</td><td>中</td><td>中</td><td>小规模集群（&lt;10节点）</td></tr>
-                <tr><td>Redis 集中式</td><td>强</td><td>高</td><td>低</td><td>Spring Boot 主流方案</td></tr>
-                <tr><td>JWT</td><td>强（无状态）</td><td>极高</td><td>中</td><td>微服务、前后端分离</td></tr>
+                <tr><td>Redis 集中式</td><td>取决于 Redis 持久化/可用性，会话视图一致</td><td>高</td><td>低-中</td><td>Spring Boot 常用方案</td></tr>
+                <tr><td>JWT + 吊销状态</td><td>访问令牌期内可验证，吊销状态取决于存储</td><td>高</td><td>中</td><td>微服务、前后端分离</td></tr>
               </tbody>
             </table>
 
-            <p><strong>Spring Session + Redis 配置要点</strong>：① 启用 <code>@EnableRedisHttpSession</code>；② 配置 Redis 连接与过期时间；③ 自定义序列化器（推荐 GenericJackson2JsonRedisSerializer）；④ 注意 Session 中不要存大对象（如列表），Redis 是内存数据库。</p>
+            <p><strong>Spring Session + Redis 配置要点</strong>：① 按目标 Spring Session/Boot 版本选择注解或自动配置；② 配置 Redis 连接、TLS、认证、ACL 与过期时间；③ 自定义序列化器并设计版本兼容；④ Session 中不要存大对象；⑤ Cookie 设置 Secure、HttpOnly、SameSite，并按需要绑定域名。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">推荐组合</div>
-              <p>传统服务端渲染（JSP/Thymeleaf）→ <strong>Spring Session + Redis</strong>；前后端分离 / 微服务网关 → <strong>JWT + Refresh Token + Redis 黑名单</strong>（登出时将 JWT 加入黑名单，TTL 设为 JWT 剩余有效期）。</p>
+            <p>传统服务端渲染（JSP/Thymeleaf）→ <strong>Spring Session + 受保护的 Redis</strong>；前后端分离 / 微服务网关 → <strong>短 JWT + Refresh Token + denylist/token version</strong>（登出或权限变化时吊销，denylist TTL 设为 JWT 剩余有效期；长期会话状态仍在授权服务可查）。</p>
             </div>
           </div>
         </div>
@@ -1686,7 +1755,9 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：JWT 被盗怎么办？如何登出？</strong></p>
-            <p>JWT 无状态，服务端无法直接"撤销"。方案：① <strong>短 TTL</strong>（如 15 分钟），减少被盗后的风险窗口；② <strong>Redis 黑名单</strong>：登出时将 JWT jti 加入 Redis 黑名单，网关/拦截器校验时查黑名单；③ <strong>双 Token</strong>：Access Token 短有效期 + Refresh Token 单点存储（Redis），异常时清除 Refresh Token。无法做到即时全局失效，是 JWT 的固有代价。</p>
+            <p>JWT 签名验证本身不查询服务端会话，因此主动"撤销"要引入状态。方案：① <strong>短 TTL</strong>（如 15 分钟），减少被盗后的风险窗口；② <strong>denylist</strong>：登出时将 jti/token hash 加入 Redis，网关/拦截器校验时查黑名单，TTL 为剩余有效期；③ <strong>token version / session version</strong>：用户登出、改密或权限变化时递增版本，校验 Token 中的版本；④ <strong>双 Token</strong>：Access Token 短有效期 + Refresh Token 单点存储，异常时清除 Refresh Token。仍需假设 Access Token 在已发放的短窗口内可能有效，重要操作可二次认证或查授权服务。</p>
+            <p><strong>追问 3：网关如何向下游传身份？</strong></p>
+            <p>外部请求进入可信边界时，网关必须先剥离客户端携带的内部身份头（如 <code>X-User-Id</code>、<code>X-Roles</code>、<code>X-Trace-User</code>），认证通过后才由网关注入新的身份头/签名的内部令牌，并加上来源标识与过期时间；下游只信任来自内网/服务网格的网关流量。更安全的做法是下游再校验签名令牌或 mTLS 服务身份，而不是裸信任意 HTTP Header。</p>
             <p><strong>追问 2：Spring Session 序列化异常如何处理？</strong></p>
             <p>类结构变更后反序列化失败。方案：① 使用 JSON 序列化（兼容字段变更）；② 自定义 <code>RedisSerializer</code>；③ 版本升级时清理旧 Session（渐进式发布）。</p>
           </div>
@@ -1702,8 +1773,25 @@ flowchart LR
                 <li><strong>Session 存大对象</strong>：Redis 内存暴涨，序列化/反序列化耗时。</li>
                 <li><strong>Sticky Session 做弹性伸缩</strong>：节点上下线导致会话漂移，用户体验差。</li>
                 <li><strong>JWT 长期不刷新</strong>：单 Token 长期有效，被盗后风险极大。</li>
+                <li><strong>把签名当吊销</strong>：有效签名只证明签发时的完整性，不证明当前会话仍被授权。</li>
+                <li><strong>网关裸透传身份头</strong>：外部伪造 <code>X-User-Id</code>/<code>X-Roles</code> 会造成越权；必须先剥离再在可信边界注入。</li>
+                <li><strong>会话存储裸奔</strong>：Redis/Sessions 服务未开认证、TLS 或网络隔离，等于把登录态暴露给可访问缓存的调用方。</li>
               </ul>
             </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p><strong>会话安全边界</strong>：</p>
+            <ul>
+              <li><strong>传输与存储</strong>：浏览器到网关使用 HTTPS；内部 Redis/授权服务启用 TLS、认证、ACL 和网络隔离。会话序列化要防止反序列化漏洞，避免把可执行对象直接存入共享缓存。</li>
+              <li><strong>吊销模型</strong>：纯 JWT 不查库，适合低风险、短生命周期访问；登出、封禁、降权、改密、支付等高风险场景应有 denylist、token version 或服务端会话状态。可按用户、会话、设备粒度吊销。</li>
+              <li><strong>刷新令牌</strong>：Refresh Token 存储要哈希、可检测重放、绑定设备/客户端指纹，支持轮换；泄露后只吊销该会话，而不是全站用户。</li>
+              <li><strong>身份头契约</strong>：约定哪些 Header 是内部保留字，入口删除，网关认证后注入；服务网格/mTLS 场景可把服务身份和用户身份分离。审计日志记录认证来源与 impersonation。</li>
+              <li><strong>演练</strong>：验证登出后 Access Token、Refresh Token、Remember-Me、第三方 SSO 会话和下游缓存身份是否同时失效；测试伪造身份头、Cookie 属性、Redis 主从切换和发布期序列化兼容。</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -1720,18 +1808,18 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察分布式环境下<strong>"没有时间统一权威"</strong>时如何定义事件顺序。核心回答：物理时钟（NTP）不可靠，分布式系统依赖<strong>逻辑时钟</strong>（Happens-Before、向量时钟）或<strong>混合逻辑时钟（HLC）</strong>来推理因果序；Spanner TrueTime 通过原子钟+GPS 提供不确定性边界，是工程特例。</p>
+            <p>考察分布式环境下<strong>没有全局精确时间</strong>时如何定义事件顺序。核心回答：NTP/物理时钟存在部署相关的不确定性，不能默认用于跨节点排序；因果序可用 Lamport/向量时钟或 HLC 表达，跨节点全序需要 TSO、共识日志或具备有界时钟不确定性和外部授时基础设施的系统（如 Spanner TrueTime）。<code class="inline-code">System.nanoTime()</code> 只适合同一 JVM 内测量耗时，不是跨节点时钟、逻辑时钟或墙上时间。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>物理时钟（NTP）</strong>：网络时间协议同步机器时钟，但存在 ms~几十 ms 误差，且时钟可能回拨。不能直接用于分布式事件排序。</p>
+            <p><strong>物理时钟（NTP）</strong>：网络时间协议同步机器时钟，实际误差、步进和 slew 行为取决于部署环境、时钟源和网络路径，且可能出现回拨或跳变。不能默认用于跨节点事件排序。</p>
             <p><strong>Lamport 逻辑时钟（1978）</strong>：每个节点维护单调递增计数器，事件发生时递增；消息携带发送方计数器，接收方取 max(本地, 消息)+1。能判断偏序（Happens-Before），但无法判断并发事件。</p>
             <p><strong>向量时钟（Vector Clock，1988）</strong>：每个节点维护一个向量 [t1,t2,...,tn]，记录已知其他节点的时钟。可精确判断<strong>因果序、并发、版本冲突</strong>。DynamoDB/Voldemort 用向量时钟检测冲突。缺点是向量长度随节点数增长。</p>
-            <p><strong>TrueTime（Spanner，2012）</strong>：Google 为 Spanner 设计，原子钟+GPS 硬件 + NTP 冗余，提供时间区间 [earliest, latest]。Commit Wait 机制确保因果序：等待直到 latest &lt; commit_timestamp 才响应客户端。代价高，仅 Spanner 级别系统采用。</p>
-            <p><strong>HLC（Hybrid Logical Clock，2014）</strong>：结合物理时间戳与 Lamport 逻辑时钟，既接近物理时间又保证因果序。CockroachDB 采用。趋势：多数系统用 HLC 或逻辑时钟，仅极端场景（全球级分布式 DB）用硬件时钟。</p>
+            <p><strong>TrueTime（Spanner，2012）</strong>：依赖 Google 基础设施中的原子钟、GPS 和多时钟源冗余，返回带不确定性的时间区间。Spanner 在保障外部一致性时使用提交等待，使后续提交的时间戳不早于前序事务的不确定性上界。因此它不是“零误差时钟”，而是<strong>有界不确定性 + 专用部署前提</strong>的工程方案；不应把任何固定毫秒精度当作通用结论。</p>
+            <p><strong>HLC（Hybrid Logical Clock，2014）</strong>：在物理时间分量之上增加逻辑分量，用于表达同一物理时刻内的因果先后。它能保留可读的近似物理时间，但不改变本质：跨节点顺序仍由消息交换和规则推进，不能只靠本地墙上时间。</p>
           </div>
         </div>
 
@@ -1756,17 +1844,17 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>工程选型</strong>：</p>
             <table class="compare-table">
-              <thead><tr><th>方案</th><th>精度</th><th>成本</th><th>适用</th></tr></thead>
+              <thead><tr><th>方案</th><th>保障性质</th><th>成本</th><th>适用</th></tr></thead>
               <tbody>
-                <tr><td>NTP</td><td>ms 级</td><td>低</td><td>日志时间戳、监控</td></tr>
-                <tr><td>Lamport 时钟</td><td>逻辑序</td><td>低</td><td>简单因果判断</td></tr>
-                <tr><td>向量时钟</td><td>并发检测</td><td>中</td><td>冲突检测（DynamoDB）</td></tr>
-                <tr><td>HLC</td><td>因果+近物理时间</td><td>中</td><td>CockroachDB 等 NewSQL</td></tr>
-                <tr><td>TrueTime</td><td>全局一致</td><td>极高（硬件）</td><td>Spanner 全球数据库</td></tr>
+                <tr><td>NTP</td><td>部署相关误差界</td><td>低</td><td>日志时间戳、监控；不默认用于跨节点排序</td></tr>
+                <tr><td>Lamport 时钟</td><td>因果偏序</td><td>低</td><td>简单因果判断</td></tr>
+                <tr><td>向量时钟</td><td>因果与并发检测</td><td>中</td><td>冲突检测；状态随节点/版本增长</td></tr>
+                <tr><td>HLC</td><td>因果序 + 近似物理时间</td><td>中</td><td>需要事件时间接近墙钟且保留因果规则</td></tr>
+                <tr><td>TrueTime</td><td>有界不确定性</td><td>极高（专用时钟基础设施）</td><td>具备 Spanner 类部署前提的全球数据库</td></tr>
               </tbody>
             </table>
 
-            <p><strong>时钟回拨应对</strong>：① 雪花算法中维护 lastTimestamp，发现回拨则等待或抛异常；② 闰秒处理：NTP 的"跳变"方式可能引发回拨，Google 采用"闰秒涂抹（leap smear）"——在 24 小时内逐渐调整；③ 程序逻辑不依赖单调递增的本地时间，而用 System.nanoTime 或逻辑时钟。</p>
+            <p><strong>时钟回拨应对</strong>：① 雪花算法中维护 lastTimestamp，发现回拨则等待或抛异常；② 闰秒处理：NTP 的“跳变”方式可能引发回拨，部分授时服务采用“闰秒涂抹（leap smear）”，是否启用取决于提供方和系统配置；③ 跨节点顺序使用协议序号、共识日志、TSO、HLC 或带不确定性等待的授时服务。<code class="inline-code">System.nanoTime()</code> 只用于同一 JVM 内的经过时间测量，其原点无语义，且不能跨进程比较。</p>
           </div>
         </div>
 
@@ -1774,7 +1862,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：为什么分布式事务不依赖物理时间戳？</strong></p>
-            <p>物理时间戳无法保证全局全序。节点 A 的 T1 可能大于节点 B 的 T2，但 A 的时钟本身偏快。若用物理时间戳决定事务提交顺序，可能出现"后发生的事务拥有更小时间戳"。因此分布式事务用逻辑序号（如 TSO 全局授时中心、或 Raft log index）而非物理时间。</p>
+            <p>未同步的物理时间戳无法保证全局全序。节点 A 的 T1 可能大于节点 B 的 T2，但 A 的时钟本身偏快。工程上有两类路径：要么引入 TSO、共识日志索引等显式全序来源；要么像 Spanner 一样建立有界时钟不确定性、外部授时和提交等待，再使用带不确定性处理的时间戳。不能把“本地物理时间戳 + NTP”默认等价于其中任一路径。</p>
             <p><strong>追问 2：MySQL 的 AUTO_INCREMENT 与 Snowflake 哪个更适合分布式？</strong></p>
             <p>AUTO_INCREMENT 强依赖单点（或 MySQL 多主自增步长），扩展性差、存在单点瓶颈。Snowflake 等分布式 ID 方案用时间戳+机器ID+序列号，本地生成、无单点、趋势递增。但 Snowflake 依赖时钟，时钟回拨会出问题。</p>
           </div>
@@ -1808,7 +1896,7 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察<strong>RTO（恢复时间目标）与 RPO（恢复点目标）</strong>驱动下的容灾架构设计能力。核心回答：从"单活冷备"到"同城双活"再到"异地多活"，每一级都带来成本与复杂度的指数级增长；多活的本质不是"数据实时同步"，而是<strong>流量分区+单元化+冲突消解</strong>的工程体系。</p>
+            <p>考察<strong>RTO（恢复时间目标）与 RPO（恢复点目标）</strong>驱动下的容灾架构设计能力。核心回答：从"单活冷备"到"同城双活"再到"异地多活"，成本与复杂度随一致性、切换自动化和演练要求上升；多活的本质不是"数据实时同步"，而是<strong>流量分区+单元化+冲突消解+持续演练</strong>的工程体系。“接近 0”是经过设计、自动化、故障演练和数据对账验证后的目标，不是架构名称带来的天然结果。</p>
           </div>
         </div>
 
@@ -1816,9 +1904,9 @@ flowchart LR
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>冷备/热备（传统灾备）</strong>：主中心运行，备中心定期同步数据（冷备）或实时同步（热备）。故障时手动/自动切换 DNS。RTO 分钟~小时级，RPO 分钟~天级。成本低但恢复慢，且备中心平时不承载流量，浪费资源。</p>
-            <p><strong>同城双活</strong>：同一城市两个数据中心同时对外服务，数据库主从同步（延迟 ms 级）。应用层双活，数据层一写多读。RTO 秒~分钟级。依赖同城光纤（&lt; 30km），可容忍单机房故障，无法容忍城市级灾难。</p>
-            <p><strong>异地多活（单元化）</strong>：多个异地数据中心同时读写，数据按用户/地域分片（单元），每个单元自包含（应用+数据+缓存+MQ）。用户请求按分片规则路由到固定单元。RTO 接近 0，RPO 接近 0。代表：支付宝单元化、AWS Global Table。</p>
-            <p><strong>趋势</strong>：云原生时代，K8s Federation + 云厂商多可用区（AZ）让"同城双活"成为基础设施标配；金融/电商核心系统追求单元化异地多活；普通业务"热备+自动切换"已足够。</p>
+            <p><strong>同城双活</strong>：同一城市两个数据中心同时对外服务；数据层可用同步、多数派或其他强复制协议，也可按业务分级一写多读。时延由机房距离、网络、存储协议和提交策略决定，通常低于跨城链路，但不是固定值。目标是容忍单机房故障，不必然容忍城市级灾难。</p>
+            <p><strong>异地多活（单元化）</strong>：多个异地数据中心同时服务，数据按用户/地域分片（单元），每个单元尽量自包含（应用+数据+缓存+MQ）。用户请求按分片规则路由到归属单元。RTO/RPO 能否接近 0，取决于故障检测、自动切换、复制协议、仲裁、跨单元补偿、演练和业务降级前提。AWS Global Table、蚂蚁 LDC 等是实现案例，不是统一标准。</p>
+            <p><strong>趋势</strong>：云原生平台和云厂商多可用区（AZ）降低了同城多可用区部署成本；金融/电商核心系统可能追求单元化异地多活；普通业务仍应先量化 RTO/RPO 与成本，再选择热备、多可用区或多活。</p>
           </div>
         </div>
 
@@ -1827,11 +1915,11 @@ flowchart LR
           <div class="qa-layer-body">
             <p><strong>RTO vs RPO</strong>：</p>
             <ul>
-              <li><strong>RTO</strong>：故障后业务恢复所需时间。冷备 RTO 小时级，热备分钟级，双活秒级，多活接近 0。</li>
-              <li><strong>RPO</strong>：故障后可接受的数据丢失量。异步复制 RPO > 0，同步复制 RPO ≈ 0。</li>
+              <li><strong>RTO</strong>：故障后业务恢复所需时间目标。它由检测、决策、DNS/GSLB 切流、存储选主、应用扩容、预热和人工审批共同决定；不是只看架构形态。</li>
+              <li><strong>RPO</strong>：故障后可接受的数据丢失量目标。异步复制通常存在丢失窗口；同步或多数派提交可趋近 0，但前提是多数派可达、提交协议可用，并且跨地域时业务能接受时延。</li>
             </ul>
 
-            <p><strong>CAP 在容灾中的体现</strong>：同城双活相当于 CP（同步复制，延迟低）；异地多活相当于 AP（异步复制，延迟高），需业务层容忍最终一致或做冲突消解。</p>
+            <p><strong>一致性由协议决定，不是距离标签</strong>：线性一致性和可用性取舍取决于复制协议、提交确认、仲裁规则、故障检测和切换协议。同城可用强一致复制，异地也可对部分数据用共识协议；跨城异步复制则必须定义丢失窗口、乱序、冲突和补偿。不要把“同城双活=CP”“异地多活=AP”当作架构定律。</p>
 
             <p><strong>单元化核心设计</strong>：</p>
             <ol>
@@ -1852,12 +1940,12 @@ flowchart LR
               <tbody>
                 <tr><td>冷备</td><td>小时~天</td><td>小时~天</td><td>低</td><td>非核心系统</td></tr>
                 <tr><td>热备</td><td>分钟</td><td>分钟</td><td>中</td><td>一般业务</td></tr>
-                <tr><td>同城双活</td><td>秒~分钟</td><td>≈0</td><td>高</td><td>核心交易</td></tr>
-                <tr><td>异地多活</td><td>≈0</td><td>≈0</td><td>极高</td><td>金融/超大规模电商</td></tr>
+                <tr><td>同城双活</td><td>目标可到秒~分钟</td><td>取决于复制/提交协议</td><td>高</td><td>可承担同城冗余成本的核心业务</td></tr>
+                <tr><td>异地多活</td><td>目标可趋近 0</td><td>目标可趋近 0，需复制/仲裁/补偿验证</td><td>极高</td><td>有明确跨地域 SLA、单元化和演练能力的系统</td></tr>
               </tbody>
             </table>
 
-            <p><strong>实施 checklist</strong>：① <strong>故障演练</strong>（混沌工程）：定期模拟机房断网、数据库宕机；② <strong>数据校验</strong>：双活/多活下定时比对主备数据一致性；③ <strong>流量调度</strong>：DNS/全局负载均衡（GSLB）支持秒级切流；④ <strong>降级预案</strong>：单机房故障时自动降级非核心链路；⑤ <strong>网络专线</strong>：同城双活需裸光纤或专线，公网同步不可靠。</p>
+            <p><strong>实施 checklist</strong>：① <strong>故障演练</strong>（混沌工程）：定期模拟机房断网、数据库宕机、仲裁失联和切流失败；② <strong>数据校验</strong>：双活/多活下定时比对副本数据、追踪复制延迟和冲突；③ <strong>自动化切换</strong>：明确检测窗口、人工/自动审批、DNS/GSLB 或服务路由切换顺序与回退方案；④ <strong>降级预案</strong>：单机房故障时自动降级非核心链路；⑤ <strong>网络与隔离</strong>：跨机房复制使用受控专线/云内网，设置限流、安全组和网络分区预案。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">单元化设计原则</div>
@@ -1870,7 +1958,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：同城双活的数据库如何同步？脑裂怎么办？</strong></p>
-            <p>MySQL 用半同步复制或组复制（MGR），Oracle 用 Data Guard，TiDB/OceanBase 原生多副本跨 AZ 部署。脑裂风险：双主模式下网络分区导致两边都写。解法：① 引入第三方仲裁（如 ZooKeeper/etcd），少数派节点自动停服；② 业务层设计为"一写多读"，避免双主；③ 使用具有自动选主能力的分布式数据库（如 TiDB Raft 跨 AZ）。</p>
+            <p>MySQL 可用半同步复制、组复制（MGR）或基于共识的方案；Oracle 有 Data Guard；TiDB/OceanBase 等原生多副本可跨 AZ 部署。脑裂风险主要来自网络分区下多个可写主或错误故障切换。解法：① 使用仲裁、多数派提交或可靠选主，让少数派拒绝服务；② 业务层对关键数据设计为单写点；③ 每次演练验证 fencing、副本一致性和回切流程。</p>
             <p><strong>追问 2：异地多活中库存如何扣减？</strong></p>
             <p>库存是全局共享资源，无法按用户分片。方案：① <strong>库存预分配</strong>：各单元预分配一定库存，卖完再调拨，牺牲全局实时一致；② <strong>集中式库存服务</strong>：库存扣减走单一中心（如 Redis/数据库主库），其他单元只读，牺牲多活纯度；③ <strong>异步对账</strong>：允许多单元同时扣减，日终对账补平。没有完美方案，只有业务可接受的妥协。</p>
           </div>
@@ -1885,7 +1973,7 @@ flowchart LR
                 <li><strong>忽视 RTO/RPO 指标</strong>：容灾方案没有量化目标，无法评估是否达标。</li>
                 <li><strong>双活变双主导致数据冲突</strong>：数据库双主写同一行，冲突后难以合并。</li>
                 <li><strong>只做数据同步不做演练</strong>：真正故障时切换脚本、流程不工作。</li>
-                <li><strong>跨城同步用异步复制处理强一致数据</strong>：金融交易等强一致场景必须同步复制，否则 RPO > 0 不可接受。</li>
+                <li><strong>用异步复制承载不可丢失数据</strong>：若 RPO 要求为 0，应选择能提供多数派提交/同步保障的协议，并验证仲裁失联时的行为。</li>
                 <li><strong>单元划分粒度太粗</strong>：如按省划分，导致热点单元流量不均。</li>
               </ul>
             </div>
@@ -1895,16 +1983,16 @@ flowchart LR
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">扩展补全</div>
           <div class="qa-layer-body">
-            <p>单元化是异地多活的落地形态，以<strong>蚂蚁集团 LDC（Logic Data Center）架构</strong>为业界标杆，其三角色分工与跨单元事务设计值得深入掌握。</p>
+            <p>单元化是异地多活的常见落地形态。<strong>蚂蚁集团 LDC（Logic Data Center）架构</strong>是一个有代表性的实现案例，以下角色与事务选择反映其公开架构思路，不是行业统一标准；实际系统应按数据一致性等级、可用区拓扑和成本约束裁剪。</p>
             <ul>
               <li><strong>蚂蚁 LDC 架构三角色</strong>：① <strong>GZone</strong>（Global Zone）——全局单元，存放无用户归属的全局数据（如商品目录、系统配置），所有 RZone 共享只读；② <strong>RZone</strong>（Rover Zone）——用户单元，按 userId 取模分配，单元内数据闭环（DB/缓存/MQ 独立），用户请求路由到归属 RZone 完成全链路读写；③ <strong>CZone</strong>（City Zone）——城市级单元，做就近读缓存，减少跨城 RTT。</li>
-              <li><strong>跨单元事务</strong>：① <strong>核心交易走 TCC</strong>（Try-Confirm-Cancel）——Try 阶段预留资源（冻结额度），Confirm 确认扣减，Cancel 释放预留，保证最终一致且不阻塞；② <strong>非核心交易走可靠消息</strong>（RocketMQ 事务消息）——本地事务 + 消息表 + 异步补偿，投递失败自动重试；③ <strong>绝不跨单元做 XA 两阶段提交</strong>——跨城网络延迟下 XA 锁持有时间过长，性能不可接受。</li>
+                <li><strong>跨单元事务</strong>：① 核心交易可使用 TCC（Try-Confirm-Cancel）——Try 阶段预留资源（冻结额度），Confirm 确认扣减，Cancel 释放预留，但仍必须实现幂等、空回滚、悬挂和防重；② 非核心交易常用可靠消息、本地事务/Outbox + 异步补偿；③ 跨城 XA/两阶段提交通常因锁持有时间、失败率和时延成本被谨慎对待，而不是被无条件禁止。</li>
               <li><strong>数据路由原则</strong>：① <strong>写</strong>——必须路由到归属 RZone，跨单元写直接拒绝（避免数据冲突）；② <strong>读</strong>——优先本地 RZone，全局数据读 GZone，跨用户聚合查询走 CZone 只读副本。</li>
               <li><strong>单元化 vs 分库分表</strong>：分库分表是<strong>数据层</strong>的水平拆分，仅解决存储与写入扩展；单元化是<strong>从接入层到数据层的全链路闭环隔离</strong>（包含路由、部署、容灾），每个单元是自包含的微缩系统。分库分表是单元化的数据层子集，单元化在其上叠加了路由、容灾、流量隔离能力。</li>
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
-              <p>单元化架构的最大挑战不是技术实现，而是<strong>"全局数据"的治理</strong>。商品、配置等全局数据天然无法按用户分片，GZone 成了所有 RZone 的共享依赖——一旦 GZone 故障，全局读链路全部受影响。蚂蚁的解法是：<strong>GZone 多地多副本 + 本地 CZone 缓存</strong>，RZone 优先读 CZone 缓存（TTL 秒级），CZone 未命中再穿透到 GZone，形成两级读降级。同时全局数据的写入收敛到 GZone 主库，异步同步到各机房 GZone 从库，保证全局一致。这种<strong>"全局单点写 + 多级读缓存"</strong>模式是单元化架构处理全局数据的标准范式。</p>
+              <p>单元化架构的最大挑战不是技术实现，而是<strong>“全局数据”的治理</strong>。商品、配置等全局数据天然无法按用户分片，GZone 类全局层可能成为所有 RZone 的共享依赖。常见做法是全局层多地多副本、本地 CZone 缓存和读降级；写入收敛到全局可写点后，副本可见性和一致性由复制/共识协议与失效策略决定，不能因为“异步同步”就宣称全局一致。“全局可写点收敛 + 多级读缓存 + 明确失效窗口”是值得评估的模式，不是免验证的默认答案。</p>
             </div>
           </div>
         </div>
@@ -1922,7 +2010,7 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察分布式事务在 2026 的<strong>工程化选型</strong>能力。核心要讲清：① Seata 2.x 架构变化（TC 基于 Raft 的高可用、存储模型重构）；② Saga 工程化的状态机编排与补偿幂等设计；③ <strong>Outbox 模式 vs 本地消息表</strong>的可靠性差异（CDC 订阅 vs 轮询）；④ TCC 与 AT 的取舍（侵入性 vs 性能）；⑤ 2026 选型建议。它是微服务事务的架构决策题——能否讲清各方案的并发性能、一致性边界、运维成本，是分布式事务选型的分水岭。</p>
+            <p>考察分布式事务的<strong>工程化选型</strong>能力。核心要讲清：① 以具体版本核对 Seata 能力（截至证据日期 Apache Seata v2.6.0 提供 TC Raft 示例配置）；② Saga 工程化的状态机编排与补偿幂等设计；③ <strong>Outbox 模式 vs 本地消息表</strong>的可靠性差异（CDC 订阅 vs 轮询）；④ TCC 与 AT 的取舍（侵入性 vs 性能）；⑤ 按一致性等级、链路形态和运维前提做场景选型。它不是“2026 必选某方案”，而是一次可验证的架构决策。</p>
           </div>
         </div>
 
@@ -1930,10 +2018,10 @@ flowchart LR
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p>本题聚焦分布式事务 2026 新演进与选型决策矩阵；TCC/AT/Saga/本地消息表基础详见 <a href="#C09.02" class="internal-link">C09.02</a>。</p>
-            <p><strong>基础模式回顾（详见 C09.02）</strong>：XA/2PC 强一致长锁已淘汰；TCC Try/Confirm/Cancel 三接口业务侵入大；Seata AT Undo Log+全局锁低侵入但并发瓶颈；Saga 正向+补偿适合长流程；本地消息表靠轮询投递。以下聚焦 2026 增量演进。</p>
-            <p><strong>增量 1：Outbox 模式 + CDC 兴起（2020+→2026 主流）</strong>。业务写库同时写 outbox 表，<strong>Debezium/Canal 订阅 binlog</strong>（表级别变更捕获）投递 MQ，应用无需轮询。Outbox vs 本地消息表关键差异：<strong>① 实时性</strong>——CDC 毫秒级推送（binlog 产生即推送）vs 轮询秒级延迟（通常 1-5s 轮询间隔）；<strong>② 无状态性</strong>——CDC 连接器是独立中间件，应用服务本身无定时任务线程，对 DB 无附加轮询查询压力；<strong>③ 统一接入</strong>——多服务共用一套 CDC 集群，无需各服务自建轮询。<strong>Outbox 表设计要点</strong>（id/aggregate_type/aggregate_id/event_type/payload/created_at 六字段）：<code class="inline-code">id BIGINT AUTO_INCREMENT PRIMARY KEY</code>（自增保证顺序）、<code class="inline-code">aggregate_type VARCHAR(64)</code>（聚合根类型，如 Order）、<code class="inline-code">aggregate_id VARCHAR(128)</code>（聚合根业务 ID）、<code class="inline-code">event_type VARCHAR(64)</code>（事件类型，如 OrderCreated）、<code class="inline-code">payload JSON</code>（事件体）、<code class="inline-code">created_at DATETIME</code>。<strong>趋势</strong>：Outbox + 事件驱动成为微服务事务首选。</p>
-            <p><strong>增量 2：Seata 2.x TC Raft 集群高可用（2023→2026 成熟）</strong>。Seata 1.x TC 依赖 DB/Redis 做共享存储 + 注册中心选举，故障切换有分钟级窗口期；2.x 引入<strong>Raft 存储模式</strong>（基于 sofa-jraft），TC 本身组成 3/5 节点 Raft 集群，无需外部依赖。<strong>Raft 模式 vs DB 模式选型对比</strong>：① <strong>一致性</strong>——Raft 强一致（Leader 写，多数派同步后 ACK），DB 模式一致性取决于共享 DB 本身；② <strong>性能</strong>——Raft 模式 Leader 单点写但多数派同步（网络 RTT×2），中小集群吞吐够用；DB 模式若共享 DB 是 MySQL 主从则写主从延迟风险；③ <strong>运维复杂度</strong>——Raft 模式无需额外部署共享 DB/Redis，减少组件；DB 模式依赖 DB 高可用（需部署 MHA/Orchestrator 等），链路长；④ <strong>部署规模</strong>——小集群（≤5 TC 节点）选 Raft 模式（2026 推荐），超大规模选 DB 模式 + 独立高可用数据库。</p>
-            <p><strong>增量 3：2026 选型决策矩阵</strong>（五维度表格见原理层）。最终一致场景首选 Outbox+CDC；最终一致短事务用 Seata AT；长流程编排用 Saga；高并发资源预留用 TCC；无 CDC 基础设施的中小团队本地消息表起步。</p>
+            <p><strong>基础模式回顾（详见 C09.02）</strong>：XA/2PC 提供较强协调语义，但长事务锁和故障恢复成本高，通常不是跨微服务高并发链路的第一选择；TCC Try/Confirm/Cancel 三接口业务侵入大；Seata AT Undo Log+全局锁低侵入但热点行会受全局锁影响；Saga 正向+补偿适合长流程；本地消息表靠轮询投递。以下聚焦较新的演进点。</p>
+            <p><strong>增量 1：Outbox 模式 + CDC</strong>。业务写库同时写 outbox 表，Debezium/Canal 等连接器订阅 binlog 并投递 MQ，应用无需自建轮询。与本地消息表相比，CDC 可减少应用侧轮询压力并便于多服务复用采集管道；但端到端延迟取决于数据库产生 binlog、连接器拉取/解析、队列、分区、消费者和重试，不是天然的毫秒级承诺。Outbox 表至少需要业务事件 ID、聚合类型/ID、事件类型、payload、创建时间和状态/版本字段；消费端必须按事件 ID 或业务唯一键幂等。</p>
+            <p><strong>增量 2：按版本核对 Seata TC Raft</strong>。Apache Seata 当前证据版本为 v2.6.0（2026-01-28，非预发布），其 2.x 源码样例 <code class="inline-code">application.raft.example.yml</code> 包含 <code class="inline-code">server.raft</code> 与 <code class="inline-code">store.mode: raft</code>。这说明目标版本支持基于 Raft 的 TC 集群配置方向；但是否适合生产，必须核对该版本的 release notes、兼容矩阵、存储/恢复行为、监控和升级路径。与共享 DB 模式相比，Raft 模式可减少一个外部共享存储组件，但引入 Raft 成员管理、快照、网络分区和磁盘持久化运维；DB 模式则把高可用职责交给数据库平台。</p>
+            <p><strong>增量 3：场景决策矩阵</strong>（五维度表格见原理层）。事件驱动最终一致常评估 Outbox+CDC；最终一致短事务可评估 Seata AT；长流程编排用 Saga；高并发资源预留用 TCC；无 CDC 基础设施的中小团队可先本地消息表。</p>
           </div>
         </div>
 
@@ -1967,10 +2055,10 @@ flowchart LR
                 <tr><th>维度</th><th>Seata AT</th><th>TCC</th><th>Saga</th><th>本地消息表</th><th>Outbox+CDC</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>一致性</td><td>最终一致（全局锁防脏写）</td><td>最终一致</td><td>最终一致</td><td>最终一致</td><td>最终一致</td></tr>
+                  <tr><td>一致性</td><td>提交/回滚受全局锁和隔离规则约束</td><td>业务预留后的最终一致</td><td>补偿后的最终一致</td><td>投递后的最终一致</td><td>投递后的最终一致</td></tr>
                   <tr><td>侵入性</td><td>低（注解）</td><td>高（三套接口）</td><td>中（状态机）</td><td>低</td><td>低</td></tr>
-                  <tr><td>并发性能</td><td>差（全局锁串行）</td><td>好</td><td>好</td><td>中（轮询压力）</td><td>好</td></tr>
-                  <tr><td>投递延迟</td><td>—</td><td>—</td><td>—</td><td>秒级（轮询间隔）</td><td>毫秒级（CDC 实时）</td></tr>
+                  <tr><td>并发特征</td><td>热点行受全局锁影响</td><td>预留后并发较好</td><td>正向/补偿可并行程度高</td><td>受轮询和数据库负载影响</td><td>受 CDC/队列/消费并发影响</td></tr>
+                  <tr><td>投递延迟</td><td>—</td><td>—</td><td>—</td><td>轮询间隔 + 处理时间</td><td>binlog、连接器、队列和消费全链路延迟</td></tr>
                   <tr><td>额外组件</td><td>TC 集群</td><td>TC 集群</td><td>状态机引擎</td><td>定时任务</td><td>Debezium/Canal</td></tr>
                 </tbody>
             </table>
@@ -1982,9 +2070,9 @@ flowchart LR
               <thead><tr><th>典型场景</th><th>一致性需求</th><th>可用性要求</th><th>实现成本</th><th>运维复杂度</th><th>推荐方案</th><th>决策说明</th></tr></thead>
               <tbody>
                 <tr><td>电商订单履约（长流程：下单→扣库存→支付→发货→通知）</td><td>最终一致（允许中间态）</td><td>极高（链路长，任一步阻塞不能影响其他）</td><td>中（需 Saga 状态机编排+补偿幂等）</td><td>高（补偿失败告警+人工兜底）</td><td><strong>Saga 状态机</strong></td><td>长流程无全局事务，正向+补偿可独立重试/人工兜底</td></tr>
-                <tr><td>跨服务订单创建+扣库存+优惠券（多服务原子性）</td><td>最终一致</td><td>高</td><td>低（业务写 outbox+CDC 基础设施）</td><td>中（需维护 Debezium/Canal 集群）</td><td><strong>Outbox + CDC + 事件驱动</strong>（2026 首选）</td><td>业务与消息同事务原子，CDC 实时解耦，多服务共用基础设施</td></tr>
+                <tr><td>跨服务订单创建+扣库存+优惠券（多服务原子性）</td><td>最终一致</td><td>高</td><td>低（业务写 outbox+CDC 基础设施）</td><td>中（需维护 Debezium/Canal 集群）</td><td><strong>Outbox + CDC + 事件驱动</strong></td><td>业务与消息同事务原子；需评估全链路延迟、顺序、幂等、重放和对账</td></tr>
                 <tr><td>秒杀库存预留（高并发热点行）</td><td>最终一致</td><td>极高（抗瞬时流量）</td><td>高（三套接口+幂等+防悬挂）</td><td>中</td><td><strong>TCC</strong></td><td>Try 阶段本地事务冻结资源，无全局锁，并发高，适合热点</td></tr>
-                <tr><td>账户转账/积分兑换（最终一致短事务）</td><td>最终一致（允许短暂中间态）</td><td>中（链路短）</td><td>极低（@GlobalTransactional 注解）</td><td>中（Seata 2.x Raft TC 集群 3 节点）</td><td><strong>Seata AT</strong></td><td>最终一致，零侵入，热点并发低时可用；超热点需换 TCC</td></tr>
+                <tr><td>账户转账/积分兑换（最终一致短事务）</td><td>最终一致（允许短暂中间态）</td><td>中（链路短）</td><td>低（@GlobalTransactional 注解）</td><td>中（按目标版本部署并验证 TC 集群）</td><td><strong>Seata AT</strong></td><td>低侵入；热点并发高或隔离要求特殊时需要压测，必要时换 TCC/业务预留</td></tr>
                 <tr><td>中小团队微服务，无 CDC 基础设施</td><td>最终一致</td><td>高</td><td>极低（SQL 写消息表+Spring @Scheduled 轮询）</td><td>低（无额外组件）</td><td><strong>本地消息表</strong>（起步方案）</td><td>零额外组件，单服务内即可闭环；后期 CDC 基础设施就位后迁 Outbox</td></tr>
               </tbody>
             </table>
@@ -1994,7 +2082,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>2026 选型决策</strong>：① 跨服务最终一致 + 事件驱动 → <strong>Outbox + CDC</strong>（首选）；② 最终一致短事务（如转账）→ <strong>Seata AT</strong>；③ 长流程编排（如订单履约）→ <strong>Saga 状态机</strong>；④ 高并发资源预留（如秒杀）→ <strong>TCC</strong>；⑤ 无 CDC 基础设施的中小团队 → <strong>本地消息表</strong>起步。</p>
+            <p><strong>场景化选型</strong>：① 跨服务最终一致 + 事件驱动 → 评估 <strong>Outbox + CDC</strong>；② 最终一致短事务（如转账）→ 评估 <strong>Seata AT</strong>；③ 长流程编排（如订单履约）→ <strong>Saga 状态机</strong>；④ 高并发资源预留（如秒杀）→ <strong>TCC</strong>；⑤ 无 CDC 基础设施的中小团队 → <strong>本地消息表</strong>起步。</p>
 
             <div class="code-block"><pre><code><span class="com">// Outbox 模式：业务与 outbox 同事务写入，CDC 订阅投递</span>
 <span class="kw">@Transactional</span>
@@ -2012,7 +2100,7 @@ flowchart LR
                 <li><strong>消息幂等</strong>：消费端按业务 ID 去重，CDC 可能重复投递。</li>
                 <li><strong>顺序保证</strong>：单聚合的事件按 outbox 自增 ID 顺序，多分区间无序。</li>
                 <li><strong>outbox 清理</strong>：已投递事件定期归档，避免表膨胀。</li>
-                <li><strong>Seata 2.x TC</strong>：Raft 集群至少 3 节点，避免脑裂。</li>
+                <li><strong>Seata TC</strong>：按目标版本文档部署 Raft/DB 高可用；Raft 常见使用奇数多数派节点，但仍需演练选举、快照、扩缩容和升级。</li>
               </ul>
             </div>
           </div>
@@ -2022,7 +2110,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Outbox 如何保证消息顺序与 Exactly-Once？</strong></p>
-            <p>顺序：同一聚合的事件写入同一 outbox 表分区（按聚合 ID 哈希），CDC 按 binlog 顺序投递，消费端单分区单线程消费即可保序。Exactly-Once：Outbox 本身是 At-Least-Once 投递（CDC 可能重复），Exactly-Once 靠<strong>消费端幂等</strong>实现——按业务事件 ID 去重表或唯一约束，重复消费时跳过。这是事件驱动架构的标准做法，非 Outbox 独有。</p>
+            <p>顺序只有在同一 binlog、同一连接器任务、同一队列分区和同一消费串行路径同时可控时才能保证；跨连接器、跨分区或重放时可能乱序。工程上按聚合 ID 路由到同一分区，并为乱序补偿设计版本号/状态机。投递语义通常按 At-Least-Once 设计，CDC 或队列可能重复；业务侧用事件 ID 去重表、唯一约束或状态机实现幂等效果。</p>
 
             <p><strong>追问 2：Seata AT 的全局锁为什么是性能瓶颈？</strong></p>
             <p>AT 模式在分支事务提交前需向 TC 注册全局锁（行级），同一行的多个分支事务串行获取锁。高并发写同一热点行（如库存）时，全局锁成为串行瓶颈，吞吐远低于本地事务。TCC 在 Try 阶段预留资源（如冻结库存），无全局锁串行，并发好但需业务实现三套接口。这是 AT 与 TCC 性能差异的根因。</p>
@@ -2039,10 +2127,10 @@ flowchart LR
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>用 Seata AT 扛高并发</strong>：全局锁串行，热点行吞吐崩塌，应换 TCC 或 Outbox。</li>
-                <li><strong>混淆 Outbox 与本地消息表</strong>：前者 CDC 实时订阅，后者轮询，延迟与数据库压力差异大。</li>
+                <li><strong>混淆 Outbox 与本地消息表</strong>：前者由 CDC/队列链路投递，后者由轮询投递；两者都要处理失败重试、顺序、幂等、监控和清理。</li>
                 <li><strong>Outbox 消费端不幂等</strong>：CDC 重复投递导致重复消费，必须按事件 ID 去重。</li>
                 <li><strong>Saga 补偿不幂等</strong>：补偿重试时重复扣款/重复发货，补偿操作必须设计为幂等。</li>
-                <li><strong>Seata TC 单点</strong>：1.x 单点 TC 故障全局事务全挂，2.x 应上 Raft 集群。</li>
+                <li><strong>TC/存储没有做高可用</strong>：无论 Raft 还是 DB 模式，都要验证注册中心、存储、网络分区和版本升级路径；不能只看协议名。</li>
               </ul>
             </div>
           </div>

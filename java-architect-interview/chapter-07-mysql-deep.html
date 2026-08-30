@@ -321,7 +321,7 @@ flowchart LR
             <p><strong>表锁时代（MyISAM/Memory）</strong>：写锁全表互斥，并发度极低，仅适合读多写少。</p>
             <p><strong>行锁引入（InnoDB）</strong>：锁粒度降到行（实际锁索引记录），不同行读写互不阻塞。但纯记录锁无法解决<strong>幻读</strong>——新插入的行不在已有记录上，记录锁锁不住。</p>
             <p><strong>间隙锁 + 临键锁</strong>：InnoDB 在 RR 级别引入 Gap Lock（锁记录间的间隙）与 Next-Key Lock（记录 + 其前间隙），锁住"范围"而非仅"点"，阻止间隙内的插入，从而在当前读场景解决幻读。这是 RR 比 RC 并发略低的根源。</p>
-            <p><strong>趋势</strong>：锁实现持续优化——8.0 改进死锁检测（<code class="inline-code">innodb_deadlock_detect</code> 可关闭以降高并发 CPU 开销）、引入 CTS（Change Transaction System）等。NewSQL（TiDB）则用 MVCC + 单时间戳 TSO + 乐观/悲观事务模型规避复杂锁体系。</p>
+            <p><strong>趋势</strong>：锁实现持续优化——5.7.15 引入 <code class="inline-code">innodb_deadlock_detect</code>（可关闭以降高并发 CPU 开销），8.0 持续优化死锁检测算法、引入 CTS（Change Transaction System）等。NewSQL（TiDB）则用 MVCC + 单时间戳 TSO + 乐观/悲观事务模型规避复杂锁体系。</p>
           </div>
         </div>
 
@@ -342,7 +342,7 @@ flowchart LR
             <ul>
               <li><strong>等值查询唯一索引，命中记录</strong>：Next-Key Lock <strong>退化为 Record Lock</strong>（只锁记录，因唯一性保证无插入冲突）。</li>
               <li><strong>等值查询唯一索引，未命中</strong>：Next-Key Lock <strong>退化为 Gap Lock</strong>（锁住目标值所在间隙，防插入）。</li>
-              <li><strong>等值查询非唯一索引，命中</strong>：Next-Key Lock 不退化为 Record Lock（因非唯一，需锁住所有等值记录及其前间隙）。但与范围查询不同，<strong>不向右继续扩展扫描范围</strong>——只有范围查询才锁住覆盖所有扫描记录及其前间隙。</li>
+              <li><strong>等值查询非唯一索引，命中</strong>：Next-Key Lock 不退化为 Record Lock（因非唯一，可能有重复值）。InnoDB 会对所有等值匹配记录加 Next-Key Lock，并<strong>继续向右扫描到第一条不满足条件的记录</strong>，对最后一条匹配记录与其后第一条不匹配记录之间的间隙加 Gap Lock——防止新插入等值记录。这是与唯一索引等值命中的关键区别。</li>
               <li><strong>范围查询</strong>：锁覆盖所有扫描到的记录及其前间隙，直到第一个不满足范围条件的记录（含其后间隙的 Gap Lock）。</li>
             </ul>
 
@@ -430,7 +430,7 @@ flowchart TD
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>三种日志的起源</strong>：Binlog 是 MySQL Server 层日志（早于 InnoDB），最初用于主从复制与 PITR；Undo/Redo 是 InnoDB 引擎层日志，借鉴经典数据库理论（ARIES 恢复算法）。MySQL 收购 InnoDB 后，需让 Server 层 Binlog 与引擎层 Redo 协同——这才催生<strong>两阶段提交</strong>。</p>
-            <p><strong>复制方案演进</strong>（与日志体系强相关）：<strong>异步复制</strong>（默认，主库不等从库，可能丢数据）→ <strong>半同步复制</strong>（5.5+，主库等至少一个从库收到 binlog 才返回，兼顾性能与数据安全）→ <strong>.lossless 半同步</strong>（5.7+，ACK 在 binlog 落盘后）→ <strong>MGR（Group Replication）</strong>（8.0+，基于 Paxos 变种 XCom，多数节点写成功才提交，强一致）。演进核心是<strong>在性能与一致性间不断向强一致推进</strong>。</p>
+            <p><strong>复制方案演进</strong>（与日志体系强相关）：<strong>异步复制</strong>（默认，主库不等从库，可能丢数据）→ <strong>半同步复制</strong>（5.5+，主库等至少一个从库收到 binlog 才返回，兼顾性能与数据安全）→ <strong>.lossless 半同步</strong>（5.7+，ACK 在 binlog 落盘后）→ <strong>MGR（Group Replication）</strong>（5.7.17 GA，基于 Paxos 变种 XCom，多数节点写成功才提交，强一致）。演进核心是<strong>在性能与一致性间不断向强一致推进</strong>。</p>
             <p><strong>组提交（Group Commit）</strong>：5.6 引入 binlog 组提交，5.7 改进为三阶段组提交（flush → sync → commit），将多个事务的日志合并一次 fsync，大幅提升高并发吞吐。这是半同步/MGR 能落地的性能基础。</p>
             <p><strong>趋势</strong>：MGR + ProxySQL/MySQL Router 成为云原生高可用主流；binlog 也被 Canal/Debezium 订阅用于 CDC 数据同步。日志体系向<strong>更强一致性 + 更高吞吐</strong>演进。</p>
           </div>
@@ -709,7 +709,7 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>建索引决策清单</strong>：① 该列是否频繁出现在 WHERE/JOIN/ORDER BY/GROUP BY；② 选择率是否足够高（&gt;30% 较佳）；③ 是否能复用已有联合索引的最左前缀；④ 写多读少的表是否值得加（写放大）；⑤ 是否可用覆盖索引替代多个单列索引。</p>
+            <p><strong>建索引决策清单</strong>：① 该列是否频繁出现在 WHERE/JOIN/ORDER BY/GROUP BY；② 选择率是否足够高（无绝对阈值，需结合数据分布与查询模式判断）；③ 是否能复用已有联合索引的最左前缀；④ 写多读少的表是否值得加（写放大）；⑤ 是否可用覆盖索引替代多个单列索引。</p>
             <p><strong>避免冗余与无用索引</strong>：联合索引 (a,b) 已覆盖 (a) 单列索引，后者冗余；主键索引已含 id，二级索引自动含 id 无需显式加。定期用 <code class="inline-code">sys.schema_unused_indexes</code> 清理长期未使用的索引。</p>
             <div class="callout callout-tip">
               <div class="callout-title">线上索引变更最佳实践</div>
@@ -834,7 +834,7 @@ flowchart TD
             <p><strong>跨库难题与对策</strong>：</p>
             <ul>
               <li><strong>跨库 Join</strong>：避免——通过冗余字段、应用层组装、宽表反范式；或用 ES 宽表检索。</li>
-              <li><strong>跨库分页</strong>：全局分页需各分片取 N×page 条再合并排序，深分页不可行。改游标分页或限制分页深度。</li>
+              <li><strong>跨库分页</strong>：全局分页需各分片取 <code class="inline-code">(offset + page)</code> 条，再统一归并排序后取目标页，深分页不可行。改游标分页或限制分页深度。</li>
               <li><strong>跨库事务</strong>：用分布式事务（Seata AT/TCC）或最终一致性（本地消息表 + MQ）。尽量保证核心事务在单分片内。</li>
               <li><strong>全局唯一 ID</strong>：雪花算法（Snowflake）、号段模式（Leaf-segment）、Redis INCR。</li>
               <li><strong>跨库聚合统计</strong>：卸载到 ClickHouse/ES 或汇总表。</li>
@@ -920,7 +920,7 @@ flowchart TD
             <p><strong>异步复制（默认）</strong>：主库提交事务后不等从库即返回，binlog 由 dump 线程异步推送。性能最高但主库崩溃可能丢未同步事务。</p>
             <p><strong>半同步复制（5.5+）</strong>：主库提交后等待至少一个从库 ACK（收到 binlog）才返回客户端。AFTER_SYNC（5.7+，lossless，ACK 在 binlog 落盘后）vs AFTER_COMMIT（5.5，ACK 在提交后）。兼顾性能与数据安全，是金融场景标配。</p>
             <p><strong>并行复制（MTS，Multi-Threaded Slave）</strong>：5.6 引入按库并行（粒度粗）；5.7 引入 <code class="inline-code">slave_parallel_type=LOGICAL_CLOCK</code> 基于组提交的并行（同组事务可并发应用）；8.0 引入 WRITESET 并行（无冲突事务可并发，突破组提交限制）。这是降低从库延迟的关键。</p>
-            <p><strong>MGR（Group Replication，8.0+）</strong>：基于 Paxos 变种（XCom）的强一致复制，多数节点写成功才提交。详见 C07.09。</p>
+            <p><strong>MGR（Group Replication，5.7.17 GA，8.0 增强）</strong>：基于 Paxos 变种（XCom）的强一致复制，多数节点写成功才提交。详见 C07.09。</p>
             <p><strong>趋势</strong>：从异步到半同步到 MGR，一致性逐步增强；并行复制从库并行度持续提升；CDC 订阅 binlog（Canal/Debezium）成为数据同步主流，复制不再仅限 MySQL 间。</p>
           </div>
         </div>
@@ -982,22 +982,22 @@ slave_parallel_type = LOGICAL_CLOCK</code></pre></div>
 gtid_mode=ON
 # 强制 GTID 一致性
 enforce_gtid_consistency=ON
-# 自动清理过期 GTID（默认0不清理，建议设置为3天）
-gtid_purged=3D
+# Binlog 过期自动清理（8.0 用 binlog_expire_logs_seconds，单位秒）
+binlog_expire_logs_seconds=259200
 # Binlog 格式必须为 ROW
 binlog_format=ROW
 # Binlog 保持时间（至少保留3天）
 expire_logs_days=3
 # 记录执行的GTID到信息
-log_slave_updates=ON</code></pre>
+log_replica_updates=ON  # 8.0 名称，5.7 及以前为 log_slave_updates</code></pre>
             <p><strong>从库 GTID 复制搭建步骤</strong>：</p>
             <pre><code>-- 1. 主库创建复制用户
 CREATE USER 'repl'@'%' IDENTIFIED BY 'password';
 GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
 FLUSH PRIVILEGES;
 
--- 2. 主库导出全量数据（注意加 --master-data=2 不记录位置）
-mysqldump -uroot -p --single-transaction --flush-logs --master-data=2 --all-databases > master_data.sql
+-- 2. 主库导出全量数据（GTID 模式下用 --set-gtid-purged 维护 GTID 上下文）
+mysqldump -uroot -p --single-transaction --set-gtid-purged=ON --all-databases > master_data.sql
 
 -- 3. 从库导入数据
 mysql -uroot -p < master_data.sql
@@ -1311,7 +1311,7 @@ public class ParallelReplicationMonitorService {
             <p><strong>主从 + 手动切换</strong>：早期方案，主库故障人工选从库提升。RTO 长（依赖人），易出错。</p>
             <p><strong>MHA（Master High Availability，2010s，已停止维护）</strong>：Perl 脚本的故障切换管理器，监控主库，故障时从多个从库选最新的提升为新主，尽量补齐其他从库缺失的 binlog。广泛使用但<strong>已多年未维护</strong>（Perl 实现，无官方维护，仅作高可用演进的历史方案保留对比），<strong>当前推荐 MGR（MySQL Group Replication）/ Orchestrator 替代</strong>——MGR 提供原生强一致，Orchestrator 适合灵活拓扑的半同步切换场景。</p>
             <p><strong>Orchestrator（GitHub 出品）</strong>：Go 实现的拓扑管理器，支持复杂拓扑发现、手动/自动故障切换、优雅切换。比 MHA 更活跃、功能更强，但仍基于异步/半同步复制，<strong>不解决数据强一致</strong>。</p>
-            <p><strong>MGR（Group Replication，8.0+）</strong>：官方基于 Paxos 变种（XCom）的<strong>强一致复制组</strong>，多数节点写成功才提交。单主模式（默认，自动选主）或多主模式。原生高可用 + 强一致，无需外部管理器。</p>
+            <p><strong>MGR（Group Replication，5.7.17 GA，8.0 增强）</strong>：官方基于 Paxos 变种（XCom）的<strong>强一致复制组</strong>，多数节点写成功才提交。单主模式（默认，自动选主）或多主模式。原生高可用 + 强一致，无需外部管理器。</p>
             <p><strong>InnoDB Cluster</strong>：MySQL 官方完整高可用方案 = MGR + MySQL Router（读写分离路由）+ MySQL Shell（管理）。官方推荐的一体化方案。</p>
             <p><strong>云原生方案</strong>：AWS Aurora / 阿里 PolarDB / 腾讯 TDSQL——存储计算分离，共享存储 + 多计算节点，秒级故障切换，原生高可用。</p>
             <p><strong>趋势</strong>：从"主从 + 外部切换工具"向"原生分布式强一致（MGR/InnoDB Cluster）"和"云原生共享存储（Aurora/PolarDB）"演进。NewSQL（TiDB/OceanBase）在金融级场景替代传统 MySQL 高可用。</p>
@@ -1442,7 +1442,7 @@ flowchart TD
                 <tr><td>key_len</td><td>索引使用字节长度</td><td>判断联合索引用了几个字段（每个字段长度可算）</td></tr>
                 <tr><td>ref</td><td>索引比较来源</td><td>const/列名/func，显示与索引比较的值来源</td></tr>
                 <tr><td>rows</td><td>预估扫描行数</td><td>越小越好；与实际偏差大则统计信息需更新</td></tr>
-                <tr><td>filtered（8.0移除列）</td><td>过滤后剩余比例</td><td>rows × filtered ≈ 最终结果行数估算</td></tr>
+                <tr><td>filtered</td><td>过滤后剩余比例</td><td>rows × filtered ≈ 最终结果行数估算</td></tr>
                 <tr><td>Extra</td><td>附加信息</td><td><strong>核心</strong>：Using index/Using where/Using filesort/Using temporary 等</td></tr>
               </tbody>
             </table>
@@ -1675,7 +1675,7 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
           <div class="qa-layer-body">
             <p><strong>原生 COPY 方式（MySQL 5.5 前）</strong>：ALTER TABLE 创建新表复制全量数据，全程<strong>元数据锁（MDL）独占</strong>，阻塞所有读写，大表等于停机。</p>
             <p><strong>Online DDL（MySQL 5.6+）</strong>：引入 INPLACE 算法，建/删二级索引、加列等可在 InnoDB 内部完成，<strong>允许并发 DML</strong>（row log 回放）。但仍有限制：ADD COLUMN 走 INPLACE 需重建表；部分操作（改列类型、改字符集）仍 COPY 全程锁。</p>
-            <p><strong>pt-online-schema-change（pt-osc，Percona Toolkit）</strong>：经典第三方方案。创建影子表 → 分块 chunk 拷贝数据 → 用<strong>触发器</strong>同步变更期间的增量 DML 到影子表 → rename 交换。<strong>痛点</strong>：触发器对原表每次写都生效，高写入负载下性能损耗 20-50%，且触发器与外键不兼容。</p>
+            <p><strong>pt-online-schema-change（pt-osc，Percona Toolkit）</strong>：经典第三方方案。创建影子表 → 分块 chunk 拷贝数据 → 用<strong>触发器</strong>同步变更期间的增量 DML 到影子表 → rename 交换。<strong>痛点</strong>：触发器对原表每次写都生效，高写入负载下性能损耗显著；外键表需用 <code class="inline-code">--alter-foreign-keys-method</code> 处理关联（auto/rebuild_link 等），不是"不支持外键"。</p>
             <p><strong>gh-ost（GitHub，2016）</strong>：放弃触发器，改<strong>解析 binlog 回放</strong>增量到影子表。无触发器开销、不与外键冲突、可动态调 throttling、支持暂停与回滚。已成为 GitHub/字节等大厂大表变更首选。</p>
             <p><strong>INSTANT DDL（MySQL 8.0.12+）</strong>：ADD COLUMN（末尾）/DROP COLUMN 仅改元数据，<strong>毫秒级、零数据拷贝、不锁表</strong>。MySQL 8.0.29 扩展 INSTANT 支持任意位置加列/删列。<strong>趋势</strong>：原生 INSTANT 覆盖越来越多的轻量变更，gh-ost 收缩到需重建表的复杂变更；超大表跨实例迁移走向双写灰度。</p>
           </div>
@@ -1747,7 +1747,7 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
               <ul>
                 <li><strong>低峰执行</strong>：即使 gh-ost 也建议低峰，配合 max-load 动态限速。</li>
                 <li><strong>预留磁盘</strong>：影子表 + binlog 需约原表 1.5-2 倍空间。</li>
-                <li><strong>外键先禁用</strong>：pt-osc 不支持外键，gh-ost 需先解除外键约束。</li>
+                <li><strong>外键先禁用</strong>：pt-osc 需用 <code class="inline-code">--alter-foreign-keys-method</code> 处理外键关联，gh-ost 需先解除外键约束或拆分变更。</li>
                 <li><strong>切换窗口</strong>：rename 前确保无长事务持有 MDL，否则 rename 阻塞。</li>
               </ul>
             </div>
@@ -1758,7 +1758,7 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：gh-ost 相比 pt-osc 的根本优势是什么？</strong></p>
-            <p>根本优势是<strong>无触发器</strong>。pt-osc 的触发器挂在原表上，每次 INSERT/UPDATE/DELETE 都额外执行触发器逻辑，高写入下原表写吞吐下降 20-50%，且触发器与外键冲突、可能引发死锁。gh-ost 作为 binlog 消费者旁路运行，原表零额外开销，且可动态 throttle、暂停、回滚（cut-over 前可随时放弃影子表）。代价是<strong>依赖 binlog row 格式</strong>且需额外部署 gh-ost 进程。</p>
+            <p>根本优势是<strong>无触发器</strong>。pt-osc 的触发器挂在原表上，每次 INSERT/UPDATE/DELETE 都额外执行触发器逻辑，高写入下原表写吞吐下降 20-50%，外键表还需额外处理。gh-ost 作为 binlog 消费者旁路运行，原表零额外开销，且可动态 throttle、暂停、回滚（cut-over 前可随时放弃影子表）。代价是<strong>依赖 binlog row 格式</strong>且需额外部署 gh-ost 进程。</p>
 
             <p><strong>追问 2：原生 Online DDL 的 INPLACE 真的不锁表吗？</strong></p>
             <p>"INPLACE"是 InnoDB 引擎层概念，<strong>不等于"无 MDL 锁"</strong>。它分 START/END 两个阶段：START 需 MDL 独占（极短，但若此时有长事务持有 MDL 会阻塞甚至锁等待超时）；中间允许并发 DML；END 又需短暂 MDL 独占交换元数据。所以 INPLACE 仍可能因长事务导致 MDL 阻塞，并非完全无锁。INSTANT 才是真正的元数据级零拷贝。</p>

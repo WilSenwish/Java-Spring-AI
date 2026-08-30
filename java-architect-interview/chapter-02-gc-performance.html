@@ -217,8 +217,8 @@ graph TD
             <p><strong>Parallel Scavenge / Parallel Old（JDK 1.4+，2002）</strong>：多线程 GC，吞吐优先（GC 时间占总时间比例最小）。适合批处理、离线计算。JDK 8 默认。</p>
             <p><strong>CMS（Concurrent Mark Sweep，JDK 1.5，2004）</strong>：首个商用<strong>并发</strong>收集器，目标最低停顿。分四阶段：初始标记（STW）→ 并发标记 → 重新标记（STW）→ 并发清除。致命缺陷：标记-清除产生碎片、Concurrent Mode Failure 退化为 Serial Old 全堆整理。<strong>JDK 9 标记废弃，JDK 14 彻底移除</strong>。</p>
             <p><strong>G1（Garbage First，JDK 1.7u4 引入，JDK 9 默认）</strong>：堆 Region 化（目标约 2048 个 Region，根据堆大小动态调整），每个 Region 动态归属 Eden/Survivor/Old/Humongous。回收价值优先（Garbage First）：优先回收垃圾最多的 Region，用停顿时间模型 <code class="inline-code">-XX:MaxGCPauseMillis</code> 预测可回收的 Region 数。Mixed GC 替代 Full GC。</p>
-<p><strong>ZGC（Z Garbage Collector，JDK 11 实验，JDK 15 生产可用）</strong>：染色指针（Colored Pointer）+ 读屏障（Load Barrier），STW 通常             <p><strong>ZGC（Z Garbage Collector，JDK 11 实验，JDK 15 生产可用）</strong>：染色指针（Colored Pointer）+ 读屏障（Load Barrier），STW 通常 通常 通常 &lt; 10mslt; 10ms（低分配压力、合理堆大小下，部分场景 通常 &lt; 10mslt; 1ms）（部分场景 &lt; 1ms）lt; 10ms（低分配压力、合理堆大小下，部分场景 通常 通常 &lt; 10mslt; 10ms（低分配压力、合理堆大小下，部分场景 通常 &lt; 10mslt; 1ms）（部分场景 &lt; 1ms）lt; 1ms）且不随堆增大而增加，支持 TB 级堆。<strong>JDK 21 引入 Generational ZGC（JEP 439）</strong>，重新加入分代，进一步降低分配压力下的 GC 频率。</p>lt; 10ms（低分配压力、合理堆大小下，部分场景             <p><strong>ZGC（Z Garbage Collector，JDK 11 实验，JDK 15 生产可用）</strong>：染色指针（Colored Pointer）+ 读屏障（Load Barrier），STW 通常 通常 通常 &lt; 10mslt; 10ms（低分配压力、合理堆大小下，部分场景 通常 &lt; 10mslt; 1ms）（部分场景 &lt; 1ms）lt; 10ms（低分配压力、合理堆大小下，部分场景 通常 通常 &lt; 10mslt; 10ms（低分配压力、合理堆大小下，部分场景 通常 &lt; 10mslt; 1ms）（部分场景 &lt; 1ms）lt; 1ms）且不随堆增大而增加，支持 TB 级堆。<strong>JDK 21 引入 Generational ZGC（JEP 439）</strong>，重新加入分代，进一步降低分配压力下的 GC 频率。</p>lt; 1ms）且不随堆增大而增加，支持 TB 级堆。<strong>JDK 21 引入 Generational ZGC（JEP 439）</strong>，重新加入分代，进一步降低分配压力下的 GC 频率。</p>
-            <p><strong>Shenandoah（OpenJDK，RedHat 主导，JDK 12 实验、JDK 15 生产）</strong>：转发指针（Brooks Pointer）+ 读屏障实现并发整理，与 ZGC 目标类似（&lt;10ms 停顿）但实现路径不同。每个对象头多一个转发指针字段，内存开销略大。</p>
+            <p><strong>ZGC（Z Garbage Collector，JDK 11 实验，JDK 15 生产）</strong>：以染色指针和 load barrier 为核心做并发标记/整理，目标是把停顿与堆容量解耦；实际停顿仍受根集合、线程数、分配速率、NUMA 和平台影响。JDK 21 的 JEP 439 引入 Generational ZGC，JDK 23 起成为默认形态。</p>
+            <p><strong>Shenandoah（OpenJDK，JDK 12 实验、JDK 15 生产）</strong>：通过 load reference barrier 与并发复制实现压缩/整理。早期实现曾以 Brooks forwarding pointer 为重要机制，但不应把它说成当前 Shenandoah 不变的总括；不同 JDK 分支的实现细节会演进。JDK 24 引入实验性 Generational Shenandoah，JDK 25 通过 JEP 521 正式提供分代模式；JEP 535 已把 JDK 28 的默认分代模式列为目标。</p>
             <p><strong>JDK 25（JEP 521，2025）：Generational Shenandoah 转正</strong>——引入分代，年轻代/老年代独立并发回收，对标 Generational ZGC，进一步降低分配压力下的 GC 频率。至此两大低延迟收集器（ZGC、Shenandoah）均完成分代化演进。</p>
 
             <div class="mermaid-container">
@@ -238,12 +238,12 @@ timeline
         2020 : ZGC JDK15 生产可用
         2020 : Shenandoah JDK15 生产
         2023 : Generational ZGC JDK21 : 分代染色指针
-        2025 : Generational Shenandoah JDK25 : 分代转发指针
+    2025 : Generational Shenandoah JDK25 : 正式分代模式
               </div>
               <div class="chart-caption">图 2.2-1 GC 收集器演进：从吞吐优先 → 低延迟 → 无停顿 → 分代低延迟</div>
             </div>
 
-            <p><strong>未来趋势</strong>：分代 + 并发整理成为主流，染色指针与读屏障成为核心技术栈；停顿时间与堆大小完全解耦；Native Image（GraalVM）从源头消除运行时 GC 压力。OpenJDK 已规划 G1 与 ZGC 的进一步融合，Shenandoah 持续优化但生态弱于 ZGC。</p>
+            <p><strong>未来趋势</strong>：分代 + 并发整理是低延迟收集器的主流方向；"停顿与堆大小解耦"是设计目标，不是所有负载下免压测的承诺。Native Image 改变的是部署运行时形态，不能与 JVM GC 选型直接等同。OpenJDK 后续 JEP 仍会调整默认形态，版本基线必须先说清。</p>
           </div>
         </div>
 
@@ -257,13 +257,13 @@ timeline
                 </thead>
                 <tbody>
                   <tr><td>堆结构</td><td>分代（连续）</td><td>Region 化（动态调整）</td><td>Region 化（ZPage）</td><td>Region 化</td></tr>
-                  <tr><td>算法</td><td>标记-清除</td><td>标记-整理（Region 复制）</td><td>染色指针 + 并发整理</td><td>转发指针 + 并发整理</td></tr>
-                  <tr><td>并发整理机制</td><td>无（只并发清除）</td><td>部分（转移阶段 STW）</td><td>染色指针 + 读屏障</td><td>Brooks 转发指针 + 读屏障</td></tr>
-                  <tr><td>停顿时间</td><td>~200ms（碎片化后恶化）</td><td>10-200ms（可预测）</td><td>通常 &lt;10ms（部分场景 &lt;1ms，不随堆增长）</td><td>&lt;10ms（不随堆增长）</td></tr>
+                  <tr><td>算法</td><td>标记-清除</td><td>标记-整理（Region 复制）</td><td>染色指针 + 并发整理</td><td>并发复制/整理</td></tr>
+                  <tr><td>并发整理机制</td><td>无（只并发清除）</td><td>部分（转移阶段 STW）</td><td>染色指针 + load barrier</td><td>load reference barrier（历史上曾依赖 Brooks forwarding pointer）</td></tr>
+                  <tr><td>停顿时间</td><td>碎片化后明显恶化</td><td>由停顿目标驱动，非硬保证</td><td>目标为低延迟且弱依赖堆容量，需按负载验证</td><td>目标为低延迟且弱依赖堆容量，需按负载验证</td></tr>
                   <tr><td>碎片</td><td>有（标记-清除）</td><td>无（复制整理）</td><td>无</td><td>无</td></tr>
-                  <tr><td>内存开销</td><td>低</td><td>RSet 约 5-20%</td><td>染色指针 + 记忆集</td><td>每个对象 +8B 转发指针</td></tr>
+                  <tr><td>内存开销</td><td>低</td><td>Remembered Set/RSet 有额外开销</td><td>染色指针和记忆集有版本相关开销</td><td>屏障与元数据开销随实现演进，不能套用固定 +8B</td></tr>
                   <tr><td>调优复杂度</td><td>高（碎片 + 退化）</td><td>中（停顿目标 + IHOP）</td><td>低（几乎自调优）</td><td>中</td></tr>
-                  <tr><td>分代支持</td><td>是（连续分代）</td><td>是（Region 动态归属）</td><td>JDK 21+ 分代（Generational ZGC）</td><td>JDK 25+ 分代（Generational Shenandoah）</td></tr>
+                  <tr><td>分代支持</td><td>是（连续分代）</td><td>是（Region 动态归属）</td><td>JDK 21 引入分代，JDK 23 起默认分代</td><td>JDK 25 正式分代；JDK 28 目标为默认分代</td></tr>
                   <tr><td>状态</td><td>JDK14 移除</td><td>JDK9+ 默认</td><td>JDK15 生产</td><td>OpenJDK 独有</td></tr>
                 </tbody>
               </table>
@@ -292,13 +292,13 @@ graph TD
             </div>
             <p>G1 通过 <strong>CSet（Collection Set）</strong>选择本次回收的 Region 组合，优先选垃圾占比高且回收收益大的 Region（Garbage First 得名）。<strong>IHOP（Initiating Heap Occupancy Percent）</strong>控制何时触发 Mixed GC，JDK 9+ 默认自适应（<code class="inline-code">-XX:+G1UseAdaptiveIHOP</code>）。</p>
 
-            <p><strong>ZGC 染色指针的核心</strong>：64 位指针的高 4 位作为颜色标记位（Marked0/Marked1/Remapped/Finalizable），GC 移动对象时<strong>只改指针颜色不改对象本身</strong>，读屏障在解引用时根据颜色判断是否需要转发到新地址。这使得"移动对象"可以与应用线程并发进行——应用读到的总是最新地址。<strong>多重映射（Multi-Mapping）</strong>让同一物理内存映射到多个染色指针虚拟地址，CPU 硬件 MMU 配合完成转发。</p>
+            <p><strong>ZGC 染色指针的核心</strong>：HotSpot 64 位指针中保留颜色位，load barrier 在解引用时检查对象指针是否处于过期颜色，必要时完成自愈/转发。移动对象的大部分工作可与 Java 线程并发进行；STW 只保留根扫描等短阶段。早期 Linux 路径使用过多重映射，平台和 JDK 实现会变化，不要把它写成所有 ZGC 版本的通用细节。</p>
 
-            <p><strong>Shenandoah 转发指针的核心</strong>：每个对象头前增加一个 Brooks Pointer 指向"对象自己或转发后的新地址"。移动对象时，先在原对象头写入新地址，应用线程下次访问时通过转发指针跳转。相比 ZGC 染色指针，Shenandoah 多一个指针字段（+8B/对象），但不需要多重映射，实现更直观。</p>
+            <p><strong>Shenandoah 并发复制的核心</strong>：对象访问经过 load reference barrier，被移动对象的新地址可通过转发信息解析，Java 线程继续访问时完成自愈/更新。早期实现广泛以 Brooks forwarding pointer 描述这一模型；现代分支已持续演进，具体对象头/屏障开销要以目标 JDK 源码和 GC 日志为准。</p>
 
             <div class="callout callout-deep">
               <div class="callout-title">读屏障的本质</div>
-              <p>ZGC 与 Shenandoah 的关键技术是<strong>读屏障</strong>（不同于 CMS/G1 的写屏障；CMS 已 JDK14 移除）。读屏障在每次对象字段访问时插入一段 JIT 生成的代码，检查对象是否已被移动、是否需转发。这会带来约 5-10% 的吞吐损失，但换来了"移动对象无需 STW"的能力，是低延迟的根本所在。</p>
+              <p>ZGC 与 Shenandoah 都依赖对象读取路径上的 barrier：JIT/运行时插入检查，处理对象是否已被移动、是否需解析新地址。它们与 CMS/G1 关注的写屏障不是同一类屏障。吞吐损失取决于硬件、访问密度和 JDK 版本，经验范围需在真实负载中测得，不能记成固定 5-10%。</p>
             </div>
           </div>
         </div>
@@ -308,16 +308,14 @@ graph TD
           <div class="qa-layer-body">
             <p><strong>专家级 · 选型决策</strong>：</p>
             <ul>
-              <li><strong>堆 &lt; 4GB</strong>：Parallel Scavenge（吞吐优先）或 G1（均衡），无需 ZGC 的额外开销。</li>
-              <li><strong>4GB ~ 32GB</strong>：G1 是默认选择，停顿目标 100-200ms，调优成熟。</li>
-              <li><strong>32GB ~ 16TB</strong>：ZGC 或 Shenandoah，停顿 停顿 &lt;10ms 且不随堆增长lt;10ms（低分配压力下）且不随堆增长。</li>
-              <li><strong>延迟敏感（金融交易/游戏/广告竞价）</strong>：ZGC（JDK21+ Generational ZGC），P99 停顿可压到 1ms 内。</li>
-              <li><strong>JDK 版本约束</strong>：JDK 8 只能用 CMS/G1（CMS 已于 JDK 9 标记废弃、JDK 14 正式移除，当前推荐 G1/ZGC/Shenandoah），JDK 11+ 推荐 G1 或 ZGC（实验），JDK 17+ ZGC 生产可用，JDK 21+ 优先 Generational ZGC。</li>
+              <li><strong>先锚定 JDK 基线</strong>：JDK 8 主要是 Parallel/G1/CMS；CMS 在 JDK 14 已移除。ZGC 和 Shenandoah 都在 JDK 15 生产可用；更高版本才有分代形态。</li>
+              <li><strong>按目标选型</strong>：吞吐型批处理优先压测 Parallel/G1；通用服务从 G1 默认形态入手；极低尾延迟才评估 ZGC/Shenandoah。不要用固定 4GB/32GB 阈值替代压测。</li>
+              <li><strong>延迟敏感服务</strong>：优先建立 P99/P999、分配速率、promotion 速率和吞吐曲线，再切换 JDK 分代形态。设计目标是低停顿，但 1ms 不能写成无条件承诺。</li>
             </ul>
 
             <div class="callout callout-tip">
               <div class="callout-title">生产配置示例</div>
-              <p><strong>JDK 21 大堆低延迟</strong>：<code class="inline-code">-XX:+UseZGC -XX:+ZGenerational -Xmx16g -Xlog:gc*=info:file=/data/logs/gc.log:time,level,tags</code></p>
+              <p><strong>JDK 21 大堆低延迟</strong>：<code class="inline-code">-XX:+UseZGC -XX:+ZGenerational -Xmx16g -Xlog:gc*=info:file=/data/logs/gc.log:time,level,tags</code>（JDK 23+ 默认分代，通常不再需要 <code class="inline-code">-XX:+ZGenerational</code>）</p>
               <p><strong>JDK 11/17 均衡</strong>：<code class="inline-code">-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1HeapRegionSize=16m -XX:+ParallelRefProcEnabled</code></p>
             </div>
           </div>
@@ -333,7 +331,7 @@ graph TD
             <p>核心是把所有"随堆大小线性增长"的工作都<strong>并发化</strong>：根扫描只扫描 GC Roots（与堆大小无关，与线程数相关）；标记用并发标记 + 染色指针；转移用染色指针 + 读屏障并发移动。STW 阶段只剩"初始标记"和"再标记"等极少数根枚举工作，这些只与线程数和 Root 数量有关，与堆大小解耦。</p>
 
             <p><strong>追问 3：Generational ZGC 为什么重新引入分代？</strong></p>
-            <p>非分代 ZGC 在分配压力大的场景（高频分配短生命周期对象）下，并发标记跟不上分配速度，导致频繁 GC 和吞吐下降。分代假说仍然成立，引入分代后新生代单独并发回收，老年代低频回收，减少了 80% 以上的标记工作量。Generational ZGC 用染色指针 + 双重记忆集实现分代间的并发引用追踪，是 ZGC 的工程成熟化。</p>
+            <p>非分代 ZGC 在高频分配短生命周期对象的场景下，每次并发周期可能要面对大量已死对象，导致 CPU 和分配速率压力。分代后年轻对象按更短周期并发回收，老年代低频参与，通常能减少重复标记量；具体收益和内存开销仍需用分配速率、存活集和 P99/P999 停顿验证，不要引用固定的"减少 80%"。</p>
           </div>
         </div>
 
@@ -344,9 +342,9 @@ graph TD
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>误以为 CMS 还能用</strong>：CMS 在 JDK 14 已被移除，新项目绝不应使用，迁移到 G1/ZGC。</li>
-                <li><strong>把 G1 当银弹</strong>：G1 在小堆（&lt;2GB）反而不如 Parallel，在超大堆（&gt;32GB）停顿会失控。它不是万能的。</li>
+                <li><strong>把 G1 当银弹</strong>：G1 在极小堆、超高分配速率或 CSet 选择恶化的场景可能不如 Parallel 或低延迟收集器；超大堆也不是天然失控，但必须按真实负载验证。</li>
                 <li><strong>混淆"染色指针"与"转发指针"</strong>：ZGC 用染色指针（改指针颜色），Shenandoah 用转发指针（对象头加字段），两者都是并发整理手段但实现路径不同。</li>
-                <li><strong>误以为 ZGC 完全无停顿</strong>：ZGC 仍有亚毫秒级 STW（初始标记），只是与堆大小无关。说"无停顿"是营销话术，严格说是"亚毫秒停顿"。</li>
+                <li><strong>误以为 ZGC 完全无停顿</strong>：ZGC 仍有短 STW 阶段；多数常规堆上可以很小，但停顿不是零，也不会在任何根集合/线程数/硬件下自动等于固定值。</li>
                 <li><strong>忽略 JDK 版本对应关系</strong>：ZGC 在 JDK 11 是实验特性（需 <code class="inline-code">-XX:+UnlockExperimentalVMOptions</code>），JDK 15 才生产可用，JDK 21 才有分代版本。</li>
               </ul>
             </div>
@@ -949,7 +947,7 @@ graph TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察<strong>线上诊断工具的实战掌握度</strong>：能否熟练使用 Arthas 的核心命令（dashboard/thread/trace/watch/jad/redefine）解决"看不清、改不了、抓不到"三类线上问题。它考察的是工具链熟练度而非原理深度，但能否讲清 Arthas 底层（Java Agent + Instrumentation）与工具演进脉络，体现的是技术视野。</p>
+            <p>考察<strong>线上诊断工具的实战掌握度</strong>：能否熟练使用 Arthas 的核心命令（dashboard/thread/trace/watch/jad/retransform）解决"看不清、改不了、抓不到"三类线上问题。它考察的是工具链熟练度而非原理深度，但能否讲清 Arthas 底层（Java Agent + Instrumentation）与工具演进脉络，体现的是技术视野。</p>
           </div>
         </div>
 
@@ -957,9 +955,9 @@ graph TD
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>BTrace（2008）</strong>：首个 Java 动态追踪工具，基于 Instrumentation + ASM 字节码增强。功能强大但语法晦涩、脚本需编译、风险高（可能搞挂 JVM），门槛极高。</p>
-            <p><strong>Arthas（2018，阿里开源）</strong>：BTrace 思路的工程化、产品化。命令式交互、开箱即用、内置安全限制。成为线上诊断事实标准。核心能力：实时监控（dashboard）、方法追踪（trace/watch）、反编译（jad）、热更新（redefine）。</p>
+            <p><strong>Arthas（2018，阿里开源）</strong>：BTrace 思路的工程化、产品化。命令式交互、开箱即用、内置安全限制。成为线上诊断事实标准。核心能力：实时监控（dashboard）、方法追踪（trace/watch）、反编译（jad）、类热更（jad/mc/retransform；旧版和部分场景仍有 redefine，但新流程优先 retransform）。</p>
             <p><strong>JFR（JDK 11 开源）</strong>：JVM 内建的低开销持续采集，不是交互式诊断而是<strong>事后分析</strong>。与 Arthas 互补：Arthas 解决"实时定位"，JFR 解决"历史复盘"。</p>
-            <p><strong>async-profiler</strong>：专注性能 profiling（火焰图），不提供方法级追踪，但开销极低（&lt;1%），是 CPU/分配热点分析的金标准。Arthas 已集成（<code class="inline-code">profiler</code> 命令）。</p>
+            <p><strong>async-profiler</strong>：专注性能 profiling（火焰图），不提供方法级追踪，采样开销通常低于插桩型工具，但真实成本仍受事件、采样间隔、平台与容器权限影响。Arthas 已集成（<code class="inline-code">profiler</code> 命令）。</p>
             <p><strong>eBPF（云原生未来）</strong>：内核态采集，无需 JVM Agent，跨语言通用。bpftrace、Parca、Pixie 等兴起，是云原生可观测性的演进方向，但在 JVM 内部方法级追踪上仍不如 Arthas 精细。</p>
           </div>
         </div>
@@ -967,7 +965,7 @@ graph TD
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>Arthas 底层原理</strong>：基于 Java Agent + Instrumentation API。通过 <code class="inline-code">VirtualMachine.attach</code> attach 到目标 JVM，加载 Agent，利用 <code class="inline-code">Instrumentation.retransformClasses</code> 在运行时<strong>重写字节码</strong>注入埋点代码。命令交互通过 Telnet/WebSocket 连接到 Agent 内嵌的 Server。</p>
+            <p><strong>Arthas 底层原理</strong>：基于 Java Agent + Instrumentation API。通过 <code class="inline-code">VirtualMachine.attach</code> attach 到目标 JVM，加载 Agent，优先利用 <code class="inline-code">Instrumentation.retransformClasses</code> 在运行时注入埋点代码；retransform 受"不能新增字段/方法"等 Instrumentation 约束。命令交互通过 Telnet/WebSocket 连接到 Agent 内嵌的 Server。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -987,7 +985,7 @@ graph LR
             <ul>
               <li><strong>监控类</strong>：<code class="inline-code">dashboard</code>（全局看板）、<code class="inline-code">thread</code>（线程）、<code class="inline-code">jvm</code>（JVM 信息）、<code class="inline-code">memory</code>（内存）。</li>
               <li><strong>方法诊断</strong>：<code class="inline-code">watch</code>（观察入参/返回值/异常）、<code class="inline-code">trace</code>（调用链耗时）、<code class="inline-code">stack</code>（调用栈）、<code class="inline-code">monitor</code>（方法执行统计）。</li>
-              <li><strong>反编译/热更</strong>：<code class="inline-code">jad</code>（反编译）、<code class="inline-code">mc</code>（内存编译）、<code class="inline-code">redefine</code>（热更新字节码）、<code class="inline-code">retransform</code>。</li>
+              <li><strong>反编译/热更</strong>：<code class="inline-code">jad</code>（反编译）、<code class="inline-code">mc</code>（内存编译）、<code class="inline-code">retransform</code>（官方推荐流程）；旧命令 <code class="inline-code">redefine</code> 需按所用 Arthas 版本文档确认行为。</li>
               <li><strong>诊断辅助</strong>：<code class="inline-code">heapdump</code>、<code class="inline-code">profiler</code>、<code class="inline-code">sc</code>（查类）、<code class="inline-code">sm</code>（查方法）、<code class="inline-code">ognl</code>（执行表达式）。</li>
             </ul>
           </div>
@@ -996,7 +994,7 @@ graph LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>高级开发 · 实战命令集</strong>：</p>
+            <p><strong>高级开发 · 实战命令集（示例对齐 Arthas v4.3.3 官方文档；不同版本先执行 <code class="inline-code">version</code> 并查对应文档）</strong>：</p>
             <div class="code-block"><pre><code><span class="com"># 1. 全局看板：CPU/线程/GC/内存 一目了然</span>
 [arthas@12345]$ dashboard
 
@@ -1004,8 +1002,10 @@ graph LR
 [arthas@12345]$ thread -n 5
 <span class="com"># 找阻塞线程</span>
 [arthas@12345]$ thread -b
-<span class="com"># 找死锁</span>
-[arthas@12345]$ thread --deadlock
+            <span class="com"># 当前官方 thread 命令文档未见 --deadlock 参数；</span>
+            <span class="com"># 先看状态汇总，再用 -b 查 synchronized 阻塞源头（不支持 JUC Lock）</span>
+            [arthas@12345]$ thread
+            [arthas@12345]$ thread -b
 
 <span class="com"># 3. 方法调用链耗时（定位慢方法）</span>
 [arthas@12345]$ trace com.example.OrderService createOrder -n 5 --skipJDKMethod true
@@ -1023,11 +1023,12 @@ graph LR
 <span class="com"># 6. 反编译线上运行类（确认版本是否正确）</span>
 [arthas@12345]$ jad com.example.OrderService
 
-<span class="com"># 7. 热更新（修复线上 bug，谨慎操作）</span>
-[arthas@12345]$ jad --source-only com.example.OrderService &gt; /tmp/OrderService.java
-<span class="com"># 编辑修复后</span>
-[arthas@12345]$ mc /tmp/OrderService.java -d /tmp/output
-[arthas@12345]$ redefine /tmp/output/com/example/OrderService.class
+            <span class="com"># 7. 热更新（应急手段，谨慎操作）</span>
+            [arthas@12345]$ jad --source-only com.example.OrderService &gt; /tmp/OrderService.java
+            <span class="com"># 编辑修复后</span>
+            [arthas@12345]$ mc /tmp/OrderService.java -d /tmp/output
+            [arthas@12345]$ retransform /tmp/output/com/example/OrderService.class
+            <span class="com"># 回滚需删除对应 retransform entry 后再触发；必要时 reset/重启进程</span>
 
 <span class="com"># 8. 火焰图（性能分析）</span>
 [arthas@12345]$ profiler start --event cpu
@@ -1050,14 +1051,14 @@ graph LR
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
-            <p><strong>追问 1：Arthas 热更新（redefine）的风险与限制？</strong></p>
-            <p>风险：① <code class="inline-code">redefine</code> 只能改方法体，<strong>不能改方法签名/字段/继承关系</strong>（受 Instrumentation 限制）；② 增强后的字节码会残留，重启才清除；③ 多次 redefine 可能导致字节码不一致；④ 热更后与源码版本不一致，排查时易混淆。生产慎用，仅作应急止血，正式修复必须重新发版。</p>
+            <p><strong>追问 1：Arthas 热更新（retransform）的风险与限制？</strong></p>
+            <p>风险：① <code class="inline-code">retransform</code> 不能新增字段/方法，也不能改变既有类结构（受 Instrumentation 限制）；② 正在执行的方法不会立即使用新方法体；③ 若不删除对应 entry，Arthas stop 后增强仍可能保留；④ 热更后与源码版本不一致，排查时易混淆。生产慎用，仅作应急止血，正式修复必须重新发版。</p>
 
             <p><strong>追问 2：Arthas 与 BTrace 的本质区别？</strong></p>
             <p>BTrace 是"脚本化"工具，需写 Java 脚本编译后注入，强约束（只读、不能调用业务方法、不能循环）保证安全但牺牲灵活性。Arthas 是"交互式"工具，命令行实时输入，内置安全护栏，提供 ognl 可动态调用业务方法。本质都是 Instrumentation 字节码增强，但 Arthas 在易用性与功能性上做了工程化封装。</p>
 
             <p><strong>追问 3：Arthas 会对线上应用有影响吗？</strong></p>
-            <p>有。① attach 时会触发一次安全点（短暂 STW）；② <code class="inline-code">trace</code>/<code class="inline-code">watch</code> 注入的埋点代码有性能开销（高频方法可能 5-10% 吞吐损失）；③ <code class="inline-code">redefine</code> 风险最高。建议低峰期使用，用完 <code class="inline-code">stop</code> 清理，避免长期挂载。</p>
+            <p>有。① attach/retransform 会对目标进程产生短暂影响；② <code class="inline-code">trace</code>/<code class="inline-code">watch</code> 注入的埋点在高频方法上开销明显，具体取决于调用频率、表达式复杂度和输出量；③ 热更和 ognl 副作用风险最高。建议低峰期使用，限制 <code class="inline-code">-n</code>/<code class="inline-code">-c</code> 条件，用完 <code class="inline-code">stop</code> 清理，避免长期挂载。</p>
           </div>
         </div>
 
@@ -1068,8 +1069,8 @@ graph LR
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>用完不 stop</strong>：字节码增强残留，长期挂载持续损耗性能，且可能与后续 redefine 冲突。</li>
-                <li><strong>trace 在高频方法上不加 -n</strong>：不限次数会持续输出，刷爆终端 + 性能开销大。务必 <code class="inline-code">-n 5</code> 限制次数。</li>
-                <li><strong>把 redefine 当正式修复</strong>：热更是应急手段，不替代发版，且需记录变更便于复盘。</li>
+                <li><strong>trace 在高频方法上不限次</strong>：默认执行次数依版本而定，持续输出会刷爆终端并放大开销。生产先用 <code class="inline-code">-n</code>、#cost、条件表达式限流。</li>
+                <li><strong>把 retransform 当正式修复</strong>：热更是应急手段，不替代发版，且需记录 entry、class 版本和回滚步骤便于复盘。</li>
                 <li><strong>生产用 ognl 调用有副作用方法</strong>：ognl 可调用业务方法，若调到有副作用的方法（如扣款、发消息）会误触发生产逻辑。</li>
               </ul>
             </div>
@@ -1089,17 +1090,17 @@ graph LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察对<strong>低开销持续性能分析</strong>的深度理解：JFR 是 JVM 内建的事件采集机制，async-profiler 是基于 <code class="inline-code">asyncGetCallTrace</code> 的异步采样。两者共同特征是<strong>开销极低（&lt;1%）可长期开启</strong>，是云原生时代"持续 profiling"与事后复盘的核心工具。能否讲清 JFR 的事件模型、async-profiler 的火焰图原理与采样机制，体现专家级深度。</p>
+            <p>考察对<strong>持续性能分析</strong>的深度理解：JFR 是 JDK 内建的结构化事件采集机制，需要显式启动；async-profiler 主要通过 HotSpot 内部采样接口生成火焰图。两者的开销都依赖 JDK/版本、事件集、采样间隔和工作负载，不能先验地承诺固定百分比。能否讲清 JFR 的事件模型、版本差异、async-profiler 的采样边界与生产启用策略，体现专家级深度。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>JFR 历史</strong>：原为 JRockit 商业特性，Oracle JDK 11 开源（JEP 328）。从"商业监控"走向"标准可观测性"。JDK 16+ 进一步降低开销，可<strong>持续开启</strong>（默认配置开销 &lt;1%）。JDK 17/21 持续丰富事件类型（容器、虚拟线程、Native Memory 等）。</p>
-            <p><strong>async-profiler</strong>：基于 HotSpot 内部 <code class="inline-code">AsyncGetCallTrace</code>（非公开 API 但稳定）的异步采样，生成火焰图。比 JFR 更聚焦 CPU/分配/锁热点分析，是性能工程师的瑞士军刀。</p>
-            <p><strong>持续 profiling 演进</strong>：从"故障时手动采样"走向"7×24 持续采集"。Parca、Polar Signals、Pyroscope 等基于 eBPF 的持续 profiling 平台兴起，与 JFR/async-profiler 形成互补（JVM 内 vs 内核级）。</p>
-            <p><strong>未来趋势</strong>：JFR 与 OpenTelemetry 融合（OTel 可导出 JFR 事件）；eBPF 在内核态无侵入采集成为云原生标准；火焰图与分布式追踪结合形成"全链路性能拓扑"。</p>
+            <p><strong>JFR 历史</strong>：原为 JRockit/Oracle JDK 商业诊断体系的一部分；JEP 328 在 JDK 11 将 Flight Recorder 纳入 OpenJDK/Java SE 标准能力。JFR 不是"JDK 11 起默认自动录制"，必须通过启动参数或诊断命令启动。JDK 14 通过 JEP 349 增加 Event Streaming API；后续 JDK 的事件集和工具视图持续变化，回答时应绑定目标 JDK。</p>
+            <p><strong>async-profiler</strong>：常见发行版基于 HotSpot 内部 <code class="inline-code">AsyncGetCallTrace</code> 等非公开接口采样，聚焦 CPU/分配/锁等热点。命令入口、事件名和注入方式随发行版本变化：旧版常用 <code class="inline-code">profiler.sh</code>，新版文档使用 <code class="inline-code">asprof</code>；生产必须先确认目标版本和容器权限。</p>
+            <p><strong>持续 profiling 演进</strong>：从"故障时手动采样"走向"常驻低频采集 + 临时深挖"。JFR/async-profiler 偏 JVM 事件与线程栈；eBPF 平台可从内核观测系统调用和进程资源。三者不是同一层替代品，采集权限、安全边界和成本也不同。</p>
+            <p><strong>演进口径</strong>：JFR、JMX、GC 日志、OpenTelemetry 和持续 profiling 平台各覆盖不同信号；不要把"JFR 支持事件"直接等同于 APM 已自动采集，也不要把内核级 profiling 说成 JVM 结构化事件的替代。</p>
           </div>
         </div>
 
@@ -1138,9 +1139,9 @@ graph TD
               <div class="chart-caption">图 2.8-1 JFR 架构：JVM 内事件采集 → 环形缓冲 → .jfr 文件 → JMC 分析</div>
             </div>
 
-            <p><strong>为什么 JFR 开销低？</strong>：① 事件写入<strong>线程本地缓冲区</strong>（无锁），定期批量刷到全局缓冲区，避免每次事件都竞争全局锁；② 采样而非全量（方法采样默认 10-20ms 间隔）；③ 事件字段紧凑二进制编码；④ 写盘异步。整体开销 &lt;1%，可生产持续开启。</p>
+            <p><strong>JFR 为什么适合低开销采集？</strong>：JFR 采用二进制事件和缓冲机制，采样型事件避免全量插桩，磁盘写出通常是异步的。但实际开销取决于事件阈值、栈深度、采样周期、分配速率、I/O 和 JDK 实现。上线前应按目标 JDK 的模板压测，而不是引用固定"&lt;1%"。</p>
 
-            <p><strong>async-profiler 火焰图原理</strong>：基于 <code class="inline-code">AsyncGetCallTrace</code> 在安全点外异步采样线程调用栈（不同于 jstack 需安全点）。每 10ms 采样一次，统计每个方法栈帧出现次数，占比即 CPU 占用。<strong>火焰图</strong>（Flame Graph）将调用栈横向展开，宽度=采样次数=CPU 占比，直观看出热点。</p>
+            <p><strong>async-profiler 火焰图原理</strong>：在采样周期内获取线程调用栈，统计栈帧出现次数，形成以栈为键、宽度近似对应样本占比的火焰图。采样器可能漏掉短事件；某些栈需要安全点/相关平台支持。采样间隔、栈采集能力和输出模式以目标 async-profiler 版本为准。</p>
 
             <div class="code-block"><pre><code><span class="com"># async-profiler 生成 CPU 火焰图</span>
 <span class="fn">$</span> ./profiler.sh -d 30 -f /tmp/cpu.html 12345
@@ -1160,8 +1161,8 @@ graph TD
 <span class="fn">$</span> jcmd 12345 JFR.start name=continuous settings=profile disk=true maxage=1h maxsize=100m</code></pre></div>
 
             <div class="callout callout-deep">
-              <div class="callout-title">asyncGetCallTrace vs AGCT</div>
-              <p><code class="inline-code">AsyncGetCallTrace</code>（AGCT）是 HotSpot 内部 API，可在<strong>不触发安全点</strong>的情况下采集线程栈，是 async-profiler 低开销的根基。JDK 16+ 引入公开 API <code class="inline-code">JFR.ThreadSampling</code>，但 async-profiler 仍因更灵活被广泛使用。</p>
+              <div class="callout-title">公开能力边界</div>
+              <p>面向应用的公开入口是 <code class="inline-code">jcmd</code>、<code class="inline-code">jfr</code> 工具、JFR 事件类型和 JDK 14+ 的 <code class="inline-code">jdk.jfr.consumer.EventStream</code>；<code class="inline-code">AsyncGetCallTrace</code> 是 HotSpot 内部接口，不是稳定的 Java API。不要把某个 JFR 事件名说成所有 JDK/厂商版本都一致的公共采样 API。</p>
             </div>
           </div>
         </div>
@@ -1174,13 +1175,13 @@ graph TD
               <li><strong>实时定位</strong>：Arthas <code class="inline-code">profiler</code> 或 async-profiler 生成火焰图，看 CPU 热点方法。</li>
               <li><strong>分配热点</strong>：async-profiler <code class="inline-code">-e alloc</code> 找分配最多的方法，优化对象分配（如复用、缓存、原始类型）。</li>
               <li><strong>锁瓶颈</strong>：async-profiler <code class="inline-code">-e lock</code> 找阻塞最多的锁，缩小临界区或换并发结构。</li>
-              <li><strong>持续录制</strong>：JFR 持续开（开销 &lt;1%），故障后回放最近 1 小时事件，定位"何时开始恶化"。</li>
+              <li><strong>常驻录制</strong>：按目标 JDK 和压测结果选择固定或滚动录制；保留足够窗口观察周期性问题，并用 <code class="inline-code">jcmd JFR.dump</code> 保留故障现场。</li>
               <li><strong>GC 复盘</strong>：JFR 的 GC 事件比 GC 日志更结构化，JMC 可看每次 GC 的停顿、各代变化、回收量趋势。</li>
             </ul>
 
             <div class="callout callout-tip">
               <div class="callout-title">生产建议</div>
-              <p>JDK 11+ 生产建议<strong>持续开 JFR</strong>：<code class="inline-code">-XX:StartFlightRecording=duration=24h,filename=/data/jfr/,size=500m,maxage=24h</code>。配合 JMC 或 GCEasy 分析。它是"黑匣子"，故障复盘利器。async-profiler 用于临时深挖。</p>
+              <p>JDK 11+ 可用启动参数开启 JFR，例如 <code class="inline-code">-XX:StartFlightRecording=dumponexit=true,filename=/data/jfr/app.jfr,maxsize=500m,maxage=24h</code>（参数可用性以目标 JDK 文档为准）。这是显式开启的"黑匣子"，不是默认自动录制；async-profiler 更适合临时深挖，二者保留版本和压测基线。</p>
             </div>
           </div>
         </div>
@@ -1192,10 +1193,10 @@ graph TD
             <p>火焰图横向是方法调用栈（底层在下、上层在上），纵向是调用层级，<strong>宽度代表采样次数=CPU 占用</strong>。读图技巧：① 找最宽的"平台"，是 CPU 热点；② 顺着宽平台往下找根因方法；③ 注意 JDK 方法（黄色）vs 业务方法（蓝色）vs native（红色）；④ 若热点在 JIT 编译/GC，说明是 JVM 层而非业务层问题。</p>
 
             <p><strong>追问 2：采样 profiling 会不会漏掉短时热点？</strong></p>
-            <p>会。采样精度取决于采样间隔（默认 10ms），短于 10ms 的方法调用可能被漏采。这是采样的固有局限（vs 全量插桩）。解决方案：① 缩短采样间隔（增加开销）；② 延长采样时长（30s+）让热点累积；③ 对超高频方法用 Arthas <code class="inline-code">trace</code> 精确插桩。但 99% 场景下采样足够。</p>
+            <p>会。采样精度受采样周期、调度、安全点和栈获取能力影响，短于有效间隔的方法调用可能被漏采。这是采样的固有局限，不是全量插桩。可缩短间隔、延长观察窗口，或在定位到方法后用 Arthas <code class="inline-code">trace</code> 限流观测；两者都应控制开销。</p>
 
             <p><strong>追问 3：JFR 与 async-profiler 怎么选？</strong></p>
-            <p>JFR 是<strong>全栈可观测</strong>（GC/锁/IO/分配/类加载/编译全覆盖），适合持续录制与事后复盘。async-profiler 是<strong>专注 CPU/分配/锁 profiling</strong>，火焰图更直观，适合实时深挖。两者互补：JFR 长期开，async-profiler 临时用。JDK 17+ JFR 也支持火焰图导出，边界在模糊化。</p>
+            <p>JFR 覆盖 GC、内存、线程、锁、I/O、类加载、编译等结构化事件，适合保留证据和事后复盘。async-profiler 更偏 CPU/分配/锁的火焰图和实时深挖。两者互补：JFR 常驻或滚动保留，async-profiler 按需采样；是否默认开启由生产开销、留存策略和目标 JDK 决定。</p>
           </div>
         </div>
 
@@ -1205,7 +1206,7 @@ graph TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>误以为 profiling 开销都很高</strong>：JFR/async-profiler 开销 &lt;1%，可生产长期开，不必只在故障时用。</li>
+                <li><strong>把 profiling 开销说成固定值</strong>：JFR/async-profiler 可能开销较低，但受版本、事件集、阈值、采样周期和负载影响；上线前要压测。</li>
                 <li><strong>采样时间太短</strong>：10 秒采样可能漏掉间歇性热点，建议 30 秒以上。</li>
                 <li><strong>火焰图只看最宽的</strong>：宽度是绝对占比，但要结合调用层级看——上层方法宽可能只是因为调用了下层热点，根因在下层。</li>
                 <li><strong>忽略分配火焰图</strong>：CPU 火焰图看不到"分配压力"问题（GC 频繁但 CPU 在 GC 线程）。分配火焰图（<code class="inline-code">-e alloc</code>）才能定位"谁在疯狂 new 对象"。</li>
@@ -1217,7 +1218,7 @@ graph TD
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">扩展：JFR 事件类型体系详解</div>
           <div class="qa-layer-body">
-            <p><strong>背景</strong>：JFR 的核心能力来自其丰富的事件类型体系。JDK 11+ 将 JFR 开源后，事件类型从 JDK 8 的 ~50 个扩展到 JDK 21 的 <strong>150+ 个</strong>，覆盖 GC、内存、线程、类加载、编译、I/O、锁等全栈领域。理解事件分类是高效使用 JFR 的前提。</p>
+            <p><strong>背景</strong>：JFR 的核心能力来自结构化事件。事件数量、默认阈值和可用视图随 JDK 版本变化；JDK 11 建立标准 JFR 后，后续版本陆续新增内存、容器、线程等事件。回答时不要把一张固定事件清单套到所有 JDK 上，应先用目标 JDK 核对。</p>
 
             <p><strong>JFR 事件分类与高频事件</strong>：</p>
             <table class="compare-table">
@@ -1228,7 +1229,7 @@ graph TD
                   <tr><td rowspan="3"><strong>GC 垃圾回收</strong></td><td><code>jdk.GCPhasePause</code></td><td>STW 暂停时长与阶段分解（Initial Mark → Remark → Final Mark）</td></tr>
                   <tr><td><code>jdk.G1HeapSummary</code></td><td>G1 各 Region 使用率、Eden/Survivor/Old 区变化</td></tr>
                   <tr><td><code>jdk.GCHeapConfiguration</code></td><td>堆配置快照（MaxHeapSize、NewRatio、UseG1GC 等）</td></tr>
-                  <tr><td rowspan="3"><strong>内存分配</strong></td><td><code>jdk.ObjectAllocationSample</code></td><td>对象分配采样（哪个线程/方法在 new 大对象）——定位分配热点</td></tr>
+                  <tr><td rowspan="3"><strong>内存分配</strong></td><td><code>jdk.ObjectAllocationSample</code>（目标 JDK 支持时）</td><td>对象分配采样（哪个线程/方法在 new 大对象）——定位分配热点；名称与阈值随 JDK 变化</td></tr>
                   <tr><td><code>jdk.ObjectCount</code></td><td>GC 结束时各类型对象数量与大小——内存泄漏排查利器</td></tr>
                   <tr><td><code>jdk.TLABAllocation</code></td><td>TLAB 分配速率——判断是否需要增大 TLAB 或调参</td></tr>
                   <tr><td rowspan="3"><strong>线程与锁</strong></td><td><code>jdk.JavaMonitorEnter</code></td><td>synchronized 进入等待时长——锁竞争热点定位</td></tr>
@@ -1244,7 +1245,7 @@ graph TD
                 </tbody>
               </table>
 
-            <p><strong>查询 JFR 事件的两种方式</strong>：</p>
+            <p><strong>查询 JFR 事件的方式</strong>：</p>
             <div class="code-block"><pre><code><span class="com"># 1. jfr 工具（JDK 11+ 内置）命令行查询</span>
 jfr print --events jdk.GCPhasePause recording.jfr   <span class="com"># 只看 GC 暂停</span>
 jfr print --events jdk.JavaMonitorEnter recording.jfr <span class="com"># 只看锁竞争</span>
@@ -1255,7 +1256,7 @@ jfr view gc recording.jfr                            <span class="com"># GC 专�
 <span class="com"># JMC 7+ 支持事件流浏览、自动分析规则、火焰图</span>
 <span class="com"># 下载: https://jdk.java.net/jmc/</span>
 
-<span class="com"># 3. 程序化查询（JDK 16+ JFR Event Streaming API）</span>
+<span class="com"># 3. 程序化查询（JDK 14+ JFR Event Streaming API）</span>
 <span class="com">// 实时消费 JFR 事件流（无需写文件）</span>
 <span class="kw">try</span> (<span class="type">var</span> rs = <span class="type">EventStream</span>.openRepository()) {
     rs.onEvent(<span class="str">"jdk.GCPhasePause"</span>, event -> {
@@ -1266,9 +1267,9 @@ jfr view gc recording.jfr                            <span class="com"># GC 专�
 
             <p><strong>生产实践要点</strong>：</p>
             <ul>
-              <li><strong>持续录制</strong>：JDK 11+ 默认开启 JFR（<code class="inline-code">-XX:StartFlightRecording=duration=60s,filename=recording.jfr</code>），开销 &lt;1%，可 7×24 小时持续录制。故障时直接导出最近 5 分钟录制文件分析，无需等待现场复现。</li>
+              <li><strong>显式录制</strong>：JDK 11+ 需要 <code class="inline-code">-XX:StartFlightRecording</code> 或 <code class="inline-code">jcmd &lt;pid&gt; JFR.start</code>；这不是默认自动开启的能力。滚动窗口、留存时长和开销要一起评审。</li>
               <li><strong>事件阈值</strong>：JFR 事件有 <code class="inline-code">threshold</code>（如只记录 &gt;10ms 的锁等待），避免事件过多。默认阈值合理，深度排查时可调低（<code class="inline-code">-XX:StartFlightRecording=threshold=0s</code>）。</li>
-              <li><strong>自定义事件</strong>：JDK 14+ 支持 <code class="inline-code">@Name</code> / <code class="inline-code">@Category</code> 注解自定义 JFR 事件，将业务关键操作（如订单处理耗时、缓存命中率）接入 JFR 体系，与 JVM 事件关联分析。</li>
+              <li><strong>自定义事件</strong>：在支持标准 <code class="inline-code">jdk.jfr</code> API 的目标 JDK 中，用 <code class="inline-code">@Name</code> / <code class="inline-code">@Category</code> 等注解定义业务事件；字段要控制数量和基数，避免把高价值事件变成存储压力。</li>
             </ul>
 
             <div class="code-block"><pre><code><span class="com">// 自定义 JFR 事件示例</span>
@@ -1289,7 +1290,7 @@ event.begin();
 <span class="com">// ... 订单处理逻辑 ...</span>
 event.commit();  <span class="com">// 提交到 JFR 事件流</span></code></pre></div>
 
-            <p><strong>面试要点</strong>：回答 JFR 事件体系时需强调三点：① 150+ 事件覆盖全栈（GC/内存/线程/锁/编译/IO/类加载），不只看 GC；② JDK 16+ Event Streaming API 支持实时消费事件流（不落文件），可用于构建实时监控告警；③ 自定义事件可将业务指标接入 JFR，实现"JVM 事件 + 业务事件"关联分析。</p>
+            <p><strong>面试要点</strong>：回答 JFR 事件体系时强调三点：① 事件覆盖 GC、内存、线程、锁、编译、I/O、类加载，不只看 GC；② JEP 349 在 JDK 14 引入 Event Streaming API，可消费事件仓库用于实时处理；③ 自定义事件能把业务证据与 JVM 事件关联，但默认模板、事件名和阈值必须绑定目标 JDK。</p>
           </div>
         </div>
       </div>
@@ -1436,8 +1437,8 @@ graph TD
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>逃逸分析演进</strong>：JDK 6 引入逃逸分析（<code class="inline-code">-XX:+DoEscapeAnalysis</code>，默认关），JDK 7 默认开启并成熟。早期实现有 bug（分析不准导致优化失效），JDK 8 后稳定。<strong>JDK 17/21 持续优化</strong>，逃逸分析与 GraalVM 部分技术融合。</p>
-            <p><strong>栈上分配争议</strong>：HotSpot 官方曾表示"栈上分配"是标量替换的副产品，并非独立机制。社区长期误传"对象可栈上分配"，实质多数是标量替换拆解后无完整对象。<strong>Project Valhalla（值类型）</strong>是未来方向，将从语言层面支持"无对象头的内联类型"，彻底解决小对象开销。</p>
+            <p><strong>逃逸分析演进</strong>：这是 HotSpot JIT 的历史性优化，可用 <code class="inline-code">DoEscapeAnalysis</code> 控制；具体默认值和诊断开关必须绑定 JDK/发行版，用 <code class="inline-code">java -XX:+PrintFlagsFinal -version</code> 或目标版本文档确认，不要把 JDK 6/7 的默认状态泛化到现代运行时。</p>
+            <p><strong>栈上分配口径</strong>：HotSpot 常见且可观察到的收益是标量替换——未逃逸对象被拆成标量，不创建完整对象。真正的栈上分配不是 HotSpot 对所有未逃逸对象的通用承诺；不同 JVM、JIT、对象形状和 JDK 版本表现不同。Project Valhalla 仍在演进，其目标是把内联/扁平布局纳入语言与运行时，而不是用现有逃逸分析保证一切。</p>
           </div>
         </div>
 
@@ -1446,9 +1447,9 @@ graph TD
           <div class="qa-layer-body">
             <p><strong>逃逸分析的三种结果</strong>：</p>
             <ul>
-              <li><strong>全局逃逸（GlobalEscape）</strong>：对象被外部方法或线程访问（如赋值给静态字段、作为返回值、传入未知方法）。必须堆分配。</li>
-              <li><strong>方法逃逸（ArgEscape）</strong>：对象被方法参数传递或被调用方法访问，但不逃逸出线程。可能堆分配。</li>
-              <li><strong>未逃逸（NoEscape）</strong>：对象只在方法内部使用，不传出。可优化：栈上分配 / 标量替换 / 同步消除。</li>
+              <li><strong>全局逃逸（GlobalEscape）</strong>：对象被外部方法或线程访问（如赋值给静态字段、作为返回值、传入未知方法）。通常保留堆分配。</li>
+              <li><strong>方法逃逸（ArgEscape）</strong>：对象随参数进入被调方法，但不逃逸出线程。优化边界取决于 JIT 的分析能力。</li>
+              <li><strong>未逃逸（NoEscape）</strong>：对象只在方法内部使用，不传出。JIT 可能做标量替换或同步消除；是否做其他栈式布局是实现决策。</li>
             </ul>
 
             <div class="mermaid-container">
@@ -1459,20 +1460,20 @@ graph TD
     C -- "全局逃逸 GlobalEscape" --> D1[堆分配<br/>无法优化]
     C -- "方法逃逸 ArgEscape" --> D2[堆分配<br/>可能同步消除]
     C -- "未逃逸 NoEscape" --> D3[可优化]
-    D3 --> E1[栈上分配<br/>对象在栈帧分配, 方法结束释放]
+    D3 --> E1["可能的实现相关布局优化<br/>不代表 HotSpot 通用栈上分配"]
     D3 --> E2[标量替换<br/>拆解为基本类型字段分散存储]
     D3 --> E3[同步消除<br/>去除 synchronized 锁]
     E1 --> F[无 GC 压力]
     E2 --> F
     E3 --> G[无锁开销]
               </div>
-              <div class="chart-caption">图 2.10-1 逃逸分析决策树：三种逃逸级别对应不同优化</div>
+              <div class="chart-caption">图 2.10-1 逃逸分析决策树：逃逸级别决定可尝试的 JIT 优化</div>
             </div>
 
             <p><strong>三种优化的本质</strong>：</p>
             <ul>
-              <li><strong>栈上分配（Stack Allocation）</strong>：未逃逸对象直接在栈帧分配，方法返回自动释放，无需 GC。但 HotSpot 中真正的栈上分配较少，多数走标量替换。</li>
-              <li><strong>标量替换（Scalar Replacement）</strong>：将对象拆解为基本类型字段（标量），分散存储在寄存器或栈帧，<strong>根本不创建对象</strong>。这是最常见也最有效的优化。</li>
+              <li><strong>栈上分配（Stack Allocation）</strong>：理论上是未逃逸对象随栈帧分配并在返回时释放；HotSpot 不把它作为对 Java 程序的通用承诺，常见实现路径更多体现为标量替换。</li>
+              <li><strong>标量替换（Scalar Replacement）</strong>：将对象拆解为基本类型字段（标量），分散存储在寄存器或栈帧，<strong>根本不创建该完整对象</strong>。这是 HotSpot 上最应强调的常见表现。</li>
               <li><strong>同步消除（Lock Elision）</strong>：若对象未逃逸（即不可能被其他线程访问），其 synchronized 锁无意义，JIT 直接消除。<code class="inline-code">StringBuffer.append</code> 在单线程下锁被消除就是这个原理。</li>
             </ul>
 
@@ -1495,18 +1496,18 @@ graph TD
     <span class="kw">return</span> p;  <span class="com">// p 作为返回值逃逸, 必须堆分配</span>
 }</code></pre></div>
 
-            <p><strong>JIT 编译优化层级</strong>（逃逸分析位于最上层）：</p>
+            <p><strong>JIT 编译优化层级</strong>：</p>
             <ul>
               <li><strong>解释执行</strong>：字节码逐条解释，无优化。</li>
               <li><strong>C1 编译（Client）</strong>：快速编译，方法内联、简单优化。</li>
               <li><strong>C2 编译（Server）</strong>：热点方法编译，逃逸分析、标量替换、锁消除、循环展开等深度优化。</li>
-              <li><strong>Graal 编译（JDK 10+）</strong>：用 Java 写的编译器，更激进优化，是 GraalVM Native Image 的基础。</li>
+              <li><strong>Graal 编译</strong>：用 Java 写的 JIT/Native Image 技术路线；其在某个 JDK 中是否可用、是否默认开启由发行版和版本决定。</li>
             </ul>
             <p>逃逸分析在 C2/Graal 编译时进行，只有<strong>被 JIT 编译的热点方法</strong>才会受益。冷方法仍走解释执行，对象正常堆分配。</p>
 
             <div class="callout callout-deep">
               <div class="callout-title">验证逃逸分析</div>
-              <p>用 <code class="inline-code">-XX:+PrintEscapeAnalysis</code>（JDK8）或 <code class="inline-code">-Xlog:opto=debug</code> 查看逃逸分析结果。<code class="inline-code">jol</code> 看对象是否真的没创建。注意：关闭逃逸分析 <code class="inline-code">-XX:-DoEscapeAnalysis</code> 后 GC 频率会显著上升，可对比验证。</p>
+              <p>诊断输出和日志选择器随 JDK 变化，例如部分版本提供 <code class="inline-code">PrintEscapeAnalysis</code>、编译图日志或 unified logging；先用目标版本确认开关是否需要 unlock diagnostic。<code class="inline-code">jol</code> 适合观察对象布局，不能直接证明“对象未被创建”。关闭 <code class="inline-code">DoEscapeAnalysis</code> 对比分配/GC 时要控制其他变量。</p>
             </div>
           </div>
         </div>
@@ -1524,8 +1525,8 @@ graph TD
 
             <p><strong>架构师 · 验证与调优</strong>：</p>
             <ul>
-              <li>确认逃逸分析开启：<code class="inline-code">-XX:+DoEscapeAnalysis</code>（JDK 8+ 默认开），生产勿关。</li>
-              <li>热点方法预热：JIT 需要足够调用次数（默认 10000 次）才编译，冷启动阶段无优化。对延迟敏感接口可考虑 GraalVM 或 AppCDS。</li>
+              <li>确认目标 JDK 的逃逸分析状态：<code class="inline-code">-XX:+PrintFlagsFinal -version | grep -i EscapeAnalysis</code> 这类命令只用于当前 JVM/厂商版本，生产不建议仅凭经验关闭或打开。</li>
+              <li>热点方法预热：JIT 编译阈值由分层编译、方法/循环计数、编译队列和策略共同决定，不同 JDK 和 <code class="inline-code">-XX:+TieredCompilation</code> 状态没有固定“10000 次”门槛。冷启动优化可评估 AppCDS/AOT 缓存。</li>
               <li>监控 GC 频率与分配速率：若分配速率异常高但 GC 频繁，可能是热点方法未编译或逃逸分析失效，用 JFR 分配火焰图定位。</li>
             </ul>
           </div>
@@ -1535,13 +1536,13 @@ graph TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：为什么有时对象明显没逃逸，却没被标量替换？</strong></p>
-            <p>几种原因：① 该方法<strong>不是热点</strong>，未被 JIT 编译，逃逸分析不运行；② 逃逸分析有<strong>时间预算限制</strong>，方法过大或复杂时分析会被放弃以保证编译速度；③ 对象被反射或 JNI 访问，分析保守认为逃逸；④ 对象作为数组元素或集合元素，分析无法确定是否逃逸。用 <code class="inline-code">-XX:+PrintEscapeAnalysis</code> 查看具体原因。</p>
+            <p>常见原因：① 该方法未被 JIT 编译；② 方法体、控制流或对象访问形状使分析和后续优化不划算；③ 反射、JNI、native frame、同步/异常路径导致保守处理；④ 数组、集合、虚调用或库边界扩大了分析不确定度。具体原因要用目标 JDK 的编译日志/诊断开关确认。</p>
 
             <p><strong>追问 2：栈上分配和标量替换哪个更优？</strong></p>
-            <p>标量替换更优。栈上分配仍创建完整对象（含对象头），只是分配在栈上；标量替换<strong>根本不创建对象</strong>，字段拆成标量存寄存器/栈，连对象头开销都省了。HotSpot 中"栈上分配"多是标量替换的误称，真正栈上分配的场景很少。</p>
+            <p>在 HotSpot 面试口径中优先讲标量替换：字段拆成标量存寄存器/栈后不创建完整对象，连对象头开销也省了。真正的栈上分配仍会保留完整对象形态，但 HotSpot 不保证对所有未逃逸对象采用；两者是不同抽象层次，不要混用。</p>
 
             <p><strong>追问 3：Project Valhalla 的值类型与标量替换有什么关系？</strong></p>
-            <p>标量替换是<strong>JIT 运行时</strong>对未逃逸对象的优化，是隐式的、不确定的（依赖编译）；Valhalla 值类型（<code class="inline-code">inline class</code>）是<strong>语言层</strong>的显式支持，对象天生无对象头、按值传递、不可为 null，编译器和运行时都明确优化。Valhalla 是把标量替换的运行时优化"固化"为语言特性，让开发者能主动控制对象布局，是 Java 性能的未来方向。</p>
+            <p>标量替换是 JIT 运行时对未逃逸对象的优化，是隐式、不确定、依赖编译器实现的。Project Valhalla 的值/内联类型想把扁平布局与 null 性约束固化到语言、类文件和运行时模型中，但其演进阶段、API 名称和能力必须按当时 JEP/JDK 状态回答，不应提前写成 GA 语义。</p>
           </div>
         </div>
 
@@ -1551,11 +1552,11 @@ graph TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>误以为所有对象都在堆上</strong>：逃逸分析 + 标量替换让大量未逃逸对象根本不进堆，"对象必在堆"是规范描述非实际行为。</li>
+                <li><strong>误以为优化是保证</strong>：Java 语言/规范语义允许 JIT 在不改变可观察行为时省略分配；实际是否标量替换取决于 HotSpot/JIT 版本和对象形状。</li>
                 <li><strong>把"栈上分配"和"标量替换"混为一谈</strong>：标量替换不创建对象，栈上分配创建对象但在栈上，两者机制不同。</li>
                 <li><strong>误以为逃逸分析一定生效</strong>：只在 JIT 编译的热点方法生效，冷方法或预热不足时不生效。</li>
                 <li><strong>关闭逃逸分析做"公平对比"</strong>：有人为对比"对象分配开销"关逃逸分析，但这偏离生产实际（默认开），结论无意义。</li>
-                <li><strong>忽略同步消除</strong>：单线程下 StringBuffer 性能接近 StringBuilder，是因为同步消除了锁，但这依赖 JIT，预热阶段仍有差异。</li>
+                <li><strong>忽略同步消除</strong>：未逃逸对象的锁可被消除，但这只是 JIT 的可能优化，不应把“可能接近无锁”当作 API 契约或提前优化理由。</li>
               </ul>
             </div>
           </div>
@@ -1574,31 +1575,31 @@ graph TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察 JDK 21+ <strong>Generational ZGC（JEP 439）</strong>的生产调优能力。核心要讲清三件事：① 为什么 ZGC 在 JDK 21 重新引入分代（单代 ZGC 在分配压力下的吞吐短板）；② 染色指针与读屏障如何被"<strong>分代化</strong>"改造（双记忆集 + 颜色位扩展）；③ 生产环境中停顿、吞吐、内存开销的权衡与参数选择。它是 2026 大堆低延迟场景的默认选项——能否讲清分代前后的吞吐差异、记忆集设计、监控指标，是区分"知道 ZGC"与"能调 ZGC"的分水岭。</p>
+            <p>考察 <strong>Generational ZGC</strong> 的版本化生产调优能力。核心要讲清三件事：① JEP 439 在 JDK 21 以 opt-in 方式引入分代 ZGC；② JEP 474 在 JDK 23 使分代模式成为默认，JEP 490 在 JDK 24 移除非分代模式；③ 分代引用集合、读/写屏障、停顿、吞吐和内存开销如何按目标 JDK 证据化评估。不要把它简化成脱离版本和负载的"2026 默认最优选项"。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>单代 ZGC（JDK 11 实验 / JDK 15 生产）</strong>：染色指针 + 读屏障实现并发整理，停顿亚毫秒且与堆解耦，支持 TB 级堆。但<strong>单代设计</strong>在高分配压力下（高频创建短生命周期对象）暴露短板——并发标记跟不上分配速度，导致 GC 频繁触发、吞吐下降 10-30%，且大堆下标记工作量随堆线性增长。</p>
-            <p><strong>Generational ZGC（JDK 21，JEP 439，2023）</strong>：基于"弱代假说仍然成立"重新引入分代，young/old 两代各自独立并发回收。Young GC 只扫年轻代记忆集 + 根集合（与堆大小解耦），高频低开销；Old GC 低频全堆并发标记转移。官方基准显示<strong>吞吐较单代提升 10-20%、分配压力下 GC 频率下降 80%+</strong>，且停顿仍保持亚毫秒。</p>
-            <p><strong>JDK 23（2024）</strong>：分代成为<strong>默认</strong>（<code class="inline-code">-XX:+ZGenerational</code> 默认开启），非分代模式标记废弃。<strong>趋势</strong>：分代 + 并发整理成为大堆低延迟标配，参数极简，向"自调优"演进，人工调优重心转向分配模式治理与容量规划。</p>
+            <p><strong>非分代 ZGC</strong>：JDK 11 实验引入，JDK 15 生产可用。它用染色指针和读屏障实现并发整理，目标是把重定位与堆容量解耦。但短命对象也需要纳入同一个回收视野，在高分配速率下回收效率和吞吐会劣化；具体幅度必须用目标堆、分配速率和硬件压测，不能引用固定百分比。</p>
+            <p><strong>Generational ZGC</strong>：JEP 439 随 JDK 21 交付。它按弱分代假设拆分年轻代和老年代的回收工作，减少每次回收需要处理的对象集合。JEP 474 在 JDK 23 把分代模式设为默认；JEP 490 在 JDK 24 移除非分代模式。生产回答必须先给出 JDK 线：JDK 21 opt-in、JDK 23 默认、JDK 24 无非分代 ZGC。</p>
+            <p><strong>后续口径</strong>：参数名、默认值、诊断日志和内部数据结构随 JDK 变化。调优应保留分配画像、GC 日志、业务 SLA 和灰度对比；不要只迁移"经验参数清单"。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>染色指针的分代化</strong>：单代 ZGC 用 64 位指针高 4 位作颜色位（Marked0/Marked1/Remapped/Finalizable）标记对象移动状态。分代 ZGC <strong>扩展颜色语义</strong>，增加 young/remapped 维度区分对象所属代与转发状态，读屏障在解引用时根据颜色判断：是否需转发、是否跨代引用需更新记忆集。</p>
-            <p><strong>双重记忆集（Dual Remembered Set）</strong>：分代回收的核心难题是跨代引用。分代 ZGC 维护两套记忆集——<strong>old→young RS</strong>（记录哪些老年代对象引用了年轻代，供 Young GC 扫描）与 <strong>young→old RS</strong>。old 引用 young 的写操作通过<strong>写屏障</strong>记录到 young 的 RS，避免 Young GC 扫描整个老年代。这是分代化能在保持并发整理的同时不退化为全堆扫描的关键。</p>
+            <p><strong>染色指针与屏障</strong>：ZGC 用指针中的标记/转发状态配合读屏障处理并发移动对象；具体位布局因 32/64 位、平台和 JDK 版本而异，不要把某一版实现当作长期 ABI。分代化后，屏障还会参与跨代引用的发现与更新。</p>
+            <p><strong>记忆集的作用</strong>：分代回收必须知道哪些老年代位置可能引用年轻代，否则 Young GC 要扫描老年代。Generational ZGC 使用记忆集配合屏障维护这些候选引用；实现粒度、占用量和更新方式属于 JDK 版本细节。面试时讲目标即可：缩小回收集合、避免全堆扫描，同时接受维护成本。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TD
     A["分配新对象 → Young 区"] --> B{"Young GC 触发?"}
-    B -- 是 --> C["并发标记 Young<br/>扫 young RS + GC Roots<br/>STW 仅根枚举 亚毫秒"]
-    C --> D["并发转移 Young 存活对象 → 新 Young/Survivor"]
+    B -- 是 --> C["并发标记 Young<br/>扫 young RS + GC Roots<br/>根处理为短 STW"]
+    C --> D["并发转移 Young 存活对象 → 新 Young/Old"]
     D --> E["存活多次晋升 Old"]
     B -- 否 --> F["继续分配"]
     E --> G["Old 区累积"]
@@ -1611,7 +1612,7 @@ flowchart TD
               <div class="chart-caption">图 2.11-1 Generational ZGC 分代回收：Young 高频低开销，Old 低频全堆</div>
             </div>
 
-            <p><strong>停顿与吞吐权衡</strong>：分代 ZGC 的 STW 阶段仅剩"初始标记 / 再标记 / 根枚举重启"，这些只与线程数和根数量相关，与堆大小解耦，实测 P99 停顿通常 &lt;1ms。代价是<strong>读屏障的固定吞吐损失</strong>（约 5-10%）与<strong>记忆集内存开销</strong>（约堆的 1-5%）。相较单代，分代通过减少标记工作量换回更大吞吐，是净收益。</p>
+            <p><strong>停顿与吞吐权衡</strong>：ZGC 的根处理等短 STW 阶段仍存在，其他重定位和标记主要并发进行。分代 ZGC 通过缩小每次回收集合改善高分配场景，但会带来屏障和记忆集维护成本。收益取决于分配速率、跨代引用密度、根集、容器 CPU 配额和 JDK 实现，必须用版本相同的灰度压测验证。</p>
 
             <p><strong>关键调优参数</strong>：</p>
             <table class="compare-table">
@@ -1619,11 +1620,11 @@ flowchart TD
                   <tr><th>参数</th><th>作用</th><th>默认</th><th>调优建议</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td><code>-XX:+ZGenerational</code></td><td>开启分代（JDK23+ 默认开）</td><td>JDK23+ 开</td><td>JDK 21 需显式开启</td></tr>
-                  <tr><td><code>-XX:SoftMaxHeapSize</code></td><td>软上限，鼓励更积极回收</td><td>= -Xmx</td><td>设为 -Xmx 的 70-80%，留余量</td></tr>
-                  <tr><td><code>-XX:ZAllocationSpikeTolerance</code></td><td>分配突增容忍度</td><td>2.0</td><td>突发流量场景调高（如大促），常驻调低</td></tr>
-                  <tr><td><code>-XX:ConcGCThreads</code></td><td>并发 GC 线程数</td><td>CPU 的 1/4</td><td>容器按 cgroup 核数显式设</td></tr>
-                  <tr><td><code>-XX:ZUncommitDelay</code></td><td>空闲内存归还 OS 延迟</td><td>300s</td><td>波峰波谷场景调短，快速归还</td></tr>
+                  <tr><td><code>-XX:+ZGenerational</code></td><td>选择分代模式</td><td>JDK 23+ 默认分代；JDK 24 起无非分代 ZGC</td><td>JDK 21/22 需显式开启；JDK 23+ 以目标版本文档确认开关状态</td></tr>
+                  <tr><td><code>-XX:SoftMaxHeapSize</code></td><td>软上限，提示更积极回收</td><td>随 JDK/配置而异</td><td>结合容器 limit、分配峰值和 RSS 目标灰度设定，不用固定 70-80%</td></tr>
+                  <tr><td><code>-XX:ZAllocationSpikeTolerance</code></td><td>分配突增相关诊断参数（目标 JDK 支持时）</td><td>随 JDK 而异</td><td>仅按目标版本语义评估；升级时确认是否仍存在</td></tr>
+                  <tr><td><code>-XX:ConcGCThreads</code></td><td>并发 GC 线程数</td><td>按目标 JDK 自动推导</td><td>容器配额过小时才显式设置，并与 CPU limit/应用线程模型一起验证</td></tr>
+                  <tr><td><code>-XX:ZUncommitDelay</code></td><td>空闲内存归还 OS 的延迟</td><td>随目标 JDK 而异</td><td>关注节点内存回收和页归还成本，不按固定秒数套用</td></tr>
                 </tbody>
               </table>
             
@@ -1633,25 +1634,24 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>生产参数模板（JDK 21，16G 堆，低延迟交易服务）</strong>：</p>
-            <div class="code-block"><pre><code><span class="com"># JDK 21 显式开启分代 ZGC（JDK 23+ 可省略）</span>
+            <p><strong>生产参数模板（示例，仅说明版本线；容量和线程数需压测）</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># JDK 21 显式开启分代 ZGC；JDK 23 默认分代，JDK 24 无非分代 ZGC</span>
 -XX:+UseZGC
 -XX:+ZGenerational
 -Xms16g -Xmx16g
--XX:SoftMaxHeapSize=12g           <span class="com"># 软上限 75%，鼓励积极回收</span>
--XX:ZAllocationSpikeTolerance=2.0 <span class="com"># 默认值，大促临时调到 3.0</span>
--XX:ConcGCThreads=4               <span class="com"># 16 核容器取 1/4</span>
--XX:ParallelGCThreads=8           <span class="com"># STW 阶段线程</span>
+--XX:SoftMaxHeapSize=12g           <span class="com"># 示例值，按压测调整</span>
+--XX:ConcGCThreads=4               <span class="com"># 示例值，与容器 CPU 配额匹配</span>
+--XX:ParallelGCThreads=8           <span class="com"># 示例值，根处理/并行阶段用</span>
 
 <span class="com"># GC 日志（关键：监控停顿分布与分代频率）</span>
 -Xlog:gc*=info:file=/data/logs/gc.log:time,level,tags:filecount=10,filesize=50m
 -Xlog:gc+phases=debug:file=/data/logs/gc-phases.log:time:filecount=5,filesize=50m</code></pre></div>
 
-            <p><strong>监控指标</strong>：① <strong>停顿 P99/P999</strong>——ZGC 应 &lt;1ms，若升高排查 pinning 或大根集；② <strong>分配速率 vs 回收速率</strong>——分配持续高于回收则堆将涨满，需调高 ZAllocationSpikeTolerance 或扩容；③ <strong>Young/Old GC 频率</strong>——Young 应高频低耗，Old 应低频；Old 频繁说明晋升过快或软上限过低；④ <strong>记忆集内存占比</strong>——跨代引用过多会膨胀 RS，架构上避免"老年代集合持有大量新生代对象"。</p>
+            <p><strong>监控指标</strong>：① 停顿分布 P99/P999 与超 SLA 事件；② 分配速率、堆/RSS 和回收完成度；③ Young/Old 回收频率、转移量与晋升画像；④ 指针修复、屏障开销和记忆集可观测信号（具体指标/日志名随 JDK 变化）。异常时先看版本对应的 GC 日志，再考虑容量、分配治理和线程配置。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">调优案例</div>
-              <p>某交易服务 32G 堆，单代 ZGC 下大促时 GC 频率从 2 次/s 飙到 15 次/s，吞吐降 25%。切 Generational ZGC 后 Young GC 承担 90% 回收，Old GC 频率 &lt;1 次/分钟，吞吐恢复且 P99 停顿稳定在 0.8ms。<strong>关键动作</strong>：SoftMaxHeapSize 设 24g 让 ZGC 更积极回收，ZAllocationSpikeTolerance 大促调 3.0 容忍突增。</p>
+              <p>可执行的评估模板：保留 JDK 版本和 GC 模式；采集相同流量下的 QPS/RT、分配速率、Young/Old 回收频率、转移量、RSS 和 CPU 配额；先灰度一个实例对比同峰谷窗口。收益要由业务 SLA 和这些基线证明，不引用无法复现的具体百分比或 0.8ms 停顿。</p>
             </div>
           </div>
         </div>
@@ -1660,13 +1660,13 @@ flowchart TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：为什么分代 ZGC 比单代吞吐高？</strong></p>
-            <p>单代 ZGC 每次标记都扫全堆，标记工作量与堆大小线性相关；大堆 + 高分配下，并发标记线程跟不上应用分配速度，堆涨满后被迫更频繁 GC，形成恶性循环。分代后，Young GC 只扫年轻代（约堆的 10-30%）+ 记忆集，标记工作量大幅下降；老年代低频回收。官方数据显示<strong>分代较单代减少 80%+ 的标记工作量</strong>，吞吐净提升 10-20%。</p>
+            <p>非分代 ZGC 需要在统一回收视野里处理短命对象；高分配速率会放大标记/重定位压力。分代后，Young 回收主要处理年轻代和来自老年代的候选引用，Old 回收低频处理更稳定的老对象，从而减少高频路径的工作集合。是否显著提升吞吐，取决于分配画像、跨代引用和资源配额，不能给固定百分比。</p>
 
             <p><strong>追问 2：Generational ZGC 的记忆集会不会像 G1 RSet 一样膨胀？</strong></p>
-            <p>会，但设计上更克制。分代 ZGC 用<strong>多重记忆集</strong>（基于卡表的粗粒度 + 精确指针的细粒度混合），自适应选择粒度。跨代引用密集时（如老年代缓存持有大量年轻代对象）RS 仍会膨胀，内存开销可达堆的 3-5%。架构治理是根本——避免"长生命周期集合持有短生命周期对象"，与 G1 时代的 RSet 治理同源。</p>
+            <p>记忆集占用取决于实现粒度、跨代引用密度和 JDK 版本；ZGC 的内部结构不必与 G1 RSet 一一类比。可迁移的架构结论是：长生命周期集合持有大量短生命周期对象时，跨代引用和回收压力都会上升。应结合 GC 日志、native/JVM 内存画像和分配评审治理，不引用固定百分比。</p>
 
             <p><strong>追问 3：分代 ZGC 与 G1 在大堆低延迟场景如何选？</strong></p>
-            <p>堆 &lt;8GB 或吞吐优先选 G1（读屏障开销低、调优成熟）；堆 &gt;16GB 且 P99 停顿需 &lt;10ms 选 Generational ZGC。G1 在 32GB+ 停顿会因 Region 多、RSet 大而失控，ZGC 停顿与堆解耦是根本优势。JDK 21+ 新项目大堆低延迟默认 Generational ZGC，G1 仍是中小堆均衡首选。</p>
+            <p>先按 JDK 决定可选集合，再按业务目标选择：G1 适合吞吐与延迟均衡、生态成熟、希望减少屏障成本的工作负载；Generational ZGC 更适合大堆、高分配、需要把转移与堆规模解耦的场景。不要按 8GB/16GB 固定分界，也不要说“必然失控”；要用同版本压测和运维约束决策。</p>
           </div>
         </div>
 
@@ -1676,10 +1676,10 @@ flowchart TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>误以为分代 ZGC 完全无停顿</strong>：仍有亚毫秒 STW（根枚举），只是与堆大小无关，说"零停顿"是营销话术。</li>
-                <li><strong>JDK 版本对应错误</strong>：Generational ZGC 是 JDK 21 引入、JDK 23 默认；JDK 17 的 ZGC 是单代，<code class="inline-code">-XX:+ZGenerational</code> 无效。</li>
-                <li><strong>盲目调高 ZAllocationSpikeTolerance</strong>：会提前触发 GC、增加开销，仅大促等突发场景临时调高，常驻应保持默认或调低。</li>
-                <li><strong>忽略 SoftMaxHeapSize</strong>：不设时 ZGC 可能等到接近 -Xmx 才积极回收，导致尾延迟抖动；设软上限让回收更平滑。</li>
+                <li><strong>误以为分代 ZGC 完全无停顿</strong>：仍有根处理等短 STW 阶段；时长与根集、线程数、平台和版本有关，不能承诺固定亚毫秒。</li>
+                <li><strong>JDK 版本对应错误</strong>：Generational ZGC 是 JDK 21 引入、JDK 23 默认、JDK 24 移除非分代模式；JDK 17 的 ZGC 是非分代，<code class="inline-code">-XX:+ZGenerational</code> 不可用。</li>
+                <li><strong>照抄旧参数清单</strong>：部分 ZGC 诊断参数、默认值和日志视图随 JDK 变化甚至移除；升级前核对目标版本 <code class="inline-code">PrintFlagsFinal</code> 和 GC 文档。</li>
+                <li><strong>忽略 SoftMaxHeapSize 的前提</strong>：软上限可能让回收更积极，但过小会提升 GC 频率/CPU；要和容器 limit、RSS、SLA 一起压测。</li>
                 <li><strong>用 GC 次数评估 ZGC 健康度</strong>：ZGC Young GC 极频繁（每秒数次）属正常，应看停顿分布与吞吐，而非次数。</li>
               </ul>
             </div>
@@ -1716,22 +1716,29 @@ flowchart TD
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>分层职责</strong>：① <strong>采集</strong>：Micrometer 的 <code class="inline-code">PrometheusMeterRegistry</code> 自动注册 JVM/GC 指标（源自 <code class="inline-code">BufferPoolMXBean</code>、<code class="inline-code">GarbageCollectorMXBean</code> 等）；② <strong>抓取</strong>：Prometheus 定时拉 <code class="inline-code">/actuator/prometheus</code>；③ <strong>可视化/告警</strong>：Grafana 看板 + Alertmanager 规则；④ <strong>闭环</strong>：指标异常 → 告警 → 调优（联动 C02.11 的 ZGC 参数等）→ 验证指标改善。</p>
+            <p><strong>分层职责</strong>：① <strong>采集</strong>：Micrometer 的 JVM/GC binder 包装 <code class="inline-code">GarbageCollectorMXBean</code>、<code class="inline-code">MemoryPoolMXBean</code>、<code class="inline-code">BufferPoolMXBean</code>、<code class="inline-code">ThreadMXBean</code>、<code class="inline-code">ClassLoadingMXBean</code>，先形成 <code class="inline-code">jvm.gc.pause</code> 等逻辑指标名；② <strong>暴露</strong>：<code class="inline-code">PrometheusMeterRegistry</code> 按目标版本规则转换暴露名，例如常见为 <code class="inline-code">jvm_gc_pause_seconds_*</code>；③ <strong>抓取与告警</strong>：Prometheus 定时拉取端点，Grafana 看板 + Alertmanager 规则；④ <strong>闭环</strong>：趋势异常 → 告警 → 结合 GC 日志定位 → 调优并回归对比。</p>
             <table class="compare-table">
-              <thead><tr><th>关注点</th><th>核心指标</th><th>含义 / 告警阈值思路</th></tr></thead>
+              <thead><tr><th>关注点</th><th>Micrometer 逻辑指标（示例）</th><th>使用思路</th></tr></thead>
               <tbody>
-                <tr><td>GC 停顿</td><td><code class="inline-code">jvm_gc_pause_seconds</code>（count/sum）</td><td>停顿次数与总时长；Full GC 次数 &gt; 0 即告警</td></tr>
-                <tr><td>内存各区</td><td><code class="inline-code">jvm_memory_used{area=heap/nonheap}</code></td><td>老年代使用率 &gt; 85% 预警，看增长斜率比绝对值更准</td></tr>
-                <tr><td>线程</td><td><code class="inline-code">jvm_threads_{live,daemon,peak}</code></td><td>线程数持续上涨 → 线程泄漏</td></tr>
-                <tr><td>类加载</td><td><code class="inline-code">jvm_classes_loaded</code></td><td>频繁加载/卸载 → 动态代理或热部署泄漏</td></tr>
-                <tr><td>缓冲池</td><td><code class="inline-code">jvm_buffer_memory_used</code></td><td>Netty 堆外内存泄漏信号</td></tr>
+                <tr><td>GC</td><td><code class="inline-code">jvm.gc.pause</code>、<code class="inline-code">jvm.gc.concurrent.phase.time</code>、<code class="inline-code">jvm.gc.memory.allocated</code>、<code class="inline-code">jvm.gc.memory.promoted</code></td><td>按 <code class="inline-code">gc/action/cause</code> 分组看停顿分布、并发阶段、分配与晋升趋势；停顿目标来自业务 SLA 和基线</td></tr>
+                <tr><td>内存</td><td><code class="inline-code">jvm.memory.used</code>、<code class="inline-code">jvm.memory.max</code></td><td>按 <code class="inline-code">area/id</code> 下钻内存池；对比同峰谷基线和增长斜率，不设全局默认百分比阈值</td></tr>
+                <tr><td>线程</td><td><code class="inline-code">jvm.threads.live</code>、<code class="inline-code">jvm.threads.daemon</code>、<code class="inline-code">jvm.threads.peak</code>、<code class="inline-code">jvm.threads.states</code></td><td>持续上涨结合线程 dump 与业务变更判断泄漏或队列堆积</td></tr>
+                <tr><td>类加载</td><td><code class="inline-code">jvm.classes.loaded</code>、<code class="inline-code">jvm.classes.unloaded</code></td><td>加载/卸载差值异常时排查动态代理、生成器和热部署</td></tr>
+                <tr><td>缓冲池</td><td><code class="inline-code">jvm.buffer.memory.used</code>、<code class="inline-code">jvm.buffer.count</code>、<code class="inline-code">jvm.buffer.total.capacity</code></td><td>按 <code class="inline-code">id</code> 观察直接/映射缓冲，结合 Netty 与本地内存画像定位</td></tr>
               </tbody>
             </table>
             <div class="code-block"><pre><code><span class="com"># Spring Boot 接入：依赖 + 暴露端点，Prometheus 定时拉取</span>
-<span class="com">// build.gradle</span>
-implementation <span class="str">'io.micrometer:micrometer-registry-prometheus'</span>
-implementation <span class="str">'org.springframework.boot:spring-boot-starter-actuator'</span>
-<span class="com">// application.yml</span>
+<span class="com">&lt;!-- Maven --&gt;</span>
+<span class="kw">&lt;dependency&gt;</span>
+  <span class="kw">&lt;groupId&gt;</span>org.springframework.boot<span class="kw">&lt;/groupId&gt;</span>
+  <span class="kw">&lt;artifactId&gt;</span>spring-boot-starter-actuator<span class="kw">&lt;/artifactId&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span>
+<span class="kw">&lt;dependency&gt;</span>
+  <span class="kw">&lt;groupId&gt;</span>io.micrometer<span class="kw">&lt;/groupId&gt;</span>
+  <span class="kw">&lt;artifactId&gt;</span>micrometer-registry-prometheus<span class="kw">&lt;/artifactId&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span>
+
+<span class="com"># Boot 2.x 常见公共标签配置；Boot 3.x 优先核对该版本的 observation/common-tag 属性</span>
 management:
   endpoints.web.exposure.include: prometheus,health,info
   metrics.tags.application: ${spring.application.name}
@@ -1743,7 +1750,7 @@ scrape_configs:
     static_configs: [{ targets: ['app:8080'] }]</code></pre></div>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p>指标用于<strong>趋势与告警</strong>，GC 日志用于<strong>根因定位</strong>——二者互补不可偏废。<strong>老年代增长斜率</strong>比瞬时绝对值更能预警 OOM；GC 暂停看<strong>分布</strong>而非次数（ZGC Young GC 频繁属正常）。</p>
+              <p>指标用于<strong>趋势与告警</strong>，GC 日志用于<strong>根因定位</strong>。以目标 Micrometer/Prometheus 版本的 <code class="inline-code">/actuator/prometheus</code> 输出为准确认指标名；告警先建立业务 SLA、部署形态和同峰谷基线，再看斜率、持续时间和分布，不套用固定使用率阈值。</p>
             </div>
           </div>
         </div>
@@ -1753,18 +1760,18 @@ scrape_configs:
           <div class="qa-layer-body">
             <p><strong>1. 接入</strong>：Spring Boot Actuator + <code class="inline-code">micrometer-registry-prometheus</code>，暴露 <code class="inline-code">/actuator/prometheus</code>；保留 <code class="inline-code">-Xlog:gc*:time:file=gc.log</code> 日志作根因分析。</p>
             <p><strong>2. Grafana 看板</strong>：直接用官方 "JVM (Micrometer)" dashboard，重点看 GC 暂停分布、各代用量、Prometheus 抓取心跳。</p>
-            <p><strong>3. 告警规则</strong>：① 近 5 分钟出现 Full GC；② 老年代使用率 &gt; 85% 且斜率上升；③ <code class="inline-code">up</code> 指标掉线（进程/容器挂）。</p>
+            <p><strong>3. 告警规则</strong>：以完整集合名和原因标签识别 Full GC 并结合 SLA 判级；对老年代增长建立同峰谷基线、斜率与预计耗尽时间；对抓取失败、<code class="inline-code">up=0</code> 或样本断流单独告警。阈值应随负载、堆型和版本回归调整。</p>
             <p><strong>4. 闭环调优</strong>：指标预警 → 结合 GC 日志定位（如晋升失败、大对象）→ 调参（堆大小/区域、ZGC 软上限等，见 C02.11）→ 观察指标回归。</p>
-            <p><strong>5. 容器环境</strong>：必须开启 <code class="inline-code">-XX:+UseContainerSupport</code>（JDK 8u191+ 默认），让 JVM 感知容器 cgroup limit，否则指标显示堆正常却已被 OS 层 OOMKilled。</p>
+            <p><strong>5. 容器环境</strong>：核对目标 JDK/发行版的容器感知能力和默认状态；同时确认 cgroup 版本、CPU/内存 limit、MaxRAMPercentage 和实际 RSS。不要把 <code class="inline-code">UseContainerSupport</code> 的可用性与默认值固定到所有 JDK。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="deep">
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
-            <p><strong>追问 1：指标、日志、链路追踪如何分工？</strong> Metrics 看"宏观趋势与告警"（如 GC 暂停率）；Logs 看"单条根因"（如某次 Full GC 的详细原因）；Traces 看"一次请求跨服务耗时"。三者由 OTel 统一采集、各取所长。</p>
-            <p><strong>追问 2：如何区分"GC 导致停顿"与"业务本身慢"？</strong> 看 GC 暂停时间点是否与 RT 飙升对齐；用 <code class="inline-code">jvm_gc_pause_seconds</code> 叠加业务 RT 曲线，错位即非 GC 主因。</p>
-            <p><strong>追问 3：Micrometer 与 OpenTelemetry 什么关系？</strong> Micrometer 偏 Metrics 门面（兼容 Prometheus），OTel 是涵盖 Metrics/Traces/Logs 的厂商无关标准；Micrometer 可桥接 OTel，新项目建议以 OTel 为统一采集底座。</p>
+            <p><strong>追问 1：指标、日志、链路追踪如何分工？</strong> Metrics 看"宏观趋势与告警"（如 GC 暂停分布）；Logs 看"单条根因"（如某次回收原因）；Traces 看"一次请求跨服务耗时"。Micrometer/Observation/Micrometer Tracing/OpenTelemetry 的集成边界和默认采集链路随目标版本确认。</p>
+            <p><strong>追问 2：如何区分"GC 导致停顿"与"业务本身慢"？</strong> 把目标版本的实际 GC 停顿指标与请求日志/指标按时间对齐，再看下游、连接池、CPU 和发布事件。时间相关只是线索，不能仅凭曲线错位排除 GC。</p>
+            <p><strong>追问 3：Micrometer 与 OpenTelemetry 什么关系？</strong> Micrometer 是应用指标门面，Prometheus registry 负责对应暴露；OTel 覆盖 Metrics/Traces/Logs 等信号。两者可通过目标版本的桥接或 Spring 观测 API 协作，但不必然由 OTel 统一替换。</p>
           </div>
         </div>
 
@@ -1775,7 +1782,7 @@ scrape_configs:
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>只看 GC 次数不看分布</strong>：ZGC Young GC 每秒数次属正常，应看停顿分布与吞吐。</li>
-                <li><strong>容器 OOMKilled 却看 JVM 堆正常</strong>：未开 UseContainerSupport，JVM 按宿主机内存算堆，超出容器 limit 被 kill。</li>
+                <li><strong>容器 OOMKilled 却看 JVM 堆正常</strong>：JVM 堆指标通常不含 Metaspace、线程栈、GC native、直接缓冲和进程原生内存；要对照容器 limit、JVM 输出和 cgroup/RSS 画像。</li>
                 <li><strong>只配日志不配指标</strong>：无法做趋势与告警，只能事后救火。</li>
                 <li><strong>指标高基数爆炸</strong>：给 Timer 加 user_id 等高热度 label，Prometheus 存储与查询被打爆。</li>
                 <li><strong>照搬看板不针对 GC 暂停</strong>：通用模板未突出暂停分布，关键信号被淹没。</li>

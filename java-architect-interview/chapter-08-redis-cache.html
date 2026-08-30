@@ -76,7 +76,7 @@
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>早期 Redis 2.x~3.x：基础五类型 + 简单编码</strong>。String 底层 int/embstr/raw；List 用 ziplist（小，已废弃：Redis 7.0 起全面退役，替代：listpack，消除连锁更新问题）或 linkedlist（大）；Hash/Set/Zset 用 ziplist（同上已废弃）或 hashtable/skiplist。痛点：ziplist 的连锁更新（cascade update）问题——中间元素扩张导致后续所有元素 prevlen 字段级联修改，最坏 O(n²)。</p>
-            <p><strong>Redis 4.0：List 引入 quicklist</strong>——双向链表 + 每节点一个 ziplist（Redis 7.0 起节点内部改用 listpack），兼顾内存紧凑与修改效率，替代纯 linkedlist。Redis 5.0 引入 Stream（借鉴 Kafka 消费组模型）。</p>
+            <p><strong>Redis 3.2：List 引入 quicklist</strong>——双向链表 + 每节点一个 ziplist（Redis 7.0 起节点内部改用 listpack），兼顾内存紧凑与修改效率，替代纯 linkedlist。Redis 5.0 引入 Stream（借鉴 Kafka 消费组模型）。</p>
             <p><strong>Redis 7.0：ziplist 全面退役，引入 listpack</strong>。listpack 取消了 prevlen 字段，每个元素只存自身长度，从根本上<strong>消除连锁更新</strong>。Hash/Set/Zset 的小数据编码从 ziplist 切换为 listpack，List 的 quicklist 内部也从 ziplist 替换为 listpack（quicklist->listpack）。</p>
             <p><strong>趋势</strong>：① 编码持续向"紧凑 + 无连锁更新"演进，listpack 之后社区在探索 listpack 是否可承载更大容量；② 类型语义融合数据库能力——Stream 补齐消息队列、Bitmap 补齐位图统计、HyperLogLog 补齐基数去重；③ Redis 7.4+ 引入 <code class="inline-code">Hash field expiration</code>（hexpire）、Redis 8.0（2025-05 GA）引入 Vector Set（向量检索，HNSW 索引，命令 VADD/VSIM/VRANDMEMBER），向多模数据库演进。</p>
           </div>
@@ -140,7 +140,7 @@
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>把 Bitmap/HyperLogLog 当独立类型</strong>：实际都是 String 的位操作封装，OBJECT ENCODING 显示 raw，不能用 TYPE 区分。</li>
+                <li><strong>误认为 Bitmap/HyperLogLog 是独立类型</strong>：<code class="inline-code">TYPE</code> 返回 <code class="inline-code">string</code>（它们确实以字符串存储），需要用 <code class="inline-code">OBJECT ENCODING</code> 或命令语义（GETBIT/PFADD）区分——不是"不能用 TYPE 区分"的问题，而是"TYPE 层面本就是同一类型"。</li>
                 <li><strong>忽视编码切换的性能抖动</strong>：listpack→hashtable 切换瞬间有 realloc 与全量重建，大 Hash 频繁跨越阈值会抖动。</li>
                 <li><strong>用 String 存大 JSON 再用 GET 整体改</strong>：每次修改要全量反序列化+序列化+写回，应用 Hash 存字段独立修改。</li>
                 <li><strong>Zset 当无界延迟队列用</strong>：任务积压导致 Zset 膨胀，listpack→skiplist 切换后内存与查询性能下降，需监控 ZCARD 与定期清理。</li>
@@ -284,9 +284,9 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Redis 早期（2.x 前）：仅 RDB</strong>。BGSAVE 通过 fork 子进程 + COW（Copy-On-Write）写时复制生成全量二进制快照。优点：文件紧凑、恢复快、fork 后子进程异步不影响主进程。缺点：两次 BGSAVE 之间崩溃会丢失该窗口所有写入；fork 大内存实例阻塞（详见深度追问）。</p>
-            <p><strong>Redis 2.x：引入 AOF</strong>。追加记录每条写命令到 appendonly.aof（单文件 AOF，已废弃：Redis 7.0 起被多文件 AOF 替代，即 manifest + base + incr）。优点：数据丢失少（取决于 appendfsync）。缺点：文件膨胀、恢复慢（重放全量命令）。引入 AOF 重写（BGREWRITEAOF）压缩历史命令——只保留最终状态。</p>
+            <p><strong>Redis 2.x：引入 AOF</strong>。追加记录每条写命令到 appendonly.aof。Redis 7.0 起默认改为多文件 AOF（base + incr + manifest）；历史单文件加载路径仍存在，但新建实例不应把单文件当作当前默认布局。优点：数据丢失少（取决于 appendfsync）。缺点：文件膨胀、恢复慢（重放全量命令）。引入 AOF 重写（BGREWRITEAOF）压缩历史命令——只保留最终状态。</p>
             <p><strong>Redis 4.0：混合持久化（aof-use-rdb-preamble）</strong>。AOF 重写时，前半段写 RDB 全量快照、后半段追加增量 AOF 命令。加载时先加载 RDB（快）再重放增量 AOF（少）。结合 RDB 的恢复速度与 AOF 的数据完整性，<strong>成为生产推荐配置</strong>。</p>
-            <p><strong>Redis 7.0：AOF 改为多文件（manifest + base + incr）</strong>。base.rdb 是基础快照，incr.aof 是增量日志，manifest.aofmanifest 管理文件清单。重写不再覆盖单文件，而是生成新 base + 清空 incr，避免重写期间崩溃损坏原文件。<strong>趋势</strong>：持久化向"RDB 快照 + AOF 增量"的混合模式统一，7.x 的多文件 AOF 提升了原子性与可维护性。</p>
+            <p><strong>Redis 7.0：AOF 改为多文件（manifest + base + incr）</strong>。base 文件承载 RDB preamble 或 AOF 格式，incr 文件追加增量命令，<code class="inline-code">appendonly.aof.manifest</code> 管理文件清单。重写不再覆盖单文件，而是生成新 base + incr，避免重写期间崩溃损坏原文件。<strong>趋势</strong>：持久化向"RDB 快照 + AOF 增量"的混合模式统一，7.x 的多文件 AOF 提升了原子性与可维护性。</p>
           </div>
         </div>
 
@@ -434,23 +434,26 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre></di
     }
     <span class="com">// 互斥锁防击穿：只有一个线程回源</span>
     <span class="type">String</span> lockKey = <span class="str">"lock:"</span> + key;
+    <span class="com">// 互斥锁值用 UUID 标识持有者</span>
+    <span class="type">String</span> lockValue = UUID.<span class="fn">randomUUID</span>().<span class="fn">toString</span>();
     <span class="kw">try</span> {
-        <span class="type">boolean</span> locked = redis.<span class="fn">setIfAbsent</span>(lockKey, <span class="str">"1"</span>, <span class="num">10</span>, SECONDS);
+        <span class="type">boolean</span> locked = redis.<span class="fn">setIfAbsent</span>(lockKey, lockValue, <span class="num">10</span>, SECONDS);
         <span class="kw">if</span> (!locked) {
-            <span class="type">Thread</span>.<span class="fn">sleep</span>(<span class="num">50</span>); <span class="com">// 短暂等待重试</span>
-            <span class="kw">return</span> <span class="fn">getWithCache</span>(key);
+            <span class="type">Thread</span>.<span class="fn">sleep</span>(<span class="num">50</span>);
+            <span class="kw">return</span> redis.<span class="fn">get</span>(key); <span class="com">// 等待后直接重读缓存，不递归抢锁</span>
         }
         val = db.<span class="fn">query</span>(key);
         <span class="kw">if</span> (val == <span class="kw">null</span>) {
-            redis.<span class="fn">set</span>(key, NULL_MARK, <span class="num">60</span>, SECONDS); <span class="com">// 缓存空值短TTL</span>
+            redis.<span class="fn">set</span>(key, NULL_MARK, <span class="num">60</span>, SECONDS);
         } <span class="kw">else</span> {
-            <span class="com">// 随机TTL防雪崩</span>
             <span class="type">int</span> ttl = <span class="num">1800</span> + <span class="kw">new</span> <span class="type">Random</span>().<span class="fn">nextInt</span>(<span class="num">600</span>);
             redis.<span class="fn">set</span>(key, val, ttl, SECONDS);
         }
         <span class="kw">return</span> val;
     } <span class="kw">finally</span> {
-        redis.<span class="fn">delete</span>(lockKey);
+        <span class="com">// Lua 校验持有者后释放，防止误删他人锁</span>
+        redis.<span class="fn">eval</span>(<span class="str">"if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end"</span>,
+                <span class="num">1</span>, lockKey, lockValue);
     }
 }</code></pre></div>
 
@@ -538,7 +541,7 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre></di
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>方案1：双写（先更DB再更缓存 / 先更缓存再更DB）</strong>。问题：① 任何一步失败导致不一致；② 并发下"先更DB后更缓存"会出现线程A后发先至覆盖线程B的最新值（见图 8.4-1）。结论：<strong>更新缓存是反模式，应删除缓存</strong>（懒加载，下次读时重建）。</p>
+            <p><strong>方案1：双写（先更DB再更缓存 / 先更缓存再更DB）</strong>。问题：① 任何一步失败导致不一致；② 并发下"先更DB后更缓存"会出现线程A后发先至覆盖线程B的最新值（见图 8.4-1）。因此删除缓存 + 读时重建通常是默认选择；更新缓存只在"新值可低成本确定、可按版本单调写入、写后读收益明显"时使用，并必须处理失败补偿与乱序。</p>
             <p><strong>方案2：Cache Aside（先更DB再删缓存）</strong>。最经典模式。问题：① 删缓存失败导致脏数据；② 极端并发——线程A读旧值写缓存，线程B更DB删缓存后，A再写入旧值。此场景概率极低（需读比写慢），但强一致场景仍不可接受。</p>
             <p><strong>方案3：延迟双删</strong>。先删缓存→更DB→休眠N ms→再删缓存。第二次删除兜底"读旧值写缓存"的并发窗口。问题：N 难以确定（需大于一次读耗时）、休眠降低写性能、第二次删仍可能失败。</p>
             <p><strong>方案4：Canal binlog 订阅（最终一致）</strong>。业务只更DB，Canal 订阅 MySQL binlog，解析变更后删除/更新 Redis。<strong>彻底解耦业务与缓存</strong>，DB 是唯一写入源，避免双写并发问题。这是大型系统的主流方案。</p>
@@ -549,7 +552,7 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre></di
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>为什么"删除缓存"优于"更新缓存"</strong>：</p>
+            <p><strong>为什么多数业务默认"删除缓存"而非"更新缓存"</strong>：</p>
             <ul>
               <li>更新缓存：每次DB变更都要算缓存新值，复杂（多表 JOIN）；并发下可能乱序覆盖。</li>
               <li>删除缓存：懒加载，下次读时按最新DB重建；多个写只需删一次；避免无效更新。</li>
@@ -599,7 +602,7 @@ flowchart LR
               </div>
               <div class="chart-caption">图 8.4-2 Canal 订阅 binlog 异步同步缓存：DB 为唯一写入源</div>
             </div>
-            <p>Canal 伪装成 MySQL 从库，接收 binlog 流，解析 ROW 模式的变更事件（INSERT/UPDATE/DELETE 的具体行），投递给消费端删除对应缓存。优点：业务无感知、DB 单一写入源、无并发乱序。缺点：引入 Canal 组件、有秒级延迟、需保证 binlog 解析幂等。</p>
+            <p>Canal 伪装成 MySQL 从库，接收 binlog 流，解析 ROW 模式的变更事件（INSERT/UPDATE/DELETE 的具体行），投递给消费端删除对应缓存。优点：业务无感知、DB 单一写入源。缺点：引入 Canal 组件、消费链路有延迟；binlog/Canal 投递有序不等于消费端并行处理有序，同一 key 还必须进入同一有序队列，并按事务位图/position 或版本去重。</p>
           </div>
         </div>
 
@@ -621,9 +624,9 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：为什么不能"先删缓存再更DB"？</strong></p>
-            <p>先删缓存后更DB有典型并发问题：线程A删缓存→线程B读（miss，读DB旧值，写回缓存）→线程A更DB。结果缓存是旧值、DB是新值，且缓存不过期前一直不一致。<strong>这个窗口比"先更DB后删缓存"大得多</strong>（因为读+写缓存比更新 DB 快），所以禁用"先删后更"。</p>
+            <p>先删缓存后更DB有典型并发问题：线程A删缓存→线程B读（miss，读DB旧值，写回缓存）→线程A更DB。结果缓存是旧值、DB是新值，若不加 TTL、延迟再删或读时校验，不一致可能持续到 TTL。<strong>该方案不应作为强一致/较快收敛场景的默认</strong>；在弱一致或需要缩短旧读窗口的场景可接受，但必须给出 TTL 和二次删除成本。</p>
             <p><strong>追问 2：Canal 方案如何保证缓存删除的顺序与幂等？</strong></p>
-            <p>顺序：Canal 按 binlog 顺序投递，单 partition 内有序，同一 key 的变更按 DB 提交顺序到达。幂等：删除缓存操作天然幂等（删多次结果一样）；若用"更新缓存"则需带版本号/binlog position 去重。失败重试用 MQ 死信队列，最终一致。</p>
+            <p>顺序：Canal 侧有 binlog 位点和队列内顺序，但进入 MQ 或消费线程池后可能乱序；应按缓存 key 做哈希路由，让同一 key 进入同一分区/队列串行处理。幂等：删除缓存天然幂等；更新缓存必须带 binlog position/GTID 或业务版本号做单调校验。失败重试用 MQ 重试与死信队列，并配合 TTL 兜底。</p>
           </div>
         </div>
 
@@ -633,8 +636,8 @@ flowchart LR
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>"更新缓存"而非"删除缓存"</strong>：更新缓存有并发覆盖与计算复杂问题，应删除让懒加载重建。</li>
-                <li><strong>"先删缓存后更DB"</strong>：并发不一致窗口大，应"先更DB后删缓存"。</li>
+                <li><strong>把"更新缓存"无条件当反模式</strong>：默认删除缓存更稳；但可低成本算值且能按版本单调更新时，更新缓存也是合法策略。</li>
+                <li><strong>无补偿地"先删缓存后更DB"</strong>：并发不一致窗口大；若必须使用，需 TTL、延迟再删和监控。</li>
                 <li><strong>删缓存失败不补偿</strong>：删失败导致脏数据长期存在，必须有 MQ 重试或 TTL 兜底。</li>
                 <li><strong>追求强一致还用缓存</strong>：缓存本质是最终一致，强一致应直读 DB 或用分布式事务，不要在缓存层强求。</li>
                 <li><strong>延迟双删的 N 凭感觉</strong>：N 应基于线上 P99 读耗时监控确定，过小无效、过大降低写吞吐。</li>
@@ -666,7 +669,7 @@ flowchart LR
             <p><strong>阶段1：单节点 SETNX + EXPIRE</strong>。<code class="inline-code">SETNX key value</code> 加锁，<code class="inline-code">EXPIRE</code> 设过期防死锁。问题：两条命令非原子，SETNX 成功后宕机未 EXPIRE 导致死锁。<strong>改进</strong>：Redis 2.6.12 后 <code class="inline-code">SET key value NX EX seconds</code> 原子化。但仍有问题：① 不可重入（同线程再次加锁失败）；② 业务超时锁过期后被他人获取，原线程释放了别人的锁。</p>
             <p><strong>阶段2：value 存唯一标识 + Lua 释放</strong>。加锁时 value 存 UUID（标识持有者），释放用 Lua 脚本"判断 value 相等才删"，避免误删他人锁。解决误删，但未解决可重入与续期。</p>
             <p><strong>阶段3：RedLock（Antirez 提出）</strong>。在 N（奇数，通常5）个独立 Redis 实例上同时加锁，超过半数（N/2+1）成功且耗时小于锁 TTL 则加锁成功。意图：解决单点故障导致的锁失效。<strong>Martin Kleppmann 质疑</strong>：① GC pause 期间锁过期，客户端仍以为自己持锁，导致互斥被破坏；② RedLock 依赖各节点时间同步，但分布式系统时钟不可靠（NTP 漂移）；③ RedLock 既非 AP 也非 CP，定位尴尬。结论：RedLock 在 correctness 要求高的场景不安全。</p>
-            <p><strong>阶段4：Redisson（事实标准）</strong>。基于 Lua + Hash 实现可重入，WatchDog 定时续期解决业务超时锁过期。单节点模式够用于大多数场景；RedLock 模式（RedissonRedLock）在新版本已废弃，社区共识是<strong>对正确性要求高用 ZK/etcd，性能优先用 Redisson 单节点</strong>。</p>
+            <p><strong>阶段4：Redisson（事实标准）</strong>。基于 Lua + Hash 实现可重入，WatchDog 定时续期解决业务超时锁过期。单节点模式够用于大多数场景；历史 RedLock 封装 <code class="inline-code">RedissonRedLock</code> 在较新版本中已标记废弃。<strong>对正确性要求高的协调可评估 ZK/etcd 的多数派与 session/lease 语义，但业务资源仍要保留唯一约束、状态机和幂等；性能优先则通常评估 Redisson 单节点。</strong></p>
           </div>
         </div>
 
@@ -740,7 +743,7 @@ sequenceDiagram
         lock.<span class="fn">unlock</span>();  <span class="com">// 必须判断是否持有,避免IllegalMonitorStateException</span>
     }
 }</code></pre></div>
-            <p><strong>选型建议</strong>：① 大多数业务（订单防重、库存扣减、限流）—— Redisson 单节点锁 + 看门狗，性能好、AP 特性、可容忍极端情况锁失效；② 金融转账、强一致场景—— ZK 临时顺序节点锁或 etcd lease，CP 特性、保证严格互斥；③ 不要用 RedLock——争议大、复杂度高、收益有限。</p>
+            <p><strong>选型建议</strong>：① 大多数业务（订单防重、库存扣减、限流）—— Redisson 单节点锁 + 看门狗，性能好、可容忍极端情况锁失效；② 金融转账、正确性敏感场景—— 先以数据库唯一约束/状态机兜底，再按预算评估 ZK 临时顺序节点或 etcd lease 的 session/lease 语义；这类系统在多数派存活时有更强协调保证，也不是不需要幂等和 fencing token；③ RedLock 争议大、复杂度高，引入前必须按所用 Redisson/Redis 版本和故障模型验证。</p>
           </div>
         </div>
 
@@ -748,9 +751,9 @@ sequenceDiagram
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Martin Kleppmann 对 RedLock 的质疑核心是什么？Antirez 如何回应？</strong></p>
-            <p>Kleppmann 质疑：① <strong>GC/STW 问题</strong>——客户端持锁后长时间 GC pause，锁过期被他人获取，两个客户端同时以为自己持锁，互斥被破坏；② <strong>时钟依赖</strong>——RedLock 用 TTL 判断合法性，依赖各 Redis 节点时钟一致，但 NTP 漂移、闰秒会使判断错误。Antirez 回应：RedLock 不比单节点更差，且可通过 fencing token 解决 GC 问题。但 fencing token 需要存储层支持单调递增版本号检查，Redis 本身不提供。<strong>结论</strong>：对正确性敏感场景，用 ZK/etcd 更稳妥。</p>
+            <p>Kleppmann 质疑：① <strong>GC/STW 问题</strong>——客户端持锁后长时间 GC pause，锁过期被他人获取，两个客户端同时以为自己持锁，互斥被破坏；② <strong>时钟依赖</strong>——RedLock 用 TTL 判断合法性，依赖各 Redis 节点时钟一致，但 NTP 漂移、闰秒会使判断错误。Antirez 回应：RedLock 不比单节点更差，并讨论用 fencing token 缓解 GC 问题。该令牌的核心不是发放方，而是资源端必须比较单调 token 后才执行；Redis SET 锁和常规 Redisson RLock 不自动替下游资源完成这个校验。<strong>结论</strong>：正确性敏感场景，先落库约束/状态机；协调服务选型再按版本与故障模型评估 ZK/etcd。</p>
             <p><strong>追问 2：看门狗续期失败会怎样？</strong></p>
-            <p>看门狗续期用 Lua 脚本（hexists 判断 + pexpire），若 Redis 故障或网络分区导致续期失败，锁会在原 TTL（30s）后过期释放，其他客户端可获取。此时原业务仍在执行——可能引发并发互斥破坏。这是 Redis 分布式锁的固有缺陷（AP 优先），强一致场景必须用 ZK（session 失效即释放锁，且 ZK 临时节点不会因网络问题被误删）。</p>
+            <p>看门狗续期用 Lua 脚本（hexists 判断 + pexpire），若 Redis 故障或网络分区导致续期失败，锁会在配置的 TTL 内过期，其他客户端可获取。此时原业务可能仍在执行，从而破坏互斥。这是 Redis 分布式锁的固有边界；正确性敏感业务必须用数据库唯一约束/状态机兜底。ZK/etcd 通过 session/lease 提供更强的协调失效语义，但客户端仍可能经历 pause、时钟或网络边界，需要业务幂等。</p>
           </div>
         </div>
 
@@ -763,8 +766,8 @@ sequenceDiagram
                 <li><strong>指定 leaseTime 后以为还有看门狗</strong>：指定 leaseTime 则看门狗不启动，锁会强制过期，业务超时则互斥失效。</li>
                 <li><strong>unlock 不判断 isHeldByCurrentThread</strong>：锁已过期被他人获取时 unlock 会抛 IllegalMonitorStateException。</li>
                 <li><strong>用 SETNX 手写锁替代 Redisson</strong>：手写锁缺可重入、续期、误删防护，应直接用 Redisson。</li>
-                <li><strong>对强一致场景用 Redis 锁</strong>：Redis 锁是 AP，GC/网络分区下会破坏互斥，金融场景用 ZK/etcd。</li>
-                <li><strong>RedLock 当银弹</strong>：RedLock 既未解决 GC 问题又增加复杂度，新版本已废弃，不要盲目使用。</li>
+                <li><strong>把 Redis 锁当唯一正确性保障</strong>：GC/网络分区下可能双持；关键资源要有唯一约束或状态机。</li>
+                <li><strong>把 RedLock/ZK/etcd 当银弹</strong>：RedLock 复杂且有争议；ZK/etcd 也要按 session/lease、时钟和幂等语义验证。</li>
               </ul>
             </div>
           </div>
@@ -1001,7 +1004,7 @@ flowchart TB
             <ul>
               <li><strong>主观下线（PFAIL）</strong>：节点A 发现节点B PING 超时，标记 B 为主观下线。</li>
               <li><strong>客观下线（FAIL）</strong>：A 通过 Gossip 传播 B 的 PFAIL，超半数主节点确认后标记 B 为 FAIL。</li>
-              <li><strong>从节点选举</strong>：B 的从节点中，复制偏移量最大（数据最新）的优先竞选，获超半数主节点投票则当选为新主。</li>
+              <li><strong>从节点选举</strong>：候选从节点先受 <code class="inline-code">master-link-status</code>、<code class="inline-code">cluster-replica-validity-factor</code> 和 <code class="inline-code">replica-priority</code> 约束；priority 为 0 不参与，数值小者优先。在通过有效性检查的候选中，复制偏移量大（数据更新）者排名靠前、更早发起选举，仍需获超半数主节点投票才当选新主。</li>
               <li><strong>接管</strong>：新主广播 PONG 宣告槽位归属变更，集群更新路由。</li>
             </ul>
 
@@ -1027,7 +1030,7 @@ flowchart TB
             <p><strong>追问 1：Cluster 与哨兵如何选型？</strong></p>
             <p>哨兵：单主多从 + Sentinel 监控，<strong>写不扩展、容量不扩展</strong>，仅解决高可用。适合数据量小（&lt;10GB）、写量适中的场景。Cluster：多主分片 + 各主从，<strong>写与容量水平扩展</strong>。适合大数据量/高写入。两者可视为演进关系——Cluster 是哨兵的超集（功能上），但部署更复杂。生产大数据量首选 Cluster。</p>
             <p><strong>追问 2：Cluster 的脑裂问题如何防范？</strong></p>
-            <p>网络分区下，主节点与集群失联但仍接收客户端写入，从节点被选为新主也接收写入——两个主同时写。旧主恢复后被降级为从，其分区期间的写入<strong>丢失</strong>。Redis 用 <code class="inline-code">min-replicas-to-write</code> 配置——主节点必须至少有 N 个从节点同步确认才接受写入，分区时孤立主因无从确认而拒绝写，减少脑载数据丢失。但这是尽力而为，非绝对防护。</p>
+            <p>网络分区下，主节点与集群失联但仍接收客户端写入，从节点被选为新主也接收写入——两个主同时写。旧主恢复后被降级为从，其分区期间的未同步写入<strong>可能丢失</strong>。<code class="inline-code">min-replicas-to-write</code> 与 <code class="inline-code">min-replicas-max-lag</code> 是写准入检查：主节点要求至少 N 个连接且最近心跳/延迟不超过阈值的从节点，否则拒绝写；它不等待该请求在从库执行或持久化完成，因此不是请求级同步 ACK，也不能绝对防止脑裂。</p>
           </div>
         </div>
 
@@ -1053,13 +1056,13 @@ flowchart TB
             <p>Redis Cluster 在单机房内运行良好，但<strong>跨机房部署</strong>会引入网络延迟、分区风险与锁续约等新问题，需要专门的同步方案设计。</p>
             <ul>
               <li><strong>Redis Cluster 跨机房部署</strong>：① <strong>同城双活</strong>——两个机房各部署部分 master+slave，master 在 A 机房、slave 在 B 机房（或反之），依赖同城低延迟专线；② <strong>异地灾备</strong>——主集群 + 异地从集群，通过 redis-shake/redis-sync 做异步复制；③ <strong>网络分区风险</strong>——跨机房 cluster 可能因网络抖动触发 failover，导致数据不一致，需配合 <code class="inline-code">cluster-node-timeout</code> 调大容忍窗口。</li>
-              <li><strong>Redisson 看门狗跨机房问题</strong>：看门狗默认 30s 续约，跨机房网络延迟可能导致续约失败→锁被误释放。解决方案：增大 <code class="inline-code">watchdogTimeout</code>，或使用 RedLock（多节点多数派加锁，5 个节点获 3 个即成功），容忍单机房网络故障。</li>
+              <li><strong>Redisson 看门狗跨机房问题</strong>：看门狗默认 30s 续约，跨机房网络延迟可能导致续约失败→锁过期。不要靠简单拉大 <code class="inline-code">lockWatchdogTimeout</code> 掩盖故障；锁应按机房/共享资源域就近组织，跨机房调用配合数据库唯一约束、状态机或资源端 fencing token 校验，避免双持直接写坏状态。</li>
               <li><strong>Proxy 层同步</strong>：① <strong>Codis</strong>——支持跨机房 proxy 集群，数据分片后可跨机房副本，支持在线扩缩容；② <strong>twemproxy</strong>——不支持动态扩缩容，适合静态分片场景，跨机房需上层做副本同步。</li>
-              <li><strong>异步复制延迟容忍度设计</strong>：① <strong>写后立即读一致性</strong>——用"读主"策略保证强一致，但牺牲性能（读走主库）；② <strong>最终一致</strong>——接受秒级延迟，业务侧用本地缓存补偿（先读本地缓存，未命中读从库，从库延迟则回退读主）；③ <strong>关键交易</strong>——写后强制同步等待 ACK（半同步复制），非关键走异步。</li>
+              <li><strong>异步复制延迟容忍度设计</strong>：① <strong>写后立即读一致性</strong>——用"读主"策略减少读到旧副本，但牺牲性能（读走主库）；② <strong>最终一致</strong>——接受秒级延迟，业务侧用本地缓存补偿（先读本地缓存，未命中读主或按路由读副本）；③ <strong>关键交易</strong>——Redis OSS 没有数据库意义上的原生半同步复制。可用 <code class="inline-code">WAIT</code> 等待前序写入到达至少 N 个副本，但返回值必须校验，且不能视为跨机房 RPO=0 或强一致；必要时改用提供对应语义的同步复制产品。</li>
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
-              <p>跨机房同步的本质是<strong>在 CAP 三者间做分级取舍</strong>。同城双活因延迟低（&lt;1ms）可做同步复制，偏向 CP；异地多活延迟高（10~100ms）只能异步复制，偏向 AP。架构师需按业务链路分级：核心交易（支付）走半同步保证 RPO≈0；非核心（商品浏览）走异步容忍 RPO&gt;0。切忌一刀切——全同步则性能不可接受，全异步则数据安全无保障。</p>
+              <p>跨机房同步的本质是<strong>按 RPO、延迟和故障模型分级取舍</strong>。同城低延迟提供了做更强复制的空间，但不自动等于 CP；异地多活通常异步复制，偏向 AP，需明确可容忍的 RPO。Redis OSS 场景下，核心交易可通过读主、<code class="inline-code">WAIT</code>、写准入配置和业务约束降低风险；要 RPO≈0 必须使用并验证支持该目标的产品与部署方案。切忌一刀切——强复制增加延迟与故障面，纯异步则必须接受数据丢失窗口。</p>
             </div>
           </div>
         </div>
@@ -1084,7 +1087,7 @@ flowchart TB
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>过期策略：惰性 + 定期（一直如此）</strong>。惰性——访问时检查过期则删，保准确但过期 key 不访问则一直占内存；定期——每 100ms 随机抽 20 个 key 检查过期，过期比例超 25% 则继续抽，循环渐进清理。两者结合平衡准确与延迟。<strong>演进</strong>：Redis 6.0 引入<strong>主动过期在子线程</strong>（lazyfree-lazy-expire），过期删除异步化减少主线程阻塞；7.0 进一步扩展异步删除场景。</p>
+            <p><strong>过期策略：惰性 + 定期（长期如此）</strong>。惰性——访问时检查过期则删，保准确但过期 key 不访问则一直占内存；定期——主动循环抽样检查并渐进清理。两者结合平衡准确与延迟。<strong>演进</strong>：Redis 4.0 引入 lazy-free 体系，包括 <code class="inline-code">UNLINK</code> 和 <code class="inline-code">lazyfree-lazy-expire</code> 等配置；开启后过期 key 的释放可交给后台线程，减少大对象释放阻塞主线程的概率。抽样判断本身仍是过期机制的一部分，不应概括为“主动过期整体都在子线程”；不同版本可用的 lazy-free 开关要按目标版本确认。</p>
             <p><strong>淘汰策略演进</strong>：</p>
             <ul>
               <li><strong>Redis 2.x：noeviction +volatile-lru + allkeys-lru</strong>。LRU 是<strong>近似 LRU</strong>——不维护全局链表（太贵），而是随机采样 5 个 key 淘汰最久未用的。maxmemory-samples 控制采样数。</li>
@@ -1130,7 +1133,7 @@ flowchart TB
           <div class="qa-layer-body">
             <p><strong>maxmemory 配置</strong>：单实例 maxmemory 建议 = 物理内存 × 60%（留 fork 与 COW 余量）。超限触发淘汰，<code class="inline-code">INFO memory</code> 的 used_memory 接近 maxmemory 时需告警。</p>
             <p><strong>内存碎片监控</strong>：<code class="inline-code">INFO memory</code> 的 <code class="inline-code">mem_fragmentation_ratio</code> = used_memory_rss / used_memory。&gt;1.5 表示碎片严重（频繁修改/删除导致）。Redis 4.0+ 支持 <code class="inline-code">activedefrag yes</code> 主动碎片整理（Jemalloc 后台合并碎片）。&lt;1 表示用了 swap，必须立即处理。</p>
-            <p><strong>大 key 删除阻塞</strong>：删除大 key（如百万元素 Hash）主线程阻塞。用 <code class="inline-code">UNLINK</code>（4.0+，异步删除）替代 DEL；或 <code class="inline-code">lazyfree-lazy-eviction yes</code> 让淘汰也异步。定期用 <code class="inline-code">redis-cli --bigkeys</code> 或 memory usage 扫描大 key 拆分。</p>
+            <p><strong>大 key 删除阻塞</strong>：删除大 key（如百万元素 Hash）可能阻塞主线程。Redis 4.0+ 用 <code class="inline-code">UNLINK</code> 把实际释放交给 lazy-free 路径；也可评估 <code class="inline-code">lazyfree-lazy-eviction yes</code> 让淘汰释放异步化。定期用 <code class="inline-code">redis-cli --bigkeys</code> 或 <code class="inline-code">MEMORY USAGE</code> 扫描大 key 拆分。</p>
           </div>
         </div>
 
@@ -1301,10 +1304,10 @@ flowchart LR
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>早期：单线程模型的性能认知</strong>。Redis 单线程命令处理（6.0 前网络 IO 也单线程），避免锁竞争但单实例 QPS 上限约 10 万。优化聚焦命令选择与 pipeline。</p>
+            <p><strong>早期：单线程模型的性能认知</strong>。Redis 6.0 前命令处理和网络 IO 都在单线程中完成，避免锁竞争；简单 GET/SET 常见压测可达十万级 QPS，但上限取决于命令复杂度、值大小、网络、协议、TLS 和客户端并发，不是固定 10 万上限。优化聚焦命令选择与 pipeline。</p>
             <p><strong>Redis 6.0：多线程网络 IO</strong>。命令执行仍单线程（保有序与无锁），但网络读写多线程化，提升网络密集场景吞吐。配合 IO threads 配置。</p>
             <p><strong>现状：全链路优化</strong>。从客户端（连接池、pipeline、集群路由）→ 网络（多线程 IO、TLS）→ 服务端（Lua 原子、大 key 拆分、慢命令禁用）→ 集群（分片均衡、热 key 迁移）→ 持久化（fork 优化、异步删除）→ 监控（latency monitor、slowlog）的全链路治理。</p>
-            <p><strong>趋势</strong>：① Redis on NVM/持久内存（Intel Optane）突破内存容量限制；② Redis 8.0 引入全新多线程 I/O 实现（多核吞吐提升），并以内置 Beta 原生数据结构形式提供 Vector Set（向量检索，HNSW 索引 + int8 量化，API 尚在演进中）；③ 云上 Redis（Tair）的并行执行引擎与向量检索扩展；④ Sidecar 缓存下沉，业务无感。</p>
+            <p><strong>演进关注点</strong>：按目标版本读取官方发布说明，重点核对多线程 I/O、TLS、向量检索和扩展模块能力，不要把已退市或小众硬件（如 Intel Optane）写成当前生产趋势；云上 Tair 等扩展能力和 Sidecar/本地缓存下沉属于特定架构选项，收益需结合部署拓扑和压测确认。</p>
           </div>
         </div>
 
@@ -1511,7 +1514,7 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre></
             <p><strong>追问 1：Stream 能否完全替代 Kafka？</strong></p>
             <p><strong>不能</strong>。Stream 是内存结构，受单机内存限制，无分区多副本机制（Redis Cluster 的 Stream 分片需客户端手动按 key 拆分），无磁盘持久化重放能力，消费者组协调也较简单。Stream 的优势是<strong>低延迟（亚毫秒）+ 部署简单</strong>，适合：订单状态流转、延时任务调度（配合 ZSet）、轻量事件总线。Kafka 适合：大数据吞吐（百万 QPS）、长时间消息保留、跨机房复制、复杂流处理（Flink/Spark）。</p>
             <p><strong>追问 2：Stream 的消费者组与 Kafka Consumer Group 的差异？</strong></p>
-            <p>① <strong>协调器</strong>：Kafka 有 Broker 端的 GroupCoordinator 管理消费者位移与 Rebalance；Redis Stream 无中心协调器，消费者状态（PEL）分散在各客户端，需客户端自行处理。② <strong>Rebalance</strong>：Kafka 自动处理分区分配与 Rebalance；Redis Stream 无分区概念，消费者各自独立读取，不自动 Rebalance。③ <strong>位移管理</strong>：Kafka 位移持久化在 Broker；Redis Stream 的 PEL 存储在 Stream 内存结构中，重启 Redis 会丢失未 ACK 消息（除非 RDB/AOF 持久化）。</p>
+            <p>① <strong>协调器</strong>：Kafka 有 Broker 端的 GroupCoordinator 管理消费者位移与 Rebalance；Redis Stream 无中心协调器，消费者状态（PEL）是 Redis Stream 数据结构在服务端维护的，不是分散在各客户端；客户端通过 <code class="inline-code">XPENDING</code>/<code class="inline-code">XACK</code>/<code class="inline-code">XAUTOCLAIM</code> 查询与确认。② <strong>Rebalance</strong>：Kafka 自动处理分区分配与 Rebalance；Redis Stream 无分区概念，消费者各自独立读取，不自动 Rebalance。③ <strong>位移管理</strong>：Kafka 位移持久化在 Broker；Redis Stream 的 PEL 存储在 Stream 内存结构中，重启 Redis 会丢失未 ACK 消息（除非 RDB/AOF 持久化）。</p>
           </div>
         </div>
 

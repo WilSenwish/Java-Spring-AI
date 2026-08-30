@@ -218,8 +218,8 @@ graph TD
           <div class="qa-layer-body">
             <p><strong>句柄访问 → 直接指针</strong>：早期 JVM（如部分实现）使用句柄池，对象引用指向句柄，句柄再指向对象实例与类数据。优点是对象移动（GC 时）只需改句柄，缺点是多一次指针跳转。HotSpot 最终选择<strong>直接指针</strong>，引用直接指向堆中对象，访问更快，代价是 GC 移动对象时需更新所有引用。</p>
             <p><strong>无 TLAB → TLAB</strong>：早期堆分配全局竞争（CAS 指针碰撞），多线程分配高并发下性能差。引入 <strong>TLAB（Thread Local Allocation Buffer）</strong>后，每个线程在 Eden 区预分配一块私有内存，线程内分配无锁，全局仅当 TLAB 耗尽时才同步申请新块。</p>
-            <p><strong>Mark Word 演进</strong>：32 位时代的 Mark Word 32bit；64 位时代扩展到 64bit（开启压缩指针仍紧凑布局）；<strong>JDK 15 废弃并默认关闭偏向锁</strong>（JEP 374，BiasedLockingStartupDelay 默认值从 4000ms 改为 0ms；JDK 18 起移除该启动参数）后，Mark Word 中偏向锁位被回收，锁状态从 4 种简化为 3 种。</p>
-            <p><strong>未来趋势</strong>：JEP 454（Foreign Function &amp; Memory API，JDK 22 Final）与值类型（Project Valhalla）将引入"内联类型"，打破"对象必有对象头"的传统布局，有望消除长期存在的对象头开销（64 位下默认 12-16 字节）。</p>
+            <p><strong>Mark Word 演进</strong>：32 位 HotSpot 的 Mark Word 是 4 字节；64 位 HotSpot 通常用 8 字节。偏向锁布局只适用于支持它的版本：JEP 374 在 JDK 15 将其废弃并默认关闭；JDK 18 起相关支持被移除。因此不能把某一代 Mark Word 的位图当作所有 JDK 的通用布局。</p>
+            <p><strong>未来趋势</strong>：JEP 454（Foreign Function &amp; Memory API，JDK 22 正式）解决的是受控堆外/native 内存访问；Project Valhalla 的 Value Objects 才可能改变对象头开销。两者目标不同，不能混为一谈。</p>
           </div>
         </div>
 
@@ -247,7 +247,7 @@ graph TD
               <li><strong>并发安全</strong>：指针碰撞下用 CAS 或 TLAB 解决并发；空闲列表下用 CAS 更新链表。</li>
             </ul>
 
-            <p><strong>对象内存布局（64 位 JVM，开启压缩指针）</strong>：</p>
+            <p><strong>对象内存布局（64 位 HotSpot，开启压缩指针）</strong>：</p>
             <div class="mermaid-container">
               <div class="mermaid">
 graph LR
@@ -258,7 +258,7 @@ graph LR
     H --> H2[类型指针 Klass Pointer<br/>4 字节 压缩后<br/>指向类元数据]
     H --> H3[数组长度 4 字节<br/>仅数组对象有]
               </div>
-              <div class="chart-caption">图 1.2-2 对象内存布局（64 位，压缩指针开启）</div>
+            <div class="chart-caption">图 1.2-2 对象内存布局（64 位 HotSpot，压缩指针开启；普通对象头 12 字节，数组再加 4 字节长度）</div>
             </div>
 
             <p><strong>Mark Word 64 位布局（JDK 15 前含偏向锁）</strong>：</p>
@@ -330,7 +330,7 @@ graph LR
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>误以为对象头固定大小</strong>：对象头大小取决于位数（32/64）和压缩指针开关，数组对象还多 4 字节长度位。</li>
-                <li><strong>混淆 Mark Word 的锁状态位</strong>：JDK 15 废弃并默认关闭偏向锁后，"01"不再区分无锁/偏向锁，Mark Word 布局已变化。</li>
+                <li><strong>混淆 Mark Word 的版本差异</strong>：偏向锁位图只适用于支持偏向锁的 HotSpot 版本；JDK 15 默认关闭、JDK 18 起移除相关支持，不能跨越所有 JDK 复用同一位图解释。</li>
                 <li><strong>以为 new 之后立即可见</strong>：在构造方法执行前，对象内存虽已零值初始化，但字段尚未赋值，此时其他线程通过引用看到的对象是半初始化状态——这正是 DCL 单例需要 volatile 的根因。</li>
                 <li><strong>忽略对齐填充</strong>：对象大小非 8 的倍数时会填充，影响内存占用估算，尤其在海量小对象场景。</li>
               </ul>
@@ -599,7 +599,7 @@ graph LR
                   <tr><td>4. 线程启动规则</td><td>Thread.start() happens-before 该线程的所有操作</td></tr>
                   <tr><td>5. 线程终止规则</td><td>线程所有操作 happens-before Thread.join() 返回</td></tr>
                   <tr><td>6. 中断规则</td><td>Thread.interrupt() 调用 happens-before 被中断线程检测到中断</td></tr>
-                  <tr><td>7. 终结器规则</td><td>对象构造完成 happens-before 其 finalize() 开始（注：finalize() 已不推荐，JEP 421，JDK 18+ 默认禁用，使用 Cleaner / try-with-resources 替代）</td></tr>
+                  <tr><td>7. 终结器规则</td><td>对象构造完成 happens-before 其 finalize() 开始（注：finalize() 自 JDK 9 废弃、JEP 421 在 JDK 18 为 removal 继续标记；JDK 18 起 <code class="inline-code">--finalization=disabled</code> 可禁用，但默认仍启用。新代码优先 try-with-resources / Cleaner）</td></tr>
                   <tr><td>8. 传递性</td><td>A happens-before B，B happens-before C，则 A happens-before C</td></tr>
                 </tbody>
               </table>
@@ -868,18 +868,18 @@ graph TD
         A2 -->|GC可能移动对象 导致地址变化 需固定或再拷贝| A3[JNI 传递]
     end
     subgraph NIO堆外Buffer
-        B1[内核态 Socket Buffer] -->|直接DMA传输 零拷贝| B2[用户态 堆外 DirectByteBuffer]
+        B1[内核态 Socket Buffer] -->|减少一次堆内到堆外的CPU拷贝| B2[用户态 堆外 DirectByteBuffer]
         B2 -->|地址固定 GC不移动| B3[JNI 传递]
     end
               </div>
               <div class="chart-caption">图 1.6-1 堆内 Buffer vs 堆外 Buffer 的 IO 路径</div>
             </div>
-            <p>堆内 byte[] 在 GC 时可能被移动，地址变化导致内核无法稳定引用。因此传统 IO 需先将堆内数据拷贝到堆外临时 buffer 再传给内核，多一次拷贝。DirectByteBuffer 在堆外分配，地址固定，内核可直接 DMA 读写，省去这次拷贝——这就是"零拷贝"的本质之一。</p>
+            <p>堆内 byte[] 在 GC 时可能被移动，地址变化导致内核无法稳定引用。因此传统 IO 通常需要先把堆内数据拷贝到堆外临时 buffer 再传给内核，多一次拷贝。DirectByteBuffer 通过 native 直接内存分配获得稳定地址，可减少这次堆内到堆外的 CPU 拷贝；但它本身不是文件页缓存，也不等价于 mmap，网络传输仍有内核协议栈路径和必要的设备传输环节。</p>
 
             <p><strong>零拷贝的三种实现</strong>：</p>
             <ul>
               <li><strong>sendfile（FileChannel.transferTo）</strong>：数据全程在内核态从文件页缓存直达 socket buffer，零用户态拷贝。Kafka 的 fast replication 用此。</li>
-              <li><strong>mmap（MappedByteBuffer）</strong>：将文件映射到用户态内存地址空间，用户态直接读写文件页缓存，避免 read/write 系统调用的用户态↔内核态拷贝。Kafka 消费用此。</li>
+              <li><strong>mmap（MappedByteBuffer）</strong>：将文件区域映射到进程虚拟地址空间，访问时按缺页从文件页缓存填充；避免 read/write 调用中的一次用户缓冲拷贝，但不等于 DirectByteBuffer。Kafka 常用于索引文件访问，不应简单概括为所有消息消费路径。</li>
               <li><strong>DirectByteBuffer</strong>：堆外内存，避免堆内→堆外拷贝，配合 gather（Scatter/Gather）减少 CPU 拷贝。</li>
             </ul>
 
@@ -914,7 +914,7 @@ graph TD
             <p><strong>架构师 · 设计决策</strong>：</p>
             <ul>
               <li><strong>Netty 池化配置</strong>：高并发网关/IM 场景用 PooledDirectByteBuf（默认），<code class="inline-code">-Dio.netty.allocator.type=unpooled</code> 仅在低并发或调试时用。池化避免频繁 malloc/free，但需配合 <code class="inline-code">ResourceLeakDetector</code>（生产用 DISABLED/SIMPLE，测试用 ADVANCED/PARANOID）防泄漏。</li>
-              <li><strong>零拷贝选型</strong>：大文件传输（如下载/日志聚合）用 <code class="inline-code">FileChannel.transferTo</code>（sendfile，CPU 零参与）；随机读写用 MappedByteBuffer（mmap）；网络转发用 DirectByteBuffer + gather。Kafka 同时用 sendfile（消费）和 mmap（写入页缓存），是零拷贝的教科书级应用。</li>
+              <li><strong>零拷贝选型</strong>：大文件传输（如下载/日志聚合）优先评估 <code class="inline-code">FileChannel.transferTo</code>（sendfile，把用户态拷贝移出主路径，CPU 参与是否可消除取决于网卡、协议和内核路径）；随机映射读文件用 MappedByteBuffer；网络缓冲用 DirectByteBuffer + gather。Kafka 在不同路径分别使用 sendfile 和 mmap，属于按场景选型的例子。</li>
               <li><strong>容器内存规划</strong>：堆外内存不占 -Xmx 但占容器总内存。架构上要预留堆外内存空间：容器内存 = 堆 + 元空间 + 堆外（Direct + Native）+ 线程栈 + OS。Netty/Kafka 客户端场景堆外可能占 20-30% 容器内存。</li>
             </ul>
           </div>
@@ -962,7 +962,7 @@ graph TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察 <strong>强/软/弱/虚四种引用</strong>的语义差异、GC 回收时机、以及 ReferenceQueue 机制。核心是理解"引用强度递减"如何让开发者精细控制对象生命周期，支撑缓存、资源清理（Finalizer 已不推荐，JEP 421，JDK 18+ 默认禁用，使用 Cleaner / try-with-resources 替代）、ThreadLocal 等场景。这也是理解 ThreadLocal 内存泄漏、DirectByteBuffer 回收的前置知识。</p>
+            <p>考察 <strong>强/软/弱/虚四种引用</strong>的语义差异、GC 回收时机、以及 ReferenceQueue 机制。核心是理解"引用强度递减"如何让开发者精细控制对象生命周期，支撑缓存、资源清理（finalize 已废弃待移除，新代码优先 try-with-resources / Cleaner）、ThreadLocal 等场景。这也是理解 ThreadLocal 内存泄漏、DirectByteBuffer 回收的前置知识。</p>
           </div>
         </div>
 
@@ -972,7 +972,7 @@ graph TD
             <p><strong>JDK 1.2（1998）</strong>：引入 <code class="inline-code">java.lang.ref</code> 包，定义强/软/弱/虚四种引用与 ReferenceQueue，Java 成为首个提供细粒度引用控制的主流语言。</p>
             <p><strong>JDK 1.2-1.8</strong>：Finalizer 机制（<code class="inline-code">finalize()</code>）依赖虚引用思想，但 Finalizer 线程优先级低、执行不确定、可能复活对象，成为长期痛点。SoftReference 被广泛用于内存敏感缓存（如 Guava 的 softKeys/softValues）。</p>
             <p><strong>JDK 9（2017）</strong>：<code class="inline-code">finalize()</code> 被标记 Deprecated，引入 <code class="inline-code">java.lang.ref.Cleaner</code>（JEP 282）作为替代，基于 PhantomReference + ReferenceQueue，更安全（不在 finalize 上下文中复活对象）、可控（可指定线程）。</p>
-            <p><strong>JDK 18（2022，JEP 421）</strong>：<code class="inline-code">finalize()</code> 默认禁用（ForRemoval），强制迁移到 Cleaner。Finalizer 的 4 个主要问题（不确定、复活、时延、安全）被 Cleaner 根治。</p>
+            <p><strong>JDK 18（2022，JEP 421）</strong>：<code class="inline-code">finalize()</code> 继续按 for-removal 语义废弃，JDK 18 起提供 <code class="inline-code">--finalization=enabled|disabled</code>；默认仍是 enabled，disabled 仅关闭终结器执行，不是删除 API。迁移 Cleaner 是架构建议，不是所有 JDK 18 运行时的强制行为。</p>
             <p><strong>未来趋势</strong>：Cleaner 成为资源释放标准；Valhalla 值类型引入"无引用"对象（inline type 不参与引用体系，生命周期完全栈式管理）；GraalVM Native Image 中 Reference 处理更简化。</p>
           </div>
         </div>
@@ -1043,7 +1043,7 @@ graph LR
             <p><strong>架构师 · 设计决策</strong>：</p>
             <ul>
               <li><strong>缓存层次设计</strong>：Caffeine（堆内，weak/soft）+ Redis（分布式）+ DB。软引用层做 L1 突发流量缓冲，内存压力下自动降级，是自适应缓存架构的关键。</li>
-              <li><strong>避免 Finalizer</strong>：新代码全部用 Cleaner 或 try-with-resources，架构规范禁止新增 finalize()。JDK 18+ 已默认禁用，迁移是技术债治理项。</li>
+              <li><strong>避免 Finalizer</strong>：新代码优先 try-with-resources；确需 GC 兜底清理时用 Cleaner，并指定明确生命周期。架构规范可禁止新增 finalize()；存量代码迁移时按 JDK 18+ 的 finalization 策略验证，不能假设默认已禁用。</li>
               <li><strong>堆外资源释放</strong>：DirectByteBuffer/Native 句柄用 Cleaner 释放，架构上要确保 Cleaner 关联的对象（DirectByteBuffer 本身）能被 GC 回收，否则堆外内存泄漏。</li>
             </ul>
           </div>
@@ -1072,7 +1072,7 @@ graph LR
                 <li><strong>误以为软引用立即回收</strong>：软引用只在内存不足时才回收，内存充足时一直存活，不是"GC 就回收"。</li>
                 <li><strong>误以为虚引用能 get 对象</strong>：虚引用 get() 永远 null，仅作回收通知，不能访问对象。</li>
                 <li><strong>忽略 ReferenceQueue 清理</strong>：自建 Reference 缓存若不轮询 ReferenceQueue 清理失效 Entry，Reference 对象本身会堆积（弱泄漏）。</li>
-                <li><strong>依赖 finalize 释放资源</strong>：finalize 时序不确定，JDK 18+ 已禁用，必须迁移到 Cleaner 或 try-with-resources。</li>
+                <li><strong>依赖 finalize 释放资源</strong>：finalize 时序不确定，且 JDK 18+ 可通过 <code class="inline-code">--finalization=disabled</code> 关闭。生产代码不要把资源释放托付给它；优先 AutoCloseable，其次明确生命周期的 Cleaner。</li>
                 <li><strong>ThreadLocal 以为弱引用 Key 就安全</strong>：Key 弱引用只防 ThreadLocal 对象泄漏，Value 强引用泄漏仍需 remove()。</li>
               </ul>
             </div>
@@ -1239,11 +1239,11 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
               <li><strong>纯解释器（Interpreter）</strong>：早期 JVM 全部解释执行，启动快但峰值慢，每次执行都要重新翻译字节码。</li>
               <li><strong>C1 编译器（Client Compiler）</strong>：快速编译、轻量优化，追求低延迟启动，代表早期 Client 模式 VM。</li>
               <li><strong>C2 编译器（Server Compiler）</strong>：慢编译、激进优化（循环展开/锁消除/向量化），追求峰值吞吐，代表 Server 模式 VM。早期 Client 与 Server 模式需用户手动选择。</li>
-              <li><strong>分层编译（Tiered Compilation）</strong>：JDK 6 引入实验性，<strong>JDK 8 默认开启</strong>，让 C1 先编译热点、收集 Profile，再交给 C2 做激进优化，兼顾启动与峰值。JDK 10 起分层编译成为不可关闭的默认行为。</li>
+              <li><strong>分层编译（Tiered Compilation）</strong>：JDK 6 引入实验性，<strong>JDK 8 默认开启</strong>，让 C1 先编译热点、收集 Profile，再交给 C2 做激进优化，兼顾启动与峰值。分层编译默认开启，但仍可通过 <code class="inline-code">-XX:-TieredCompilation</code> 关闭；关闭后的行为还取决于 <code class="inline-code">-XX:TieredStopAtLevel</code> / C1、C2 选择。</li>
               <li><strong>AOT 编译（JEP 295）</strong>：JDK 9 引入 <code class="inline-code">jaotc</code> 工具，将类预编译为本地代码缩短启动时间，但未能广泛使用，JDK 17 被移除。</li>
               <li><strong>GraalVM JIT（JEP 317）</strong>：JDK 10 实验性引入，通过 JVMCI 接口用纯 Java 实现的 Graal 编译器替代 C2，支持更激进的优化（如部分逃逸分析）。</li>
               <li><strong>GraalVM Native Image</strong>：基于闭世界分析的 AOT 方案，启动毫秒级、内存占用极低，适合 Serverless/微服务。</li>
-              <li><strong>JDK 21+ GraalVM GA</strong>：Oracle 官方将 GraalVM 编译器（基于 JVMCI、纯 Java 实现的 C2 替代）作为独立组件正式发布，标志着 JIT 编译器从 C/C++（C2）实现向 Java（Graal）实现的迁移完成；JDK 24 的 JEP 483（Ahead-of-Time Class Loading & Linking）通过构建期预加载与链接类、配合 AOT 缓存进一步缩短启动时间，推动 Java 启动优化向构建期 AOT 演进。</li>
+              <li><strong>Graal 与 JDK 内建 AOT 的边界</strong>：JDK 10 的 JEP 317 提供 JVMCI/Graal 编译器实验入口；Oracle GraalVM 后续独立发行，但其是否可用取决于 JDK、发行版和许可，不能说已在所有 JDK 中转正或成为默认。JDK 24 的 JEP 483 是 Ahead-of-Time Class Loading &amp; Linking，通过构建期缓存类加载/链接工作改善启动，不等价于 Graal JIT 转正，也不等价于 Native Image。</li>
             </ul>
           </div>
         </div>
@@ -1330,7 +1330,7 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
             <p>纯 C2 模式下，方法必须积累足够热度才触发编译，而 C2 编译耗时长，启动阶段大量方法停留在解释执行，峰值来得慢。分层编译先用 C1（编译速度快 5~10 倍）快速把热点编译为质量"够用"的本地码，让应用尽早脱离解释执行；同时 C1 采集完整 Profile，等热度足够再交给 C2 做激进优化。这样<strong>启动期由 C1 主导（快出码），稳态期由 C2 主导（高质量码）</strong>，两者衔接使启动时间和峰值吞吐都优于纯 C2。</p>
 
             <p><strong>追问 2：GraalVM JIT 能否完全替代 C2？</strong></p>
-            <p>趋势上是，但当前仍有取舍。Graal（JVMCI 编译器）用 Java 实现，优化更激进（如部分逃逸分析 Partial Escape Analysis 强于 C2），且可维护性更好。但代价是：① 编译本身更慢（Java 写的编译器运行在 JVM 上，编译开销大），需要更长预热；② 需要额外引入 Graal 模块，体积增大；③ 极少数 C2 特有优化（如某些机器特定的 intrinsics）Graal 尚未完全覆盖。JDK 24 起 Graal JIT 正式转为生产可用（注意：JEP 483 是 Ahead-of-Time Class Loading &amp; Linking，与 Graal JIT 转正无关；Graal JIT 的生产化通过 JVMCI 接口稳定化与 Graal 模块独立发布实现），未来会逐步成为默认顶层编译器，但短期内 C2 仍是稳定默认。</p>
+            <p>要分清三件事：JVMCI/Graal 编译器可通过受支持的 GraalVM/JDK 组合启用；GraalVM Native Image 是闭世界 AOT 发行形态；JDK 24 的 JEP 483 只缓存 AOT class loading/linking。Graal 可在部分发行版中生产使用，但 OpenJDK 主线默认顶层编译器仍是 C2；不要把 Graal JIT 说成所有 JDK 的默认或 JEP 483 的产物。</p>
 
             <p><strong>追问 3：CodeCache 满了会怎样？</strong></p>
             <p>CodeCache 接近满时触发<strong>分段降级</strong>：首先停止 Tier 4（C2）编译，只保留 C1 编译；继续紧张则停止所有 JIT 编译，新热点只能解释执行；最严重时触发<strong>批量逆优化（Sweep）</strong>——已编译的代码被标记为"not entrant"甚至"zombie"，方法回退到解释执行，性能断崖式下降（TPS 可能掉 50%+）。排查：<code class="inline-code">jcmd &lt;pid&gt; Compiler.CodeCache</code> 看各段使用率，<code class="inline-code">-XX:+PrintCodeCache</code> 看启动后占用。根因多为大量动态生成类（反射/CGlib/Lambda）产生海量编译产物，需扩容 CodeCache 或减少动态代码生成。</p>
@@ -1374,8 +1374,8 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>LTS 节奏</strong>：JDK 6/7（历史）→ 8（2014，长期主流）→ 11（2018）→ 17（2021）→ 21（2023）。Oracle 改为半年一个特性版、每三年一个 LTS；非 LTS 版仅支持 6 个月，生产应选 LTS。</p>
-            <p><strong>语言特性演进</strong>：<code class="inline-code">var</code>（10）→ <code class="inline-code">switch</code> 表达式（14）→ Text Blocks（15）→ Records（16）→ Pattern Matching（16/21）→ Sealed（17）→ 虚拟线程/ScopedValue（21）。方向是<strong>更简洁、更安全、更利于模式匹配与并发</strong>。</p>
-            <p><strong>JVM/类库演进</strong>：G1 成为默认 GC（9）；CMS 移除（14）；ZGC/Shenandoah 成熟；<code class="inline-code">sun.misc.Unsafe</code> 部分受限；强封装内部 API（16+）；废弃 finalize 与 Security Manager（17）。</p>
+            <p><strong>语言特性演进</strong>：<code class="inline-code">var</code>（10）→ <code class="inline-code">switch</code> 表达式（14）→ Text Blocks（15）→ Records（16 正式）→ Pattern Matching for instanceof（16 正式）/ switch（21 正式）→ Sealed（17 正式）→ Record Patterns（21 正式）→ Virtual Threads（21 正式）。Structured Concurrency 与 ScopedValue 在 JDK 21 是预览；后者到 JDK 25 正式，前者在后续版本仍处于预览迭代。</p>
+            <p><strong>JVM/类库演进</strong>：G1 成为默认 GC（9）；CMS 移除（14）；Generational ZGC 在 JDK 21 引入并需显式开启，JDK 23 起转为默认形态；内部 API 在 JDK 16/17 默认强封装；finalize 自 JDK 9 废弃，JEP 421 在 JDK 18 增加 finalization 开关；Security Manager 在 JDK 17 废弃、JDK 24 永久禁用（JEP 486）。</p>
           </div>
         </div>
 
@@ -1384,7 +1384,7 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
           <div class="qa-layer-body">
             <p><strong>Records</strong>：不可变数据载体，编译器自动生成私有 final 字段、全参构造、<code class="inline-code">equals/hashCode/toString</code> 与 accessor（非 getter）。JVM 层面是普通 <code class="inline-code">final class</code>，无特殊字节码，只是语法糖 + 约定。</p>
             <p><strong>Sealed Class</strong>：通过 <code class="inline-code">permits</code> 显式限定子类集合，JVM 用 <code class="inline-code">PermittedSubclasses</code> 属性存储。与 Pattern Matching 配合可做<strong>编译期穷尽性检查</strong>，替代 visitor 模式。</p>
-            <p><strong>Pattern Matching</strong>：<code class="inline-code">instanceof</code> 模式匹配（16 正式）、<code class="inline-code">switch</code> 模式匹配（21 正式）、Record Pattern（21）——把"类型判断 + 强转 + 解构"合并为一步，减少样板与 ClassCastException。</p>
+            <p><strong>Pattern Matching</strong>：<code class="inline-code">instanceof</code> 模式匹配（16 正式）、<code class="inline-code">switch</code> 模式匹配（21 正式）、Record Pattern（21 正式）——把"类型判断 + 强转 + 解构"合并为一步，减少样板与 ClassCastException。面试要另说清：Structured Concurrency 和 ScopedValue 在 JDK 21 都需要 <code class="inline-code">--enable-preview</code>，不能作为 21 的稳定 API 介绍。</p>
             <div class="code-block"><pre><code><span class="com">// Records：不可变数据载体，自动生成字段/构造/equals/hashCode/toString</span>
 <span class="kw">record</span> <span class="type">Point</span>(<span class="kw">int</span> x, <span class="kw">int</span> y) {}
 
@@ -1412,8 +1412,8 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
             <p><strong>升级迁移实战</strong>：① 用 <code class="inline-code">jdeprscan</code> / <code class="inline-code">jdeps</code> 扫描废弃 API 与内部依赖；② 字节码版本：JDK 17 = 61，JDK 21 = 65，注意 Maven <code class="inline-code">release</code> 参数；③ Spring Boot 3 强制 JDK 17+ 且包名由 <code class="inline-code">javax.*</code> 改为 <code class="inline-code">jakarta.*</code>（Jakarta EE 9），这是最大的破坏性变更；④ 依赖库需同步升级（如 Hibernate 6、Tomcat 10）。</p>
-            <p><strong>GC 调优变化</strong>：G1 是默认且大幅优化；如需更低延迟上 ZGC（JDK 21 的 Generational ZGC 已成熟）。迁移后务必用真实负载压测，关注暂停分布与吞吐。</p>
-            <p><strong>强封装影响</strong>：JDK 16+ 默认强封装 <code class="inline-code">--illegal-access=deny</code>，旧版依赖 <code class="inline-code">sun.misc.Unsafe</code> / 内部 API 的库（部分 Netty、序列化框架）会启动失败，需升级到兼容版本。</p>
+            <p><strong>GC 调优变化</strong>：G1 是默认且大幅优化；低延迟候选是 ZGC/Shenandoah，但必须按 JDK 版本验证。Generational ZGC 在 JDK 21 通过 JEP 439 引入并需 <code class="inline-code">-XX:+ZGenerational</code> 显式开启，JDK 23 起按 JEP 474 成为默认形态；不能直接套用旧命令。</p>
+            <p><strong>强封装影响</strong>：JDK 16 通过 JEP 396 默认强封装 JDK 内部 API，JDK 17 通过 JEP 403 继续收紧；旧库反射访问内部包通常需升级，或按最小范围显式 <code class="inline-code">--add-opens</code>。不要把废弃的 <code class="inline-code">--illegal-access</code> 当作长期方案。</p>
           </div>
         </div>
 
@@ -1435,8 +1435,8 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
                 <li><strong>"升级只换版本号"</strong>：Spring Boot 3 + Jakarta 包名变更（javax→jakarta）是破坏性改动，大量老代码/依赖需同步升级。</li>
                 <li><strong>Records 误当可变 DTO</strong>：Records 不可变，业务可变对象应用普通类，否则引发并发/语义问题。</li>
                 <li><strong>强封装导致反射失败</strong>：旧库依赖内部 API 在新 JDK 启动即报错，须升级依赖。</li>
-                <li><strong>误以为 ZGC 默认开启</strong>：JDK 17 单代 ZGC 仍需 <code class="inline-code">-XX:+UseZGC</code>；JDK 21 的 Generational ZGC 才成熟可用。</li>
-                <li><strong>LTS 选择模糊</strong>：新项目应锚定 17 基线、21 用于虚拟线程，而非停留在 8。</li>
+            <li><strong>误以为 ZGC 分代默认适用于所有版本</strong>：<code class="inline-code">-XX:+UseZGC</code> 只是启用 ZGC；Generational ZGC 在 JDK 21 需 <code class="inline-code">-XX:+ZGenerational</code>，JDK 23 起才默认分代。</li>
+            <li><strong>LTS 选择模糊</strong>：存量项目按升级收益选 17 或 21；需要虚拟线程看 21。2026 年新项目可评估 25，但 ScopedValue 正式、Structured Concurrency 仍是预览，不要按稳定 API 设计。</li>
               </ul>
             </div>
           </div>
@@ -1449,7 +1449,7 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
       <div class="qa-card" id="C01.11" data-difficulty="architect" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">C01.11</div>
-          <div class="qa-question">操作系统内存管理：虚拟内存、分页/分段、页表与 TLB 如何工作？为何 JVM 堆大小其实是一个"页表视图"？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+          <div class="qa-question">操作系统内存管理：虚拟内存、分页/分段、页表与 TLB 如何支撑 JVM 堆？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -1483,7 +1483,7 @@ $ cat /proc/&lt;pid&gt;/smaps | grep -i rss      <span class="com">// 每段物�
 $ jcmd &lt;pid&gt; GC.heap_info                  <span class="com">// JVM 视角的堆视图</span></code></pre></div>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p><strong>JVM 堆 = 一块由 mmap 映射的虚拟地址区间</strong>；物理页只在真正写入时才由缺页中断分配。所以 <code class="inline-code">-Xmx 大</code> 不必然立即消耗同等物理内存，但 commit 之后访问就会占物理页——理解这条才能解释"堆没用到却 RSS 高"。</p>
+              <p>准确地说，JVM 通过 OS 预留/提交一段虚拟地址区间承载 Java 堆；物理页和页表由内核按访问、缺页和 GC 策略管理。Java 引用是 JVM 管理的对象引用，不是可直接换算页表的裸虚拟地址。因此 <code class="inline-code">-Xmx 大</code> 不必然立即消耗同等 RSS；触发提交、写入或映射后才会反映到物理驻留集。</p>
             </div>
           </div>
         </div>
@@ -1493,7 +1493,7 @@ $ jcmd &lt;pid&gt; GC.heap_info                  <span class="com">// JVM 视角
           <div class="qa-layer-body">
             <p><strong>避免堆被 Swap</strong>：线上大堆服务应 <code class="inline-code">vm.swappiness</code> 调低（如 1~10），并监控 <code class="inline-code">si/so</code>（swap in/out）与 GC 停顿相关性；一旦出现频繁换页，优先收缩堆或扩容而非调 GC 参数。</p>
             <p><strong>透明大页 THP 的双刃剑</strong>：Linux THP 后台线程聚合页可能造成<strong>瞬时 CPU 尖峰与长停顿</strong>，大堆 JVM 常见做法是 <code class="inline-code">echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled</code>，G1 建议显式评估而非默认开启。</p>
-            <p><strong>直接内存与页对齐</strong>：NIO/Netty 的 <code class="inline-code">DirectByteBuffer</code> 走 mmap/direct 分配，按页对齐；想让它用大页可用 <code class="inline-code">-XX:+UseLargePages</code> + 配置大页池，但需内核与 numactl 配合。</p>
+            <p><strong>直接内存与页对齐</strong>：NIO 的 <code class="inline-code">DirectByteBuffer</code> 默认走 native direct allocation，不是 mmap；MappedByteBuffer 才基于文件映射。堆、映射区和大页池是否共享大页，取决于 JVM 参数、内核配置和平台，需分别验证。</p>
             <p><strong>容器内内存可见性</strong>：容器（cgroup）限制下 /proc 常显示宿主机内存，需结合 cgroup 统计判断真实 RSS，避免把"容器配额"误当"OS 物理内存"。</p>
           </div>
         </div>

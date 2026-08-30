@@ -230,7 +230,7 @@ spring:
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>Nginx（2004）</strong>：反向代理 + 负载均衡，高性能但偏静态配置，非业务网关，常作为网关前置的流量层。</p>
-            <p><strong>Zuul 1.x（2013，Netflix）</strong>：Spring Cloud Netflix 早期标配。基于 Servlet 同步阻塞模型，每请求一线程，filter 链可扩展。简单易用，但高并发下线程膨胀，性能受限。（已废弃：Spring Cloud Netflix 已停更，基于 Servlet 同步阻塞、高并发线程膨胀，当前推荐 Spring Cloud Gateway / APISIX）</p>
+            <p><strong>Zuul 1.x（2013，Netflix）</strong>：Spring Cloud Netflix 早期标配。基于 Servlet 同步阻塞模型，每请求一线程，filter 链可扩展。简单易用，但高并发下线程膨胀，性能受限。Netflix 进入维护模式后，Spring Cloud 生态主流转向 Spring Cloud Gateway；APISIX/Envoy 则多用于独立 API 网关和 Mesh 入口。</p>
             <p><strong>Zuul 2.x（2018）</strong>：Netty 异步非阻塞重写，性能大幅提升。但 Netflix 内部使用为主，社区未广泛普及，Spring 官方未集成，非社区主流方案，国内基本不采用。</p>
             <p><strong>Spring Cloud Gateway（2017）</strong>：基于 <strong>WebFlux + Netty 异步非阻塞</strong>，Route（Predicate + Filter）模型清晰，取代 Zuul 1.x 成为 Spring Cloud 主推网关。与 Spring 生态深度集成。</p>
             <p><strong>Kong（2015）</strong>：基于 OpenResty（Nginx + Lua），高性能插件化，API 管理能力强，多用于 APIM 平台。</p>
@@ -246,7 +246,7 @@ spring:
             <ol>
               <li><strong>路由转发</strong>：按 Path/Header/Host 将请求路由到后端服务。</li>
               <li><strong>协议转换</strong>：外部 HTTP/HTTPS ↔ 内部 RPC（Dubbo/gRPC），统一对外 REST。</li>
-              <li><strong>负载均衡</strong>：从注册中心拉取实例，客户端侧负载（Ribbon/LoadBalancer）。</li>
+              <li><strong>负载均衡</strong>：从注册中心拉取实例，Spring Cloud Gateway 交由 ReactiveLoadBalancerClientFilter / Spring Cloud LoadBalancer 处理。</li>
               <li><strong>认证鉴权</strong>：统一 JWT/OAuth2 校验，透传用户身份。</li>
               <li><strong>限流熔断</strong>：入口限流保护后端，熔断防级联故障。</li>
               <li><strong>日志监控</strong>：访问日志、调用链 TraceId 注入、Metrics 上报。</li>
@@ -254,7 +254,7 @@ spring:
               <li><strong>灰度路由</strong>：按流量染色标签路由到灰度实例。</li>
             </ol>
 
-            <p><strong>Spring Cloud Gateway 原理</strong>：Route = Predicate（匹配条件）+ Filter（处理逻辑）。请求进入后被 RoutePredicateHandlerMapping 匹配到 Route，经 Filter 链处理（Pre Filter → 转发 → Post Filter）。基于 Reactor 异步非阻塞，<strong>不在容器线程池跑，无线程数瓶颈</strong>。</p>
+            <p><strong>Spring Cloud Gateway 原理</strong>：Route = Predicate（匹配条件）+ Filter（处理逻辑）。请求进入后由 RoutePredicateHandlerMapping 评估 Predicate 并选中 Route；选中的 Route 内置 GatewayFilter 与全局 GlobalFilter 会按 order 合并成一个链。order 小的 Filter 在前置阶段先执行，响应阶段通常按相反方向回流；真正转发由路由类 Filter 完成。它是 Reactor 异步非阻塞模型，但并非“无线程数瓶颈”，EventLoop、连接池和下游能力仍需压测规划。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -276,15 +276,15 @@ flowchart LR
               <div class="chart-caption">图 10.2-1 API 网关 Filter 链与核心职责</div>
             </div>
 
-            <p><strong>同步阻塞 vs 异步非阻塞</strong>：Zuul 1.x（已停更）每请求占用一个 Servlet 线程，后端慢则线程堆积；Gateway/APISIX 用少量 EventLoop 线程处理海量连接，后端慢仅占用连接不占线程，吞吐高数倍。这是网关演进的<strong>性能动机</strong>。</p>
+            <p><strong>同步阻塞 vs 异步非阻塞</strong>：Zuul 1.x（已停更）每请求占用一个 Servlet 线程，后端慢则线程堆积；Gateway/APISIX 用少量 EventLoop 线程处理连接，慢后端通常表现为连接/订阅等待而不是立刻占满工作线程。但吞吐取决于 CPU、连接数、请求体、序列化、下游 RT 和限流策略，必须按目标版本压测，不能给出固定倍数。</p>
 
-            <p><strong>动态路由</strong>：Gateway 默认配置静态（配置文件加载），需自实现 <code class="inline-code">DynamicRouteLocator</code> + 配置中心监听实现动态刷新；APISIX 配置存 etcd，秒级动态生效无需重启。动态路由是<strong>运维动机</strong>。</p>
+            <p><strong>动态路由</strong>：Spring Cloud Gateway 的官方扩展点是 <code class="inline-code">RouteDefinitionWriter</code>（保存/删除路由定义）与 <code class="inline-code">RouteDefinitionLocator</code>（提供路由定义）；Spring Boot 提供 <code class="inline-code">InMemoryRouteDefinitionRepository</code>，也可自定义 <code class="inline-code">RouteDefinitionRepository</code> 接配置中心。配置中心推送后需要保存路由定义，并按所选组件的官方机制刷新缓存/发布刷新事件；路由和连接配置要可回滚。APISIX 等网关原生把控制面配置持久化到 etcd 并向数据面下发。动态路由是<strong>运维动机</strong>。</p>
 
             <table class="compare-table">
               <thead><tr><th>网关</th><th>底层模型</th><th>动态路由</th><th>生态</th><th>适用场景</th></tr></thead>
               <tbody>
                 <tr><td>Zuul 1.x（已废弃）</td><td>Servlet 同步阻塞</td><td>弱</td><td>Spring Cloud Netflix（停更）</td><td>老项目维护，替代：Spring Cloud Gateway / APISIX</td></tr>
-                <tr><td>Spring Cloud Gateway</td><td>WebFlux + Netty 异步</td><td>需自实现</td><td>Spring Cloud 原生</td><td>Spring 体系首选</td></tr>
+                <tr><td>Spring Cloud Gateway</td><td>WebFlux + Netty 异步</td><td>RouteDefinitionWriter/Locator 扩展</td><td>Spring Cloud 原生</td><td>Spring 技术栈中的原生网关</td></tr>
                 <tr><td>Kong</td><td>OpenResty + Lua</td><td>支持</td><td>插件丰富，APIM 强</td><td>API 管理平台</td></tr>
                 <tr><td>APISIX</td><td>OpenResty + etcd</td><td>原生动态</td><td>云原生，插件多</td><td>高性能云原生网关</td></tr>
                 <tr><td>Higress/Envoy</td><td>Envoy（C++）</td><td>xDS 动态</td><td>与 Service Mesh 同源</td><td>Mesh 一体化网关</td></tr>
@@ -314,7 +314,7 @@ flowchart LR
                 key-resolver: <span class="str">"#{@apiKeyResolver}"</span>  <span class="com"># 按用户限流</span>
             - name: JwtAuth                <span class="com"># 自定义 JWT 鉴权 Filter</span>
 
-<span class="com">// 自定义鉴权 Filter: 校验 JWT 并透传用户身份</span>
+<span class="com">// 自定义鉴权 Filter: 校验 JWT 后剥离外部身份头，只向下游注入可信身份</span>
 <span class="annotation">@Component</span>
 <span class="kw">public class</span> <span class="type">JwtAuthGatewayFilterFactory</span> <span class="kw">extends</span> <span class="type">AbstractGatewayFilterFactory</span>&lt;Object&gt; {
     <span class="annotation">@Override</span>
@@ -326,14 +326,17 @@ flowchart LR
                 <span class="kw">return</span> exchange.<span class="fn">getResponse</span>().<span class="fn">setComplete</span>();
             }
             <span class="type">String</span> userId = jwtUtil.<span class="fn">parseUserId</span>(token);
-            <span class="com">// 透传用户身份给后端(后续全链路灰度也靠这种 header 透传)</span>
-            exchange.<span class="fn">getRequest</span>().<span class="fn">mutate</span>().<span class="fn">header</span>(<span class="str">"X-User-Id"</span>, userId).<span class="fn">build</span>();
-            <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange);
+            <span class="type">ServerHttpRequest</span> mutated = exchange.<span class="fn">getRequest</span>().<span class="fn">mutate</span>()
+                .<span class="fn">headers</span>(headers -> headers.<span class="fn">remove</span>(<span class="str">"X-User-Id"</span>))
+                .<span class="fn">header</span>(<span class="str">"X-User-Id"</span>, userId)
+                .<span class="fn">build</span>();
+            <span class="com">// mutate() 会返回新 exchange；必须用它继续调用后续 Filter</span>
+            <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange.<span class="fn">mutate</span>().<span class="fn">request</span>(mutated).<span class="fn">build</span>());
         };
     }
 }</code></pre></div>
 
-            <p><strong>生产实践</strong>：① 网关<strong>无状态</strong>，多实例 + LB 水平扩展，配置走配置中心动态推送；② 限流/熔断规则下沉到 Sentinel 控制台统一管理；③ 网关层聚合监控（QPS/RT/错误率）+ TraceId 注入；④ 网关与后端服务间走内网 mTLS。</p>
+            <p><strong>生产实践</strong>：① 网关<strong>无状态</strong>，多实例 + LB 水平扩展，路由定义走持久化配置中心或内部管理面，变更可审计、可回滚；② 限流/熔断规则下沉到 Sentinel 控制台统一管理；③ 网关层聚合监控（QPS/RT/错误率）+ TraceId 注入；④ 网关与后端服务间走内网 mTLS；⑤ 只在已认证边界注入身份头，并在入口剥离外部同名头，下游不得信任未经网关的网络来源带来的身份头。</p>
           </div>
         </div>
 
@@ -384,8 +387,8 @@ flowchart LR
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>限流算法演进</strong>：计数器（固定窗口，临界点双倍流量问题）→ 滑动窗口（细分子窗口平滑）→ 漏桶（恒定速率出水，平滑输出）→ 令牌桶（按速率发令牌，桶可累积，允许突发）。本质是对"<strong>时间窗口内请求量</strong>"的不同近似与权衡。</p>
-            <p><strong>Hystrix（2012，Netflix）</strong>：熔断器状态机（Closed/Open/Half-Open）+ <strong>线程池/信号量隔离</strong> + 熔断后 fallback。Spring Cloud Netflix 1.x 标配。2018 年宣布停止开发进入维护模式（线程池隔离开销大、不支持热点参数限流），当前推荐 Resilience4j / Sentinel。</p>
-            <p><strong>Resilience4j（2016）</strong>：Netflix 官方推荐的 Hystrix 替代品。基于函数式编程 + Vavr 库，模块化设计（CircuitBreaker / RateLimiter / Bulkhead / Retry / TimeLimiter / Cache）。<strong>轻量无依赖</strong>，与 Spring Boot 2.x+ 函数式风格契合。</p>
+            <p><strong>Hystrix（2012，Netflix）</strong>：熔断器状态机（Closed/Open/Half-Open）+ <strong>线程池/信号量隔离</strong> + 熔断后 fallback。Spring Cloud Netflix 1.x 标配。2018 年宣布进入维护模式（线程池隔离开销大、不支持热点参数限流）。新项目应按所用 Spring Boot 版本在 Resilience4j 与 Sentinel 之间做选型，而不是继续引入 Hystrix。</p>
+            <p><strong>Resilience4j</strong>：常见的 Hystrix 替代方案。基于函数式编程 + Vavr 库，模块化设计（CircuitBreaker / RateLimiter / Bulkhead / Retry / TimeLimiter / Cache）。集成 starter 要按 Boot 主版本选择：<code class="inline-code">resilience4j-spring-boot2</code> 对应 Spring Boot 2.x，<code class="inline-code">resilience4j-spring-boot3</code> 对应 Spring Boot 3.x；不要在 Boot 3 项目中沿用 Boot 2 starter。</p>
             <p><strong>Sentinel（2017，阿里）</strong>：以<strong>流量为切入点</strong>，限流/熔断/系统自适应保护（基于 Load1/CPU/RT）/热点参数限流。控制台实时规则推送，Spring Cloud Alibaba 标配。国内最流行。</p>
             <p><strong>趋势</strong>：流量治理与 Service Mesh Sidecar 融合（Envoy 自带熔断/限流，Istio 配置），应用无感知；开源生态转向 Sentinel + Mesh Sidecar 双层防护。</p>
           </div>
@@ -461,6 +464,56 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
     <span class="kw">return</span> <span class="type">Order</span>.<span class="fn">degraded</span>();  <span class="com">// 降级返回简化订单</span>
 }</code></pre></div>
 
+            <p><strong>Resilience4j 编程式组合示例</strong>：熔断打开时抛 <code class="inline-code">CallNotPermittedException</code>，限流器拒绝时抛 <code class="inline-code">RequestNotPermitted</code>。降级方法的入参要与业务方法对应，并追加异常参数：</p>
+            <div class="code-block"><pre><code><span class="kw">import</span> io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+<span class="kw">import</span> io.github.resilience4j.circuitbreaker.CircuitBreaker;
+<span class="kw">import</span> io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+<span class="kw">import</span> io.github.resilience4j.decorators.Decorators;
+<span class="kw">import</span> io.github.resilience4j.ratelimiter.RateLimiter;
+<span class="kw">import</span> io.github.resilience4j.ratelimiter.RateLimiterConfig;
+<span class="kw">import</span> io.github.resilience4j.ratelimiter.RequestNotPermitted;
+<span class="kw">import</span> java.time.Duration;
+<span class="kw">import</span> java.util.List;
+
+<span class="annotation">@Service</span>
+<span class="kw">public class</span> <span class="type">InventoryService</span> {
+
+    <span class="kw">private final</span> <span class="type">CircuitBreaker</span> circuitBreaker = <span class="type">CircuitBreaker</span>.<span class="fn">of</span>(<span class="str">"inventory"</span>,
+        <span class="type">CircuitBreakerConfig</span>.<span class="fn">custom</span>()
+            .<span class="fn">failureRateThreshold</span>(50)
+            .<span class="fn">slowCallDurationThreshold</span>(<span class="type">Duration</span>.<span class="fn">ofMillis</span>(500))
+            .<span class="fn">slowCallRateThreshold</span>(50)
+            .<span class="fn">minimumNumberOfCalls</span>(20)
+            .<span class="fn">slidingWindowSize</span>(100)
+            .<span class="fn">waitDurationInOpenState</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(10))
+            .<span class="fn">permittedNumberOfCallsInHalfOpenState</span>(5)
+            .<span class="fn">build</span>());
+
+    <span class="kw">private final</span> <span class="type">RateLimiter</span> rateLimiter = <span class="type">RateLimiter</span>.<span class="fn">of</span>(<span class="str">"inventory"</span>,
+        <span class="type">RateLimiterConfig</span>.<span class="fn">custom</span>()
+            .<span class="fn">limitForPeriod</span>(100)
+            .<span class="fn">limitRefreshPeriod</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(1))
+            .<span class="fn">timeoutDuration</span>(0)
+            .<span class="fn">build</span>());
+
+    <span class="kw">public</span> <span class="type">OrderResult</span> <span class="fn">reserve</span>(<span class="type">OrderRequest</span> request) {
+        <span class="kw">return</span> <span class="type">Decorators</span>.<span class="fn">ofSupplier</span>(() -> <span class="fn">callInventory</span>(request))
+            .<span class="fn">withCircuitBreaker</span>(circuitBreaker)
+            .<span class="fn">withRateLimiter</span>(rateLimiter)
+            .<span class="fn">withFallback</span>(<span class="type">List</span>.<span class="fn">of</span>(
+                    <span class="type">CallNotPermittedException</span>.<span class="kw">class</span>,
+                    <span class="type">RequestNotPermitted</span>.<span class="kw">class</span>),
+                cause -> <span class="fn">fallback</span>(request, cause))
+            .<span class="fn">decorate</span>()
+            .<span class="fn">get</span>();
+    }
+
+    <span class="com">// 方法名可自定义；关键是业务入参一致，并追加要处理的异常。</span>
+    <span class="kw">private</span> <span class="type">OrderResult</span> <span class="fn">fallback</span>(<span class="type">OrderRequest</span> request, <span class="type">RuntimeException</span> cause) {
+        <span class="kw">return</span> <span class="type">OrderResult</span>.<span class="fn">degraded</span>(request.orderId(), cause);
+    }
+}</code></pre></div>
+
             <p><strong>分布式限流</strong>：单机限流无法控全局总量，需<strong>集群限流</strong>——Sentinel Token Server 或 Redis + Lua 原子扣减令牌。注意中心化限流有网络开销，临界场景退化为本地限流 + 超额补偿。</p>
           </div>
         </div>
@@ -471,7 +524,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             <p><strong>追问 1：单机限流 vs 集群限流如何选？</strong></p>
             <p>单机限流保护自身节点，无中心依赖、性能高，适合<strong>保护单实例不被压垮</strong>。集群限流控全局总量（如全局限 1000 QPS），需 Token Server/Redis，有网络开销与单点风险。实践：网关层集群限流控总量 + 服务层单机限流保节点。</p>
             <p><strong>追问 2：Hystrix 为何被淘汰？Resilience4j/Sentinel 强在哪？</strong></p>
-            <p>Hystrix 线程池隔离开销大（每依赖一线程池）、2018 年宣布停止开发进入维护模式、不支持热点参数限流。Resilience4j 轻量函数式、模块化；Sentinel 流量视角更全（热点参数、系统自适应、集群限流）+ 控制台实时推送。Sentinel 在国内生态最完善。</p>
+            <p>Hystrix 线程池隔离开销大（每依赖一线程池）、2018 年宣布进入维护模式、不支持热点参数限流。Resilience4j 轻量函数式、模块化，且异常类型明确；Sentinel 流量视角更全（热点参数、系统自适应、集群限流）+ 控制台实时推送。选型还要看团队运维平台、Spring Boot 版本和多语言需求，不把国内生态完善等同于所有场景首选。</p>
             <p><strong>追问 3：令牌桶如何做预热/冷启动？大促开闸瞬时打满怎么办？</strong></p>
             <p><strong>问题本质</strong>：令牌桶允许短时突发，但<strong>系统能力并不会瞬时拉满</strong>——缓存冷、连接池重建、Compaction 等都是后知后觉。若大促 0 点直接放满令牌，请求瞬时打满打穿系统。解法是<strong>让吞吐按"系统能力爬升曲线"平滑逼近目标</strong>：</p>
             <ul>
@@ -533,15 +586,15 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             <p><strong>部署形态演进</strong>：物理机 → 虚拟机（资源隔离）→ 容器（轻量隔离）→ 容器编排（K8s，集群调度）→ Serverless（免运维）。容器化的本质是<strong>把应用与依赖打包成可移植镜像</strong>，K8s 解决的是<strong>大规模容器的调度与生命周期管理</strong>。</p>
             <p><strong>Docker（2013）</strong>：镜像分层（UnionFS 联合文件系统，每条指令一层可复用缓存）+ 容器隔离（namespace 隔离视图 + cgroups 限制资源）。</p>
             <p><strong>Kubernetes（2014，Google 基于 Borg）</strong>：声明式 API + <strong>控制循环（reconcile）</strong>——用户声明期望状态，Controller 持续调谐实际状态向期望收敛。成为容器编排事实标准。</p>
-            <p><strong>K8s 版本演进关键里程碑</strong>：① <strong>1.0（2015）</strong>：首个稳定版，Pod/Service/ReplicationController 基础模型；② <strong>1.8（2017）</strong>：Workload API（Deployment/StatefulSet/DaemonSet）GA，确立现代声明式部署模型；③ <strong>1.16（2019）</strong>：重大 API 版本清理——extensions/v1beta1 等旧版本移除，统一迁移至 apps/v1，CRD v1 GA；④ <strong>1.20→1.24（2020→2022）</strong>：Dockershim 废弃（1.20）并移除（1.24），容器运行时从 Docker 切换至 <strong>containerd/CRI-O</strong>（CRI 标准），Docker 镜像仍可用但运行时不再依赖 dockershim；⑤ <strong>1.25（2022）</strong>：PodSecurityPolicy 移除，替代为 <strong>Pod Security Admission</strong>（命名空间级安全策略）；⑥ <strong>1.28（2023）</strong>：<strong>原生 Sidecar 容器</strong>（Beta），Sidecar 容器与主容器生命周期解耦，启动/退出顺序可控；Node Swap GA；⑦ <strong>1.31~1.33（2024~2025）</strong>：AppArmor GA、User Namespaces Beta（安全增强）、<strong>Pod 垂直弹性伸缩</strong>（In-place Pod Resize，1.33 GA）——不重启 Pod 即可调整 CPU/内存。K8s 保持约每年 3 个小版本、每版本约 1 年支持的发布节奏，面试需关注<strong> API 版本废弃迁移与运行时变更</strong>两大破坏性变更方向。</p>
+            <p><strong>K8s 版本演进关键里程碑</strong>：① <strong>1.0（2015）</strong>：首个稳定版，Pod/Service/ReplicationController 基础模型；② <strong>1.8（2017）</strong>：Workload API（Deployment/StatefulSet/DaemonSet）GA，确立现代声明式部署模型；③ <strong>1.16（2019）</strong>：重大 API 版本清理——extensions/v1beta1 等旧版本移除，统一迁移至 apps/v1，CRD v1 GA；④ <strong>1.20→1.24（2020→2022）</strong>：Dockershim 废弃（1.20）并移除（1.24），容器运行时从 Docker 切换至 <strong>containerd/CRI-O</strong>（CRI 标准），Docker 镜像仍可用但运行时不再依赖 dockershim；⑤ <strong>1.25（2022）</strong>：PodSecurityPolicy 移除，替代为 <strong>Pod Security Admission</strong>（命名空间级安全策略）；⑥ <strong>1.28~1.29（2023）</strong>：<strong>原生 Sidecar 容器</strong>（1.28 Beta，1.29 起对应 feature gate 默认启用），Sidecar 容器与主容器生命周期解耦，启动/退出顺序可控；Node Swap 处于 Beta，启用方式仍受节点配置与版本约束；⑦ <strong>1.31~1.33（2024~2025）</strong>：AppArmor GA、User Namespaces Beta（安全增强）、<strong>Pod 垂直弹性伸缩</strong>（In-place Pod Resize，1.33 GA）——不重启 Pod 即可调整 CPU/内存。K8s 保持约每年 3 个小版本、每版本约 1 年支持的发布节奏，面试需关注<strong> API 版本废弃迁移与运行时变更</strong>两大破坏性变更方向。</p>
             <p><strong>JVM 容器感知演进（关键考点）</strong>：</p>
             <ul>
               <li><strong>JDK 8u131 之前</strong>：JVM 看不到容器内存/CPU 限制，<strong>按宿主机总资源计算</strong>，容器内存远小于宿主机时 -Xmx 误设过大，直接被 OOM Killer 杀掉。</li>
               <li><strong>JDK 8u131 / 9</strong>：实验性 <code class="inline-code">-XX:+UseCGroupMemoryLimitForHeap</code>，需手动开启。</li>
-              <li><strong>JDK 10（JEP 309 + 381）</strong>：容器感知<strong>默认开启</strong>，JVM 自动按 cgroup 限制计算堆。</li>
-              <li><strong>JDK 11+</strong>：完善 cgroup v1/v2 支持，提供 <code class="inline-code">-XX:MaxRAMPercentage</code> 替代固定 -Xmx。</li>
+              <li><strong>JDK 10</strong>：<code class="inline-code">-XX:+UseContainerSupport</code> 引入并默认开启，JVM 开始按容器配额计算可用处理器数和内存相关默认值。</li>
+              <li><strong>JDK 11+</strong>：容器支持进入长期演进，后续版本逐步完善 cgroup v1/v2 与运行时约束识别；仍可用 <code class="inline-code">-XX:MaxRAMPercentage</code> 降低固定 -Xmx 带来的迁移成本。8u131/9 的实验开关只能看到部分限制，旧 JDK 8 的能力还依赖发行商和 backport 版本。</li>
             </ul>
-            <p><strong>趋势</strong>：GraalVM Native Image（AOT 编译，秒级启动、低内存，适配 Serverless/云原生）+ Spring Boot 3 AOT；CRaC（Coordinated Restore at Checkpoint，JDK 21）快照恢复加速启动。</p>
+            <p><strong>趋势</strong>：GraalVM Native Image（AOT 编译，启动和内存收益明显，但有反射/JNI/动态代理等兼容成本）+ Spring Boot 3 AOT；CRaC（Coordinated Restore at Checkpoint）是 OpenJDK CRaC 项目/支持该机制的 JDK 发行版能力，不是 JDK 21 的标准能力，快照恢复还要处理外部连接、文件句柄和密钥等状态。</p>
           </div>
         </div>
 
@@ -563,7 +616,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
               </tbody>
             </table>
 
-            <p><strong>K8s 控制平面</strong>：API Server（唯一入口）+ etcd（状态存储，Raft）+ Scheduler（调度 Pod 到节点）+ Controller Manager（副本/节点/端点等控制循环）+ Kubelet（节点代理）+ Kube-proxy（Service 转发，早期 userspace 模式已废弃，当前推荐 iptables/ipvs 模式）。</p>
+            <p><strong>K8s 控制平面</strong>：API Server（唯一入口）+ etcd（状态存储，Raft）+ Scheduler（调度 Pod 到节点）+ Controller Manager（副本/节点/端点等控制循环）+ Kubelet（节点代理）+ Kube-proxy（Service 转发，早期 userspace 模式已移除；iptables/IPVS/nftables 等实现按集群版本和节点能力选择并压测）。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -602,7 +655,7 @@ flowchart TB
 
             <p><strong>JVM 容器感知原理</strong>：JVM 启动时读取 <code class="inline-code">/sys/fs/cgroup/memory/memory.limit_in_bytes</code>（cgroup v1）或 <code class="inline-code">/sys/fs/cgroup/memory.max</code>（v2）获取容器内存限制，按 <code class="inline-code">MaxRAMPercentage</code>（默认 25%）计算堆上限。Java 11+ 推荐用百分比而非固定 -Xmx，便于容器规格调整时自适应。</p>
 
-            <p><strong>优雅停机流程</strong>：① K8s 发 SIGTERM 给 Pod；② preStop hook 执行（如先从注册中心 deregister + sleep 10s 让消费者刷新）；③ Spring Boot graceful shutdown 拒绝新请求、等待在途请求完成；④ readinessProbe 失败被摘流；⑤ 进程退出。</p>
+            <p><strong>优雅停机流程（版本与平台相关）</strong>：删除 Pod 时，K8s 会启动容器终止流程并受 <code class="inline-code">terminationGracePeriodSeconds</code> 限制。preStop hook 与 EndpointSlice/负载均衡控制面的摘流传播并发进行；hook 完成或超时后向主容器进程发送 SIGTERM；Spring Boot 配置 <code class="inline-code">server.shutdown=graceful</code> 后在 SIGTERM 阶段停止接新请求并等待在途请求，超时由 <code class="inline-code">spring.lifecycle.timeout-per-shutdown-phase</code> 控制。因此 preStop 的 sleep 是为控制面摘流和上游缓存刷新留传播窗口，不是“必然先完成摘流才收到 SIGTERM”的线性保证；SIGTERM 必须是容器主进程真实收到的信号，不要用包装脚本吞掉信号。</p>
           </div>
         </div>
 
@@ -660,11 +713,11 @@ spec:
           readinessProbe:
             httpGet: { path: /actuator/health/readiness, port: 8080 }
             periodSeconds: 5
-          <span class="com"># 优雅停机: 先摘流注销再等待退出</span>
+          <span class="com"># 优雅停机: preStop 与控制面摘流并发；sleep 只留传播窗口</span>
           lifecycle:
             preStop:
               exec:
-                command: ["sh", "-c", "curl -X POST localhost:8080/actuator/service-registry && sleep 10"]
+                command: ["sh", "-c", "sleep 10"]
       terminationGracePeriodSeconds: 60</code></pre></div>
           </div>
         </div>
@@ -673,7 +726,7 @@ spec:
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Java 启动慢在 Serverless/弹性伸缩场景如何解决？</strong></p>
-            <p>① <strong>GraalVM Native Image</strong>：AOT 编译为原生可执行文件，启动毫秒级、内存几十 MB，但牺牲部分动态特性（反射需配置）、编译时间长；② <strong>CRaC（JDK 21）</strong>：应用启动后打快照，下次从快照恢复，秒级启动且保留 JVM 优化；③ AppCDS（类数据共享）减少类加载；④ Spring Boot 3 AOT 优化 Bean 装配。</p>
+            <p>① <strong>GraalVM Native Image</strong>：AOT 编译为原生可执行文件，启动毫秒级、内存几十 MB，但牺牲部分动态特性（反射需配置）、编译时间长；② <strong>CRaC</strong>：在支持该机制的 OpenJDK CRaC/发行版上，应用启动后打快照，下次从快照恢复，可显著缩短启动并保留部分运行时优化，但必须验证连接池、句柄、临时文件和安全状态的 restore 回调；③ AppCDS（类数据共享）减少类加载；④ Spring Boot 3 AOT 优化 Bean 装配。</p>
             <p><strong>追问 2：容器内存为何要给 JVM 留 headroom？</strong></p>
             <p>-Xmx 只控堆，<strong>堆外内存</strong>（DirectByteBuffer/NIO、线程栈、Metaspace、JIT CodeCache、GC 结构）不计入堆。若 -Xmx 设满容器 limit，堆外内存超出即被 OOM Killer 杀掉。实践：MaxRAMPercentage 设 70-75%，留 25-30% 给堆外与原生内存。</p>
           </div>
@@ -1383,7 +1436,7 @@ spring:
           <div class="qa-layer-body">
             <p><strong>发布策略演进</strong>：停机发布（维护窗口，用户体验差）→ <strong>蓝绿部署</strong>（双环境切换）→ <strong>金丝雀发布</strong>（小流量验证）→ <strong>灰度发布</strong>（流量染色精确路由）→ <strong>全链路灰度</strong>（多服务协同灰度）。</p>
             <p><strong>金丝雀典故</strong>：矿工带金丝雀下井，金丝雀先死警示危险——引申为"先用小部分流量试探新版本"。</p>
-            <p><strong>趋势</strong>：① <strong>全链路灰度</strong>成微服务标配（需网关 + 注册中心元数据 + 链路透传）；② 与 Service Mesh 结合（Istio VirtualService 权重路由原生支持）；③ 特征开关（Feature Flag）驱动的灰度，发布与解耦。</p>
+            <p><strong>趋势</strong>：① 复杂微服务系统常用<strong>全链路灰度</strong>，但前提是入口、注册/配置面、RPC、MQ 和观测系统都支持标签语义；② 与 Service Mesh 结合时可用 VirtualService/HTTPRoute 表达权重和 Header 路由，是否可用取决于网格与 Gateway API 版本；③ 特征开关（Feature Flag）把业务放量的决策与代码发布解耦，但开关本身也需要生命周期治理。</p>
           </div>
         </div>
 
@@ -1394,13 +1447,14 @@ spring:
             <table class="compare-table">
               <thead><tr><th>策略</th><th>本质</th><th>流量切换</th><th>资源</th><th>回滚</th></tr></thead>
               <tbody>
-                <tr><td><strong>蓝绿部署</strong></td><td>两套完整环境（蓝/绿），新版本部署到空闲环境，一次性切换</td><td>100% 切换</td><td>双倍</td><td>切回旧环境，秒级</td></tr>
+                <tr><td><strong>滚动发布</strong></td><td>按批次替换旧实例，新旧版本短期共存</td><td>批次逐步推进</td><td>通常只需一批额外容量</td><td>停止批次并回滚新镜像/重新发布旧版本；数据库必须兼容新旧实例</td></tr>
+                <tr><td><strong>蓝绿部署</strong></td><td>两套完整环境（蓝/绿），新版本部署到空闲环境，一次性切换</td><td>100% 切换</td><td>双倍</td><td>切回旧环境；LB/DNS 的传播速度决定实际切换时间</td></tr>
                 <tr><td><strong>金丝雀发布</strong></td><td>少量流量到新版本，观察指标逐步扩大比例</td><td>按比例（5%→20%→100%）</td><td>略多于 1 套</td><td>流量全切回旧版本</td></tr>
                 <tr><td><strong>灰度发布</strong></td><td>基于用户/地域/标签的流量染色路由，精确到用户维度</td><td>按规则（如 VIP 用户先灰度）</td><td>新旧并存</td><td>关闭灰度规则</td></tr>
               </tbody>
             </table>
 
-            <p><strong>全链路灰度</strong>：微服务下，一次请求经过多个服务，灰度标签必须在<strong>全链路透传</strong>——网关染色（加 Header 如 X-Gray-Tag=v2）→ 服务 A 识别标签路由到 A 的 v2 → A 调 B 时透传标签 → B 路由到 B 的 v2 → 跨 MQ 也要透传。需注册中心支持版本元数据 + RPC 框架支持按元数据路由。</p>
+            <p><strong>全链路灰度</strong>：微服务下，一次请求经过多个服务，灰度标签必须在<strong>全链路透传</strong>——入口/网关染色（加 Header 如 X-Gray-Tag=v2）→ 服务 A 识别标签路由到 A 的 v2 → A 调 B 时透传标签 → B 路由到 B 的 v2 → 跨 MQ 也要透传。实现前提按平台分层确认：Spring Cloud 用注册中心元数据 + LoadBalancer 过滤；Dubbo 用 TagRouter/标签附件；Ingress/API Gateway 需要路由规则支持 Header/权重；Service Mesh 由 Sidecar 执行路由；MQ 要求生产者和消费者都携带并处理版本标签。缺少任一环，标签只是“可见”，不能保证“可路由”。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -1426,16 +1480,21 @@ flowchart LR
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>网关流量染色 + Ribbon 元数据路由</strong>：</p>
+            <p><strong>网关流量染色 + Spring Cloud LoadBalancer 元数据路由</strong>：</p>
             <div class="code-block"><pre><code><span class="com">// 网关 Filter: 按用户 ID 决定是否染色(如 1% 用户灰度)</span>
 <span class="annotation">@Component</span>
 <span class="kw">public class</span> <span class="type">GrayFilter</span> <span class="kw">implements</span> <span class="type">GlobalFilter</span>, <span class="type">Ordered</span> {
     <span class="annotation">@Override</span>
     <span class="kw">public</span> <span class="type">Mono</span>&lt;<span class="type">Void</span>&gt; <span class="fn">filter</span>(<span class="type">ServerWebExchange</span> exchange, <span class="type">GatewayFilterChain</span> chain) {
         <span class="type">String</span> userId = exchange.<span class="fn">getRequest</span>().<span class="fn">getHeaders</span>().<span class="fn">getFirst</span>(<span class="str">"X-User-Id"</span>);
-        <span class="com">// 1% 用户或指定白名单染色灰度</span>
-        <span class="kw">if</span> (grayWhiteList.<span class="fn">contains</span>(userId) || userId.<span class="fn">hashCode</span>() % 100 == 0) {
-            exchange.<span class="fn">getRequest</span>().<span class="fn">mutate</span>().<span class="fn">header</span>(<span class="str">"X-Gray-Tag"</span>, <span class="str">"v2"</span>).<span class="fn">build</span>();
+        <span class="com">// X-User-Id 必须由认证边界产生；此处假设该 Filter 在可信身份注入之后执行。</span>
+        <span class="kw">if</span> (userId != <span class="kw">null</span>
+                &amp;&amp; (grayWhiteList.<span class="fn">contains</span>(userId) || Math.<span class="fn">floorMod</span>(userId.<span class="fn">hashCode</span>(), 100) == 0)) {
+            <span class="type">ServerHttpRequest</span> mutated = exchange.<span class="fn">getRequest</span>().<span class="fn">mutate</span>()
+                .<span class="fn">headers</span>(headers -> headers.<span class="fn">remove</span>(<span class="str">"X-Gray-Tag"</span>))
+                .<span class="fn">header</span>(<span class="str">"X-Gray-Tag"</span>, <span class="str">"v2"</span>)
+                .<span class="fn">build</span>();
+            <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange.<span class="fn">mutate</span>().<span class="fn">request</span>(mutated).<span class="fn">build</span>());
         }
         <span class="kw">return</span> chain.<span class="fn">filter</span>(exchange);
     }
@@ -1444,7 +1503,7 @@ flowchart LR
 
             <p><strong>全链路灰度标签透传</strong>：① 网关注入 X-Gray-Tag；② RPC 框架（Dubbo/Spring Cloud）从 Header/Attachment 读取标签，调下游时透传；③ 注册中心实例带版本元数据（v1/v2），消费者按标签选实例；④ 跨 MQ 也将标签塞入消息属性。Dubbo 用 TagRouter 实现，Spring Cloud 用 LoadBalancer 的 Metadata 过滤。</p>
 
-            <p><strong>数据库灰度变更（向前兼容）</strong>：扩展 → 双写 → 切读 → 收缩。① <strong>扩展</strong>：新版本只加字段（不删不改类型），旧版本兼容运行；② <strong>双写</strong>：新旧字段同时写；③ <strong>切读</strong>：灰度流量读新字段验证；④ <strong>收缩</strong>：全量切到新字段后，下版本删除旧字段。绝不灰度期间做删除/改类型等不兼容变更。</p>
+            <p><strong>数据库灰度变更（向前兼容）</strong>：扩展 → 双写 → 切读 → 收缩，并为每一步定义新旧应用兼容窗口。① <strong>扩展</strong>：新版本只加字段（不删不改类型），旧版本兼容运行；② <strong>双写</strong>：新旧字段同时写，并考虑失败补偿与对账；③ <strong>切读</strong>：灰度流量读新字段验证；④ <strong>收缩</strong>：全量切到新字段且旧版本退出后，再在下个变更窗口删除旧字段。灰度期间不得删除字段、收窄类型或做破坏性变更；索引和锁影响要提前在等价数据量上演练。</p>
           </div>
         </div>
 
@@ -1452,7 +1511,7 @@ flowchart LR
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：数据库 schema 变更如何灰度？</strong></p>
-            <p>核心是<strong>向前兼容</strong>：灰度期间新旧版本同时运行，schema 必须两者兼容。① 只增不删（加字段、加表）；② 改类型用新字段过渡（加 new_field 双写，切读后再处理旧字段）；③ 删除字段分两步——先发版本停止读写该字段，下版本再删表。扩大列长/加索引通常在线 DDL 兼容。禁止灰度期间做破坏性变更。</p>
+            <p>核心是<strong>向前兼容</strong>：灰度期间新旧版本同时运行，schema 必须两者兼容。① 只增不删（加字段、加表）；② 改类型用新字段过渡（加 new_field 双写，切读后再处理旧字段）；③ 删除字段分两步——先发版本停止读写该字段，确认所有旧实例退出后再删表。扩大列长/加索引的在线行为取决于 MySQL/存储引擎版本、算法和表规模，发布前必须用目标版本和真实数据量验证。禁止灰度期间做破坏性变更。</p>
             <p><strong>追问 2：灰度命中规则不一致怎么排查？</strong></p>
             <p>常见原因：① 标签在某跳 RPC 丢失（未透传 Header/Attachment）；② 注册中心元数据未及时刷新，消费者仍路由旧版本；③ MQ 消费未透传标签导致下游处理版本错乱；④ 多入口（网关+定时任务）染色规则不统一。排查靠<strong>全链路日志打印灰度标签</strong>，定位断链点。建议统一封装灰度上下文工具，避免各服务手写透传。</p>
           </div>
@@ -1767,7 +1826,7 @@ flowchart LR
               </tbody>
             </table>
 
-            <p><strong>Java 云原生交付 checklist</strong>：① <strong>镜像多阶段构建</strong>：maven 构建 → jre 运行时镜像，减少镜像体积；② <strong>JVM 容器感知</strong>：JDK 10+ 自动识别 cgroup 限制，旧版需显式设置 -XX:+UseContainerSupport；③ <strong>健康探针</strong>：配置 liveness/readiness/startup probe；④ <strong>配置外置</strong>：ConfigMap/Secret 挂载，不打包在镜像内；⑤ <strong>镜像标签不用 latest</strong>：用 Git commit SHA 或语义化版本，确保可回滚。</p>
+            <p><strong>Java 云原生交付 checklist</strong>：① <strong>镜像多阶段构建</strong>：maven 构建 → jre 运行时镜像，减少镜像体积；② <strong>JVM 容器感知</strong>：JDK 10 引入并默认开启 UseContainerSupport，JDK 8 需按发行商 backport/补丁版本确认；③ <strong>健康探针</strong>：配置 liveness/readiness/startup probe；④ <strong>配置外置</strong>：ConfigMap/Secret 挂载，不打包在镜像内；⑤ <strong>镜像标签不用 latest</strong>：用 Git commit SHA 或语义化版本，确保可回滚。</p>
           </div>
         </div>
 

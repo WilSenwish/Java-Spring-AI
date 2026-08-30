@@ -79,7 +79,7 @@
           <div class="qa-layer-body">
             <p><strong>Spring Boot 1.x（2014）</strong>：确立 <code class="inline-code">spring.factories</code> 作为自动配置的 SPI 声明文件，位于 <code class="inline-code">META-INF/spring.factories</code>，以 <code class="inline-code">org.springframework.boot.autoconfigure.EnableAutoConfiguration</code> 为 key 列出全限定类名。加载器 <code class="inline-code">SpringFactoriesLoader</code> 用 Properties 解析，全量加载、无去重。</p>
             <p><strong>Spring Boot 2.x（2018）</strong>：沿用 spring.factories，但引入 <code class="inline-code">@AutoConfigureBefore/After/Order</code> 控制配置类顺序；<code class="inline-code">@ConditionalOnBean</code> 等条件注解体系成熟。问题浮现：spring.factories 被滥用——除自动配置外还塞了监听器、初始化器、环境后置处理器等十几种 key，<strong>启动期要加载上百个配置类做条件评估，拖慢启动</strong>。</p>
-            <p><strong>Spring Boot 3.0（2022）</strong>：关键演进——<strong>自动配置从 spring.factories 迁移到 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong>，每行一个类名。spring.factories 中 <code class="inline-code">EnableAutoConfiguration</code> key 被废弃（仍兼容但告警）。新机制用 <code class="inline-code">ImportCandidates</code> 读取，去重 + 排序更高效，且<strong>为 AOT 处理铺路</strong>——AOT 阶段需要确定的、可静态分析的配置清单，spring.factories 的 Properties 格式不利于工具分析。</p>
+            <p><strong>Spring Boot 3.0（2022）</strong>：关键演进——<strong>自动配置从 spring.factories 迁移到 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong>，每行一个类名。spring.factories 中 <code class="inline-code">EnableAutoConfiguration</code> key <strong>不再生效</strong>（Boot 3.0 起写了也不会被加载）。新机制用 <code class="inline-code">ImportCandidates</code> 读取，去重 + 排序更高效，且<strong>为 AOT 处理铺路</strong>——AOT 阶段需要确定的、可静态分析的配置清单，spring.factories 的 Properties 格式不利于工具分析。</p>
             <p><strong>趋势</strong>：自动配置正与 AOT/Native Image 深度融合，条件评估在构建期冻结；未来可能进一步向"声明式配置 + 构建期生成"演进，减少运行期反射与条件判断。</p>
           </div>
         </div>
@@ -272,11 +272,6 @@ flowchart LR
   <span class="op">&lt;</span><span class="type">groupId</span><span class="op">&gt;</span>org.springframework.boot<span class="op">&lt;/</span><span class="type">groupId</span><span class="op">&gt;</span>
   <span class="op">&lt;</span><span class="type">artifactId</span><span class="op">&gt;</span>spring-boot-starter<span class="op">&lt;/</span><span class="type">artifactId</span><span class="op">&gt;</span>
 <span class="op">&lt;/</span><span class="type">dependency</span><span class="op">&gt;</span>
-<span class="op">&lt;</span><span class="type">dependency</span><span class="op">&gt;</span>
-  <span class="op">&lt;</span><span class="type">groupId</span><span class="op">&gt;</span>org.springframework.boot<span class="op">&lt;/</span><span class="type">groupId</span><span class="op">&gt;</span>
-  <span class="op">&lt;</span><span class="type">artifactId</span><span class="op">&gt;</span>spring-boot-starter-aot<span class="op">&lt;/</span><span class="type">artifactId</span><span class="op">&gt;</span>
-  <span class="op">&lt;</span><span class="type">optional</span><span class="op">&gt;</span>true<span class="op">&lt;/</span><span class="type">optional</span><span class="op">&gt;</span>
-<span class="op">&lt;/</span><span class="type">dependency</span><span class="op">&gt;</span>
 <span class="op">&lt;</span><span class="type">plugin</span><span class="op">&gt;</span>
   <span class="op">&lt;</span><span class="type">groupId</span><span class="op">&gt;</span>org.graalvm.buildtools<span class="op">&lt;/</span><span class="type">groupId</span><span class="op">&gt;</span>
   <span class="op">&lt;</span><span class="type">artifactId</span><span class="op">&gt;</span>native-maven-plugin<span class="op">&lt;/</span><span class="type">artifactId</span><span class="op">&gt;</span>
@@ -284,7 +279,7 @@ flowchart LR
 
 <span class="com"># 构建</span>
 mvn -Pnative native:compile  <span class="com"># 生成 target/app 可执行文件</span>
-mvn -Pnative native:build    <span class="com"># 构建 + 运行测试(在 Native 下)</span></code></pre></div>
+mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试</span></code></pre></div>
             <p><strong>选型决策</strong>：Native Image 不是银弹，按场景选：</p>
             <ul>
               <li><strong>适合 Native</strong>：Serverless Function（冷启动敏感）、CLI 工具、嵌入式设备、常驻但低 QPS 的边车服务。启动从 8s 降到 50ms、内存从 300MB 降到 40MB 是巨大收益。</li>
@@ -346,7 +341,7 @@ mvn -Pnative native:build    <span class="com"># 构建 + 运行测试(在 Nativ
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
             <p><strong>早期（Boot 1.x）</strong>：Starter 与 autoconfigure 耦合在一个 jar，配置类直接用 <code class="inline-code">@Configuration</code>，声明写在 <code class="inline-code">spring.factories</code>（已废弃：Spring Boot 3.0 起标记废弃，替代：AutoConfiguration.imports）。问题：用户只要功能不要某默认 Bean 时，难以剥离。</p>
-            <p><strong>Boot 2.x 规范成熟</strong>：官方确立"<strong>双模块分离</strong>"——<code class="inline-code">xxx-spring-boot-autoconfigure</code>（含配置类与条件逻辑）+ <code class="inline-code">xxx-spring-boot-starter</code>（空 jar，只依赖 autoconfigure + 必需第三方库）。引入 <code class="inline-code">@ConfigurationProperties</code> + <code class="inline-code">@ConfigurationPropertiesValidation</code> 做配置校验，<code class="inline-code">@AutoConfigureBefore/After</code> 控制顺序。</p>
+            <p><strong>Boot 2.x 规范成熟</strong>：官方确立"<strong>双模块分离</strong>"——<code class="inline-code">xxx-spring-boot-autoconfigure</code>（含配置类与条件逻辑）+ <code class="inline-code">xxx-spring-boot-starter</code>（空 jar，只依赖 autoconfigure + 必需第三方库）。引入 <code class="inline-code">@ConfigurationProperties</code> + <code class="inline-code">@Validated</code> + Bean Validation（JSR 303/380）做配置校验，<code class="inline-code">@AutoConfigureBefore/After</code> 控制顺序。</p>
             <p><strong>Boot 3.x（2022）</strong>：① 自动配置类用 <code class="inline-code">@AutoConfiguration</code> 替代 <code class="inline-code">@Configuration</code>（语义更明确，且支持 <code class="inline-code">before/after/beforeName/afterName</code> 属性）；② 声明迁移到 <code class="inline-code">AutoConfiguration.imports</code>；③ 必须 AOT 友好——避免运行期反射扫描、动态类加载，保证 Starter 能用于 Native Image。</p>
             <p><strong>趋势</strong>：Starter 设计向"声明式 + 构建期可分析"演进，第三方 Starter 越来越注重提供 Native Image metadata（<code class="inline-code">reflect-config.json</code>、<code class="inline-code">resource-config.json</code>），降低用户迁移成本。</p>
           </div>
@@ -500,7 +495,7 @@ flowchart TD
     D --> E{"遍历 SecurityFilterChain<br/>matches（request）?"}
     E -- 匹配 --> F["执行该链的过滤器序列"]
     E -- 不匹配 --> G["尝试下一条链"]
-    F --> F1["SecurityContextPersistenceFilter<br/>加载/清理 SecurityContext"]
+    F --> F1["SecurityContextHolderFilter<br/>加载/清理 SecurityContext"]
     F1 --> F2["UsernamePasswordAuthenticationFilter<br/>处理表单登录（POST /login）"]
     F2 --> F3["BasicAuthenticationFilter<br/>处理 HTTP Basic"]
     F3 --> F4["...其他过滤器（CSRF/CORS/Logout）"]
@@ -609,7 +604,7 @@ flowchart TD
             <p><strong>Spring XML 时代（2003-2009）</strong>：开发者手动创建 <code class="inline-code">ClassPathXmlApplicationContext</code>，传入 XML 配置文件路径，构造器内部直接调 <code class="inline-code">refresh()</code>。没有"启动流程"概念——容器即应用，<code class="inline-code">refresh()</code> 完就绪。启动过程<strong>无事件、无回调、无自动配置</strong>，一切手动。</p>
             <p><strong>Spring 注解时代（2010-2013）</strong>：<code class="inline-code">AnnotationConfigApplicationContext</code> 取代 XML，<code class="inline-code">@Configuration</code> + <code class="inline-code">@ComponentScan</code> 成为主流。容器启动仍是一次 <code class="inline-code">refresh()</code>，但引入了 <code class="inline-code">AnnotationConfigApplicationContext.register()</code> 延迟刷新能力。仍无统一的启动编排框架。</p>
             <p><strong>Spring Boot 1.x（2014）</strong>：<code class="inline-code">SpringApplication.run()</code> 诞生——把"创建容器 → 准备环境 → 刷新容器 → 启动嵌入式服务器 → 执行 Runner"编排成一条流水线，并引入 <strong>7 个生命周期事件</strong>。通过 <code class="inline-code">spring.factories</code> 注册 <code class="inline-code">ApplicationListener</code> 和 <code class="inline-code">ApplicationContextInitializer</code>，实现<strong>零配置扩展</strong>。这是"启动流程"作为独立概念的起点。</p>
-            <p><strong>Spring Boot 2.x（2018）</strong>：事件体系完善——新增 <code class="inline-code">ApplicationContextInitializedEvent</code> 和 <code class="inline-code">ApplicationStartedEvent</code>，使事件链从 5 个扩展到 7 个。<code class="inline-code">ApplicationRunner</code> 取代 <code class="inline-code">CommandLineRunner</code> 成为推荐接口（参数解析更友好）。<code class="inline-code">spring.factories</code> 的 <code class="inline-code">EnvironmentPostProcessor</code> 成为修改 Environment 的标准扩展点。</p>
+            <p><strong>Spring Boot 2.x（2018）</strong>：事件体系完善——新增 <code class="inline-code">ApplicationContextInitializedEvent</code> 和 <code class="inline-code">ApplicationStartedEvent</code>，使事件链从 5 个扩展到 7 个。<code class="inline-code">ApplicationRunner</code>（接收 <code class="inline-code">ApplicationArguments</code>，参数解析更友好）与 <code class="inline-code">CommandLineRunner</code>（接收原始 String[]）并存，均为启动后回调接口。<code class="inline-code">spring.factories</code> 的 <code class="inline-code">EnvironmentPostProcessor</code> 成为修改 Environment 的标准扩展点。</p>
             <p><strong>Spring Boot 3.x（2022）</strong>：<strong>AOT 预处理 + Native Image</strong> 改变启动模型——AOT 在构建期生成 Bean 定义与配置快照，运行期跳过条件评估与类路径扫描，启动从秒级降至毫秒级。事件机制保持不变，但 <code class="inline-code">spring.factories</code> 中自动配置 key 迁移到 <code class="inline-code">AutoConfiguration.imports</code>（见 C06.01）。<code class="inline-code">SpringApplication</code> 新增 <code class="inline-code">setLazyInitialization()</code> 支持全局懒加载。</p>
             <p><strong>趋势</strong>：启动优化从"减少条件评估"走向"构建期冻结一切"——AOT/Native 是终极方向；同时 GraalVM Native Image 下事件链不变，但 Bean 实例化策略大变（无反射、构造器注入为主），架构师需理解 AOT 与 JIT 模式下启动流程的差异。</p>
           </div>
@@ -804,7 +799,7 @@ sequenceDiagram
               <div class="chart-caption">图 6.6-1 Spring Session 工作时序：Filter 拦截 → Repository 加载/保存 → Redis Hash 存储 + TTL 续期</div>
             </div>
 
-            <p><strong>Redis 存储结构</strong>：每个 Session 用一个 Hash 存（Key：<code class="inline-code">spring:session:sessions:{id}</code>），字段含 <code class="inline-code">creationTime</code>/<code class="inline-code">lastAccessedTime</code>/<code class="inline-code">maxInactiveInterval</code>/<code class="inline-code">sessionAttr:xxx</code>。另用 <code class="inline-code">spring:session:expirations:{timestamp}</code> Set 实现过期通知。<strong>TTL 续期</strong>：每次访问 Session 触发 <code class="inline-code">save()</code>，重置 Hash 的 TTL 为 <code class="inline-code">maxInactiveInterval</code>，实现"滑动过期"。</p>
+            <p><strong>Redis 存储结构</strong>：每个 Session 用一个 Hash 存（Key：<code class="inline-code">spring:session:sessions:{id}</code>），字段含 <code class="inline-code">creationTime</code>/<code class="inline-code">lastAccessedTime</code>/<code class="inline-code">maxInactiveInterval</code>/<code class="inline-code">sessionAttr:xxx</code>。另用 <code class="inline-code">spring:session:expirations:{timestamp}</code> Set 实现过期通知。<strong>TTL 续期</strong>：Spring Session 默认不在每次访问时都调用 <code class="inline-code">save()</code>（性能考虑），而是在响应阶段通过 <code class="inline-code">commitSession</code> 判断 Session 是否变更或接近过期，变更或接近过期时才重置 Hash 的 TTL 为 <code class="inline-code">maxInactiveInterval</code>，实现"滑动过期"。可通过 <code class="inline-code">saveMode=ALWAYS</code> 强制每次访问都续期。</p>
             <p><strong>Session 事件</strong>：Spring Session 通过 Redis Keyspace Notifications（<code class="inline-code">__keyevent@*__:expired</code>/<code class="inline-code">del</code>）监听 Session 过期/删除，转换为 <code class="inline-code">SessionExpiredEvent</code>/<code class="inline-code">SessionDeletedEvent</code>，业务可监听做清理（如踢用户下线）。需在 Redis 开启 <code class="inline-code">notify-keyspace-events Exg</code>。</p>
           </div>
         </div>
@@ -893,7 +888,7 @@ sequenceDiagram
           <div class="qa-layer-body">
             <p><strong>Actuator 1.x（2014-2018）</strong>：端点放在根路径（<code class="inline-code">/health</code>、<code class="inline-code">/env</code>、<code class="inline-code">/metrics</code>），<strong>默认大部分端点开放且无细粒度权限控制</strong>，安全风险高（<code class="inline-code">/env</code> 泄露配置、<code class="inline-code">/heapdump</code> 泄露内存）。端点返回 JSON 结构不统一，难以标准化采集。</p>
             <p><strong>Actuator 2.x（2018，安全重构）</strong>：关键演进——① 端点统一移到 <code class="inline-code">/actuator</code> 前缀；② <strong>默认仅 <code class="inline-code">health</code> 和 <code class="inline-code">info</code> 开放</strong>，其余需 <code class="inline-code">management.endpoints.web.exposure.include</code> 显式开启；③ 引入 <strong>Micrometer</strong> 替代自研 metrics，统一度量门面（类似 SLF4J 之于日志），支持 Prometheus/Atlas/Datadog 等多后端；④ <code class="inline-code">/metrics</code> 改为可按维度查询（<code class="inline-code">/metrics/jvm.memory.used?tag=area:heap</code>）。</p>
-            <p><strong>Actuator 3.x / Boot 3（2022）</strong>：① 观测 API 统一——Micrometer Observation API 整合 Metrics + Tracing + Logging（OpenTelemetry 兼容）；② <code class="inline-code">/health</code> 支持健康组（Health Group）分组聚合；③ 端点支持 JSON + OpenMetrics 多格式；④ 与 Spring Security 深度整合，端点权限走标准 SecurityFilterChain。</p>
+            <p><strong>Actuator 3.x / Boot 3（2022）</strong>：① 观测 API 统一——Micrometer Observation API 统一 Metrics 与 Tracing（OpenTelemetry 兼容），并通过 traceId/spanId 注入实现 Log Correlation；② <code class="inline-code">/health</code> 支持健康组（Health Group）分组聚合；③ 端点支持 JSON + OpenMetrics 多格式；④ 与 Spring Security 深度整合，端点权限走标准 SecurityFilterChain。</p>
             <p><strong>趋势</strong>：可观测性向 OpenTelemetry 标准靠拢，Actuator 作为 Spring 应用的数据采集层，与 OTel Collector + Prometheus + Grafana/Jaeger 组成标准可观测性栈；eBPF 等无侵入技术兴起但 Actuator 仍是应用层指标主源。</p>
           </div>
         </div>
@@ -971,7 +966,7 @@ management:
             <p><strong>追问 1：K8s liveness 与 readiness 探针如何对接 Actuator？两者区别？</strong></p>
             <p>Spring Boot 2.3+ 自动配置 <code class="inline-code">/actuator/health/liveness</code> 与 <code class="inline-code">/actuator/health/readiness</code>（需 <code class="inline-code">management.endpoint.health.probes.enabled=true</code>）。<strong>liveness</strong>（存活探针）反映应用是否可恢复——DOWN 时 K8s 重启 Pod，只检查应用是否死锁/内存耗尽，不应含外部依赖（避免级联重启）；<strong>readiness</strong>（就绪探针）反映是否可接流量——DOWN 时 K8s 从 Service 摘除 Pod 但不重启，可含 DB/Redis 检查（依赖不可用时摘流量）。关键：<strong>不要把 DB 健康放 liveness</strong>，否则 DB 抖动导致全 Pod 重启雪崩。</p>
             <p><strong>追问 2：Micrometer 与 OpenTelemetry 的关系？Boot 3 如何整合？</strong></p>
-            <p>Micrometer 是<strong>度量门面</strong>（Metrics），Boot 3 引入 <code class="inline-code">Micrometer Observation API</code> 统一 Metrics + Tracing + Logging 三支柱。加 <code class="inline-code">micrometer-tracing-bridge-otel</code> 即把 Observation 桥接到 OpenTelemetry，通过 <code class="inline-code">OTelAutoConfiguration</code> 导出到 Jaeger/Tempo。即<strong>业务用 Micrometer API 埋点，底层桥接到 OTel 标准协议</strong>，兼顾 Spring 生态便利与 OTel 标准。这是 2026 年可观测性主流方案。</p>
+            <p>Micrometer 是<strong>度量门面</strong>（Metrics），Boot 3 引入 <code class="inline-code">Micrometer Observation API</code> 统一 Metrics 与 Tracing，并通过 traceId 自动注入 MDC 实现 Logging 关联（不是直接统一日志格式）。加 <code class="inline-code">micrometer-tracing-bridge-otel</code> 即把 Observation 桥接到 OpenTelemetry，通过 <code class="inline-code">OTelAutoConfiguration</code> 导出到 Jaeger/Tempo。即<strong>业务用 Micrometer API 埋点，底层桥接到 OTel 标准协议</strong>，兼顾 Spring 生态便利与 OTel 标准。这是 2026 年可观测性主流方案。</p>
           </div>
         </div>
 
@@ -1011,7 +1006,7 @@ management:
         <div class="qa-layer" data-layer="evolution">
           <div class="qa-layer-title">演进脉络</div>
           <div class="qa-layer-body">
-            <p><strong>Spring 原生（2.x-4.x）</strong>：配置靠 XML <code class="inline-code">PropertyPlaceholderConfigurer</code> 解析 <code class="inline-code">${}</code> 占位符，单一 properties 文件，无 profile 概念。多环境靠多套文件手动切换。</p>
+            <p><strong>Spring 早期（2.x-3.0）</strong>：配置靠 XML <code class="inline-code">PropertyPlaceholderConfigurer</code> 解析 <code class="inline-code">${}</code> 占位符，单一 properties 文件。多环境靠多套文件手动切换。<strong>Spring 3.1（2011）</strong>：引入 <code class="inline-code">@Profile</code> 注解和 <code class="inline-code">Environment</code> 抽象，奠定多环境支持基础。</p>
             <p><strong>Spring Boot 1.x</strong>：引入 <code class="inline-code">application.properties</code> + profile（<code class="inline-code">application-{profile}.properties</code>）+ 命令行参数 <code class="inline-code">--spring.profiles.active</code>。配置源扩展到命令行、环境变量、JNDI。</p>
             <p><strong>Spring Boot 2.x</strong>：全面支持 YAML（<code class="inline-code">application.yml</code>），引入 <code class="inline-code">@ConfigurationProperties</code> 结构化绑定。配置源进一步丰富：random、JNDI、OS env、System properties、application.yml、application.properties、<code class="inline-code">@PropertySource</code>。</p>
             <p><strong>Spring Boot 2.4+（配置导入）</strong>：引入 <code class="inline-code">spring.config.import</code>，支持导入配置中心（Nacos/Consul/Kubernetes ConfigMap）与额外文件，且 <strong>文档化配置加载顺序</strong>（ConfigData API 重构）。<code class="inline-code">spring.config.location</code> 与 <code class="inline-code">spring.config.additional-location</code> 调整语义。</p>
@@ -1245,7 +1240,7 @@ flowchart TD
             <p><strong>追问 1：@ControllerAdvice 与 @RestControllerAdvice 的区别？如何限定拦截范围？</strong></p>
             <p><code class="inline-code">@RestControllerAdvice</code> = <code class="inline-code">@ControllerAdvice</code> + <code class="inline-code">@ResponseBody</code>，处理方法返回值直接序列化为 JSON，是 REST API 首选。<code class="inline-code">@ControllerAdvice</code> 返回视图，适合传统 MVC。限定范围：<code class="inline-code">@ControllerAdvice("com.example.web")</code>（按包）、<code class="inline-code">@ControllerAdvice(annotations = RestController.class)</code>（按注解）、<code class="inline-code">@ControllerAdvice(basePackageClasses = ApiController.class)</code>。多 Advice 按 <code class="inline-code">@Order</code> 排序，异常按继承最近匹配。</p>
             <p><strong>追问 2：Spring 6 的 ProblemDetail（RFC 7807）相比自定义 ApiResponse 有何优势？</strong></p>
-            <p>ProblemDetail 是<strong>标准化错误响应格式</strong>（RFC 7807），字段固定：<code class="inline-code">type</code>/<code class="inline-code">title</code>/<code class="inline-code">status</code>/<code class="inline-code">detail</code>/<code class="inline-code">instance</code>，Content-Type 为 <code class="inline-code">application/problem+json</code>。优势：① <strong>标准化</strong>——跨语言/跨服务统一，API 网关/客户端可通用解析；② <strong>Spring 原生支持</strong>——<code class="inline-code">ResponseEntity.problemDetail()</code> 直接构造，<code class="inline-code">@ExceptionHandler</code> 可返回 ProblemDetail；③ <strong>可扩展</strong>——<code class="inline-code">properties</code> 字段放业务扩展信息。劣势：与既有 <code class="inline-code">ApiResponse</code> 体系不兼容，迁移有成本。新项目推荐 ProblemDetail，存量项目可保持 ApiResponse 但内部对齐 RFC 字段语义。</p>
+            <p>ProblemDetail 是<strong>标准化错误响应格式</strong>（RFC 7807），字段固定：<code class="inline-code">type</code>/<code class="inline-code">title</code>/<code class="inline-code">status</code>/<code class="inline-code">detail</code>/<code class="inline-code">instance</code>，Content-Type 为 <code class="inline-code">application/problem+json</code>。优势：① <strong>标准化</strong>——跨语言/跨服务统一，API 网关/客户端可通用解析；② <strong>Spring 原生支持</strong>——<code class="inline-code">ProblemDetail.forStatusAndDetail()</code> 直接构造，<code class="inline-code">@ExceptionHandler</code> 可返回 ProblemDetail；③ <strong>可扩展</strong>——<code class="inline-code">properties</code> 字段放业务扩展信息。劣势：与既有 <code class="inline-code">ApiResponse</code> 体系不兼容，迁移有成本。新项目推荐 ProblemDetail，存量项目可保持 ApiResponse 但内部对齐 RFC 字段语义。</p>
             <p><strong>追问 3：异常处理与事务的关系？@Transactional 方法抛异常会回滚吗？</strong></p>
             <p>会，但要看异常类型与 <code class="inline-code">rollbackFor</code> 配置。<code class="inline-code">@Transactional</code> 默认只对 <code class="inline-code">RuntimeException</code> 和 <code class="inline-code">Error</code> 回滚，<code class="inline-code">Checked Exception</code> 不回滚（除非 <code class="inline-code">rollbackFor = Exception.class</code>）。异常处理流程：Service 抛异常 → 事务拦截器检测是否回滚 → 标记回滚 → 异常继续抛出 → <code class="inline-code">@ExceptionHandler</code> 拦截处理。<strong>注意：若在 @ExceptionHandler 中"吞掉"异常（catch 不重抛），事务已回滚但前端收到成功响应，造成数据与响应不一致</strong>。正确做法：业务异常要回滚就让它继承 RuntimeException，且 @ExceptionHandler 返回错误响应而非"吞异常"。</p>
           </div>
@@ -1439,7 +1434,7 @@ flowchart TD
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>1. SecurityFilterChain 过滤器链</strong>：Spring Security 的核心是一条由 <code class="inline-code">Filter</code> 组成的链。<code class="inline-code">DelegatingFilterProxy</code>（Servlet 容器注册）→ <code class="inline-code">FilterChainProxy</code>（Spring Bean）→ 匹配到的 <code class="inline-code">SecurityFilterChain</code> → 依次执行 <code class="inline-code">SecurityContextPersistenceFilter</code>、<code class="inline-code">UsernamePasswordAuthenticationFilter</code>、<code class="inline-code">AuthorizationFilter</code> 等约 15 个过滤器。6.x 中 <code class="inline-code">FilterSecurityInterceptor</code> 被 <code class="inline-code">AuthorizationFilter</code> 取代，授权逻辑前置。可声明多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">securityMatcher</code> 顺序匹配，<strong>顺序决定优先级</strong>。</p>
+            <p><strong>1. SecurityFilterChain 过滤器链</strong>：Spring Security 的核心是一条由 <code class="inline-code">Filter</code> 组成的链。<code class="inline-code">DelegatingFilterProxy</code>（Servlet 容器注册）→ <code class="inline-code">FilterChainProxy</code>（Spring Bean）→ 匹配到的 <code class="inline-code">SecurityFilterChain</code> → 依次执行 <code class="inline-code">SecurityContextHolderFilter</code>、<code class="inline-code">UsernamePasswordAuthenticationFilter</code>、<code class="inline-code">AuthorizationFilter</code> 等约 15 个过滤器。6.x 中 <code class="inline-code">FilterSecurityInterceptor</code> 被 <code class="inline-code">AuthorizationFilter</code> 取代，授权逻辑前置。可声明多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">securityMatcher</code> 顺序匹配，<strong>顺序决定优先级</strong>。</p>
             <p><strong>2. 认证核心组件</strong>：<code class="inline-code">AuthenticationManager</code>（认证入口，委托给 <code class="inline-code">ProviderManager</code> → <code class="inline-code">AuthenticationProvider</code>）→ <code class="inline-code">UserDetailsService</code>/<code class="inline-code">UserDetails</code>（加载用户）→ <code class="inline-code">PasswordEncoder</code>（BCrypt 校验）→ <code class="inline-code">SecurityContext</code>（存入 <code class="inline-code">SecurityContextHolder</code>，6.x 默认 <code class="inline-code">DeferredSecurityContext</code> 异步优化）。</p>
             <p><strong>3. OAuth2 授权码模式 + PKCE</strong>：用户访问客户端 → 重定向到授权服务器登录 → 授权服务器返回 <code class="inline-code">code</code>（带 <code class="inline-code">redirect_uri</code>）→ 客户端用 <code class="inline-code">code</code> + <code class="inline-code">client_secret</code>（机密客户端）换 <code class="inline-code">access_token</code> → 用 token 访问资源服务器。<strong>PKCE</strong>（Proof Key for Code Exchange）为公开客户端（SPA/移动端）增加一层：客户端先生成 <code class="inline-code">code_verifier</code>（随机串）→ 算 <code class="inline-code">code_challenge</code>（S256 哈希）随授权请求发出 → 换 token 时带 <code class="inline-code">code_verifier</code>，授权服务器校验哈希匹配，防止授权码被截获后冒用。</p>
             <p><strong>4. JWT 无状态认证</strong>：资源服务器用 <code class="inline-code">NimbusJwtDecoder</code>（<code class="inline-code">JwtDecoder</code> 实现）验签（RSA/EC 公钥或 JWK Set URI），验签通过后 <code class="inline-code">JwtAuthenticationConverter</code> 将 claims 转为 <code class="inline-code">Authentication</code>。<code class="inline-code">JwtEncoder</code> 用私钥签发。<strong>JWT 是签名（防篡改）非加密（claims 明文）</strong>。</p>
@@ -1464,7 +1459,7 @@ flowchart TD
                 .<span class="fn">anyRequest</span>().<span class="fn">authenticated</span>()
             )
             <span class="com">// JWT 资源服务器：验签用 JWK Set URI（授权服务器公钥）</span>
-            .<span class="fn">oauth2ResourceServer</span>(o -&gt; o.<span class="fn">jwt</span>(<span class="type">JwtConfigurer</span>::<span class="fn">jwt</span>))
+            .<span class="fn">oauth2ResourceServer</span>(o -&gt; o.<span class="fn">jwt</span>(<span class="type">Customizer</span>.<span class="fn">withDefaults</span>()))
             .<span class="fn">build</span>();
     }
 
@@ -1565,10 +1560,10 @@ flowchart TD
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>应用侧（Spring Boot）</strong>：graceful shutdown 下，容器先停止接收新连接，已接收的请求在 <code class="inline-code">spring.lifecycle.timeout-per-shutdown-phase</code> 内处理完；<code class="inline-code">SmartLifecycle</code> 控制 Bean 停止顺序，<code class="inline-code">@PreDestroy</code> 释放资源（连接池、调度器、MQ 消费者暂停）。</p>
-            <p><strong>平台侧（K8s）时序</strong>：① 置 <code class="inline-code">readinessProbe</code> 失败 → Endpoint 摘除该 Pod 流量；② 发 SIGTERM；③ 执行 <code class="inline-code">preStop</code> hook（常 sleep 几秒，确保 LB/Service 已摘流）；④ 在 <code class="inline-code">terminationGracePeriodSeconds</code>（默认 30s）内等待应用优雅停机；超时则 SIGKILL。</p>
+            <p><strong>平台侧（K8s）时序</strong>：① Pod 被标记为 Terminating；② <code class="inline-code">preStop</code> hook 与 Endpoint 摘除<strong>并发执行</strong>（K8s 不等 preStop 完成才摘 Endpoint）；③ preStop 执行完毕后发送 SIGTERM；④ 在 <code class="inline-code">terminationGracePeriodSeconds</code>（默认 30s）内等待应用优雅停机；超时则 SIGKILL。preStop 中 sleep 的目的是给 Endpoint/负载均衡传播留时间，确保摘流先于 SIGTERM 生效。</p>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p>必须满足 <strong>graceful timeout &lt; terminationGracePeriodSeconds</strong>，且 readiness 摘流发生在 SIGTERM 之前。否则 K8s 在应用处理完前就 SIGKILL，在途请求被截断。三者时序：<strong>readiness=false → PreStop sleep → SIGTERM → 优雅停机 → 退出</strong>。</p>
+              <p>必须满足 <strong>graceful timeout &lt; terminationGracePeriodSeconds</strong>。preStop 与 Endpoint 摘除并发启动，preStop 完成后才发 SIGTERM。否则 K8s 在应用处理完前就 SIGKILL，在途请求被截断。实际时序：<strong>Terminating → preStop(sleep) 与 Endpoint 摘除并发 → preStop 完毕 → SIGTERM → 优雅停机 → 退出</strong>。</p>
             </div>
           </div>
         </div>
@@ -1629,7 +1624,7 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>Spring Boot 主导（2014+）</strong>：运行时反射 + 条件化 Bean，生态无敌但启动慢、内存高。</p>
             <p><strong>云原生诉求</strong>：容器高密度、Serverless 按需冷启、FaaS 毫秒计费的场景，倒逼"快启动 + 小内存"。</p>
-            <p><strong>新选手</strong>：Quarkus（Red Hat，build-time 扩展 + 原生优先）、Micronaut（Oracle，编译期 DI/AOP，API 近似 Spring）；二者均拥抱 GraalVM Native Image。</p>
+            <p><strong>新选手</strong>：Quarkus（Red Hat，build-time 扩展 + 原生优先）、Micronaut（Object Computing 主导，编译期 DI/AOP，API 近似 Spring）；二者均拥抱 GraalVM Native Image。</p>
             <p><strong>Spring 反击</strong>：Spring Boot 3 引入 AOT（Ahead-Of-Time）处理 + <code class="inline-code">spring-boot-maven-plugin</code> build-image 支持原生镜像，缩小差距。</p>
             <p><strong>Spring Boot 3.x 版本演进</strong>：① <strong>3.0（2022-11）</strong>：Java 17 基线 + Jakarta EE 迁移（javax→jakarta）+ AOT/Native Image 原生支持 + Micrometer Observation API 统一可观测性 + 声明式 HTTP 客户端（<code class="inline-code">@HttpExchange</code>）+ RFC 7807 Problem Details 标准错误响应；② <strong>3.1（2023-05）</strong>：Docker Compose 集成 + <code class="inline-code">@ServiceConnection</code>（Testcontainers 零配置）+ Spring Authorization Server 生产可用；③ <strong>3.2（2023-11）</strong>：虚拟线程支持（JDK 21，<code class="inline-code">spring.threads.virtual.enabled=true</code>）+ RestClient（RestTemplate 现代替代）+ JdbcClient + SSL Bundle 热重载 + CDS 启动加速；④ <strong>3.3（2024-05）</strong>：<strong>SBOM Actuator 端点</strong>（CycloneDX 格式，供应链安全透明度）+ 可观测性零配置扩展至 Spring Data 等组件 + WebSocket 虚拟线程支持 + Base64 资源内联配置 + SSL SNI 支持 + Antora 文档重构；⑤ <strong>3.4（2024-11）</strong>：<strong>原生结构化日志</strong>（JSON 日志开箱即用）+ <strong>优雅停机默认开启</strong>（所有内嵌 Web 服务器）+ RestClient/RestTemplate 自动配置多 HTTP 客户端（Apache HC / Reactor Netty / JDK HttpClient）+ Actuator 端点访问控制重构 + ARM 镜像构建 + MockMvcTester（AssertJ 风格）；⑥ <strong>3.5（2025-05）</strong>：3.x 系列最终小版本（4.0 计划 2025-11），Bean 后台初始化自动配置（并行 ApplicationContext 启动）+ 全局 HTTP 连接器配置 + Profile 命名规则收紧 + GraalVM Native Image 支持扩展。3.x 系列从"Java 17 基线 + 云原生"奠基，到虚拟线程、结构化日志、SBOM 安全透明度逐步演进，持续缩小与 Quarkus/Micronaut 的启动/内存差距。</p>
           </div>

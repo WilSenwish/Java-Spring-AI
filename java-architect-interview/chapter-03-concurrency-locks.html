@@ -755,7 +755,7 @@ sequenceDiagram
                   <tr><td>可中断</td><td>否</td><td>是（lockInterruptibly）</td><td>是</td></tr>
                   <tr><td>超时获取</td><td>否</td><td>是（tryLock(timeout)）</td><td>是</td></tr>
                   <tr><td>公平锁</td><td>否（非公平）</td><td>是（构造参数）</td><td>否</td></tr>
-                  <tr><td>条件变量</td><td>1 个（wait/notify）</td><td>多个（Condition）</td><td>1 个（ReadWriteLock 视图）</td></tr>
+                  <tr><td>条件变量</td><td>1 个（wait/notify）</td><td>多个（Condition）</td><td>无 <code class="inline-code">Condition</code>；<code class="inline-code">asReadLock/asWriteLock</code> 只是兼容视图，不提供 <code class="inline-code">ReentrantLock</code> 的等待/通知模型</td></tr>
                   <tr><td>乐观读</td><td>否</td><td>否</td><td>是（tryOptimisticRead）</td></tr>
                   <tr><td>可重入</td><td>是</td><td>是</td><td>否</td></tr>
                   <tr><td>锁释放</td><td>自动（出块/异常）</td><td>手动（必须 finally unlock）</td><td>手动（必须 finally unlock）</td></tr>
@@ -938,7 +938,7 @@ graph TB
 
             <div class="callout callout-danger">
               <div class="callout-title">生产事故点</div>
-              <p><strong>computeIfAbsent 中修改同一 map 会死锁（JDK8）</strong>：在 <code class="inline-code">map.computeIfAbsent(k, k -&gt; map.put(otherK, v))</code> 中嵌套修改同一桶，会因桶头 synchronized 重入导致死锁。JDK9 修复了部分场景，但仍应避免在 mapping function 中修改同一 map。</p>
+              <p><strong>不要在 mapping/compute 函数中阻塞或递归修改同一个 map</strong>：<code class="inline-code">computeIfAbsent</code> 的回调在原子复合操作内执行；修改同一个 map、回调中调用远程/数据库/锁等待，或递归触发同一键计算，都可能长时间占用内部同步、阻塞同桶操作，甚至形成死锁、活锁或抛出异常。具体失败形态与 JDK 实现和数据冲突路径有关，不能概括为“必然死锁”。应把回调限制为纯计算，复杂初始化、IO 和外部锁移到回调外，并用显式状态机或构建器管理。</p>
             </div>
           </div>
         </div>
@@ -965,7 +965,7 @@ graph TB
               <ul>
                 <li><strong>误以为 size() 精确</strong>：高并发下 size 是近似值，不能用于精确判断。</li>
                 <li><strong>get 后 put 非原子</strong>：<code class="inline-code">if(!map.containsKey(k)) map.put(k,v)</code> 有竞态，用 computeIfAbsent。</li>
-                <li><strong>computeIfAbsent 嵌套修改同一 map</strong>：JDK8 会死锁。</li>
+                <li><strong>compute/computeIfAbsent 内部阻塞或递归改同一 map</strong>：可能死锁、活锁或抛异常；回调应保持短小且无副作用。</li>
                 <li><strong>误以为迭代是快照</strong>：ConcurrentHashMap 的迭代器是弱一致的，反映创建时的状态，但迭代期间可能看到新数据。</li>
               </ul>
             </div>
@@ -1002,7 +1002,7 @@ graph TB
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>三层关系</strong>：Condition.await 底层调用 LockSupport.park，Object.wait 底层也是 park（通过 ObjectMonitor）。LockSupport 是所有阻塞的最终归宿。</p>
+            <p><strong>三层关系</strong>：Condition.await 会借助 LockSupport.park 阻塞，HotSpot Object.wait 也进入 ObjectMonitor 等待机制。LockSupport 是常用的线程阻塞原语，但不同等待机制的持锁、队列和唤醒契约不同，不能混成一个模型。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -1018,7 +1018,7 @@ graph TD
 
             <p><strong>LockSupport.park/unpark 的 permit 机制</strong>：每个线程内部有一个 permit（许可），初始为 0。unpark(thread) 将 permit 置 1（若已为 1 则不变，<strong>不可累加</strong>，最多为 1）。park() 检查 permit：若为 1 则消费并立即返回（不阻塞），若为 0 则阻塞直到 permit 变 1 或被中断或超时。这种设计让 unpark "先于" park 调用时不会丢失信号。</p>
 
-            <p><strong>Condition 的实现原理</strong>：ConditionObject 维护一个独立的等待队列（单向链表）。await() 时：① 释放锁（fullyRelease）；② 加入 Condition 等待队列并 park；③ 被 signal 唤醒后，从 Condition 队列移到 AQS 同步队列，重新竞争锁。signal() 时：将 Condition 队列首节点转移到 AQS 同步队列，让其有机会被前驱唤醒后重新拿锁。</p>
+            <p><strong>Condition 的实现原理</strong>：ConditionObject 维护一个独立的等待队列（单向链表）。await() 时：① 释放锁（fullyRelease）；② 加入 Condition 等待队列并 park；③ 被 signal 唤醒后，从 Condition 队列移到 AQS 同步队列，重新竞争锁。signal() 时：将 Condition 队列首节点转移到 AQS 同步队列，让其有机会被前驱唤醒后重新拿锁。<code class="inline-code">Condition</code> 不能与所有锁混用；<code class="inline-code">StampedLock</code> 没有 <code class="inline-code">newCondition()</code>，其 <code class="inline-code">asReadLock()</code>/<code class="inline-code">asWriteLock()</code>/<code class="inline-code">asReadWriteLock()</code> 只是兼容视图。</p>
 
             <div class="code-block"><pre><code><span class="com">// 经典：ReentrantLock + 两个 Condition 实现有界阻塞队列</span>
 <span class="kw">public class</span> <span class="type">BoundedBuffer</span>&lt;<span class="type">T</span>&gt; {
@@ -1228,7 +1228,7 @@ graph TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>ForkJoinPool 是 Java 并行计算的内核，<strong>parallelStream、CompletableFuture.defaultExecutor、Virtual Threads 的调度</strong>都依赖它。这道题考察"分治任务模型 + 工作窃取（work-stealing）"两大核心，理解它才能正确使用并行流、避免 commonPool 被阻塞拖垮整个应用。</p>
+            <p>ForkJoinPool 是 Java 并行计算的重要内核。<strong>parallelStream 默认走 commonPool，CompletableFuture 在无自定义 executor 且 commonPool 并行度满足条件时也使用 commonPool；虚拟线程调度器则使用专用的 ForkJoinPool 载体池。</strong>这道题考察"外部提交任务、分治子任务、共享池"三个边界的区分，以及"分治任务模型 + 工作窃取（work-stealing）"核心；理解这些边界才能避免并行流中的阻塞任务影响全局。</p>
           </div>
         </div>
 
@@ -1302,7 +1302,7 @@ graph TB
 <span class="type">ForkJoinPool</span> <span class="var">pool</span> = <span class="kw">new</span> <span class="type">ForkJoinPool</span>();
 <span class="kw">long</span> <span class="var">result</span> = <span class="var">pool</span>.<span class="fn">invoke</span>(<span class="kw">new</span> <span class="type">SumTask</span>(<span class="num">1</span>, <span class="num">100_000_000L</span>));</code></pre></div>
 
-            <p><strong>commonPool 的并行度</strong>：parallelStream 默认用 ForkJoinPool.commonPool，并行度 = <code class="inline-code">Runtime.availableProcessors() - 1</code>（留一个核给主线程）。可通过 <code class="inline-code">-Djava.util.concurrent.ForkJoinPool.common.parallelism=N</code> 调整。</p>
+            <p><strong>commonPool 的并行度</strong>：parallelStream 默认使用 <code class="inline-code">ForkJoinPool.commonPool()</code>。常见 JDK 的默认并行度按 <code class="inline-code">Runtime.availableProcessors() - 1</code> 计算，但容器配额、可用处理器语义和目标 JDK 版本都会影响结果；单核场景下任务通常由调用线程执行。可用系统属性 <code class="inline-code">java.util.concurrent.ForkJoinPool.common.parallelism=N</code> 调整，并打印或监控实际池状态验证。</p>
           </div>
         </div>
 
@@ -1325,7 +1325,7 @@ graph TB
 
             <div class="callout callout-danger">
               <div class="callout-title">生产事故点</div>
-              <p><strong>在 parallelStream 中执行阻塞 IO 会拖垮 commonPool</strong>：commonPool 是全应用共享的，若在 <code class="inline-code">list.parallelStream().map(x -&gt; blockingHttpCall(x))</code> 中做阻塞调用，所有并行线程被阻塞，<strong>整个应用的其他 parallelStream、CompletableFuture.defaultExecutor 都会停滞</strong>。阻塞任务必须用独立线程池，绝不能用 commonPool。</p>
+              <p><strong>不要把阻塞 IO、锁等待或长任务交给 parallelStream 默认池</strong>：commonPool 是进程内共享池，阻塞会降低其并行度，可能连带影响其他并行流和无自定义 executor 的 <code class="inline-code">CompletableFuture</code>；使用专用 executor 的任务不一定受影响，调用线程也可能参与执行。IO 和阻塞任务应放独立有界池，或在 ForkJoin 任务中按目标 JDK 规则使用 <code class="inline-code">ManagedBlocker</code>；CPU 分治才优先交给 commonPool 或专用 ForkJoinPool。</p>
             </div>
           </div>
         </div>
@@ -1336,8 +1336,8 @@ graph TB
             <p><strong>追问 1：为什么窃取从尾部而非头部？</strong></p>
             <p>Worker 处理自己的任务从头部取（LIFO），若窃取也从头部，会与 Worker 自己的取操作竞争同一端。从尾部窃取（FIFO），窃取者与被窃取者操作 Deque 的不同端，竞争最小。且尾部是"最早入队的老任务"，通常是较大的子任务，窃取它能更平衡负载。</p>
 
-            <p><strong>追问 2：ForkJoinTask 为什么不能抛检查异常？</strong></p>
-            <p>RecursiveTask.compute() 的签名不允许 throws，因为 join() 需要返回结果或抛 RuntimeException。若子任务抛检查异常，会被包装成 ExecutionException（通过 join 抛出）。实际工程中通常在 compute 内 try-catch 并返回错误码，或用 RuntimeException 包装。</p>
+            <p><strong>追问 2：ForkJoinTask 的异常传播边界是什么？</strong></p>
+            <p><code class="inline-code">RecursiveTask.compute()</code> 不声明检查异常，所以检查异常要在任务内捕获并按业务约定转换。<code class="inline-code">join()</code>/<code class="inline-code">getException()</code> 走未检查语义，失败通常表现为 <code class="inline-code">CompletionException</code>（取消对应 <code class="inline-code">CancellationException</code>）；<code class="inline-code">get()</code>/<code class="inline-code">get(timeout)</code> 是 <code class="inline-code">Future</code> 风格，声明检查异常并把任务失败包装为 <code class="inline-code">ExecutionException</code>。不要把两者的调用点混在一起照抄。</p>
 
             <p><strong>追问 3：Virtual Threads 如何使用 ForkJoinPool？</strong></p>
             <p>虚拟线程的调度器（VirtualThread 调度器）将虚拟线程"挂载"到载体线程（carrier thread）上执行，载体线程池就是一个 ForkJoinPool（默认并行度 = 核数）。虚拟线程在 park/unmount 时从载体线程卸载，载体线程可执行其他虚拟线程——这与 ForkJoinTask 的 fork/join 调度共用工作窃取机制。所以 ForkJoinPool 从"并行计算池"演进为"虚拟线程载体池"。</p>
@@ -1350,7 +1350,7 @@ graph TB
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>parallelStream 中阻塞 IO</strong>：拖垮全应用 commonPool，是最高频事故。</li>
+                <li><strong>parallelStream 中阻塞 IO</strong>：耗尽共享 commonPool 并行度，影响其他并行流和无自定义 executor 的异步任务。</li>
                 <li><strong>任务拆分阈值太小</strong>：fork/join 自身有调度开销，阈值太小反而比串行慢。</li>
                 <li><strong>误以为 parallelStream 一定更快</strong>：小数据集、IO 密集、有共享状态时并行更慢。</li>
                 <li><strong>在 ForkJoinTask 中用 synchronized 阻塞</strong>：会阻止该 Worker 窃取其他任务，降低并行度。</li>
@@ -1512,7 +1512,7 @@ graph TB
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>Disruptor 是 LMAX 交易所开发的高性能内存消息组件，本质是一个<strong>基于环形数组（RingBuffer）+ 序列号（Sequence）协调的无锁/低锁消息传递框架</strong>，单线程吞吐可达千万级 TPS。本题考察四个核心设计：① <strong>RingBuffer</strong> 如何用定长环形数组 + 位运算实现 O(1) 寻址；② <strong>Sequence 与 Sequence Barrier</strong> 如何在不加锁的前提下协调生产者-消费者依赖关系；③ <strong>缓存行填充（Cache Line Padding）</strong> 如何消除伪共享（False Sharing）；④ <strong>单生产者无锁、多生产者 CAS</strong> 的并发模型。架构师需理解它"用数组预分配 + 序列号屏障替代锁"的设计哲学，以及在日志异步写入、事件分发场景中对比 BlockingQueue 的性能优势来源。</p>
+            <p>Disruptor 是 LMAX 交易所开发的高性能内存消息组件，本质是一个<strong>基于环形数组（RingBuffer）+ 序列号（Sequence）协调的无锁/低锁消息传递框架</strong>。本题考察四个核心设计：① <strong>RingBuffer</strong> 如何用定长环形数组 + 位运算实现 O(1) 寻址；② <strong>Sequence 与 Sequence Barrier</strong> 如何在不加锁的前提下协调生产者-消费者依赖关系；③ <strong>缓存行填充（Cache Line Padding）</strong> 如何消除伪共享（False Sharing）；④ <strong>单生产者无锁、多生产者 CAS</strong> 的并发模型。架构师需理解它"用数组预分配 + 序列号屏障替代锁"的设计哲学，以及在日志异步写入、事件分发场景中对比 BlockingQueue 的性能优势来源。</p>
           </div>
         </div>
 
@@ -1548,57 +1548,63 @@ graph TB
 
             <p><strong>5. Sequence Barrier（序列屏障）协调消费者依赖</strong>：每个消费者通过 Sequence Barrier 感知其上游（依赖的消费者 + 生产者）的进度。消费者只能消费 <code class="inline-code">min(上游 sequence)</code> 之前的数据，从而实现<strong>菱形依赖无锁编排</strong>——例如"消费者 A → 消费者 B 串行"、"A/B 并行 → C 汇聚"，全部通过 Sequence 比较完成，无锁。</p>
 
-            <p><strong>6. BatchEventProcessor 批处理与 WaitStrategy</strong>：消费者默认用 BatchEventProcessor 循环拉取事件，一次处理从 <code class="inline-code">sequence+1</code> 到可用上限的所有事件（批量）。<strong>WaitStrategy</strong> 决定消费者等待新事件时的策略：</p>
+            <p><strong>6. BatchEventProcessor 批处理与 WaitStrategy</strong>：DSL 创建的消费者通常由 <code class="inline-code">BatchEventProcessor</code> 驱动，一次处理从 <code class="inline-code">sequence+1</code> 到可用上限的所有事件（批量）。<strong>WaitStrategy</strong> 决定消费者等待新事件时的策略：</p>
             <ul>
-              <li><strong>BlockingStrategy</strong>：基于 Lock + Condition，CPU 友好但延迟高（~微秒级切换）。</li>
-              <li><strong>SleepingStrategy</strong>：自旋 → Thread.yield → LockSupport.parkNanos 渐进，平衡 CPU 与延迟。</li>
-              <li><strong>YieldingStrategy</strong>：自旋 + Thread.yield，低延迟但吃 CPU。</li>
-              <li><strong>BusySpinStrategy</strong>：纯自旋，最低延迟但 100% 占满 CPU，适合绑核场景。</li>
+              <li><strong>BlockingWaitStrategy</strong>：基于 Lock + Condition，CPU 友好，唤醒延迟和吞吐由负载与平台决定。</li>
+              <li><strong>SleepingWaitStrategy</strong>：自旋 → Thread.yield → LockSupport.parkNanos 渐进，平衡 CPU 与延迟。</li>
+              <li><strong>YieldingWaitStrategy</strong>：自旋 + Thread.yield，低延迟但吃 CPU。</li>
+              <li><strong>BusySpinWaitStrategy</strong>：纯自旋，接近最低等待延迟但持续占满 CPU，只在隔离核和强低延迟目标下评估。</li>
             </ul>
 
-            <div class="code-block"><pre><code><span class="com">// Disruptor DSL API 基本用法：单生产者 + 多消费者菱形依赖</span>
+            <div class="code-block"><pre><code><span class="com">// Disruptor 3.x DSL 基本用法：单生产者 + A/B 并行，随后 C 汇聚</span>
 <span class="kw">import</span> com.lmax.disruptor.*;
 <span class="kw">import</span> com.lmax.disruptor.dsl.*;
+<span class="kw">import</span> java.util.concurrent.ThreadFactory;
 
-<span class="com">// 1. 定义事件载体（预分配，复用对象，零 GC）</span>
 <span class="kw">class</span> <span class="type">LogEvent</span> {
     <span class="kw">long</span> sequence;
     <span class="type">String</span> message;
     <span class="kw">long</span> timestamp;
-
-    <span class="kw">void</span> <span class="fn">set</span>(<span class="kw">long</span> seq, <span class="type">String</span> msg) {
-        <span class="kw">this</span>.sequence = seq;
-        <span class="kw">this</span>.message = msg;
-        <span class="kw">this</span>.timestamp = <span class="type">System</span>.<span class="fn">currentTimeMillis</span>();
-    }
 }
 
-<span class="com">// 2. 事件工厂（启动时预分配 RingBuffer 所有槽位）</span>
-<span class="type">EventFactory</span>&lt;<span class="type">LogEvent</span>&gt; factory = <span class="type">LogEvent</span>::<span class="kw">new</span>;
-
-<span class="com">// 3. 构造 Disruptor：RingBuffer 大小必须是 2^n，单生产者</span>
-<span class="type">Disruptor</span>&lt;<span class="type">LogEvent</span>&gt; disruptor = <span class="kw">new</span> <span class="type">Disruptor</span>&lt;&gt;(
-    factory, <span class="num">1024</span>, <span class="type">DaemonThreadBuilder</span>.<span class="fn">build</span>(),
-    <span class="type">ProducerType</span>.SINGLE, <span class="kw">new</span> <span class="type">BlockingWaitStrategy</span>());
-
-<span class="com">// 4. 消费者：批量处理事件</span>
-<span class="type">EventHandler</span>&lt;<span class="type">LogEvent</span>&gt; handlerA = (event, seq, endOfBatch) -&gt; {
-    <span class="type">System</span>.out.<span class="fn">println</span>(event.sequence + <span class="str">": "</span> + event.message);
+<span class="type">ThreadFactory</span> <span class="var">threadFactory</span> = r -> {
+    <span class="type">Thread</span> <span class="var">t</span> = <span class="kw">new</span> <span class="type">Thread</span>(r, <span class="str">"disruptor-consumer"</span>);
+    t.<span class="fn">setDaemon</span>(<span class="kw">true</span>);
+    <span class="kw">return</span> t;
 };
 
-<span class="com">// 菱形依赖：handlerA 与 handlerB 并行 → handlerC 汇聚</span>
-disruptor.<span class="fn">handleEventsWith</span>(handlerA, handlerB)
-         .<span class="fn">then</span>(handlerC);
-disruptor.<span class="fn">start</span>();
+<span class="com">// RingBuffer size 必须是 2 的幂；启动时通过 EventFactory 预分配槽位。</span>
+<span class="type">Disruptor</span>&lt;<span class="type">LogEvent</span>&gt; <span class="var">disruptor</span> = <span class="kw">new</span> <span class="type">Disruptor</span>&lt;&gt;(
+    <span class="type">LogEvent</span>::<span class="kw">new</span>, <span class="num">1024</span>, threadFactory,
+    <span class="type">ProducerType</span>.SINGLE, <span class="kw">new</span> <span class="type">BlockingWaitStrategy</span>());
 
-<span class="com">// 5. 单生产者发布事件（复用槽位对象，不 new）</span>
-<span class="kw">long</span> seq = disruptor.<span class="fn">next</span>();          <span class="com">// 申请下一个可写序号</span>
+<span class="type">EventHandler</span>&lt;<span class="type">LogEvent</span>&gt; <span class="var">a</span> = (event, seq, endOfBatch) -&gt; {/* 校验 */};
+<span class="type">EventHandler</span>&lt;<span class="type">LogEvent</span>&gt; <span class="var">b</span> = (event, seq, endOfBatch) -&gt; {/* 风控 */};
+<span class="type">EventHandler</span>&lt;<span class="type">LogEvent</span>&gt; <span class="var">c</span> = (event, seq, endOfBatch) -&gt; {/* 汇聚落库 */};
+
+<span class="com">// 先配置消费者，再启动；生产推荐 DSL 的 publishEvent，避免手动管理 claim/publish。</span>
+disruptor.<span class="fn">handleEventsWith</span>(a, b).<span class="fn">then</span>(c);
+<span class="type">RingBuffer</span>&lt;<span class="type">LogEvent</span>&gt; <span class="var">ringBuffer</span> = disruptor.<span class="fn">start</span>();
+
+<span class="type">EventTranslatorOneArg</span>&lt;<span class="type">LogEvent</span>, <span class="type">String</span>&gt; <span class="var">translator</span> =
+    (event, seq, msg) -&gt; {
+        event.<span class="var">sequence</span> = seq;
+        event.<span class="var">message</span> = msg;
+        event.<span class="var">timestamp</span> = <span class="type">System</span>.<span class="fn">nanoTime</span>();
+    };
+ringBuffer.<span class="fn">publishEvent</span>(translator, <span class="str">"log message"</span>);
+
+<span class="com">// 下面是底层 RingBuffer 手动发布模板；不要调用不存在的 Disruptor.next/get/publish。</span>
+<span class="kw">long</span> <span class="var">seq</span> = ringBuffer.<span class="fn">next</span>();
 <span class="kw">try</span> {
-    <span class="type">LogEvent</span> event = disruptor.<span class="fn">get</span>(seq);  <span class="com">// 取预分配的对象</span>
-    event.<span class="fn">set</span>(seq, <span class="str">"log message"</span>);
+    <span class="type">LogEvent</span> <span class="var">event</span> = ringBuffer.<span class="fn">get</span>(seq);
+    event.<span class="var">message</span> = <span class="str">"manual message"</span>;
 } <span class="kw">finally</span> {
-    disruptor.<span class="fn">publish</span>(seq);           <span class="com">// 必须发布，否则阻塞后续生产者</span>
-}</code></pre></div>
+    ringBuffer.<span class="fn">publish</span>(seq);   <span class="com">// claim 后必须发布，否则会阻塞后续 claim。</span>
+}
+
+<span class="com">// 优雅停机。</span>
+disruptor.<span class="fn">shutdown</span>();</code></pre></div>
           </div>
         </div>
 
@@ -1609,16 +1615,16 @@ disruptor.<span class="fn">start</span>();
             <ul>
               <li><strong>Disruptor DSL API 使用</strong>：通过 <code class="inline-code">Disruptor</code> 构造器指定 EventFactory、RingBuffer 大小（2^n）、ProducerType（SINGLE/MULTI）、WaitStrategy，用 <code class="inline-code">handleEventsWith</code>/<code class="inline-code">then</code> 编排消费者依赖。</li>
               <li><strong>EventHandler 实现</strong>：实现 <code class="inline-code">EventHandler&lt;T&gt;</code> 的 <code class="inline-code">onEvent</code>，注意事件对象是复用的，处理完不要持有引用（下次会被生产者覆盖）。</li>
-              <li><strong>生产者-消费者模式</strong>：<code class="inline-code">next()</code> 申请序号 → <code class="inline-code">get(seq)</code> 取对象填充 → <code class="inline-code">publish(seq)</code> 发布。务必保证 publish 执行（异常也用 finally 发布）。</li>
+              <li><strong>生产者-消费者模式</strong>：优先用 DSL 的 <code class="inline-code">publishEvent</code>；若直接操作 <code class="inline-code">RingBuffer</code>，按 <code class="inline-code">next()</code> 申请序号 → <code class="inline-code">get(seq)</code> 填充 → <code class="inline-code">publish(seq)</code> 发布，并用 finally 保证发布。</li>
               <li><strong>WaitStrategy 选型</strong>：低延迟用 BusySpin/Yielding（绑核），通用用 Sleeping，省 CPU 用 Blocking。</li>
             </ul>
 
             <p><strong>架构师层</strong>：</p>
             <ul>
-              <li><strong>日志异步写入</strong>：Log4j2 AsyncLogger 底层即 Disruptor，相比 AsyncAppender（ArrayBlockingQueue）吞吐高 10x+ 且延迟稳定，是 Disruptor 最成功的落地。</li>
-              <li><strong>事件分发/限流场景选型</strong>：网关/交易系统的事件流水线、订单处理管线，用 Disruptor 编排"接收 → 校验 → 风控 → 落库"的菱形流水线，单线程每环无锁，延迟可压到微秒级。</li>
-              <li><strong>vs BlockingQueue 性能对比</strong>：Disruptor 比 ArrayBlockingQueue/LinkedBlockingQueue 快 10x~100x，来源是：① 无锁（单生产者）/低 CAS（多生产者）替代 ReentrantLock；② 数组预分配零 GC；③ 缓存行填充消除伪共享；④ 批量消费减少协调开销。</li>
-              <li><strong>内存预分配减少 GC</strong>：RingBuffer 启动时预分配 size 个 Event 对象常驻老年代，运行时只更新字段，对象不进入新生代，几乎无 GC 停顿——这是低延迟系统的关键。</li>
+              <li><strong>日志异步写入</strong>：Log4j2 AsyncLogger 底层使用 Disruptor；收益要以目标日志框架版本、队列配置、磁盘和日志速率压测为准。</li>
+              <li><strong>事件分发/限流场景选型</strong>：网关/交易系统的事件流水线可用 Disruptor 编排"接收 → 校验 → 风控 → 落库"的依赖；但先确认事件体积、背压、失败恢复和运维成本。</li>
+              <li><strong>vs BlockingQueue 性能对比</strong>：Disruptor 的优势来源是：① 单生产者无锁、多生产者低 CAS；② RingBuffer 预分配事件槽位，避免热路径事件载体分配；③ 缓存行填充降低伪共享；④ 批量消费减少协调开销。实际吞吐和延迟必须同版本压测。</li>
+              <li><strong>GC 是“降低”不是“清零”</strong>：事件对象可复用，但业务 payload、日志编码、临时集合和跨环传递仍可能分配。</li>
             </ul>
           </div>
         </div>
@@ -1627,13 +1633,13 @@ disruptor.<span class="fn">start</span>();
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：Disruptor 为什么比 BlockingQueue 快？</strong></p>
-            <p>四个维度的叠加优势：① <strong>无锁/低锁</strong>——单生产者无任何 CAS，多生产者只在抢序号时 CAS（且只一次），而 ArrayBlockingQueue 的 put/take 用同一把 ReentrantLock 串行化，高并发下上下文切换严重；② <strong>零 GC</strong>——RingBuffer 预分配复用对象，生产者只更新字段，而 BlockingQueue 每次 put 都可能触发对象在堆上流动与 GC；③ <strong>消除伪共享</strong>——Disruptor 的 Sequence 用缓存行填充隔离，ArrayBlockingQueue 的 putIndex/takeIndex/count/items 相邻字段易落同缓存行产生伪共享；④ <strong>批量消费</strong>——消费者一次处理到可用上限的所有事件，减少协调次数，BlockingQueue 每次只取一个。</p>
+            <p>四个维度的叠加优势：① <strong>无锁/低锁</strong>——单生产者无 CAS，多生产者只 CAS 抢序号，而 ArrayBlockingQueue 的 put/take 用同一把 ReentrantLock 串行化；② <strong>分配更少</strong>——RingBuffer 预分配复用事件载体，热路径只更新字段，业务 payload 仍需自管；③ <strong>降低伪共享</strong>——Disruptor 的 Sequence 用缓存行填充隔离，BlockingQueue 的相邻状态字段可能互相干扰；④ <strong>批量消费</strong>——消费者一次处理到可用上限的所有事件，减少协调次数。优势大小由事件形状、消费者速度和生产者并发决定。</p>
 
             <p><strong>追问 2：多生产者场景如何保证消息有序？</strong></p>
             <p>多生产者下<strong>整体有序无法保证</strong>（多个生产者并发抢序号，谁先抢到谁先写），但能保证<strong>单条消息的生产-消费顺序</strong>与<strong>按 sequence 单调递增的消费可见性</strong>。机制：多生产者用 CAS 抢占 sequence 后写入数据，但消费者只读 <code class="inline-code">setAvailable</code> 标记过的槽位。若 sequence=5 的槽位先写完但 sequence=4 未标记 available，消费者会停在 4 不前进，避免读到未完成的数据。若业务要求全局有序，必须<strong>单生产者</strong>（上游加锁/单线程分发），Disruptor 的多生产者模式本身不保证生产顺序。</p>
 
             <p><strong>追问 3：Disruptor 在日志框架（Log4j2 AsyncLogger）中的应用？</strong></p>
-            <p>Log4j2 的 AsyncLogger 用 Disruptor 作为底层队列，应用线程调用 <code class="inline-code">logger.info()</code> 时将 LogEvent 投入 RingBuffer 后立即返回（微秒级），后台单线程消费并写磁盘/Appender。相比 Logback 的 AsyncAppender（基于 ArrayBlockingQueue），AsyncLogger 在 32 线程下吞吐高 10x+，且 P99 延迟更稳定。配置 <code class="inline-code">AsyncLoggerContextSelector</code> 即可启用。这是 Disruptor"单生产者-单消费者 + 预分配 + 无锁"模型的最佳实践——日志生产者多但每次操作极轻，Disruptor 让业务线程几乎不被日志 IO 阻塞。</p>
+            <p>Log4j2 的 AsyncLogger 用 Disruptor 作为底层队列，应用线程将日志事件投入 RingBuffer 后通常很快返回，后台线程消费并写磁盘/Appender；配置 <code class="inline-code">AsyncLoggerContextSelector</code> 可启用。要按目标 Log4j2 版本核对队列大小、丢弃策略、溢出行为和磁盘反压。不要把固定线程数下的固定倍数收益当成通用结论。</p>
           </div>
         </div>
 
@@ -1646,7 +1652,7 @@ disruptor.<span class="fn">start</span>();
                 <li><strong>误以为 Disruptor 完全无锁</strong>：单生产者模式确实无锁无 CAS，但<strong>多生产者模式仍需 CAS</strong> 争用序号。不要想当然认为所有场景都"零争用"。</li>
                 <li><strong>忽略 RingBuffer 大小必须是 2^n</strong>：Disruptor 强制要求 size 为 2 的幂（位运算 <code class="inline-code">seq &amp; (size-1)</code> 寻址）。传入非 2^n 会抛异常，且大小需根据峰值积压预估，过小导致生产者被消费者拖慢阻塞。</li>
                 <li><strong>混淆 BatchEventProcessor 和 WorkProcessor</strong>：BatchEventProcessor 是"每个消费者独立 Sequence，可并行处理同一批事件"（发布订阅）；WorkProcessor 是"多个 Worker 共享一个 Sequence 池，每个事件只被一个 Worker 处理"（工作分发）。选错会导致事件被重复处理或漏处理。</li>
-                <li><strong>误用 WaitStrategy 导致 CPU 空转</strong>：BusySpinStrategy 在没有事件时 100% 占满 CPU，非绑核场景用它会拖垮整机；通用场景应用 SleepingStrategy 或 BlockingStrategy，只有极致低延迟且已绑核才用 BusySpin。</li>
+                <li><strong>误用 WaitStrategy 导致 CPU 空转</strong>：<code class="inline-code">BusySpinWaitStrategy</code> 在没有事件时持续占满 CPU，非隔离核场景会挤占业务；通用场景优先评估 <code class="inline-code">SleepingWaitStrategy</code> 或 <code class="inline-code">BlockingWaitStrategy</code>。</li>
                 <li><strong>持有 Event 引用</strong>：Event 对象是复用的，onEvent 处理后不能将其存入集合或异步引用，否则会被生产者下次覆盖，导致数据错乱。</li>
               </ul>
             </div>
@@ -1675,16 +1681,16 @@ disruptor.<span class="fn">start</span>();
           <div class="qa-layer-body">
             <p><strong>进程（Process）</strong>：资源分配与调度的基本单位，拥有独立地址空间、文件描述符等，隔离强但创建/切换成本高（需换页表/快表）。</p>
             <p><strong>线程（Thread）</strong>：进程内的执行流，<strong>共享地址空间与资源</strong>，只保留独立栈与寄存器上下文，创建和切换比进程轻量，但共享意味着要自己加同步。</p>
-            <p><strong>线程实现模型</strong>：① 用户级线程（M:1，调度在用户态，无内核感知，阻塞会卡死整组）；② 内核级线程（1:1，由内核调度）；③ 混合模型（M:N）。主流现代内核（Linux 6.9+ 也支持 N:1 用户线程）走 <strong>1:1 内核线程</strong>。</p>
-            <p><strong>Java 演进</strong>：<code class="inline-code">java.lang.Thread</code> 长期 1:1 映射内核线程；直到 <strong>Project Loom</strong> 在 JDK 21 引入 <strong>虚拟线程（Virtual Threads）</strong>，改为 <strong>M:N 用户态调度</strong>，解决高并发下内核线程数受限、切换昂贵的问题。</p>
+            <p><strong>线程实现模型</strong>：① 用户级线程（M:1，调度在用户态，内核通常不单独感知）；② 内核级线程（1:1，由内核调度）；③ 混合模型（M:N）。不同 OS 和运行时的实现边界不同，不能只按“现代内核都是 1:1”概括。</p>
+            <p><strong>Java 演进</strong>：主流 HotSpot 的平台线程长期映射到内核可调度线程；JDK 21 正式引入 <strong>虚拟线程（Virtual Threads，JEP 444）</strong>，形成 <strong>M:N 用户态调度</strong>。平台线程受 OS 抢占调度；虚拟线程在阻塞、I/O 完成等待和显式 <code class="inline-code">Thread.yield()</code> 等调度点让出载体线程，CPU 循环不会因为虚拟线程调度器而自动时间片抢占。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>上下文切换开销构成</strong>：保存/恢复 CPU 寄存器、换页表（进程级）、刷新 TLB、切换内核栈与调度器记账。一次上下文切换（内核态-内核态）约 <strong>微秒级（1~2µs）</strong>，看似小，但线程频繁让出 CPU 时累计显著，且破坏缓存与 TLB 局部性。</p>
-            <p><strong>内核态/用户态切换</strong>：调用系统调用（syscall）要从用户态陷入内核态。线程创建本身 <code class="inline-code">clone</code> 就是系统调用；<strong>线程切换是由系统调用完成的</strong>（阻塞/让出），比"业务代码"想象的贵得多。</p>
+            <p><strong>上下文切换开销构成</strong>：保存/恢复 CPU 寄存器、换页表（进程级切换）、可能刷新或失效 TLB、切换内核栈和调度器记账。常见量级是微秒级，但具体时间随 CPU、内核、缓存状态和负载变化，应作为“高频切换会累积”的机制理解，不写成固定 1~2µs。</p>
+            <p><strong>内核态/用户态切换</strong>：系统调用要从用户态陷入内核态；主流 JDK 创建平台线程涉及 <code class="inline-code">clone</code> 类内核机制。阻塞和调度还伴随睡眠/唤醒、锁队列和缓存局部性损失，不能只看寄存器保存。</p>
             <p><strong>CPU 密集 vs 线程数</strong>：纯计算型，最优线程数 ≈ CPU 核数；含 IO/阻塞时，利用"阻塞占比较高"提高并发度（公式：<code class="inline-code">线程数 ≈ 核数 × (1 + 等待时间/计算时间)</code>），本质是<strong>用线程并行掩盖 IO 等待</strong>。</p>
             <div class="code-block"><pre><code><span class="com">// 直观观察线程/进程开销（Linux）</span>
 $ /usr/bin/time -v java -jar app.jar          <span class="com">// 进程级资源与耗时</span>
@@ -1693,7 +1699,7 @@ $ ulimit -u                                   <span class="com">// 每进程线�
 $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下文切换计数</span></code></pre></div>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p><strong>Java 平台线程 = 1 个内核线程</strong>，所以几十万并发连接用普通线程会创建几十万内核线程导致 OOM/调度崩溃；虚拟线程把"线程"搬到用户态，用少量内核线程调度海量逻辑线程，是 2026 年高并发服务的首选底座。</p>
+              <p><strong>主流 HotSpot 平台线程对应一个内核可调度线程</strong>；几十万长驻阻塞平台线程会放大内存和调度压力。虚拟线程把大量并发任务交给用户态调度，用少量载体线程承载，更适合 IO 等待型服务；是否首选要结合阻塞点、CPU 计算、池化资源和 JDK 版本验证。</p>
             </div>
           </div>
         </div>
@@ -1703,7 +1709,7 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
           <div class="qa-layer-body">
             <p><strong>线程池参数推断</strong>：IO 密集（等待/计算 大）→ 线程数可设为 <code class="inline-code">核数 × (1 + 等待/计算)</code>；CPU 密集 → 约等于核数，避免过多线程造成<strong>上下文切换反噬</strong>。</p>
             <p><strong>避免线程饥饿与无界线程</strong>：高并发异步场景改用 <code class="inline-code">CompletableFuture</code> + 有界线程池；阻塞型中间件（如配合阻塞 IO 的日志/DB）要 <code class="inline-code">setDaemon=false</code> 且限制数量。</p>
-            <p><strong>虚拟线程落地</strong>：JDK 21+ 的 IO 密集服务可用 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 平替平台线程；注意虚拟线程<strong>不要占用在 synchronized/CPU 密集关键段</strong>，否则无法体现"空载让出"优势。</p>
+            <p><strong>虚拟线程落地</strong>：JDK 21+ 的 IO 等待密集服务可用 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 承接任务；CPU 密集段仍会占住载体线程，必要时显式让出或改用专用池。JDK 21-23 中长时间持有 <code class="inline-code">synchronized</code> 并在其中阻塞可能造成载体线程 pinning；JDK 24 的 JEP 491 消除了这一主要 pinning 来源，但 native frame、驱动和 JDK 实现仍要按版本核验。</p>
             <p><strong>定位线程问题</strong>：<code class="inline-code">jstack</code> 看 RUNNABLE/BLOCKED 分布、<code class="inline-code">top -H</code> 看每线程 CPU、<code class="inline-code">vmstat</code> 看 <code class="inline-code">cs</code>（context switch）曲线，衡量是否因线程过多而上下文切换偏高。</p>
           </div>
         </div>
@@ -1712,8 +1718,8 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：上下文切换到底贵在哪？</strong> 不止"保存寄存器"——还有 TLB 刷新（进程切换）、内核栈切换、调度器锁竞争，以及切走后<strong>缓存/TLB 局部性丢失</strong>，故高频切换的代价远高于"微秒级"字面值。</p>
-            <p><strong>追问 2：线程 vs 协程的关键差异？</strong> 线程由内核调度、抢占式、1:1；协程/虚拟线程由用户态调度、协作式或经 Loom 调度器在阻塞点让出，创建数量级更低（十万/百万级）、切换成本更低。</p>
-            <p><strong>追问 3：为什么虚拟线程碰上 synchronized 表现不佳？</strong> <code class="inline-code">synchronized</code> 会 pin 到底层平台线程，阻塞时无法释放给其他虚拟线程复用，导致"虚拟线程退化为平台线程"。用 <code class="inline-code">ReentrantLock</code> 等可避免 pinning。</p>
+            <p><strong>追问 2：线程 vs 协程/虚拟线程的关键差异？</strong> 平台线程由 OS 调度，在主流系统中可被抢占；虚拟线程由 JVM 用户态调度器承载，在阻塞和显式让出点切换。它不是“更快的内核线程”，CPU 密集任务也不会仅因为虚拟线程更多而获得自动抢占。</p>
+            <p><strong>追问 3：虚拟线程和 synchronized 的关系要按什么版本说？</strong> JDK 21-23 中，虚拟线程在 synchronized 中阻塞可能 pin 载体线程，可用 <code class="inline-code">ReentrantLock</code> 或缩短临界区规避；JDK 24 的 JEP 491 让 synchronized 在该主要场景不再 pin。存量服务应先看 JDK 版本和 JFR <code class="inline-code">jdk.VirtualThreadPinned</code>，不写绝对结论。</p>
           </div>
         </div>
 
@@ -1725,7 +1731,7 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
               <ul>
                 <li><strong>"线程越多越快"</strong>：超过负载后上下文切换开销大于并行收益，吞吐反而下降。</li>
                 <li><strong>"进程与线程切换成本一样"</strong>：进程切换还需换地址空间与刷 TLB，通常更昂贵。</li>
-                <li><strong>把虚拟线程当万能药</strong>：CPU 密集或大量 synchronized 场景收益有限甚至退化。</li>
+                <li><strong>把虚拟线程当万能药</strong>：CPU 密集任务不会自动获得更多并行度；旧 JDK 中 synchronized/native 阻塞还可能 pin 载体线程。</li>
                 <li><strong>忽略创建即系统调用</strong>：高频创建短命线程会频繁 clone/syscall，应用线程池或虚拟线程。</li>
                 <li><strong>混淆平台线程与协程调度</strong>：虚拟线程并非"更快的内核线程"，而是用户态轻量线程。</li>
               </ul>

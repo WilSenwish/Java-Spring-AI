@@ -24,7 +24,7 @@
         <li><a href="#C04.07"><span class="toc-number">C04.07</span>WebFlux 与 Servlet 模型差异</a></li>
         <li><a href="#C04.08"><span class="toc-number">C04.08</span>结构化并发管理并发任务</a></li>
         <li><a href="#C04.09"><span class="toc-number">C04.09</span>虚拟线程 pinning 排查与治理</a></li>
-        <li><a href="#C04.10"><span class="toc-number">C04.10</span>ScopedValue 替代 ThreadLocal</a></li>
+        <li><a href="#C04.10"><span class="toc-number">C04.10</span>ScopedValue 与 ThreadLocal</a></li>
       </ol>
     </aside>
 
@@ -137,16 +137,16 @@
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>美团动态调参方案</strong>：将线程池参数托管到配置中心（Apollo/Nacos），监听变更后调用 <code class="inline-code">setCorePoolSize</code> / <code class="inline-code">setMaximumPoolSize</code> 实时生效。队列容量需用反射修改 <code class="inline-code">LinkedBlockingQueue.capacity</code>（该字段 final，需反射改）。配合监控大盘观察队列长度、活跃线程数、拒绝次数，形成"监控→调参→验证"闭环。</p>
+            <p><strong>动态调参方案</strong>：将线程池参数托管到配置中心（Apollo/Nacos），监听变更后调用 <code class="inline-code">setCorePoolSize</code> / <code class="inline-code">setMaximumPoolSize</code> 实时生效。线程数是运行期可调参数；队列容量属于队列结构约束，不要通过反射改写 <code class="inline-code">LinkedBlockingQueue.capacity</code>。若确实需要变更容量，应封装可替换执行器：先创建新线程池和有界队列，再原子切换引用、停止接受旧池新任务，并把旧队列中的任务排干后关闭旧池。配合监控大盘观察活跃线程数、队列长度和拒绝次数，形成"监控→调参→验证"闭环。</p>
 
-            <div class="code-block"><pre><code><span class="com">// 动态调参核心：ThreadPoolExecutor 自带 public setter，运行时修改即生效</span>
+            <div class="code-block"><pre><code><span class="com">// 线程数：ThreadPoolExecutor 提供 public setter，可接入配置中心</span>
 pool.<span class="fn">setCorePoolSize</span>(<span class="num">16</span>);        <span class="com">// 立即生效，多余核心线程会空闲回收，不足会立即创建</span>
 pool.<span class="fn">setMaximumPoolSize</span>(<span class="num">64</span>);    <span class="com">// 立即生效</span>
 
-<span class="com">// 队列容量动态修改（LinkedBlockingQueue.capacity 是 final，需反射）</span>
-<span class="type">Field</span> <span class="var">f</span> = <span class="type">LinkedBlockingQueue</span>.<span class="kw">class</span>.<span class="fn">getDeclaredField</span>(<span class="str">"capacity"</span>);
-f.<span class="fn">setAccessible</span>(<span class="kw">true</span>);
-f.<span class="fn">set</span>(queue, <span class="num">5000</span>);              <span class="com">// 注意：只能调大，调小不会立即丢弃已排队任务</span></code></pre></div>
+<span class="com">// 队列与饱和度：只做观测；容量变更走“新建池 + 原子切换 + 排干旧池”</span>
+<span class="kw">int</span> <span class="var">queueDepth</span> = pool.<span class="fn">getQueue</span>().<span class="fn">size</span>();
+<span class="kw">int</span> <span class="var">saturation</span> = pool.<span class="fn">getActiveCount</span>() + queueDepth;
+<span class="com">// rejectedCount 由自定义 RejectedExecutionHandler 中的 AtomicLong 累加</span></code></pre></div>
 
             <div class="callout callout-tip">
               <div class="callout-title">选型经验</div>
@@ -358,7 +358,7 @@ pool.<span class="fn">shutdown</span>();                              <span clas
               <li><strong>虚拟线程整合（JDK 21+）</strong>：设置 <code class="inline-code">spring.threads.virtual.enabled=true</code> 后，Tomcat 请求处理线程自动切换为虚拟线程，每个请求分配一个 VT，不受 <code class="inline-code">maxThreads</code> 限制（VT 数量可达百万级）。此时 <code class="inline-code">maxThreads</code> 退化为"平台线程数"限制，仅控制载体线程规模。</li>
               <li><strong>VT 的 pinning 陷阱</strong>：VT 在 <code class="inline-code">synchronized</code> 块中执行阻塞 IO（如数据库查询、HTTP 调用）时会 pin 到 carrier thread 无法卸载，等效于平台线程，降低吞吐。JDK 21 已优化 <code class="inline-code">synchronized + Object.wait</code> 可卸载的场景，但 <code class="inline-code">synchronized + IO</code> 仍会 pin。</li>
               <li><strong>混合模式建议</strong>：IO 密集型任务用 VT，CPU 密集型任务仍用平台线程池（如 <code class="inline-code">ForkJoinPool</code>），避免 VT 被 CPU 计算长期占用载体线程。</li>
-              <li><strong>生产实践</strong>：典型 IO 密集场景下，Spring Boot 3.2 + JDK 21 的单机 QPS 可从 5000 提升至 30000+（实际提升幅度取决于 IO 等待占比和连接池配置），但需配合 JVM 参数 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning 热点。</li>
+              <li><strong>生产实践</strong>：典型 IO 密集场景下，Spring Boot 3.2 + JDK 21 的收益取决于 IO 等待占比、连接池和下游容量，必须用同一业务压测验证。JDK 21-23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning 热点，JDK 24+ 改用 <code class="inline-code">jdk.VirtualThreadPinned</code> JFR 事件。</li>
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
@@ -390,7 +390,7 @@ pool.<span class="fn">shutdown</span>();                              <span clas
             <p><strong>ThreadLocal（JDK 1.2，1998）</strong>：提供线程局部变量，每个线程独立副本。设计初衷是避免参数层层传递，典型用于 SimpleDateFormat 线程安全、数据库连接、用户上下文。但<strong>父子线程无法继承</strong>。</p>
             <p><strong>InheritableThreadLocal（JDK 1.2）</strong>：子线程创建时（new Thread 构造方法内）复制父线程的 InheritableThreadLocal 值。但<strong>线程池场景失效</strong>——线程被复用，只在首次创建时复制一次，后续任务拿不到提交线程的最新上下文。</p>
             <p><strong>TransmittableThreadLocal / TTL（阿里开源，2017+）</strong>：通过 <code class="inline-code">TtlRunnable.get(runnable)</code> 包装，在任务提交时快照、执行时回放、执行后还原，解决线程池场景的上下文透传。是全链路 TraceId 透传的事实标准。</p>
-            <p><strong>Scoped Values（JDK 21 Preview，JDK 25 JEP 506 正式转正）</strong>：与结构化并发配套的<strong>不可变、有界作用域</strong>的值传递机制，取代 ThreadLocal 在虚拟线程下的滥用。它绑定到 StructuredTaskScope 的生命周期，作用域结束自动清理，从根本上消除"忘记 remove 导致泄漏"和"线程池透传失效"两大顽疾，是未来方向。</p>
+            <p><strong>Scoped Values（JDK 20 incubator；JDK 21 Preview；JDK 25 JEP 506 正式交付）</strong>：与结构化并发配套的<strong>不可变、有界作用域</strong>的值传递机制，用于治理 one-way immutable context 这类 ThreadLocal 滥用。它绑定到结构化作用域的生命周期，作用域结束自动清理；双向更新和线程私有可变缓存仍可能继续使用 ThreadLocal。</p>
           </div>
         </div>
 
@@ -492,7 +492,7 @@ flowchart LR
             <p>它在 <code class="inline-code">Thread.init</code>（构造方法）时复制父线程的值。线程池中线程是预先创建并复用的，复制只发生在首次创建那一刻，之后提交任务的"提交线程"不是该工作线程的父线程，自然无法继承。TTL 的解法是在任务<strong>提交时</strong>（而非线程创建时）做快照，绕开了"父线程"概念。</p>
 
             <p><strong>追问 3：虚拟线程对 ThreadLocal 有何影响？</strong></p>
-            <p>虚拟线程数量可达百万级，若每个都挂载大量 ThreadLocal，内存开销惊人（百万线程 × N 个 ThreadLocal 副本）。JDK 21 默认仍支持，但 JEP 446（Scoped Values）明确建议在虚拟线程场景用 Scoped Values 替代 ThreadLocal——它是不可变、共享的，百万虚拟线程读同一个 ScopedValue 不会复制 N 份，内存友好。这是 ThreadLocal 退场的信号。</p>
+            <p>虚拟线程数量可达百万级，若每条线程都保留大量 ThreadLocal 副本，内存开销会被放大。JDK 21 默认仍支持，但 JEP 446（Scoped Values）建议在 one-way immutable context 场景使用 Scoped Values——它的不可变绑定可被同一作用域内的结构化子任务高效共享，内存模型更友好。这是这类上下文从 ThreadLocal 迁出的信号，不是无条件废弃 ThreadLocal。</p>
           </div>
         </div>
 
@@ -552,7 +552,7 @@ timeline
               <li><strong>Executor（JDK 5）</strong>：线程池复用，解决创建开销，但线程数仍受 OS 限制，IO 等待时线程被阻塞占用。</li>
               <li><strong>ForkJoinPool（JDK 7）</strong>：工作窃取提升 CPU 利用率，适合 CPU 密集分治，但仍是平台线程。</li>
               <li><strong>CompletableFuture（JDK 8）</strong>：异步回调组合，解决"IO 等待时线程浪费"，但回调地狱破坏可读性、异常处理复杂、调试困难。</li>
-              <li><strong>Virtual Threads（JDK 21）</strong>：N:M 调度，JVM 把虚拟线程调度到少量载体线程，阻塞时 unmount 而非占用载体线程。<strong>用同步代码的写法获得异步的性能</strong>，是并发编程的"回归命令式"。</li>
+              <li><strong>Virtual Threads（JDK 21）</strong>：N:M 调度，JDK 调度器把虚拟线程挂载到少量载体线程，遇到可卸载阻塞点时 unmount 而非长期占用载体线程。<strong>用同步代码的写法获得异步的扩展性</strong>，是并发编程的"回归命令式"。</li>
               <li><strong>Structured Concurrency（JDK 21+ Preview）</strong>：将并发任务组织成父子树，父任务等待所有子任务，错误与取消自动传播，解决"异步任务逃逸"的可观测性与正确性问题。</li>
             </ul>
           </div>
@@ -568,17 +568,17 @@ timeline
                 </thead>
                 <tbody>
                   <tr><td>映射关系</td><td>1:1 映射 OS 线程</td><td>N:M 映射，多个虚拟线程复用少量载体线程</td></tr>
-                  <tr><td>调度者</td><td>OS 内核调度</td><td>JVM 调度（基于 ForkJoinPool 共享池）</td></tr>
+                  <tr><td>调度者</td><td>OS 内核调度</td><td>JDK 调度器挂载到载体线程；载体线程仍由 OS 调度</td></tr>
                   <tr><td>栈位置</td><td>OS 栈（线程本地，MB 级固定）</td><td>堆上的栈对象（按需伸缩，KB 级起步）</td></tr>
                   <tr><td>创建开销</td><td>~1ms + ~1MB 内存</td><td>~1μs + ~数 KB 内存</td></tr>
                   <tr><td>数量上限</td><td>千级（受 OS/内存）</td><td>百万级</td></tr>
-                  <tr><td>阻塞行为</td><td>阻塞 OS 线程，浪费资源</td><td>unmount 载体线程，释放给其他虚拟线程</td></tr>
-                  <tr><td>适用场景</td><td>CPU 密集、需要内核级抢占</td><td>IO 密集、大量阻塞等待</td></tr>
+                  <tr><td>阻塞行为</td><td>阻塞 OS 线程，浪费资源</td><td>可卸载阻塞点 unmount 载体线程，释放给其他虚拟线程</td></tr>
+                  <tr><td>适用场景</td><td>CPU 密集、长驻任务和依赖内核调度的场景</td><td>IO 密集、大量阻塞等待</td></tr>
                 </tbody>
               </table>
             
 
-            <p><strong>unmount/mount 机制（核心原理）</strong>：虚拟线程的栈是堆上的 <code class="inline-code">StackChunk</code> 对象。当虚拟线程执行到阻塞操作（如 Socket.read、LockSupport.park）时，JVM 把当前栈帧<strong>拷贝出载体线程</strong>（unmount），载体线程立即去运行下一个虚拟线程；当 IO 就绪，JVM 把栈帧<strong>拷贝回某个载体线程</strong>（mount）继续执行。整个过程对应用透明——代码看起来是同步阻塞，实际载体线程从未空闲。</p>
+            <p><strong>unmount/mount 机制（核心原理）</strong>：虚拟线程的栈是堆上的 <code class="inline-code">StackChunk</code> 对象。当虚拟线程执行到可卸载阻塞操作（如 socket IO、<code class="inline-code">LockSupport.park</code>）时，JVM 把当前栈帧<strong>拷贝出载体线程</strong>（unmount），载体线程立即去运行下一个虚拟线程；当 IO 就绪，JVM 把栈帧<strong>拷贝回某个载体线程</strong>（mount）继续执行。JEP 444 明确当前不为虚拟线程实现 CPU 时间片抢占（time sharing）；CPU 密集任务不会因用完时间片被 JVM 强制换出，只有显式 <code class="inline-code">Thread.yield()</code> 或可卸载阻塞才会交还载体线程。载体线程本身仍由 OS 正常调度。</p>
 
             <div class="mermaid-container">
               <div class="mermaid">
@@ -616,7 +616,7 @@ flowchart TD
               <li><strong>本地方法（JNI）或 Foreign Function 中的阻塞</strong>：JVM 无法接管 native 栈。</li>
               <li><strong>文件 IO（部分）</strong>：旧 FileInputStream 阻塞读可能 pinning。</li>
             </ul>
-            <p>排查命令：<code class="inline-code">-Djdk.tracePinnedThreads=full</code>（首次钉扎打印完整栈）或 <code class="inline-code">=short</code>（仅打印一行）。替代方案：把 synchronized 换成 <code class="inline-code">ReentrantLock</code>（可 unmount）。</p>
+            <p>JDK 21-23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full|short</code> 打印钉扎栈；JDK 24 已移除该系统属性，应改用 <code class="inline-code">jdk.VirtualThreadPinned</code> JFR 事件和新式线程转储。替代方案：JDK 21-23 把 synchronized 换成 <code class="inline-code">ReentrantLock</code>（可 unmount）。</p>
 
             <div class="code-block"><pre><code><span class="com">// 创建虚拟线程的三种方式</span>
 <span class="com">// 1. 直接启动</span>
@@ -645,11 +645,11 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>落地步骤</strong>：① 升级到 JDK 21+；② 用 <code class="inline-code">newVirtualThreadPerTaskExecutor</code> 替换 IO 密集线程池；③ 全链路排查 synchronized 阻塞点（tracePinnedThreads）；④ ThreadLocal 评估，考虑迁移 Scoped Values；⑤ 数据库连接池、HTTP 客户端确认支持虚拟线程（HikariCP 5.1+、HttpClient 原生支持）。</p>
+            <p><strong>落地步骤</strong>：① 升级到 JDK 21+；② 用 <code class="inline-code">newVirtualThreadPerTaskExecutor</code> 替换 IO 密集线程池；③ 全链路排查 synchronized 阻塞点，JDK 21-23 用 tracePinnedThreads，JDK 24+ 用 <code class="inline-code">jdk.VirtualThreadPinned</code>；④ ThreadLocal 评估，one-way immutable context 考虑迁移 Scoped Values；⑤ 数据库连接池、HTTP 客户端确认支持虚拟线程（HikariCP 5.1+、HttpClient 原生支持）。</p>
             <div class="callout callout-tip">
               <div class="callout-title">架构判断</div>
               <ul>
-                <li><strong>IO 密集</strong>（HTTP/RPC/DB 调用）：虚拟线程收益巨大，吞吐可达平台线程池的 5~50 倍。</li>
+                <li><strong>IO 密集</strong>（HTTP/RPC/DB 调用）：虚拟线程把阻塞等待从平台线程占用中解耦，收益取决于阻塞时长、并发度和下游容量，必须用同一业务压测对比平台线程池。</li>
                 <li><strong>CPU 密集</strong>（计算/加密/压缩）：虚拟线程无收益，应继续用 ForkJoinPool/平台线程池，线程数 = CPU 核数。</li>
                 <li><strong>混合场景</strong>：CPU 密集部分用并行流，IO 部分用虚拟线程，分层调度。</li>
                 <li><strong>不要池化虚拟线程</strong>：虚拟线程创建极廉价，用完即弃，"每任务一虚拟线程"是正确模式。</li>
@@ -662,10 +662,10 @@ flowchart TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：虚拟线程和 Go goroutine、Kotlin 协程有何异同？</strong></p>
-            <p>三者都是 N:M 调度的轻量级线程，但实现与生态不同。goroutine 是 Go 运行时内建，调度器成熟、栈可增长、channels 是一等公民；Kotlin 协程是基于线程池的"协作式挂起"，需 suspend 函数显式标记，挂起点编译期确定。Java 虚拟线程是<strong>抢占式</strong>（JVM 调度，无需 suspend 标记），最大优势是<strong>对现有同步代码零改造成本</strong>——直接换 Executor 即可，而 Kotlin 协程要重写为 suspend 风格。代价是虚拟线程的 pinning 限制比 goroutine 多。</p>
+            <p>三者都是 N:M 调度的轻量级线程，但实现与生态不同。goroutine 是 Go 运行时内建，调度器成熟、栈可增长、channels 是一等公民；Kotlin 协程是基于线程池的"协作式挂起"，需 suspend 函数显式标记，挂起点编译期确定。Java 虚拟线程不要求把业务改写成 suspend 风格，但也不是 CPU 时间片抢占模型：JDK 调度器在可卸载阻塞点释放载体线程，CPU 密集任务不会自动让出。其优势是<strong>多数同步存量代码无需重写</strong>，直接换 Executor 往往即可运行；代价是需排查 pinning 和不支持卸载的阻塞点。</p>
 
             <p><strong>追问 2：为什么虚拟线程不能取代 CPU 密集型线程池？</strong></p>
-            <p>虚拟线程解决的是"IO 等待时线程被浪费"。CPU 密集任务没有等待，虚拟线程 unmount 不会发生，N 个虚拟线程跑在 M 个载体线程上，实际并行度仍由载体线程数（=CPU 核数）决定。多开虚拟线程只会增加调度开销和排队。所以 CPU 密集场景，平台线程池（线程数=核数）仍是首选，虚拟线程是为 IO 而生。</p>
+            <p>虚拟线程解决的是"IO 等待时线程被浪费"。CPU 密集任务没有可卸载阻塞点，JDK 当前也不会基于时间片强制抢占，实际并行度仍由载体线程数决定。多开虚拟线程只会增加调度开销和排队。所以 CPU 密集场景，平台线程池（线程数=核数）仍是首选，虚拟线程是为高并发阻塞等待而生。</p>
 
             <p><strong>追问 3：虚拟线程会让 CompletableFuture 失去价值吗？</strong></p>
             <p>部分场景会。CompletableFuture 的核心价值是"IO 等待时不占线程"，虚拟线程直接用同步代码就实现了这一点，可读性更好。但 CompletableFuture 在<strong>任务编排</strong>（组合多个异步结果、超时、异常分支）上仍有表达力优势，且不依赖 JDK 21。未来趋势是：简单串行 IO 用虚拟线程+同步代码，复杂编排仍用 CompletableFuture，但它的执行器会换成虚拟线程执行器。</p>
@@ -679,7 +679,7 @@ flowchart TD
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>池化虚拟线程</strong>：虚拟线程用完即弃，复用反而引入状态污染，<code class="inline-code">newVirtualThreadPerTaskExecutor</code> 才是正道。</li>
-                <li><strong>synchronized 内阻塞导致 pinning</strong>：这是最隐蔽的陷阱，需用 tracePinnedThreads 排查，改用 ReentrantLock。</li>
+                <li><strong>synchronized 内阻塞导致 pinning</strong>：JDK 21-23 最隐蔽的陷阱，用 tracePinnedThreads 排查并按热点改 ReentrantLock；JDK 24+ 改用 JFR 验证剩余 pinning。</li>
                 <li><strong>误以为万能提速</strong>：CPU 密集任务无收益，甚至因调度开销变慢。</li>
                 <li><strong>ThreadLocal 滥用</strong>：百万虚拟线程 × N 个 ThreadLocal 内存爆炸，迁移 Scoped Values。</li>
                 <li><strong>载体线程池耗尽</strong>：若大量虚拟线程因 pinning 钉住所有载体线程，整个 JVM 的虚拟线程调度停滞——pinning 是系统性风险。</li>
@@ -752,7 +752,7 @@ spring:
             <ul>
               <li><strong>JDK 升级</strong>：升到 21 LTS，确认 GC（G1/ZGC）、依赖兼容。</li>
               <li><strong>开启开关</strong>：<code class="inline-code">spring.threads.virtual.enabled=true</code>。</li>
-              <li><strong>pinning 排查</strong>：启动加 <code class="inline-code">-Djdk.tracePinnedThreads=short</code>，压测观察日志。重点检查 synchronized + IO、第三方库（如旧版 JDBC 驱动、Jackson 某些路径）。</li>
+              <li><strong>pinning 排查</strong>：JDK 21-23 启动加 <code class="inline-code">-Djdk.tracePinnedThreads=short</code> 压测观察日志；JDK 24+ 用 <code class="inline-code">jdk.VirtualThreadPinned</code>。重点检查 synchronized + IO、第三方库（如旧版 JDBC 驱动、Jackson 某些路径）。</li>
               <li><strong>连接池校验</strong>：HikariCP 5.1+ 支持虚拟线程；连接池 size 不必调大（虚拟线程不持有连接等待）。</li>
               <li><strong>ThreadLocal 审计</strong>：百万虚拟线程下 ThreadLocal 内存放大，评估迁移 Scoped Values。</li>
               <li><strong>@Async 执行器</strong>：确认 @Async 用的是虚拟线程执行器而非旧线程池 Bean。</li>
@@ -769,7 +769,7 @@ spring:
 }
 
 <span class="com">// 压测脚本：jmh 或 wrk 验证 pinning</span>
-<span class="com">// java -Djdk.tracePinnedThreads=short -jar app.jar</span>
+<span class="com">// JDK 21-23: java -Djdk.tracePinnedThreads=short -jar app.jar</span>
 <span class="com">// wrk -t8 -c10000 -d60s http://localhost:8080/io-endpoint</span></code></pre></div>
 
             <div class="callout callout-tip">
@@ -789,7 +789,7 @@ spring:
             <p>虚拟线程让"等待连接"不再占线程，但<strong>连接本身仍是稀缺资源</strong>。HikariCP 的 maximumPoolSize 仍是数据库能承受的连接数（通常 10~30），不能因为虚拟线程百万级就把连接池调大——瓶颈会转移到数据库。虚拟线程的价值是"线程等连接时不浪费载体线程"，而非"打开更多连接"。</p>
 
             <p><strong>追问 3：synchronized 是 Spring Boot 落地虚拟线程的主要障碍吗？</strong></p>
-            <p>是高频障碍之一。Spring 框架本身已大量替换 synchronized 为 ReentrantLock 以适配虚拟线程，但<strong>第三方库</strong>（如某些 JDBC 驱动、Redis 客户端、序列化库）内部的 synchronized 在 IO 路径上会导致 pinning。落地前必须用 tracePinnedThreads 全链路压测，识别并升级或替换问题库。JEP 491（JDK 24）已移除 synchronized pinning 限制，是彻底解法。</p>
+            <p>是高频障碍之一。Spring 框架本身已大量替换 synchronized 为 ReentrantLock 以适配虚拟线程，但<strong>第三方库</strong>（如某些 JDBC 驱动、Redis 客户端、序列化库）内部的 synchronized 在 IO 路径上会导致 pinning。落地前按 JDK 版本选择诊断方式并全链路压测，识别并升级或替换问题库。JEP 491（JDK 24）消除几乎全部 synchronized pinning，但 native/foreign 调用等剩余场景仍需验证。</p>
           </div>
         </div>
 
@@ -896,11 +896,13 @@ spring:
               <li><strong>只在顶层 join/get</strong>：链式中间用 thenApply 等回调，避免阻塞。</li>
               <li><strong>必须配超时</strong>：orTimeout 防止单个异步任务拖垮整链。</li>
               <li><strong>异常链完整</strong>：exceptionally/handle 做降级，whenComplete 做日志/监控。</li>
+              <li><strong>跨异步边界保留上下文</strong>：在提交前显式捕获 MDC/TraceContext 快照，回调或子任务入口恢复，finally 还原；不要假设回调总在提交线程上执行。接入 TTL 时也应明确包装提交任务或装饰 Executor。</li>
               <li><strong>allOf 结果收集</strong>：allOf 返回 CF&lt;Void&gt;，需在 thenApply 中对各 CF 调 join 收集（此时已完成，不阻塞）。</li>
             </ul>
             <div class="callout callout-tip">
               <div class="callout-title">最佳实践</div>
               <p>编排口诀：<strong>"并行用 allOf/anyOf，串行用 thenCompose，转换用 thenApply，异常用 exceptionally/handle，超时用 orTimeout，执行器永远显式传"</strong>。JDK 21 后，业务 Executor 可换为 <code class="inline-code">newVirtualThreadPerTaskExecutor</code>，让 CompletableFuture 的执行也享受虚拟线程红利。</p>
+              <p>上下文口诀是<strong>"提交前快照、入口恢复、finally 还原"</strong>。例如提交任务前保存 <code class="inline-code">MDC.getCopyOfContextMap()</code> 和 TraceContext 的当前值；任务/回调先 <code class="inline-code">MDC.setContextMap(snapshot)</code> 并 restore TraceContext，最后恢复进入任务前的旧值。TtlRunnable/TtlCallable 或框架的 task decorator 可以统一这段样板，但前提是它们确实覆盖当前提交路径。</p>
             </div>
           </div>
         </div>
@@ -909,7 +911,7 @@ spring:
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：thenApply 的 fn 到底在哪个线程执行？</strong></p>
-            <p>分三种情况：① 若上一步<strong>已完成</strong>，thenApply 的 fn 在<strong>调用 thenApply 的线程</strong>执行；② 若上一步<strong>未完成</strong>，fn 在<strong>完成上一步的线程</strong>（即 supplyAsync 的 executor 线程）执行；③ 用 thenApplyAsync 则一定提交到 executor（默认 commonPool）。这种不确定性是线程上下文（如 TraceId）丢失的常见原因——建议用 thenApplyAsync + 显式 executor + TtlRunnable 包装。</p>
+            <p>分三种情况：① 若上一步<strong>已完成</strong>，thenApply 的 fn 通常在<strong>调用 thenApply 的线程</strong>执行；② 若上一步<strong>未完成</strong>，fn 通常由触发依赖完成的线程执行；③ 用 thenApplyAsync 则提交到指定 executor（不传时默认 commonPool）。执行线程存在边界竞争与框架差异，不应依赖以上"通常"结果。跨异步边界必须显式传递 TraceId/MDC/租户上下文：任务提交时捕获快照，执行入口 restore，finally 恢复旧值；TtlRunnable 只适合包装可提交的 Runnable/Callable，回调链可结合 thenApplyAsync、显式 executor 和统一装饰器处理。</p>
 
             <p><strong>追问 2：CompletableFuture 的异常如何传播？</strong></p>
             <p>异常会沿链向下传播，直到遇到 exceptionally/handle/whenComplete。未处理的异常在 join 时以 CompletionException 包装抛出，get 时以 ExecutionException 包装。若链中无任何异常处理且不 join，异常会被<strong>静默吞掉</strong>（仅记录到内部结果）——这是常见坑，务必在链尾加 whenComplete 记录日志。</p>
@@ -943,14 +945,14 @@ spring:
               <li><strong><code class="inline-code">spring.threads.virtual.enabled=true</code> 的作用范围</strong>：① Tomcat/Jetty/Undertow 的请求处理线程 → VT；② <code class="inline-code">@Async</code> 异步任务执行器 → VT；③ Spring <code class="inline-code">TaskExecutor</code> bean → VT。</li>
               <li><strong>不受影响的组件</strong>：<code class="inline-code">ScheduledExecutor</code>、Stream <code class="inline-code">parallel()</code>、<code class="inline-code">CompletableFuture</code> 默认仍用 <code class="inline-code">ForkJoinPool.commonPool()</code>——需手动传 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 或注入 Spring 管理的 <code class="inline-code">TaskExecutor</code>。</li>
               <li><strong>局限性一：synchronized 阻塞导致 pinning</strong>：<code class="inline-code">synchronized</code> 块内有阻塞 IO（如 DB 查询、HTTP 调用），VT 会固定在 carrier thread 上无法卸载，等效于平台线程。JDK 21 已优化 <code class="inline-code">synchronized + Object.wait</code> 可卸载，但 <code class="inline-code">synchronized + IO</code> 仍会 pin。</li>
-              <li><strong>局限性二：ThreadLocal 继承问题</strong>：VT 默认不继承父线程的 <code class="inline-code">ThreadLocal</code>，JDK 21 推荐使用 <code class="inline-code">ScopedValue</code>（预览特性）替代 <code class="inline-code">ThreadLocal</code> 做上下文传递。</li>
+              <li><strong>局限性二：ThreadLocal 继承问题</strong>：新建虚拟线程不会自动继承父线程的普通 ThreadLocal；JDK 21 推荐在 one-way immutable context 场景使用 ScopedValue（当时为预览特性，JDK 25 转正）。</li>
               <li><strong>局限性三：第三方库未适配</strong>：MySQL JDBC 驱动在 <code class="inline-code">synchronized</code> 块内执行 IO 会 pin；Netty EventLoop 不支持 VT（VT 不适合事件驱动框架）。</li>
               <li><strong>局限性四：监控与排查困难</strong>：jstack 中 VT 数量极多，传统线程分析工具（如 async-profiler）需适配。</li>
               <li><strong>替代方案</strong>：Reactor/WebFlux 响应式模型在 IO 多路复用场景仍优于 VT（更低的内存开销），复杂流式编排与背压场景不应盲目迁移到 VT。</li>
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
-              <p>Spring Boot 3.2 的 <code class="inline-code">spring.threads.virtual.enabled=true</code> 本质是通过 <code class="inline-code">VirtualThreadTaskExecutor</code> 替换默认的 <code class="inline-code">TaskExecutor</code>，但这个替换是<strong>选择性</strong>的——框架只替换它"主动管理"的执行器（请求线程、@Async、TaskExecutor bean），不触碰 JVM 级别的 <code class="inline-code">ForkJoinPool.commonPool()</code>。这意味着 <code class="inline-code">CompletableFuture.supplyAsync</code> 不传 executor 时仍用 commonPool，IO 阻塞会饿死整个 JVM 的并行流和默认 CF。正确做法：显式注入 Spring 的 <code class="inline-code">AsyncTaskExecutor</code>（开启 VT 后自动为 VT 执行器）传给 <code class="inline-code">supplyAsync</code>。此外，pinning 的排查需开启 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>，生产环境建议用 JFR（Java Flight Recorder）持续监控 pinning 事件，而非依赖 jstack 手动采样。</p>
+              <p>Spring Boot 3.2 的 <code class="inline-code">spring.threads.virtual.enabled=true</code> 本质是通过 <code class="inline-code">VirtualThreadTaskExecutor</code> 替换默认的 <code class="inline-code">TaskExecutor</code>，但这个替换是<strong>选择性</strong>的——框架只替换它"主动管理"的执行器（请求线程、@Async、TaskExecutor bean），不触碰 JVM 级别的 <code class="inline-code">ForkJoinPool.commonPool()</code>。这意味着 <code class="inline-code">CompletableFuture.supplyAsync</code> 不传 executor 时仍用 commonPool，IO 阻塞会饿死整个 JVM 的并行流和默认 CF。正确做法：显式注入 Spring 的 <code class="inline-code">AsyncTaskExecutor</code>（开启 VT 后自动为 VT 执行器）传给 <code class="inline-code">supplyAsync</code>。此外，JDK 21-23 才可开启 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>；生产环境建议用 JFR（Java Flight Recorder）持续监控 pinning 事件，而非依赖 jstack 手动采样。</p>
             </div>
           </div>
         </div>
@@ -1103,7 +1105,7 @@ flowchart TB
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察对 <strong>JEP 453 / JEP 462（JDK 21+ Preview）结构化并发</strong>的专家级理解：它如何通过 <code class="inline-code">StructuredTaskScope</code> 把并发任务组织成<strong>父子生命周期绑定的树</strong>，解决传统并发"任务逃逸、错误丢失、取消不可达"的根本问题。它考察"从非结构化到结构化"的范式跃迁，以及与 Scoped Values、Virtual Threads 的协同设计。目前仍是 Preview API，但代表了并发编程的未来方向。</p>
+            <p>这道题考察对 <strong>JDK 19/20 incubator（JEP 428/437）到 JDK 21+ preview（JEP 453/462/480/499/505/525）结构化并发</strong>的专家级理解：它如何通过 <code class="inline-code">StructuredTaskScope</code> 把并发任务组织成<strong>父子生命周期绑定的树</strong>，解决传统并发"任务逃逸、错误丢失、取消不可达"的根本问题。它考察"从非结构化到结构化"的范式跃迁，以及与 Scoped Values、Virtual Threads 的协同设计。截至 JDK 26 仍是 Preview API，但代表了并发编程的演进方向。</p>
           </div>
         </div>
 
@@ -1112,7 +1114,7 @@ flowchart TB
           <div class="qa-layer-body">
             <p><strong>非结构化并发（new Thread / Executor）</strong>：任务提交后生命周期与提交者解耦，子任务可逃逸——提交者已返回，子任务仍在跑；子任务异常无人接；取消无法传播到子任务。这是"fire-and-forget"模型的根本缺陷。</p>
             <p><strong>CompletableFuture（部分结构化）</strong>：allOf/anyOf 提供了组合，但仍是"扁平"的——异常需手动 exceptionally，取消需手动传播，且子任务的子任务仍可逃逸。没有"作用域"概念。</p>
-            <p><strong>结构化并发（JDK 21+ Preview）</strong>：借鉴 Erlang/Go 的设计哲学，把并发任务组织成树——<strong>父任务等待所有子任务，子任务的生命周期不超出父作用域</strong>。作用域退出时所有未完成子任务自动取消，异常自动传播。这是"作用域化"思维在并发的应用，与 try-with-resources 对资源的作用一致。（注：截至 JDK 24 仍为 Preview API，需 <code class="inline-code">--enable-preview</code> 启用，API 可能调整，不建议生产使用。）</p>
+            <p><strong>结构化并发（JDK 19/20 incubator；JDK 21+ Preview）</strong>：借鉴 Erlang/Go 的设计哲学，把并发任务组织成树——<strong>父任务等待所有子任务，子任务的生命周期不超出父作用域</strong>。作用域退出时所有未完成子任务自动取消，异常自动传播。这是"作用域化"思维在并发的应用，与 try-with-resources 对资源的作用一致。（注：截至 JDK 26 仍为 Preview API，需 <code class="inline-code">--enable-preview</code> 启用，API 可能调整，不建议核心生产链路依赖。）</p>
             <p><strong>未来</strong>：Scoped Values + Structured Concurrency + Virtual Threads 构成 JDK 并发的"新三件套"，目标是让百万级并发也具备命令式代码的可读性与正确性保证。当前 Preview，API 可能调整，但方向已定。</p>
           </div>
         </div>
@@ -1120,7 +1122,7 @@ flowchart TB
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
-            <p><strong>核心抽象：StructuredTaskScope</strong>。它是一个作用域，<code class="inline-code">fork()</code> 在作用域内启动子虚拟线程，<code class="inline-code">join()</code> 等待所有子任务完成，作用域退出时自动取消未完成子任务。两个内置策略：</p>
+            <p><strong>核心抽象：StructuredTaskScope</strong>。它是一个作用域，JDK 25 的 <code class="inline-code">fork()</code> 默认在作用域内启动子虚拟线程，<code class="inline-code">join()</code> 按 Joiner 策略等待，作用域退出时自动取消未完成子任务。JDK 21-24 的两个内置策略：</p>
             <ul>
               <li><strong>ShutdownOnFailure</strong>：任一子任务异常则中断所有其他子任务（fail-fast），适用于"全部成功才有意义"的场景。</li>
               <li><strong>ShutdownOnSuccess</strong>：任一子任务成功则中断其他（first-win），适用于"任一结果即可"的场景（如多源查询取最快）。</li>
@@ -1177,7 +1179,7 @@ flowchart TD
     }
 }</code></pre></div>
 
-            <p>以上示例基于 JDK 21-24 API（ShutdownOnFailure/Success + public 构造器）；JDK 25（JEP 505）API 有破坏性改动：<code class="inline-code">StructuredTaskScope</code> 改为静态工厂 <code class="inline-code">open()</code> 创建，策略类改为 <code class="inline-code">Joiner.awaitAllSuccessfulOrThrow()</code> / <code class="inline-code">Joiner.awaitAnySuccessfulResult()</code>，public 构造器写法已废弃。</p>
+            <p>以上示例必须按版本理解：JDK 21-24 使用 <code class="inline-code">ShutdownOnFailure</code>/<code class="inline-code">ShutdownOnSuccess</code> 和 public 构造器；JDK 25（JEP 505）改为 <code class="inline-code">StructuredTaskScope.open()</code> 或 <code class="inline-code">open(Joiner)</code>。常用 Joiner 是 <code class="inline-code">allSuccessfulOrThrow()</code>、<code class="inline-code">anySuccessfulResultOrThrow()</code>、<code class="inline-code">awaitAllSuccessfulOrThrow()</code>、<code class="inline-code">awaitAll()</code> 和 <code class="inline-code">allUntil(...)</code>。不要把两代 API 混写在同一编译目标里。</p>
             <p><strong>三大保证</strong>：① <strong>生命周期绑定</strong>——子任务不超出作用域，作用域关闭即取消全部未完成子任务；② <strong>错误传播</strong>——子任务异常自动传播给父，触发 fail-fast 关闭；③ <strong>可观测性</strong>——作用域内的任务树可被整体 dump（线程转储能看到父子关系）， unlike CompletableFuture 的扁平链。</p>
           </div>
         </div>
@@ -1185,8 +1187,8 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>当前状态（2026）</strong>：截至 JDK 25（JEP 505，第五次 Preview）仍为 Preview API，JDK 26（JEP 525，第六次 Preview）继续预览，尚未 GA，生产慎用。需 <code class="inline-code">--enable-preview --release 21</code> 编译运行。但其设计思想已可用 CompletableFuture + 虚拟线程近似实现：用 allOf 编排、exceptionally 降级、虚拟线程执行器承载。</p>
-            <p><strong>何时采用</strong>：① 学习与原型验证，为未来 GA 做准备；② 内部工具/非核心链路试用；③ 等 GA（预计 JDK 26+ 或后续版本）后逐步替换 CompletableFuture 的复杂编排场景。</p>
+            <p><strong>当前状态（2026）</strong>：JDK 25（JEP 505，第五次 Preview）引入 <code class="inline-code">open()/Joiner</code>；JDK 26（JEP 525，第六次 Preview）继续预览，尚未 GA，核心生产链路慎用。示例与运行版本必须一致，例如 JDK 25 预览 API 使用 <code class="inline-code">--enable-preview --release 25</code>。其设计思想已可用 CompletableFuture + 虚拟线程近似实现：用 allOf 编排、exceptionally 降级、虚拟线程执行器承载。</p>
+            <p><strong>何时采用</strong>：① 学习与原型验证；② 内部工具/非核心链路在受控配置下试用；③ 待正式 GA 后再逐步替换 CompletableFuture 的复杂编排场景。</p>
             <div class="callout callout-tip">
               <div class="callout-title">架构判断</div>
               <p>结构化并发与 Scoped Values、Virtual Threads 是一套设计：虚拟线程让"每任务一线程"廉价，Scoped Values 提供"作用域内只读上下文"，StructuredTaskScope 提供"作用域内任务生命周期"。三者共同让 Java 并发从"手动管理线程/池/回调"演进到"声明式作用域"，是未来 5 年并发编程的主线。架构师应提前理解其思想，评估现有 CompletableFuture/线程池代码的迁移路径。</p>
@@ -1201,7 +1203,7 @@ flowchart TD
             <p>Erlang 的 supervisor 树是"进程级"的，子进程失败由 supervisor 决定重启策略，强调"让它崩溃"哲学。Go 的 errgroup.WithContext 提供取消传播与错误收集，但 goroutine 仍可逃逸（无强制作用域）。Java StructuredTaskScope 更接近 errgroup 但更强——try-with-resources 强制作用域语义，子任务无法逃逸，且与虚拟线程深度集成。三者的共同思想是"父任务不应在子任务还在跑时就返回"。</p>
 
             <p><strong>追问 2：为什么 StructuredTaskScope 必须配合虚拟线程？</strong></p>
-            <p>因为 fork 启动的是虚拟线程。若用平台线程，每个 fork 创建一个 OS 线程，fork 十万次就耗尽资源，结构化并发失去意义。虚拟线程让"每子任务一线程"廉价，才使结构化并发可行。这是 Project Loom 三件套（VT + Scope + ScopedValue）协同设计的体现——任何一个单独存在都不完整。</p>
+            <p>JDK 25 的 fork 默认启动虚拟线程；若通过配置换成平台线程，作用域语义仍然成立，但每个子任务都对应 OS 线程，fork 十万次会耗尽资源。虚拟线程让"每子任务一线程"廉价，才使结构化并发在大规模并发下可行。这是 Project Loom 三件套（VT + Scope + ScopedValue）协同设计的体现。</p>
 
             <p><strong>追问 3：StructuredTaskScope 能嵌套吗？取消如何传播？</strong></p>
             <p>可嵌套，形成任务树。外层作用域取消时，自动取消其所有内层作用域的子任务（取消沿树向下传播）。内层作用域关闭不影响外层。这种树状取消语义让"大任务取消 → 所有子任务级联取消"成为语言级保证，解决了 CompletableFuture 时代"手动管理取消令牌"的繁琐。</p>
@@ -1214,10 +1216,10 @@ flowchart TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>误以为已 GA</strong>：截至 JDK 25 仍 Preview，API 可能变，生产慎用。</li>
+                <li><strong>误以为已 GA</strong>：截至 JDK 26 仍 Preview，API 可能变，核心链路生产慎用。</li>
                 <li><strong>忘记 join/throwIfFailed</strong>：fork 后不 join 就 get，可能读到未完成结果或抛错。</li>
                 <li><strong>作用域内阻塞外部资源</strong>：子任务持有锁/连接后被取消，需确保资源可中断释放。</li>
-                <li><strong>与 ThreadLocal 混用</strong>：结构化并发应配 Scoped Values，用 ThreadLocal 会丧失作用域优势。Scoped Values 已在 JDK 25（JEP 506）正式转正，可率先在生产使用；结构化并发仍 Preview，可先用 Scoped Values 替代 ThreadLocal。</li>
+                <li><strong>与 ThreadLocal 混用</strong>：结构化并发的 one-way immutable context 应配 Scoped Values；双向更新或兼容旧生态时可继续评估 ThreadLocal。Scoped Values 已在 JDK 25（JEP 506）正式交付，结构化并发仍 Preview。</li>
                 <li><strong>忽视取消的协作性</strong>：子任务需响应中断（检查中断标志/用可中断 API），否则取消不生效。</li>
               </ul>
             </div>
@@ -1237,7 +1239,7 @@ flowchart TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>考察虚拟线程"<strong>钉住（pinning）</strong>"问题的生产排查与治理能力。核心要讲清三件事：① 虚拟线程在哪些场景下<strong>无法从载体线程卸载</strong>（JDK 21-23 的 synchronized monitor、native 栈帧、JNI 阻塞）；② 如何用 <code class="inline-code">jcmd Thread.dump_to_file --format=json</code> 与 <code class="inline-code">-Djdk.tracePinnedThreads</code> 精准定位钉住点；③ 治理策略——ReentrantLock 替代 synchronized、native 调用隔离、JDK 24+（JEP 491）的 synchronized 卸载改造。它是 2026 虚拟线程大规模落地的头号生产事故源——能否讲清 pinning 触发条件、诊断链路与版本差异，是区分"会用虚拟线程"与"能扛虚拟线程"的分水岭。</p>
+            <p>考察虚拟线程"<strong>钉住（pinning）</strong>"问题的生产排查与治理能力。核心要讲清三件事：① 虚拟线程在哪些场景下<strong>无法从载体线程卸载</strong>（JDK 21-23 的 synchronized monitor、native/foreign 栈帧中的阻塞）；② JDK 21-23 可用 <code class="inline-code">-Djdk.tracePinnedThreads</code> 与新式线程转储定位，JDK 24 起改用 JFR 事件和线程转储；③ 治理策略——旧版本把热点 synchronized 换成 ReentrantLock、native 调用隔离、JDK 24+（JEP 491）消除几乎全部 synchronized pinning。能否讲清 pinning 触发条件、诊断链路与版本差异，是区分"会用虚拟线程"与"能扛虚拟线程"的分水岭。</p>
           </div>
         </div>
 
@@ -1246,7 +1248,7 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>虚拟线程 JDK 21 GA（JEP 444，2023）</strong>：虚拟线程在载体线程（ForkJoinPool carrier）上运行，遇到 IO 阻塞（socket read/write、LockSupport.park）时自动 yield 卸载，载体线程立即服务其他虚拟线程，实现"线程数与吞吐解耦"。</p>
             <p><strong>pinning 问题暴露</strong>：生产落地后高频出现"虚拟线程没起到作用、吞吐反而下降"。根因是虚拟线程并非在所有阻塞点都能卸载——<strong>synchronized 持有 monitor 时载体线程无法让出</strong>（monitor 绑定在 OS 线程上），<strong>native 栈帧/JNI 阻塞</strong>时 JVM 无法保存恢复 native 栈。这两种场景下虚拟线程被"钉"在载体线程上，高并发下迅速耗尽载体线程池（默认 CPU 核数），吞吐崩塌。</p>
-            <p><strong>诊断工具演进</strong>：JDK 21 提供 <code class="inline-code">-Djdk.tracePinnedThreads=full|short</code> 在钉住时打印栈与持有 monitor 的虚拟线程；<code class="inline-code">jcmd &lt;pid&gt; Thread.dump_to_file --format=json</code> 输出结构化线程转储，明确标注 <code class="inline-code">pinned=true</code> 及原因。</p>
+            <p><strong>诊断工具演进</strong>：JDK 21 提供 <code class="inline-code">-Djdk.tracePinnedThreads=full|short</code> 在钉住时打印栈与持有 monitor 的虚拟线程；<code class="inline-code">jcmd &lt;pid&gt; Thread.dump_to_file -format=json &lt;file&gt;</code> 输出结构化线程转储，可观察 pinned 状态和线程关系。JDK 24 起该系统属性被移除；<code class="inline-code">jdk.VirtualThreadPinned</code> JFR 事件保留，并增强为携带 pinning 原因和载体线程信息。</p>
             <p><strong>JDK 24（JEP 491，2025）</strong>：重构 synchronized 实现，<strong>允许虚拟线程在 synchronized 块内卸载</strong>（monitor 改为可虚拟化），消除最主要的 pinning 源。<strong>趋势</strong>：JDK 24+ 后 pinning 治理重心从 synchronized 转向 native/JNI 阻塞与第三方库的 native 调用。</p>
           </div>
         </div>
@@ -1281,7 +1283,7 @@ flowchart TD
                   <tr><th>触发场景</th><th>原因</th><th>JDK 版本</th><th>影响</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>synchronized 持有 monitor</td><td>monitor 绑定 OS 线程，无法迁移</td><td>JDK 21-23 钉住 / JDK 24+ 已修复</td><td>最常见，高并发下致命</td></tr>
+                  <tr><td>synchronized 持有 monitor</td><td>旧实现记录载体线程为 owner，虚拟线程不能卸载</td><td>JDK 21-23 钉住 / JDK 24+ 消除几乎全部场景</td><td>旧版本高并发下致命</td></tr>
                   <tr><td>native 方法栈帧</td><td>JVM 无法保存恢复 native 栈</td><td>全版本钉住</td><td>JNI/某些库调用</td></tr>
                   <tr><td>文件 IO（旧 FileInputStream 阻塞读）</td><td>底层 native read 阻塞</td><td>JDK 21+ 已用 NIO 适配可卸载</td><td>已基本治理</td></tr>
                   <tr><td>Object.wait()</td><td>native 阻塞</td><td>钉住</td><td>罕见，应用层少用</td></tr>
@@ -1289,14 +1291,14 @@ flowchart TD
               </table>
             
 
-            <p><strong>诊断工具对比</strong>：<code class="inline-code">-Djdk.tracePinnedThreads=full</code> 在每次钉住时打印完整虚拟线程栈与载体线程，适合开发期定位；<code class="inline-code">jcmd Thread.dump_to_file --format=json</code> 生产期快照，JSON 中每个虚拟线程含 <code class="inline-code">pinned</code> 字段与 <code class="inline-code">pinReason</code>（如 MONITOR_WAIT / NATIVE），是线上排查首选。</p>
+            <p><strong>诊断工具对比</strong>：JDK 21-23 的 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 适合开发期打印阻塞时钉住的完整虚拟线程栈；新式线程转储适合按线程树观察关系，两者用于定位具体代码。JFR 的 <code class="inline-code">jdk.VirtualThreadPinned</code> 适合生产持续监控和阈值告警。不要把某个 JSON 字段名或原因枚举当作跨版本稳定 API，应以目标 JDK 的诊断输出为准。</p>
           </div>
         </div>
 
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>生产诊断流程</strong>：① 应用启动加 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>（生产可改 short 降噪），日志出现 "Thread X is pinned" 即定位栈；② 怀疑载体线程耗尽时 <code class="inline-code">jcmd &lt;pid&gt; Thread.dump_to_file --format=json /tmp/vt.json</code>，grep <code class="inline-code">"pinned": true</code> 统计钉住数与原因分布；③ 按栈定位到具体 synchronized 块或 native 调用。</p>
+            <p><strong>生产诊断流程</strong>：① JDK 21-23 才使用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>（生产可改 short 降噪）定位阻塞时钉住的栈；② JDK 24+ 以 JFR 开启 <code class="inline-code">jdk.VirtualThreadPinned</code> 监控频率、持续时间和载体线程压力，需要现场快照时再执行 <code class="inline-code">jcmd &lt;pid&gt; Thread.dump_to_file -format=json /tmp/vt.json</code>；③ 按栈、线程关系和事件上下文定位 synchronized 块或 native/foreign 调用，不把诊断字段当作长期契约解析。</p>
 
             <div class="code-block"><pre><code><span class="com">// 典型 pinning 反模式：synchronized 包裹 IO 阻塞</span>
 <span class="kw">public</span> <span class="type">String</span> <span class="fn">fetchBad</span>(<span class="type">String</span> key) <span class="kw">throws</span> <span class="type">IOException</span> {
@@ -1321,7 +1323,7 @@ flowchart TD
               <ul>
                 <li><strong>JDK 21-23</strong>：全局排查 synchronized 包裹 IO/远程调用的代码，改 ReentrantLock；高并发入口避免 synchronized。</li>
                 <li><strong>native/JNI 阻塞</strong>：隔离到独立平台线程池（Executors.newFixedThreadPool）执行，虚拟线程只做编排不直接阻塞。</li>
-                <li><strong>JDK 24+</strong>：升级即可消除 synchronized pinning，治理重心转向第三方库 native 调用。</li>
+                <li><strong>JDK 24+</strong>：JEP 491 消除几乎全部 synchronized pinning；剩余 native/foreign 调用等场景仍需压测和隔离，不建议把结论写成"彻底零 pinning"。</li>
               </ul>
             </div>
           </div>
@@ -1334,10 +1336,10 @@ flowchart TD
             <p>synchronized 基于 JVM 内置 monitor，monitor 与 OS 线程强绑定（ObjectMonitor 持有 owner 线程指针），虚拟线程持有 monitor 时无法把所有权迁移到另一个载体线程，只能钉住。ReentrantLock 基于 AQS + LockSupport.park，park 是可卸载阻塞点，虚拟线程 park 时正常 yield 释放载体线程，锁状态保存在 AQS 的 Java 对象中，唤醒后在任意载体线程恢复。这是 JDK 21-23 期推荐 ReentrantLock 替代 synchronized 的根本原因。</p>
 
             <p><strong>追问 2：JDK 24 JEP 491 如何修复 synchronized pinning？</strong></p>
-            <p>JEP 491 将 ObjectMonitor 改造为<strong>可虚拟化</strong>——monitor 不再绑定具体 OS 线程，而是绑定逻辑所有者（虚拟线程引用），虚拟线程在 synchronized 块内 park 时可正常卸载，唤醒后在任意载体线程重入。代价是 monitor 实现复杂度上升、轻量竞争路径有少量开销。升级到 JDK 24 后，绝大多数 synchronized pinning 自动消失，无需改代码。</p>
+            <p>JEP 491 改造 monitor 记录方式，使虚拟线程可以在 synchronized 块内、等待 monitor 和 <code class="inline-code">Object.wait()</code> 时释放载体线程；JEP 原文明确消除<strong>几乎全部</strong> synchronized pinning。native/foreign 回调等剩余场景仍可能钉住。升级到 JDK 24 后，绝大多数 synchronized 阻塞自动受益，但虚拟线程迁移仍需用 JFR 压测确认。</p>
 
             <p><strong>追问 3：少量 pinning 是否必须治理？</strong></p>
-            <p>不必。pinning 的危害是<strong>载体线程被占用</strong>，只要载体线程池（默认 = CPU 核数）未耗尽，少量钉住无伤大雅。判断标准是监控 jdk.VirtualThread.pinned 速率与载体线程池利用率——若钉住率低且载体线程空闲充足，可暂不治理；若高并发下载体线程饱和、吞吐不达标，必须按诊断流程定位并修复。</p>
+            <p>不必一概治理。pinning 的危害是<strong>载体线程被占用</strong>，只要载体线程池（默认并行度 = CPU 核数）未耗尽，少量钉住通常无伤大雅。判断标准是监控 <code class="inline-code">jdk.VirtualThreadPinned</code> 事件速率、持续时长与载体线程池利用率——若钉住率低且载体线程空闲充足，可暂不治理；若高并发下载体线程饱和、吞吐不达标，必须按诊断流程定位并修复。</p>
           </div>
         </div>
 
@@ -1349,8 +1351,8 @@ flowchart TD
               <ul>
                 <li><strong>误以为虚拟线程所有阻塞都能卸载</strong>：synchronized（JDK21-23）与 native 阻塞会钉住，这是虚拟线程最隐蔽的坑。</li>
                 <li><strong>用 synchronized 包裹远程调用</strong>：如缓存击穿保护 synchronized + DB 查询，高并发下直接 pinning 雪崩。</li>
-                <li><strong>忽略 JDK 版本差异</strong>：JDK 24+ 已修复 synchronized pinning，用旧版本结论套新版本会误导选型。</li>
-                <li><strong>只看吞吐不看 jdk.VirtualThread.pinned 指标</strong>：pinning 累积到载体线程耗尽才体现吞吐下降，应在指标层提前预警。</li>
+                <li><strong>忽略 JDK 版本差异</strong>：JDK 24+ 已消除几乎全部 synchronized pinning，用旧版本结论套新版本会误导选型。</li>
+                <li><strong>只看吞吐不看 <code class="inline-code">jdk.VirtualThreadPinned</code> 指标</strong>：pinning 累积到载体线程耗尽才体现吞吐下降，应在指标层提前预警。</li>
                 <li><strong>native 调用直接在虚拟线程执行</strong>：如某些 JNI 库、旧版 JDBC 驱动，应隔离到平台线程池。</li>
               </ul>
             </div>
@@ -1364,13 +1366,13 @@ flowchart TD
       <div class="qa-card" id="C04.10" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C04.10</div>
-          <div class="qa-question">ScopedValue：虚拟线程时代如何安全传递上下文（替代 ThreadLocal）<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          <div class="qa-question">ScopedValue：虚拟线程时代如何安全传递上下文<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察在 <strong>虚拟线程（百万级并发）</strong> 场景下，传统 <code class="inline-code">ThreadLocal</code> 的固有缺陷（内存泄漏、线程池复用污染、不可继承、与虚拟线程不友好），以及 JDK 21 引入的 <strong>ScopedValue</strong> 如何用"不可变、作用域绑定、可继承"的模型安全传递上下文（traceId / 用户身份 / 租户），是结构化并发（Structured Concurrency）的配套基石。</p>
+            <p>这道题考察在 <strong>虚拟线程（大量并发）</strong> 场景下，传统 <code class="inline-code">ThreadLocal</code> 的固有缺陷（无界生命周期、线程池复用污染、昂贵继承），以及 <strong>ScopedValue</strong> 如何用"一次写入、不可变绑定、作用域生命周期"的模型安全传递上下文（traceId / 用户身份 / 租户）。它是结构化并发（Structured Concurrency）的配套基石，但不是 ThreadLocal 的无条件替代。</p>
           </div>
         </div>
 
@@ -1380,7 +1382,8 @@ flowchart TD
             <p><strong>ThreadLocal（JDK 1.2）</strong>：每线程一份变量副本，解决线程安全与参数透传。缺陷：需手动 <code class="inline-code">remove()</code> 否则泄漏；线程池复用导致<strong>跨任务值污染</strong>。</p>
             <p><strong>InheritableThreadLocal</strong>：父子线程继承，但<strong>线程池场景失效</strong>——线程由池创建，任务提交时并非"父子"关系，值不会随任务更新。</p>
             <p><strong>TransmittableThreadLocal（阿里 TTL）</strong>：通过包装 Runnable/Callable 在任务提交/执行边界拷贝值，解决线程池传递，是框架级补丁。</p>
-            <p><strong>虚拟线程 + ScopedValue（JDK 21）</strong>：虚拟线程轻量到可创建百万级，每个都挂一份 ThreadLocal map 成本过高且不可继承给子任务；ScopedValue 应运而生，与 <code class="inline-code">StructuredTaskScope</code> 配合，子任务自动继承父作用域值。</p>
+            <p><strong>ScopedValue 演进</strong>：JDK 20（JEP 429）incubator，JDK 21-24 preview（JEP 446/464/481/487），JDK 25（JEP 506）正式交付。它适合 one-way immutable context：调用方传给直接/间接调用方和结构化子线程，支持嵌套 rebind，绑定随作用域退出销毁。</p>
+            <p><strong>虚拟线程 + ScopedValue</strong>：虚拟线程轻量到可大量创建；若每条线程都保留自己的 ThreadLocal 副本，内存和继承开销会放大。ScopedValue 让不可变上下文可被同一作用域内的子任务共享，并与 <code class="inline-code">StructuredTaskScope</code> 的生命周期配合。</p>
           </div>
         </div>
 
@@ -1388,18 +1391,18 @@ flowchart TD
           <div class="qa-layer-title">第一性原理</div>
           <div class="qa-layer-body">
             <p><strong>ThreadLocal 三重坑</strong>：① <strong>泄漏</strong>：key 是弱引用、value 强引用，未 <code class="inline-code">remove()</code> 则线程存活期间 value 不回收；② <strong>污染</strong>：线程池线程复用，上一任务残留值被下一任务读到；③ <strong>虚拟线程不友好</strong>：不可继承给子任务，且每虚拟线程维护 map 开销大。</p>
-            <p><strong>ScopedValue 模型</strong>：用 <code class="inline-code">ScopedValue.where(KEY, value).run(() -&gt; {...})</code> 在<strong>作用域内</strong>绑定一个<strong>不可变</strong>值；作用域结束自动解除；子任务（结构化并发内）自动看到父作用域值。无 map、无泄漏、无污染、可继承。</p>
+            <p><strong>ScopedValue 模型</strong>：用 <code class="inline-code">ScopedValue.where(KEY, value).run(() -&gt; {...})</code> 在<strong>作用域内</strong>绑定一个<strong>不可变</strong>值；作用域结束自动解除；内层可嵌套 rebind，但外层绑定不变。只有 <code class="inline-code">StructuredTaskScope</code> 这类能保证子线程在作用域结束前终止的 API 才能继承 ScopedValue；任意线程池不继承。</p>
             <div class="code-block"><pre><code><span class="kw">final</span> <span class="kw">static</span> <span class="type">ScopedValue</span>&lt;<span class="type">String</span>&gt; <span class="var">TRACE_ID</span> = <span class="type">ScopedValue</span>.<span class="fn">newInstance</span>();
 
 <span class="com">// 在作用域内绑定，run() 期间及其中派生的子任务都能读到，结束自动解除</span>
 <span class="type">ScopedValue</span>.<span class="fn">where</span>(<span class="var">TRACE_ID</span>, <span class="str">"req-123"</span>).<span class="fn">run</span>(() -&gt; {
     handleRequest();              <span class="com">// TRACE_ID.get() == "req-123"</span>
-    <span class="com">// 结构化并发派生的子任务自动继承该值</span>
+    <span class="com">// StructuredTaskScope 派生并在 run 前结束的子任务继承该值</span>
 });
 <span class="com">// 作用域外 TRACE_ID.orElse("none")，无残留、无泄漏</span></code></pre></div>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p>ScopedValue 的核心优势是<strong>不可变 + 作用域自动生命周期 + 子任务继承</strong>：它从机制上消灭了 ThreadLocal 的"忘记 remove 泄漏"和"线程池污染"两类问题，并天然契合虚拟线程与结构化并发。</p>
+              <p>ScopedValue 的核心优势是<strong>一次写入 + 作用域自动生命周期 + 受控子任务继承</strong>：在 one-way immutable context 场景，它避免了 ThreadLocal 的"忘记 remove"和"线程池污染"，并契合虚拟线程与结构化并发。ThreadLocal 仍适用于双向更新、跨任务缓存等模式。</p>
             </div>
           </div>
         </div>
@@ -1407,9 +1410,9 @@ flowchart TD
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>迁移场景</strong>：请求级上下文（traceId、userId、租户标识）从 ThreadLocal 迁到 ScopedValue，在入口（如 filter/拦截器）用 <code class="inline-code">where(...).run()</code> 包裹业务处理。</p>
-            <p><strong>与结构化并发配合</strong>：在 <code class="inline-code">StructuredTaskScope</code> 内 <code class="inline-code">fork()</code> 的子任务自动继承父作用域的 ScopedValue，无需手动透传，避免"参数一路往下传"的污染风险。</p>
-            <p><strong>兼容性注意</strong>：Spring Security、日志框架（MDC）等仍基于 ThreadLocal，迁移需等生态跟进；过渡期可用 TTL 桥接虚拟线程与旧 ThreadLocal 体系。</p>
+            <p><strong>迁移场景</strong>：请求级只读上下文（traceId、userId、租户标识）从 ThreadLocal 迁到 ScopedValue，在入口（如 filter/拦截器）用 <code class="inline-code">where(...).run()</code> 或 <code class="inline-code">call(...)</code> 包裹业务处理；JDK 25 前必须开启对应 preview。</p>
+            <p><strong>与结构化并发配合</strong>：在 <code class="inline-code">StructuredTaskScope</code> 内 <code class="inline-code">fork()</code> 的子任务继承父作用域的 ScopedValue，作用域通过 join/close 保证子任务结束后才销毁绑定；不要期望 ForkJoinPool 或任意 ExecutorService 自动继承。</p>
+            <p><strong>兼容性注意</strong>：Spring Security、日志框架（MDC）等生态可能仍基于 ThreadLocal，迁移要看框架版本和适配能力；过渡期继续用显式快照/restore 或 TTL 桥接。双向写回和线程私有可变缓存不是 ScopedValue 的目标场景。</p>
           </div>
         </div>
 
@@ -1417,8 +1420,8 @@ flowchart TD
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：ScopedValue 为什么设计为不可变？</strong> 不可变才能安全被并发子任务共享且无需加锁；若可写，多个虚拟线程继承同一作用域会产生竞争，违背"作用域即契约"的简洁模型。</p>
-            <p><strong>追问 2：ScopedValue 能完全替代 ThreadLocal 吗？</strong> 愿景是，但生态滞后：大量框架（Spring Security、Logback MDC）仍依赖 ThreadLocal 的"可变、跨层透传"语义，短期需共存，长期随结构化并发普及而替换。</p>
-            <p><strong>追问 3：虚拟线程下 ThreadLocal 的开销具体在哪？</strong> 每个虚拟线程有自己的 ThreadLocalMap，百万级虚拟线程意味着百万份 map；且虚拟线程频繁创建销毁，map 的分配/回收成本被放大，而 ScopedValue 复用作用域、零 per-thread 存储。</p>
+            <p><strong>追问 2：ScopedValue 能完全替代 ThreadLocal 吗？</strong> 不能无条件替代。JEP 506 建议在 one-way immutable context 场景迁移；若调用深处要通过 <code class="inline-code">ThreadLocal.set</code> 向远处调用方写回结果，或需要线程生命周期内的可变缓存，ThreadLocal 仍是合适工具。JEP 也明确不以废弃 ThreadLocal 为目标。</p>
+            <p><strong>追问 3：虚拟线程下 ThreadLocal 的开销具体在哪？</strong> JEP 506 指出虚拟线程本身仍支持 ThreadLocal，短命、非池化虚拟线程也能降低长期泄漏风险；但当大量虚拟线程各自保留副本时，内存和继承开销会显著放大。ScopedValue 让不可变数据由作用域结构高效共享，不是宣称"零存储"。</p>
           </div>
         </div>
 
@@ -1428,9 +1431,9 @@ flowchart TD
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>以为 ScopedValue 可变/可 set</strong>：它只读绑定，作用域结束自动解除，没有 set/remove API。</li>
+                <li><strong>以为 ScopedValue 可变/可 set</strong>：绑定只读且生命周期受作用域约束；内层 rebind 只影响内层，外层值在 rebind 作用域外保持不变。</li>
                 <li><strong>线程池里 ThreadLocal 跨任务污染</strong>：未清理导致 A 请求读到 B 请求的 userId，必须 try/finally remove。</li>
-                <li><strong>虚拟线程 + 大量 ThreadLocal</strong>：每虚拟线程维护 map，百万级下内存与不可继承问题凸显。</li>
+                <li><strong>虚拟线程 + 大量 ThreadLocal</strong>：大量虚拟线程各自保留上下文副本时，内存与继承开销放大，应审计是否真的需要线程私有可变状态。</li>
                 <li><strong>误用 InheritableThreadLocal 在线程池</strong>：池化线程非"父子"关系，值不随任务更新，应用 TTL 或 ScopedValue。</li>
                 <li><strong>忘记 ThreadLocal.remove</strong>：在线程池场景几乎必然泄漏或污染，是历史头号坑。</li>
               </ul>
@@ -1440,19 +1443,19 @@ flowchart TD
         <div class="qa-layer" data-layer="production">
           <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
           <div class="qa-layer-body">
-            <p><strong>虚拟线程是 IO 密集型吞吐的"数量级武器"，但内存与 pinning 才是落地的真实约束，量化压测是选型说服力的来源。</strong></p>
+            <p><strong>虚拟线程对 IO 密集负载可能有明显吞吐收益，但内存、下游容量与 pinning 是落地约束；精确收益必须用自身压测和容量模型验证。</strong></p>
             <table class="compare-table">
               <thead><tr><th>指标</th><th>参考基准（业界常见量级）</th><th>说明</th></tr></thead>
               <tbody>
-                <tr><td>吞吐量（IO 密集）</td><td>单 JVM 百万虚拟线程 vs 固定 200 平台线程：吞吐 ~5-10x</td><td>阻塞不占平台线程，并发度由请求数决定</td></tr>
-                <tr><td>单线程内存占用</td><td>虚拟线程 ~200B-1KB/个；平台线程默认 1MB/个</td><td>百万虚拟线程约 200MB-1GB；百万平台线程需 ~1TB，不现实</td></tr>
-                <tr><td>单 JVM 并发容量</td><td>平台线程池千级 → 虚拟线程百万级</td><td>可随请求创建，无需预置线程数</td></tr>
-                <tr><td>Pinning 退化</td><td>synchronized/本地方法 pinning 占比 &gt;5% 时吞吐显著退化</td><td>压测须监控 pinned 线程占比并消除热点</td></tr>
+                <tr><td>吞吐量（IO 密集）</td><td>同一业务在虚拟线程与平台线程池下对比 P95/P99、QPS 和下游错误率</td><td>收益取决于阻塞时长、并发度、连接池和下游容量</td></tr>
+                <tr><td>内存占用</td><td>按线程对象、栈块、ThreadLocal/ScopedValue 引用对象和请求数建模</td><td>虚拟线程创建成本低，不等于每个请求的上下文和缓冲区无成本</td></tr>
+                <tr><td>单 JVM 并发容量</td><td>以压测得到最大安全并发，不把“百万线程”当作业务容量</td><td>需同时评估文件描述符、连接池、队列和超时</td></tr>
+                <tr><td>Pinning 退化</td><td>监控 <code class="inline-code">jdk.VirtualThreadPinned</code> 频率、持续时长与载体线程利用率</td><td>高频或长时 pinning 才是热点，阈值以自身压测确定</td></tr>
               </tbody>
             </table>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p>IO 密集型（网关/RPC/DB 调用）优先上虚拟线程；CPU 密集型无收益甚至略降。百万级虚拟线程下 <code class="inline-code">ThreadLocal</code> 的 per-thread map 是内存痛点，用 ScopedValue（零 per-thread 存储）替代；压测务必监控 pinning 比例并消除 <code class="inline-code">synchronized</code> 热点。（以上为业界参考基准，需以自身生产数据替换）</p>
+            <p>高并发阻塞等待场景应优先评估虚拟线程；CPU 密集型通常继续使用按核数配置的平台线程池。大量虚拟线程中的 ThreadLocal 是潜在内存和继承成本，one-way immutable context 可迁移 ScopedValue；压测务必监控 pinning 事件并按 JDK 版本治理热点。（以上为验证方法，不是固定性能基准）</p>
             </div>
           </div>
         </div>
@@ -1475,7 +1478,7 @@ flowchart TD
         <li><span class="src-title">Brian Goetz 等. Java Concurrency in Practice. Addison-Wesley, 2006. — 线程池、Executor 框架、任务取消与异常处理的权威著作</span></li>
         <li><span class="src-title">JEP 444: Virtual Threads (JDK 21, 2023). — 虚拟线程正式特性，载体线程调度、栈 unmount/mount、pinning 机制</span></li>
         <li><span class="src-title">JEP 453/462/480/499/505/525: Structured Concurrency (Preview). — StructuredTaskScope 与 Joiner 设计</span></li>
-        <li><span class="src-title">JEP 446/506: Scoped Values (JDK 21 Preview → JDK 25 Final). — 取代 ThreadLocal 的不可变作用域值传递机制</span></li>
+        <li><span class="src-title">JEP 429/446/464/481/487/506: Scoped Values (JDK 20 incubator → JDK 25 final). — one-way immutable context 的作用域值机制</span></li>
         <li><span class="src-title">美团技术团队. Java 线程池实现原理及其在美团业务中的实践. 2016. — 动态调参方案、监控大盘、线程池治理</span></li>
         <li><span class="src-title">Doug Lea. A Java Fork/Join Framework. JSR-166, 2003. — ForkJoinPool 工作窃取，是虚拟线程调度器的基础</span></li>
         <li><span class="src-title">OpenJDK. java.util.concurrent 源码（ThreadPoolExecutor / CompletableFuture / StructuredTaskScope）JDK 8~25</span></li>
