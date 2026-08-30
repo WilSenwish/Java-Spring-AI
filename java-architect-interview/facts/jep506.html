@@ -1,0 +1,286 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=us-ascii" /><meta http-equiv="Content-Type" content="text/html; charset=us-ascii" /><title>JEP 506: Scoped Values</title><link rel="shortcut icon" href="/images/nanoduke.ico" /><link rel="stylesheet" type="text/css" href="/page.css" /><script type="text/javascript" src="/page.js"><noscript></noscript></script><script src="https://cdn.usefathom.com/script.js" data-site="KCYJJPZX" defer="yes"></script><style type="text/css" xml:space="preserve">
+      TABLE { border-collapse: collapse; padding: 0px; margin: 1em 0 1em 2em; }
+      TR:first-child TH, TR:first-child TD { padding-top: 0; }
+      TH, TD { padding: 0px; padding-top: .5ex; vertical-align: baseline; text-align: left; }
+      TD + TD, TH + TH { padding-left: 1em; }
+      TD:first-child, TH:first-child, TD.jep { text-align: right; }
+      TABLE.head TD:first-child { font-style: italic; padding-left: 2em; white-space: nowrap; }
+      PRE { padding-left: 2em; margin: 1ex 0; font-size: inherit; }
+      TABLE PRE { padding-left: 0; margin: 0; }
+      TABLE.jeps TD:first-child + TD,
+      TABLE.jeps TD:first-child + TD + TD { padding-left: .5em; }
+      TABLE.jeps TD:first-child,
+      TABLE.jeps TD:first-child + TD,
+      TABLE.jeps TD:first-child + TD + TD { font-size: smaller; }
+      TABLE.jeps TD.cl { font-size: smaller; padding-right: 0; text-align: right; }
+      TABLE.jeps TD.cm { font-size: smaller; padding-left: .1em; padding-right: .1em; }
+      TABLE.jeps TD.cr { font-size: smaller; padding-left: 0; }
+      TABLE.jeps TD.z { padding-left: 0; padding-right: 0; }
+      TABLE.head TD { padding-top: 0; }
+    </style></head><body><div id="main"><h1>JEP 506: Scoped Values</h1><table class="head"><tr><td>Author</td><td>Andrew Haley &amp; Andrew Dinn</td></tr><tr><td>Owner</td><td>Andrew Haley</td></tr><tr><td>Type</td><td>Feature</td></tr><tr><td>Scope</td><td>SE</td></tr><tr><td>Status</td><td>Closed&#8201;/&#8201;Delivered</td></tr><tr><td>Release</td><td>25</td></tr><tr><td>Component</td><td>core-libs</td></tr><tr><td>Discussion</td><td>loom dash dev at openjdk dot org</td></tr><tr><td>Relates to</td><td><a href="487">JEP 487: Scoped Values (Fourth Preview)</a></td></tr><tr><td>Reviewed by</td><td>Alan Bateman</td></tr><tr><td>Endorsed by</td><td>Paul Sandoz</td></tr><tr><td>Created</td><td>2025/03/24 10:10</td></tr><tr><td>Updated</td><td>2025/06/06 13:57</td></tr><tr><td>Issue</td><td><a href="https://bugs.openjdk.org/browse/JDK-8352695">8352695</a></td></tr></table><div class="markdown"><h2 id="Summary">Summary</h2>
+<p>Introduce <em>scoped values</em>, which enable a method to share immutable data both with its callees within a thread, and with child threads. Scoped values are easier to reason about than thread-local variables. They also have lower space and time costs, especially when used together with virtual threads (<a href="https://openjdk.org/jeps/444">JEP&#160;444</a>) and structured concurrency (<a href="https://openjdk.org/jeps/505">JEP&#160;505</a>).</p>
+<h2 id="History">History</h2>
+<p>The scoped values API was proposed for incubation by <a href="https://openjdk.org/jeps/429">JEP&#160;429</a> (JDK&#160;20), proposed for preview by <a href="https://openjdk.org/jeps/446">JEP&#160;446</a> (JDK&#160;21), and subsequently improved and refined by <a href="https://openjdk.org/jeps/464">JEP&#160;464</a> (JDK&#160;22), <a href="https://openjdk.org/jeps/481">JEP&#160;481</a> (JDK&#160;23), and <a href="https://openjdk.org/jeps/487">JEP&#160;487</a> (JDK&#160;24).</p>
+<p>We here propose to finalize the scoped values API in JDK 25, with one small change: The <code>ScopedValue.orElse</code> method no longer accepts <code>null</code> as its argument.</p>
+<h2 id="Goals">Goals</h2>
+<ul>
+<li>
+<p><em>Ease of use</em> &#8212; It should be easy to reason about dataflow.</p>
+</li>
+<li>
+<p><em>Comprehensibility</em> &#8212; The lifetime of shared data should be apparent from the syntactic structure of code.</p>
+</li>
+<li>
+<p><em>Robustness</em> &#8212; Data shared by a caller should be retrievable only by legitimate callees.</p>
+</li>
+<li>
+<p><em>Performance</em> &#8212; Data should be efficiently sharable across a large number of threads.</p>
+</li>
+</ul>
+<h2 id="Non-Goals">Non-Goals</h2>
+<ul>
+<li>
+<p>It is not a goal to change the Java programming language.</p>
+</li>
+<li>
+<p>It is not a goal to require migration away from thread-local variables, or to deprecate the existing <code>ThreadLocal</code> API.</p>
+</li>
+</ul>
+<h2 id="Motivation">Motivation</h2>
+<p>Java applications and libraries are structured as collections of classes which contain methods. These methods communicate through method calls.</p>
+<p>Most methods allow a caller to pass data to a method by passing the data as parameters. When method <code>A</code> wants method <code>B</code> to do some work for it, it invokes <code>B</code> with the appropriate parameters, and <code>B</code> may pass some of those parameters to <code>C</code>, and so forth. <code>B</code> may have to include in its parameter list not only the things <code>B</code> directly needs but also the things <code>B</code> has to pass to <code>C</code>. For example, if <code>B</code> is going to set up and execute a database call, it might want a Connection passed in, even if <code>B</code> is not going to use the Connection directly.</p>
+<p>Most of the time this "pass what your indirect callees need" approach is the most effective and convenient way to share data. However, sometimes it is impractical to pass all the data that every indirect callee might need in the initial call.</p>
+<h3 id="An-example">An example</h3>
+<p>It is a common pattern in large Java programs to transfer control from one component (a "framework") to another ("application code") and then back. For example, a web framework could accept incoming HTTP requests and then call an application handler to handle it. The application handler may then call the framework to read data from the database or to call some other HTTP service.</p>
+<pre><code>@Override
+public void handle(Request request, Response response) {
+    // user code, called by framework
+    ...
+    var userInfo = readUserInfo();
+    ...
+}
+
+private UserInfo readUserInfo() {
+    // call framework
+    return (UserInfo)framework.readKey("userInfo", context);
+}</code></pre>
+<p>The framework may maintain a <code>FrameworkContext</code> object, containing the authenticated user ID, the transaction ID, etc., and associate it with the current transaction. All framework operations use the <code>FrameworkContext</code> object, but it's unused by (and irrelevant to) user code.</p>
+<p>In effect, the framework must be able to communicate its internal context from its <code>serve</code> method (which calls the user's <code>handle</code> method) to its <code>readKey</code> method:</p>
+<p><a id="Web-framework-example-Initial-extents"></a></p>
+<pre><code>4. Framework.readKey &lt;--------+ use context
+3. Application.readUserInfo   |
+2. Application.handle         |
+1. Framework.serve  ----------+ create context</code></pre>
+<p>The simplest way to do this is by passing the object as an argument to all methods in the call chain:</p>
+<pre><code>@Override
+void handle(Request request, Response response, FrameworkContext context) {
+    ...
+    var userInfo = readUserInfo(context);
+    ...
+}
+
+private UserInfo readUserInfo(FrameworkContext context) {
+    return (UserInfo)framework.readKey("userInfo", context);
+}</code></pre>
+<p>There is no way for the user code to assist in the proper handling of the context object. At worst, it could interfere by mixing up contexts; at best it is burdened with the need to add another parameter to all methods that may end up calling back into the framework. If the need to pass a context emerges during redesign of the framework, adding it requires not only the immediate clients &#8212; those user methods that directly call framework methods or those that are directly called by it &#8212; to change their signature, but all intermediate methods as well, even though the context is an internal implementation detail of the framework and user code should not interact with it.</p>
+<h3 id="Thread-local-variables-for-sharing">Thread-local variables for sharing</h3>
+<p>Developers have traditionally used <em>thread-local variables</em>, introduced in Java 1.2, to help share data between methods on the call stack without resorting to method parameters. A thread-local variable is a variable of type <a href="https://docs.oracle.com/en/java/javase/22/docs/api/java.base/java/lang/ThreadLocal.html"><code>ThreadLocal</code></a>. Despite looking like an ordinary variable, a thread-local variable has one current value per thread; the particular value that is used depends on which thread calls its <code>get</code> or <code>set</code> methods to read or write its value. Typically, a thread-local variable is declared as a <code>static final</code> field and its accessibility is set to <code>private</code>, allowing sharing to be restricted to instances of a single class or group of classes from a single code base.</p>
+<p>Here is an example of how the two framework methods, both running in the same request-handling thread, can use a thread-local variable to share a <code>FrameworkContext</code>. The framework declares a thread-local variable, <code>CONTEXT</code> (1). When <code>Framework.serve</code> is executed in a request-handling thread, it writes a suitable <code>FrameworkContext</code> to the thread-local variable (2), then calls user code. If and when user code calls <code>Framework.readKey</code>, that method reads the thread-local variable (3) to obtain the <code>FrameworkContext</code> of the request-handling thread.</p>
+<p><a id="Web-framework-example-ThreadLocal-code"></a></p>
+<pre><code>public class Framework {
+
+    private final Application application;
+
+    public Framework(Application app) { this.application = app; }
+    
+    private static final ThreadLocal&lt;FrameworkContext&gt; CONTEXT 
+                       = new ThreadLocal&lt;&gt;();    // (1)
+
+    void serve(Request request, Response response) {
+        var context = createContext(request);
+        CONTEXT.set(context);                    // (2)
+        Application.handle(request, response);
+    }
+
+    public PersistedObject readKey(String key) {
+        var context = CONTEXT.get();              // (3)
+        var db = getDBConnection(context);
+        db.readKey(key);
+    }
+
+}</code></pre>
+<p>Using a thread-local variable avoids the need to pass a <code>FrameworkContext</code> as a method argument when the framework calls user code, and when user code calls a framework method back. The thread-local variable serves as a hidden method parameter: A thread that calls <code>CONTEXT.set</code> in <code>Framework.serve</code> and then <code>CONTEXT.get</code> in <code>Framework.readKey</code> will automatically see its own local copy of the <code>CONTEXT</code> variable. In effect, the <code>ThreadLocal</code> field serves as a key that is used to look up a <code>FrameworkContext</code> value for the current thread.</p>
+<p>While <code>ThreadLocals</code> have a distinct value set in each thread, the value that is currently set in one thread can be automatically inherited by another thread that the current thread creates by using the <code>InheritableThreadLocal</code> class rather than the <code>ThreadLocal</code> class.</p>
+<h3 id="Problems-with-thread-local-variables">Problems with thread-local variables</h3>
+<p>Unfortunately, thread-local variables have three inherent design flaws.</p>
+<ul>
+<li>
+<p><em>Unconstrained mutability</em>  &#8212;  Every thread-local variable is mutable: Any code that can call the <code>get</code> method of a thread-local variable can call the <code>set</code> method of that variable at any time. This is still true even if an object in a thread-local variable is immutable due to every one of its fields being declared final. The <code>ThreadLocal</code> API allows this in order to support a fully general model of communication, where data can flow in any direction between methods. This can lead to spaghetti-like data flow, and to programs in which it is hard to discern which method updates shared state and in what order. The more common need, shown in the example above, is a simple one-way transmission of data from one method to others.</p>
+</li>
+<li>
+<p><em>Unbounded lifetime</em> &#8212; Once a thread's copy of a thread-local variable is set via the <code>set</code> method, the value to which it was set is retained for the lifetime of the thread, or until code in the thread calls the <code>remove</code> method. Unfortunately, developers often forget to call <code>remove</code>, so per-thread data is often retained for longer than necessary. In particular, if a thread pool is used, the value of a thread-local variable set in one task could, if not properly cleared, accidentally leak into an unrelated task, potentially leading to dangerous security vulnerabilities. In addition, for programs that rely on the unconstrained mutability of thread-local variables, there may be no clear point at which it is safe for a thread to call <code>remove</code>; this can cause a long-term memory leak, since per-thread data will not be garbage-collected until the thread exits. It would be better if the writing and reading of per-thread data occurred in a bounded period during execution of the thread, avoiding the possibility of leaks.</p>
+</li>
+<li>
+<p><em>Expensive inheritance</em> &#8212; The overhead of thread-local variables may be worse when using large numbers of threads, because thread-local variables of a parent thread can be inherited by child threads. (A thread-local variable is not, in fact, local to one thread.) When a developer chooses to create a child thread that inherits thread-local variables, the child thread has to allocate storage for every thread-local variable previously written in the parent thread. This can add significant memory footprint. Child threads cannot share the storage used by the parent thread because the <code>ThreadLocal</code> API requires that changing a thread's copy of the thread-local variable is not seen in other threads. This is unfortunate, because in practice child threads rarely call the <code>set</code> method on their inherited thread-local variables.</p>
+</li>
+</ul>
+<h3 id="Toward-lightweight-sharing">Toward lightweight sharing</h3>
+<p>The problems of thread-local variables have become more pressing with the availability of virtual threads (<a href="https://openjdk.org/jeps/444">JEP 444</a>). Virtual threads are lightweight threads implemented by the JDK. Many virtual threads share the same operating system thread, allowing for very large numbers of virtual threads. In addition to being plentiful, virtual threads are cheap enough to represent any concurrent unit of behavior. This means that a web framework can dedicate a new virtual thread to the task of handling a request and still be able to process thousands or millions of requests at once. In the ongoing example, the methods <code>Framework.serve</code>, <code>Application.handle</code>, and <code>Framework.readKey</code> would all execute in a new virtual thread for each incoming request.</p>
+<p>It would be useful for these methods to be able to share data whether they execute in virtual threads or traditional platform threads. Because virtual threads are instances of <code>Thread</code>, a virtual thread can have thread-local variables; in fact, the short-lived, <a href="https://openjdk.org/jeps/444#Do-not-pool-virtual-threads">non-pooled</a> nature of virtual threads makes the problem of long-term memory leaks, mentioned above, less acute. (Calling a thread-local variable's <code>remove</code> method is unnecessary when a thread terminates quickly, since termination automatically removes its thread-local variables.) However, if each of a million virtual threads has its own copy of thread-local variables, the memory footprint may be significant.</p>
+<p>In summary, thread-local variables have more complexity than is usually needed for sharing data, and significant costs that cannot be avoided. The Java Platform should provide a way to maintain inheritable per-thread data for thousands or millions of virtual threads. If these per-thread variables were immutable, their data could be shared by child threads efficiently. Further, the lifetime of these per-thread variables should be bounded: Any data shared via a per-thread variable should become unusable once the method that initially shared the data is finished.</p>
+<h2 id="Description">Description</h2>
+<p>A <em>scoped value</em> is a container object that allows a data value to be safely and efficiently shared by a method with its direct and indirect callees within the same thread, and with child threads, without resorting to method parameters. It is a variable of type <a href="https://download.java.net/java/early_access/loom/docs/api/java.base/java/lang/ScopedValue.html"><code>ScopedValue</code></a>. It is typically declared as a <code>static final</code> field, and its accessibility is set to <code>private</code> so that it cannot be directly accessed by code in other classes.</p>
+<p>Like a thread-local variable, a scoped value has multiple values associated with it, one per thread. The particular value that is used depends on which thread calls its methods. Unlike a thread-local variable, a scoped value is written once, and is available only for a bounded period during execution of the thread.</p>
+<p>A scoped value is used as shown below. Some code calls <code>ScopedValue.where</code>, presenting a scoped value and the object to which it is to be bound. A chained call of the <code>run</code> method <em>binds</em> the scoped value, providing a copy that is specific to the current thread, and then runs the lambda expression passed as an argument. During the lifetime of the <code>run</code> call, the lambda expression, or any method called directly or indirectly from that expression, can read the scoped value via the value&#8217;s <code>get</code> method. After the <code>run</code> method finishes, the binding is destroyed.</p>
+<pre><code>static final ScopedValue&lt;...&gt; NAME = ScopedValue.newInstance();
+
+// In some method:
+ScopedValue.where(NAME, &lt;value&gt;).run(() -&gt; { ... NAME.get() ... call methods ... });
+
+// In a method called directly or indirectly from the lambda expression:
+... NAME.get() ...</code></pre>
+<p>The structure of the code delineates the period of time when a thread can read its copy of a scoped value. This bounded lifetime greatly simplifies reasoning about thread behavior. The one-way transmission of data from caller to callees &#8212; both direct and indirect &#8212; is obvious at a glance. There is no <code>set</code> method that lets faraway code change the scoped value at any time. This also helps performance: Reading a scoped value with <code>get</code> is often as fast as reading a local variable, regardless of the stack distance between caller and callee.</p>
+<p>In the remaining examples we assume that <code>ScopedValue.where</code> has been statically imported, like so:</p>
+<pre><code>import static java.lang.ScopedValue.where;</code></pre>
+<p>This allows us to shorten <code>ScopedValue.where(NAME, &lt;value&gt;).run(...)</code> to <code>where(NAME, &lt;value&gt;).run(...)</code></p>
+<h3 id="The-meaning-of-&quot;scoped&quot;">The meaning of "scoped"</h3>
+<p>The <em>scope</em> of a thing is the space in which it lives &#8212; the extent or range in which it can be used. For example, in the Java programming language, the scope of a variable declaration is the space within the program text where it is legal to refer to the variable with a simple name (<a href="https://docs.oracle.com/javase/specs/jls/se19/html/jls-6.html#jls-6.3">JLS &#167;6.3</a>). This kind of scope is more accurately called <em>lexical scope</em> or <em>static scope</em>, since the space where the variable is in scope can be
+understood statically by looking for <code>{</code> and <code>}</code> characters in the program text.</p>
+<p>Another kind of scope is called <em>dynamic scope</em>. The dynamic scope of a thing refers to the parts of a program that can use the thing as the program executes. If method <code>a</code> calls method <code>b</code> that, in turn, calls method <code>c</code>, the execution lifetime of <code>c</code> is contained within the execution of <code>b</code>, which is contained in that of <code>a</code>, even though the three methods are distinct code units:</p>
+<pre><code>|
+  |   +&#8211;&#8211; a
+  |   |
+  |   |  +&#8211;&#8211; b
+  |   |  |
+TIME  |  |  +&#8211;&#8211; c
+  |   |  |  |
+  |   |  |  |__
+  |   |  |
+  |   |  |__
+  |   |
+  |   |__
+  |
+  v</code></pre>
+<p>This is the concept to which <em>scoped value</em> appeals, because binding a scoped value V in a <code>run</code> (or <code>call</code>) method produces a value that is accessible by certain parts of the program as it executes, namely the methods invoked directly or indirectly by <code>run</code> or <code>call</code>.</p>
+<p>The unfolding execution of those methods defines a dynamic scope; the binding is in scope during the execution of those methods, and nowhere else.</p>
+<h3 id="Web-framework-example-with-scoped-values">Web framework example with scoped values</h3>
+<p>The framework code shown earlier can easily be rewritten to use a scoped value instead of a thread-local variable:</p>
+<p><a id="Web-framework-example-ScopedValue-code"></a></p>
+<pre><code>class Framework {
+
+    private static final ScopedValue&lt;FrameworkContext&gt; CONTEXT
+                        = ScopedValue.newInstance();    // (1)
+
+    void serve(Request request, Response response) {
+        var context = createContext(request);
+        where(CONTEXT, context)                         // (2)
+                   .run(() -&gt; Application.handle(request, response));
+    }
+    
+    public PersistedObject readKey(String key) {
+        var context = CONTEXT.get();                    // (3)
+        var db = getDBConnection(context);
+        db.readKey(key);
+    }
+
+}</code></pre>
+<p>At (1), the framework declares a scoped value instead of a thread-local variable. At (2), the <code>serve</code> method calls <code>where ... run</code> instead of a thread-local variable's <code>set</code> method.</p>
+<p>The <code>run</code> method provides one-way sharing of data from the <code>serve</code> method to the <code>readKey</code> method. The scoped value passed to <code>run</code> is bound to the corresponding object for the lifetime of the <code>run</code> call, so <code>CONTEXT.get()</code> in any method called from <code>run</code> will read that value. Accordingly, when <code>Framework.serve</code> calls user code, and user code calls <code>Framework.readKey</code>, the value read from the scoped value (3) is the value written by <code>Framework.serve</code> earlier in the thread.</p>
+<p>The binding established by <code>run</code> is usable only in code called from <code>run</code>. If <code>CONTEXT.get()</code> appeared in <code>Framework.serve</code> after the call to <code>run</code>, an exception would be thrown because <code>CONTEXT</code> is no longer bound in the thread.</p>
+<p>As before, the framework relies on Java's access control to restrict access to its internal data: The <code>CONTEXT</code> field has private access, which allows the framework to share information internally between its two methods. That information is inaccessible to, and hidden from, user code. We say that the <code>ScopedValue</code> object is a <a href="https://en.wikipedia.org/wiki/Capability-based_security"><em>capability</em></a> object that gives code with permissions to access it the ability to bind or read the value.  Often the <code>ScopedValue</code> will have <code>private</code> access, but sometimes it may have <code>protected</code> or package access to allow multiple cooperating classes to read and bind the value.</p>
+<h3 id="Rebinding-scoped-values">Rebinding scoped values</h3>
+<p>That scoped values have no <code>set</code> method means that a caller can use a scoped value to reliably communicate a value to its callees in the same thread. However, there are occasions when one of its callees might need to use the same scoped value to communicate a different value to its own callees. The <code>ScopedValue</code> API allows a new nested binding to be established for subsequent calls:</p>
+<pre><code>private static final ScopedValue&lt;String&gt; X = ScopedValue.newInstance();
+
+void foo() {
+   where(X, "hello").run(() -&gt; bar());
+}
+
+void bar() {
+    System.out.println(X.get()); // prints hello
+    where(X, "goodbye").run(() -&gt; baz());
+    System.out.println(X.get()); // prints hello
+}
+
+void baz() {
+    System.out.println(X.get()); // prints goodbye
+}</code></pre>
+<p><code>bar</code> reads the value of <code>X</code> to be <code>"hello"</code>, as that is the binding in the scope established in <code>foo</code>. But then <code>bar</code> establishes a nested scope to run <code>baz</code> where <code>X</code> is bound to <code>goodbye</code>.</p>
+<p>Notice how the <code>"goodbye"</code> binding is in effect only inside the nested scope. Once <code>baz</code> returns, the value of <code>X</code> inside <code>bar</code> reverts to '"hello"'. The body of <code>bar</code> cannot change the binding seen by that method itself but can change the binding seen by its callees. After <code>foo</code> exits, <code>X</code> reverts to being unbound. This nesting guarantees a bounded lifetime for sharing of the new value.</p>
+<h3 id="Inheriting-scoped-values">Inheriting scoped values</h3>
+<p>The web framework example dedicates a thread to handling each request, so the same thread executes some framework code, then user code from the application developer, then more framework code to access the database. However, user code can exploit the lightweight nature of virtual threads by creating its own virtual threads and running its own code in them. These virtual threads will be child threads of the request-handling thread.</p>
+<p>Context data shared by a code running in the request-handling thread needs to be available to code running in child threads. Otherwise, when user code running in a child thread calls a framework method it will be unable to access the <code>FrameworkContext</code> created by the framework code running in the request-handling thread. To enable cross-thread sharing, scoped values can be inherited by child threads.</p>
+<p>The preferred mechanism for user code to create virtual threads is the Structured Concurrency API (<a href="https://openjdk.org/jeps/505">JEP&#160;505</a>), specifically the class <a href="https://docs.oracle.com/en/java/javase/22/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html"><code>StructuredTaskScope</code></a>. Scoped values in the parent thread are automatically inherited by child threads created with <code>StructuredTaskScope</code>. Code in a child thread can use bindings established for a scoped value in the parent thread with minimal overhead. Unlike with thread-local variables, there is no copying of a parent thread's scoped value bindings to the child thread.</p>
+<p>Here is an example of scoped value inheritance occurring behind the scenes in user code. The <code>Server.serve</code> method binds <code>CONTEXT</code> and calls <code>Application.handle</code> just as before. However, the user code in <code>Application.handle</code> calls run the <code>readUserInfo</code> and <code>fetchOffers</code> methods concurrently, each in its own virtual threads, using <code>StructuredTaskScope.fork</code> (1, 2). Each method may use <code>Framework.readKey</code> which, as before, consults the scoped value <code>CONTEXT</code> (4). Further details of the user code are not discussed here; see <a href="https://openjdk.org/jeps/505#Description">JEP&#160;505</a> for further information.</p>
+<pre><code>@Override
+public Response handle(Request request, Response response) {
+      try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+          Supplier&lt;UserInfo&gt;     user  = scope.fork(() -&gt; readUserInfo());  // (1)
+          Supplier&lt;List&lt;Offer&gt;&gt; offers = scope.fork(() -&gt; fetchOffers());   // (2)
+          scope.join().throwIfFailed();  // Wait for both forks
+          return new Response(user.get(), order.get());
+      } catch (Exception ex) {
+          reportError(response, ex);
+      }
+}</code></pre>
+<p><code>StructuredTaskScope.fork</code> ensures that the binding of the scoped value <code>CONTEXT</code> made in the request-handling thread &#8212; <a href="#Web-framework-example-ScopedValue-code">in Framework.serve</a> &#8212; is read by <code>CONTEXT.get</code> in the child thread. The following diagram shows how the dynamic scope of the binding is extended to all methods executed in the child thread:</p>
+<p><a id="Web-framework-example-Inheritance-extent"></a></p>
+<pre><code>Thread 1                        Thread 2
+--------                        --------   
+                                5. Framework.readKey &lt;----------+
+                                                                |
+                                                              CONTEXT
+                                4. Application.readUserInfo     |
+3. StructuredTaskScope.fork                                     |
+2. Application.handle                                           |
+1. Server.serve     --------------------------------------------+</code></pre>
+<p>The fork/join model offered by <code>StructuredTaskScope</code> means that the dynamic scope of the binding is still bounded by the lifetime of the call to <code>ScopedValue.run</code>. The <code>Principal</code> will remain in scope while the child thread is running, and <code>scope.join</code> ensures that child threads terminate before <code>run</code> can return, destroying the binding. This avoids the problem of unbounded lifetimes seen when using thread-local variables. Legacy thread management classes such as <code>ForkJoinPool</code> do not support inheritance of scoped values because they cannot guarantee that a child thread forked from some parent thread scope will exit before the parent leaves that scope.</p>
+<h3 id="Migrating-to-scoped-values">Migrating to scoped values</h3>
+<p>Scoped values are likely to be useful and preferable in many scenarios where thread-local variables are used today. Beyond serving as hidden method parameters, scoped values may assist with:</p>
+<ul>
+<li>
+<p><em>Re-entrant code</em> &#8212; Sometimes it is desirable to detect recursion, perhaps because a framework is not re-entrant or because recursion must be limited in some way. A scoped value provides a way to do this: Set it up as usual, with <code>ScopedValue.run</code>, and then deep in the call stack, call <code>ScopedValue.isBound</code> to check if it has a binding for the current thread. More elaborately, the scoped value can model a recursion counter by being repeatedly rebound.</p>
+</li>
+<li>
+<p><em>Nested transactions</em> &#8212; Detecting recursion can also be useful in the case of flattened transactions: Any transaction started while a transaction is in progress becomes part of the outermost transaction.</p>
+</li>
+<li>
+<p><em>Graphics contexts</em> &#8212; Another example occurs in graphics, where there is often a drawing context to be shared between parts of the program. Scoped values, because of their automatic cleanup and re-entrancy, are better suited to this than thread-local variables.</p>
+</li>
+</ul>
+<p>In general, we advise migration to scoped values when the purpose of a thread-local variable aligns with the goal of a scoped value: one-way transmission of unchanging data. If a codebase uses thread-local variables in a two-way fashion &#8212; where a callee deep in the call stack transmits data to a faraway caller via <code>ThreadLocal.set</code> &#8212; or in a completely unstructured fashion, then migration is not an option.</p>
+<p>There are a few scenarios that favor thread-local variables. An example is caching objects that are expensive to create and use. <code>java.text.SimpleDateFormat</code> objects, for example, are expensive to create and, notoriously, also mutable, so they cannot be shared between threads without synchronization. Thus giving each thread its own <code>SimpleDateFormat</code> object, via a thread-local variable that persists for the lifetime of the thread, has often been a practical approach. (Today, though, any code caching a <code>SimpleDateFormat</code> object could move to using the newer <code>java.util.time.DateTimeFormatter</code>, which can be stored in a <code>static final</code> field and shared between threads.)</p>
+<h3 id="The-ScopedValue-API">The <code>ScopedValue</code> API</h3>
+<p>The full <code>ScopedValue</code> API is richer than the subset described above. Above we only showed examples that use <code>ScopedValue&lt;V&gt;.where(V, &lt;value&gt;).run(...)</code>, but the API also provides a <code>call</code> method which returns a value and may also throw an exception:</p>
+<pre><code>try {
+        var result = where(X, "hello").call(() -&gt; bar());
+        ... use result ...
+    catch (Exception e) {
+        handleFailure(e);
+    }
+        ...</code></pre>
+<p>Additionally, we can bind multiple scoped values at a call site:</p>
+<pre><code>where(X, v).where(Y, w).run(() -&gt; ... );</code></pre>
+<p>This example runs an operation with <code>X</code> bound (or rebound) to <code>v</code>, and <code>Y</code> bound (or rebound) to <code>w</code>. This is both more efficient and easier to read than nested invocations of <code>ScopedValue ... where ... run</code>.</p>
+<p>The full scoped value API can be found <a href="https://download.java.net/java/early_access/loom/docs/api/java.base/java/lang/ScopedValue.html">here</a>.</p>
+<h2 id="Alternatives">Alternatives</h2>
+<p>It is possible to emulate many of the features of scoped values with thread-local variables, albeit at some cost in memory footprint, security, and performance.</p>
+<p>We experimented with a modified version of <code>ThreadLocal</code> that supports some of the characteristics of scoped values. However, carrying the additional baggage of thread-local variables results in an implementation that is unduly burdensome, or an API that returns <code>UnsupportedOperationException</code> for much of its core functionality, or both. It is better, therefore, not to modify <code>ThreadLocal</code> but to introduce scoped values as an entirely separate concept.</p>
+<p>We also experimented with a version of scoped-value binding that supports the <code>AutoCloseable</code> interface, and so could be used in a <code>try</code>-with-resources construct. We ultimately rejected that idea because it is impossible to guarantee correct operation when relying on user code to invoke the <code>close</code> method at the right time. Also, even if that method is invoked as designed, by a <code>try</code>-with-resources construct, the operation may immediately fail with a <code>StackOverflowError</code>, leaving the program in an inconsistent state. Integrity, even in the case of <code>StackOverflowError</code>, is more important than the convenience of <code>try</code>-with-resources. The functional interfaces used by the <code>run</code> and <code>call</code> methods in this API allow us to guarantee integrity while still being reasonably easy to use.</p>
+<p>Scoped values were inspired by the way that many Lisp dialects provide support for dynamically scoped free variables; in particular, how such variables behave in a deep-bound, multi-threaded runtime such as <a href="https://en.wikipedia.org/wiki/Interlisp">Interlisp-D</a>. Scoped values improve on Lisp's free variables by adding type safety, immutability, encapsulation, and efficient access within and across threads.</p>
+</div></div><div id="sidebar"><div id="openjdk-sidebar-logo"><a href="/"><img alt="OpenJDK logo" width="91" height="25" src="/images/openjdk2.svg" /></a></div><div class="links"><div class="link"><a href="/install/">Installing</a></div><div class="link"><a href="/guide/#contributing-to-an-openjdk-project">Contributing</a></div><div class="link"><a href="/guide/#reviewing-and-sponsoring-a-change">Sponsoring</a></div><div class="link"><a href="/guide/">Developers' Guide</a></div><div class="link"><a href="/groups/vulnerability/report">Vulnerabilities</a></div><div class="link"><a href="https://jdk.java.net">JDK GA/EA Builds</a></div></div><div class="links"><div class="links"><a href="https://mail.openjdk.org">Mailing lists</a></div><div class="link"><a href="https://wiki.openjdk.org">Wiki</a>
+                      &#183; <a href="/irc">IRC</a></div><div class="link"><a href="https://mastodon.social/@openjdk" rel="me">Mastodon</a></div><div class="link"><a href="https://bsky.app/profile/openjdk.org">Bluesky</a></div></div><div class="links"><div class="links"><a href="/bylaws">Bylaws</a> &#183; <a href="/census">Census</a></div><div class="link"><a href="/legal/">Legal</a> &#183; <a href="/legal/ai">AI</a></div></div><div class="links"><div class="links"><a href="/workshop"><b>Workshop</b></a></div></div><div class="links"><div class="links"><a href="/jeps/0"><b>JEP Process</b></a></div></div><div class="links"><div class="about">Source code</div><div class="link"><a href="https://github.com/openjdk/">GitHub</a></div><div class="link"><a href="https://hg.openjdk.org">Mercurial</a></div></div><div class="links"><div class="about">Tools</div><div class="link"><a href="http://git-scm.org/">Git</a></div><div class="link"><a href="/jtreg/">jtreg harness</a></div></div><div class="links"><div class="about">Groups</div><div class="link"><a href="/groups/">(overview</a>,
+      <a href="/groups/archive">archive</a>)</div><div class="link"><a href="/groups/adoption">Adoption</a></div><div class="link"><a href="/groups/build">Build</a></div><div class="link"><a href="/groups/client-libs">Client Libraries</a></div><div class="link"><a href="/groups/csr">Compatibility &amp; Specification Review</a></div><div class="link"><a href="/groups/compiler">Compiler</a></div><div class="link"><a href="/groups/conformance">Conformance</a></div><div class="link"><a href="/groups/core-libs">Core Libraries</a></div><div class="link"><a href="/groups/gb">Governing Board</a></div><div class="link"><a href="/groups/hotspot">HotSpot</a></div><div class="link"><a href="/groups/ide-support">IDE Tooling &amp; Support</a></div><div class="link"><a href="/groups/i18n">Internationalization</a></div><div class="link"><a href="/groups/members">Members</a></div><div class="link"><a href="/groups/net">Networking</a></div><div class="link"><a href="/groups/porters">Porters</a></div><div class="link"><a href="/groups/quality">Quality</a></div><div class="link"><a href="/groups/security">Security</a></div><div class="link"><a href="/groups/serviceability">Serviceability</a></div><div class="link"><a href="/groups/vulnerability">Vulnerability</a></div><div class="link"><a href="/groups/web">Web</a></div></div><div class="links"><div class="about">Projects</div><div class="link">(<a href="/projects/">overview</a>,
+      <a href="/projects/archive">archive</a>)</div><div class="link"><a href="/projects/amber">Amber</a></div><div class="link"><a href="/projects/babylon">Babylon</a></div><div class="link"><a href="/projects/brisbane">Brisbane</a></div><div class="link"><a href="/projects/crac">CRaC</a></div><div class="link"><a href="/projects/code-tools">Code Tools</a></div><div class="link"><a href="/projects/coin">Coin</a></div><div class="link"><a href="/projects/cvmi">Common VM Interface</a></div><div class="link"><a href="/projects/detroit">Detroit</a></div><div class="link"><a href="/projects/guide">Developers' Guide</a></div><div class="link"><a href="/projects/duke">Duke</a></div><div class="link"><a href="/projects/icedtea">IcedTea</a></div><div class="link"><a href="/projects/jdk8u">JDK 8 Updates</a></div><div class="link"><a href="/projects/jdk9">JDK 9</a></div><div class="link"><a href="/projects/jdk">JDK</a>
+      (&#8230;,
+       <a href="/projects/jdk/26">26</a>,
+       <a href="/projects/jdk/27">27</a>,
+       <a href="/projects/jdk/28">28</a>)</div><div class="link"><a href="/projects/jdk-updates">JDK Updates</a></div><div class="link"><a href="/projects/jmc">JMC</a></div><div class="link"><a href="/projects/jigsaw">Jigsaw</a></div><div class="link"><a href="/projects/lanai">Lanai</a></div><div class="link"><a href="/projects/leyden">Leyden</a></div><div class="link"><a href="/projects/lilliput">Lilliput</a></div><div class="link"><a href="/projects/loom">Loom</a></div><div class="link"><a href="/projects/jmm">Memory Model Update</a></div><div class="link"><a href="/projects/mlvm">Multi-Language VM</a></div><div class="link"><a href="/projects/nashorn">Nashorn</a></div><div class="link"><a href="/projects/nio">New I/O</a></div><div class="link"><a href="/projects/openjfx">OpenJFX</a></div><div class="link"><a href="/projects/panama">Panama</a></div><div class="link"><a href="/projects/aarch32-port">Port: AArch32</a></div><div class="link"><a href="/projects/aarch64-port">Port: AArch64</a></div><div class="link"><a href="/projects/bsd-port">Port: BSD</a></div><div class="link"><a href="/projects/haiku-port">Port: Haiku</a></div><div class="link"><a href="/projects/mips-port">Port: MIPS</a></div><div class="link"><a href="/projects/mobile">Port: Mobile</a></div><div class="link"><a href="/projects/ppc-aix-port">Port: PowerPC/AIX</a></div><div class="link"><a href="/projects/riscv-port">Port: RISC-V</a></div><div class="link"><a href="/projects/s390x-port">Port: s390x</a></div><div class="link"><a href="/projects/sctp">SCTP</a></div><div class="link"><a href="/projects/shenandoah">Shenandoah</a></div><div class="link"><a href="/projects/skara">Skara</a></div><div class="link"><a href="/projects/sumatra">Sumatra</a></div><div class="link"><a href="/projects/tsan">Tsan</a></div><div class="link"><a href="/projects/valhalla">Valhalla</a></div><div class="link"><a href="/projects/wakefield">Wakefield</a></div><div class="link"><a href="/projects/zero">Zero</a></div><div class="link"><a href="/projects/zgc">ZGC</a></div></div><div class="buttons"><a href="https://oracle.com"><img alt="Oracle logo" width="100" height="13" src="/images/oracle.svg" /></a></div></div><div id="footer">
+
+        &#169; 2026 Oracle Corporation and/or its affiliates
+        <br /><a href="/legal/tou/">Terms of Use</a>
+        &#183;
+        
+            License: <a href="/legal/gplv2+ce.html">GPLv2</a>
+        &#183; <a href="https://www.oracle.com/us/legal/privacy/">Privacy</a>
+        &#183; <a href="https://openjdk.org/legal/openjdk-trademark-notice.html">Trademarks</a></div><script type="text/javascript"  src="/gEWij8zEsSHV8271ts26/c5hOL4JpbiSbbL/Hy9jbBo5DBA/EGElA/nJtAQoC"></script></body></html>

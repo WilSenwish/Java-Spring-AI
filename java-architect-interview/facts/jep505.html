@@ -1,0 +1,322 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=us-ascii" /><meta http-equiv="Content-Type" content="text/html; charset=us-ascii" /><title>JEP 505: Structured Concurrency (Fifth Preview)</title><link rel="shortcut icon" href="/images/nanoduke.ico" /><link rel="stylesheet" type="text/css" href="/page.css" /><script type="text/javascript" src="/page.js"><noscript></noscript></script><script src="https://cdn.usefathom.com/script.js" data-site="KCYJJPZX" defer="yes"></script><style type="text/css" xml:space="preserve">
+      TABLE { border-collapse: collapse; padding: 0px; margin: 1em 0 1em 2em; }
+      TR:first-child TH, TR:first-child TD { padding-top: 0; }
+      TH, TD { padding: 0px; padding-top: .5ex; vertical-align: baseline; text-align: left; }
+      TD + TD, TH + TH { padding-left: 1em; }
+      TD:first-child, TH:first-child, TD.jep { text-align: right; }
+      TABLE.head TD:first-child { font-style: italic; padding-left: 2em; white-space: nowrap; }
+      PRE { padding-left: 2em; margin: 1ex 0; font-size: inherit; }
+      TABLE PRE { padding-left: 0; margin: 0; }
+      TABLE.jeps TD:first-child + TD,
+      TABLE.jeps TD:first-child + TD + TD { padding-left: .5em; }
+      TABLE.jeps TD:first-child,
+      TABLE.jeps TD:first-child + TD,
+      TABLE.jeps TD:first-child + TD + TD { font-size: smaller; }
+      TABLE.jeps TD.cl { font-size: smaller; padding-right: 0; text-align: right; }
+      TABLE.jeps TD.cm { font-size: smaller; padding-left: .1em; padding-right: .1em; }
+      TABLE.jeps TD.cr { font-size: smaller; padding-left: 0; }
+      TABLE.jeps TD.z { padding-left: 0; padding-right: 0; }
+      TABLE.head TD { padding-top: 0; }
+    </style></head><body><div id="main"><h1>JEP 505: Structured Concurrency (Fifth Preview)</h1><table class="head"><tr><td>Authors</td><td>Alan Bateman, Viktor Klang, &amp; Ron Pressler</td></tr><tr><td>Owner</td><td>Alan Bateman</td></tr><tr><td>Type</td><td>Feature</td></tr><tr><td>Scope</td><td>SE</td></tr><tr><td>Status</td><td>Closed&#8201;/&#8201;Delivered</td></tr><tr><td>Release</td><td>25</td></tr><tr><td>Component</td><td>core-libs</td></tr><tr><td>Discussion</td><td>loom dash dev at openjdk dot org</td></tr><tr><td>Relates to</td><td><a href="499">JEP 499: Structured Concurrency (Fourth Preview)</a></td></tr><tr><td></td><td><a href="525">JEP 525: Structured Concurrency (Sixth Preview)</a></td></tr><tr><td>Reviewed by</td><td>Paul Sandoz</td></tr><tr><td>Endorsed by</td><td>Paul Sandoz</td></tr><tr><td>Created</td><td>2024/09/18 04:58</td></tr><tr><td>Updated</td><td>2025/10/09 07:21</td></tr><tr><td>Issue</td><td><a href="https://bugs.openjdk.org/browse/JDK-8340343">8340343</a></td></tr></table><div class="markdown"><h2 id="Summary">Summary</h2>
+<p>Simplify concurrent programming by introducing an API for <em>structured concurrency</em>. Structured concurrency treats groups of related tasks running in different threads as single units of work, thereby streamlining error handling and cancellation, improving reliability, and enhancing observability. This is a <a href="https://openjdk.org/jeps/12">preview API</a>.</p>
+<h2 id="History">History</h2>
+<p>Structured Concurrency incubated in <a href="https://openjdk.org/projects/jdk/19/">JDK 19</a> via <a href="https://openjdk.org/jeps/428">JEP 428</a> and <a href="https://openjdk.org/projects/jdk/20/">JDK 20</a> via  <a href="https://openjdk.org/jeps/437">JEP 437</a>.  It previewed in <a href="https://openjdk.org/projects/jdk/21/">JDK 21</a> via <a href="https://openjdk.org/jeps/453">JEP 453</a>, with the <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html#fork(java.util.concurrent.Callable)">fork</a> method changed to return a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Subtask.html">Subtask</a> rather than a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Future.html"><code>Future</code></a>. It re-previewed in <a href="https://openjdk.org/projects/jdk/22/">JDK 22</a> via <a href="https://openjdk.org/jeps/462">JEP 462</a>, <a href="https://openjdk.org/projects/jdk/23/">JDK 23</a> via <a href="https://openjdk.org/jeps/480">JEP 480</a>, and <a href="https://openjdk.org/projects/jdk/24/">JDK 24</a> via <a href="https://openjdk.org/jeps/499">JEP 499</a>.</p>
+<p>We propose to preview the API once more in JDK 25 with several API changes. In particular, a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html"><code>StructuredTaskScope</code></a> is now opened via static factory methods rather than public constructors. The zero-parameter <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html#open()"><code>open</code></a> factory method covers the common case by creating a <code>StructuredTaskScope</code> that waits for all subtasks to succeed or any subtask to fail. Other policies and outcomes can be implemented by providing an appropriate <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html"><code>Joiner</code></a> to one of the richer <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html#open(java.util.concurrent.StructuredTaskScope.Joiner)"><code>open</code></a> factory methods.</p>
+<h2 id="Goals">Goals</h2>
+<ul>
+<li>
+<p>Promote a style of concurrent programming that can eliminate common risks arising from cancellation and shutdown, such as thread leaks and cancellation delays.</p>
+</li>
+<li>
+<p>Improve the observability of concurrent code.</p>
+</li>
+</ul>
+<h2 id="Non-Goals">Non-Goals</h2>
+<ul>
+<li>
+<p>It is not a goal to replace any of the concurrency constructs in the <code>java.util.concurrent</code> package, such as <code>ExecutorService</code> or <code>Future</code>.</p>
+</li>
+<li>
+<p>It is not a goal to create the definitive structured concurrency API for all Java programs. Other structured concurrency constructs can be defined by third-party libraries or in future JDK releases.</p>
+</li>
+<li>
+<p>It is not a goal to define a means of sharing streams of data among threads (i.e., <em><a href="https://en.wikipedia.org/wiki/Channel_(programming)">channels</a></em>). We might propose to do so in the future.</p>
+</li>
+<li>
+<p>It is not a goal to replace the existing thread interruption mechanism with a new thread cancellation mechanism. We might propose to do so in the future.</p>
+</li>
+</ul>
+<h2 id="Motivation">Motivation</h2>
+<p>We manage complexity in programs by breaking tasks down into multiple subtasks. In ordinary single-threaded code, the subtasks execute sequentially. However, if the subtasks are sufficiently independent of each other, and if there are sufficient hardware resources, then the overall task can be made to run faster, i.e., with lower latency, by executing the subtasks concurrently. For example, a task that composes the results of multiple I/O operations will run faster if each I/O operation executes concurrently in its own thread. Virtual threads (<a href="https://openjdk.org/jeps/444">JEP 444</a>) make it cost-effective to dedicate a thread to every such I/O operation, but managing the huge number of threads that can result remains a challenge.</p>
+<h3 id="Unstructured-concurrency-with-ExecutorService">Unstructured concurrency with <code>ExecutorService</code></h3>
+<p>The <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ExecutorService.html"><code>java.util.concurrent.ExecutorService</code></a> API, introduced in Java 5, can execute subtasks concurrently.</p>
+<p>For example, here is a method, <code>handle()</code>, that represents a task in a server application. It handles an incoming request by submitting two subtasks to an <code>ExecutorService</code>. One subtask executes the method <code>findUser()</code>, while the other executes the method <code>fetchOrder()</code>. The <code>ExecutorService</code> immediately returns a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Future.html"><code>Future</code></a> for each subtask, and executes the subtasks concurrently according to its scheduling policy. The <code>handle()</code> method awaits the subtasks' results via blocking calls to their futures' <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Future.html#get()"><code>get()</code></a> methods, so the task is said to <em>join</em> its subtasks.</p>
+<pre><code>Response handle() throws ExecutionException, InterruptedException {
+    Future&lt;String&gt; user = executor.submit(() -&gt; findUser());
+    Future&lt;Integer&gt; order = executor.submit(() -&gt; fetchOrder());
+    String theUser = user.get();   // Join findUser
+    int theOrder = order.get();    // Join fetchOrder
+    return new Response(theUser, theOrder);
+}</code></pre>
+<p>Because the subtasks execute concurrently, each subtask can succeed or fail independently. (Failure, in this context, means to throw an exception.) Often, a task such as <code>handle()</code> should fail if any of its subtasks fail. Understanding the lifetimes of the threads can be surprisingly complicated when failure occurs:</p>
+<ul>
+<li>
+<p>If <code>findUser()</code> throws an exception then <code>handle()</code> will throw an exception when calling <code>user.get()</code>, but <code>fetchOrder()</code> will continue to run in its own thread. This is a <em>thread leak</em> which, at best, wastes resources; at worst, the <code>fetchOrder()</code> thread will interfere with other tasks.</p>
+</li>
+<li>
+<p>If the thread executing <code>handle()</code> is interrupted, the interruption will not propagate to the subtasks. Both the <code>findUser()</code> and <code>fetchOrder()</code> threads will leak, continuing to run even after <code>handle()</code> has failed.</p>
+</li>
+<li>
+<p>If <code>findUser()</code> takes a long time to execute, but <code>fetchOrder()</code> fails in the meantime, then <code>handle()</code> will wait unnecessarily for <code>findUser()</code> by blocking on <code>user.get()</code> rather than cancelling it. Only after <code>findUser()</code> completes and <code>user.get()</code> returns will <code>order.get()</code> throw an exception, causing <code>handle()</code> to fail.</p>
+</li>
+</ul>
+<p>In each case, the problem is that our program is logically structured with task-subtask relationships, but these relationships exist only in our minds.</p>
+<p>This not only creates more room for error, but it makes diagnosing and troubleshooting such errors more difficult. Observability tools such as thread dumps, for example, will show <code>handle()</code>, <code>findUser()</code>, and <code>fetchOrder()</code> on the call stacks of unrelated threads, with no hint of the task-subtask relationship.</p>
+<p>We might attempt to do better by explicitly cancelling other subtasks when an error occurs, for example by wrapping tasks with <code>try-finally</code> and calling the <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Future.html#cancel(boolean)"><code>cancel(boolean)</code></a> methods of the futures of the other tasks in the catch block for the failing task. We would also need to use the <code>ExecutorService</code> inside a <a href="https://docs.oracle.com/javase/specs/jls/se18/html/jls-14.html#jls-14.20.3"><code>try</code>-with-resources statement</a>, as shown in the examples in <a title="Virtual Threads" href="https://openjdk.org/jeps/444#Using-virtual-threads-vs--platform-threads">JEP 444</a>, because <code>Future</code> does not offer a way to wait for a task that has been cancelled. But all this keeping track of the inter-task relationships can be tricky to get right, and it often makes the logical intent of the code harder to discern.</p>
+<p>This need to manually coordinate lifetimes is due to the fact that <code>ExecutorService</code> and <code>Future</code> allow unrestricted patterns of concurrency. There are no constraints upon, or ordering of, any of the threads involved. One thread can create an <code>ExecutorService</code>, a second thread can submit work to it, and the threads which execute the work have no relationship to either the first or second thread. Moreover, after a thread has submitted work, a completely different thread can await the results of execution. Any code with a reference to a <code>Future</code> can join it, i.e., await its result by calling <code>get()</code> &#8212; even code in a thread other than the one which obtained the <code>Future</code>. In effect, a subtask started by one task does not have to return to the task that submitted it. It could return to any of a number of tasks &#8212; or possibly none.</p>
+<p>Because <code>ExecutorService</code> and <code>Future</code> allow for such unstructured use, they do not enforce or even track relationships among tasks and subtasks, even though such relationships are common and useful. Accordingly, even when subtasks are submitted and joined in the same task, the failure of one subtask cannot automatically cause the cancellation of another: In the above <code>handle()</code> method, the failure of <code>fetchOrder()</code> cannot automatically cause the cancellation of <code>findUser()</code>. The future for <code>fetchOrder()</code> is unrelated to the future for <code>findUser()</code>, and neither is related to the thread that will ultimately join it via its <code>get()</code> method.</p>
+<p>Rather than manage such cancellation manually, we should aim to reliably automate it.</p>
+<h3 id="Task-structure-should-reflect-code-structure">Task structure should reflect code structure</h3>
+<p>In contrast to the freewheeling assortment of threads under <code>ExecutorService</code>, the execution of single-threaded code always enforces a hierarchy of tasks and subtasks. The body block <code>{...}</code> of a method corresponds to a task, and the methods invoked within the block correspond to subtasks. An invoked method must either return to, or throw an exception to, the method that invoked it. An invoked method cannot outlive the method that invoked it, nor can it return to or throw an exception to a different method. Thus all subtasks finish before the task, each subtask is a child of its parent, and the lifetime of each subtask relative to the others and to the task is governed by the syntactic block structure of the code.</p>
+<p>For example, in this single-threaded version of <code>handle()</code>, the task-subtask relationship is apparent from the syntactic structure:</p>
+<pre><code>Response handle() throws IOException {
+    String theUser = findUser();
+    int theOrder = fetchOrder();
+    return new Response(theUser, theOrder);
+}</code></pre>
+<p>We do not start the <code>fetchOrder()</code> subtask until the <code>findUser()</code> subtask has completed, whether successfully or unsuccessfully. If <code>findUser()</code> fails then we do not start <code>fetchOrder()</code> at all, and the <code>handle()</code> task fails implicitly. The fact that a subtask can return only to its parent is significant: It implies that the parent task can implicitly treat the failure of one subtask as a trigger to cancel other unfinished subtasks and then fail itself.</p>
+<p>In single-threaded code, the task-subtask hierarchy is reified in the call stack at run time. We thus get the corresponding parent-child relationships, which govern error propagation, for free. When observing a single thread, the hierarchical relationship is obvious: <code>findUser()</code>, and later <code>fetchOrder()</code>, appear subordinate to <code>handle()</code>. This makes it easy to answer the question, "what is <code>handle()</code> working on now?"</p>
+<p>Concurrent programming would be easier, more reliable, and more observable if the parent-child relationships between tasks and their subtasks were evident from the syntactic structure of the code and also reified at run time &#8212; just as for single-threaded code. The syntactic structure would delineate the lifetimes of subtasks and enable a runtime representation of the inter-thread hierarchy, analogous to the intra-thread call stack. That representation would enable error propagation and cancellation as well as meaningful observation of the concurrent program.</p>
+<p>(The Java Platform already has an API for imposing structure on concurrent tasks, namely <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html"><code>java.util.concurrent.ForkJoinPool</code></a>, which is the execution engine behind parallel streams. However, that API is designed for compute-intensive tasks rather than tasks which involve I/O.)</p>
+<h3 id="Structured-concurrency">Structured concurrency</h3>
+<p><em>Structured concurrency</em> is an approach to concurrent programming that preserves the natural relationship between tasks and subtasks, which leads to more readable, maintainable, and reliable concurrent code. The term "structured concurrency" was coined by <a href="https://250bpm.com/blog:71/">Martin S&#250;strik</a> and popularized by <a href="https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/">Nathaniel J. Smith</a>. Ideas from other languages, such as Erlang's hierarchical supervisors, inform the design of error handling in structured concurrency.</p>
+<p>Structured concurrency derives from a simple principle: If a task splits into concurrent subtasks then they all return to the same place, namely the task's code block.</p>
+<p>In structured concurrency, subtasks work on behalf of a task. The task awaits the subtasks' results and monitors them for failures. As with structured programming techniques for code in a single thread, the power of structured concurrency for multiple threads comes from two ideas: The flow of execution through a block of code has well-defined entry and exit points, and the lifetimes of operations are nested in a way that mirrors their syntactic nesting in the code.</p>
+<p>Because the entry and exit points of a block of code are well defined, the lifetime of a concurrent subtask is confined to the syntactic block of its parent task. Because the lifetimes of sibling subtasks are nested within that of their parent task, they can be reasoned about and managed as a unit. Because the lifetime of the parent task is, in turn, nested within that of its parent, the runtime can reify the hierarchy of tasks into a tree that is the concurrent counterpart of the call stack of a single thread. This allows policies, such as deadlines, to be applied to entire sub-trees of tasks, and allows observability tools to present subtasks as subordinate to their parent tasks.</p>
+<p>Structured concurrency is a great match for <a href="https://openjdk.org/jeps/444">virtual threads</a>, which are lightweight threads implemented by the JDK. Virtual threads share operating-system threads, allowing for  enormous numbers of virtual threads. In addition to being plentiful, virtual threads are cheap enough to represent any concurrent unit of behavior, even behavior that involves I/O. This means that a server application can use structured concurrency to process thousands or millions of incoming requests at once: It can dedicate a new virtual thread to the task of handling each request, and when a task fans out by submitting subtasks for concurrent execution then it can dedicate a new virtual thread to each subtask. Behind the scenes, the task-subtask relationship is reified into a tree by arranging for each virtual thread to carry a reference to its unique parent, similar to how a frame in the call stack refers to its unique caller.</p>
+<p>In summary, virtual threads deliver an abundance of threads. Structured concurrency can correctly and robustly coordinate them, and enables observability tools to display threads as they are understood by developers. Having an API for structured concurrency in the Java Platform would make it easier to build maintainable, reliable, and observable server applications.</p>
+<h2 id="Description">Description</h2>
+<p>The principal class of the structured concurrency API is <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html"><code>StructuredTaskScope</code></a>, in the <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/package-summary.html"><code>java.util.concurrent</code></a> package. This class allows us to structure a task as a family of concurrent subtasks, and to coordinate them as a unit. Subtasks are executed in their own threads by <em>forking</em> them individually and then <em>joining</em> them as a unit. <code>StructuredTaskScope</code> confines the lifetimes of the subtasks to a clear <a href="https://en.wikipedia.org/wiki/Scope_(computer_science)#Lexical_scope">lexical scope</a> in which all of a task's interactions with its subtasks &#8212; forking, joining, handling errors, and composing results &#8212; takes place.</p>
+<p>Here is the <code>handle()</code> example from earlier, revised to use <code>StructuredTaskScope</code>:</p>
+<pre><code>Response handle() throws InterruptedException {
+
+    try (var scope = StructuredTaskScope.open()) {
+
+        Subtask&lt;String&gt; user = scope.fork(() -&gt; findUser());
+        Subtask&lt;Integer&gt; order = scope.fork(() -&gt; fetchOrder());
+
+        scope.join();   // Join subtasks, propagating exceptions
+
+        // Both subtasks have succeeded, so compose their results
+        return new Response(user.get(), order.get());
+
+    }
+
+}</code></pre>
+<p>In contrast to the original example, understanding the lifetimes of the threads involved here is easy: Under all conditions, their lifetimes are confined to a lexical scope, namely the body of the <code>try</code>-with-resources statement. Furthermore, the use of <code>StructuredTaskScope</code> ensures a number of valuable properties:</p>
+<ul>
+<li>
+<p><em>Error handling with short-circuiting</em> &#8212; If one of the <code>findUser()</code> or <code>fetchOrder()</code> subtasks fails, by throwing an exception, then the other is cancelled, i.e., <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Thread.html#interrupt()">interrupted</a>, if it has not yet completed.</p>
+</li>
+<li>
+<p><em>Cancellation propagation</em> &#8212; If the thread running <code>handle()</code> is interrupted before or during the call to <code>join()</code>, then both subtasks are cancelled automatically when the thread exits the scope.</p>
+</li>
+<li>
+<p><em>Clarity</em> &#8212; The above code has a clear structure: Set up the subtasks, wait for them to either complete or be cancelled, and then decide whether to succeed (and process the results of the child tasks, which are already finished) or fail (and the subtasks are already finished, so there is nothing more to clean up).</p>
+</li>
+<li>
+<p><em>Observability</em> &#8212; A thread dump, as described <a href="#Observability">below</a>, clearly displays the task hierarchy, with the threads running <code>findUser()</code> and <code>fetchOrder()</code> shown as children of the scope.</p>
+</li>
+</ul>
+<h3 id="StructuredTaskScope-is-a-preview-API-disabled-by-default">StructuredTaskScope is a <a href="https://openjdk.org/jeps/12">preview API</a>, disabled by default</h3>
+<p>To use the <code>StructuredTaskScope</code> API you must enable preview APIs, as follows:</p>
+<ul>
+<li>
+<p>Compile the program with <code>javac --release 25 --enable-preview Main.java</code> and run it with <code>java --enable-preview Main</code>; or,</p>
+</li>
+<li>
+<p>When using the <a href="https://openjdk.org/jeps/330">source code launcher</a>, run the program with <code>java <span style="white-space: nowrap">--enable-preview</span> Main.java</code>; or,</p>
+</li>
+<li>
+<p>When using <a href="https://openjdk.org/jeps/222">jshell</a>, start it with <code>jshell --enable-preview</code>.</p>
+</li>
+</ul>
+<h3 id="Using-StructuredTaskScope">Using <code>StructuredTaskScope</code></h3>
+<p>The <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html"><code>StructuredTaskScope&lt;T, R&gt;</code></a> API, where <code>T</code> is the result type of tasks forked in the scope and <code>R</code> is the result type of the  <code>join</code> method, can be summarized as:</p>
+<pre><code>public sealed interface StructuredTaskScope&lt;T, R&gt; extends AutoCloseable {
+
+    public static &lt;T&gt; StructuredTaskScope&lt;T, Void&gt; open();
+    public static &lt;T, R&gt; StructuredTaskScope&lt;T, R&gt; open(Joiner&lt;? super T,
+                                                               ? extends R&gt; joiner);
+
+    public &lt;U extends T&gt; Subtask&lt;U&gt; fork(Callable&lt;? extends U&gt; task);
+    public Subtask&lt;? extends T&gt; fork(Runnable task);
+
+    public R join() throws InterruptedException;
+
+    public void close();
+
+}</code></pre>
+<p>The general workflow of code using <code>StructuredTaskScope</code> is:</p>
+<ol>
+<li>
+<p>Open a new scope by calling one of the static <code>open</code> methods.  The thread that opens the scope is the scope's <em>owner</em>.</p>
+</li>
+<li>
+<p>Use the <code>fork</code> methods to fork subtasks in the scope.</p>
+</li>
+<li>
+<p>Use the <code>join</code> method to join all of the scope's subtasks, as a unit. This may throw an exception.</p>
+</li>
+<li>
+<p>Process the outcome.</p>
+</li>
+<li>
+<p>Close the scope, usually implicitly via <code>try</code>-with-resources. This cancels the scope, if it is not already cancelled, thereby cancelling all of its remaining subtasks and waiting for them to terminate.</p>
+</li>
+</ol>
+<p>In the <code>handle()</code> example, the zero-parameter <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html#open()"><code>open()</code></a> factory method creates and opens a <code>StructuredTaskScope</code> that implements the default <em>completion policy</em>, which is to fail if any subtask fails. Other policies can be implemented, as we shall see <a href="#Joiners">below</a>, by passing a suitable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html"><code>Joiner</code></a> to the one-parameter <code>open</code> method.</p>
+<p>Each call to a <code>fork</code> method starts a thread to execute a subtask, which by default is a virtual thread.  A subtask can create its own <code>StructuredTaskScope</code> to fork its own subtasks, thus creating a hierarchy of scopes.  That hierarchy is reflected in the code's block structure, which confines the lifetimes of the subtasks: All of the subtasks' threads are guaranteed to have terminated once the scope is closed, and no thread is left behind when the block exits.</p>
+<p>The <code>join</code> method must be called by the scope's owner thread from within the scope. If a scope's block exits before joining then the scope is cancelled and the owner will wait in the <code>close</code> method for all subtasks to terminate before throwing an exception.</p>
+<p>After joining, the scope's owner can process the results of the subtasks using the <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Subtask.html"><code>Subtask</code></a> objects returned from the <code>fork</code> methods. The <code>Subtask::get</code> method throws an exception if called before joining.</p>
+<h3 id="Cancellation">Cancellation</h3>
+<p>A scope's owner thread may be interrupted either before or while joining. For example, the owner could itself be a subtask of an enclosing scope that has been cancelled.  If this occurs then <code>join()</code> will throw an exception because there is no point in continuing. The <code>try</code>-with-resources statement will then cancel the scope, which will cancel all the subtasks and wait for them to terminate. This has the effect of automatically propagating the cancellation of the task to its subtasks.</p>
+<p>To allow for cancellation, subtasks must be coded so that they finish as soon as possible when <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Thread.html#interrupt()">interrupted</a>. Subtasks that do not respond to interrupts because, e.g., they block on methods that are not interruptible, may delay the closing of a scope indefinitely. The <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html#close()"><code>close</code></a> method always waits for threads executing subtasks to finish, even if the scope is cancelled. Execution cannot continue beyond the <code>close</code> method until the interrupted threads finish.</p>
+<h3 id="Scoped-values">Scoped values</h3>
+<p>Subtasks forked in a scope inherit <code>ScopedValue</code> bindings (<a href="https://openjdk.org/jeps/487#Inheriting-scoped-values">JEP 487</a>). If a scope's owner reads a value from a bound <code>ScopedValue</code> then each subtask will read the same value.</p>
+<h3 id="Structured-use-is-enforced">Structured use is enforced</h3>
+<p>At run time, <code>StructuredTaskScope</code> enforces structure and order upon concurrent operations. For example, attempts to call a <code>fork</code> method from a thread that is not the scope's owner will fail with an exception. Using a scope outside of a <code>try</code>-with-resources block and returning without calling <code>close()</code>, or without maintaining the proper nesting of <code>close()</code> calls, may cause the scope's methods to throw a <code>StructureViolationException</code>.</p>
+<p><code>StructuredTaskScope</code> does not implement the <code>ExecutorService</code> or <code>Executor</code> interfaces, since instances of those interfaces are commonly used in a non-structured way (see <a href="#Alternatives">below</a>). However, it is straightforward to migrate code that uses <code>ExecutorService</code>, but would benefit from structure, to use <code>StructuredTaskScope</code>.</p>
+<h3 id="Joiners">Joiners</h3>
+<p>In the <code>handle()</code> example, if any subtask fails then the <code>join()</code> method throws an exception and the scope is cancelled. If all subtasks succeed then the <code>join()</code> method completes normally and returns <code>null</code>. This is the default completion policy.</p>
+<p>Other policies can be selected by creating a <code>StructuredTaskScope</code> with a suitable <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html"><code>StructuredTaskScoped.Joiner</code></a>. A <code>Joiner</code> object handles subtask completion and produces the outcome for the <code>join()</code> method. Depending on the joiner, the <code>join()</code> method may return a result, a stream of elements, or some other object.</p>
+<p>The <code>Joiner</code> interface declares factory methods to create joiners for some common cases. For example, the factory method <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html#anySuccessfulResultOrThrow()"><code>anySuccessfulResultOrThrow()</code></a> returns a new joiner that yields the result of any subtask that completes successfully:</p>
+<pre><code>&lt;T&gt; T race(Collection&lt;Callable&lt;T&gt;&gt; tasks) throws InterruptedException {
+    try (var scope = StructuredTaskScope.open(Joiner.&lt;T&gt;anySuccessfulResultOrThrow())) {
+        tasks.forEach(scope::fork);
+        return scope.join();
+    }
+}</code></pre>
+<p>As soon as one subtask succeeds then the scope is cancelled, cancelling the unfinished subtasks, and <code>join()</code> returns the result of the successful subtask. If all subtasks fail then <code>join()</code> throws a <code>FailedException</code> with the exception from one of the subtasks as the <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Throwable.html#getCause()">cause</a>. This pattern can be useful in, e.g., server applications that require a result from any one of a collection of redundant services.</p>
+<p>The factory method <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html#allSuccessfulOrThrow()"><code>allSuccessfulOrThrow()</code></a> returns a new joiner that, when all subtasks complete successfully, yields a stream of the subtasks:</p>
+<pre><code>&lt;T&gt; List&lt;T&gt; runConcurrently(Collection&lt;Callable&lt;T&gt;&gt; tasks) throws InterruptedException {
+    try (var scope = StructuredTaskScope.open(Joiner.&lt;T&gt;allSuccessfulOrThrow())) {
+        tasks.forEach(scope::fork);
+        return scope.join().map(Subtask::get).toList();
+    }
+}</code></pre>
+<p>If one or more subtasks fail then <code>join()</code> throws a <code>FailedException</code> with the exception from one of the failed subtasks as the cause. The completion policy implemented by the <code>Joiner</code> is the same as the default policy implemented by the zero-parameter <code>open()</code> method. They differ in outcome in that the <code>join()</code> method returns a stream of completed subtasks rather than <code>null</code>, making this joiner suited for cases where all subtasks return a result of the same type and where the <code>Subtask</code> objects returned by the <code>fork</code> method is ignored. In this example, the <code>Subtask</code> elements in the stream are mapped to the result and accumulated into a list.</p>
+<p>The <code>Joiner</code> interface declares three additional factory methods:</p>
+<ul>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html#awaitAll()"><code>awaitAll()</code></a>, which returns a new joiner that simply waits for all subtasks to complete, whether successfully or not;</p>
+</li>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html#awaitAllSuccessfulOrThrow()"><code>awaitAllSuccessfulOrThrow()</code></a>, which returns a new joiner that waits for all subtasks to complete successfully; and</p>
+</li>
+<li>
+<p><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Joiner.html#allUntil(java.util.function.Predicate)"><code>allUntil(Predicate&lt;Subtask&lt;? extends T&gt;&gt; isDone)</code></a>, which returns a new joiner that, when all subtasks complete successfully or else a predicate on a completed subtask returns <code>true</code>, cancels the enclosing scope and yields a stream of all the subtasks.</p>
+</li>
+</ul>
+<p>When using any kind of <code>Joiner</code>, it is critical to create a new <code>Joiner</code> for each <code>StructuredTaskScope</code>. <code>Joiner</code> objects should never be used in different task scopes or re-used after a scope is closed.</p>
+<h3 id="Custom-Joiners">Custom Joiners</h3>
+<p>The <code>Joiner</code> interface can be implemented directly in order to support custom completion policies.  It has two type parameters:  <code>T</code> for the result type of the subtasks executed in the scope, and <code>R</code> for the result type of the <code>join()</code> method. The interface can be summarized as:</p>
+<pre><code>public interface Joiner&lt;T, R&gt; {
+    public default boolean onFork(Subtask&lt;? extends T&gt; subtask);
+    public default boolean onComplete(Subtask&lt;? extends T&gt; subtask);
+    public R result() throws Throwable;
+}</code></pre>
+<p>The <code>onFork</code> method is invoked when forking a subtask, while the <code>onComplete</code> method is invoked when a subtask completes. Both methods return a <code>boolean</code> to indicate whether the scope should be cancelled. The <code>result</code> method is invoked to produce the result for the <code>join</code> method, or else throw an exception, when all subtasks have completed or the scope is cancelled. If the <code>result</code> method throws an exception then the <code>join</code> method will throw a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.FailedException.html"><code>FailedException</code></a> with that exception as the cause.</p>
+<p>Here is a <code>Joiner</code> class that collects the results of subtasks that complete successfully, ignoring subtasks that fail. The <code>onComplete</code> method may be invoked by several threads concurrently, and so must be thread-safe. The <code>result</code> method returns a stream of the task results.</p>
+<pre><code>class CollectingJoiner&lt;T&gt; implements Joiner&lt;T, Stream&lt;T&gt;&gt; {
+
+    private final Queue&lt;T&gt; results = new ConcurrentLinkedQueue&lt;&gt;();
+
+    public boolean onComplete(Subtask&lt;? extends T&gt; subtask) {
+        if (subtask.state() == Subtask.State.SUCCESS) {
+            results.add(subtask.get());
+        }
+        return false;
+    }
+
+    public Stream&lt;T&gt; result() {
+        return results.stream();
+    }
+
+}</code></pre>
+<p>This custom policy can be used like so:</p>
+<pre><code>&lt;T&gt; List&lt;T&gt; allSuccessful(List&lt;Callable&lt;T&gt;&gt; tasks) throws InterruptedException {
+      try (var scope = StructuredTaskScope.open(new CollectingJoiner&lt;T&gt;())) {
+          tasks.forEach(scope::fork);
+          return scope.join().toList();
+      }
+  }</code></pre>
+<h3 id="Exception-handling">Exception handling</h3>
+<p>How exceptions are handled will depend on usage. The <code>join()</code> method throws a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.FailedException.html"><code>FailedException</code></a> when the scope is considered to have failed. In the <code>handle()</code> example, if a subtask fails then a <code>FailedException</code> is thrown with the exception from the failed subtask as the cause. In some cases it may be useful to add a <code>catch</code> block to the <code>try</code>-with-resources statement in order to handle exceptions after the scope is closed:</p>
+<pre><code>try (var scope = StructuredTaskScope.open()) {
+   ...
+} catch (StructuredTaskScope.FailedException e) {
+   Throwable cause = e.getCause();
+   switch (cause) {
+       case IOException ioe -&gt; ..
+       default -&gt; ..
+   }
+}</code></pre>
+<p>Exception-handling code can use the <code>instanceof</code> operator with pattern matching (<a href="https://openjdk.org/jeps/394">JEP&#160;394</a>) to handle specific causes.</p>
+<p>A specific exception in a subtask may trigger the return of a default value. In such cases it may be more appropriate to catch the exception in the subtask and have it complete with the default value as the result rather than have the scope's owner handle the exception.</p>
+<h3 id="Configuration">Configuration</h3>
+<p>The <a href="#Using-StructuredTaskScope">earlier summary</a> of the <code>StructuredTaskScope</code> API showed two static <code>open</code> methods. A <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.html#open(java.util.concurrent.StructuredTaskScope.Joiner,java.util.function.Function)">third such method</a> accepts a <code>Joiner</code> together with a function which can produce a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.Configuration.html">configuration object</a> in order to set the scope's name for monitoring and management purposes, to set the scope's timeout, and to set the <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ThreadFactory.html">thread factory</a> to be used by the scope's <code>fork</code> methods to create threads,</p>
+<p>Here is a revised version of the <code>runConcurrently</code> method which sets a thread factory and a timeout:</p>
+<pre><code>&lt;T&gt; List&lt;T&gt; runConcurrently(Collection&lt;Callable&lt;T&gt;&gt; tasks,
+                            ThreadFactory factory,
+                            Duration timeout)
+    throws InterruptedException
+{
+    try (var scope = StructuredTaskScope.open(Joiner.&lt;T&gt;allSuccessfulOrThrow(),
+                                              cf -&gt; cf.withThreadFactory(factory)
+                                                      .withTimeout(timeout))) {
+        tasks.forEach(scope::fork);
+        return scope.join().map(Subtask::get).toList();
+    }
+}</code></pre>
+<p>The <code>fork</code> method in this scope will invoke the given thread factory to create the thread to execute each subtask. This can be useful to, e.g., set the thread's name or other properties.</p>
+<p>The <code>timeout</code> is specified as a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/time/Duration.html"><code>java.time.Duration</code></a>. If the timeout expires before or while waiting in the <code>join()</code> method then the scope is cancelled, which cancels all incomplete subtasks, and <code>join()</code> throws a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/StructuredTaskScope.TimeoutException.html"><code>TimeoutException</code></a>.</p>
+<h3 id="Observability">Observability</h3>
+<p>We extend the JSON thread-dump format <a href="https://openjdk.org/jeps/444#Observing-virtual-threads">added for virtual threads</a> to show how <code>StructuredTaskScope</code>s group threads into a hierarchy:</p>
+<pre><code>$ jcmd &lt;pid&gt; Thread.dump_to_file -format=json &lt;file&gt;</code></pre>
+<p>The JSON object for each scope contains an array of the threads forked in the scope, together with their stack traces. The owner thread of a scope will typically be blocked in a <code>join</code> method, waiting for subtasks to complete; the thread dump makes it easy to see what the subtasks' threads are doing by showing the tree hierarchy imposed by structured concurrency. The JSON object for a scope also has a reference to its parent, so that the structure of the program can be reconstituted from the dump.</p>
+<p>The <a href="https://docs.oracle.com/en/java/javase/25/docs/api/jdk.management/com/sun/management/HotSpotDiagnosticMXBean.html#dumpThreads(java.lang.String,com.sun.management.HotSpotDiagnosticMXBean.ThreadDumpFormat)"><code>com.sun.management.HotSpotDiagnosticsMXBean</code></a> API can also be used to generate such thread dumps, either directly or indirectly via the platform <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.management/javax/management/MBeanServer.html"><code>MBeanServer</code></a> and a local or remote JMX tool.</p>
+<h2 id="Alternatives">Alternatives</h2>
+<h3 id="Enhance-the-ExecutorService-interface">Enhance the <code>ExecutorService</code> interface</h3>
+<p>We prototyped an implementation of this interface that always enforces structure and restricts which threads can submit tasks. However, we found it to be problematic because most uses of <code>ExecutorService</code>, and its parent interface <code>Executor</code>, in the JDK and in the ecosystem are not structured. Reusing the same API for a far more restricted concept is bound to cause confusion. For example, passing a structured <code>ExecutorService</code> instance to existing methods that accept this type would be all but certain to throw exceptions in most situations.</p>
+<h3 id="Have-the-fork-methods-return-a-Future">Have the <code>fork</code> methods return a <code>Future</code></h3>
+<p>When the <code>StructuredTaskScope</code> API was incubating, the <code>fork</code> methods returned a <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Future.html"><code>Future</code></a>. This provided a sense of familiarity, by making these methods resemble the existing <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ExecutorService.html#submit(java.lang.Runnable)"><code>ExecutorService::submit</code></a> method. However, the fact that <code>StructuredTaskScope</code> is intended to be used in a structured way, while <code>ExecutorService</code> is not, brought more confusion than clarity.</p>
+<ul>
+<li>
+<p>The familiar use of <code>Future</code> involves calling its <code>get()</code> method, which blocks until a result is available. But in the context of <code>StructuredTaskScope</code>, using <code>Future</code> in this way is not only discouraged, but counterproductive. Structured <code>Future</code> objects should be queried only after the <code>join()</code> method returns, at which point they are known to be completed, and the method that should be used is not the familiar <code>get()</code> method but rather the recently introduced <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Future.html#resultNow()"><code>resultNow()</code></a> method, which does not block.</p>
+</li>
+<li>
+<p>Some developers wondered why the <code>fork</code> methods did not return more capable <code>CompletableFuture</code> objects. Since the <code>Future</code> returned by these methods should only be used after they are known to have completed, <code>CompletableFuture</code> would have offered no benefit since its advanced features are helpful only for uncompleted futures. In addition, <code>CompletableFuture</code> is designed for the asynchronous programming paradigm, whereas <code>StructuredTaskScope</code> encourages the blocking paradigm.</p>
+<p><code>Future</code> and <code>CompletableFuture</code> are, in short, designed to offer degrees of freedom that are counterproductive in structured concurrency.</p>
+</li>
+<li>
+<p>Structured concurrency is about treating related tasks running in different threads as a single unit of work, whereas <code>Future</code> is mostly useful when treating multiple tasks as individual tasks. A scope should block only once to await its subtasks' results, and it should then process exceptions centrally. In the vast majority of cases, therefore, the only method that should be called on a <code>Future</code> returned from a <code>fork</code> method was <code>resultNow</code>. This was a marked change from the ordinary use of <code>Future</code>, and the <code>Future</code> interface served as a distraction from its proper use in this context.</p>
+</li>
+</ul>
+<p>In the current API, <code>Subtask::get()</code> behaves exactly as <code>Future::resultNow()</code> did when the API was incubating.</p>
+</div></div><div id="sidebar"><div id="openjdk-sidebar-logo"><a href="/"><img alt="OpenJDK logo" width="91" height="25" src="/images/openjdk2.svg" /></a></div><div class="links"><div class="link"><a href="/install/">Installing</a></div><div class="link"><a href="/guide/#contributing-to-an-openjdk-project">Contributing</a></div><div class="link"><a href="/guide/#reviewing-and-sponsoring-a-change">Sponsoring</a></div><div class="link"><a href="/guide/">Developers' Guide</a></div><div class="link"><a href="/groups/vulnerability/report">Vulnerabilities</a></div><div class="link"><a href="https://jdk.java.net">JDK GA/EA Builds</a></div></div><div class="links"><div class="links"><a href="https://mail.openjdk.org">Mailing lists</a></div><div class="link"><a href="https://wiki.openjdk.org">Wiki</a>
+                      &#183; <a href="/irc">IRC</a></div><div class="link"><a href="https://mastodon.social/@openjdk" rel="me">Mastodon</a></div><div class="link"><a href="https://bsky.app/profile/openjdk.org">Bluesky</a></div></div><div class="links"><div class="links"><a href="/bylaws">Bylaws</a> &#183; <a href="/census">Census</a></div><div class="link"><a href="/legal/">Legal</a> &#183; <a href="/legal/ai">AI</a></div></div><div class="links"><div class="links"><a href="/workshop"><b>Workshop</b></a></div></div><div class="links"><div class="links"><a href="/jeps/0"><b>JEP Process</b></a></div></div><div class="links"><div class="about">Source code</div><div class="link"><a href="https://github.com/openjdk/">GitHub</a></div><div class="link"><a href="https://hg.openjdk.org">Mercurial</a></div></div><div class="links"><div class="about">Tools</div><div class="link"><a href="http://git-scm.org/">Git</a></div><div class="link"><a href="/jtreg/">jtreg harness</a></div></div><div class="links"><div class="about">Groups</div><div class="link"><a href="/groups/">(overview</a>,
+      <a href="/groups/archive">archive</a>)</div><div class="link"><a href="/groups/adoption">Adoption</a></div><div class="link"><a href="/groups/build">Build</a></div><div class="link"><a href="/groups/client-libs">Client Libraries</a></div><div class="link"><a href="/groups/csr">Compatibility &amp; Specification Review</a></div><div class="link"><a href="/groups/compiler">Compiler</a></div><div class="link"><a href="/groups/conformance">Conformance</a></div><div class="link"><a href="/groups/core-libs">Core Libraries</a></div><div class="link"><a href="/groups/gb">Governing Board</a></div><div class="link"><a href="/groups/hotspot">HotSpot</a></div><div class="link"><a href="/groups/ide-support">IDE Tooling &amp; Support</a></div><div class="link"><a href="/groups/i18n">Internationalization</a></div><div class="link"><a href="/groups/members">Members</a></div><div class="link"><a href="/groups/net">Networking</a></div><div class="link"><a href="/groups/porters">Porters</a></div><div class="link"><a href="/groups/quality">Quality</a></div><div class="link"><a href="/groups/security">Security</a></div><div class="link"><a href="/groups/serviceability">Serviceability</a></div><div class="link"><a href="/groups/vulnerability">Vulnerability</a></div><div class="link"><a href="/groups/web">Web</a></div></div><div class="links"><div class="about">Projects</div><div class="link">(<a href="/projects/">overview</a>,
+      <a href="/projects/archive">archive</a>)</div><div class="link"><a href="/projects/amber">Amber</a></div><div class="link"><a href="/projects/babylon">Babylon</a></div><div class="link"><a href="/projects/brisbane">Brisbane</a></div><div class="link"><a href="/projects/crac">CRaC</a></div><div class="link"><a href="/projects/code-tools">Code Tools</a></div><div class="link"><a href="/projects/coin">Coin</a></div><div class="link"><a href="/projects/cvmi">Common VM Interface</a></div><div class="link"><a href="/projects/detroit">Detroit</a></div><div class="link"><a href="/projects/guide">Developers' Guide</a></div><div class="link"><a href="/projects/duke">Duke</a></div><div class="link"><a href="/projects/icedtea">IcedTea</a></div><div class="link"><a href="/projects/jdk8u">JDK 8 Updates</a></div><div class="link"><a href="/projects/jdk9">JDK 9</a></div><div class="link"><a href="/projects/jdk">JDK</a>
+      (&#8230;,
+       <a href="/projects/jdk/26">26</a>,
+       <a href="/projects/jdk/27">27</a>,
+       <a href="/projects/jdk/28">28</a>)</div><div class="link"><a href="/projects/jdk-updates">JDK Updates</a></div><div class="link"><a href="/projects/jmc">JMC</a></div><div class="link"><a href="/projects/jigsaw">Jigsaw</a></div><div class="link"><a href="/projects/lanai">Lanai</a></div><div class="link"><a href="/projects/leyden">Leyden</a></div><div class="link"><a href="/projects/lilliput">Lilliput</a></div><div class="link"><a href="/projects/loom">Loom</a></div><div class="link"><a href="/projects/jmm">Memory Model Update</a></div><div class="link"><a href="/projects/mlvm">Multi-Language VM</a></div><div class="link"><a href="/projects/nashorn">Nashorn</a></div><div class="link"><a href="/projects/nio">New I/O</a></div><div class="link"><a href="/projects/openjfx">OpenJFX</a></div><div class="link"><a href="/projects/panama">Panama</a></div><div class="link"><a href="/projects/aarch32-port">Port: AArch32</a></div><div class="link"><a href="/projects/aarch64-port">Port: AArch64</a></div><div class="link"><a href="/projects/bsd-port">Port: BSD</a></div><div class="link"><a href="/projects/haiku-port">Port: Haiku</a></div><div class="link"><a href="/projects/mips-port">Port: MIPS</a></div><div class="link"><a href="/projects/mobile">Port: Mobile</a></div><div class="link"><a href="/projects/ppc-aix-port">Port: PowerPC/AIX</a></div><div class="link"><a href="/projects/riscv-port">Port: RISC-V</a></div><div class="link"><a href="/projects/s390x-port">Port: s390x</a></div><div class="link"><a href="/projects/sctp">SCTP</a></div><div class="link"><a href="/projects/shenandoah">Shenandoah</a></div><div class="link"><a href="/projects/skara">Skara</a></div><div class="link"><a href="/projects/sumatra">Sumatra</a></div><div class="link"><a href="/projects/tsan">Tsan</a></div><div class="link"><a href="/projects/valhalla">Valhalla</a></div><div class="link"><a href="/projects/wakefield">Wakefield</a></div><div class="link"><a href="/projects/zero">Zero</a></div><div class="link"><a href="/projects/zgc">ZGC</a></div></div><div class="buttons"><a href="https://oracle.com"><img alt="Oracle logo" width="100" height="13" src="/images/oracle.svg" /></a></div></div><div id="footer">
+
+        &#169; 2026 Oracle Corporation and/or its affiliates
+        <br /><a href="/legal/tou/">Terms of Use</a>
+        &#183;
+        
+            License: <a href="/legal/gplv2+ce.html">GPLv2</a>
+        &#183; <a href="https://www.oracle.com/us/legal/privacy/">Privacy</a>
+        &#183; <a href="https://openjdk.org/legal/openjdk-trademark-notice.html">Trademarks</a></div><script type="text/javascript"  src="/gEWij8zEsSHV8271ts26/c5hOL4JpbiSbbL/Hy9jbBo5DBA/EGElA/nJtAQoC"></script></body></html>
