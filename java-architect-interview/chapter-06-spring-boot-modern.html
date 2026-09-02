@@ -111,7 +111,7 @@ flowchart TD
               <div class="chart-caption">图 6.1-1 自动配置加载流程：加载候选 → 去重 → 排序 → 条件过滤 → 注册 BeanDefinition</div>
             </div>
 
-            <p><strong>2.x 的 spring.factories 格式</strong>（Properties 风格，多类名逗号分隔；已废弃：Spring Boot 3.0 起该 key 标记废弃，AOT 不支持且启动告警，替代：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports）：</p>
+            <p><strong>2.x 的 spring.factories 格式</strong>（Properties 风格，多类名逗号分隔；已废弃：Spring Boot 3.0 起该 key 已移除不再被加载（写了也不会生效），替代：META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports）：</p>
             <div class="code-block"><pre><code><span class="com"># META-INF/spring.factories</span>
 <span class="var">org.springframework.boot.autoconfigure.EnableAutoConfiguration</span>=\
   com.example.RedisAutoConfiguration,\
@@ -176,7 +176,7 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
               <div class="callout-title">易错点</div>
               <ul>
                 <li><strong>误以为自动配置靠类路径扫描</strong>：扫描（<code class="inline-code">@ComponentScan</code>）只扫用户包，自动配置靠 SPI 文件声明 + <code class="inline-code">ImportSelector</code> 加载，两者机制不同。</li>
-                <li><strong>3.x 仍往 spring.factories 写自动配置</strong>：3.0 起该 key 已废弃，虽兼容但启动告警且 AOT 不支持，必须迁移到 imports 文件。</li>
+                <li><strong>3.x 仍往 spring.factories 写自动配置</strong>：3.0 起该 key 已移除不再被加载（写了也不会生效），必须迁移到 imports 文件。</li>
                 <li><strong>@ConditionalOnBean 顺序坑</strong>：依赖另一配置类的 Bean 时未加 <code class="inline-code">@AutoConfigureAfter</code>，导致条件误判、Bean 不装配。</li>
                 <li><strong>自动配置类写在主应用包内</strong>：会被 <code class="inline-code">@ComponentScan</code> 重复扫描，绕过条件评估，应放独立 starter 包。</li>
                 <li><strong>排除自动配置后 Bean 仍被注入</strong>：排除的是配置类，若该 Bean 被其他配置类 <code class="inline-code">@Import</code> 仍会生效，需排查全部来源。</li>
@@ -207,7 +207,7 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
           <div class="qa-layer-body">
             <p><strong>JIT 时代（HotSpot，1990s 至今）</strong>：字节码运行期解释执行 + JIT（C1/C2 编译器）热点编译。优势是<strong>动态性极强</strong>——反射、动态代理、运行期类加载、字节码生成（CGLIB/ByteBuddy）都支持；劣势是<strong>冷启动慢</strong>（要加载类、解析注解、初始化容器）、内存占用高（JVM 自身开销）。传统单体长进程下 JIT 优势明显，但云原生短生命周期容器里成了负担。</p>
             <p><strong>Spring Native 实验期（2020-2022）</strong>：Spring 团队推出 <code class="inline-code">spring-native</code> 实验项目，用 <code class="inline-code">@NativeHint</code> 手动为 GraalVM 提供反射/代理元数据。痛点明显：开发者要手写大量 hint，框架的动态性（Spring AOP、Jackson 序列化）与 Native Image 的闭世界假设冲突严重，迁移成本高。</p>
-            <p><strong>Spring Boot 3.0（2022）原生支持 AOT + Native Image</strong>：里程碑演进——AOT 处理器（<code class="inline-code">SpringAOTProcessor</code>）在构建期自动分析 BeanFactory，为每个 Bean 生成 <code class="inline-code">BeanFactoryInitializationAotContribution</code>（注册代码）和 <code class="inline-code">BeanRegistrationAotContribution</code>（实例化代码），<strong>用生成的静态代码替代运行期反射</strong>。同时自动生成 GraalVM reachability metadata（反射/资源/代理配置），无需手写 hint。这是 Spring 框架为云原生做的一次底层重构。</p>
+            <p><strong>Spring Boot 3.0（2022）原生支持 AOT + Native Image</strong>：里程碑演进——AOT 处理器（<code class="inline-code">org.springframework.boot.aot.AotProcessor</code>）在构建期自动分析 BeanFactory，为每个 Bean 生成 <code class="inline-code">BeanFactoryInitializationAotContribution</code>（注册代码）和 <code class="inline-code">BeanRegistrationAotContribution</code>（实例化代码），<strong>用生成的静态代码替代运行期反射</strong>。同时自动生成 GraalVM reachability metadata（反射/资源/代理配置），无需手写 hint。这是 Spring 框架为云原生做的一次底层重构。</p>
             <p><strong>趋势</strong>：CRaC（Coordinated Restore at Checkpoint）成为 JIT 与 Native 之外的第三条路——JVM 快照恢复，启动毫秒级且保留 JIT 优化；Project Leyden 推动 Java 平台本身支持 AOT；GraalVM 持续降低构建时间与闭世界限制。未来三者将共存互补。</p>
           </div>
         </div>
@@ -222,7 +222,7 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
 flowchart LR
     subgraph Build [构建期 AOT 处理]
         B1["1、启动 ApplicationContext 到 BeanDefinition 注册后<br/>但不实例化 Bean"]
-        B2["2、SpringAOTProcessor 分析 BeanFactory"]
+        B2["2、org.springframework.boot.aot.AotProcessor 分析 BeanFactory"]
         B3["3、评估 @Conditional 并冻结结果"]
         B4["4、为每个 Bean 生成实例化代码<br/>（替代运行期反射）"]
         B5["5、生成 GraalVM 元数据<br/>（反射/资源/代理 hint）"]
@@ -343,7 +343,7 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
           <div class="qa-layer-body">
             <p><strong>早期（Boot 1.x）</strong>：Starter 与 autoconfigure 耦合在一个 jar，配置类直接用 <code class="inline-code">@Configuration</code>，声明写在 <code class="inline-code">spring.factories</code>（已废弃：Spring Boot 3.0 起标记废弃，替代：AutoConfiguration.imports）。问题：用户只要功能不要某默认 Bean 时，难以剥离。</p>
             <p><strong>Boot 2.x 规范成熟</strong>：官方确立"<strong>双模块分离</strong>"——<code class="inline-code">xxx-spring-boot-autoconfigure</code>（含配置类与条件逻辑）+ <code class="inline-code">xxx-spring-boot-starter</code>（空 jar，只依赖 autoconfigure + 必需第三方库）。引入 <code class="inline-code">@ConfigurationProperties</code> + <code class="inline-code">@Validated</code> + Bean Validation（JSR 303/380）做配置校验，<code class="inline-code">@AutoConfigureBefore/After</code> 控制顺序。</p>
-            <p><strong>Boot 3.x（2022）</strong>：① 自动配置类用 <code class="inline-code">@AutoConfiguration</code> 替代 <code class="inline-code">@Configuration</code>（语义更明确，且支持 <code class="inline-code">before/after/beforeName/afterName</code> 属性）；② 声明迁移到 <code class="inline-code">AutoConfiguration.imports</code>；③ 必须 AOT 友好——避免运行期反射扫描、动态类加载，保证 Starter 能用于 Native Image。</p>
+            <p><strong>Boot 2.7（2022）</strong>：① 自动配置类用 <code class="inline-code">@AutoConfiguration</code> 替代 <code class="inline-code">@Configuration</code>（语义更明确，且支持 <code class="inline-code">before/after/beforeName/afterName</code> 属性）；② 声明迁移到 <code class="inline-code">AutoConfiguration.imports</code>；③ 必须 AOT 友好——避免运行期反射扫描、动态类加载，保证 Starter 能用于 Native Image。</p>
             <p><strong>趋势</strong>：Starter 设计向"声明式 + 构建期可分析"演进，第三方 Starter 越来越注重提供 Native Image metadata（<code class="inline-code">reflect-config.json</code>、<code class="inline-code">resource-config.json</code>），降低用户迁移成本。</p>
           </div>
         </div>

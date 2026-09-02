@@ -64,7 +64,7 @@
       <!-- ============================================================ -->
       <!-- C07.01 InnoDB 的 B+树索引为何比 B树更适合数据库？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C07.01" data-difficulty="senior" data-priority="p0">
+      <div class="qa-card" id="C07.01" data-difficulty="senior" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C07.01</div>
           <div class="qa-question">InnoDB 的 B+树索引为何比 B树更适合数据库？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
@@ -84,7 +84,7 @@
             <p><strong>B树（1970，Bayer &amp; McCreight）</strong>：多路平衡查找树。每个节点既存键也存数据，m 阶 B树每个节点最多 m 个孩子、m-1 个键值对。树高显著降低（约 log_m N）。早期文件系统（如 ReiserFS）与 MongoDB（3.0 前 MMAPv1 引擎）采用 B树。<strong>痛点</strong>：范围查询要中序回溯遍历多层级，随机 I/O 多；节点存数据导致单页能放的键少、扇出受限。</p>
             <p><strong>B+树</strong>：B树变体——非叶子节点只存索引键（不存数据/卫星数据全部下沉到叶子），叶子节点存全部数据并按主键有序组织成双向链表。InnoDB、PostgreSQL、Oracle、SQL Server 全部采用 B+树。它解决了 B树范围查询低效与扇出受限两大痛点，成为 OLTP 数据库的事实标准。</p>
             <p><strong>LSM树（Log-Structured Merge Tree，1996 Patrick O'Neil）</strong>：为写密集场景设计的另一种范式——写操作先追加到内存 MemTable（+ WAL），达到阈值后刷盘成有序 SSTable，后台多层级 Compaction 合并。读需合并查找 MemTable + 多层 SSTable（用布隆过滤器加速）。Bigtable、HBase、LevelDB、RocksDB、Cassandra 采用 LSM。它牺牲读放大与空间放大换取极致写吞吐，与 B+树形成<strong>读优化 vs 写优化</strong>的根本对立。</p>
-            <p><strong>趋势</strong>：B+树与 LSM 在融合——InnoDB 8.0 引入 REDUNDANT/COMPACT/DYNAMIC/COMPRESSED 行格式优化与页压缩；RocksDB 的 LSM 普遍加 Bloom Filter + Partitioned Index 缩小读放大；新一代存储引擎（如 TiDB 的 TiKV 用 RocksDB、Spanner 用 B+树 + Paxos）按负载选型。NewSQL 倾向<strong>底层 LSM 存储 + 上层 SQL 接口 + 分布式一致性协议</strong>。</p>
+            <p><strong>趋势</strong>：B+树与 LSM 在融合——InnoDB 行格式 REDUNDANT/COMPACT（Antelope 格式，MySQL 5.x 即存在）与 DYNAMIC/COMPRESSED（Barracuda 格式，MySQL 5.5 引入）；8.0 的演进在于默认行格式统一为 DYNAMIC 与原子落盘/原子 DDL，而非首次引入这些行格式；RocksDB 的 LSM 普遍加 Bloom Filter + Partitioned Index 缩小读放大；新一代存储引擎（如 TiDB 的 TiKV 用 RocksDB、Spanner 用 B+树 + Paxos）按负载选型。NewSQL 倾向<strong>底层 LSM 存储 + 上层 SQL 接口 + 分布式一致性协议</strong>。</p>
           </div>
         </div>
 
@@ -178,7 +178,7 @@ flowchart TD
       <!-- ============================================================ -->
       <!-- C07.02 MVCC 如何实现 RC 和 RR 两种隔离级别？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C07.02" data-difficulty="expert" data-priority="p0">
+      <div class="qa-card" id="C07.02" data-difficulty="expert" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C07.02</div>
           <div class="qa-question">MVCC 如何实现 RC 和 RR 两种隔离级别？<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p0">P0</span></div>
@@ -528,7 +528,7 @@ sequenceDiagram
       <!-- ============================================================ -->
       <!-- C07.05 慢 SQL 如何排查与优化？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C07.05" data-difficulty="senior" data-priority="p1">
+      <div class="qa-card" id="C07.05" data-difficulty="senior" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">C07.05</div>
           <div class="qa-question">慢 SQL 如何排查与优化？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
@@ -585,7 +585,7 @@ flowchart LR
 <span class="kw">WHERE</span> <span class="fn">YEAR</span>(create_time) = <span class="num">2024</span>   <span class="com">-- 失效，改: WHERE create_time &gt;= '2024-01-01' AND create_time &lt; '2025-01-01'</span>
 
 <span class="com">-- 2. 隐式类型转换</span>
-<span class="kw">WHERE</span> phone = <span class="num">13800138000</span>         <span class="com">-- phone 是 varchar，数字转字符串，失效。改: WHERE phone = '13800138000'</span>
+<span class="kw">WHERE</span> phone = <span class="num">13800138000</span>         <span class="com">-- phone 是 varchar，MySQL 把字符串列转成数字（CAST(phone AS DECIMAL)）再比较，索引列被函数包裹 → 失效。改: WHERE phone = '13800138000'</span>
 
 <span class="com">-- 3. 最左前缀违反（联合索引 (a,b,c)）</span>
 <span class="kw">WHERE</span> b = <span class="num">1</span>                       <span class="com">-- 跳过 a，失效</span>
@@ -766,7 +766,7 @@ flowchart LR
       <!-- ============================================================ -->
       <!-- C07.07 分库分表如何设计与落地？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C07.07" data-difficulty="architect" data-priority="p1">
+      <div class="qa-card" id="C07.07" data-difficulty="architect" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">C07.07</div>
           <div class="qa-question">分库分表如何设计与落地？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
@@ -902,7 +902,7 @@ flowchart TD
       <!-- ============================================================ -->
       <!-- C07.08 MySQL 主从复制原理与延迟优化？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C07.08" data-difficulty="senior" data-priority="p2">
+      <div class="qa-card" id="C07.08" data-difficulty="senior" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">C07.08</div>
           <div class="qa-question">MySQL 主从复制原理与延迟优化？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
@@ -1403,7 +1403,7 @@ flowchart TD
       <!-- ============================================================ -->
       <!-- C07.10 MySQL 的执行计划(EXPLAIN)如何解读？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C07.10" data-difficulty="senior" data-priority="p1">
+      <div class="qa-card" id="C07.10" data-difficulty="senior" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">C07.10</div>
           <div class="qa-question">MySQL 的执行计划(EXPLAIN)如何解读？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
@@ -1986,7 +1986,7 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
       <!-- ============================================================ -->
       <!-- C07.15 MyBatis-Plus vs JPA 对比及分页/乐观锁原理 -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C07.15" data-difficulty="senior" data-priority="p2">
+      <div class="qa-card" id="C07.15" data-difficulty="senior" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C07.15</div>
           <div class="qa-question">MyBatis-Plus vs JPA 如何选型？分页插件与乐观锁(@Version)原理<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
