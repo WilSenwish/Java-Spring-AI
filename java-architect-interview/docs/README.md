@@ -80,8 +80,8 @@ java-architect-interview/
 
 ### 3.2 全站难度 / 优先级分布（按卡片）
 
-- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)；全站 `data-difficulty`：architect 182、senior 134、expert 57。
-- 优先级：`P0`–`P3`；仅标准 QA、优先级大盘、八股速查、场景题四类携带；方法论与安全手册**不含**优先级。
+- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)；全站 `data-difficulty`：architect 203、senior 143、expert 67。
+- 优先级：`P0`–`P2`；仅 标准 QA、八股速查、场景题 三类携带；方法论与安全手册**不含**优先级。
 
 ## 4. 规则文档索引
 
