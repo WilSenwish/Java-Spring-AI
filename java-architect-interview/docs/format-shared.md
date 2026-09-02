@@ -65,7 +65,6 @@
 | `priority-p0` | P0 | 致命 / 必考 |
 | `priority-p1` | P1 | 高频 |
 | `priority-p2` | P2 | 中频 |
-| `priority-p3` | P3 | 低频延伸 |
 
 - 携带优先级：标准 QA、优先级大盘、八股速查、场景题；**方法论（M系列）与安全手册不携带**优先级标签。
 - 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`。
