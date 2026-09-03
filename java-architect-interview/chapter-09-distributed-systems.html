@@ -475,7 +475,20 @@ flowchart TD
             </div>
           </div>
         </div>
-      </div>
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p><strong>Etcd 锁（云原生第三极，lease+revision CAS）</strong>：etcd v3 基于 Raft，所有写需多数派确认。锁语义 = <code class="inline-code">put</code> 带 Lease 租约（到期自动释放）+ 利用 <code class="inline-code">revision</code> 全局版本号做 Txn 原子 CAS；释放锁必须带 revision 做 txn 比较，不能直接 <code class="inline-code">delete</code>，否则误删他人锁。K8s 控制器选主即 etcd 锁。Java 侧无官方开箱锁类，需基于 jetcd 的 <code class="inline-code">Lease + Txn</code> 自行封装（Curator 的 InterProcessMutex 则是 ZK 侧即用实现：临时有序节点 + watch 前驱 + 可重入 + 会话重连，生产应直接用 curator-recipes，勿手写 zk api）。</p>
+            <p><strong>三种锁的"底层共识"差异（面试高频）</strong>：Redis 锁<strong>无内置共识</strong>（单主从异步复制、Redlock 只是业务层拼凑，非强一致系统）；ZK 锁基于 <strong>ZAB（CFT 崩溃容错）</strong>；Etcd 锁基于 <strong>Raft（CFT 崩溃容错）</strong>。三者性能：Redis 最高（内存）、ZK/Etcd 中等（写需多数派确认）。</p>
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点：锁与拜占庭容错的关系</div>
+              <p><strong>ZAB/Raft 都是 CFT（崩溃容错），不是 BFT（拜占庭容错）</strong>：它们假设节点只会宕机、不会撒谎/篡改消息；一旦出现恶意节点返回假数据，Raft/ZAB 无法识别欺骗。即 ZK/Etcd 分布式锁<strong>只能防机器宕机，不能防节点作恶篡改</strong>。Redis 连共识都没有，既不是 CFT 也不是 BFT。业务分布式锁几乎不需要拜占庭容错（BFT 性能差、QPS 低，多用于区块链/联盟链）；若真要抗恶意节点，需用 PBFT/HotStuff 这类 BFT 共识（节点 ≥ 3f+1）。本视角与 <a href="#C09.10" class="internal-link">C09.10 拜占庭将军与共识算法</a> 呼应。</p>
+            </div>
+            <p><strong>Kleppmann 对 Redlock 的 4 点批判（补充 追问1）</strong>：① <strong>系统时钟跳跃</strong>：TTL 基于墙钟，NTP 校时跳变会让 TTL 提前过期，两客户端同时持锁（最核心）；② <strong>进程 STW</strong>：GC 长暂停期间锁 TTL 到期，恢复后旧客户端继续执行业务造成并发（所有分布式锁共有的"锁 TTL 须远大于业务执行时间"约束）；③ <strong>网络延迟</strong>：请求过半节点的耗时 + 网络延迟已消耗大半锁窗口，可用窗口极小；④ <strong>运维成本极高</strong>：需 5 个完全独立、互不通信的 Redis 实例，监控/扩容/故障恢复复杂，生产极少落地。结论：需严格互斥改 ZK/Etcd；可接受极小概率失效则单 Redis + 业务兜底，比 RedLock 更简单。</p>
+            <p><strong>租约/TTL 时钟语义补充</strong>：Redis TTL 完全依赖服务端系统墙钟，NTP 跳变即乱；Etcd Lease 也受墙钟影响，但<strong>一致性与写复制靠 Raft 逻辑 revision，不靠租约时间</strong>，租约只负责锁过期释放；ZK 无 TTL，靠客户端 Session 心跳（由 ZK 集群维护会话状态），不受墙钟影响。三者中 ZK/Etcd 的锁释放不依赖"业务侧时钟"，更抗时钟漂移。</p>
+          </div>
+        </div>
+      
 
       <!-- ============================================================ -->
       <!-- C09.04 Kafka 如何保证高吞吐、可靠投递与消息顺序？ -->
