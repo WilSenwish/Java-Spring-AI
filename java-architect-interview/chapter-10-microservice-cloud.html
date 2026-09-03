@@ -41,6 +41,7 @@
         <li><a href="#C10.24"><span class="toc-number">C10.24</span>Spring Cloud 常见生产坑与排查</a></li>
         <li><a href="#C10.25"><span class="toc-number">C10.25</span>Dubbo vs Spring Cloud 选型</a></li>
         <li><a href="#C10.26"><span class="toc-number">C10.26</span>@RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用</a></li>
+        <li><a href="#C10.27"><span class="toc-number">C10.27</span>Nacos 与配置/注册中心推送范式全景</a></li>
       </ol>
     </aside>
 
@@ -60,15 +61,15 @@
         <h1 class="chapter-title">微服务与云原生</h1>
         <p class="chapter-subtitle">单体→SOA→微服务→Service Mesh→Serverless 的架构演进、Eureka→Nacos→xDS 的服务发现演进、Zuul→Gateway→APISIX 的网关演进、Hystrix→Resilience4j→Sentinel 的熔断框架演进、IaaS→PaaS→Serverless 的云计算演进：直击 K8s 容器感知、Istio Sidecar 解耦、绞杀者模式迁移、单元化异地多活、全链路灰度与 FaaS 冷启动</p>
         <div class="chapter-meta">
-          <span>题目数：26</span>
+          <span>题目数：27</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×16</span>
+          <span>架构级 ×17</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：294 分钟</span>
+          <span>预计复习：306 分钟</span>
         </div>
       </div>
 
@@ -565,6 +566,34 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
           </div>
         </div>
       </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">Sentinel 版本演进与集群限流生产部署</div>
+          <div class="qa-layer-body">
+            <p><strong>① Sentinel 版本演进时间线</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>版本</th><th>年份</th><th>关键能力</th></tr></thead>
+              <tbody>
+                <tr><td>1.4.0</td><td>2019</td><td>集群限流（Token Server 统一控全局 QPS 阈值）</td></tr>
+                <tr><td>1.5.0</td><td>2019</td><td>WebFlux / Reactor 响应式限流支持</td></tr>
+                <tr><td>1.6.0</td><td>2019</td><td>Spring Cloud Gateway / Zuul 网关流控、热点参数限流增强</td></tr>
+                <tr><td>1.8.x</td><td>2020</td><td>慢调用比例熔断重构、熔断与限流规则统一（至今仍是默认行为）</td></tr>
+                <tr><td>2.0 alpha</td><td>规划中</td><td>云原生（K8s CRD 声明规则、与 Mesh Sidecar 融合、去历史包袱）</td></tr>
+              </tbody>
+            </table>
+            <p><strong>② 集群限流生产部署要点</strong>：解决"单机限流控不住全局总量"——Sentinel Token Server 统一发令牌，全局 QPS 可控。</p>
+            <ul>
+              <li><strong>两种部署模式</strong>：嵌入模式（独立进程内嵌 Token Server，无额外节点，适合小规模）vs 独立模式（独占 Token Server 集群，吞吐更高，适合大规模）。</li>
+              <li><strong>HA 多实例</strong>：独立 Token Server 必须多实例部署避免单点；客户端配置多地址自动选主。</li>
+              <li><strong>降级兜底（生产必配）</strong>：Token Server 不可用时自动降级为<strong>单机限流</strong>（failover），防止中心故障导致全部拒绝（雪崩放大器）。</li>
+              <li><strong>能力边界</strong>：集群限流<strong>只支持 QPS 阈值，不支持线程数</strong>；线程数限流只能单机维度。</li>
+            </ul>
+            <div class="callout callout-pitfall">
+              <div class="callout-title">生产踩坑</div>
+              <p>独立 Token Server 未做 HA 且未开 failover 降级 → 宕机时集群限流直接拒绝全部请求。务必多实例 + 开启本地降级兜底。</p>
+            </div>
+          </div>
+        </div>
 
       <!-- ============================================================ -->
       <!-- C10.04 容器化与 Kubernetes 如何部署 Java 应用？ -->
@@ -1416,6 +1445,37 @@ spring:
           </div>
         </div>
       </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">Nacos 版本演进与 2.x gRPC 长连接 Push 模型</div>
+          <div class="qa-layer-body">
+            <p><strong>① Nacos 版本演进时间线</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>版本</th><th>关键能力</th></tr></thead>
+              <tbody>
+                <tr><td>1.0.0（2018 开源）</td><td>服务发现 + 配置管理双引擎，AP/CP 模式可切换（Distro 协议做 AP 临时实例、Raft 做 CP 持久实例）</td></tr>
+                <tr><td>1.2.0</td><td>配置支持 MySQL 持久化（生产必开，避免单机 Derby 丢数据）</td></tr>
+                <tr><td>2.0.0</td><td>通信层从 HTTP 短连接升级为 <strong>gRPC 双向长连接</strong>（端口 9848/9849），服务发现 + 配置推送全改主动 Push，性能与实时性质飞跃</td></tr>
+                <tr><td>2.5.x</td><td>LTS 长期支持版本，生产推荐基线</td></tr>
+                <tr><td>3.0.0</td><td>注册中心元数据用 JRaft 强一致、引入 AI 配置治理等</td></tr>
+              </tbody>
+            </table>
+            <p><strong>② 1.x → 2.x Push 模型对比（高频面试点）</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>1.x</th><th>2.x</th></tr></thead>
+              <tbody>
+                <tr><td>配置推送</td><td>HTTP 长轮询（客户端 hold ~29.5s，服务端变更后"通知"，客户端再<strong>二次拉取</strong>完整配置）</td><td>gRPC 长连接，服务端直接<strong>主动 Push</strong>变更（仍是"通知 + 二次拉取"二阶段范式，仅升级通知通道）</td></tr>
+                <tr><td>服务发现</td><td>UDP 推送变更 + 客户端 <strong>10s 定时拉取</strong>兜底（UDP 丢包靠定时拉取补偿）</td><td>gRPC 双向长连接，实例变更服务端实时 Push</td></tr>
+                <tr><td>端口</td><td>8848（HTTP）+ UDP</td><td>8848（HTTP 兼容）+ <strong>9848/9849</strong>（gRPC 主/测）</td></tr>
+                <tr><td>实时性 / 开销</td><td>依赖轮询，秒级延迟、空轮询浪费连接</td><td>毫秒级、无空轮询、长连接复用</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <p>误以为 2.x 是"服务端直推完整数据"——Nacos 配置推送本质仍是<strong>通知 + 二次拉取</strong>二阶段模型（gRPC 只替换"通知"通道，客户端收到通知后仍拉取最新快照）；ZK/Etcd 类 CP 系统 Watch 事件才真正直推完整数据（见 C10.27）。</p>
+            </div>
+          </div>
+        </div>
 
       <!-- ============================================================ -->
       <!-- C10.09 灰度发布与蓝绿部署如何设计？ -->
@@ -4045,6 +4105,64 @@ flowchart TD
           </div>
         </div>
       </div>
+
+      <div class="qa-card" id="C10.27" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C10.27</div>
+          <div class="qa-question">配置中心 / 注册中心的推送范式全景：通知+二次拉取 vs Watch 直推 vs 纯 Pull？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+        <div class="qa-layer" data-layer="scenario">
+          <div class="qa-layer-title">问题背景</div>
+          <div class="qa-layer-body">
+            <p>客户端如何"及时拿到"配置 / 服务实例变更，是配置中心（Nacos/Apollo）与注册中心（Nacos/Eureka/ZK/Etcd/Consul）的核心差异点。面试常要求横向对比"推送机制"，本质是对三种数据同步范式的取舍。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">三种推送范式</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>范式</th><th>机制</th><th>代表组件</th><th>优点</th><th>缺点</th></tr></thead>
+              <tbody>
+                <tr><td>① 通知 + 二次拉取</td><td>服务端变更后<strong>通知</strong>客户端（长轮询 / 长连接），客户端再<strong>主动拉取</strong>完整最新数据</td><td>Nacos 1.x 配置（HTTP 长轮询）、Nacos 2.x 配置（gRPC 通知）、Apollo、Eureka</td><td>客户端控拉取节奏、服务端无状态、天然支持灰度 / 分批</td><td>多一次拉取 RTT；通知通道需保活</td></tr>
+                <tr><td>② Watch 直推完整数据</td><td>CP 型系统 Watch 事件<strong>直接携带</strong>变更后完整节点数据，客户端无需再拉</td><td>ZK（Watcher 带新 Data）、Etcd（Watch 带 MVCC 全量）、Consul（Blocking Query 返回新值）</td><td>一次到位、强一致、实时性最高</td><td>服务端需维护 Watch 会话状态、大数据节点事件体积大</td></tr>
+                <tr><td>③ 纯 Pull</td><td>客户端定时 / 按需轮询服务端</td><td>早期 DNS、简单 HTTP 健康检查</td><td>实现最简单、无长连接</td><td>实时性差、轮询空转浪费</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">为什么 AP 型用"通知+二次拉取"而 CP 型可"直推完整数据"</div>
+          <div class="qa-layer-body">
+            <p><strong>AP 型（Nacos/Apollo/Eureka）</strong>：服务端为保证可用性、不维护每个客户端会话状态，变更时不持有"完整最新快照给谁"的上下文，故只发轻量通知，由客户端自行拉取它需要的那份数据——解耦、可水平扩展、支持批量 / 灰度。</p>
+            <p><strong>CP 型（ZK/Etcd/Consul）</strong>：基于强一致存储（ZAB/Raft），Watch 事件本身就能附带 MVCC 版本下的<strong>完整新值</strong>，且客户端会话由服务端维护，直推完整数据不破坏一致性，反而减少一次 RTT。</p>
+            <p><strong>关键澄清</strong>：Nacos 2.x 用 gRPC 长连接，但<strong>配置推送仍是"通知+二次拉取"二阶段范式</strong>——gRPC 只升级了"通知"通道（从 HTTP 长轮询变为长连接主动 Push 通知），客户端收到通知后仍拉取最新配置快照，并非 Watch 直推。切勿与 ZK 的 Watch 直推混淆。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">选型与生产要点</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>选型</strong>：追求强一致 + 实时直推选 ZK/Etcd/Consul（Watch 直推）；追求高可用 + 大规模动态配置选 Nacos/Apollo（通知+二次拉取，长连接保活）。</li>
+              <li><strong>客户端本地快照兜底</strong>：配置 / 注册中心全宕机时，客户端用上次快照启动运行（Nacos/Apollo 均支持），避免中心故障阻断业务。</li>
+              <li><strong>推送通道保活</strong>：长轮询 / 长连接需心跳，断连降级为定时拉取（如 Nacos 1.x 服务发现 UDP 丢包靠 10s 定时拉取补偿）。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>混淆 Nacos 2.x 与 ZK 推送模型</strong>：以为 gRPC 长连接就是"直推完整数据"，实际仍是通知+二次拉取。</li>
+                <li><strong>无本地快照</strong>：配置中心宕机业务起不来。</li>
+                <li><strong>依赖 UDP 单通道</strong>：不配定时拉取兜底，UDP 丢包导致实例列表陈旧。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
 
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
