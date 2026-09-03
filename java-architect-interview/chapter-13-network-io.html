@@ -27,6 +27,7 @@
         <li><a href="#C13.10"><span class="toc-number">C13.10</span>DNS 解析原理与智能调度</a></li>
         <li><a href="#C13.11"><span class="toc-number">C13.11</span>io_uring 异步 IO 与 Loom</a></li>
         <li><a href="#C13.12"><span class="toc-number">C13.12</span>OS 系统调用与内核交互</a></li>
+        <li><a href="#C13.13"><span class="toc-number">C13.13</span>IO 模型全景与跨平台选型</a></li>
       </ol>
     </aside>
 
@@ -47,15 +48,15 @@
         <h1 class="chapter-title">网络与高性能 IO</h1>
         <p class="chapter-subtitle">从 OSI 七层到 TCP/IP 四层到 QUIC 的协议演进、从 BIO 到 NIO 到 AIO 的 IO 模型演进、从 HTTP/1.1 到 HTTP/2 到 HTTP/3 的 Web 协议演进、从轮询到长轮询到 SSE 到 WebSocket 的实时通信演进、从传统拷贝到 sendfile 到 mmap 到 DMA 的数据传输演进：直击 TCP 状态机与拥塞控制、TLS 握手与证书链、Java NIO Selector/Reactor、Netty EventLoop/Pipeline/ByteBuf 池化、零拷贝实现、WebSocket 长连接设计、DNS 智能调度与 HTTPDNS</p>
         <div class="chapter-meta">
-          <span>题目数：12</span>
+          <span>题目数：13</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×4</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×7</span>
+          <span>架构级 ×8</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：230 分钟</span>
+          <span>预计复习：242 分钟</span>
         </div>
       </div>
 
@@ -1728,6 +1729,96 @@ MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）
         </div>
       </div>
 
+      <div class="qa-card" id="C13.13" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C13.13</div>
+          <div class="qa-question">IO 模型全景与跨平台选型：UNP 五模型、signal-driven IO、IOCP/Proactor 与全接口横向对比？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察<strong>站在操作系统视角把"IO 模型"这张大图补全</strong>的能力。C13.05 讲了 Java NIO/Reactor、C13.11 讲了 io_uring、C13.12 讲了 syscall，但 UNP（Unix Network Programming）定义的<strong>五种经典 IO 模型里 signal-driven IO 一直没讲</strong>，且<strong>Windows 的 IOCP（完成端口，Proactor 模型）只在 C13.12 一笔带过</strong>。能讲清"五种模型各自何时通知、谁来做数据拷贝、跨平台底层分别落到哪个系统调用"，才算把 IO 模型讲圆。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>UNP 五种经典 IO 模型</strong>：① 阻塞 IO（recv 卡住，一线程一连接）；② 非阻塞 IO（轮询，忙 CPU）；③ IO 多路复用（select/poll/epoll/kqueue，单线程管万连）；④ 信号驱动 IO（SIGIO，内核发信号通知）；⑤ 异步 IO（内核做完数据拷贝后通知"已完成"）。前四种都是<strong>同步 IO</strong>（read/write 仍需你同步发起），只有第⑤种是真正异步。</p>
+            <p><strong>平台专属高性能接口</strong>：Linux 用 epoll（2.6+）/ io_uring（5.1+）；BSD/macOS 用 kqueue；Windows 用 IOCP；老 Solaris 用 /dev/poll。Linux 原生 AIO（libaio）<strong>只支持磁盘文件、不支持 socket</strong>，常被误当网络异步方案。</p>
+            <p><strong>跨平台封装层</strong>：libevent（select→poll→epoll/kqueue 自适应）、libuv（Node.js 底层：Linux-epoll / macOS-kqueue / Windows-IOCP）、Boost.Asio、Netty——它们不是系统调用，只是按平台选最优底层。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>signal-driven IO（SIGIO）</strong>：<code class="inline-code">fcntl(fd, F_SETOWN, pid)</code> + <code class="inline-code">fcntl(fd, O_ASYNC)</code> 开启，fd 就绪时内核向进程发 <code class="inline-code">SIGIO</code> 信号；信号处理函数里再 <code class="inline-code">recv</code>。<strong>致命缺点</strong>：信号是进程级全局的，多个 fd 就绪时<strong>分不清是哪个 socket</strong>，高并发几乎没人用，故 UNP 把它列为"存在但不实用"的一档。</p>
+            <p><strong>IOCP / Proactor（完成驱动）</strong>：与 epoll 的 Reactor（"fd 就绪了你来 recv"）本质不同——你提前 <code class="inline-code">WSARecv</code> 把缓冲区<strong>投递</strong>给内核，内核收完数据并<strong>完成用户态拷贝后</strong>才通知你"数据已经读完"。你全程<strong>不阻塞、不二次系统调用</strong>。Windows 高并发服务器唯一选择，Node.js/libuv/C# 底层皆是它。</p>
+            <p><strong>Reactor vs Proactor 对照</strong>：Reactor＝等待事件就绪、由应用发起 IO（select/poll/epoll/kqueue），同步；Proactor＝内核执行完 IO、完成后通知应用（IOCP、io_uring），异步。io_uring 默认中断模式更像 Proactor（靠 CQ 通知完成、不空耗 CPU），IOPOLL 模式才主动轮询。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p><strong>"多路复用≠异步"</strong>：epoll/kqueue 是同步 Reactor（只通知就绪）；IOCP/io_uring 是异步 Proactor（连数据拷贝都帮你做完）。把 io_uring 当"另一个 epoll"来用，会错失它完成驱动的核心价值（同见 C13.11）。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>跨平台选型</strong>：Linux 服务默认 epoll + Reactor（Netty NIO / JDK NIO）；macOS/BSD 用 kqueue（Nginx 编译自动降级）；Windows 服务端用 IOCP（libuv 封装）。<strong>Java NIO Selector 底层映射</strong>：Linux＝epoll、macOS＝kqueue、Windows＝select（历史实现，性能最差），所以跨平台网络框架在 Windows 上要特别注意。</p>
+            <p><strong>何时选谁</strong>：连接少（几百）select/poll 够用、优先跨平台；海量长连接 Linux 用 epoll、macOS 用 kqueue；存储/网关/代理等极致 IO 敏感场景评估 io_uring（须锁内核 5.1+，做好回退 epoll 的开关）。</p>
+            <p><strong>避坑</strong>：别在 Windows 上指望 Java NIO 吃到 epoll——它底层是 select，fd 上限仅 64，高并发直接翻车；跨平台库（libuv/Netty）才是正确抽象层。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：epoll ET 边缘触发为什么必须用非阻塞 IO？</strong> ET 只在状态变化瞬间通知一次，若用阻塞 read，缓冲区剩余数据读完会卡住整线程；非阻塞 read 循环读到 <code class="inline-code">EAGAIN</code> 代表空了才退出，故 ET 必须配非阻塞 + 循环读。</p>
+            <p><strong>追问 2：Reactor 和 Proactor 根本区别？</strong> 前者就绪通知、应用自己拷；后者完成通知、内核拷完。前者同步、后者异步；epoll 属前者，IOCP/io_uring 属后者。</p>
+            <p><strong>追问 3：Java NIO Selector 是不是 epoll？</strong> Linux 下是 epoll、macOS 下是 kqueue、Windows 下是 select——Selector 只是上层封装，真正多路复用由 OS 提供（见 C13.05）。</p>
+            <p><strong>追问 4：io_uring 比 epoll 快在哪？</strong> epoll 只告诉你 fd 就绪，read 仍由用户态发起（一次 syscall）；io_uring 把 recv/send 直接提交内核队列、内核完成后再通知，省去"就绪后再发 IO"的往返（见 C13.11）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>认为 IO 多路复用＝异步 IO</strong>：select/poll/epoll/kqueue 全是同步 Reactor，只通知就绪；真正异步是 IOCP/io_uring/libaio。</li>
+                <li><strong>误以为 JDK 已原生用 io_uring</strong>：JDK 21 虚拟线程底层仍 epoll，主线无原生 io_uring（见 C13.11）。</li>
+                <li><strong>忽略 io_uring 内核版本</strong>：5.1+ 才有，SQPOLL/Buffer Ring 需更高版本，否则 ENOSYS。</li>
+                <li><strong>混淆事件驱动与完成驱动</strong>：epoll 说"可读了"、io_uring 说"已读完"，把 io_uring 当 epoll 用会错失价值。</li>
+                <li><strong>Windows 上误用 Java NIO 当 epoll</strong>：Windows Selector 底层是 select（fd 上限 64），高并发必翻车；应走 libuv/Netty 的 IOCP 路径。</li>
+                <li><strong>以为 libaio 能做网络异步</strong>：Linux 原生 AIO 只支持磁盘文件，不支持 socket，网络异步得用 io_uring。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">全接口横向对比总表</div>
+          <div class="qa-layer-body">
+            <table>
+              <thead><tr><th>接口</th><th>平台</th><th>类型</th><th>核心特点</th></tr></thead>
+              <tbody>
+                <tr><td>select</td><td>全平台</td><td>多路复用(Reactor)</td><td>位图、fd 上限 1024、O(N) 遍历</td></tr>
+                <tr><td>poll/ppoll</td><td>Linux/UNIX</td><td>多路复用(Reactor)</td><td>数组无上限、仍 O(N)</td></tr>
+                <tr><td>epoll</td><td>Linux 2.6+</td><td>多路复用(Reactor)</td><td>红黑树+就绪链表、LT/ET、O(就绪数)</td></tr>
+                <tr><td>kqueue</td><td>macOS/BSD</td><td>多路复用(Reactor)</td><td>事件过滤器、LT/ET</td></tr>
+                <tr><td>io_uring</td><td>Linux 5.1+</td><td>异步 IO(Proactor)</td><td>SQ/CQ 共享内存、提交即内核执行、新一代</td></tr>
+                <tr><td>IOCP</td><td>Windows</td><td>异步 IO(Proactor)</td><td>完成端口、内核做完拷贝再通知、Windows 首选</td></tr>
+                <tr><td>libaio</td><td>Linux</td><td>异步 IO</td><td>仅磁盘文件、不支持 socket</td></tr>
+                <tr><td>/dev/poll</td><td>Solaris(古董)</td><td>多路复用</td><td>≈epoll，已淘汰</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="chapter-12-ai-engineering.html" class="nav-prev">&#8592; 第 12 篇 AI 工程与实践</a>
