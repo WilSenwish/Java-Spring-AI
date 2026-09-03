@@ -40,6 +40,7 @@
         <li><a href="#C10.23"><span class="toc-number">C10.23</span>Spring Cloud Commons 核心抽象如何让注册中心无缝切换</a></li>
         <li><a href="#C10.24"><span class="toc-number">C10.24</span>Spring Cloud 常见生产坑与排查</a></li>
         <li><a href="#C10.25"><span class="toc-number">C10.25</span>Dubbo vs Spring Cloud 选型</a></li>
+        <li><a href="#C10.26"><span class="toc-number">C10.26</span>@RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用</a></li>
       </ol>
     </aside>
 
@@ -59,15 +60,15 @@
         <h1 class="chapter-title">微服务与云原生</h1>
         <p class="chapter-subtitle">单体→SOA→微服务→Service Mesh→Serverless 的架构演进、Eureka→Nacos→xDS 的服务发现演进、Zuul→Gateway→APISIX 的网关演进、Hystrix→Resilience4j→Sentinel 的熔断框架演进、IaaS→PaaS→Serverless 的云计算演进：直击 K8s 容器感知、Istio Sidecar 解耦、绞杀者模式迁移、单元化异地多活、全链路灰度与 FaaS 冷启动</p>
         <div class="chapter-meta">
-          <span>题目数：25</span>
+          <span>题目数：26</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×15</span>
+          <span>架构级 ×16</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：280 分钟</span>
+          <span>预计复习：294 分钟</span>
         </div>
       </div>
 
@@ -3906,6 +3907,115 @@ flowchart TD
                 <li><strong>注册中心强依赖无降级</strong>：注册中心抖动导致全量不可用，需本地缓存兜底。</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- C10.26 @RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用规范 -->
+      <div class="qa-card" id="C10.26" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C10.26</div>
+          <div class="qa-question">@RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用规范<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p><code class="inline-code">@RefreshScope</code> 是 Spring Cloud 配置热刷新的"双刃剑"：它本质是一个自定义 Scope，把 Bean 包成代理、刷新时 <code class="inline-code">cache.clear()</code> 重建 target。很多团队把它当"加上就能热更新"的银弹，结果线上出现双实例、内存泄漏、定时任务重复执行、事务/AOP 失效等隐性生产事故。面试官要的是：你能讲清 @RefreshScope 的 9 大坑与避坑准则，并能给出 @ConfigurationProperties 业务侧"优雅使用 + 安全热更新"的工程规范——尤其是 <strong>Nacos 下 @ConfigurationProperties 自动 rebind 无需 @RefreshScope，而 @Value 才需要；Spring Cloud Config 下 @ConfigurationProperties 仍需 @RefreshScope</strong> 这一反直觉差异。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理：9 大生产坑与根因</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>#</th><th>坑</th><th>现象</th><th>根因</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>新旧 Bean 共存 / 双实例</td><td>旧 Bean 的线程池、定时任务、MQ 消费者未回收，新 Bean 又建一份，任务重复执行</td><td>旧 Bean 被普通单例 Bean 强引用，GC 无法回收；@RefreshScope 仅标记过期不立即销毁</td></tr>
+                <tr><td>2</td><td>刷新延迟（懒加载坑）</td><td>调完 /actuator/refresh 立刻读还是旧值，下次请求才变新值</td><td>懒加载：刷新仅标记过期，第一次访问才重建 target</td></tr>
+                <tr><td>3</td><td>AOP / 事务 / @Async 失效</td><td>打 @RefreshScope 的 Service 事务偶尔失效</td><td>RefreshScope 生成 CGLIB 代理，多层代理顺序错乱覆盖切面</td></tr>
+                <tr><td>4</td><td>@Bean + @RefreshScope 管理重资源</td><td>RestTemplate/连接池每次刷新重建，连接泄漏</td><td>@Bean 加 @RefreshScope 刷新即新建，重资源未复用</td></tr>
+                <tr><td>5</td><td>循环依赖刷新异常</td><td>refresh 时抛 BeanCurrentlyInCreationException</td><td>RefreshScope Bean 与单例互相依赖，循环代理</td></tr>
+                <tr><td>6</td><td>Nacos 自动刷新无限循环</td><td>CPU 飙升</td><td>refresh-enabled=true + 初始化 BUG 抛异常，缓存未清反复触发刷新</td></tr>
+                <tr><td>7</td><td>静态变量不刷新</td><td>@Value 注入 static 字段永远旧值</td><td>@RefreshScope 对静态字段无效，静态变量属于类而非实例</td></tr>
+                <tr><td>8</td><td>Feign + @RefreshScope 灾难</td><td>Feign 接口偶发调用失败</td><td>Feign 代理外再包 RefreshScope 代理，方法找不到</td></tr>
+                <tr><td>9</td><td>旧资源未关闭 OOM</td><td>线程数只涨不跌最终 OOM</td><td>刷新建新 Bean 但旧线程池/HttpClient 未 shutdown</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-pitfall">
+              <div class="callout-title">避坑黄金准则</div>
+              <ul>
+                <li>@RefreshScope <strong>只给纯配置属性类</strong>，禁止加在业务 Service / Mapper / Feign / 定时任务类上。</li>
+                <li>业务代码<strong>不要缓存 RefreshScope Bean 的字段快照</strong>；每次用时实时 get 或走监听回调。</li>
+                <li>重型资源（线程池、连接池、客户端）<strong>禁止交给 @RefreshScope</strong>，需手动销毁旧资源再建新资源。</li>
+                <li>事务 / @Async / AOP 切面 Bean <strong>禁止加 @RefreshScope</strong>。</li>
+                <li>最优替代：放弃 @RefreshScope，用 @NacosConfigListener / EnvironmentChangeEvent 手动监听，刷新单例 Bean 字段，无新旧双实例问题。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践：@ConfigurationProperties 业务侧优雅使用</div>
+          <div class="qa-layer-body">
+            <p><strong>① 标准模板（Nacos 无需 @RefreshScope）</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Data</span>
+<span class="annotation">@Component</span>
+<span class="annotation">@ConfigurationProperties</span>(prefix = <span class="str">"app.rule"</span>)
+<span class="kw">public class</span> <span class="type">AppRuleProperties</span> {
+    <span class="kw">private</span> <span class="type">Integer</span> limit;
+    <span class="kw">private</span> <span class="type">Boolean</span> switchFlag = <span class="const">false</span>; <span class="com">// 给默认值防 NPE</span>
+    <span class="kw">private</span> <span class="type">NotifyProperties</span> notify; <span class="com">// 嵌套子配置</span>
+    <span class="annotation">@Data</span>
+    <span class="kw">public static class</span> <span class="type">NotifyProperties</span> {
+        <span class="kw">private</span> <span class="type">Boolean</span> enable;
+        <span class="kw">private</span> <span class="type">String</span> url;
+    }
+}</code></pre></div>
+            <p>要点：Lombok <code class="inline-code">@Data</code> 生成 setter（Nacos rebind 通过 setter 改字段）；字段给默认值；不 new 线程池/HttpClient/MQ；<strong>不要加 @RefreshScope</strong>。</p>
+            <p><strong>② 三种注入姿势（实时读取优先）</strong>：</p>
+            <ul>
+              <li><strong>方式 1（最推荐）</strong>：@Autowired 注入，<strong>方法内实时 get，不缓存字段快照</strong>。Nacos 改值立刻读到新值，无快照问题。</li>
+              <li><strong>方式 2</strong>：构造器注入 <code class="inline-code">final AppRuleProperties</code>——引用不可变但<strong>内部字段可被 Nacos 修改</strong>（经典误区：final 锁的是引用不是字段）。</li>
+              <li><strong>方式 3（高 QPS 折中）</strong>：本地短过期缓存（5~10s），平衡性能与时效性；严禁永久快照。</li>
+            </ul>
+            <div class="callout callout-pitfall">
+              <div class="callout-title">最高频事故</div>
+              <p><code class="inline-code">@PostConstruct</code> 里把 <code class="inline-code">prop.getLimit()</code> 赋值给成员变量 = 永久快照，热更新永远失效。只要把配置字段赋给另一个成员变量，就等于放弃热更新。</p>
+            </div>
+            <p><strong>③ 重型资源热更新（手动监听，资源生命周期托管）</strong>：</p>
+            <div class="code-block"><pre><code><span class="annotation">@Service</span>
+<span class="kw">public class</span> <span class="type">BizThreadPoolManager</span> {
+    <span class="kw">private</span> <span class="type">ExecutorService</span> executor;
+    <span class="kw">private final</span> <span class="type">AppRuleProperties</span> properties;
+    <span class="kw">public</span> <span class="type">BizThreadPoolManager</span>(<span class="type">AppRuleProperties</span> properties) {
+        <span class="kw">this</span>.properties = properties;
+        refreshThreadPool();
+    }
+    <span class="annotation">@EventListener</span>(<span class="type">EnvironmentChangeEvent</span>.<span class="kw">class</span>)
+    <span class="kw">public void</span> <span class="fn">onConfigChange</span>() { refreshThreadPool(); }
+    <span class="kw">private synchronized void</span> <span class="fn">refreshThreadPool</span>() {
+        <span class="kw">if</span> (executor != <span class="kw">null</span> &amp;&amp; !executor.isShutdown()) executor.shutdown();
+        executor = <span class="type">Executors</span>.newFixedThreadPool(properties.getLimit());
+    }
+}</code></pre></div>
+            <p><strong>④ 启动校验 + 包分层</strong>：<code class="inline-code">@Validated</code> + JSR-380（<code class="inline-code">@Min/@Max</code>）启动即拦截错误配置；所有配置 Bean 统一放 <code class="inline-code">xxx.config.properties</code> 包，与 <code class="inline-code">@Configuration</code> 配置类区分。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问：Nacos vs Spring Cloud Config 刷新差异</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>配置中心</th><th>注解组合</th><th>是否需要 @RefreshScope</th><th>原理</th></tr></thead>
+              <tbody>
+                <tr><td>Nacos Config</td><td>@ConfigurationProperties</td><td>不需要</td><td>Nacos 发 EnvironmentChangeEvent → ConfigurationPropertiesRebinder.rebind() 改单例字段，始终同一对象</td></tr>
+                <tr><td>Nacos Config</td><td>@Value("${x}")</td><td>需要</td><td>@Value 字段注入后固化，rebind 不刷 @Value，需 @RefreshScope 重建</td></tr>
+                <tr><td>Spring Cloud Config</td><td>@ConfigurationProperties</td><td>需要</td><td>原生无 Nacos 增强，不自动 rebind，调 /actuator/refresh 才生效</td></tr>
+                <tr><td>Spring Cloud Config</td><td>@Value("${x}")</td><td>需要</td><td>同上</td></tr>
+              </tbody>
+            </table>
+            <p><strong>划重点</strong>：Nacos 下绝大多数 @ConfigurationProperties 配置类可以删掉 @RefreshScope；加上反而引入新旧双实例风险，收益为 0。只有 @Value 注入才需要 @RefreshScope。</p>
           </div>
         </div>
       </div>

@@ -229,6 +229,7 @@
           <li><a href="#S04.03"><span class="toc-number">S04.03</span>消息队列积压处理</a></li>
           <li><a href="#S04.04"><span class="toc-number">S04.04</span>灰度发布与流量染色</a></li>
           <li><a href="#S04.05"><span class="toc-number">S04.05</span>服务网格 Service Mesh 落地与 Sidecar 治理</a></li>
+          <li><a href="#S04.06"><span class="toc-number">S04.06</span>配置中心热更新引发线上事故排障</a></li>
         </ol>
       </div>
 
@@ -335,11 +336,11 @@
         <h1 class="chapter-title">高频真实场景题</h1>
         <p class="chapter-subtitle">基于 2026 面试招聘需求 · 65 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
         <div class="chapter-meta">
-          <span>题目数：66</span>
+          <span>题目数：67</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×17</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×42</span>
+          <span>架构级 ×43</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×7</span>
           <span class="meta-divider">|</span>
@@ -2961,6 +2962,94 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
       </div>
     </div>
   </div>
+
+    <div class="qa-card" id="S04.06" data-difficulty="architect" data-priority="p1">
+      <div class="qa-header">
+        <div class="qa-badge">S04.06</div>
+        <div class="qa-question">配置中心热更新引发线上事故排障（双实例 / 线程池 OOM / 定时任务重复）<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+      </div>
+      <div class="scenario-tags">
+        <span class="scenario-tag tag-hot">高频</span>
+        <span class="scenario-tag">配置中心</span>
+        <span class="scenario-tag">Nacos</span>
+        <span class="scenario-tag">@RefreshScope</span>
+        <span class="scenario-tag">热更新</span>
+      </div>
+      <div class="qa-layer" data-layer="scenario">
+        <div class="qa-layer-title">场景背景</div>
+        <div class="qa-layer-body"><p>某微服务将开关、阈值、线程池核心参数都放在 Nacos，并给承载这些参数的 Bean 打了 <code class="inline-code">@RefreshScope</code>，期望配置变更秒级生效。一次运营大促前改了线程池 <code class="inline-code">corePoolSize</code> 与限流开关，调用 <code class="inline-code">/actuator/refresh</code> 后，监控陆续出现三类异常：① 同一台机器出现<strong>两个消费者实例在重复消费消息</strong>；② 应用<strong>线程数只涨不跌，几小时后 OOM 重启</strong>；③ 一个<strong>定时对账任务每分钟执行了两次</strong>。告警风暴，但接口 RT 反而正常，初判"配置没生效"却找不到旧值来源。</p></div>
+      </div>
+      <div class="qa-layer" data-layer="challenge">
+        <div class="qa-layer-title">核心挑战</div>
+        <div class="qa-layer-body"><p>1. <strong>双实例根因定位</strong>：旧 Bean 为何没被回收；2. <strong>资源泄漏链路</strong>：旧线程池/连接为何未关闭；3. <strong>懒加载时序</strong>：为何刷新后旧任务仍跑、新值何时才被读到；4. <strong>根治而非止血</strong>：如何在保留热更新能力的同时消除新旧 Bean 共存。</p></div>
+      </div>
+      <div class="qa-layer" data-layer="principle">
+        <div class="qa-layer-title">分析框架</div>
+        <div class="qa-layer-body"><p>按"作用域 → 引用链 → 资源生命周期"三维定位：<strong>①@RefreshScope 是自定义 Scope</strong>，刷新仅标记过期、下次访问才重建 target（懒加载）；<strong>②旧 Bean 是否被单例强引用</strong>——被单例 Service 注入持有的旧代理/旧实例不会 GC，造成双实例；<strong>③重资源是否交给 RefreshScope</strong>——线程池/连接池被刷新即重建，旧资源无关闭钩子则泄漏；<strong>④定时任务/线程是否持有旧引用</strong>——第一次拿到旧实例后永远读旧值。根因几乎都落在"@RefreshScope 误用于业务/资源 Bean"。</p></div>
+      </div>
+      <div class="qa-layer" data-layer="practice">
+        <div class="qa-layer-title">解决方案</div>
+        <div class="qa-layer-body">
+          <p><strong>方案 A（首选，纯配置 POJO）</strong>：配置类只用 <code class="inline-code">@ConfigurationProperties</code>，<strong>Nacos 下自动 rebind 刷新字段，删掉 @RefreshScope</strong>；业务代码 @Autowired 后<strong>方法内实时 get，不缓存快照</strong>。无新旧双实例，彻底消除三类事故。</p>
+          <p><strong>方案 B（重资源热更新）</strong>：线程池/连接池<strong>不交 @RefreshScope</strong>，改为监听 <code class="inline-code">EnvironmentChangeEvent</code>，在回调里先 <code class="inline-code">shutdown()</code> 旧资源再按新参数建新资源（详见 C10.26 实践）。</p>
+          <p><strong>方案 C（@Value 必须热更新时）</strong>：只用 @Value 注入的开关才加 @RefreshScope，且绝不加在 Service/定时任务类上。</p>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="practice">
+        <div class="qa-layer-title">关键代码</div>
+        <div class="qa-layer-body">
+          <pre class="code-block"><code>// 根治：纯配置 POJO，Nacos 自动 rebind，无 @RefreshScope
+@Component
+@ConfigurationProperties(prefix = "app.rule")
+public class AppRuleProperties {
+    private int corePoolSize;
+    private boolean switchOn;
+    // getter/setter（rebind 通过 setter 改字段）
+}
+
+// 业务侧：实时读取，绝不缓存快照
+public void doBiz() {
+    int n = appRuleProperties.getCorePoolSize(); // 每次拿最新值
+    boolean on = appRuleProperties.isSwitchOn();
+}
+
+// 反例（三类事故根因）：@RefreshScope 管理重资源 + 单例持有旧引用
+@RefreshScope
+@Component
+public class BadPool {
+    @Value("${app.rule.corePoolSize}") private int n;
+    private final Executor executor = Executors.newFixedThreadPool(n); // 刷新不重建，旧池泄漏
+}
+</code></pre>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="deep">
+        <div class="qa-layer-title">深度追问</div>
+        <div class="qa-layer-body">
+          <ul>
+            <li><strong>追问 1：如何快速确认是双实例还是缓存快照？</strong>线程堆栈搜同名业务线程/线程池是否出现两份；看是否存在两个 AppRuleProperties 实例（@RefreshScope 下会有新旧两个 target）。单例持有旧引用→双实例；仅字段旧值→快照。</li>
+            <li><strong>追问 2：为什么 Nacos 下 @ConfigurationProperties 不用 @RefreshScope 也能热更新？</strong>Nacos 发 EnvironmentChangeEvent，ConfigurationPropertiesRebinder 重新绑定同一单例 Bean 的字段（改字段非新建对象），所以无需 @RefreshScope；而 @Value 固化不刷，才需 @RefreshScope。</li>
+            <li><strong>追问 3：Spring Cloud Config 下同样代码为何不生效？</strong>原生 Config 无 Nacos 增强，@ConfigurationProperties 不自动 rebind，必须保留 @RefreshScope 或手动监听 ContextRefreshedEvent 刷新。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="pitfall">
+        <div class="qa-layer-title">常见陷阱</div>
+        <div class="qa-layer-body">
+          <ul>
+            <li>把 @RefreshScope 当银弹加在 Service / 定时任务 / Feign / Mapper 上：代理链错乱、切面失效、双实例。</li>
+            <li>@Bean 方法上加 @RefreshScope 管理 RestTemplate/线程池：每次刷新重建，连接泄漏、OOM。</li>
+            <li>@PostConstruct 里把配置值赋给成员变量：永久快照，热更新永远失效。</li>
+            <li>认为 Nacos 下 @ConfigurationProperties 也必须加 @RefreshScope：引入新旧双实例风险，收益为 0。</li>
+            <li>静态变量接配置：@RefreshScope 对 static 完全无效，永远旧值。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="insight">
+        <div class="qa-layer-title">破题点拨</div>
+        <div class="qa-layer-body"><p><strong>口诀："配置用 POJO、资源手动听、字段实时取、@RefreshScope 只救 @Value。"</strong>先判根因（双实例来自单例强引用旧 target、OOM 来自重资源未关闭、重复执行来自旧引用未更新），再按 Nacos rebind / 监听重建两路根治；与原理题 C10.21、规范题 C10.26 形成"场景 + 原理 + 规范"三视角。</p></div>
+      </div>
+    </div>
 
 <section class="scenario-group" id="group-5">
   <h2 class="group-title">
