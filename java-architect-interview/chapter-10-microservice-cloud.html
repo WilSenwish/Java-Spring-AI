@@ -4018,6 +4018,32 @@ flowchart TD
             <p><strong>划重点</strong>：Nacos 下绝大多数 @ConfigurationProperties 配置类可以删掉 @RefreshScope；加上反而引入新旧双实例风险，收益为 0。只有 @Value 注入才需要 @RefreshScope。</p>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">排障 SOP 与工程速查</div>
+          <div class="qa-layer-body">
+            <p><strong>① 线上已出事怎么定位（5 步 SOP）</strong>：@RefreshScope 的坑多为隐性、偶现、难复现，按以下顺序排查：</p>
+            <ol>
+              <li>查业务 Service / Mapper / Feign / 定时任务类是否误打 <code class="inline-code">@RefreshScope</code>（最高发事故源）。</li>
+              <li>查 RefreshScope Bean 是否被普通单例 Bean 的<strong>成员变量</strong>注入持有——强引用导致旧实例永不回收，双实例共存。</li>
+              <li>线程堆栈看是否存在<strong>两份同名业务线程</strong>（如两个同名定时任务线程池），据此判断新旧 Bean 共存。</li>
+              <li>关闭 Nacos 自动刷新（<code class="inline-code">refresh-enabled=false</code>），手动调 <code class="inline-code">/actuator/refresh</code> 复现，排除"无限刷新"干扰。</li>
+              <li>查是否用静态变量 / <code class="inline-code">@PostConstruct</code> 快照接收配置——这两类永远读不到刷新后的值。</li>
+            </ol>
+            <p><strong>② 两种热刷新方案对比选型</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>方案</th><th>优点</th><th>致命缺点</th><th>适用场景</th></tr></thead>
+              <tbody>
+                <tr><td>@RefreshScope + actuator/refresh</td><td>代码改动少、开箱即用</td><td>懒加载、新旧 Bean 共存、内存泄漏风险</td><td>纯配置 POJO、轻量无资源对象</td></tr>
+                <tr><td>配置监听器手动回调（Nacos Listener / EnvironmentChangeEvent）</td><td>全程可控、单例 Bean 无新旧实例问题、生产首选</td><td>需自己写回调更新字段、资源需手动关闭</td><td>业务开关、线程池、连接池热更新</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-pitfall">
+              <div class="callout-title">IDE 配置元数据提示</div>
+              <p>引入 <code class="inline-code">spring-boot-configuration-processor</code> 依赖，<code class="inline-code">@ConfigurationProperties</code> 类编译后生成 <code class="inline-code">spring-configuration-metadata.json</code>，在 application.yml 写配置时自动补全 + 类型校验，减少手误。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============ 章节间导航 ============ -->
