@@ -1284,6 +1284,108 @@ flowchart LR
             </div>
           </div>
         </div>
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全</div>
+          <div class="qa-layer-body">
+            <p><strong>扩展 1：布谷鸟过滤器的二维桶结构与指纹</strong>。与"位数组"不同，布谷鸟过滤器是<strong>桶数组 + 槽位 + 指纹</strong>的二维逻辑结构 <code class="inline-code">buckets[m][b]</code>：m 个桶，标准实现每桶 <code class="inline-code">b=4</code> 个 slot，每个 slot 存一个定长指纹（常见 8bit，工程取值 4–12bit），<code class="inline-code">0</code> 表示空槽。指纹 <code class="inline-code">f = fingerprint(x)</code> 取哈希低 N 位，<strong>取值不能为 0</strong>（取到 0 时置 1）；指纹长度直接决定假阳性率。底层内存是紧凑打包的比特数组，而非"m×b 个对象"，这是它内存接近标准布隆的根本原因。</p>
+
+            <div class="mermaid-container">
+              <div class="mermaid">
+flowchart LR
+    X["元素 x"] --> F["指纹 f = fingerprint(x)"]
+    F --> I1["i1 = hash(x) mod m"]
+    I1 --> B0["Bucket i1 / 4 slots"]
+    I1 -->|"i2 = i1 XOR hash(f)"| I2["备选桶 i2"]
+    I2 --> B2["Bucket i2 / 4 slots"]
+    B2 -->|"两桶皆满则 kick-out 踢挪"| B0
+    style B0 fill:#dbeafe,stroke:#2563eb
+    style B2 fill:#dbeafe,stroke:#2563eb
+              </div>
+              <div class="chart-caption">图 8.9-2 布谷鸟过滤器：二维桶 buckets[m][b=4] + 异或备选桶 + 踢挪循环</div>
+            </div>
+
+            <p><strong>扩展 2：部分-key 布谷鸟哈希的异或公式（面试核心考点）</strong>。普通布谷鸟哈希表存完整 key，被踢出时可用原始 key 重算另一个位置；布谷鸟过滤器<strong>只存指纹、没有原始 key</strong>，因此改用 <code class="inline-code">i₂ = i₁ ⊕ hash(f)</code> 计算备选桶。该式<strong>可逆</strong>：已知当前桶号与指纹即可反推另一候选桶 <code class="inline-code">i₁ = i₂ ⊕ hash(f)</code>。这正是论文 <em>Cuckoo Filter: Practically Better Than Bloom</em> 提出的 partial-key cuckoo hashing，是过滤器区别于普通布谷鸟哈希的根本。</p>
+
+            <table class="compare-table">
+              <thead><tr><th>对比项</th><th>普通布谷鸟哈希表</th><th>布谷鸟过滤器</th></tr></thead>
+              <tbody>
+                <tr><td>存储内容</td><td>完整 key/value</td><td>只存短指纹</td></tr>
+                <tr><td>桶结构</td><td>每桶 1 个元素</td><td>每桶 b=4 个 slot</td></tr>
+                <tr><td>备选位置计算</td><td>需要原始 key 算 h1(x)、h2(x)</td><td>i₂ = i₁ ⊕ hash(f)，仅凭指纹 + 桶号</td></tr>
+                <tr><td>用途</td><td>完整哈希表，可取回 key</td><td>概率过滤器，只做存在性判断</td></tr>
+                <tr><td>负载因子上限</td><td>b=1 时约 50%</td><td>b=4 时可达 95%</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>扩展 3：三大操作与"插入会失败"这件事</strong>。</p>
+            <ul>
+              <li><strong>Insert</strong>：算 f 与 i₁、i₂ → 两桶有空 slot 直接放 → 两桶皆满则进入<strong>踢挪循环</strong>：随机挑一个 slot 把旧指纹 f_old 踢出、放入新 f，用 <code class="inline-code">i = i ⊕ hash(f_old)</code> 算出 f_old 的另一候选桶并递归安置 → 循环次数达 <code class="inline-code">MaxKicks ≈ 50</code> 判定<strong>插入失败</strong>，需扩容重建。</li>
+              <li><strong>Lookup</strong>：算 f 与 i₁、i₂，最多扫描 2×b 个 slot 比对指纹，命中即"可能存在"，两桶都无则"一定不存在"。只访问 2 个桶，O(1) 且缓存友好。</li>
+              <li><strong>Delete</strong>：在 i₁ 遍历 slot 找到 f 清空返回成功；否则去 i₂ 找；两桶都没有则删除失败。这是 CF 相对标准 BF 的原生优势。</li>
+              <li><strong>重复插入陷阱</strong>：CF <strong>允许同一元素重复插入并占用多个 slot</strong>，简单实现不计数，删除一次只清掉一条 slot，剩余仍判定存在。需要支持重复元素计数时须用 Counting-Cuckoo Filter。</li>
+            </ul>
+
+            <p><strong>扩展 4：三者共同的边界与负载因子</strong>。<strong>都不能遍历全部元素，都不能从过滤器取回原始值</strong>——因此它们只能做"前置拦截/存在性判断"，不能当存储用，也不适合需要枚举的业务。假阳性率与过滤器大小、哈希数量、负载因子三者强相关。</p>
+
+            <table class="compare-table">
+              <thead><tr><th>过滤器</th><th>存储内容</th><th>支持删除</th><th>内存开销</th><th>插入失败</th><th>溢出/碰撞风险</th><th>典型负载因子</th></tr></thead>
+              <tbody>
+                <tr><td>标准布隆 BF</td><td>bit 位</td><td>否</td><td>最低</td><td>永不失败</td><td>无</td><td>&lt; 0.7</td></tr>
+                <tr><td>计数布隆 CBF</td><td>4bit 计数器</td><td>是</td><td>约 BF 的 4 倍</td><td>永不失败</td><td>计数器溢出</td><td>&lt; 0.7</td></tr>
+                <tr><td>布谷鸟 CF</td><td>指纹（如 8bit）</td><td>原生支持</td><td>接近 BF，优于 CBF</td><td>会失败（受负载限制）</td><td>指纹碰撞</td><td>≤ 0.95（b=4）</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>扩展 5：单机 vs 分布式——算法本身没有分布式</strong>。这是一个高频误区：<strong>BF / CBF / CF 三种算法原生定义都是纯内存的单机算法，没有任何内置的分布式协议</strong>。所谓"分布式布隆过滤器"并不是算法自带能力，而是<strong>把整个过滤器搬到共享存储（Redis）里，由多客户端远程访问</strong>来实现的。</p>
+
+            <table class="compare-table">
+              <thead><tr><th>过滤器</th><th>原生形态</th><th>单机实现</th><th>分布式方案</th><th>限制</th></tr></thead>
+              <tbody>
+                <tr><td>标准布隆</td><td>内存 bit 数组</td><td>Guava BloomFilter、Hutool</td><td>RedisBloom <code class="inline-code">BF.ADD/BF.EXISTS</code>、Redisson 封装</td><td>Redis 集群单 key 不跨分片；不支持删除</td></tr>
+                <tr><td>计数布隆</td><td>内存计数器数组</td><td>各开源 lib（无通用成熟库）</td><td>RedisBloom 计数布隆</td><td>内存开销大；计数器溢出风险</td></tr>
+                <tr><td>布谷鸟</td><td>内存桶 + 指纹数组</td><td>CuckooFilter4J、panmari/cuckoofilter</td><td>RedisBloom <code class="inline-code">CF.ADD/CF.DEL/CF.EXISTS</code></td><td>踢挪在 Redis 服务端执行；插入会失败；单 key 不跨分片</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>Redis 集群的关键坑（面试必答）</strong>：RedisBloom 的一个过滤器 key <strong>只会落在一个分片上，不会自动跨节点拆分</strong>。集群模式下超大容量过滤器必须<strong>在业务层手动拆成多个过滤器 key</strong>（如按业务维度分 <code class="inline-code">url_bf:{0}~{15}</code> 十六个分片），并用 <strong>hash-tag</strong> 把需要同一 slot 的 key 强制路由到一起。这是"多实例共享"与"超大规模"两个需求的分界点。</p>
+
+            <div class="code-block"><pre><code><span class="com"># RedisBloom：分布式共享过滤器的三种形态</span>
+BF.RESERVE url_bf <span class="num">0.01</span> <span class="num">100000000</span>    <span class="com"># 标准布隆：1 亿、1% 误判，只增不删</span>
+BF.ADD    url_bf https://a.com
+BF.EXISTS url_bf https://a.com      <span class="com"># 1=可能存在  0=一定不存在</span>
+
+CF.RESERVE uid_cf <span class="num">100000000</span>          <span class="com"># 布谷鸟：b=4，原生支持删除</span>
+CF.ADD    uid_cf <span class="num">10086</span>
+CF.DEL    uid_cf <span class="num">10086</span>             <span class="com"># 标准 BF 无此命令</span>
+
+<span class="com"># 集群分片坑：一个过滤器 key 只落一个 slot，不自动跨节点</span>
+<span class="com"># 超大容量 → 业务层拆多个 key；hash-tag 只取 {} 内内容算 slot</span>
+url_bf:{shard0}  url_bf:{shard1}  ...  url_bf:{shard15}</code></pre></div>
+
+            <p><strong>扩展 6：选型决策矩阵（场景 → 算法 → 部署形态）</strong>。</p>
+            <table class="compare-table">
+              <thead><tr><th>场景</th><th>算法</th><th>部署形态</th><th>理由</th></tr></thead>
+              <tbody>
+                <tr><td>只增不删：URL 去重、爬虫判重</td><td>标准 BF</td><td>单机 Guava / 集群 RedisBloom</td><td>内存最省、实现最简单</td></tr>
+                <tr><td>需删除、实现简单优先、内存充足</td><td>CBF</td><td>RedisBloom 计数布隆</td><td>支持删，但要预估碰撞防溢出</td></tr>
+                <tr><td>频繁增删、追求内存效率、可接受插入失败</td><td>CF</td><td>RedisBloom <code class="inline-code">CF.*</code></td><td>内存接近 BF 且原生可删</td></tr>
+                <tr><td>单进程、极致性能</td><td>BF / 本地 CF</td><td>进程内内存</td><td>无网络 IO，最快</td></tr>
+                <tr><td>微服务多实例、需共享状态</td><td>按上表选</td><td>RedisBloom（共享存储）</td><td>多实例访问同一份过滤器</td></tr>
+                <tr><td>超大规模（单分片装不下）</td><td>按上表选</td><td>业务层多分片 + hash-tag</td><td>集群单 key 不跨分片</td></tr>
+              </tbody>
+            </table>
+
+            <div class="callout callout-pitfall">
+              <div class="callout-title">高频追问四连</div>
+              <ul>
+                <li><strong>Q：布谷鸟过滤器为什么能删，标准布隆不行？</strong> A：标准布隆多个元素共享 bit 位，清 0 会误伤；CF 每个元素的指纹独占一个 slot，找到即清空。</li>
+                <li><strong>Q：被踢出的指纹没有原始 key，怎么算另一个桶？</strong> A：partial-key cuckoo hashing 的异或公式 <code class="inline-code">i₂ = i₁ ⊕ hash(f)</code>，只依赖指纹与当前桶号，且可逆。</li>
+                <li><strong>Q：布谷鸟过滤器插入为什么会失败？</strong> A：两个候选桶全满、踢挪链超过 <code class="inline-code">MaxKicks≈50</code> 次仍未安置成功，判定过滤器已满，需扩容重建。</li>
+                <li><strong>Q：Guava BloomFilter 能直接用在微服务多实例吗？</strong> A：不能。Guava BF 是进程内内存，每个 JVM 各持一份且互不同步，微服务共享必须用 RedisBloom。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
