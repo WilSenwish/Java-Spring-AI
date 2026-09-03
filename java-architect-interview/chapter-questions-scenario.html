@@ -206,6 +206,7 @@
           <li><a href="#S02.03"><span class="toc-number">S02.03</span>分布式 ID 生成</a></li>
           <li><a href="#S02.04"><span class="toc-number">S02.04</span>微服务雪崩治理</a></li>
           <li><a href="#S02.05"><span class="toc-number">S02.05</span>缓存与数据库一致性</a></li>
+          <li><a href="#S02.06"><span class="toc-number">S02.06</span>事务回滚后通知误发排查</a></li>
         </ol>
       </div>
 
@@ -334,11 +335,11 @@
         <h1 class="chapter-title">高频真实场景题</h1>
         <p class="chapter-subtitle">基于 2026 面试招聘需求 · 65 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
         <div class="chapter-meta">
-          <span>题目数：65</span>
+          <span>题目数：66</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×17</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×41</span>
+          <span>架构级 ×42</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×7</span>
           <span class="meta-divider">|</span>
@@ -906,7 +907,7 @@
   <h2 class="group-title">
     <span class="group-number">二</span>
     分布式系统
-    <span class="group-count">5 题</span>
+    <span class="group-count">6 题</span>
   </h2>
 
   <!-- S02.01 分布式锁选型与实现 -->
@@ -1477,6 +1478,81 @@
     </div>
   </div>
 </section>
+    <!-- S02.06 事务回滚了企业微信通知却发出去了，如何排查与根治 -->
+    <div class="qa-card" id="S02.06" data-difficulty="architect" data-priority="p1">
+      <div class="qa-header">
+        <div class="qa-badge">S02.06</div>
+        <div class="qa-question">事务回滚了，企业微信/钉钉通知却发出去了，如何排查与根治？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+      </div>
+      <div class="scenario-tags">
+        <span class="scenario-tag tag-hot">高频</span>
+        <span class="scenario-tag">Spring 事务</span>
+        <span class="scenario-tag">异步</span>
+        <span class="scenario-tag">一致性</span>
+        <span class="scenario-tag">ThreadLocal</span>
+      </div>
+      <div class="qa-layer" data-layer="scenario">
+        <div class="qa-layer-title">场景背景</div>
+        <div class="qa-layer-body"><p>某业务在 <code class="inline-code">@Transactional</code> 方法内保存异常数据成功后，调用企业微信给班主任推送"处理完成"通知。某次因下游校验失败，业务方法抛出异常、事务<strong>回滚</strong>，数据库无此记录；但班主任已收到通知，点进去查不到数据，投诉"系统骗人"。监控显示通知发送量 &gt; 实际成功落库量，存在"幽灵通知"。</p></div>
+      </div>
+      <div class="qa-layer" data-layer="challenge">
+        <div class="qa-layer-title">核心挑战</div>
+        <div class="qa-layer-body"><p>1. <strong>原子性</strong>：通知与业务写入要么都成功、要么回滚时都不发生；2. <strong>不阻塞主流程</strong>：发送是外部 IO，不能拖慢事务；3. <strong>上下文透传</strong>：异步线程需拿用户/租户信息；4. <strong>可靠性分级</strong>：普通通知允许极小概率丢失，跨系统事件则不允许。</p></div>
+      </div>
+      <div class="qa-layer" data-layer="principle">
+        <div class="qa-layer-title">分析框架</div>
+        <div class="qa-layer-body"><p>按三维分层定位：<strong>①是否有活跃事务</strong>（事务内 vs 导入批量）；<strong>②异常是否上抛</strong>（service 内部吞异常 / <code class="inline-code">setRollbackOnly</code> 会在回滚后仍发通知）；<strong>③可靠性要求</strong>（允许丢失 → afterCommit；不允许丢失 → 本地消息表）。根因几乎都落在"事务内直接开线程"或"外层异步但吞异常"两类反模式（原理题见 C05.11）。</p></div>
+      </div>
+      <div class="qa-layer" data-layer="practice">
+        <div class="qa-layer-title">解决方案</div>
+        <div class="qa-layer-body">
+          <p><strong>方案 A（首选，允许极小概率丢失）</strong>：用 <code class="inline-code">TransactionSynchronizationManager.afterCommit</code> 钩子，事务提交成功后才把发送任务丢线程池；回滚则钩子不触发，通知绝不发出。无事务场景（导入）直接异步，一套代码自适应。</p>
+          <p><strong>方案 B（消息绝不可丢）</strong>：升级本地消息表——业务与消息同事务落库，定时任务 / MQ 补偿推送（详见 C09.02 / S02.02），宕机重启可继续处理。</p>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="practice">
+        <div class="qa-layer-title">关键代码</div>
+        <div class="qa-layer-body">
+          <pre class="code-block"><code>// 根治：事务提交后才异步发通知（回滚不触发）
+asyncAfterCommitExecutor.executeAfterCommit(() ->
+    wechatSender.sendToHeader(abnormalSeqList, classInfoId, orgId, submitterUserId));
+
+// 反例（导致幽灵通知）：service 内部吞异常 + 外层异步
+@Transactional
+public void saveAbnormal(...) {
+    try { mapper.insert(...); }
+    catch (Exception e) { TransactionAspectSupport.currentTransactionStatus().setRollbackOnly(); }
+    // 方法正常 return，事务回滚，但外层 execute 照常发通知！
+}
+</code></pre>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="deep">
+        <div class="qa-layer-title">深度追问</div>
+        <div class="qa-layer-body">
+          <ul>
+            <li><strong>追问 1：如何快速定位是哪种反模式？</strong>查发送点是否在 <code class="inline-code">@Transactional</code> 方法内直接 <code class="inline-code">execute</code>（时序错乱），或发送是否在事务方法外且 service 有 catch+setRollbackOnly（吞异常）。前者异步线程早于 commit 查库为空；后者数据库无记录但通知已发。</li>
+            <li><strong>追问 2：afterCommit 后服务宕机通知丢了怎么办？</strong>普通通知人工可复核，接受；强可靠场景必须本地消息表（方案 B）。</li>
+            <li><strong>追问 3：异步线程拿不到租户 ID 怎么办？</strong>afterCommit 阶段主线程 ThreadLocal 已销毁，所需数据全部闭包传入；MDC 手动 copy（参考 C11.08）。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="pitfall">
+        <div class="qa-layer-title">常见陷阱</div>
+        <div class="qa-layer-body">
+          <ul>
+            <li>事务内直接 <code class="inline-code">executor.execute</code>：异步早于 commit，查不到新数据且回滚后仍发。</li>
+            <li>service 内部 catch + <code class="inline-code">setRollbackOnly</code> 后在外层异步发送：方法正常 return，回滚却发通知（最隐蔽）。</li>
+            <li>afterCommit 的 task 内读取 ThreadLocal / MDC：已销毁，必得 null。</li>
+            <li>认为事务事件（@TransactionalEventListener）能保送达：宕机即丢，强可靠需本地消息表。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="qa-layer" data-layer="insight">
+        <div class="qa-layer-title">破题点拨</div>
+        <div class="qa-layer-body"><p><strong>口诀："提交才发、回滚不发、参数闭包、强可靠上消息表。"</strong>先判反模式（内开线程 / 外吞异常），再按可靠性选 afterCommit 或本地消息表；绝不依赖 ThreadLocal 在异步回调中取值。与原理题 C05.11 形成"场景 + 原理"双视角。</p></div>
+      </div>
+    </div>
 <section class="scenario-group" id="group-3">
   <h2 class="group-title">
     <span class="group-number">三</span>

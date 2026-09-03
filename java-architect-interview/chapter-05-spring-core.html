@@ -20,6 +20,7 @@
         <li><a href="#C05.03"><span class="toc-number">C05.03</span>AOP 的 JDK 代理与 CGLIB 选择</a></li>
         <li><a href="#C05.04"><span class="toc-number">C05.04</span>@Transactional 传播行为与失效</a></li>
         <li><a href="#C05.05"><span class="toc-number">C05.05</span>Spring 事件机制原理</a></li>
+        <li><a href="#C05.11"><span class="toc-number">C05.11</span>事务提交后异步执行四方案选型</a></li>
         <li><a href="#C05.06"><span class="toc-number">C05.06</span>Spring 中的设计模式</a></li>
         <li><a href="#C05.07"><span class="toc-number">C05.07</span>BeanPostProcessor 与 BeanFactoryPostProcessor</a></li>
         <li><a href="#C05.08"><span class="toc-number">C05.08</span>BeanFactory 与 ApplicationContext 区别</a></li>
@@ -44,15 +45,15 @@
         <h1 class="chapter-title">Spring 核心原理</h1>
         <p class="chapter-subtitle">从 IoC 容器启动到 Bean 生命周期全链路：理解三级缓存循环依赖源码、AOP 代理选择、事务传播失效、事件机制、扩展点体系与 SpEL 引擎，把握 Spring 2.x→6.x 六代演进脉络</p>
         <div class="chapter-meta">
-          <span>题目数：10</span>
+          <span>题目数：11</span>
           <span class="meta-divider">|</span>
-          <span>高级开发 ×8</span>
+          <span>高级开发 ×9</span>
           <span class="meta-divider">|</span>
           <span>架构级 ×1</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：140 分钟</span>
+          <span>预计复习：154 分钟</span>
         </div>
       </div>
 
@@ -885,6 +886,136 @@ flowchart LR
       </div>
 
       <!-- ============================================================ -->
+      <!-- ============================================================ -->
+      <!-- C05.11 事务提交后异步执行：afterCommit / 事务外层异步 / 事务事件 / 本地消息表 四方案选型 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C05.11" data-difficulty="senior" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C05.11</div>
+          <div class="qa-question">事务提交后异步执行：afterCommit / 事务外层异步 / @TransactionalEventListener / 本地消息表 如何选型？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察<strong>事务与异步的时序边界</strong>：当业务在数据库事务中需要"提交成功后再异步推送通知 / 发 MQ / 调外部"，如何保证<strong>两件事原子</strong>——要么都成功，要么事务回滚时通知绝不发生。更深一层，它考察对 <code class="inline-code">TransactionSynchronizationManager</code> 事务同步钩子机制的理解，以及对"事务内直接开线程"经典反模式的识别能力。这是企业微信 / 钉钉通知、订单事件推送等场景的高频线上故障源。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>反例（禁止）</strong>：在 <code class="inline-code">@Transactional</code> 方法内直接 <code class="inline-code">executor.execute(task)</code>。异步线程可能早于 commit 执行（查不到刚写入的数据），且事务回滚后通知已发出，造成"数据库无记录、消息满天飞"的数据不一致。</p>
+            <p><strong>Spring 事务同步（afterCommit）</strong>：通过 <code class="inline-code">TransactionSynchronizationManager.registerSynchronization</code> 注册 <code class="inline-code">afterCommit</code> 钩子，仅当事务真正提交后才把任务丢进线程池；回滚则不触发。轻量、无中间件，是普通通知首选。</p>
+            <p><strong>事务外层异步</strong>：把异步调用移到 <code class="inline-code">@Transactional</code> 方法之外，由调用方执行。时序正确，但强依赖异常处理——一旦 service 内部吞异常 / <code class="inline-code">setRollbackOnly</code>，事务回滚却仍发通知。</p>
+            <p><strong>@TransactionalEventListener（AFTER_COMMIT）</strong>：Spring 事件驱动的 afterCommit 封装，业务与推送解耦；无事务默认不触发（<code class="inline-code">fallbackExecution=false</code>）。</p>
+            <p><strong>本地消息表 / 事务消息</strong>：当事务后消息<strong>不允许丢失</strong>时，afterCommit 仍会丢（宕机），需升级为"业务与消息同事务落库 + 定时任务 / MQ 补偿"的可靠消息最终一致方案（详见 C09.02 / C09.09）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><code class="inline-code">TransactionSynchronizationManager</code> 把回调挂到<strong>当前线程的事务上下文</strong>上；事务提交成功后 Spring 自动回调 <code class="inline-code">afterCommit()</code>，此时才提交线程池。两个必须遵守的硬约束：</p>
+            <ul>
+              <li><strong>自适应有无事务</strong>：用 <code class="inline-code">TransactionSynchronizationManager.isActualTransactionActive()</code> 判断；无事务（导入 / 批量）时无法注册钩子，直接提交异步任务，一套代码兼容两种场景。</li>
+              <li><strong>主线程 ThreadLocal 已销毁</strong>：<code class="inline-code">afterCommit</code> 执行时主业务方法栈已退出，原主线程 ThreadLocal / MDC 已被清空。所有需要的数据（用户 ID、租户 ID、业务 ID）必须通过 lambda 闭包传入，<strong>绝不在 task 内部再从上下文取</strong>；MDC 需手动 copy。</li>
+            </ul>
+            <div class="mermaid-container">
+              <div class="mermaid">
+sequenceDiagram
+    participant M as 主线程(事务内)
+    participant TSM as TransactionSynchronizationManager
+    participant EX as 线程池
+    participant DB as 数据库
+    M->>DB: 写业务数据(未提交)
+    alt 有事务 isActualTransactionActive=true
+        M->>TSM: registerSynchronization(afterCommit)
+        M->>DB: commit 成功
+        TSM-->>EX: afterCommit 回调 执行 execute(task)
+    else 无事务(导入/批量)
+        M->>EX: 直接 execute(task)
+    end
+    Note over M,EX: 回滚时不触发 afterCommit 通知绝不发出
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p>封装通用工具类，全站一行调用，避免重复样板代码：</p>
+            <pre class="code-block"><code>@Component
+public class AsyncAfterCommitExecutor {
+    @Autowired
+    private ExecutorService executorService;
+
+    /** 事务提交成功后异步执行；无事务则立即异步执行。task 内部禁止读取 ThreadLocal/MDC，所需数据须闭包传入 */
+    public void executeAfterCommit(Runnable task) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronizationAdapter() {
+                    @Override public void afterCommit() { safeRun(task); }
+                });
+        } else {
+            safeRun(task);
+        }
+    }
+
+    private void safeRun(Runnable task) {
+        try {
+            executorService.execute(task);   // task 异常只打日志，绝不抛出杀死线程池
+        } catch (Exception e) {
+            log.error("afterCommit async task failed", e);
+        }
+    }
+}
+
+// 业务调用：企业微信通知，参数闭包传入
+asyncAfterCommitExecutor.executeAfterCommit(() ->
+    wechatSender.sendToHeader(abnormalSeqList, classInfoId, orgId, submitterUserId));
+</code></pre>
+            <p><strong>四方案横向对比</strong>：</p>
+            <table class="compare-table">
+              <thead><tr><th>方案</th><th>可靠性</th><th>依赖 MQ</th><th>回滚误发</th><th>适用</th></tr></thead>
+              <tbody>
+                <tr><td>事务内直接 execute</td><td>最差(禁止)</td><td>否</td><td>会</td><td>无</td></tr>
+                <tr><td>afterCommit + 线程池</td><td>尽力(宕机可丢)</td><td>否</td><td>不会</td><td>普通通知(企微/钉钉)，允许极小概率丢失</td></tr>
+                <tr><td>事务外层异步</td><td>中</td><td>否</td><td>可能(吞异常坑)</td><td>调用点少、异常必上抛</td></tr>
+                <tr><td>@TransactionalEventListener</td><td>有坑</td><td>否</td><td>不会</td><td>已用事件驱动体系</td></tr>
+                <tr><td>本地消息表 / 事务消息</td><td>不丢</td><td>可选</td><td>不会</td><td>消息绝不可丢(跨系统事件/对账)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>追问 1：为什么事务外层异步有"吞异常"坑？</strong>若 service 内部 catch 异常并 <code class="inline-code">setRollbackOnly</code>（或标记回滚），方法正常 return，外层照常 <code class="inline-code">execute(task)</code> → 通知发出、数据回滚，数据不一致。故外层异步要安全，必须保证异常一定向上抛、绝不内部吞掉。</li>
+              <li><strong>追问 2：afterCommit 阶段为什么拿不到 ThreadLocal？</strong>回调触发时主业务方法已出栈，主线程 ThreadLocal 被清理；线程池新线程更无继承关系。解决：闭包传参 + MDC 手动 copy（参考 C11.08 TraceId 透传）。</li>
+              <li><strong>追问 3：afterCommit 能 100% 保证消息送达吗？</strong>不能。commit 完成、正要执行 afterCommit 回调时服务宕机，任务未进线程池即丢失。它只解决"回滚误发"，属尽力通知。</li>
+              <li><strong>追问 4：何时必须升级本地消息表？</strong>消息丢失会造成业务故障（跨系统事件、对账、业务回调）时，用本地消息表：业务与消息同事务落库，定时任务 / MQ 补偿，重启后可继续处理（详见 C09.02 / S02.02）。</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li>事务内直接 <code class="inline-code">executor.execute</code>：时序错乱 + 回滚误发双重 bug，生产禁止。</li>
+              <li>task 内部读取 ThreadLocal / MDC：afterCommit 阶段主线程上下文已销毁，必得 null。</li>
+              <li>task 异常未捕获：抛出后可能杀死线程池，影响后续异步任务。</li>
+              <li>事务外层异步但 service 内部吞异常：回滚仍发通知，最隐蔽的数据不一致。</li>
+              <li>认为 afterCommit / 事务事件能保送达：宕机即丢，强可靠场景必须本地消息表。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <!-- C05.06 Spring 中用到了哪些设计模式？ -->
       <!-- ============================================================ -->
       <div class="qa-card" id="C05.06" data-difficulty="senior" data-priority="p1">
