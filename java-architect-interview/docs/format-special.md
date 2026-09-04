@@ -8,7 +8,7 @@
 
 1. [核心方法论 chapter-core-methodology（M 系列）](#1)
 2. [优先级大盘 chapter-overview-priority（ov 组件）](#2)
-3. [八股速查 chapter-questions-eight-part（epq 组件）](#3)
+3. [核心原理速查 chapter-questions-eight-part（epq 组件）](#3)
 4. [场景题 chapter-questions-scenario（S 系列场景卡片）](#4)
 5. [安全 Checkpoint chapter-server-security-checkpoint（独立单页）](#5)
 6. [首页 index.html](#6)
@@ -17,7 +17,7 @@
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：核心思维方法论，48 张卡片，ID 前缀 `M`（如 `M01.01`）。
+- **定位**：核心思维方法论，74 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M07` 共 7 组分层侧边目录。
 - **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -26,9 +26,10 @@
   | `principle` | 原理映射 | 把公理落到工程化手段 |
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
-- **难度**：卡片仅带 `data-difficulty`，取值仅 `architect`（架构级，33）与 `expert`（专家级，15）；**无优先级标签、也无 `data-priority`**。
-- **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签），无 priority 标签。
-- **目录**：按模块（M01~M11）分组的多段侧边目录，各模块一组锚点 `M##.##`。
+- **难度**：卡片带 `data-difficulty`：架构级 48 / 专家级 23 / 高级开发 3（合计 74）。
+- **优先级**：**部分卡片（30/74）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 30 处），其余 44 卡不带；不计入全站题目优先级口径（90/195/60 = 345）。
+- **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签）；携带优先级的卡片另加 `priority-p*` 徽标。
+- **目录**：按模块（M01~M07）分组的多段侧边目录，各模块一组锚点 `M##.##`。
 - 单条新增规则：`id = M{模块}.{序}`；`insight → principle → application` 三层层序固定。
 
 ## <a id="2"></a>2. 优先级大盘 chapter-overview-priority（ov 组件）
@@ -37,14 +38,16 @@
 - **结构层级**：
 
   ```
-  ov-stats-row            # 顶部统计行（如 P0/P1/P2 计数），页首
-  ├─ ov-group（四大知识组）×4
+  ov-stats（两行统计；ov-stat-num 顶部 11 项 + 9 子组标题计数 = 全页 20 处）
+  ├─ ov-stats-row ① 题目总数 345 / P0 90 / P1 195 / P2 60
+  ├─ ov-stats-row ② 专家 44 / 架构 160 / 高级开发 141 / 章节题 220 / 核心原理 58 / 场景题 67 / 方法论 74
+  ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title
   │    └─ ov-group-body
-  │         └─ ov-subgroup（子主题组）×11
+  │         └─ ov-subgroup（子组 = 优先级 × 难度）×9
   │              ├─ ov-subgroup-title (+ ov-stat-num/ov-stat-label)
   │              └─ ov-items
-  │                   └─ ov-item ×321
+  │                   └─ ov-item ×345
   │                        ├─ ov-num        # 序号
   │                        ├─ ov-title      # 条目名
   │                        └─ ov-badges     # 难度 / 优先级徽标
@@ -52,9 +55,9 @@
 
 - 条目为链接卡片，点击跳转对应题目的站内锚点；改新题 / 更名页面时须同步本页 `ov-item` 的 href 与徽标。
 
-## <a id="3"></a>3. 八股速查 chapter-questions-eight-part（epq 组件）
+## <a id="3"></a>3. 核心原理速查 chapter-questions-eight-part（epq 组件）
 
-- **定位**：八股文速查手册，50 条目，ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
+- **定位**：核心原理速查手册，58 条目（`E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
 - **TOC**：`toc-group`（分组）+ `toc-group-title` + `toc-number` 分层锚点。
 - **条目**：
 
@@ -71,11 +74,11 @@
   │    └─ epq-fu-list       延伸追问列表
   ```
 
-- 携带难度 / 优先级徽标（`priority-p*` 54 处）；内容内联代码 `inline-code`、变量 `var` 使用频繁。页面引入 `shared/js/` 需按需（本页通常含 echarts / 表格组件）。
+- 每条目携带难度 / 优先级徽标（`data-priority` p0 19 / p1 31 / p2 8 = 58 全覆盖）；内容内联代码 `inline-code`、变量 `var` 使用频繁。页面引入 `shared/js/` 需按需（本页通常含 echarts / 表格组件）。
 
 ## <a id="4"></a>4. 场景题 chapter-questions-scenario（S 系列场景卡片）
 
-- **定位**：场景设计题集，65 卡，ID 前缀 `S`（如 `S01.01`）。
+- **定位**：场景设计题集，67 卡，ID 前缀 `S`（如 `S01.01`）。
 - **卡片**：复用 `.qa-card` 外壳，但卡片内层为**场景专属序列**（非标准六层），顺序如下：
 
   | data-layer 对应 | 层标题 | 职责 |
@@ -89,16 +92,16 @@
   | (extension) | 扩展补全 | 可选延伸 |
 
 - **分层特征**：`practice` 通常一题出现**两层**（`解决方案` + `关键代码`），故全页 `qa-layer-title` 总量明显高于卡片数；`数据层` 标签存在 `scenario / challenge / deep / pitfall / principle / practice / extension` 的组合。
-- **难度 / 优先级**：卡片带 `data-difficulty`（architect 41 / senior 17 / expert 7）与 `data-priority`。
+- **难度 / 优先级**：卡片带 `data-difficulty`（architect 43 / senior 17 / expert 7）与 `data-priority`（p0 21 / p1 26 / p2 20）。
 - 新增场景题：`id = S{组}.{序}`；严格保持上述层序；`扩展补全`可选，其余各层建议齐备。
 
 ## <a id="5"></a>5. 安全 Checkpoint chapter-server-security-checkpoint（独立单页）
 
-- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**完全独立于导航体系**——不引入 `nav.js`、无侧栏 TOC、无 `chapter-nav-top`、无 `qa-card`。
+- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无侧栏 TOC、无 `chapter-nav-top`、无 `qa-card`**，但**引入 `nav.js`**（表格纵向卡片化等共享行为生效）。
 - **样式**：仅引入 `assets/design-system.css`，页面内联 `<style>` 仅定义少量独占令牌覆盖（如 `--quote-bg`、`--quote-border`、`--th-bg`、`--zebra`、`--accent-soft`），其余取值自全局令牌。
 - **内容结构**：传统「文档章节」式，标题层级清晰：
   - `h1`（`<title>` / 页首）→ `h2`(13 个主章节) → `h3`(57 个子节) → `h4`(7)；
-  - 表格：`table-wrap > table`（23 张）；
+  - 表格：`compare-table`（23 张，全部带 `class="compare-table"`）；
   - 勾选清单：`.checklist`（6 份，自检 `☐` 项）；
   - 底部：`.footer-note`。
 - 无 `Mermaid` / `ECharts`。CSS 资源引用路径为 `assets/design-system.css`（曾由 `security/` 目录迁入本目录，注意相对路径）。
@@ -107,7 +110,7 @@
 
 - **定位**：全站入口导航页。
 - **组件**：
-  - `chapter-card`（20 张章节卡片）：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`；
+  - `chapter-card`（21 张章节卡片，含 1 张思维导图站入口）：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`；
   - `stat-item` / `stat-label` / `stat-number`：全站统计区；
   - `tag` / `tag-cat` / `tag-cloud` / `trend-section`：知识点标签云与趋势块。
 - 每张章节卡片须链接到对应 `chapter-*.html`，卡片上的 `card-number / card-title / 难度` 应与目标章节页 `chapter-header` 一致。
@@ -120,9 +123,9 @@
 | 页面 | 外壳 | 内容单元 | ID 前缀 | 难度 | 优先级 | nav.js |
 |------|------|----------|:---:|:---:|:---:|:---:|
 | chapter-01~15（标准） | page-wrapper + sidebar | `qa-card` 六层 | `C##.##` | ✔ | ✔ | ✔ |
-| chapter-core-methodology | 同标准外壳 | `qa-card` 三层（insight/principle/application） | `M##.##` | 仅架构/专家 | ✘ | ✔ |
+| chapter-core-methodology | 同标准外壳 | `qa-card` 三层（insight/principle/application） | `M##.##` | 架构/专家/高级 | 部分(30/74) | ✔ |
 | chapter-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |
 | chapter-questions-eight-part | – | `epq-*` 问答速查 | `E##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-scenario | – | `qa-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
-| chapter-server-security-checkpoint | 独立单页 | 章节式 h2/h3 + 表格 + checklist | – | – | – | ✘ |
+| chapter-server-security-checkpoint | 独立单页 | 章节式 h2/h3 + compare-table + checklist | – | – | – | ✔ |
 | index | – | chapter-card / stat / tag-cloud | – | – | – | ✔ |

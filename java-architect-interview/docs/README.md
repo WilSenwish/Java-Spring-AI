@@ -2,7 +2,7 @@
 
 本目录（`..`）为《Java 专家 · 架构师 · 高级开发 工程能力知识库》静态文档站，全部页面为**单文件自包含 HTML**，无构建步骤，可被 GitHub Pages 直接托管。
 
-本文件给出全站章节内容与文件结构总览；格式组织规则分为「共用规则」与「独享规则」两份文档，见文末[规则文档索引](#4.md)。
+本文件给出全站章节内容与文件结构总览；格式组织规则分为「共用规则」「标准 QA 章节」「特殊章节独享」三份文档，见文末[规则文档索引](#4.md)。
 
 ## 1. 技术形态
 
@@ -36,12 +36,14 @@ java-architect-interview/
 ├── chapter-15-reactive.html
 ├── chapter-core-methodology.html           # 特殊章节：核心方法论（M系列）
 ├── chapter-overview-priority.html          # 特殊章节：优先级大盘（ov组件）
-├── chapter-questions-eight-part.html       # 特殊章节：八股速查（E系列）
+├── chapter-questions-eight-part.html       # 特殊章节：核心原理速查（E系列）
 ├── chapter-questions-scenario.html         # 特殊章节：场景题（S系列）
 ├── chapter-server-security-checkpoint.html # 特殊章节：安全 Checkpoint 手册
 ├── assets/                                 # design-system.css, nav.js
 ├── shared/                                 # fonts, js（echarts/mermaid）
+├── tmp/                                    # 临时文件/备份（已 gitignore，不进版本库）
 └── docs/                                   # 本文档所在目录（规则说明，非站点页面）
+    └── facts/                              # 官方参考文档归档（只读，不在任何修改范围内）
 ```
 
 ## 3. 章节内容与归属规则矩阵
@@ -51,25 +53,25 @@ java-architect-interview/
 | 文件 | 主题 | ID 体系 | 卡片数 | 格式规则类型 |
 |------|------|---------|-------|--------------|
 | `../../index.html` | 全站首页（导航/统计/标签云） | – | – | 独享（首页专属组件） |
-| `chapter-01-jvm-memory-classloading` | JVM 内存与类加载 | `C01.##` | 10 | 标准QA（共用） |
+| `chapter-01-jvm-memory-classloading` | JVM 内存与类加载 | `C01.##` | 11 | 标准QA（共用） |
 | `chapter-02-gc-performance` | GC 算法与性能调优 | `C02.##` | 12 | 标准QA（共用） |
-| `chapter-03-concurrency-locks` | 并发与锁 | `C03.##` | 11 | 标准QA（共用） |
+| `chapter-03-concurrency-locks` | 并发与锁 | `C03.##` | 12 | 标准QA（共用） |
 | `chapter-04-threadpool-virtual-threads` | 线程池与虚拟线程 | `C04.##` | 10 | 标准QA（共用） |
-| `chapter-05-spring-core` | Spring 核心 | `C05.##` | 10 | 标准QA（共用） |
+| `chapter-05-spring-core` | Spring 核心 | `C05.##` | 11 | 标准QA（共用） |
 | `chapter-06-spring-boot-modern` | Spring Boot 现代化实践 | `C06.##` | 13 | 标准QA（共用） |
 | `chapter-07-mysql-deep` | MySQL 深入 | `C07.##` | 15 | 标准QA（共用） |
 | `chapter-08-redis-cache` | Redis 与缓存 | `C08.##` | 11 | 标准QA（共用） |
 | `chapter-09-distributed-systems` | 分布式系统 | `C09.##` | 16 | 标准QA（共用） |
-| `chapter-10-microservice-cloud` | 微服务与云原生 | `C10.##` | 25 | 标准QA（共用） |
-| `chapter-11-middleware-engineering` | 中间件工程化 | `C11.##` | 20 | 标准QA（共用） |
+| `chapter-10-microservice-cloud` | 微服务与云原生 | `C10.##` | 27 | 标准QA（共用） |
+| `chapter-11-middleware-engineering` | 中间件工程化 | `C11.##` | 23 | 标准QA（共用） |
 | `chapter-12-ai-engineering` | AI 工程化 | `C12.##` | 31 | 标准QA（共用） |
-| `chapter-13-network-io` | 网络与 IO | `C13.##` | 11 | 标准QA（共用） |
+| `chapter-13-network-io` | 网络与 IO | `C13.##` | 13 | 标准QA（共用） |
 | `chapter-14-databases` | 数据库扩展 | `C14.##` | 9 | 标准QA（共用） |
 | `chapter-15-reactive` | 响应式编程 | `C15.##` | 6 | 标准QA（共用） |
-| `chapter-core-methodology` | 核心方法论 | `M##.##` | 48 | 独享（方法论变体卡片） |
-| `chapter-overview-priority` | 知识点大盘与优先级 | `ov-*` 组件 | 321 条目 | 独享（优先级矩阵） |
-| `chapter-questions-eight-part` | 八股文速查 | `E##.##` | 50 | 独享（epq 速查组件） |
-| `chapter-questions-scenario` | 场景设计题 | `S##.##` | 65 | 独享（场景卡片变体） |
+| `chapter-core-methodology` | 核心方法论 | `M##.##` | 74 | 独享（方法论变体卡片） |
+| `chapter-overview-priority` | 知识点大盘与优先级 | `ov-*` 组件 | 345 条目 | 独享（优先级矩阵） |
+| `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | 58 | 独享（epq 速查组件） |
+| `chapter-questions-scenario` | 场景设计题 | `S##.##` | 67 | 独享（场景卡片变体） |
 | `chapter-server-security-checkpoint` | 服务端安全自检清单 | 章节式 `h2/h3` | – | 独享（独立样式单页） |
 
 ### 3.1 规则分组一句话
@@ -80,8 +82,8 @@ java-architect-interview/
 
 ### 3.2 全站难度 / 优先级分布（按卡片）
 
-- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)；全站 `data-difficulty`：architect 203、senior 143、expert 67。
-- 优先级：`P0`–`P2`；仅 标准 QA、八股速查、场景题 三类携带；方法论与安全手册**不含**优先级。
+- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)。**题目 345**（篇章+核心原理+场景）：专家 44 / 架构 160 / 高级开发 141；**方法论 74 卡另计**（专家 23 / 架构 48 / 高级开发 3）；全站合计 419（expert 67 / architect 208 / senior 144）。
+- 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 90/195/60 = 345）；方法论仅部分卡片（30/74）携带；安全手册**不含**优先级。
 
 ## 4. 规则文档索引
 
@@ -89,4 +91,4 @@ java-architect-interview/
 |------|------|----------|
 | [`format-shared.md`](format-shared.md) | 全站共用格式规则：资源与骨架、设计令牌、标签体系、命名/ID 规范、通用注意事项 | 所有页面 |
 | [`format-std-qa.md`](format-std-qa.md) | 标准 QA 章节格式规则：15 个 `C##.##` 章节共用 | chapter-01 ~ 15 |
-| [`format-special.md`](format-special.md) | 特殊章节独享规则 | 方法论 / 大盘 / 八股 / 场景 / 安全 / 首页 |
+| [`format-special.md`](format-special.md) | 特殊章节独享规则 | 方法论 / 大盘 / 原理 / 场景 / 安全 / 首页 |

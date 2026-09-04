@@ -66,12 +66,12 @@
 | `priority-p1` | P1 | 高频 |
 | `priority-p2` | P2 | 中频 |
 
-- 携带优先级：标准 QA、优先级大盘、八股速查、场景题；**方法论（M系列）与安全手册不携带**优先级标签。
+- 携带优先级：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 90/195/60 = 345）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（30/74）携带；安全手册不携带。
 - 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`。
 
 ## 4. 资源按需载入规则
 
-- `assets/nav.js`：全站导航交互脚本，**除了安全手册单页外，其余页面均引入**。
+- `assets/nav.js`：全站导航交互脚本，**所有页面（含安全手册单页）均引入**；职责含章节页导航互链与**表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类，渲染为纵向卡片；含 `colspan/rowspan` 的表自动跳过）。
 - `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
 - 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。
@@ -79,7 +79,7 @@
 ## 5. 通用内容元素
 
 - 行内代码：`<code class="inline-code">…</code>`。
-- 表格：常用 `<div class="table-wrap"><table>…</table></div>` 包裹，便于横滚。
+- 表格：统一使用 `.compare-table` 体系——标准写法 `<table class="compare-table">`，或 `<div class="compare-table"><table>…</table></div>` 包裹写法（两写法均被样式与卡片化脚本覆盖）。**禁止裸 `<table>`**。小屏（≤768px）呈带边框圆角面板 + 横滑，≤640px 由 nav.js 纵向卡片化。
 - 提示块 / callout：带高亮标题的容器（标准章多用 `callout-title`），承载注意 / 提醒语义。
 - 代码块 / 列表、`<strong>` 重点强调等遵循朴素 HTML；语义用类而非内联样式表达。
 
@@ -99,7 +99,7 @@ index.html                         # 首页
 |------|------|------|----------|
 | `C##.##` | 标准 QA 题号（Chapter.编号） | `C01.01` | chapter-01 ~ 15 |
 | `M##.##` | 核心方法论条目 | `M01.01` | chapter-core-methodology |
-| `E##.##` | 八股速查条目 | `E01.01` | chapter-questions-eight-part |
+| `E##.##` | 核心原理速查条目 | `E01.01` | chapter-questions-eight-part |
 | `S##.##` | 场景题条目 | `S01.01` | chapter-questions-scenario |
 
 约定：前缀字母 >= 该页内容类型；两位数字为「主题组 . 题序」。首页与大盘、安全手册按章节锚点 `href="#其题号"` 引用。
@@ -115,4 +115,7 @@ index.html                         # 首页
   - 含 `#` 的文本需移除或转义。
   - Timeline 条目用冒号 `:` 分隔，勿用 `<br/>`。
 - **无图表页**：不写 mermaid 引入与初始化代码，避免多余网络开销。
+- **代码块内尖括号必须转义**：`<pre><code>` 仅保留空白/换行，**不禁用标签解析**——Java 泛型 `Map<T,S>`、lambda `->`、比较符等必须写成 `&lt;` / `&gt;`，否则 `<String` 被当作标签起始导致渲染错乱（chapter-07 曾踩坑）。
+- **命令占位符转义**：`<pid>` 之类占位符必须写 `&lt;pid&gt;`，否则被浏览器当作未知标签、"pid" 文本被吞（mind-02 曾踩坑）。
+- **顶层 div 必须平衡**：`qa-card` 的关闭 `</div>` 缺失会让后续所有卡片嵌套进该卡、并"偷走" `page-wrapper` 的关闭标签（chapter-09 曾踩坑）；改卡后应复核整页 div 深度为 0。
 - **改文件名后的同步**：凡改名为 `chapter-*` 的文件，需同步更新 `../../index.html`、`../index.html`、`chapter-overview-priority.html` 内的引用 href（曾发生安全手册从 `security/` 移入本目录并更名）。
