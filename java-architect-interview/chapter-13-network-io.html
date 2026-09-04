@@ -1818,6 +1818,19 @@ MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）
             </table>
           </div>
         </div>
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">select/poll/epoll 底层数据结构与运行流程全解</div>
+          <div class="qa-layer-body">
+            <p><strong>① select：位图 + 三套集合</strong>。<code class="inline-code">fd_set</code> 本质是一块 bit 数组，每一位代表一个 fd（bit 5 置 1 → 监听 fd=5）。宏 <code class="inline-code">FD_SETSIZE=1024</code> 决定位图固定长度，故<strong>硬限制只能监听 0~1023 的 fd</strong>；且有 readfds/writefds/exceptfds 三套位图。运行流程：<code class="inline-code">FD_ZERO</code> 清零 → <code class="inline-code">FD_SET(fd)</code> 置位 → <code class="inline-code">select()</code> 把<strong>整张位图拷贝进内核</strong>并阻塞 → 内核遍历所有置 1 的 fd 检查就绪 → <strong>内核改写位图</strong>（就绪 bit 保持 1、其余清 0）→ 返回 → 用户 <code class="inline-code">FD_ISSET</code> 循环遍历 0~max_fd 找就绪（O(N)）→ 下一轮必须重新 FD_ZERO+FD_SET 重建（位图已被破坏、不能复用）。痛点：1024 上限、每次整张拷贝、返回后 O(N) 全扫、下一轮必须重建。</p>
+            <p><strong>② poll：结构体数组，去掉 1024 上限</strong>。改用 <code class="inline-code">struct pollfd { int fd; short events; short revents; }</code> 数组：<code class="inline-code">events</code> 是用户关心事件、<strong>不被内核修改</strong>；<code class="inline-code">revents</code> 是内核回写的就绪结果；数组长度自定、<strong>无 1024 硬上限</strong>。运行流程：构建 pollfd[] → <code class="inline-code">poll()</code> 把<strong>整个数组拷贝进内核</strong>并阻塞 → 内核遍历扫描 → 就绪者写 <code class="inline-code">revents</code> → 返回 → 用户遍历 revents 非 0 → 下一轮 <code class="inline-code">events</code> 完好、<strong>无需重建</strong>直接再 poll。改进：去 1024 上限、events 不被破坏（不用每次重建）；遗留：整数组仍每次用户→内核拷贝、返回仍 O(N) 遍历（1 万连接只 2 个就绪也要循环 1 万次）。<strong>select/poll 共同点</strong>：都没有内核侧长期保存的监听集合，每次系统调用都要把监听列表完整交给内核。</p>
+            <p><strong>③ epoll（Linux 专属）：监听集合放内核长期保存</strong>。内核维护两套结构——<strong>红黑树</strong>保存所有被监听 fd（<code class="inline-code">epoll_ctl(ADD/MOD/DEL)</code> 增删改，<strong>仅注册/取消时一次</strong>用户→内核拷贝）；<strong>就绪双向链表</strong>存放已 IO 就绪的 fd（数据到达由内核回调驱动入链，<code class="inline-code">epoll_wait</code> 直接取）。三步流程：<code class="inline-code">epoll_create()</code> 建 epoll 对象（红黑树+就绪链表，返回 epfd）→ <code class="inline-code">epoll_ctl(ADD, fd, event)</code> 登记（只拷一次）→ <code class="inline-code">epoll_wait(epfd, events, maxevents, timeout)</code> 阻塞取<strong>就绪链表</strong>，<code class="inline-code">events[]</code> 只收已就绪结果，<strong>O(就绪数) 遍历、不遍历全部监听 fd</strong>。与 select/poll 根本区别：监听集合在内核长期保存，wait 不再拷贝全部 fd 列表。</p>
+            <p><strong>LT/ET 与工程实例</strong>。<strong>LT（水平触发，默认）</strong>只要缓冲区还有数据就反复通知，编程简单、不易丢事件——<strong>Redis 用 LT</strong>；<strong>ET（边缘触发）</strong>只在状态变化瞬间通知一次，必须配<strong>非阻塞 socket + 循环 read 到 EAGAIN</strong>一次性读完，否则丢事件——<strong>Nginx 用 ET</strong>（减少事件触发次数、追求性能）。三者本质都是<strong>同步 IO 多路复用（Reactor）</strong>：内核只通知 fd 就绪，真正 read/recv 仍要用户自己调系统调用；io_uring/IOCP 才是真正异步（已完成驱动）。</p>
+            <div class="callout callout-tip">
+              <div class="callout-title">记忆顺口溜</div>
+              <p>select 位图 1024，拷贝遍历全来撸；<br/>poll 数组去掉上限，遍历拷贝依旧苦；<br/>epoll 内核花名册，红黑树存 fd 库；<br/>就绪链表直接取，万条空闲也不误；<br/>LT 有事反复呼，ET 跳变只一顾。</p>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
