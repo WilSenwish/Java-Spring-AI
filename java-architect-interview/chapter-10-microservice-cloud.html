@@ -617,7 +617,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             <p><strong>部署形态演进</strong>：物理机 → 虚拟机（资源隔离）→ 容器（轻量隔离）→ 容器编排（K8s，集群调度）→ Serverless（免运维）。容器化的本质是<strong>把应用与依赖打包成可移植镜像</strong>，K8s 解决的是<strong>大规模容器的调度与生命周期管理</strong>。</p>
             <p><strong>Docker（2013）</strong>：镜像分层（UnionFS 联合文件系统，每条指令一层可复用缓存）+ 容器隔离（namespace 隔离视图 + cgroups 限制资源）。</p>
             <p><strong>Kubernetes（2014，Google 基于 Borg）</strong>：声明式 API + <strong>控制循环（reconcile）</strong>——用户声明期望状态，Controller 持续调谐实际状态向期望收敛。成为容器编排事实标准。</p>
-            <p><strong>K8s 版本演进关键里程碑</strong>：① <strong>1.0（2015）</strong>：首个稳定版，Pod/Service/ReplicationController 基础模型；② <strong>1.8（2017）</strong>：Workload API（Deployment/StatefulSet/DaemonSet）GA，确立现代声明式部署模型；③ <strong>1.16（2019）</strong>：重大 API 版本清理——extensions/v1beta1 等旧版本移除，统一迁移至 apps/v1，CRD v1 GA；④ <strong>1.20→1.24（2020→2022）</strong>：Dockershim 废弃（1.20）并移除（1.24），容器运行时从 Docker 切换至 <strong>containerd/CRI-O</strong>（CRI 标准），Docker 镜像仍可用但运行时不再依赖 dockershim；⑤ <strong>1.25（2022）</strong>：PodSecurityPolicy 移除，替代为 <strong>Pod Security Admission</strong>（命名空间级安全策略）；⑥ <strong>1.28~1.29（2023）</strong>：<strong>原生 Sidecar 容器</strong>（1.28 Beta，1.29 起对应 feature gate 默认启用），Sidecar 容器与主容器生命周期解耦，启动/退出顺序可控；Node Swap 处于 Beta，启用方式仍受节点配置与版本约束；⑦ <strong>1.31~1.33（2024~2025）</strong>：AppArmor GA、User Namespaces Beta（安全增强）、<strong>Pod 垂直弹性伸缩</strong>（In-place Pod Resize，1.27 Alpha → 1.33 Beta，默认启用 InPlacePodVerticalScaling gate，仍非 GA）——不重启 Pod 即可调整 CPU/内存。K8s 保持约每年 3 个小版本、每版本约 1 年支持的发布节奏，面试需关注<strong> API 版本废弃迁移与运行时变更</strong>两大破坏性变更方向。</p>
+            <p><strong>K8s 版本演进关键里程碑</strong>：① <strong>1.0（2015）</strong>：首个稳定版，Pod/Service/ReplicationController 基础模型；② <strong>1.8（2017）</strong>：Workload API（Deployment/StatefulSet/DaemonSet）GA，确立现代声明式部署模型；③ <strong>1.16（2019）</strong>：重大 API 版本清理——extensions/v1beta1 等旧版本移除，统一迁移至 apps/v1，CRD v1 GA；④ <strong>1.20→1.24（2020→2022）</strong>：Dockershim 废弃（1.20）并移除（1.24），容器运行时从 Docker 切换至 <strong>containerd/CRI-O</strong>（CRI 标准），Docker 镜像仍可用但运行时不再依赖 dockershim；⑤ <strong>1.25（2022）</strong>：PodSecurityPolicy 移除，替代为 <strong>Pod Security Admission</strong>（命名空间级安全策略）；⑥ <strong>1.28~1.29（2023）</strong>：<strong>原生 Sidecar 容器</strong>（1.28 Beta，1.29 起对应 feature gate 默认启用），Sidecar 容器与主容器生命周期解耦，启动/退出顺序可控；Node Swap 处于 Beta，启用方式仍受节点配置与版本约束；⑦ <strong>1.31~1.33（2024~2025）</strong>：AppArmor GA、User Namespaces Beta（安全增强）、<strong>Pod 垂直弹性伸缩</strong>（In-place Pod Resize，1.27 Alpha → 1.33 Beta，默认启用 InPlacePodVerticalScaling gate，仍非 GA）——不重启 Pod 即可调整 CPU/内存。K8s 保持约每年 3 个小版本、每版本约 1 年支持的发布节奏，需重点关注<strong> API 版本废弃迁移与运行时变更</strong>两大破坏性变更方向。</p>
             <p><strong>JVM 容器感知演进（关键考点）</strong>：</p>
             <ul>
               <li><strong>JDK 8u131 之前</strong>：JVM 看不到容器内存/CPU 限制，<strong>按宿主机总资源计算</strong>，容器内存远小于宿主机时 -Xmx 误设过大，直接被 OOM Killer 杀掉。</li>
@@ -840,7 +840,7 @@ spec:
               <li><strong>注意</strong>：Operator 本身是单点——Controller 宕机后协调停止。生产环境需部署 Operator 副本（Leader Election 机制保证只有一个活跃 Controller）。</li>
             </ul>
 
-            <p><strong>面试要点</strong>：回答 K8s Operator 时需强调三点：① CRD 扩展了 K8s API 的能力边界（不只预置 Deployment/StatefulSet）；② Reconcile Loop 是"期望状态 vs 实际状态"的持续协调，不是一次性部署；③ Operator = CRD + Custom Controller，本质是"将运维知识代码化"，让 K8s 理解非原生应用的生命周期管理。</p>
+            <p><strong>掌握要点</strong>：回答 K8s Operator 时需强调三点：① CRD 扩展了 K8s API 的能力边界（不只预置 Deployment/StatefulSet）；② Reconcile Loop 是"期望状态 vs 实际状态"的持续协调，不是一次性部署；③ Operator = CRD + Custom Controller，本质是"将运维知识代码化"，让 K8s 理解非原生应用的生命周期管理。</p>
           </div>
         </div>
       </div>
@@ -1042,7 +1042,7 @@ spec:
 
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
-              <p>面试深挖点：为什么流量镜像"只收不应"仍能完成验证？因为镜像副本的价值在于<strong>用真实流量观测新版本的表现</strong>——是否抛异常、处理耗时、日志告警、依赖调用是否异常，全部通过可观测数据（指标 / 追踪 / 日志）验证，而非依赖镜像副本的响应。这也正是"镜像发布失败对用户零影响"的根本原因：主链路流量完全不受镜像结果左右。注意镜像只解决"验证"不解决"放量"——正式上线仍需配合金丝雀权重路由逐步切流，形成"镜像验证 → 金丝雀放量 → 全量"的完整灰度链路。</p>
+              <p>深挖点：为什么流量镜像"只收不应"仍能完成验证？因为镜像副本的价值在于<strong>用真实流量观测新版本的表现</strong>——是否抛异常、处理耗时、日志告警、依赖调用是否异常，全部通过可观测数据（指标 / 追踪 / 日志）验证，而非依赖镜像副本的响应。这也正是"镜像发布失败对用户零影响"的根本原因：主链路流量完全不受镜像结果左右。注意镜像只解决"验证"不解决"放量"——正式上线仍需配合金丝雀权重路由逐步切流，形成"镜像验证 → 金丝雀放量 → 全量"的完整灰度链路。</p>
             </div>
           </div>
         </div>
@@ -1460,7 +1460,7 @@ spring:
                 <tr><td>3.0.0</td><td>注册中心元数据用 JRaft 强一致、引入 AI 配置治理等</td></tr>
               </tbody>
             </table>
-            <p><strong>② 1.x → 2.x Push 模型对比（高频面试点）</strong>：</p>
+            <p><strong>② 1.x → 2.x Push 模型对比（高频考点）</strong>：</p>
             <table class="compare-table">
               <thead><tr><th>维度</th><th>1.x</th><th>2.x</th></tr></thead>
               <tbody>
@@ -3052,7 +3052,7 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>为什么一定要写 <code class="inline-code">bootstrap.yml</code> 才能让配置中心生效？<code class="inline-code">@RefreshScope</code> 打了之后配置就真的会自动刷新？本质是 <strong>Spring Cloud 在 Boot 2.x/3.x 之前引入的 Bootstrap 上下文（父上下文）加载注册/配置 Bean</strong>，以及 <strong><code class="inline-code">@RefreshScope</code> 是一个 Bean Scope 代理对象换 target 的机制</strong>。面试官要的不是"能配置"，而是你能解释清楚：配置中心的 Bean 凭什么在主应用 Bean 创建之前就连上远程拉配置？为什么 @Value 的字段改了配置中心要重新建 Bean 才能拿到新值？这两个问题不搞懂，Boot 2.x 升 3.x 时必然遇到"配置全失效"的事故。</p>
+            <p>为什么一定要写 <code class="inline-code">bootstrap.yml</code> 才能让配置中心生效？<code class="inline-code">@RefreshScope</code> 打了之后配置就真的会自动刷新？本质是 <strong>Spring Cloud 在 Boot 2.x/3.x 之前引入的 Bootstrap 上下文（父上下文）加载注册/配置 Bean</strong>，以及 <strong><code class="inline-code">@RefreshScope</code> 是一个 Bean Scope 代理对象换 target 的机制</strong>。重点不是"能配置"，而是你能解释清楚：配置中心的 Bean 凭什么在主应用 Bean 创建之前就连上远程拉配置？为什么 @Value 的字段改了配置中心要重新建 Bean 才能拿到新值？这两个问题不搞懂，Boot 2.x 升 3.x 时必然遇到"配置全失效"的事故。</p>
           </div>
         </div>
 
@@ -3204,7 +3204,7 @@ flowchart TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>Spring Cloud Sleuth 为什么在 Boot 3.0 突然"消失"，而变成 Micrometer Tracing？本质是 <strong>Spring 社区在 2022 年把链路追踪 API 从 Spring Cloud 子项目下沉到 Spring Framework 级别的 Micrometer 观测抽象（Micrometer Metrics / Tracing / Logging 三合一）</strong>，与 OpenTelemetry API 对齐。面试官要考察的是：你是否知道"为什么要做这次下沉"？是否亲自做过 Boot 2→3 的链路追踪升级？能否区分 Brave vs OTel 两套桥接的取舍？W3C TraceContext 跟 B3 到底谁是未来？生产 10k QPS 下 traceId 怎么保证异步线程不丢、采集量怎么不压爆 OTel Collector？这些都是"用过 APM"和"做过 APM 生产落地"的分水岭。</p>
+            <p>Spring Cloud Sleuth 为什么在 Boot 3.0 突然"消失"，而变成 Micrometer Tracing？本质是 <strong>Spring 社区在 2022 年把链路追踪 API 从 Spring Cloud 子项目下沉到 Spring Framework 级别的 Micrometer 观测抽象（Micrometer Metrics / Tracing / Logging 三合一）</strong>，与 OpenTelemetry API 对齐。这里考察的是：你是否知道"为什么要做这次下沉"？是否亲自做过 Boot 2→3 的链路追踪升级？能否区分 Brave vs OTel 两套桥接的取舍？W3C TraceContext 跟 B3 到底谁是未来？生产 10k QPS 下 traceId 怎么保证异步线程不丢、采集量怎么不压爆 OTel Collector？这些都是"用过 APM"和"做过 APM 生产落地"的分水岭。</p>
           </div>
         </div>
 
@@ -3401,7 +3401,7 @@ flowchart LR
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>为什么 pom.xml 把 <code class="inline-code">spring-cloud-starter-netflix-eureka-client</code> 改成 <code class="inline-code">spring-cloud-starter-alibaba-nacos-discovery</code>，代码里 <code class="inline-code">@LoadBalanced RestTemplate</code>、<code class="inline-code">DiscoveryClient</code>、<code class="inline-code">LoadBalancer</code> 的用法一行不用改？本质是 <strong>Spring Cloud Commons 定义了统一接口层，各注册中心组件（Eureka/Nacos/Consul）实现各自 AutoConfiguration，Bean 注入时 Spring 按条件装配，上层业务面向 Commons 抽象编程</strong>。面试官考察的是：你是否真的理解"面向接口+条件装配"是怎么协作的？能否画出从业务代码到具体 Nacos/Eureka 实现的调用链路？能不能自己扩展一个 StaticDiscoveryClient 做本地测试？遇到 CompositeDiscoveryClient 多注册中心聚合时能排障。这些问题能区分"只会抄 pom 换依赖"和"真正懂 Spring Cloud 架构设计"两类候选人。</p>
+            <p>为什么 pom.xml 把 <code class="inline-code">spring-cloud-starter-netflix-eureka-client</code> 改成 <code class="inline-code">spring-cloud-starter-alibaba-nacos-discovery</code>，代码里 <code class="inline-code">@LoadBalanced RestTemplate</code>、<code class="inline-code">DiscoveryClient</code>、<code class="inline-code">LoadBalancer</code> 的用法一行不用改？本质是 <strong>Spring Cloud Commons 定义了统一接口层，各注册中心组件（Eureka/Nacos/Consul）实现各自 AutoConfiguration，Bean 注入时 Spring 按条件装配，上层业务面向 Commons 抽象编程</strong>。这里考察的是：你是否真的理解"面向接口+条件装配"是怎么协作的？能否画出从业务代码到具体 Nacos/Eureka 实现的调用链路？能不能自己扩展一个 StaticDiscoveryClient 做本地测试？遇到 CompositeDiscoveryClient 多注册中心聚合时能排障。这些问题能区分"只会抄 pom 换依赖"和"真正懂 Spring Cloud 架构设计"两类候选人。</p>
           </div>
         </div>
 
@@ -3574,7 +3574,7 @@ flowchart TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这 7 个坑是 <strong>Spring Cloud 社区 GitHub issue 星标最高的 7 个真实生产事故集合</strong>，覆盖 Feign / Gateway / RefreshScope / Sentinel 四大组件。面试官通过"踩坑经验"区分"<strong>用过 Spring Cloud</strong>"和"<strong>用 Spring Cloud 做过生产</strong>"两类候选人。核心不是背"怎么改"，而是每坑能说出 <strong>根因 → 触发条件 → 最小复现代码 → 修复代码 → 如何预防下一次</strong> 五步完整链路。候选人如果能在每一个坑上补充自己团队的真实事故编号、发生时间、影响面、事后复盘改进项，基本就锁定 offer 了。</p>
+            <p>这 7 个坑是 <strong>Spring Cloud 社区 GitHub issue 星标最高的 7 个真实生产事故集合</strong>，覆盖 Feign / Gateway / RefreshScope / Sentinel 四大组件。能否讲清"踩坑经验"，是区分"<strong>用过 Spring Cloud</strong>"和"<strong>用 Spring Cloud 做过生产</strong>"的分水岭。核心不是背"怎么改"，而是每坑能说出 <strong>根因 → 触发条件 → 最小复现代码 → 修复代码 → 如何预防下一次</strong> 五步完整链路。如果能在每一个坑上补充自己团队的真实事故编号、发生时间、影响面、事后复盘改进项，就足以证明真正的生产级掌控力。</p>
           </div>
         </div>
 
@@ -3993,7 +3993,7 @@ flowchart TD
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p><code class="inline-code">@RefreshScope</code> 是 Spring Cloud 配置热刷新的"双刃剑"：它本质是一个自定义 Scope，把 Bean 包成代理、刷新时 <code class="inline-code">cache.clear()</code> 重建 target。很多团队把它当"加上就能热更新"的银弹，结果线上出现双实例、内存泄漏、定时任务重复执行、事务/AOP 失效等隐性生产事故。面试官要的是：你能讲清 @RefreshScope 的 9 大坑与避坑准则，并能给出 @ConfigurationProperties 业务侧"优雅使用 + 安全热更新"的工程规范——尤其是 <strong>Nacos 下 @ConfigurationProperties 自动 rebind 无需 @RefreshScope，而 @Value 才需要；Spring Cloud Config 下 @ConfigurationProperties 仍需 @RefreshScope</strong> 这一反直觉差异。</p>
+            <p><code class="inline-code">@RefreshScope</code> 是 Spring Cloud 配置热刷新的"双刃剑"：它本质是一个自定义 Scope，把 Bean 包成代理、刷新时 <code class="inline-code">cache.clear()</code> 重建 target。很多团队把它当"加上就能热更新"的银弹，结果线上出现双实例、内存泄漏、定时任务重复执行、事务/AOP 失效等隐性生产事故。重点是：你能讲清 @RefreshScope 的 9 大坑与避坑准则，并能给出 @ConfigurationProperties 业务侧"优雅使用 + 安全热更新"的工程规范——尤其是 <strong>Nacos 下 @ConfigurationProperties 自动 rebind 无需 @RefreshScope，而 @Value 才需要；Spring Cloud Config 下 @ConfigurationProperties 仍需 @RefreshScope</strong> 这一反直觉差异。</p>
           </div>
         </div>
 
@@ -4126,7 +4126,7 @@ flowchart TD
         <div class="qa-layer" data-layer="scenario">
           <div class="qa-layer-title">问题背景</div>
           <div class="qa-layer-body">
-            <p>客户端如何"及时拿到"配置 / 服务实例变更，是配置中心（Nacos/Apollo）与注册中心（Nacos/Eureka/ZK/Etcd/Consul）的核心差异点。面试常要求横向对比"推送机制"，本质是对三种数据同步范式的取舍。</p>
+            <p>客户端如何"及时拿到"配置 / 服务实例变更，是配置中心（Nacos/Apollo）与注册中心（Nacos/Eureka/ZK/Etcd/Consul）的核心差异点。常要求横向对比"推送机制"，本质是对三种数据同步范式的取舍。</p>
           </div>
         </div>
         <div class="qa-layer" data-layer="principle">

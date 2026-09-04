@@ -147,7 +147,7 @@ flowchart LR
               <div class="chart-caption">图 5.1-2 Bean 生命周期全流程：实例化→属性填充→初始化（含 Aware 回调、BPP 前后置、AOP 代理生成）→销毁</div>
             </div>
 
-            <p><strong>关键源码链路</strong>：<code class="inline-code">getBean → doGetBean → getSingleton(三级缓存查询) → createBean → doCreateBean</code>。其中 <code class="inline-code">doCreateBean</code> 的三步是面试高频：</p>
+            <p><strong>关键源码链路</strong>：<code class="inline-code">getBean → doGetBean → getSingleton(三级缓存查询) → createBean → doCreateBean</code>。其中 <code class="inline-code">doCreateBean</code> 的三步是高频考点：</p>
             <div class="code-block"><pre><code><span class="com">// AbstractAutowireCapableBeanFactory.doCreateBean 核心三段</span>
 <span class="kw">protected</span> <span class="type">Object</span> <span class="fn">doCreateBean</span>(...) <span class="kw">throws</span> <span class="type">BeansException</span> {
     <span class="com">// 1. 实例化：通过反射调用构造方法得到"裸对象"</span>
@@ -1093,7 +1093,7 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
             <p><strong>理解模式背后的原则</strong>比记住模式更重要。Spring 的扩展性来自"<strong>开闭原则</strong>"（对扩展开放，对修改关闭）的实现：BeanPostProcessor/BeanFactoryPostProcessor 是开放扩展点，新增逻辑无需改框架代码；FactoryBean 让用户控制 Bean 创建；模板方法让用户填充可变步骤。架构师设计中间件时，应模仿 Spring 的扩展点设计——用接口定义扩展契约，用责任链/策略组合扩展实现，而非 if-else 堆砌。</p>
             <div class="callout callout-tip">
               <div class="callout-title">回答技巧</div>
-              <p>面试时不要只列模式名，要用"<strong>模式 + Spring 位置 + 设计意图</strong>"三段式回答。例如："工厂模式——BeanFactory 作为统一工厂，getBean 方法创建 Bean，意图是解耦对象的创建与使用，让业务代码只声明依赖不关心创建细节"。再举 3-4 个深入的即可，不必 23 种全列。</p>
+              <p>不要只列模式名，要用"<strong>模式 + Spring 位置 + 设计意图</strong>"三段式回答。例如："工厂模式——BeanFactory 作为统一工厂，getBean 方法创建 Bean，意图是解耦对象的创建与使用，让业务代码只声明依赖不关心创建细节"。再举 3-4 个深入的即可，不必 23 种全列。</p>
             </div>
           </div>
         </div>
@@ -1120,7 +1120,7 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
               <ul>
                 <li><strong>混淆单例模式与单例 Bean</strong>：前者类级，后者容器级。</li>
                 <li><strong>混淆 FactoryBean 与 BeanFactory</strong>：前者是生产对象的 Bean，后者是容器。</li>
-                <li><strong>只背模式名不结合 Spring</strong>：面试官要的是"模式在 Spring 哪里用、解决什么问题"。</li>
+                <li><strong>只背模式名不结合 Spring</strong>：重点是讲清"模式在 Spring 哪里用、解决什么问题"。</li>
                 <li><strong>误以为 AOP 只是代理模式</strong>：AOP 还用了责任链（拦截器链）、策略（代理选择）、适配器（AdvisorAdapter）。</li>
                 <li><strong>忽略模板方法的广泛应用</strong>：JdbcTemplate 只是典型，refresh() 本身就是模板方法。</li>
               </ul>
@@ -1145,7 +1145,7 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
             </table>
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
-              <p>面试时回答"Spring 用了哪些设计模式"，不应只背模式名，而是能指着 Spring 源码说明"这里用了代理模式，是为了 AOP 织入；这里用了责任链，是为了拦截器链执行"。设计自研中间件时，用工厂 + 代理模式做声明式入口，用责任链 + 策略模式做规则引擎，用观察者模式做事件通知，用模板方法模式固化流程骨架——这就是"模式在框架中的真实价值"。</p>
+              <p>回答"Spring 用了哪些设计模式"，不应只背模式名，而是能指着 Spring 源码说明"这里用了代理模式，是为了 AOP 织入；这里用了责任链，是为了拦截器链执行"。设计自研中间件时，用工厂 + 代理模式做声明式入口，用责任链 + 策略模式做规则引擎，用观察者模式做事件通知，用模板方法模式固化流程骨架——这就是"模式在框架中的真实价值"。</p>
             </div>
           </div>
         </div>
@@ -1394,7 +1394,7 @@ flowchart TD
             <p><strong>实际项目中 99% 用 ApplicationContext</strong>。Spring Boot 的入口 <code class="inline-code">SpringApplication.run</code> 创建的就是 <code class="inline-code">AnnotationConfigServletWebServerApplicationContext</code>。BeanFactory 接口在底层仍存在（ApplicationContext 内部委托 <code class="inline-code">DefaultListableBeanFactory</code> 作为 BeanFactory 实现），但用户无需直接使用。</p>
             <p><strong>父子容器场景</strong>：Spring MVC 经典模式是 <strong>父子容器</strong>——父容器（ContextLoaderListener 创建）管理 Service/DAO，子容器（DispatcherServlet 创建）管理 Controller。子容器可访问父容器的 Bean，反之不可。Spring Boot 简化为单一容器，父子容器模式逐渐淡出。</p>
             <div class="callout callout-tip">
-              <div class="callout-title">面试要点</div>
+              <div class="callout-title">掌握要点</div>
               <p>回答时强调三点：① ApplicationContext 是 BeanFactory 的子接口，扩展了企业级能力；② 核心差异是<strong>预实例化 vs 懒加载</strong>与<strong>自动注册 BPP</strong>，这决定了 fail-fast 与正确性；③ BeanFactory 作为底层接口仍存在，ApplicationContext 内部委托其实现。不要说"BeanFactory 已废弃"——它以 DefaultListableBeanFactory 的形式活跃在每个 ApplicationContext 内部。</p>
             </div>
           </div>

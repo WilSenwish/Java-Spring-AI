@@ -66,7 +66,7 @@ java-architect-interview/
 | `chapter-13-network-io` | 网络与 IO | `C13.##` | 11 | 标准QA（共用） |
 | `chapter-14-databases` | 数据库扩展 | `C14.##` | 9 | 标准QA（共用） |
 | `chapter-15-reactive` | 响应式编程 | `C15.##` | 6 | 标准QA（共用） |
-| `chapter-core-methodology` | 面试核心方法论 | `M##.##` | 48 | 独享（方法论变体卡片） |
+| `chapter-core-methodology` | 核心方法论 | `M##.##` | 48 | 独享（方法论变体卡片） |
 | `chapter-overview-priority` | 知识点大盘与优先级 | `ov-*` 组件 | 321 条目 | 独享（优先级矩阵） |
 | `chapter-questions-eight-part` | 八股文速查 | `E##.##` | 50 | 独享（epq 速查组件） |
 | `chapter-questions-scenario` | 场景设计题 | `S##.##` | 65 | 独享（场景卡片变体） |

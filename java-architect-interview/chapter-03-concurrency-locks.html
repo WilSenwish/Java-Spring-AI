@@ -208,7 +208,7 @@ sequenceDiagram
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点</div>
               <ul>
-                <li><strong>误用 volatile 做计数器</strong>：volatile int count + count++ 不是线程安全的，这是最常见的面试翻车点。记住"复合操作 volatile 不保证原子性"。</li>
+                <li><strong>误用 volatile 做计数器</strong>：volatile int count + count++ 不是线程安全的，这是最常见的易错点。记住"复合操作 volatile 不保证原子性"。</li>
                 <li><strong>volatile 数组的元素可见性</strong>：<code class="inline-code">volatile int[] arr</code> 只保证 arr 引用可见，arr[0] 的修改不保证可见。需用 AtomicIntegerArray。</li>
                 <li><strong>以为 volatile 比 synchronized 快就不用锁</strong>：volatile 无锁但能力有限，用它替代锁会引入正确性问题。</li>
                 <li><strong>忽略 happens-before 的传递性</strong>：A happens-before B，B happens-before C，则 A happens-before C。volatile 写后的所有操作对后续 volatile 读的线程可见，这是利用 volatile 做安全发布的理论依据。</li>
@@ -220,7 +220,7 @@ sequenceDiagram
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">扩展补全</div>
           <div class="qa-layer-body">
-            <p>JMM 定义的 happens-before 完整规则共 8 条，面试要求能完整列举并解释含义：</p>
+            <p>JMM 定义的 happens-before 完整规则共 8 条，要求能完整列举并解释含义：</p>
             <ol>
               <li><strong>程序顺序规则</strong>：单线程内，前面的操作 happens-before 后面的操作（as-if-serial 语义，感觉上顺序执行）。</li>
               <li><strong>监视器锁规则</strong>：对一个锁的 unlock 操作 happens-before 后续对同一把锁的 lock 操作（synchronized 可见性的来源）。</li>
@@ -233,7 +233,7 @@ sequenceDiagram
             </ol>
             <ul>
               <li><strong>语义澄清</strong>：happens-before 不是说"前一个操作一定先执行"，而是"<strong>前一个操作的结果对后一个操作可见</strong>"——它是可见性 + 有序性的约束，不是时序先后。</li>
-              <li><strong>面试易错</strong>：volatile 只保证单次读/写的可见性与有序性，<strong>不保证 i++ 这类复合操作的原子性</strong>（读-改-写三步可能交错），计数场景需用 <code class="inline-code">AtomicInteger</code> 或 synchronized。</li>
+              <li><strong>易错点</strong>：volatile 只保证单次读/写的可见性与有序性，<strong>不保证 i++ 这类复合操作的原子性</strong>（读-改-写三步可能交错），计数场景需用 <code class="inline-code">AtomicInteger</code> 或 synchronized。</li>
             </ul>
             <div class="callout callout-deep">
               <div class="callout-title">深入解析</div>
@@ -547,7 +547,7 @@ graph LR
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">扩展补全</div>
           <div class="qa-layer-body">
-            <p>AQS 之上构建的四大同步器（Semaphore / CountDownLatch / CyclicBarrier / Phaser）是并发协作的常用工具，面试常考对比：</p>
+            <p>AQS 之上构建的四大同步器（Semaphore / CountDownLatch / CyclicBarrier / Phaser）是并发协作的常用工具，常考对比：</p>
             <ul>
               <li><strong>Semaphore（信号量）</strong>：令牌限流。构造时指定 permits 数量，<code class="inline-code">acquire()</code> 获取令牌、<code class="inline-code">release()</code> 归还；release 必须放在 finally 块中防止令牌泄漏；支持公平/非公平模式。<strong>共享模式下多个线程可以同时获取许可</strong>，常用于连接池限流、并发任务数控制等场景。</li>
               <li><strong>CountDownLatch（倒计时锁存器）</strong>：一次性，不可重置。<code class="inline-code">countDown()</code> 计数减一，<code class="inline-code">await()</code> 等待归零；适用于"等待 N 个线程全部完成"的场景（如服务启动等待依赖组件就绪）。</li>

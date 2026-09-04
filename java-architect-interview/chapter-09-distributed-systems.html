@@ -479,7 +479,7 @@ flowchart TD
           <div class="qa-layer-title">扩展补全</div>
           <div class="qa-layer-body">
             <p><strong>Etcd 锁（云原生第三极，lease+revision CAS）</strong>：etcd v3 基于 Raft，所有写需多数派确认。锁语义 = <code class="inline-code">put</code> 带 Lease 租约（到期自动释放）+ 利用 <code class="inline-code">revision</code> 全局版本号做 Txn 原子 CAS；释放锁必须带 revision 做 txn 比较，不能直接 <code class="inline-code">delete</code>，否则误删他人锁。K8s 控制器选主即 etcd 锁。Java 侧无官方开箱锁类，需基于 jetcd 的 <code class="inline-code">Lease + Txn</code> 自行封装（Curator 的 InterProcessMutex 则是 ZK 侧即用实现：临时有序节点 + watch 前驱 + 可重入 + 会话重连，生产应直接用 curator-recipes，勿手写 zk api）。</p>
-            <p><strong>三种锁的"底层共识"差异（面试高频）</strong>：Redis 锁<strong>无内置共识</strong>（单主从异步复制、Redlock 只是业务层拼凑，非强一致系统）；ZK 锁基于 <strong>ZAB（CFT 崩溃容错）</strong>；Etcd 锁基于 <strong>Raft（CFT 崩溃容错）</strong>。三者性能：Redis 最高（内存）、ZK/Etcd 中等（写需多数派确认）。</p>
+            <p><strong>三种锁的"底层共识"差异（高频考点）</strong>：Redis 锁<strong>无内置共识</strong>（单主从异步复制、Redlock 只是业务层拼凑，非强一致系统）；ZK 锁基于 <strong>ZAB（CFT 崩溃容错）</strong>；Etcd 锁基于 <strong>Raft（CFT 崩溃容错）</strong>。三者性能：Redis 最高（内存）、ZK/Etcd 中等（写需多数派确认）。</p>
             <div class="callout callout-pitfall">
               <div class="callout-title">易错点：锁与拜占庭容错的关系</div>
               <p><strong>ZAB/Raft 都是 CFT（崩溃容错），不是 BFT（拜占庭容错）</strong>：它们假设节点只会宕机、不会撒谎/篡改消息；一旦出现恶意节点返回假数据，Raft/ZAB 无法识别欺骗。即 ZK/Etcd 分布式锁<strong>只能防机器宕机，不能防节点作恶篡改</strong>。Redis 连共识都没有，既不是 CFT 也不是 BFT。业务分布式锁几乎不需要拜占庭容错（BFT 性能差、QPS 低，多用于区块链/联盟链）；若真要抗恶意节点，需用 PBFT/HotStuff 这类 BFT 共识（节点 ≥ 3f+1）。本视角与 <a href="#C09.10" class="internal-link">C09.10 拜占庭将军与共识算法</a> 呼应。</p>

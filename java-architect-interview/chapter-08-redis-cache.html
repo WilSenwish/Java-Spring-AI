@@ -206,7 +206,7 @@ FUNCTION LIST           <span class="com">-- 列出所有库</span>
 FUNCTION DUMP inventory <span class="com">-- 导出库代码</span>
 FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></div>
 
-            <p><strong>面试要点</strong>：Functions 不是"另一个脚本引擎"，而是将脚本从"客户端临时发送"升级为"服务端持久管理"。回答时应强调三点：① 持久化与重启不丢失；② 可管理可审计（LIST/DUMP/DELETE）；③ 集群自动同步——这三点解决了 EVAL 时代脚本散落、丢失、难运维的根本痛点。</p>
+            <p><strong>掌握要点</strong>：Functions 不是"另一个脚本引擎"，而是将脚本从"客户端临时发送"升级为"服务端持久管理"。回答时应强调三点：① 持久化与重启不丢失；② 可管理可审计（LIST/DUMP/DELETE）；③ 集群自动同步——这三点解决了 EVAL 时代脚本散落、丢失、难运维的根本痛点。</p>
           </div>
         </div>
 
@@ -1304,7 +1304,7 @@ flowchart LR
               <div class="chart-caption">图 8.9-2 布谷鸟过滤器：二维桶 buckets[m][b=4] + 异或备选桶 + 踢挪循环</div>
             </div>
 
-            <p><strong>扩展 2：部分-key 布谷鸟哈希的异或公式（面试核心考点）</strong>。普通布谷鸟哈希表存完整 key，被踢出时可用原始 key 重算另一个位置；布谷鸟过滤器<strong>只存指纹、没有原始 key</strong>，因此改用 <code class="inline-code">i₂ = i₁ ⊕ hash(f)</code> 计算备选桶。该式<strong>可逆</strong>：已知当前桶号与指纹即可反推另一候选桶 <code class="inline-code">i₁ = i₂ ⊕ hash(f)</code>。这正是论文 <em>Cuckoo Filter: Practically Better Than Bloom</em> 提出的 partial-key cuckoo hashing，是过滤器区别于普通布谷鸟哈希的根本。</p>
+            <p><strong>扩展 2：部分-key 布谷鸟哈希的异或公式（核心考点）</strong>。普通布谷鸟哈希表存完整 key，被踢出时可用原始 key 重算另一个位置；布谷鸟过滤器<strong>只存指纹、没有原始 key</strong>，因此改用 <code class="inline-code">i₂ = i₁ ⊕ hash(f)</code> 计算备选桶。该式<strong>可逆</strong>：已知当前桶号与指纹即可反推另一候选桶 <code class="inline-code">i₁ = i₂ ⊕ hash(f)</code>。这正是论文 <em>Cuckoo Filter: Practically Better Than Bloom</em> 提出的 partial-key cuckoo hashing，是过滤器区别于普通布谷鸟哈希的根本。</p>
 
             <table class="compare-table">
               <thead><tr><th>对比项</th><th>普通布谷鸟哈希表</th><th>布谷鸟过滤器</th></tr></thead>
@@ -1347,7 +1347,7 @@ flowchart LR
               </tbody>
             </table>
 
-            <p><strong>Redis 集群的关键坑（面试必答）</strong>：RedisBloom 的一个过滤器 key <strong>只会落在一个分片上，不会自动跨节点拆分</strong>。集群模式下超大容量过滤器必须<strong>在业务层手动拆成多个过滤器 key</strong>（如按业务维度分 <code class="inline-code">url_bf:{0}~{15}</code> 十六个分片），并用 <strong>hash-tag</strong> 把需要同一 slot 的 key 强制路由到一起。这是"多实例共享"与"超大规模"两个需求的分界点。</p>
+            <p><strong>Redis 集群的关键坑（必须掌握）</strong>：RedisBloom 的一个过滤器 key <strong>只会落在一个分片上，不会自动跨节点拆分</strong>。集群模式下超大容量过滤器必须<strong>在业务层手动拆成多个过滤器 key</strong>（如按业务维度分 <code class="inline-code">url_bf:{0}~{15}</code> 十六个分片），并用 <strong>hash-tag</strong> 把需要同一 slot 的 key 强制路由到一起。这是"多实例共享"与"超大规模"两个需求的分界点。</p>
 
             <div class="code-block"><pre><code><span class="com"># RedisBloom：分布式共享过滤器的三种形态</span>
 BF.RESERVE url_bf <span class="num">0.01</span> <span class="num">100000000</span>    <span class="com"># 标准布隆：1 亿、1% 误判，只增不删</span>
