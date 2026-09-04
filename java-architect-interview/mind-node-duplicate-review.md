@@ -1,5 +1,7 @@
 # java-architect-interview-mind 导图节点重复排查
 
+> **历史文档说明**：本文写于站点品牌名为《Java 架构师面试问答》时期，文中沿用「面试 / 八股文」等旧术语。全站已于 2026-09-04 更名为《Java 专家 · 架构师 · 高级开发 工程能力知识库》，对应术语现为「知识点 / 核心原理」。**本文为历史审查记录，内容按原文保留，不作改写。**
+
 > 节点定义：`details.map-card`（summary 标题 + map-body-text 描述 + map-tags 主题标签）与 mermaid `flowchart` 图节点。
 
 > 核查文件数：18（含 index.html 总览）。
