@@ -30,11 +30,11 @@ MIND_DIR = f"{BASE}/java-architect-interview-mind"
 EXPECT = {
     "total": 345, "p0": 90, "p1": 195, "p2": 60,
     "expert": 44, "architect": 160, "senior": 141,
-    "methodology": 74,
+    "methodology": 75,
     "chapters": 220, "basics": 58, "scenarios": 67,
 }
-# 根 index 合计 = 题数 + 方法论卡片数（74）
-ROOT_SUM_EXTRA = 74
+# 根 index 合计 = 题数 + 方法论卡片数（75）
+ROOT_SUM_EXTRA = 75
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 NEW_IDS = ["C10.26"]  # 例：["C13.13"] 或 ["C10.26", "S04.06"]

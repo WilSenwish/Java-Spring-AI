@@ -38,7 +38,7 @@ ANCHOR_INSERT_MAPCARD = "</details>\n    <h3 class=\"theme-h\">②"      # TODO:
 DELTA = {"total": 1, "p1": 1, "architect": 1, "chapters": 1}
 # 当前 overview ov-stat-num 顺序（11 项）：
 #   [total, p0, p1, p2, expert, architect, senior, methodology, chapters, basics, scenarios]
-OV_BEFORE = [345, 90, 195, 60, 44, 160, 141, 74, 220, 58, 67]  # TODO: 填执行前实际值
+OV_BEFORE = [345, 90, 195, 60, 44, 160, 141, 75, 220, 58, 67]  # TODO: 填执行前实际值
 # ==================================================
 
 FILES = {
@@ -102,7 +102,7 @@ def patch_mind(t):
     t = replace_once(t, ANCHOR_INSERT_MAPCARD, "<!-- TODO: map-card -->\n    " + ANCHOR_INSERT_MAPCARD, "mind-insert-mapcard")
     return t
 def patch_mind_idx(t):
-    # TODO: 题量表达式 N+N+N 同步（方法论 74 不计入该表达式）
+    # TODO: 题量表达式 N+N+N 同步（方法论 75 不计入该表达式）
     return t
 
 def main():
