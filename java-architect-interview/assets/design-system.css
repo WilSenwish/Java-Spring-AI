@@ -521,9 +521,11 @@ code.inline-code {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 18px;
+  padding: 6px 14px;
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  /* 按钮不继承正文 1.75 行高，否则单按钮高度约 43px 偏臃肿；压到约 32px */
+  line-height: 1.5;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -595,9 +597,11 @@ code.inline-code {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 18px;
+  padding: 6px 14px;
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  /* 与底部导航保持一致（顶部/底部按钮高度必须对齐） */
+  line-height: 1.5;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -988,6 +992,49 @@ sup a:hover {
     padding: 0 var(--space-sm);
   }
 }
+
+/* ---------- 导航按钮：中等屏提前换行（2026-09-04） ----------
+   侧边栏 TOC 隐藏后可用宽度变化不大，但 5 个按钮并排会被挤压后各自换行、
+   高度翻倍。故 900px 以下改为分组换行：翻页组一行（各占 50%）、居中组整行。 */
+@media (max-width: 900px) {
+  .chapter-nav,
+  .chapter-nav-top {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .chapter-nav .nav-prev,
+  .chapter-nav .nav-next,
+  .chapter-nav-top .nav-prev,
+  .chapter-nav-top .nav-next {
+    flex: 1 1 calc(50% - var(--space-xs));
+    min-width: 0;
+    order: 1;
+  }
+  .chapter-nav .nav-home,
+  .chapter-nav-top .nav-home {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .chapter-nav .nav-center,
+  .chapter-nav-top .nav-center {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-xs);
+    margin: 0;
+    order: 2;
+  }
+  /* 居中组按两列排布（章节页 2 个一行、导图页 3 个 2+1） */
+  .chapter-nav .nav-center a,
+  .chapter-nav-top .nav-center a {
+    flex: 1 1 calc(50% - var(--space-xs));
+    min-width: 0;
+  }
+  .chapter-nav .nav-center a:last-child:nth-child(odd),
+  .chapter-nav-top .nav-center a:last-child:nth-child(odd) {
+    flex: 1 1 100%;
+  }
+}
 @media (max-width: 768px) {
   .index-hero h1 {
     font-size: 1.8rem;
@@ -1014,30 +1061,25 @@ sup a:hover {
     font-size: 1.4rem;
   }
   .chapter-nav {
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-  .chapter-nav a {
-    width: 100%;
-    justify-content: center;
+    margin-top: var(--space-lg);
+    padding-top: var(--space-sm);
   }
   .chapter-nav-top {
-    flex-direction: column;
-    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-xs);
   }
+  /* 小屏按钮改为块级 + 固定行高：长章节名单行省略而非换行撑高，
+     高度由 line-height 精确锁定（32px + 2px 边框 ≈ 34px），不再随内容波动 */
+  .chapter-nav a,
   .chapter-nav-top a {
-    width: 100%;
-    justify-content: center;
-  }
-  .chapter-nav .nav-center,
-  .chapter-nav-top .nav-center {
-    flex-direction: column;
-    width: 100%;
-  }
-  .chapter-nav .nav-center a,
-  .chapter-nav-top .nav-center a {
-    width: 100%;
-    justify-content: center;
+    display: block;
+    padding: 0 10px;
+    font-size: 0.8rem;
+    line-height: 32px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .code-block {
     font-size: 0.78rem;
@@ -1052,6 +1094,24 @@ sup a:hover {
   }
   .mermaid-container .mermaid {
     min-width: auto;
+  }
+}
+
+/* ---------- 极小屏导航进一步压缩（2026-09-04） ----------
+   375~480px 下按钮宽度约 170px，26 字长章节名必然溢出，
+   靠 ellipsis 截断保证高度恒定；居中组按钮数为奇数时最后一个独占整行。 */
+@media (max-width: 480px) {
+  .chapter-nav a,
+  .chapter-nav-top a {
+    padding: 0 8px;
+    font-size: 0.76rem;
+    line-height: 30px;
+  }
+  .chapter-nav,
+  .chapter-nav-top,
+  .chapter-nav .nav-center,
+  .chapter-nav-top .nav-center {
+    gap: 6px;
   }
 }
 
