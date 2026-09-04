@@ -1185,7 +1185,7 @@ public class ParallelReplicationMonitorService {
     public void monitorParallelReplicationPerformance() {
         try {
             // 检查并行复制状态
-            Map<String, Object> slaveStatus = jdbcTemplate.queryForMap("SHOW SLAVE STATUS");
+            Map&lt;String, Object&gt; slaveStatus = jdbcTemplate.queryForMap("SHOW SLAVE STATUS");
             
             // 检查IO线程状态
             String ioRunning = (String) slaveStatus.get("Slave_IO_Running");
@@ -1201,17 +1201,17 @@ public class ParallelReplicationMonitorService {
             
             // 获取复制延迟
             Long secondsBehind = (Long) slaveStatus.get("Seconds_Behind_Master");
-            if (secondsBehind != null && secondsBehind > 30) {
+            if (secondsBehind != null && secondsBehind &gt; 30) {
                 logger.warn("复制延迟过大: {}秒", secondsBehind);
             }
             
             // 检查并行复制队列
-            Map<String, Object> queueStatus = jdbcTemplate.queryForMap(
-                "SELECT * FROM performance_schema.replication_applier_status_by_worker WHERE WORKER_ID > 0"
+            Map&lt;String, Object&gt; queueStatus = jdbcTemplate.queryForMap(
+                "SELECT * FROM performance_schema.replication_applier_status_by_worker WHERE WORKER_ID &gt; 0"
             );
             
             int queueLength = (Integer) queueStatus.get("WORKER_ID");
-            if (queueLength > 10) {
+            if (queueLength &gt; 10) {
                 logger.warn("并行复制队列过长: {}", queueLength);
             }
             
@@ -1229,9 +1229,9 @@ public class ParallelReplicationMonitorService {
     /**
      * 获取复制延迟趋势
      */
-    public List<Long> getReplicationDelayTrend(int minutes) {
+    public List&lt;Long&gt; getReplicationDelayTrend(int minutes) {
         String sql = String.format(
-            "SELECT MASTER_DELAY FROM replication_heartbeat_log WHERE time > NOW() - INTERVAL %d MINUTE ORDER BY time",
+            "SELECT MASTER_DELAY FROM replication_heartbeat_log WHERE time &gt; NOW() - INTERVAL %d MINUTE ORDER BY time",
             minutes
         );
         return jdbcTemplate.queryForList(sql, Long.class);
@@ -1240,17 +1240,17 @@ public class ParallelReplicationMonitorService {
     /**
      * 获取并行复制统计
      */
-    public Map<String, Object> getParallelReplicationStats() {
+    public Map&lt;String, Object&gt; getParallelReplicationStats() {
         String sql = "SELECT * FROM performance_schema.replication_applier_status_by_worker";
-        List<Map<String, Object>> workers = jdbcTemplate.queryForList(sql);
+        List&lt;Map&lt;String, Object&gt;&gt; workers = jdbcTemplate.queryForList(sql);
         
-        Map<String, Object> stats = new HashMap<>();
+        Map&lt;String, Object&gt; stats = new HashMap&lt;&gt;();
         stats.put("total_workers", workers.size());
         stats.put("active_workers", workers.stream()
-            .filter(w -> "Running".equals(w.get("STATUS")))
+            .filter(w -&gt; "Running".equals(w.get("STATUS")))
             .count());
         stats.put("queue_length", workers.stream()
-            .mapToInt(w -> (Integer) w.get("REMAINING_DELAY"))
+            .mapToInt(w -&gt; (Integer) w.get("REMAINING_DELAY"))
             .sum());
         
         return stats;
