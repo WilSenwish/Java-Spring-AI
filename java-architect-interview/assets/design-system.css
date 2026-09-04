@@ -451,6 +451,12 @@ code.inline-code {
 .compare-table tbody tr:hover {
   background: rgba(37, 99, 235, 0.04);
 }
+/* 包裹写法兜底：<div class="compare-table"><table> 时让内部表与直接写法视觉一致 */
+.compare-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
 
 /* ---------- 内部交叉引用链接 ---------- */
 .internal-link {
@@ -1087,6 +1093,14 @@ sup a:hover {
   .compare-table {
     font-size: 0.75rem;
     max-width: 100%;
+    /* 滚动区收束成面板 + 惯性滚动，暗示可横向滑动 */
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-sm);
+    -webkit-overflow-scrolling: touch;
+  }
+  .compare-table th {
+    /* 表头允许换行，与 td 对齐行高，避免小屏行高参差 */
+    white-space: normal;
   }
   .mermaid-container {
     overflow-x: auto;
@@ -1137,5 +1151,59 @@ sup a:hover {
   body {
     background: #fff;
     color: #000;
+  }
+}
+
+/* ---------- 小屏表格纵向卡片化（2026-09-04） ----------
+   nav.js initTableCards() 会为结构规整（无 colspan/rowspan、行列数齐整）的
+   compare-table 注入 td[data-label] 并加 table-cards 类；
+   ≤640px 时每行渲染为一张纵向卡片，列名由 ::before 显示。
+   不规则表格自动跳过，维持 T2 的横向滚动面板。 */
+@media (max-width: 640px) {
+  .compare-table.table-cards {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .compare-table.table-cards thead {
+    display: none;
+  }
+  .compare-table.table-cards,
+  .compare-table.table-cards tbody,
+  .compare-table.table-cards tr,
+  .compare-table.table-cards td {
+    display: block;
+    width: 100%;
+  }
+  .compare-table.table-cards tbody {
+    margin: calc(var(--space-xs) * -1) 0;
+  }
+  .compare-table.table-cards tr {
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    padding: 2px 12px;
+    margin: var(--space-xs) 0;
+  }
+  /* 覆盖桌面端斑马纹与悬停色，卡片模式统一底色 */
+  .compare-table.table-cards tbody tr:nth-child(even),
+  .compare-table.table-cards tbody tr:hover {
+    background: var(--bg);
+  }
+  .compare-table.table-cards td {
+    border-bottom: none;
+    padding: 7px 0;
+  }
+  .compare-table.table-cards td + td {
+    border-top: 1px dashed var(--rule);
+  }
+  .compare-table.table-cards td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    margin-bottom: 1px;
   }
 }
