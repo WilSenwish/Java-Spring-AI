@@ -78,7 +78,7 @@
 | 根 `index.html` | 445 | 相对链接（全量快照卡） |
 | 各 `mind-*.html` | 6 × 17 | 相对链接（`../java-architect-interview/...`） |
 | 各 `chapter-*.html` | 2 × 19 | 返回链接 + CSS 引用 |
-| `docs/`、`facts/validate_site.py`、`.workbuddy/skills/` | 若干 | 文档与脚本 |
+| `docs/`、`docs/facts/validate_site.py`、`.workbuddy/skills/` | 若干 | 文档与脚本 |
 
 另有派生命名：技能包 `java-interview-kb-expand`、脚本 `validate_site.py`、历史文档 `review-findings*.md` / `fix-progress.md` / `mind-node-duplicate-review.md`。
 
@@ -280,7 +280,7 @@
 | C5 | 题量一致性 | 4 份聚合页 + 隐藏位 | 见 §7 |
 | C6 | 链接可达 | 脚本遍历所有 `href` 本地相对路径 | 全部 200（文件存在） |
 | C7 | 锚点可达 | 遍历所有 `#ID` | 目标 ID 在目标文件中存在 |
-| C8 | HTML 标签平衡 | `facts/validate_site.py` | exit 0 |
+| C8 | HTML 标签平衡 | `docs/facts/validate_site.py` | exit 0 |
 | C9 | **`data-page-node-id` 零注入** | `grep -c data-page-node-id` | **0**（红线项，见 §8） |
 | C10 | 属性区空白归一 | 检查 `="x"  >` 之类粘连 | 无新增 |
 
