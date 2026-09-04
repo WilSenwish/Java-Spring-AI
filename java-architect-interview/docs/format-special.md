@@ -17,7 +17,7 @@
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：核心思维方法论，74 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M07` 共 7 组分层侧边目录。
+- **定位**：核心思维方法论，75 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M11` 共 11 组分层侧边目录。
 - **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -26,10 +26,10 @@
   | `principle` | 原理映射 | 把公理落到工程化手段 |
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
-- **难度**：卡片带 `data-difficulty`：架构级 48 / 专家级 23 / 高级开发 3（合计 74）。
-- **优先级**：**部分卡片（30/74）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 30 处），其余 44 卡不带；不计入全站题目优先级口径（90/195/60 = 345）。
+- **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 75）。
+- **优先级**：**部分卡片（31/75）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 44 卡不带；不计入全站题目优先级口径（90/195/60 = 345）。
 - **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签）；携带优先级的卡片另加 `priority-p*` 徽标。
-- **目录**：按模块（M01~M07）分组的多段侧边目录，各模块一组锚点 `M##.##`。
+- **目录**：按模块（M01~M11）分组的多段侧边目录，各模块一组锚点 `M##.##`。
 - 单条新增规则：`id = M{模块}.{序}`；`insight → principle → application` 三层层序固定。
 
 ## <a id="2"></a>2. 优先级大盘 chapter-overview-priority（ov 组件）
@@ -40,7 +40,7 @@
   ```
   ov-stats（两行统计；ov-stat-num 顶部 11 项 + 9 子组标题计数 = 全页 20 处）
   ├─ ov-stats-row ① 题目总数 345 / P0 90 / P1 195 / P2 60
-  ├─ ov-stats-row ② 专家 44 / 架构 160 / 高级开发 141 / 章节题 220 / 核心原理 58 / 场景题 67 / 方法论 74
+  ├─ ov-stats-row ② 专家 44 / 架构 160 / 高级开发 141 / 章节题 220 / 核心原理 58 / 场景题 67 / 方法论 75
   ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title
   │    └─ ov-group-body
@@ -123,7 +123,7 @@
 | 页面 | 外壳 | 内容单元 | ID 前缀 | 难度 | 优先级 | nav.js |
 |------|------|----------|:---:|:---:|:---:|:---:|
 | chapter-01~15（标准） | page-wrapper + sidebar | `qa-card` 六层 | `C##.##` | ✔ | ✔ | ✔ |
-| chapter-core-methodology | 同标准外壳 | `qa-card` 三层（insight/principle/application） | `M##.##` | 架构/专家/高级 | 部分(30/74) | ✔ |
+| chapter-core-methodology | 同标准外壳 | `qa-card` 三层（insight/principle/application） | `M##.##` | 架构/专家/高级 | 部分(31/75) | ✔ |
 | chapter-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |
 | chapter-questions-eight-part | – | `epq-*` 问答速查 | `E##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-scenario | – | `qa-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
