@@ -1886,6 +1886,46 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
         </div>
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全 · 隐式转换实战全景</div>
+          <div class="qa-layer-body">
+            <p><strong>官方 Type Conversion Rules 全貌</strong>：除"字符串列 vs 数字常量→列转数字"这条最高频规则外，MySQL 还有几条常被忽略的归一化规则：① 两边都是字符串→按字符串逐字节比对，索引正常；② 两边都是数值→按数值比对；③ <strong>日期/时间列 vs 数字常量</strong>：如 <code class="inline-code">create_time = 20260907</code>（数字）会转成日期再做比较，字段本身不动→<strong>索引可用</strong>（但可读性差，推荐写 <code class="inline-code">'2026-09-07'</code>）；④ <strong>NULL 与任何值比较结果都是 NULL</strong>（含 <code class="inline-code">NULL = NULL</code> 为 NULL，判等须用 <code class="inline-code">IS NULL</code>）。总口诀：<strong>字符串向数字看齐、日期按字面归一，谁被转换谁失效</strong>。</p>
+
+            <p><strong>IN 列表的隐式转换（高频漏点）</strong>：<code class="inline-code">WHERE uid IN (1001,1002)</code>（uid 为 varchar）中，IN 列表是数字常量，MySQL 会把 uid 列逐行转数字→<strong>索引失效、全表扫描</strong>。正确写法：<code class="inline-code">WHERE uid IN ('1001','1002')</code>，使列表与列同为字符串。这条与"数字列 vs 字符串常量走索引"不冲突——被转换的仍是<strong>列</strong>（列是 varchar、常量列表是数字），所以失效。</p>
+
+            <div class="code-block"><pre><code><span class="com">-- bad：IN 列表数字，varchar 列被逐行转数字 → 索引失效</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> t <span class="kw">WHERE</span> uid <span class="kw">IN</span> (<span class="num">1001</span>,<span class="num">1002</span>);
+<span class="com">-- good：列表与列同为字符串，类型匹配走索引</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> t <span class="kw">WHERE</span> uid <span class="kw">IN</span> (<span class="str">'1001'</span>,<span class="str">'1002'</span>);</code></pre></div>
+
+            <p><strong>显式转换函数清单（CAST / CONVERT）</strong>：需要主动转换时优先转<strong>常量</strong>，绝不对 WHERE/JOIN ON 的索引列套函数。<code class="inline-code">CAST(expr AS type)</code> 与 <code class="inline-code">CONVERT(expr, type)</code> 等价，支持类型：<code class="inline-code">CHAR(N)</code> / <code class="inline-code">SIGNED</code> / <code class="inline-code">UNSIGNED</code> / <code class="inline-code">DECIMAL(p,s)</code> / <code class="inline-code">DATE</code> / <code class="inline-code">DATETIME</code> / <code class="inline-code">TIME</code>。<code class="inline-code">CONVERT(expr USING charset)</code> 专做<strong>字符集转码</strong>（如 <code class="inline-code">CONVERT('abc' USING gbk)</code>）。注意：<code class="inline-code">CAST('123abc' AS SIGNED)</code> 得 123、<code class="inline-code">CAST('abc' AS SIGNED)</code> 得 0，与隐式转换截断语义一致。</p>
+
+            <table class="compare-table">
+              <thead><tr><th>写法</th><th>实际执行</th><th>是否走索引</th></tr></thead>
+              <tbody>
+                <tr><td><code class="inline-code">WHERE uid IN (1001,1002)</code>（uid varchar）</td><td>列逐行 CAST 转数字</td><td>❌ 全表扫描</td></tr>
+                <tr><td><code class="inline-code">WHERE uid IN ('1001','1002')</code></td><td>字符串 = 字符串</td><td>✅ ref</td></tr>
+                <tr><td><code class="inline-code">WHERE create_time = 20260907</code>（datetime）</td><td>数字常量转日期，列不变</td><td>✅ 索引可用</td></tr>
+                <tr><td><code class="inline-code">WHERE uid = CAST(123 AS CHAR)</code></td><td>转换的是常量</td><td>✅ 索引可用</td></tr>
+              </tbody>
+            </table>
+
+            <p><strong>如何精准定位隐式转换（不止 EXPLAIN）</strong>：① <code class="inline-code">EXPLAIN</code> 只看现象（<code class="inline-code">type=ALL</code>、<code class="inline-code">key=NULL</code>）；② <code class="inline-code">SHOW WARNINGS</code> 看优化器改写后的 SQL，常能直接看到暴露的 <code class="inline-code">CAST(...)</code>；③ <strong>MySQL 8.0 优化器 trace（精准）</strong>：开启后在 <code class="inline-code">information_schema.optimizer_trace</code> 中搜索 <code class="inline-code">converted</code>，精确定位哪个操作数被做了类型转换。</p>
+
+            <div class="code-block"><pre><code><span class="kw">SET</span> optimizer_trace=<span class="str">'enabled=on'</span>;
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> * <span class="kw">FROM</span> t <span class="kw">WHERE</span> uid=<span class="num">123</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> information_schema.optimizer_trace;  <span class="com">-- 搜 converted 看被转换的操作数</span>
+<span class="kw">SET</span> optimizer_trace=<span class="str">'enabled=off'</span>;</code></pre></div>
+
+            <p><strong>高频面试真题串讲（五连问）</strong>：Q1 <code class="inline-code">where str=123</code>（str 为 varchar 索引）为何不走索引？→ 字符串列被转数字，列被函数包裹。Q2 <code class="inline-code">where int='123'</code>（int 索引）走索引吗？→ 走，常量转数字、列不动。Q3 <code class="inline-code">join on A.varchar = B.int</code> 哪边失效？→ A 表 varchar 列转数字、A 索引失效。Q4 <code class="inline-code">varchar IN (1,2,3)</code> 为何慢？→ IN 列表数字导致列转数字、索引失效，改字符串列表。Q5 字符集不同也会隐式转换吗？→ 会，collate 不一致对一侧做排序规则转换等价于对列套函数、索引失效，建表须统一字符集与 collate。</p>
+
+            <div class="callout callout-tip">
+              <div class="callout-title">Navicat 为何默认给筛选值加单引号</div>
+              <p>Navicat 表数据筛选框无论输入 <code class="inline-code">123</code> / <code class="inline-code">abc</code> / <code class="inline-code">2026-09-07</code>，生成的 WHERE 条件一律是 <code class="inline-code">`uid` = '123'</code> / <code class="inline-code">`name` = 'abc'</code> / <code class="inline-code">`create_time` = '2026-09-07'</code>。原因：Navicat 不知道 varchar 字段存的是"数字字符串"还是普通文本，<strong>保守地一律按字符串字面量套引号</strong>——对 varchar 字段可避免"列被转数字→索引失效 + 脏数据匹配"（如 <code class="inline-code">'abcd'=0</code>），对 int/datetime 字段常量加引号也无害（只转常量、列不动、索引照常）。本质是<strong>工具用兼容性策略规避隐式转换灾难</strong>。反向考点：从 Navicat 复制出的 <code class="inline-code">where id='100'</code>（id 为 int）性能并不差，真正危险的是<strong>varchar 字段等于不带引号的数字常量</strong>。</p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- ============================================================ -->

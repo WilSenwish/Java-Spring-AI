@@ -1476,7 +1476,30 @@ flowchart TD
             <p><strong>追问 1：什么时候该自部署开源模型 vs 调 API？</strong></p>
             <p>决策看<strong>调用量与边际成本</strong>。API 按 Token 计费，调用量越大成本线性增长；自部署固定 GPU 成本（租/买），调用量越大单次成本越低。<strong>盈亏平衡点</strong>：当日调用量使 API 费用 &gt; GPU 日成本时，自部署更划算。经验：中等模型（72B）需 A100/H100 级 GPU，日调用百万 Token 级以上才回本，小公司量不够反贵。其他考量：① <strong>能力</strong>——开源旗舰已逼近闭源，但顶尖推理仍有差距；② <strong>合规</strong>——数据不出境必须自部署/私有化；③ <strong>运维</strong>——自部署需 GPU 运维、扩缩容、模型升级能力，团队无 ML 平台经验是负担。策略：<strong>起步用 API 快速验证，量起来后核心场景迁移自部署，长尾仍用 API</strong>。</p>
             <p><strong>追问 2：延迟优化与成本优化矛盾时如何权衡？</strong></p>
-            <p>延迟与成本常同向（大模型又慢又贵）但优化手段可能冲突：流式输出降首 Token 延迟但不变成本；小模型又快又便宜但能力弱。权衡框架：① <strong>按场景定 SLA</strong>——实时客服要求首 Token &lt;1s，离线分析可分钟级，不同场景用不同模型；② <strong>首 Token 优先</strong>——流式输出让用户"看到在动"，体感延迟大降，即使用大模型；③ <strong>预计算与异步</strong>——可预测的请求预生成（如常见 FAQ 预跑）、非关键步骤异步（如引用标注后台生成）；④ <strong>分级响应</strong>——先小模型秒回初版，后台大模型生成精版替换。原则：<strong>体感延迟 &gt; 实际延迟</strong>，流式+预计算+分级比单纯换小模型更优。</p>
+            <p>延迟与成本常同向（大模型又慢又贵）但优化手段可能冲突：流式输出降首 Token 延迟但不变成本；小模型又快又便宜但能力弱。权衡框架：① <strong>按场景定 SLA</strong>——实时客服要求首 Token &lt;1s，离线分析可分钟级，不同场景用不同模型；② <strong>首 Token 优先</strong>——流式输出让用户"看到在动"，体感延迟大降，即使用大模型；③ <strong>预计算与异步</strong>；④ <strong>分级响应</strong>。下面把 ③④ 展开——它们是两类<strong>不靠换小模型</strong>的结构性手段。选手段前先把<strong>延迟预算拆开</strong>：端到端延迟 ≈ 路由/检索 + 首 Token（TTFT）+ 生成（TPOT × 输出 Token 数）+ 后处理。<strong>TTFT 主导</strong>（长 system prompt、RAG 大上下文）→ Prompt 缓存 + 检索裁剪 + 预计算；<strong>生成时长主导</strong>（长文输出）→ 流式 + 输出长度约束 + 分级响应；<strong>P99 尾延迟恶化</strong>→ 超时熔断 + 降级小模型 + 预计算兜底。</p>
+            <p><strong>③ 预计算与异步：把"等待"从关键路径上挪走</strong></p>
+            <p><strong>(a) 预计算（离线预热）</strong>——可预测的请求提前跑完，在线只剩查缓存。可预测性来自三处：</p>
+            <ul>
+              <li><strong>头部 Query 集中</strong>：客服/搜索类场景 Top 200~2000 条高频问题常覆盖 30%~60% 流量，长尾才是不可预测的部分；</li>
+              <li><strong>素材先于请求存在</strong>：商品上新、文档入库、报表模板固定，只有"提问"是变量；</li>
+              <li><strong>时间可预期</strong>：经营日报、盘前简报、周会材料，触发时间点已知。</li>
+            </ul>
+            <p>工程形态：离线用 Batch API（小时级延迟、约半价）批量生成 → 结果写入缓存/向量库/对象存储，缓存 Key 必须带版本号 <code class="inline-code">hash(prompt_version + model_version + kb_version + query_norm)</code>。在线命中即"零模型调用 + 零生成延迟"，只剩检索与渲染。<strong>经济性判据</strong>：只对"预估收益 &gt; 预生成成本"的条目预热——按 (历史频次 × 预期命中率) 降序取 Top-K 并设最低频次阈值，K 之外一律在线生成；否则长尾预热会把省下的钱原价吐回去。<strong>失效与新鲜度</strong>：prompt/model/知识库任一变更即按 tag 批量失效（版本号进 Key 而非清空全库，避免缓存雪崩）；价格、库存、天气、政策等时效内容设短 TTL 或直接禁预生成。<strong>陷阱</strong>：预生成结果"像答案但没有最新事实"比慢 500ms 更伤，必须把命中率、新鲜度偏差、重算耗时纳入监控。</p>
+            <p><strong>(b) 异步化（后台补齐）</strong>——把一次响应拆成"同步主路径"与"可后台补齐的增强件"，判据只有一条：<strong>这一步是否阻塞用户"开始下一步"</strong>。不阻塞的一律异步：引用标注与来源链接回填、表格/格式化渲染、多语言翻译、相关追问推荐、审计与计费落库、向量写回与评测采样、长报告的后续章节。Spring 侧主路径先返回内容 + <code class="inline-code">taskId/version</code> 供前端渲染，后台用 <code class="inline-code">@Async</code> / <code class="inline-code">CompletableFuture</code> / 消息队列（配 XXL-JOB 兜底重试）生成增强件，经 SSE/WebSocket 增量推送或前端轮询补齐。<strong>约束</strong>：回填必须带 messageId + version 做乐观替换，用户已编辑或已翻页则丢弃；失败可重试且靠幂等键保证不重复计费。</p>
+            <p><strong>④ 分级响应：先给可用，再给优质</strong></p>
+            <p>三种形态，延迟与成本效果各不相同：</p>
+            <table class="compare-table">
+              <thead><tr><th>形态</th><th>做法</th><th>延迟收益</th><th>成本影响</th><th>适用</th></tr></thead>
+              <tbody>
+                <tr><td>A 草稿—精修</td><td>小模型秒出初版，后台大模型生成精版替换/追加</td><td>首包从秒级降到亚秒级</td><td>可能更贵（两次生成），除非精修可取消</td><td>长文、报告、方案、代码</td></tr>
+                <tr><td>B 骨架—补全</td><td>先给大纲/结论/要点，再逐节展开</td><td>可交互时间大幅提前</td><td>基本持平，略增（多轮调度开销）</td><td>结构化输出、分析类回答</td></tr>
+                <tr><td>C 级联路由</td><td>小模型先答，裁判判定不达标才升级大模型</td><td>多数请求走小模型，平均延迟下降</td><td>显著下降：C = C_small + q × C_large</td><td>意图明确、可判定好坏的任务</td></tr>
+              </tbody>
+            </table>
+            <p>其中 <strong>C 是唯一"既降延迟又降成本"的形态</strong>：设升级率为 q，总成本 = C_small + q × C_large。若大模型单价是小模型的 20 倍、升级率 20%，则总成本 = 1 + 0.2 × 20 = 5 个单位，约为全量调大模型（20 个单位）的 25%。裁判可以是规则校验（必填字段、格式、引用是否存在）、小模型打分，或让模型自检一致性——但裁判本身也是延迟与成本项，必须比被判对象便宜一个量级，否则省下的钱全给了裁判。</p>
+            <p><strong>四个必须回答的工程问题</strong>：① <strong>状态可见</strong>——UI 显式标注 draft/refining/final，禁止把草稿伪装成终稿；② <strong>幂等替换</strong>——以 messageId + version 替换，晚到的精版不得覆盖用户已确认或已编辑的草稿；③ <strong>可取消</strong>——用户接受草稿或离开页面时取消后台精修，否则省下的成本又花回去；④ <strong>一致性</strong>——精版不得与已展示草稿自相矛盾（数字、结论、引用），必要时整体替换并给出变更提示，而非局部拼接。</p>
+            <p><strong>适用边界</strong>：精确数值/金额/合同条款、医疗与法律结论、强依赖引用准确性的 RAG 问答<strong>不做形态 A</strong>——草稿里的错误数字会产生锚定效应，用户先入为主后不再看精版；这类场景只做 B（骨架先出、不含数值），或干脆不分级。</p>
+            <p><strong>原则</strong>：<strong>体感延迟 &gt; 实际延迟</strong>。先按场景定 SLA 与延迟预算，再用"流式 + 预计算 + 异步补齐 + 分级响应"组合去达标，比单纯换小模型更优——换小模型是拿效果换延迟，而这四种手段是在不牺牲终态质量的前提下重排关键路径。</p>
           </div>
         </div>
 
