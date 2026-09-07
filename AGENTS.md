@@ -23,17 +23,46 @@
 4. **`java-architect-interview/docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
 5. **同文件多处修改禁止并行编辑**（会静默丢更新）；须串行修改或整文件重写后重新校验。
 
-## 3. 权威计数（改动前必读，改后必同步）
+## 3. 权威计数（单一真源驱动）
 
-- 题目总量 **345 = 篇章 220 + 核心原理 58 + 场景 67**
-- 优先级 **P0=90 / P1=195 / P2=60**（三组求和 = 345）
-- 难度 **专家 44 / 架构 160 / 高级开发 141**（三组求和 = 345）
-- 方法论 **75 卡**（M01~M11），**不计入 345 口径**；全站合计 **420 = 345 + 75**
-- 卡片优先级**双编码**：`data-priority="p*"` 属性 + 可见徽标 `<span class="priority priority-p*">P*</span>`，改级两处同步
-- 统计口径：题目统计**只算「篇章 + 核心原理 + 场景」三页**；方法论页、概览页、安全卡页**不计入**。全文件扫描得 420 属正常，勿误判
+**真源**：`java-architect-interview/docs/kb-counts.json`（唯一写源，勿在别处手改数字）。
+**改数唯一入口**：`python3 .workbuddy/skills/java-kb-expand/scripts/sync_counts.py bump 键=增量`
+（例：`bump methodology=+1 total=+1`；随后自动写回全部计数位并复核。只读核对用 `check`。）
 
-**方法论 75 计数位（改数须 10 处同步）**：① 根 index stat「75 方法论」；② 根 index 方法论分组 `dir-count 75 题`；③ 章节 index `stat-number 75`；④ 章节 index card-footer「5 主题 · 75 方法论卡片 · 28 技术图表 · 15 篇 220 道」；⑤ methodology 页头「75 方法论卡片」；⑥ `chapter-overview-priority.html` 的 `ov-stat-num`（共 11 项，方法论为末项）；⑦ mind index `idx-meta` 第 5 块；⑧ `mind-core-methodology.html` 尾注「方法论计 75 卡」；⑨ `docs/` 三份 md（README / format-shared / format-special）；⑩ 技能脚本 `validate_kb.py`、`sync_new_card.py` 的 `methodology: 75`。
+统计口径（易错）：题目统计**只算「篇章 + 核心原理 + 场景」三页**；方法论页、概览页、安全卡页**不计入**。
+全文件扫描得 420 属正常，勿误判。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
+`<span class="priority priority-p*">P*</span>`，改级两处同步。
 
+<!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
+- 题目总量 **345** = 篇章 220 + 核心原理 58 + 场景 67
+- 优先级 **P0=90 / P1=195 / P2=60**（求和 = 345）
+- 难度 **专家 44 / 架构 160 / 高级开发 141**（求和 = 345）
+- 方法论 **75 卡**（M01~M11），不计入 345；全站合计 **420**
+- 方法论细分：带优先级 31/75；难度 专家 23 / 架构 49 / 高级开发 3
+
+计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
+
+| 编号 | 载体 | 说明 |
+|---|---|---|
+| P01 | `index.html` | 根 index 方法论统计卡 |
+| P02 | `index.html` | 根 index 方法论分组题数 |
+| P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
+| P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
+| P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
+| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
+| P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
+| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 第 5 块 |
+| P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
+| P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
+| P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
+| P12 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分子） |
+| P13 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分母） |
+| P14 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分子 |
+| P15 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分母 |
+| P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
+| P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
+<!-- COUNTS:END -->
 ## 4. 常用操作约定
 
 - **改 HTML 前先备份**到 `java-architect-interview/tmp/`（已 gitignore）；脚本也写在这里，用绝对路径、不依赖记忆数字。

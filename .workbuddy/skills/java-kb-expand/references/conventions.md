@@ -56,18 +56,18 @@
 ## 5. 4 份聚合统计页字段名
 
 ### 5.1 `chapter-overview-priority.html`（优先级总览）
-- `ov-stat-num` 顺序（**11 个**，校验权威三源；第 8 项为「方法论 75」，勿遗漏）：
-  1. 总量（345）
-  2. P0（90）
-  3. P1（195）
-  4. P2（60）
-  5. 专家级（44）
-  6. 架构级（160）
-  7. 高级开发（141）
-  8. 方法论（75）
-  9. 篇章题数（220）
-  10. 核心原理题数（58）
-  11. 场景题数（67）
+- `ov-stat-num` 顺序（**11 个**，校验权威三源；第 8 项为「方法论」，勿遗漏；取值见 §6 COUNTS 块）：
+  1. 总量
+  2. P0
+  3. P1
+  4. P2
+  5. 专家级
+  6. 架构级
+  7. 高级开发
+  8. 方法论
+  9. 篇章题数
+  10. 核心原理题数
+  11. 场景题数
 - 9 子组标题：`<h3 class="ov-subgroup-title">专家级 · 10 题</h3>` 格式，按 **优先级×难度** 排列（P0/P1/P2 各含 专家级/架构级/高级开发），求和须各自等于 P0/P1/P2 与难度三级。
 - 每个 ov-item：`<div class="ov-item" …><span class="priority priority-pX">…</span><span class="difficulty difficulty-architect">…</span><span class="ov-src">第X篇</span>…</div>`，与章节页卡片一一对应。
 
@@ -86,7 +86,36 @@
 
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
-全站 **345** = 篇章 **220** + 核心原理 **58** + 场景 **67**；优先级 P0=**90** / P1=**195** / P2=**60**；难度 专家级 **44** / 架构级 **160** / 高级开发 **141**。统计口径为「篇章 + 核心原理 + 场景」三页，方法论页（75 张 M 卡）与概览页、安全卡页不计入题目数。任何同步后须满足：优先级三项和=总量、难度三项和=总量、类型三项和=总量。
+<!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
+- 题目总量 **345** = 篇章 220 + 核心原理 58 + 场景 67
+- 优先级 **P0=90 / P1=195 / P2=60**（求和 = 345）
+- 难度 **专家 44 / 架构 160 / 高级开发 141**（求和 = 345）
+- 方法论 **75 卡**（M01~M11），不计入 345；全站合计 **420**
+- 方法论细分：带优先级 31/75；难度 专家 23 / 架构 49 / 高级开发 3
+
+计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
+
+| 编号 | 载体 | 说明 |
+|---|---|---|
+| P01 | `index.html` | 根 index 方法论统计卡 |
+| P02 | `index.html` | 根 index 方法论分组题数 |
+| P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
+| P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
+| P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
+| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
+| P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
+| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 第 5 块 |
+| P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
+| P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
+| P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
+| P12 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分子） |
+| P13 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分母） |
+| P14 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分子 |
+| P15 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分母 |
+| P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
+| P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
+<!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
 

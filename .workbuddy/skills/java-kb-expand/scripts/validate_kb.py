@@ -20,21 +20,22 @@ java-kb-expand · 全量校验脚本（通用版）
   - 导图落位扫描全部 mind-*.html，命中任一即 PASS。
   - 文件夹路径如有变动，仅改 BASE 一处即可。
 """
-import re, sys, os, glob
+import re, sys, os, glob, json
 
 BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
 CHAPTER_DIR = f"{BASE}/java-architect-interview"
 MIND_DIR = f"{BASE}/java-architect-interview-mind"
+COUNTS_JSON = f"{CHAPTER_DIR}/docs/kb-counts.json"
 
-# ====== 待填：本轮权威计数（与 references/conventions.md §6 同口径）======
-EXPECT = {
-    "total": 345, "p0": 90, "p1": 195, "p2": 60,
-    "expert": 44, "architect": 160, "senior": 141,
-    "methodology": 75,
-    "chapters": 220, "basics": 58, "scenarios": 67,
-}
-# 根 index 合计 = 题数 + 方法论卡片数（75）
-ROOT_SUM_EXTRA = 75
+# ====== 权威计数：单一真源 kb-counts.json（禁止硬编码，改数用 sync_counts.py bump）======
+_cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
+EXPECT = {k: _cfg["counts"][k] for k in
+          ("total", "p0", "p1", "p2", "expert", "architect", "senior",
+           "methodology", "chapters", "basics", "scenarios")}
+# 根 index 合计 = 题数 + 方法论卡片数
+ROOT_SUM_EXTRA = _cfg["counts"]["methodology"]
+# 全站卡片总数（题目 + 方法论），用于 id 总数校验
+SUM_ALL = _cfg["counts"]["sum_all"]
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 NEW_IDS = ["C10.26"]  # 例：["C13.13"] 或 ["C10.26", "S04.06"]
@@ -146,6 +147,24 @@ def main():
     check(EXPECT["p0"]+EXPECT["p1"]+EXPECT["p2"] == EXPECT["total"], "[自洽] P0+P1+P2=总量")
     check(EXPECT["expert"]+EXPECT["architect"]+EXPECT["senior"] == EXPECT["total"], "[自洽] 难度三级=总量")
     check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"] == EXPECT["total"], "[自洽] 类型三级=总量")
+
+    # 8) 卡片 id 三方一致性：章节正文 ↔ 章节 TOC ↔ 导图引用，且总数 == sum_all
+    IDPAT = r"((?:M|C|E|S)\d{2}\.\d{2})"
+    body_ids, toc_ids, mind_ids = set(), set(), set()
+    for p in chap_files:
+        t = read(p)
+        body_ids |= set(re.findall(rf'id="{IDPAT}"', t))
+        toc_ids |= set(re.findall(rf'href="#{IDPAT}"', t))
+    for p in mind_files:
+        mind_ids |= set(re.findall(IDPAT, read(p)))
+    check(len(body_ids) == SUM_ALL,
+          f"[id总数] 章节页卡片 {len(body_ids)} 期望 {SUM_ALL}（sum_all，含方法论）")
+    check(not (body_ids - toc_ids),
+          f"[TOC缺失] 正文有但目录无：{sorted(body_ids - toc_ids)[:10]}")
+    check(not (toc_ids - body_ids),
+          f"[TOC死链] 目录有但正文无：{sorted(toc_ids - body_ids)[:10]}")
+    check(not (mind_ids - body_ids),
+          f"[导图悬空] 导图引用但正文无：{sorted(mind_ids - body_ids)[:10]}")
 
     print("\n==== 校验结果 ====")
     if check.failed == 0:

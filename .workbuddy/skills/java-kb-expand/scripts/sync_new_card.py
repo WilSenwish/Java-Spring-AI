@@ -14,7 +14,7 @@ java-kb-expand · 新增卡片 7 文件同步脚本骨架
 
 本骨架仅给结构与辅助函数；具体锚点字符串请先用 Grep/Read 定位真实文本再填。
 """
-import os, re, shutil, sys, datetime
+import os, re, shutil, sys, datetime, json
 
 BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
 TASK = "optx"  # TODO: 改成本轮任务标识，如 optc / opta_c13
@@ -36,9 +36,11 @@ ANCHOR_INSERT_MAPCARD = "</details>\n    <h3 class=\"theme-h\">②"      # TODO:
 
 # 计数增量（形式1/2/3 新增卡时填；形式4 补增量时全 0）
 DELTA = {"total": 1, "p1": 1, "architect": 1, "chapters": 1}
-# 当前 overview ov-stat-num 顺序（11 项）：
+# 执行前 overview ov-stat-num（11 项）：取自单一真源 kb-counts.json，禁止硬编码
 #   [total, p0, p1, p2, expert, architect, senior, methodology, chapters, basics, scenarios]
-OV_BEFORE = [345, 90, 195, 60, 44, 160, 141, 75, 220, 58, 67]  # TODO: 填执行前实际值
+_cfg = json.load(open(f"{BASE}/java-architect-interview/docs/kb-counts.json", encoding="utf-8"))
+OV_KEYS = list(_cfg["ov_stat_order"])
+OV_BEFORE = [_cfg["counts"][k] for k in OV_KEYS]
 # ==================================================
 
 FILES = {
@@ -82,8 +84,7 @@ def patch_overview(t):
     ov = re.findall(r'ov-stat-num">(\d+)</div>', t)
     ov = [int(x) for x in ov[:11]]
     assert ov == OV_BEFORE, f"overview ov-stat-num 实际 {ov} != 预期 {OV_BEFORE}"
-    after = [ov[i] + DELTA.get(k, 0) for i, k in enumerate(
-        ["total","p0","p1","p2","expert","architect","senior","methodology","chapters","basics","scenarios"])]
+    after = [ov[i] + DELTA.get(k, 0) for i, k in enumerate(OV_KEYS)]
     # 逐个数字替换（正向顺序替换，避免前导 0 误伤）
     for before_v, after_v in zip(OV_BEFORE, after):
         t = t.replace(f'ov-stat-num">{before_v}</div>', f'ov-stat-num">{after_v}</div>', 1)

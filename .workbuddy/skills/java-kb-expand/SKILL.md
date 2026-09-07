@@ -35,6 +35,37 @@ agent_created: true
 - 优先级 P0 / P1 / P2（求和 = 总量）
 - 难度三级：专家级 / 架构级 / 高级开发（求和 = 总量）
 
+<!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
+- 题目总量 **345** = 篇章 220 + 核心原理 58 + 场景 67
+- 优先级 **P0=90 / P1=195 / P2=60**（求和 = 345）
+- 难度 **专家 44 / 架构 160 / 高级开发 141**（求和 = 345）
+- 方法论 **75 卡**（M01~M11），不计入 345；全站合计 **420**
+- 方法论细分：带优先级 31/75；难度 专家 23 / 架构 49 / 高级开发 3
+
+计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
+
+| 编号 | 载体 | 说明 |
+|---|---|---|
+| P01 | `index.html` | 根 index 方法论统计卡 |
+| P02 | `index.html` | 根 index 方法论分组题数 |
+| P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
+| P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
+| P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
+| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
+| P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
+| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 第 5 块 |
+| P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
+| P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
+| P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
+| P12 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分子） |
+| P13 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分母） |
+| P14 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分子 |
+| P15 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分母 |
+| P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
+| P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
+<!-- COUNTS:END -->
+
 ## Workflow（标准 5 步）
 
 ### Step 1 · 抓取链接全文
@@ -117,8 +148,8 @@ agent_created: true
 - **Edit 大数字竞态**：overview 的 `ov-stat-num` 用 `Edit` 报成功却未落盘，改用 Python 脚本替换。
 - **章节导航页不枚举单题 ID**：`java-architect-interview/index.html` 只列章节卡片与统计，不含 `Cxx.xx`/`Sxx.xx` 条目——校验时"落位=False"属预期。
 - **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家级/架构级/高级开发），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
-- **overview `ov-stat-num` 共 11 项全要改**：总量/P0/P1/P2/专家级/架构级/高级开发/方法论/章节题/核心原理/场景题。最易漏的是「章节题」（篇章数）与「方法论」（第 8 项，固定 75），漏改会导致 overview 与根 index、章节 index 的计数不一致。
-- **根 index 合计 ≠ 题数**：合计 = 题数 + 方法论卡片数（如 345+75=420），加题时题数与合计各 +1。
+- **overview `ov-stat-num` 共 11 项全要改**：总量/P0/P1/P2/专家级/架构级/高级开发/方法论/章节题/核心原理/场景题。最易漏的是「章节题」（篇章数）与「方法论」（第 8 项，取值见下方 COUNTS 块），漏改会导致 overview 与根 index、章节 index 的计数不一致。
+- **根 index 合计 ≠ 题数**：合计 = 题数 + 方法论卡片数（取值见下方 COUNTS 块的「全站合计」），加题时题数与合计各 +1。
 - **mind 页 `1+15+1` 计数与题量无关**，勿动；只改题量表达式 `N+N+N`。
 - **`</spa` 误判**：截断检测用负向前瞻排除合法 `</span>`（正则 `</spa(?!n>)`）。
 - **路径双层**：`Java Spring AI/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
