@@ -492,7 +492,7 @@ sequenceDiagram
         <div class="qa-layer" data-layer="practice">
           <div class="qa-layer-title">工程实践</div>
           <div class="qa-layer-body">
-            <p><strong>redo log 大小调优</strong>：<code class="inline-code">innodb_log_file_size</code> 过小导致频繁 checkpoint 刷脏页、写抖动；过大则崩溃恢复时间长。建议<strong>能支撑 1 小时</strong>的写入量（8.0 单文件默认 48MB × 2，可调到 1-4GB）。8.0.30+ 用 <code class="inline-code">innodb_redo_log_capacity</code> 统一管理（替代 log_file_size × log_files_in_group）。</p>
+            <p><strong>redo log 大小调优</strong>：MySQL <strong>8.0.30+ / 8.4</strong> 生产以 <code class="inline-code">innodb_redo_log_capacity</code> 统一管理 redo 容量（动态可调，替代旧的 <code class="inline-code">innodb_log_file_size</code> × <code class="inline-code">innodb_log_files_in_group</code>）。容量过小 → 频繁 checkpoint、刷脏抖动；过大 → 崩溃恢复变长。按<strong>约 1 小时峰值写入量</strong>估算后压测确认。旧手册里的 <code class="inline-code">innodb_log_file_size</code> 仅作 8.0 早期历史对照，新环境勿再当主旋钮。</p>
             <p><strong>binlog 格式选择</strong>：<code class="inline-code">ROW</code>（行级，记录每行变更，安全可靠，主从一致性强，推荐）/<code class="inline-code">STATEMENT</code>（SQL 语句，小但有不确定函数风险）/<code class="inline-code">MIXED</code>。<strong>生产统一用 ROW</strong>，配合 <code class="inline-code">binlog_row_image=MINIMAL</code> 减小体积。</p>
             <p><strong>组提交调优</strong>：<code class="inline-code">binlog_group_commit_sync_delay</code>（微秒级延迟，攒批）+ <code class="inline-code">binlog_group_commit_sync_no_delay_count</code>（攒批数上限）。在高并发写场景可显著提升吞吐，低并发应设 0 避免增加延迟。</p>
           </div>
@@ -920,7 +920,7 @@ flowchart TD
           <div class="qa-layer-body">
             <p><strong>异步复制（默认）</strong>：主库提交事务后不等从库即返回，binlog 由 dump 线程异步推送。性能最高但主库崩溃可能丢未同步事务。</p>
             <p><strong>半同步复制（5.5+）</strong>：主库提交后等待至少一个从库 ACK（收到 binlog）才返回客户端。AFTER_SYNC（5.7+，lossless，ACK 在 binlog 落盘后）vs AFTER_COMMIT（5.5，ACK 在提交后）。兼顾性能与数据安全，是金融场景标配。</p>
-            <p><strong>并行复制（MTS，Multi-Threaded Slave）</strong>：5.6 引入按库并行（粒度粗）；5.7 引入 <code class="inline-code">slave_parallel_type=LOGICAL_CLOCK</code> 基于组提交的并行（同组事务可并发应用）；8.0 引入 WRITESET 并行（无冲突事务可并发，突破组提交限制）。这是降低从库延迟的关键。</p>
+            <p><strong>并行复制（MTS，Multi-Threaded Slave）</strong>：5.6 引入按库并行（粒度粗）；5.7 引入 <code class="inline-code">slave_parallel_type=LOGICAL_CLOCK</code> 基于组提交的并行（同组事务可并发应用）；8.0 引入 WRITESET 依赖跟踪（无冲突事务可并发，突破组提交限制）——8.0 可通过 <code class="inline-code">binlog_transaction_dependency_tracking=WRITESET</code> 开启（该变量在 8.0.35/8.2 起废弃）。<strong>MySQL 8.4 LTS 起该变量已移除</strong>：主库在多线程从库场景下<strong>固定按 WRITESET 生成 binlog 依赖信息</strong>（效果等同于旧版 WRITESET），再配置会直接报错。这是降低从库延迟的关键。</p>
             <p><strong>MGR（Group Replication，5.7.17 GA，8.0 增强）</strong>：基于 Paxos 变种（XCom）的强一致复制，多数节点写成功才提交。详见 C07.09。</p>
             <p><strong>趋势</strong>：从异步到半同步到 MGR，一致性逐步增强；并行复制从库并行度持续提升；CDC 订阅 binlog（Canal/Debezium）成为数据同步主流，复制不再仅限 MySQL 间。</p>
           </div>
@@ -956,16 +956,26 @@ sequenceDiagram
 
             <p><strong>延迟根因</strong>：① <strong>大事务</strong>——单事务 binlog 量大，从库串行应用慢；② <strong>从库单线程</strong>——5.6 前从库单 SQL 线程重放，主库并发写从库追不上；③ <strong>无主键表</strong>——ROW 格式下从库应用 UPDATE/DELETE 需全表扫描定位行；④ <strong>从库硬件差/负载高</strong>——从库承担读/统计任务挤占资源；⑤ <strong>网络延迟</strong>。</p>
 
-            <p><strong>并行复制（MTS）配置（5.7+）</strong>：</p>
-            <div class="code-block"><pre><code><span class="com"># 从库开启基于组提交的逻辑时钟并行</span>
+            <p><strong>并行复制（MTS）配置（按版本分列）</strong>：</p>
+            <div class="code-block"><pre><code><span class="com"># ===== MySQL 8.0.x（仍可显式设 WRITESET；8.0.35+ 该变量已废弃但可用）=====</span>
+<span class="com"># 主库：用 WRITESET 生成事务依赖，供从库 MTS 突破「同组提交」限制</span>
+binlog_transaction_dependency_tracking = WRITESET   <span class="com"># 仅 8.0；取值 WRITESET / COMMIT_ORDER / WRITESET_SESSION</span>
+binlog_format = ROW                                 <span class="com"># WRITESET 依赖跟踪要求行格式</span>
+
+<span class="com"># 从库</span>
 slave_parallel_type = LOGICAL_CLOCK
-slave_parallel_workers = <span class="num">16</span>              <span class="com"># worker 数，一般 = CPU 核数</span>
+slave_parallel_workers = <span class="num">16</span>              <span class="com"># worker 数，一般 ≈ CPU 核数</span>
 slave_preserve_commit_order = ON     <span class="com"># 保持提交顺序一致</span>
 
-<span class="com"># 8.0 WRITESET 并行（突破组提交限制，无冲突事务即可并行）</span>
-binlog_transaction_dependency_tracking = WRITESET
-slave_parallel_workers = <span class="num">16</span>
-slave_parallel_type = LOGICAL_CLOCK</code></pre></div>
+<span class="com"># ===== MySQL 8.4 LTS（勿再配置 binlog_transaction_dependency_tracking）=====</span>
+<span class="com"># 主库：WRITESET 依赖跟踪已内建化——多线程从库场景下始终按 WRITESET 写依赖；</span>
+<span class="com"># 再写 binlog_transaction_dependency_tracking 会报 unknown variable / 启动失败。</span>
+binlog_format = ROW                  <span class="com"># 8.4 起 WRITESET 冲突检测也要求 ROW（MIXED 不再支持该路径）</span>
+
+<span class="com"># 从库（8.0.26+ 推荐 replica_* 别名；8.4 生产优先用 replica_）</span>
+replica_parallel_type = LOGICAL_CLOCK
+replica_parallel_workers = <span class="num">16</span>
+replica_preserve_commit_order = ON</code></pre></div>
             <div class="callout callout-tip">
               <div class="callout-title">延迟监控</div>
               <p><code class="inline-code">SHOW SLAVE STATUS</code>（8.0.22+ 用 <code class="inline-code">SHOW REPLICA STATUS</code>）关注 <code class="inline-code">Seconds_Behind_Master</code>（粗略，仅反映 relay log 应用延迟）、<code class="inline-code">SQL_Remaining_Delay</code>。更准确用 <code class="inline-code">performance_schema.replication_applier_status_by_worker</code> 查看 worker 队列积压。心跳表（主库定期写 heartbeat 表，从库读时间差）可测真实端到端延迟。</p>
@@ -991,71 +1001,67 @@ binlog_format=ROW
 expire_logs_days=3
 # 记录执行的GTID到信息
 log_replica_updates=ON  # 8.0 名称，5.7 及以前为 log_slave_updates</code></pre>
-            <p><strong>从库 GTID 复制搭建步骤</strong>：</p>
-            <pre><code>-- 1. 主库创建复制用户
+            <p><strong>从库 GTID 复制搭建步骤</strong>（命令按版本分列；<strong>MySQL 8.4 LTS 以 SOURCE/REPLICA 为准</strong>）：</p>
+            <pre><code>-- 1. 源库创建复制用户
 CREATE USER 'repl'@'%' IDENTIFIED BY 'password';
-GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';      -- 8.0 常见
+-- GRANT REPLICATION REPLICA ON *.* TO 'repl'@'%'; -- 8.4 文档语义（按权限模型选用）
 FLUSH PRIVILEGES;
 
--- 2. 主库导出全量数据（GTID 模式下用 --set-gtid-purged 维护 GTID 上下文）
-mysqldump -uroot -p --single-transaction --set-gtid-purged=ON --all-databases > master_data.sql
+-- 2. 源库导出全量（GTID 用 --set-gtid-purged）
+mysqldump -uroot -p --single-transaction --set-gtid-purged=ON --all-databases > source_data.sql
 
--- 3. 从库导入数据
-mysql -uroot -p < master_data.sql
+-- 3. 副本导入
+mysql -uroot -p < source_data.sql
 
--- 4. 从库配置 GTID 复制
+-- 4a. MySQL 8.0.x 历史语法
 CHANGE MASTER TO
-    MASTER_HOST='master_host',
+    MASTER_HOST='source_host',
     MASTER_USER='repl',
     MASTER_PASSWORD='password',
-    MASTER_AUTO_POSITION=1,  -- GTID 自动定位
+    MASTER_AUTO_POSITION=1,
     MASTER_PORT=3306;
-
--- 5. 启动从库复制
 START SLAVE;
-
--- 6. 验证 GTID 复制状态
 SHOW SLAVE STATUS\G
--- 查看关键信息：
--- Slave_IO_Running: Yes
--- Slave_SQL_Running: Yes  
--- Executed_Gtid_Set: 应该显示主库的 GTID
--- Auto_Position: ON
 
--- 7. 监控复制延迟
-SELECT 
-    MASTER_UUID,
-    MASTER_LOG_FILE,
-    MASTER_LOG_POS,
-    MASTER_AUTO_POSITION,
-    COUNT_TRANSACTIONS_IN_QUEUE
-FROM performance_schema.replication_connection_status
-WHERE CHANNEL_NAME = 'group_replication_recovery';</code></pre>
+-- 4b. MySQL 8.4 LTS 现行（勿再把 MASTER/SLAVE 当默认教法）
+CHANGE REPLICATION SOURCE TO
+    SOURCE_HOST='source_host',
+    SOURCE_USER='repl',
+    SOURCE_PASSWORD='password',
+    SOURCE_AUTO_POSITION=1,
+    SOURCE_PORT=3306;
+START REPLICA;
+SHOW REPLICA STATUS\G
+-- Replica_IO_Running / Replica_SQL_Running = Yes
 
-            <p><strong>半同步复制详细配置</strong>：</p>
-            <p><strong>主库半同步复制配置</strong>：</p>
+-- 5. 延迟/连接态（performance_schema，跨版本更稳）
+SELECT CHANNEL_NAME, SERVICE_STATE, LAST_ERROR_NUMBER, LAST_ERROR_MESSAGE
+FROM performance_schema.replication_connection_status;</code></pre>
+
+            <p><strong>半同步复制详细配置</strong>（插件与变量：master/slave → <strong>source/replica</strong>）：</p>
+            <p><strong>MySQL 8.4 LTS（现行）</strong>：源端 <code class="inline-code">semisync_source.so</code>，副本 <code class="inline-code">semisync_replica.so</code>。启用后若副本接收线程已在跑，需 <code class="inline-code">STOP REPLICA IO_THREAD; START REPLICA IO_THREAD;</code> 才会以半同步身份重连。</p>
+            <pre><code># 源端 my.cnf（8.4）
+[mysqld]
+# INSTALL PLUGIN rpl_semi_sync_source SONAME 'semisync_source.so';
+rpl_semi_sync_source_enabled=ON
+rpl_semi_sync_source_timeout=10000
+rpl_semi_sync_source_wait_for_replica_count=1
+rpl_semi_sync_source_wait_no_replica=ON
+
+# 副本 my.cnf（8.4）
+[mysqld]
+# INSTALL PLUGIN rpl_semi_sync_replica SONAME 'semisync_replica.so';
+rpl_semi_sync_replica_enabled=ON</code></pre>
+            <p><strong>MySQL 8.0.x（历史对照）</strong>：旧插件 <code class="inline-code">semisync_master.so</code> / <code class="inline-code">semisync_slave.so</code>，变量前缀 <code class="inline-code">rpl_semi_sync_master_*</code> / <code class="inline-code">rpl_semi_sync_slave_*</code>。8.4 生产勿再默认教旧名。</p>
             <pre><code>[mysqld]
-# 安装半同步复制插件（需要先安装）
-install plugin rpl_semi_sync_master soname 'semisync_master.so';
-install plugin rpl_semi_sync_slave soname 'semisync_slave.so';
-
-# 主库半同步开关
+# 历史示例（8.0）
 rpl_semi_sync_master_enabled=ON
-# 超时时间（毫秒），默认10秒
 rpl_semi_sync_master_timeout=10000
-# 等待从库数量，默认1
 rpl_semi_sync_master_wait_for_slave_count=1
-# 等待ACK超时后降级为异步
-rpl_semi_sync_master_wait_no_slave=ON</code></pre>
-            <p><strong>从库半同步配置</strong>：</p>
-            <pre><code>[mysqld]
-# 从库半同步开关
-rpl_semi_sync_slave_enabled=ON
-# 自动向主库发送ACK
-rpl_semi_sync_slave_send_ack=ON
-# 等待主库发送事务的超时时间
-rpl_semi_sync_slave_timeout=10000</code></pre>
-            <p><strong>Java 监控半同步复制状态</strong>：</p>
+rpl_semi_sync_master_wait_no_slave=ON
+# 从库：rpl_semi_sync_slave_enabled=ON</code></pre>
+            <p><strong>Java 监控半同步复制状态</strong>（示例状态名偏 8.0；8.4 请查 Rpl_semi_sync_source_* / Rpl_semi_sync_replica_*）：</p>
             <pre><code>@Service
 public class SemiSyncMonitorService {
     
@@ -1156,23 +1162,15 @@ innodb_write_io_threads=4
 innodb_commit_concurrency=0
 # 自动清理purge线程
 innodb_purge_threads=1</code></pre>
-            <p><strong>从库高并发参数</strong>：</p>
+            <p><strong>从库高并发参数</strong>（并行应用靠 <code class="inline-code">replica_parallel_workers</code>；网上流传的多 IO/SQL 线程参数多为<strong>伪配置</strong>，官方无对应系统变量，照抄会无效或报错）：</p>
             <pre><code>[mysqld]
-# 并行复制类型（推荐LOGICAL_CLOCK）
-slave_parallel_type=LOGICAL_CLOCK
-# 并行工作线程数（建议CPU核心数*2）
-slave_parallel_workers=8
-# 提交协调（提高并行效率）
-slave_preserve_commit_order=ON
-# 从库延迟优化（牺牲部分持久性）
+# 8.4 现行名（8.0 可见 slave_parallel_* 同义；新环境统一 replica_*）
+replica_parallel_type=LOGICAL_CLOCK
+replica_parallel_workers=8
+replica_preserve_commit_order=ON
 innodb_flush_log_at_trx_commit=2
-# 从库binlog优化（不立即刷盘）
-sync_binlog=0
-# 从库IO线程数
-slave_io_threads=4
-# 从库SQL线程数
-slave_sql_threads=4</code></pre>
-            <p><strong>Java 监控并行复制性能</strong>：</p>
+sync_binlog=0</code></pre>
+            <p><strong>Java 监控并行复制性能</strong>（8.4 用 SHOW REPLICA STATUS）：</p>
             <pre><code>@Service
 public class ParallelReplicationMonitorService {
     
@@ -1185,7 +1183,7 @@ public class ParallelReplicationMonitorService {
     public void monitorParallelReplicationPerformance() {
         try {
             // 检查并行复制状态
-            Map&lt;String, Object&gt; slaveStatus = jdbcTemplate.queryForMap("SHOW SLAVE STATUS");
+            Map&lt;String, Object&gt; slaveStatus = jdbcTemplate.queryForMap("SHOW REPLICA STATUS"); // 8.0 旧环境可用 SHOW SLAVE STATUS
             
             // 检查IO线程状态
             String ioRunning = (String) slaveStatus.get("Slave_IO_Running");
@@ -1258,7 +1256,7 @@ public class ParallelReplicationMonitorService {
 }</code></pre>
 
 
-            <p><strong>延迟优化组合拳</strong>：① 开启 MTS 并行复制（WRITESET 模式）；② 拆分大事务（单事务 &lt; 1000 行变更）；③ 所有表必须有主键（ROW 格式应用效率）；④ 从库与主库同规格硬件、从库不跑重统计；⑤ <code class="inline-code">innodb_flush_log_at_trx_commit=2</code>（从库可牺牲部分持久性换吞吐，崩溃从主库重同步）；⑥ <code class="inline-code">sync_binlog=0</code>（从库 binlog 可不立即 fsync）。从库是为读扩展，数据可从主库重建。</p>
+            <p><strong>延迟优化组合拳</strong>：① 开启 MTS 并行复制——8.0 主库显式 <code class="inline-code">binlog_transaction_dependency_tracking=WRITESET</code>，<strong>8.4 勿再设该变量</strong>（已内建 WRITESET 依赖跟踪），从库配齐 <code class="inline-code">replica_parallel_workers</code> + <code class="inline-code">LOGICAL_CLOCK</code>；② 拆分大事务（单事务 &lt; 1000 行变更）；③ 所有表必须有主键（ROW 格式应用效率）；④ 从库与主库同规格硬件、从库不跑重统计；⑤ <code class="inline-code">innodb_flush_log_at_trx_commit=2</code>（从库可牺牲部分持久性换吞吐，崩溃从主库重同步）；⑥ <code class="inline-code">sync_binlog=0</code>（从库 binlog 可不立即 fsync）。从库是为读扩展，数据可从主库重建。</p>
             <p><strong>读分离与延迟容忍</strong>：写主库后立即读从库可能读到旧数据。方案：① 关键写后读走主库（同会话或短时间窗口）；② 半同步复制降低延迟；③ 用 <code class="inline-code">gtid_executed</code> 等待从库追上指定 GTID 再读（<code class="inline-code">WAIT_FOR_EXECUTED_GTID_SET</code>）。</p>
           </div>
         </div>
@@ -1267,9 +1265,9 @@ public class ParallelReplicationMonitorService {
           <div class="qa-layer-title">深度追问</div>
           <div class="qa-layer-body">
             <p><strong>追问 1：半同步复制降级如何处理？</strong></p>
-            <p>当从库在 <code class="inline-code">rpl_semi_sync_master_timeout</code>（默认 10000ms）内未 ACK，主库自动<strong>降级为异步</strong>以保证可用性（不阻塞写）。风险：降级期间主库崩溃丢数据。处理：① 监控 <code class="inline-code">RPL_SEMI_SYNC_MASTER_STATUS</code>，降级即告警；② 设置较大 timeout（如 30s）减少误降级；③ 配置多个从库（<code class="inline-code">rpl_semi_sync_master_wait_for_slave_count</code>）降低单点影响；④ 严格场景用 MGR 替代半同步。</p>
+            <p>当副本在超时（8.4：<code class="inline-code">rpl_semi_sync_source_timeout</code>；8.0 旧名 <code class="inline-code">rpl_semi_sync_master_timeout</code>，默认 10000ms）内未 ACK，主库自动<strong>降级为异步</strong>以保证可用性（不阻塞写）。风险：降级期间主库崩溃丢数据。处理：① 监控半同步状态（8.4 source / 8.0 master 状态名），降级即告警；② 设置较大 timeout（如 30s）减少误降级；③ 配置多个副本（8.4：<code class="inline-code">rpl_semi_sync_source_wait_for_replica_count</code>）降低单点影响；④ 严格场景用 MGR 替代半同步。</p>
             <p><strong>追问 2：GTID 复制相比传统 binlog 位点复制有何优势？</strong></p>
-            <p>GTID（Global Transaction Identifier）= server_uuid:transaction_id，全局唯一标识每个事务。优势：① <strong>自动定位复制位点</strong>——故障切换时从库自动从正确 GTID 继续，无需手动找 binlog file/position；② <strong>防重复执行</strong>——从库已执行的 GTID 不会重复；③ <strong>简化主从切换</strong>——<code class="inline-code">CHANGE MASTER TO MASTER_AUTO_POSITION=1</code>。生产推荐开启 GTID。</p>
+            <p>GTID（Global Transaction Identifier）= server_uuid:transaction_id，全局唯一标识每个事务。优势：① <strong>自动定位复制位点</strong>——故障切换时从库自动从正确 GTID 继续，无需手动找 binlog file/position；② <strong>防重复执行</strong>——从库已执行的 GTID 不会重复；③ <strong>简化切换</strong>——8.0：<code class="inline-code">CHANGE MASTER TO MASTER_AUTO_POSITION=1</code>；8.4：<code class="inline-code">CHANGE REPLICATION SOURCE TO SOURCE_AUTO_POSITION=1</code>。生产推荐开启 GTID。</p>
           </div>
         </div>
 
@@ -1917,7 +1915,7 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
 <span class="kw">SELECT</span> * <span class="kw">FROM</span> information_schema.optimizer_trace;  <span class="com">-- 搜 converted 看被转换的操作数</span>
 <span class="kw">SET</span> optimizer_trace=<span class="str">'enabled=off'</span>;</code></pre></div>
 
-            <p><strong>高频面试真题串讲（五连问）</strong>：Q1 <code class="inline-code">where str=123</code>（str 为 varchar 索引）为何不走索引？→ 字符串列被转数字，列被函数包裹。Q2 <code class="inline-code">where int='123'</code>（int 索引）走索引吗？→ 走，常量转数字、列不动。Q3 <code class="inline-code">join on A.varchar = B.int</code> 哪边失效？→ A 表 varchar 列转数字、A 索引失效。Q4 <code class="inline-code">varchar IN (1,2,3)</code> 为何慢？→ IN 列表数字导致列转数字、索引失效，改字符串列表。Q5 字符集不同也会隐式转换吗？→ 会，collate 不一致对一侧做排序规则转换等价于对列套函数、索引失效，建表须统一字符集与 collate。</p>
+            <p><strong>高频工程表达五连问</strong>：Q1 <code class="inline-code">where str=123</code>（str 为 varchar 索引）为何不走索引？→ 字符串列被转数字，列被函数包裹。Q2 <code class="inline-code">where int='123'</code>（int 索引）走索引吗？→ 走，常量转数字、列不动。Q3 <code class="inline-code">join on A.varchar = B.int</code> 哪边失效？→ A 表 varchar 列转数字、A 索引失效。Q4 <code class="inline-code">varchar IN (1,2,3)</code> 为何慢？→ IN 列表数字导致列转数字、索引失效，改字符串列表。Q5 字符集不同也会隐式转换吗？→ 会，collate 不一致对一侧做排序规则转换等价于对列套函数、索引失效，建表须统一字符集与 collate。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">Navicat 为何默认给筛选值加单引号</div>

@@ -24,8 +24,9 @@
         <li><a href="#C01.07"><span class="toc-number">C01.07</span>引用类型与 GC 回收</a></li>
         <li><a href="#C01.08"><span class="toc-number">C01.08</span>JDK 9 模块系统与类加载</a></li>
         <li><a href="#C01.09"><span class="toc-number">C01.09</span>JIT 编译器 C1/C2/GraalVM</a></li>
-        <li><a href="#C01.10"><span class="toc-number">C01.10</span>JDK 17/21 新特性与升级迁移</a></li>
+        <li><a href="#C01.10"><span class="toc-number">C01.10</span>JDK 17/21/25 新特性与升级迁移</a></li>
         <li><a href="#C01.11"><span class="toc-number">C01.11</span>OS 虚拟内存与页表机制</a></li>
+<li><a href="#C01.12"><span class="toc-number">C01.12</span>Leyden / CDS / 启动优化</a></li>
       </ol>
     </aside>
 
@@ -45,15 +46,15 @@
         <h1 class="chapter-title">JVM 内存与类加载</h1>
         <p class="chapter-subtitle">从运行时数据区到模块化类加载：理解 JVM 内存模型的演进、第一性原理与工程边界</p>
         <div class="chapter-meta">
-          <span>题目数：11</span>
+          <span>题目数：12</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×6</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×4</span>
+          <span>架构级 ×5</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：100 分钟</span>
+          <span>预计复习：120 分钟</span>
         </div>
       </div>
 
@@ -262,21 +263,20 @@ graph LR
             <div class="chart-caption">图 1.2-2 对象内存布局（64 位 HotSpot，压缩指针开启；普通对象头 12 字节，数组再加 4 字节长度）</div>
             </div>
 
-            <p><strong>Mark Word 64 位布局（JDK 15 前含偏向锁）</strong>：</p>
+            <p><strong>Mark Word 64 位布局（JDK 15+ 现行；按锁状态复用比特，非 Hash 与 ThreadID 同时常驻）</strong>：</p>
             <table class="compare-table">
                 <thead>
-                  <tr><th>锁状态</th><th>25bit</th><th>31bit</th><th>1bit</th><th>4bit</th><th>1bit</th><th>2bit</th></tr>
+                  <tr><th>锁状态</th><th>布局要点</th><th>标志位（末）</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>无锁</td><td>unused</td><td>hashCode</td><td>unused</td><td>分代年龄</td><td>0</td><td>01</td></tr>
-                  <tr><td>偏向锁</td><td colspan="2">线程ID(54bit) + Epoch(2bit)</td><td>unused</td><td>分代年龄</td><td>1</td><td>01</td></tr>
-                  <tr><td>轻量级锁</td><td colspan="5">指向栈中锁记录的指针(62bit)</td><td>00</td></tr>
-                  <tr><td>重量级锁</td><td colspan="5">指向 ObjectMonitor 的指针(62bit)</td><td>10</td></tr>
-                  <tr><td>GC 标记</td><td colspan="5">空</td><td>11</td></tr>
+                  <tr><td>无锁</td><td>identity hashCode（若已计算）+ 分代年龄等</td><td>01</td></tr>
+                  <tr><td>轻量级锁</td><td>对象头指向栈上 Lock Record（Displaced Mark Word）</td><td>00</td></tr>
+                  <tr><td>重量级锁</td><td>对象头指向 ObjectMonitor</td><td>10</td></tr>
+                  <tr><td>GC 标记</td><td>GC 用</td><td>11</td></tr>
+                  <tr><td>偏向锁（历史）</td><td>JDK 15 废弃（JEP 374）前可写 ThreadID；与 hash <strong>互斥</strong></td><td>01+biased</td></tr>
                 </tbody>
               </table>
-            
-            <p>Mark Word 通过<strong>位复用</strong>在不同锁状态下重用同一块 64bit 空间，是 synchronized 锁升级的物理基础。</p>
+            <p>Mark Word 通过<strong>状态复用</strong>解释同一组比特，是 synchronized 锁升级的物理基础。JDK 25+ 可选 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>（JEP 519）进一步压缩对象头，位布局再变——生产以目标 JDK + JOL 实测为准，勿背死某一代位图。锁升级现行路径见 <a href="chapter-03-concurrency-locks.html#C03.02">C03.02</a>。</p>
           </div>
         </div>
 
@@ -1361,13 +1361,13 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
       <div class="qa-card" id="C01.10" data-difficulty="senior" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">C01.10</div>
-          <div class="qa-question">JDK 17/21 新特性：Records/Sealed/Pattern Matching 的 JVM 实现与升级迁移<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+          <div class="qa-question">JDK 17/21/25 新特性：Records/Sealed/Pattern Matching 的 JVM 实现与升级迁移<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
           <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
-            <p>这道题考察对 <strong>JDK 8 → 17 → 21 语言与 JVM 演进</strong> 的掌握：Records / Sealed / Pattern Matching / 虚拟线程等特性的设计动机与 JVM 实现，以及生产升级迁移的真实代价。2026 年新项目基线普遍是 JDK 17，虚拟线程要求 JDK 21，能否讲清"为什么引入这些特性、字节码/API 层面发生了什么、升级踩哪些坑"是架构师的基本功。</p>
+            <p>这道题考察对 <strong>JDK 17 → 21 → 25 三条 LTS</strong> 语言与 JVM 演进的掌握：Records / Sealed / Pattern Matching / 虚拟线程 / ScopedValue / 紧凑对象头等特性的设计动机与实现边界，以及生产升级真实代价。2026 年存量多在 17/21，新系统评估 21 或 25；虚拟线程在 21 可用，pinning 治理在 24+（JEP 491）显著改善。能否讲清三代差异与迁移坑是架构师基本功。</p>
           </div>
         </div>
 
@@ -1376,7 +1376,7 @@ f.<span class="fn">setAccessible</span>(<span class="kw">true</span>); <span cla
           <div class="qa-layer-body">
             <p><strong>LTS 节奏</strong>：JDK 6/7（历史）→ 8（2014，长期主流）→ 11（2018）→ 17（2021）→ 21（2023）。Oracle 改为半年一个特性版、每三年一个 LTS；非 LTS 版仅支持 6 个月，生产应选 LTS。</p>
             <p><strong>语言特性演进</strong>：<code class="inline-code">var</code>（10）→ <code class="inline-code">switch</code> 表达式（14）→ Text Blocks（15）→ Records（16 正式）→ Pattern Matching for instanceof（16 正式）/ switch（21 正式）→ Sealed（17 正式）→ Record Patterns（21 正式）→ Virtual Threads（21 正式）。Structured Concurrency 与 ScopedValue 在 JDK 21 是预览；后者到 JDK 25 正式，前者在后续版本仍处于预览迭代。</p>
-            <p><strong>JVM/类库演进</strong>：G1 成为默认 GC（9）；CMS 移除（14）；Generational ZGC 在 JDK 21 引入并需显式开启，JDK 23 起转为默认形态；内部 API 在 JDK 16/17 默认强封装；finalize 自 JDK 9 废弃，JEP 421 在 JDK 18 增加 finalization 开关；Security Manager 在 JDK 17 废弃、JDK 24 永久禁用（JEP 486）。</p>
+            <p><strong>JVM/类库演进</strong>：G1 成为默认 GC（9）；CMS 移除（14）；Generational ZGC 在 JDK 21 引入并需显式开启，JDK 23 起转为默认形态；内部 API 在 JDK 16/17 默认强封装；finalize 自 JDK 9 废弃，JEP 421 在 JDK 18 增加 finalization 开关；Security Manager 在 JDK 17 废弃、JDK 24 永久禁用（JEP 486）。<strong>JDK 25 LTS</strong> 侧重点：ScopedValue 正式；可选紧凑对象头（JEP 519，<code class="inline-code">-XX:+UseCompactObjectHeaders</code>）；分代 Shenandoah 等收集器继续演进；Structured Concurrency 仍处 Preview 迭代——升级 25 要单独评估预览 API 与对象头布局对 JOL/JNI 的影响。</p>
           </div>
         </div>
 
@@ -1519,6 +1519,78 @@ $ jcmd &lt;pid&gt; GC.heap_info                  <span class="com">// JVM 视角
                 <li><strong>"堆设多大就占多大物理内存"</strong>：未触碰的虚拟页不占物理页，只看 <code class="inline-code">-Xmx</code> 判断物理占用是错的。</li>
                 <li><strong>忽略 swap 对 GC 的放大</strong>：频繁换页会让单次 GC 从毫秒级恶化到秒级，先治换页再谈调参。</li>
                 <li><strong>容器里读 /proc/meminfo 当宿主机</strong>：需用 cgroup 限定视角，否则内存水位判断失真。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C01.12 Leyden / CDS / 启动优化 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C01.12" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C01.12</div>
+          <div class="qa-question">Leyden / CDS / AppCDS 如何体系化缩短 Java 启动与预热？与 AOT、CRaC 如何选型？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察<strong>启动与预热成本</strong>的工程治理：类加载、JIT 编译、元数据解析在 Serverless/弹性扩容下被反复支付。CDS/AppCDS 缓存类元数据；Project Leyden 把「静态/半静态」优化产品化；AOT/Native 与 CRaC 是更强但更重的路径。要能讲清各自边界与组合拳。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p>HotSpot 默认每次冷启动解析类 → <strong>CDS</strong>（JDK 内置类归档）→ <strong>AppCDS</strong>（应用类归档，JDK 10+ 易用化）→ <strong>Leyden</strong>（凝聚 CDS/AOT 训练与约束，缩短 TTFB/TTFP）→ 与 <strong>Graal Native</strong>（C06）/ <strong>CRaC</strong>（检查点恢复）并列。驱动力：容器密度、缩扩容秒级、CI 反馈与 Serverless 计费。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p>启动时间 ≈ 类加载/链接 + 解释执行/JIT 升温 + I/O 初始化。CDS 解决「重复解析」；Leyden 进一步允许在受约束世界里预计算；Native Image 把运行时决策前移到构建期；CRaC 冻结已预热进程。约束越强（封闭世界），收益越大、灵活性越低。</p>
+            <table class="compare-table">
+              <thead><tr><th>手段</th><th>主要收益</th><th>代价/约束</th><th>适用</th></tr></thead>
+              <tbody>
+                <tr><td>CDS / AppCDS</td><td>降类加载与元数据开销</td><td>需生成/分发 jsa；动态类仍有限</td><td>多数 Spring Boot 容器的第一刀</td></tr>
+                <tr><td>Leyden（训练/约束）</td><td>启动+预热协同优化</td><td>版本演进中；需训练工作流</td><td>JDK 新版本生产线</td></tr>
+                <tr><td>AOT / Native</td><td>极致启动与内存</td><td>封闭世界、构建复杂</td><td>见 C06 AOT/Native 卡</td></tr>
+                <tr><td>CRaC</td><td>秒级恢复已预热状态</td><td>资源/连接需钩子释放与重建</td><td>弹性副本、Serverless 热路径</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>1. AppCDS 落地</strong>：训练跑一遍生成 classlist → dump 归档 → 生产 <code class="inline-code">-XX:SharedArchiveFile=</code>；镜像构建把 jsa 打进层；注意 JDK 小版本与归档兼容。</p>
+            <p><strong>2. Leyden</strong>：跟进 LTS 能力（静态/半静态特性以发行说明为准）；把「训练作业」纳入 CI，避免开发机手工产物。</p>
+            <p><strong>3. 与 Spring</strong>：Boot 3 AOT 处理 Bean 定义；CDS 管类元数据——可叠加。Native 另见专卡，勿与 CDS 混为一谈。</p>
+            <p><strong>4. 度量</strong>：分阶段看 time-to-first-request、CPU 升温曲线、RSS；扩容场景对比「无归档 / AppCDS / Native」。</p>
+            <pre class="code-block"><code># 简化示意：生成并使用 AppCDS（具体标志随 JDK 版本查阅 man）
+java -XX:DumpLoadedClassList=app.classlist -jar app.jar
+java -Xshare:dump -XX:SharedClassListFile=app.classlist -XX:SharedArchiveFile=app.jsa -jar app.jar
+java -XX:SharedArchiveFile=app.jsa -jar app.jar</code></pre>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：有了 AppCDS 还要不要 Leyden？</strong>CDS 偏类元数据复用；Leyden 目标是更系统的静态化与训练流水线，覆盖预热而不只是加载。</p>
+            <p><strong>追问 2：为何 Serverless 更敏感？</strong>冷启动频率高，每次支付全量类加载/JIT；归档与约束世界的 ROI 远高于长驻进程。</p>
+            <p><strong>追问 3：CRaC 与 CDS 冲突吗？</strong>不冲突。CDS 利于每次启动；CRaC 利于从快照恢复。连接池/文件描述符必须有 restore 钩子。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-danger">
+              <div class="callout-title">踩坑警告</div>
+              <ul>
+                <li><strong>归档与运行 JDK 小版本不一致</strong>：jsa 失效或静默回退。</li>
+                <li><strong>把 Native 收益当成 CDS 收益宣传</strong>：量级差一个数量级，选型会错。</li>
+                <li><strong>训练覆盖不足</strong>：冷路径类未进归档，生产收益接近零。</li>
+                <li><strong>忽略动态代理/反射</strong>：需配合 AOT 提示或 Leyden 约束，否则优化被打穿。</li>
               </ul>
             </div>
           </div>

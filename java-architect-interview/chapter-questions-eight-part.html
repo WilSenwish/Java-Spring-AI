@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>核心原理速查 · 58 道高频核心原理题 — Java 工程能力知识库</title>
+  <title>核心原理速查 · 64 道高频核心原理题 — Java 工程能力知识库</title>
   <link rel="stylesheet" href="assets/design-system.css">
   <style>
     /* ---------- 核心原理专属样式 ---------- */
@@ -276,6 +276,8 @@
           <li><a href="#E04.04"><span class="toc-number">E04.04</span>Spring 事务传播机制</a></li>
           <li><a href="#E04.05"><span class="toc-number">E04.05</span>MyBatis 缓存与插件</a></li>
           <li><a href="#E04.06"><span class="toc-number">E04.06</span>Spring AOP 原理与动态代理</a></li>
+<li><a href="#E04.07"><span class="toc-number">E04.07</span>Agent / Tool Calling / 护栏</a></li>
+<li><a href="#E04.08"><span class="toc-number">E04.08</span>MCP 协议速查</a></li>
         </ol>
       </div>
 
@@ -310,6 +312,7 @@
           <li><a href="#E07.07"><span class="toc-number">E07.07</span>Sentinel 熔断降级</a></li>
           <li><a href="#E07.08"><span class="toc-number">E07.08</span>高并发系统架构设计</a></li>
           <li><a href="#E07.09"><span class="toc-number">E07.09</span>Seata TCC 模式原理</a></li>
+          <li><a href="#E07.10"><span class="toc-number">E07.10</span>Outbox / CDC 端到端速查</a></li>
         </ol>
       </div>
 
@@ -319,6 +322,7 @@
           <li><a href="#E08.01"><span class="toc-number">E08.01</span>Kafka 高性能原理</a></li>
           <li><a href="#E08.02"><span class="toc-number">E08.02</span>RocketMQ 事务消息</a></li>
           <li><a href="#E08.03"><span class="toc-number">E08.03</span>Kafka 消费者组重平衡</a></li>
+          <li><a href="#E08.04"><span class="toc-number">E08.04</span>流处理 Streams/Flink 速查</a></li>
         </ol>
       </div>
 
@@ -346,6 +350,8 @@
           <li><a href="#E11.01"><span class="toc-number">E11.01</span>Docker 容器网络</a></li>
           <li><a href="#E11.02"><span class="toc-number">E11.02</span>Kubernetes Pod 调度</a></li>
           <li><a href="#E11.03"><span class="toc-number">E11.03</span>Prometheus 监控告警</a></li>
+<li><a href="#E11.04"><span class="toc-number">E11.04</span>OpenTelemetry 三支柱与采样</a></li>
+<li><a href="#E11.05"><span class="toc-number">E11.05</span>FinOps 原理速查</a></li>
         </ol>
       </div>
 
@@ -375,18 +381,18 @@
       <!-- 章节头部 -->
       <div class="chapter-header epq-chapter-header">
         <div class="chapter-number">CORE PRINCIPLES / 高频核心原理速查</div>
-        <h1 class="chapter-title">高频核心原理 58 题</h1>
+        <h1 class="chapter-title">高频核心原理 64 题</h1>
         <p class="chapter-subtitle">聚焦 2026 头部大厂仍在深入考察的核心原理，精炼四层结构速查导向</p>
         <div class="chapter-meta">
-          <span>题目数：58</span>
+          <span>题目数：64</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×35</span>
           <span class="meta-divider">|</span>
-          <span>专家级 ×2</span>
+          <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×21</span>
+          <span>架构级 ×26</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：140 分钟</span>
+          <span>预计复习：170 分钟</span>
         </div>
       </div>
 
@@ -413,7 +419,7 @@
         <div class="epq-section">
           <div class="epq-section-title">详细解答</div>
           <p><strong>Virtual Threads</strong> 是 Java 21 最核心的特性。与传统 OS 线程（Platform Thread）1:1 映射不同，Virtual Thread 由 JVM 的 ForkJoinPool 调度，挂载（mount）到平台线程上执行，遇到阻塞 IO 时自动卸载（unmount），平台线程可继续执行其他虚拟线程。这使得高并发场景下线程创建成本从 MB 级降到 KB 级。</p>
-          <p>但需注意 <strong>pinning</strong> 问题：当虚拟线程在 <code class="inline-code">synchronized</code> 块或 <code class="inline-code">native</code> 方法中执行时，会被"钉"在平台线程上无法卸载，导致平台线程阻塞。生产环境应使用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning。</p>
+          <p>但需注意 <strong>pinning</strong> 问题：虚拟线程在 <code class="inline-code">synchronized</code>（JDK 21–23）或 <code class="inline-code">native</code> 方法中阻塞时可能无法 unmount。诊断按版本：JDK 21–23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full|short</code>；<strong>JDK 24 起该系统属性已移除</strong>，改用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code> 与新式线程转储。JDK 24+（JEP 491）几乎消除 synchronized pinning，剩余重心在 native/JNI。完整对照见 <strong>C04.09</strong> / <strong>E03.06</strong>。</p>
           <p><strong>Pattern Matching for switch</strong> 允许 switch 表达式直接对引用类型进行模式匹配：</p>
           <pre class="code-block"><code><span class="kw">switch</span> (<span class="var">obj</span>) {
     <span class="kw">case</span> <span class="type">Integer</span> <span class="var">i</span> <span class="op">-></span> <span class="type">System</span>.<span class="var">out</span>.<span class="fn">println</span>(<span class="str">"int "</span> <span class="op">+</span> <span class="var">i</span>);
@@ -426,7 +432,7 @@
 
         <div class="callout callout-tip">
           <div class="callout-title">工程实践</div>
-          <p>Spring Boot 3.2+ 开启虚拟线程：<code class="inline-code">spring.threads.virtual.enabled=true</code>。Tomcat 会使用虚拟线程处理请求，但需确保没有同步块阻塞。压测时使用 <code class="inline-code">jcmd &lt;pid&gt; Thread.dump_to_file</code> 分析 pinning 情况。</p>
+          <p>Spring Boot 3.2+ 开启虚拟线程：<code class="inline-code">spring.threads.virtual.enabled=true</code>。压测用 <code class="inline-code">jcmd &lt;pid&gt; Thread.dump_to_file</code>；pinning 诊断按 JDK 版本选择工具（见上），勿在 JDK 24+ 仍依赖 <code class="inline-code">tracePinnedThreads</code>。Structured Concurrency 至较新 JDK 仍多为 Preview，勿绑核心生产路径。</p>
         </div>
 
         <div class="epq-section">
@@ -1205,8 +1211,8 @@
           <ul class="epq-kp-list">
             <li>Pinning 定义：虚拟线程在 <code class="inline-code">synchronized</code> 块或 <code class="inline-code">native</code> 方法中无法 unmount 载体线程，导致 ForkJoinPool carrier 被阻塞、吞吐量坍塌</li>
             <li>两大根因：synchronized monitor（JDK 21 限制，JEP 491 在 JDK 24 修复）+ native 栈帧（JNI/第三方 native 库，Continuation 无法拷贝/恢复 native 帧）</li>
-            <li>排查工具：<code class="inline-code">-Djdk.tracePinnedThreads=full/short</code> 启动参数、JFR 事件 <code class="inline-code">jdk.VirtualThreadPinned</code>（默认阈值 20ms）、async-profiler</li>
-            <li>治理手段：synchronized → ReentrantLock 替换（await/signal 可让虚拟线程 unmount）、native 调用隔离到独立线程池、Socket/文件 IO 改用 NIO</li>
+            <li>排查工具（按版本）：JDK 21–23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full/short</code>；<strong>JDK 24 起该属性移除</strong>，改用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code>（默认阈值 20ms）与新式线程转储；可辅以 async-profiler</li>
+            <li>治理手段：JDK 21–23 热点 synchronized → ReentrantLock；JDK 24+（JEP 491）不必仅为 pinning 回避 synchronized，改锁按功能需求；native 调用隔离到独立线程池</li>
             <li>监控指标：载体线程阻塞时长、虚拟线程 mount/unmount 次数、Pinning 事件计数与堆栈 TOP-N</li>
           </ul>
         </div>
@@ -1221,14 +1227,14 @@
 
         <div class="callout callout-tip">
           <div class="callout-title">工程实践</div>
-          <p>启动参数排查：<code class="inline-code">-Djdk.tracePinnedThreads=full</code> 打印完整堆栈，<code class="inline-code">=short</code> 仅打印关键帧；生产环境先 short 跑一轮收集热点。JFR 持续监控：<code class="inline-code">jdk.VirtualThreadPinned</code> 事件阈值建议从默认 20ms 调到 10ms，结合 JFR 异步采集零开销。代码治理：业务锁改 <code class="inline-code">ReentrantLock</code>（注意 try-finally unlock）；HikariCP 升级 5.1+ 已适配虚拟线程；native 调用提交到独立 <code class="inline-code">ExecutorService</code> 不污染 carrier 池。升级路径：JDK 21 LTS + 重 IO + synchronized 密集场景，评估升级 JDK 24（JEP 491）从根上消除 synchronized pinning。</p>
+          <p><strong>JDK 21–23</strong>：可用 <code class="inline-code">-Djdk.tracePinnedThreads=full|short</code> 打印钉住栈（生产可 short 降噪）；热点 synchronized 可改 <code class="inline-code">ReentrantLock</code>。<strong>JDK 24+</strong>：该系统属性已移除，持续监控改用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code>（阈值可从默认 20ms 调到 10ms），现场快照用新式 <code class="inline-code">Thread.dump_to_file</code>；JEP 491 后不必仅为 pinning 回避 synchronized，native/JNI 仍须隔离到独立线程池。HikariCP 5.1+ 已适配虚拟线程。版本对照真源：<strong>C04.09</strong>。</p>
         </div>
 
         <div class="epq-section">
           <div class="epq-section-title">高频追问</div>
           <ul class="epq-fu-list">
             <li><span class="q">Q: 虚拟线程一定能提升吞吐量吗？</span><span class="a">A: 仅对 IO 密集型有效；CPU 密集型反而因 Continuation 调度开销劣化；阻塞点全在 synchronized/native 上时等于退化成平台线程，QPS 不会涨。</span></li>
-            <li><span class="q">Q: synchronized 换 ReentrantLock 有什么代价？</span><span class="a">A: 内存占用略高、需手动 unlock（try-finally）、公平锁性能更差；但虚拟线程场景下是必须的，JDK 24 前没有替代方案。</span></li>
+            <li><span class="q">Q: synchronized 换 ReentrantLock 有什么代价？</span><span class="a">A: 内存略高、需手动 unlock、公平锁更慢。JDK 21–23 为消 pinning 常值得换；JDK 24+（JEP 491）改锁应出于公平锁/可中断/超时/Condition 等功能需求，而非“凡 synchronized 必换”。</span></li>
             <li><span class="q">Q: Pinning 与死锁如何区分？</span><span class="a">A: jstack 看 carrier 线程状态：RUNNABLE 但长时间无进展是 pinning（被 native/synchronized 钉住但 OS 仍可调度），BLOCKED 是锁竞争/死锁。Pinning 不会永久阻塞，但有性能损失。</span></li>
             <li><span class="q">Q: 为什么 JDK 21 不直接修复 synchronized pinning？</span><span class="a">A: 涉及 JVM ObjectMonitor 与 Continuation 协作的深度改造，工程量大；JEP 491 历经多个 incubator/preview 才在 JDK 24 稳定，21 LTS 期只能规避。</span></li>
           </ul>
@@ -1257,7 +1263,7 @@
           <div class="epq-section-title">核心要点</div>
           <ul class="epq-kp-list">
             <li>锁升级路径：无锁 → 偏向锁（已废弃）→ 轻量级锁（自旋 CAS）→ 重量级锁（OS Mutex Park）</li>
-            <li>Mark Word 布局（64 位）：25bit HashCode + 31bit ThreadID + 1bit 偏向标志 + 4bit GC 年龄 + 1bit 锁标志位（偏向锁时代）；废弃偏向锁后 HashCode 位扩展，锁状态简化为 3 种</li>
+            <li>Mark Word（64 位）按锁状态<strong>复用同一组比特</strong>，不是 HashCode 与 ThreadID 同时常驻：无锁态可存 identity hash；偏向锁时代偏向态写入 ThreadID（与 hash <strong>互斥</strong>——已算 hash 则无法偏向）；轻量级锁对象头指向栈上 Lock Record；重量级锁指向 ObjectMonitor。偏向锁废弃后状态简化为无锁 / 轻量级 / 重量级，原偏向相关位回收</li>
             <li>JDK 15 废弃并默认关闭偏向锁（JEP 374），BiasedLockingStartupDelay 默认值从 4000ms 改为 0ms；JDK 18 起移除该启动参数，Mark Word 中偏向锁位被回收</li>
             <li>轻量级锁：线程栈帧 Lock Record 拷贝 Mark Word，CAS 替换对象头指向 Lock Record；竞争时自旋重试，避免 OS 互斥量开销</li>
             <li>重量级锁：自旋失败后膨胀为 ObjectMonitor，线程 park 进入等待队列；JDK 24+（JEP 491）重构 ObjectMonitor 为可虚拟化，synchronized 块内 park 时虚拟线程可正常卸载</li>
@@ -1266,6 +1272,7 @@
 
         <div class="epq-section">
           <div class="epq-section-title">详细解答</div>
+          <p><strong>Mark Word 状态复用</strong>：对象头只有一份 Mark Word，各锁态<strong>覆盖解释</strong>同一比特区（类似 union），切勿把教材里「HashCode 位 + ThreadID 位」读成同时占满。工程上用 JOL 观察时，同一对象在 hashCode() 前后、加锁前后的头布局会变化；JDK 15+ 默认关闭偏向锁后，日常更常见的是无锁 hash 布局与轻量级/重量级指针布局。</p>
           <p><strong>锁升级流程</strong>：① 对象初始为无锁状态（标志位 01）；② <strong>偏向锁</strong>——首个线程进入同步块时，CAS 将 ThreadID 写入 Mark Word，后续同线程重入只需比对 ThreadID（无 CAS 无自旋）；③ <strong>轻量级锁</strong>——出现第二个线程竞争时，偏向锁撤销，线程栈帧 Lock Record 拷贝当前 Mark Word，CAS 将对象头指向 Lock Record 指针（标志位 00），竞争方自旋重试；④ <strong>重量级锁</strong>——自旋超过阈值（默认自适应）或等待线程过多，膨胀为 ObjectMonitor（标志位 10），竞争失败线程 park 进入 EntryList。</p>
           <p><strong>偏向锁废弃背景</strong>（JEP 374，JDK 15）：偏向锁的收益依赖"同一线程重入"场景，但现代应用大量使用线程池轮转执行 + synchronized 粒度已较细，偏向锁撤销（safepoint 全局 STW）的开销反而超过收益。HotSpot 维护偏向锁代码增加了 synchronized 与虚拟线程协作改造的复杂度，废弃后锁状态从 4 种简化为 3 种（无锁/轻量级/重量级），代码更易维护。</p>
           <p><strong>JEP 491 与虚拟线程</strong>：JDK 21 虚拟线程在 synchronized 块内 park 会被"钉住"在载体线程上（ObjectMonitor 与 Continuation 协作未完成），载体线程被阻塞导致吞吐坍塌。JDK 24+ 重构 ObjectMonitor 实现，使其可虚拟化——synchronized 块内 park 时虚拟线程可正常 unmount 载体线程，消除了最主要的 pinning 源。JDK 24+ 不必再为 pinning 回避 synchronized。</p>
@@ -1445,7 +1452,7 @@
 
         <div class="callout callout-tip">
           <div class="callout-title">工程实践</div>
-          <p>自定义 Starter 时，在 resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports 中写入自动配置类全名。使用 @ConditionalOnMissingBean 保留用户覆盖能力。通过 @AutoConfigureAfter 控制依赖其他自动配置的顺序。</p>
+          <p>自定义 Starter 时，在 resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports 中写入自动配置类全名。使用 @ConditionalOnMissingBean 保留用户覆盖能力。通过 @AutoConfigureAfter 控制依赖其他自动配置的顺序。 测试策略（Testcontainers / 契约测试 / ArchUnit）见篇章 <a href="chapter-06-spring-boot-modern.html#C06.14">C06.14</a>。</p>
         </div>
 
         <div class="epq-section">
@@ -1674,6 +1681,112 @@
           <span class="epq-tag">动态代理</span>
           <span class="epq-tag">CGLIB</span>
           <span class="epq-tag">事务失效</span>
+        </div>
+      </div>
+
+
+
+      <!-- ============================== -->
+      <!-- E04.07 Agent / Tool Calling / 护栏 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E04.07" data-difficulty="expert" data-priority="p0">
+        <div class="epq-header">
+          <div class="epq-badge">E04.07</div>
+          <div class="epq-question">Agent / Tool Calling / 护栏：ReAct 循环、工具合约、步数熔断与幂等防资损<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>Function Calling = 模型输出结构化工具意图；Agent = Brain(LLM) + Tools + Loop（感知-规划-行动-观察）多轮循环</li>
+            <li>ReAct：Thought → Action → Observation；Plan-and-Execute / 状态图（LangGraph）用结构约束自主性</li>
+            <li>工具合约：清晰 description、参数最小化、幂等键、错误回填（勿抛异常打断循环）、超时与权限最小化</li>
+            <li>生产护栏：max_steps、单工具次数上限、相同 (tool,args_hash) 循环检测、高危操作 HITL/沙箱预演</li>
+            <li>与 C12.06/C12.07/C12.23、S12.03 互链：本章是原理速查，场景资损应急见 S12.03</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>边界</strong>：单次 Function Calling 是「调一次工具」；Agent 是宿主循环执行 tool_call，直到模型声明完成或护栏终止。可靠性优先于自主性——能规则化的不要交给 LLM，能用固定状态图就不要纯自主 ReAct。</p>
+          <p><strong>循环失败模式</strong>：① 工具错误被拼回上下文导致同参重试（资损高发）；② 无进展步数耗尽 Token；③ 多 Agent 间接环（A→B→A）。治理：运行时护栏 + 工具侧幂等 + 编排层环检测。</p>
+          <p><strong>工具合约要点</strong>：description 是选型唯一依据；查询可重试、写操作必须幂等（Idempotency-Key 绑意图而非纯参数）；失败把错误当 Observation 回填，让模型改参或换工具。</p>
+          <p><strong>分级自主</strong>：低风险查询用 RAG/规则；中风险用状态图 Agent；高风险（转账/删改）强制二次确认。记录每步 Thought/Action/Observation 便于审计。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p><strong>护栏默认值真源（以本卡为准）</strong>：会话 max_steps=10、单工具 ≤3、总会话超时 120s；连续 2 次相同 (tool,args_hash) 直接终止转人工。金融写工具：simulate → 用户确认 → 真实执行。<a href="chapter-questions-scenario.html#S12.03">S12.03</a> 讲资损应急与演练，数字若冲突以本卡为准。Spring AI 用 <code class="inline-code">@Tool</code> + ChatClient 循环，或接 MCP Client（见 <a href="#E04.08">E04.08</a>）。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: Agent 与 Function Calling 差在哪？</span><span class="a">A: FC 是模型能力（输出 tool_call JSON）；Agent 是工程循环（多轮执行直到完成/熔断）。没有护栏的 Agent 等于无限 FC。</span></li>
+            <li><span class="q">Q: 为何工具失败不能直接抛异常？</span><span class="a">A: 抛异常打断循环，模型无法改策略；应回填错误 Observation，由护栏限制重试次数。</span></li>
+            <li><span class="q">Q: 幂等键为何不能只用金额+收款人？</span><span class="a">A: 「再转一笔相同金额」是新意图。应绑 request_id/意图 ID，同意图内去重、不同意图独立。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">Agent</span>
+          <span class="epq-tag">Tool Calling</span>
+          <span class="epq-tag">护栏</span>
+          <span class="epq-tag">幂等</span>
+        </div>
+      </div>
+
+
+
+      <!-- ============================== -->
+      <!-- E04.08 MCP 协议速查 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E04.08" data-difficulty="architect" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E04.08</div>
+          <div class="epq-question">MCP 协议速查：Client/Server、Tools/Resources/Prompts、与 Function Calling 分工<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>MCP（Model Context Protocol）= AI 应用的「USB-C」：标准化工具/资源/Prompt 模板的发现与调用</li>
+            <li>角色：MCP Server 提供能力；MCP Client（Agent/IDE）消费；JSON-RPC 2.0；传输 stdio 或 Streamable HTTP</li>
+            <li>三类原语：Tools（可执行）、Resources（可读上下文）、Prompts（可复用模板）</li>
+            <li>与 Function Calling：FC 决定「模型如何发起调用」；MCP 决定「工具如何被组织与跨进程复用」</li>
+            <li>价值：M×N 集成降为 M+N；同一 Server 可被 Spring AI / Cursor / 多 Agent 复用。细节见 C12.07</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>为何需要</strong>：进程内 <code class="inline-code">@Tool</code> 绑定应用，难以跨团队复用与独立扩缩。MCP 把「查库存/写工单」做成独立 Server，Client 运行时发现并调用。</p>
+          <p><strong>安全边界</strong>：Server 侧鉴权、工具白名单、高危确认；Client 侧限制可连接 Server 集合；审计记录 tool 名与参数摘要。勿把 MCP 当免鉴权内网 RPC。</p>
+          <p><strong>与 Agent 组合</strong>：Agent 护栏仍在 Client/编排层；MCP 只解决供给标准化。生产需同时有：发现、版本兼容、超时、幂等、可观测（span 打 tool 名）。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>本地开发用 stdio 子进程 Server；多租户/共享用 HTTP。工具 schema 变更走兼容策略（加可选字段优先）。Spring AI 作 MCP Client 时，把远程 Tools 映射进 ChatClient 工具集，仍套 E04.07 护栏。</p>
+          <p><strong>发现与版本</strong>：生产用目录/注册中心暴露 Server 清单与版本区间；Client 声明可消费范围。破坏性变更用新 tool 名并行双跑一个弃用窗口，避免全链路解析失败。</p>
+          <p><strong>Collector 式拓扑心智</strong>（对照可观测）：边车/网关可做 MCP 入口鉴权与配额，业务 Server 只暴露工具；超时、并发上限、租户 ACL 放在入口，避免每个 Server 重复造轮子。细节见 C12.07 / S12.08。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 有了 MCP 还要不要进程内 Tool？</span><span class="a">A: 要。低延迟/强事务本地工具可进程内；跨团队复用、多运行时共享走 MCP。</span></li>
+            <li><span class="q">Q: MCP 能否保证 Exactly-Once？</span><span class="a">A: 不能。协议层是调用通道；业务 Exactly-Once 靠工具幂等与编排层去重（同 E04.07）。</span></li>
+            <li><span class="q">Q: stdio 与 HTTP 怎么选？</span><span class="a">A: 本地 IDE/单机用 stdio；多租户、跨主机、需鉴权审计用 Streamable HTTP。</span></li>
+            <li><span class="q">Q: 工具 schema 加字段会不会炸 Client？</span><span class="a">A: 只增可选字段通常兼容；删改必填或改语义必须新版本/新名 + 弃用窗口。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">MCP</span>
+          <span class="epq-tag">Tool</span>
+          <span class="epq-tag">Agent</span>
+          <span class="epq-tag">协议</span>
         </div>
       </div>
 
@@ -1994,7 +2107,7 @@
             <li>释放时向所有节点发送 DEL</li>
           </ol>
           <p>Martin Kleppmann 的质疑核心：RedLock 依赖系统时钟，若某节点时钟向前跳跃（如 NTP 同步），锁可能提前过期；且网络延迟可能导致客户端 A 在节点 1 获取锁后过期，客户端 B 在节点 1 获取新锁，但客户端 A 仍认为持有其他节点的锁。</p>
-          <p>实际生产中，Redis 主从异步复制场景下，主节点宕机可能丢失锁数据，从节点晋升后主后，其他客户端可再次获取同一锁。Redisson 的 RedLock 实现会等待所有节点加锁成功，但仍受时钟和网络影响。</p>
+          <p>实际生产中，Redis 主从异步复制场景下，主节点宕机可能丢失锁数据，从节点晋升为主后，其他客户端可再次获取同一锁。antirez 的 RedLock 与 Redisson 历史封装 <code class="inline-code">RedissonRedLock</code> 的获锁条件都是<strong>过半节点成功（N/2+1）</strong>，不是「等全部节点加锁成功」；释放时再向全部节点尝试 DEL。即便多数派成功，仍受时钟漂移、GC pause 与网络延迟影响（Kleppmann 批判）。较新 Redisson 版本已将 RedLock 封装标为废弃，需按所用版本核对；正确性敏感场景优先 ZooKeeper/etcd + fencing token，可容忍极端失效则用单实例 Redisson 看门狗 + 业务幂等兜底。</p>
         </div>
 
         <div class="callout callout-tip">
@@ -2555,6 +2668,58 @@
 
 
 
+
+      <!-- ============================== -->
+      <!-- E07.10 Outbox / CDC 速查 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E07.10" data-difficulty="architect" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E07.10</div>
+          <div class="epq-question">Outbox / CDC 端到端速查：本地事务同库落箱、Debezium 捕获、投递幂等与对账<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>问题：业务写库与发 MQ 非原子 → 丢消息或重复；Outbox 把「事件」写入同库同事务</li>
+            <li>链路：业务表 + outbox 同事务提交 → CDC（Debezium/Canal）读 binlog/redo → MQ → 消费者幂等</li>
+            <li>与 2PC/Seata：Outbox 是最终一致；强一致短事务仍看 AT/TCC（E07.05/09）</li>
+            <li>幂等：业务键 / Idempotency-Key；Outbox 去重靠主键或 (aggregate_id, event_id)</li>
+            <li>真源互补：深挖见 <a href="chapter-09-distributed-systems.html#C09.16">C09.16</a>；微服务一致性见 <a href="chapter-10-microservice-cloud.html#C10.11">C10.11</a></li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>为何 Outbox</strong>：先发 MQ 再写库可能「消息有、库无」；先写库再发 MQ 可能「库有、消息无」。同事务写入 outbox 表，把可靠投递交给 CDC/轮询，业务代码只保证本地 ACID。</p>
+          <p><strong>CDC vs 轮询</strong>：轮询简单但延迟与负载高；Debezium 读日志近实时、对业务表无侵入。Canal 偏 MySQL 生态；跨库/PG 优先 Debezium。</p>
+          <p><strong>至少一次语义</strong>：CDC/MQ 默认至少一次 → 消费者必须幂等；Outbox 行可用 processed 标记或删行，防重复投递风暴。</p>
+          <p><strong>对账</strong>：业务表计数 vs outbox 已投递 vs MQ 消费水位；缺口告警 + 补投工具。勿假设「CDC 永远不丢」。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>outbox 字段建议：id、aggregate_type/id、event_type、payload、created_at、status。大 payload 可外置对象存储只存指针。分区/归档按时间切表。与 Saga 编排：Outbox 发「领域事件」，编排器消费推进状态机。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: Outbox 和本地消息表是一回事吗？</span><span class="a">A: 同源思想。本地消息表常靠应用轮询；现代多指同库落箱 + CDC 外发。</span></li>
+            <li><span class="q">Q: 为何不直接双写 MQ？</span><span class="a">A: 跨资源无共享事务；双写必有窗口期不一致。</span></li>
+            <li><span class="q">Q: CDC 延迟抖动怎么治？</span><span class="a">A: 监控 replication lag；热点大事务拆小；Connector 并行度与 topic 分区对齐。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">Outbox</span>
+          <span class="epq-tag">CDC</span>
+          <span class="epq-tag">Debezium</span>
+          <span class="epq-tag">最终一致</span>
+        </div>
+      </div>
+
+
       <!-- ============================== -->
       <!-- E08.01 Kafka 高性能 -->
       <!-- ============================== -->
@@ -2707,6 +2872,58 @@
         </div>
       </div>
 
+
+
+
+      <!-- ============================== -->
+      <!-- E08.04 Streams / Flink 速查 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E08.04" data-difficulty="architect" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E08.04</div>
+          <div class="epq-question">流处理速查：Kafka Streams vs Flink、状态后端、Watermark 与端到端 Exactly-Once<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>定位：Kafka Streams = 轻量库内嵌应用；Flink = 独立集群、复杂窗口/CEP/大状态</li>
+            <li>状态：本地 RocksDB + changelog topic（Streams）/ Checkpoint+Savepoint（Flink）</li>
+            <li>时间：事件时间 + Watermark；乱序靠允许延迟，迟到数据侧输出或丢弃策略</li>
+            <li>EOS：Kafka 事务 / Flink two-phase commit sink；端到端需源+算子+汇全链路配合</li>
+            <li>深挖：<a href="chapter-11-middleware-engineering.html#C11.24">C11.24</a> / <a href="chapter-11-middleware-engineering.html#C11.25">C11.25</a>；CEP 场景 <a href="chapter-questions-scenario.html#S11.03">S11.03</a></li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>选型一句</strong>：同 Kafka 生态、状态可控、运维想省 → Streams；要窗口复杂、反压成熟、Savepoint 运维、多源汇 → Flink。</p>
+          <p><strong>Watermark</strong>：声明「该时间之前的数据基本到齐」。水位推进太激进丢迟到；太保守窗口关不掉、状态膨胀。</p>
+          <p><strong>Exactly-Once 边界</strong>：框架 EOS ≠ 业务幂等。外部副作用（HTTP/邮件）仍要业务键去重。Kafka→Kafka 路径 EOS 最完整。</p>
+          <p><strong>背压</strong>：Flink 信用反压；Streams 主要靠消费线程阻塞。生产必看 checkpoint 时长与 state 大小。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>状态 TTL 与窗口对齐，防无限增长。Changelog/Checkpoint 存储与 Kafka 同可用区。变更拓扑用版本化应用 ID / Savepoint 兼容策略。指标：消费 lag、checkpoint duration、numLateRecords。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 为什么处理时间不够？</span><span class="a">A: 乱序与延迟下窗口结果不稳定；事件时间+Watermark 才可复现。</span></li>
+            <li><span class="q">Q: Streams 能替代 Flink 吗？</span><span class="a">A: 简单聚合/连接可以；复杂 CEP、超大状态、多引擎编排通常不行。</span></li>
+            <li><span class="q">Q: EOS 失败最常见原因？</span><span class="a">A: sink 非事务/非幂等、跨系统双写、checkpoint 超时导致重复。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">Kafka Streams</span>
+          <span class="epq-tag">Flink</span>
+          <span class="epq-tag">Watermark</span>
+          <span class="epq-tag">Exactly-Once</span>
+        </div>
+      </div>
 
 
       <!-- ============================== -->
@@ -3182,6 +3399,120 @@
       </div>
 
       <!-- ============================== -->
+      <!-- E11.04 OpenTelemetry -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E11.04" data-difficulty="architect" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E11.04</div>
+          <div class="epq-question">OpenTelemetry 三支柱与采样：Traces/Metrics/Logs 关联、W3C 传播、Collector 与尾部采样<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>三支柱：Traces（调用链）、Metrics（聚合数值）、Logs（事件文本）；OTel 用同一 Context 关联</li>
+            <li>传播：W3C <code class="inline-code">traceparent</code>；Java Agent 无侵入 + 边界补全（线程池/MQ 头/定时任务重建根）</li>
+            <li>管道：SDK/Agent → OTLP → Collector（批处理/尾采样/导出）→ 后端（Tempo/Jaeger/ClickHouse…）</li>
+            <li>采样：头部采样控成本；尾部采样保错误/慢请求；关键链路可全量</li>
+            <li>与 E11.03 分工：Prometheus 偏指标拉模式；本卡偏标准可观测协议与 Trace 关联。落地互链 C11.09、C10.22</li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>为何 OTel</strong>：厂商 API 锁定（OpenTracing/OpenCensus 分裂）→ OTel 统一语义约定与 SDK，后端可换。</p>
+          <p><strong>Trace 模型</strong>：Trace = Span 树；Span 含属性、事件、状态。跨服务靠 context propagation；异步必须显式传递，否则断链。</p>
+          <p><strong>采样策略</strong>：① Head：入口决定，简单但可能漏异常慢请求；② Tail：先收全再判，保 SLO 违约样本，Collector 内存/缓冲成本更高；③ 混合：默认 5%–10% + 错误/高延迟强制保留。</p>
+          <p><strong>Logs 关联</strong>：日志注入 trace_id/span_id；禁止把高基数业务 ID 当 metric label（基数爆炸）。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>Java 优先 OpenTelemetry Java Agent；Spring Boot 3 用 Micrometer Tracing 桥接。网关校验/重建非法 traceparent。Collector 做敏感属性脱敏与导出限流。黄金信号（延迟/流量/错误/饱和）告警，避免 CPU 抖动直告。</p>
+          <p><strong>采样默认表（跨卡真源）</strong>：</p>
+          <table class="compare-table">
+            <thead><tr><th>场景</th><th>头部采样</th><th>尾部/强制保留</th></tr></thead>
+            <tbody>
+              <tr><td>稳定生产</td><td>约 1%</td><td>错误 + 慢请求（如 &gt;SLO）全留</td></tr>
+              <tr><td>灰度/排障窗口</td><td>约 10%</td><td>同上，可临时提高</td></tr>
+              <tr><td>压测/演练</td><td>可达 100%</td><td>注意存储与 Collector 容量</td></tr>
+            </tbody>
+          </table>
+          <p>S08.06/07/08、C10.22 表述以本表为准。勿把「默认 5%～10%」与「稳定期 1%」混为一谈——前者多为排障窗口口径。</p>
+          <p><strong>Collector 拓扑一句</strong>：边缘 Daemon/Sidecar 收 OTLP → 中心 Collector 批处理/尾采样/脱敏 → 多后端；业务禁止直写 Tempo/ES（见 S08.08）。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: 有了 Prometheus 为何还要 OTel Trace？</span><span class="a">A: Metrics 回答「坏了多少」；Trace 回答「哪一跳坏了」。二者互补，OTel 可同时导出。</span></li>
+            <li><span class="q">Q: 线程池为何丢 Trace？</span><span class="a">A: Context 在 ThreadLocal；提交任务需包装（TaskDecorator / Context.wrap），否则子线程无 parent span。</span></li>
+            <li><span class="q">Q: 尾部采样一定优于头部？</span><span class="a">A: 否。尾部更准但贵；流量极大时用分层：入口粗采样 + 错误全保留。</span></li>
+            <li><span class="q">Q: 稳定期为什么推荐 ~1% 而不是 10%？</span><span class="a">A: 成本与基数；错误/慢请求靠尾部强制保留补齐，不必用高头部采样换「安全感」。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">OpenTelemetry</span>
+          <span class="epq-tag">Tracing</span>
+          <span class="epq-tag">采样</span>
+          <span class="epq-tag">可观测</span>
+        </div>
+      </div>
+
+
+      <!-- ============================== -->
+      <!-- E11.05 FinOps 速查 -->
+      <!-- ============================== -->
+      <div class="qa-card epq-card" id="E11.05" data-difficulty="architect" data-priority="p1">
+        <div class="epq-header">
+          <div class="epq-badge">E11.05</div>
+          <div class="epq-question">FinOps 原理速查：计量归因、单位成本、预算告警与工程杠杆<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">核心要点</div>
+          <ul class="epq-kp-list">
+            <li>FinOps = 云/AI 成本的工程化治理：可见 → 归因 → 优化 → 运营闭环</li>
+            <li>计量：资源（CPU/GPU/存储/egress）+ 业务标签（租户/产品/环境）；LLM 另计 Token</li>
+            <li>单位成本：¥/请求、¥/千 Token、¥/活跃用户；只看账单总额无法决策</li>
+            <li>杠杆：权利化（预留/Spot）、架构（缓存/批量化）、产品（配额/降级）</li>
+            <li>互补：中间件成本卡 <a href="chapter-11-middleware-engineering.html#C11.20">C11.20</a>；场景 <a href="chapter-questions-scenario.html#S11.06">S11.06</a></li>
+          </ul>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">详细解答</div>
+          <p><strong>为何要原理卡</strong>：篇章讲中间件账单与优化清单；本卡固化「标签体系 + 单位经济学 + 告警闭环」心智，避免只背省钱技巧。</p>
+          <p><strong>归因模型</strong>：云账单 → 命名空间/标签 → 服务 → 业务线。缺标签即「无主成本」。K8s 用 namespace+label；LLM 网关必须打 business/tenant/model。</p>
+          <p><strong>优化顺序</strong>：先砍浪费（闲置、过量 limits、未关环境）→ 再架构（缓存、异步、分级模型）→ 最后商务（预留折扣）。</p>
+          <p><strong>与 SLO</strong>：成本优化不得默默伤延迟/可用性；变更带质量回归与回滚（见 S11.06）。</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-title">工程实践</div>
+          <p>日预算阈值 + 异常检测（环比/同比）；Token 限流与 QPS 限流并列。看板最小集：总花费、Top 服务、单位成本趋势、闲置资源清单。GPU/大模型单独账本。</p>
+        </div>
+
+        <div class="epq-section">
+          <div class="epq-section-title">高频追问</div>
+          <ul class="epq-fu-list">
+            <li><span class="q">Q: FinOps 是财务还是研发的事？</span><span class="a">A: 共建。财务定预算；工程负责标签、计量与可回滚优化。</span></li>
+            <li><span class="q">Q: 为什么单位成本比总额重要？</span><span class="a">A: 业务增长时总额上升正常；单位成本恶化才是效率问题。</span></li>
+            <li><span class="q">Q: 先砍机器还是先砍 LLM？</span><span class="a">A: 看占比与弹性。LLM 常「陡峭且可路由」；闲置集群是「白扔」优先砍。</span></li>
+          </ul>
+        </div>
+
+        <div class="epq-tags">
+          <span class="epq-tag">FinOps</span>
+          <span class="epq-tag">成本归因</span>
+          <span class="epq-tag">单位成本</span>
+          <span class="epq-tag">Token</span>
+        </div>
+      </div>
+
+
+      <!-- ============================== -->
       <!-- E12.01 Java 常用数据结构选型 -->
       <!-- ============================== -->
       <div class="qa-card epq-card" id="E12.01" data-difficulty="senior" data-priority="p0">
@@ -3246,7 +3577,7 @@
             <li>平衡树：AVL 严格平衡（旋转多）、红黑树近似平衡（旋转少、最多 2log(n+1)），删除场景红黑树更优</li>
             <li>B 树：多路平衡树，节点多个键和子树，同一节点存数据，减少磁盘 IO 次数（层级低）</li>
             <li>B+ 树：内节点只存键做路由，数据全在叶子；叶子间以链表相连支持范围扫描</li>
-            <li>MySQL InnoDB 聚簇索引用 B+ 树：扇出大 → 高度低（千万行仅 3~4 层）→ 每次查询磁盘 IO 极少；叶子有序支持高效范围查询与排序</li>
+            <li>MySQL InnoDB 聚簇索引用 B+ 树：扇出大、高度低、叶子链表利范围扫——<strong>引擎侧细节与回表/覆盖索引见 E05.01</strong>，本卡只保留选型对比，避免与 E05 重复展开</li>
           </ul>
         </div>
 
@@ -3377,10 +3708,10 @@
       <!-- ============================== -->
       <!-- E12.05 排序算法与 Java 选用 -->
       <!-- ============================== -->
-      <div class="qa-card epq-card" id="E12.05" data-difficulty="senior" data-priority="p0">
+      <div class="qa-card epq-card" id="E12.05" data-difficulty="senior" data-priority="p2">
         <div class="epq-header">
           <div class="epq-badge">E12.05</div>
-          <div class="epq-question">排序算法：复杂度 / 稳定性、快排 / 归并 / 堆排，Java 排序的选用<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+          <div class="epq-question">排序算法：复杂度 / 稳定性、快排 / 归并 / 堆排，Java 排序的选用<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
         </div>
 
         <div class="epq-section">

@@ -895,7 +895,7 @@ flowchart LR
             <p><strong>数据面 vs 控制面</strong>：</p>
             <ul>
               <li><strong>数据面（Envoy）</strong>：转发流量、执行治理策略。每个 Pod 一个，无状态。</li>
-              <li><strong>控制面（Istiod）</strong>：Pilot（服务发现 + 路由规则下发）、Citadel（证书与 mTLS）、Galley（配置校验）。Istiod 从 K8s API Server、Consul、Nacos 订阅服务端点，<strong>经 xDS 协议下发配置到 Envoy</strong>。</li>
+              <li><strong>控制面（Istiod，一体化）</strong>：现代 Istio 以 <strong>Istiod</strong> 单体承载发现、证书、配置校验与 xDS 下发；文献中的 Pilot/Citadel/Galley 是历史组件拆分叙事，生产按 Istiod 理解即可。Istiod 从 K8s API Server（及 Consul/Nacos 等）订阅端点，<strong>经 xDS 下发到数据面</strong>。</li>
             </ul>
 
             <p><strong>xDS 协议</strong>：Envoy 的动态配置 API——EDS（端点发现）、CDS（集群发现）、RDS（路由发现）、LDS（监听发现）。Istiod 推送配置，Envoy 热更新无需重启，实现<strong>动态路由与流量治理</strong>。</p>
@@ -998,6 +998,7 @@ spec:
           <div class="qa-layer-body">
             <p><strong>追问 1：Sidecar 的性能开销有多大？如何优化？</strong></p>
             <p>每个 Pod 多一个 Envoy 容器（内存几十~百 MB，CPU 占用），且流量多一跳（应用→Sidecar→网络→对端 Sidecar→对端应用），延迟增加约 1-3ms。<strong>Ambient Mesh</strong> 去掉每 Pod Sidecar，改用节点级 ztunnel（L4）+ 按需 waypoint（L7），资源开销降一个数量级；eBPF 在内核态处理进一步降延迟。资源规划上 Sidecar 通常占 Pod 总资源 20-30%。</p>
+            <p><strong>Ambient 落地要点（实践）</strong>：① 命名空间打标启用 Ambient（如 <code class="inline-code">istio.io/dataplane-mode=ambient</code>，以所用 Istio 版本文档为准）；② <strong>ztunnel</strong> 以 DaemonSet 跑在节点，负责 L4 安全与 HBONE；③ 需要 L7 策略（HTTP 路由/鉴权/遥测细粒度）时再为服务挂 <strong>waypoint</strong> proxy，按需付费而非全量 Sidecar；④ 从 Sidecar 迁 Ambient 要验证 mTLS、AuthorizationPolicy 与现有 VirtualService 行为，灰度命名空间推进。新集群优先评估 Ambient；存量 Sidecar 可并存过渡。</p>
             <p><strong>追问 2：Service Mesh 会不会取代微服务框架（Spring Cloud）？</strong></p>
             <p>治理层（注册发现/熔断/限流/追踪）会被 Mesh 取代，但<strong>业务层框架（Spring Boot 的 Web/ORM/事务）不会被取代</strong>。未来趋势是 Spring Boot 只管业务，治理全交 Mesh。Dubbo 3 也支持与 Mesh 协同（Triple 协议 + 控制面对接）。</p>
           </div>
@@ -1480,10 +1481,10 @@ spring:
       <!-- ============================================================ -->
       <!-- C10.09 灰度发布与蓝绿部署如何设计？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C10.09" data-difficulty="architect" data-priority="p2">
+      <div class="qa-card" id="C10.09" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C10.09</div>
-          <div class="qa-question">灰度发布与蓝绿部署如何设计？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">灰度发布与蓝绿部署如何设计？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -1751,6 +1752,7 @@ flowchart LR
             <p><strong>SAGA（1987，2015 微服务复兴）</strong>：将长事务拆为多个本地事务，每个有对应的补偿操作。正向成功则完成，某步失败则按相反顺序执行补偿。适合业务流程长、需人工介入的场景（如电商下单→支付→发货）。</p>
             <p><strong>Seata AT 模式（阿里，2019）</strong>：对业务零侵入，代理数据源，解析 SQL 生成反向 SQL（undo_log），失败时自动回滚。像"自动化 TCC"，但存在脏读风险（需全局锁）。</p>
             <p><strong>可靠消息最终一致</strong>：本地事务 + 发送消息（事务消息或本地消息表），消费者幂等处理。性能最好、最常用，但只保证最终一致。</p>
+            <p><strong>Transactional Outbox + CDC（2020s 主流）</strong>：业务事务同库写入 <code class="inline-code">outbox</code> 事件表，由 Debezium/Canal 等 CDC 捕获 binlog 投递到 MQ，避免“先发消息后写库/先写库后发消息”双写裂脑。相对手写本地消息表轮询，延迟更低、漏发更少。深度选型、幂等与乱序见 <a href="chapter-09-distributed-systems.html#C09.16">C09.16</a>；本卡微服务一致性选型中，Outbox+CDC 应视为可靠消息族的<strong>默认现代形态</strong>。</p>
           </div>
         </div>
 
@@ -1767,7 +1769,7 @@ flowchart LR
               <li><strong>编排式（Orchestration）</strong>：由中央协调器（Saga Orchestrator）统一调度各步骤。易追踪、易控制，但协调器成为单点。</li>
             </ul>
 
-            <p><strong>可靠消息模式</strong>：RocketMQ 事务消息——半消息 → 本地事务执行 → 根据本地事务结果 commit/rollback 半消息。消费者幂等消费。或"本地消息表"：业务表同级插入消息记录，定时任务扫描补发。</p>
+            <p><strong>可靠消息模式</strong>：① RocketMQ 事务消息——半消息 → 本地事务 → commit/rollback 半消息；② 本地消息表轮询补发；③ <strong>Outbox + CDC</strong>（同库 outbox + Debezium/Canal → MQ，见 <a href="chapter-09-distributed-systems.html#C09.16">C09.16</a>）。三者都要求消费者幂等；新系统优先评估 Outbox+CDC，避免自研轮询补洞。</p>
           </div>
         </div>
 
@@ -1781,11 +1783,11 @@ flowchart LR
                 <tr><td>Seata AT</td><td>最终一致（全局锁防脏写）</td><td>低（代理数据源）</td><td>中</td><td>简单 CRUD 场景</td></tr>
                 <tr><td>TCC</td><td>强一致</td><td>高（三接口）</td><td>高</td><td>高并发、复杂资源预留</td></tr>
                 <tr><td>SAGA</td><td>最终一致</td><td>中（补偿接口）</td><td>高</td><td>长事务、业务流程</td></tr>
-                <tr><td>可靠消息</td><td>最终一致</td><td>低</td><td>极高</td><td>通用首选</td></tr>
+                <tr><td>可靠消息 / Outbox+CDC</td><td>最终一致</td><td>低</td><td>极高</td><td>通用首选（Outbox 见 C09.16）</td></tr>
               </tbody>
             </table>
 
-            <p><strong>落地建议</strong>：① <strong>默认用最终一致</strong>：本地事务 + 消息通知，消费者幂等；② <strong>必须强一致时用 TCC</strong>（高性能）或 XA（简单）；AT 提供最终一致，适合低并发最终一致场景；③ <strong>长流程用 SAGA</strong>（如审批、物流）；④ <strong>所有补偿/消费接口必须幂等</strong>；⑤ <strong>建立对账机制</strong>：日终比对各服务数据，发现不一致人工/自动修复。</p>
+            <p><strong>落地建议</strong>：① <strong>默认用最终一致</strong>：优先 Outbox+CDC 或事务消息，消费者幂等；② <strong>必须强一致时用 TCC</strong>（高性能）或 XA（简单）；AT 提供最终一致，适合低并发最终一致场景；③ <strong>长流程用 SAGA</strong>（如审批、物流）；④ <strong>所有补偿/消费接口必须幂等</strong>；⑤ <strong>建立对账机制</strong>：日终比对各服务数据，发现不一致人工/自动修复。</p>
 
             <div class="callout callout-tip">
               <div class="callout-title">设计原则</div>
@@ -2148,10 +2150,10 @@ flowchart LR
       <!-- ============================================================ -->
       <!-- C10.15 可观测性三大支柱与工程实践 -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C10.15" data-difficulty="expert" data-priority="p2">
+      <div class="qa-card" id="C10.15" data-difficulty="expert" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C10.15</div>
-          <div class="qa-question">可观测性三大支柱与工程实践？<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">可观测性三大支柱与工程实践？<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -2384,10 +2386,10 @@ flowchart LR
       <!-- ============================================================ -->
       <!-- C10.17 SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C10.17" data-difficulty="architect" data-priority="p2">
+      <div class="qa-card" id="C10.17" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C10.17</div>
-          <div class="qa-question">SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -3997,6 +3999,13 @@ flowchart TD
           </div>
         </div>
 
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p>配置热更新从「重启生效」→ <code class="inline-code">@RefreshScope</code> 代理重建 → 配置中心 rebind（Nacos 对 <code class="inline-code">@ConfigurationProperties</code>）→ 事件监听手动托管资源生命周期。演进方向是<strong>少代理、可控销毁</strong>，避免把业务 Bean 塞进 RefreshScope。</p>
+          </div>
+        </div>
+
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">第一性原理：9 大生产坑与根因</div>
           <div class="qa-layer-body">
@@ -4118,7 +4127,7 @@ flowchart TD
         </div>
       </div>
 
-      <div class="qa-card" id="C10.27" data-difficulty="architect" data-priority="p1">
+      <div class="qa-card"id="C10.27" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C10.27</div>
           <div class="qa-question">配置中心 / 注册中心的推送范式全景：通知+二次拉取 vs Watch 直推 vs 纯 Pull？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
@@ -4129,6 +4138,13 @@ flowchart TD
             <p>客户端如何"及时拿到"配置 / 服务实例变更，是配置中心（Nacos/Apollo）与注册中心（Nacos/Eureka/ZK/Etcd/Consul）的核心差异点。常要求横向对比"推送机制"，本质是对三种数据同步范式的取舍。</p>
           </div>
         </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p>配置/注册变更感知：定时全量 Pull → 通知+二次拉取（Nacos/Apollo 常见）→ Watch/长轮询 → 纯事件流。选型看一致性窗口、连接数与防火墙，而非只比“推/拉”口号。</p>
+          </div>
+        </div>
+
         <div class="qa-layer" data-layer="principle">
           <div class="qa-layer-title">三种推送范式</div>
           <div class="qa-layer-body">

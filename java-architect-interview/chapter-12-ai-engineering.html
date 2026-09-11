@@ -46,6 +46,7 @@
         <li><a href="#C12.29"><span class="toc-number">C12.29</span>LLM 评测集构建与 CI 质量卡门</a></li>
         <li><a href="#C12.30"><span class="toc-number">C12.30</span>模型版本灰度发布与 A/B 实验</a></li>
         <li><a href="#C12.31"><span class="toc-number">C12.31</span>长记忆/会话存储与隐私合规</a></li>
+<li><a href="#C12.32"><span class="toc-number">C12.32</span>工具合约：副作用/错误/幂等/版本</a></li>
       </ol>
     </aside>
 
@@ -65,15 +66,15 @@
         <h1 class="chapter-title">AI 工程与实践</h1>
         <p class="chapter-subtitle">Spring 生态从 Web 到 AI 应用的演进、关键词→语义→RAG→Agentic RAG 的检索演进、Prompt→Few-shot→CoT→ReAct→Agent 的推理演进、单次调用→Function Calling→Agent→Multi-Agent 的自主性演进、GPT-4→Claude→开源→多模型路由的选型演进、单模态→多模态→具身智能的形态演进：直击 Spring AI 架构、RAG 七环节优化、HNSW/IVF 向量索引、分块策略、ReAct/Plan-and-Execute、MCP 协议、RAGAS 评估、语义缓存、多模态融合</p>
         <div class="chapter-meta">
-          <span>题目数：31</span>
+          <span>题目数：32</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×1</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×18</span>
+          <span>架构级 ×19</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×12</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：560 分钟</span>
+          <span>预计复习：580 分钟</span>
         </div>
       </div>
 
@@ -1154,6 +1155,7 @@ flowchart TB
               <li><strong>三大原语</strong>：<strong>Tools</strong>（可执行函数，如查库存）、<strong>Resources</strong>（可读数据，如文件/数据库）、<strong>Prompts</strong>（可复用 Prompt 模板）。</li>
               <li><strong>架构</strong>：MCP Server（工具提供方，独立进程）↔ MCP Client（Agent/IDE，如 Claude Desktop/Cursor）经 JSON-RPC 2.0 通信。一个 Client 可连多个 Server，一个 Server 可被多个 Client 复用。传输层支持 stdio（本地子进程）与 Streamable HTTP（远程/多 Client 共享）两种，二者均基于 JSON-RPC 2.0，Client 与 Server 解耦于具体传输方式。</li>
               <li><strong>价值</strong>：工具<strong>一次封装到处可用</strong>——同一个"查库存"MCP Server，Claude/Cursor/Spring AI Agent 都能调，无需重复集成。</li>
+              <li><strong>生产鉴权与治理（必补）</strong>：远程 MCP（Streamable HTTP）须鉴权——OAuth2/OIDC 或 mTLS，禁止“内网裸奔 JSON-RPC”；按工具声明 <code class="inline-code">risk_level</code> / ACL（租户、角色、只读 vs 写/资金类）；短时会话与凭证轮换；调用全链路审计（谁、调了什么、参数摘要、结果码）。进程内 stdio 也要防“Agent 进程被劫持=工具全集沦陷”。细节与副作用分级见 <a href="#C12.32">C12.32</a>、<a href="#C12.23">C12.23</a>。</li>
             </ul>
 
             <div class="mermaid-container">
@@ -2142,10 +2144,10 @@ flowchart LR
       <!-- ============================================================ -->
       <!-- C12.14 LangGraph4j StateGraph 图编排与 MultiAgent？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C12.14" data-difficulty="expert" data-priority="p2">
+      <div class="qa-card" id="C12.14" data-difficulty="expert" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C12.14</div>
-          <div class="qa-question">LangGraph4j StateGraph 图编排与 MultiAgent？<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">LangGraph4j StateGraph 图编排与 MultiAgent？<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -4572,6 +4574,94 @@ flowchart LR
                 <li><strong>删除权有残留</strong>：删除用户时只删主表，向量/日志/备份残留。需全链路清除。</li>
                 <li><strong>跨境用境外模型</strong>：金融/政务数据出境违规。敏感场景走国产模型/本地部署。</li>
                 <li><strong>长期记忆全量注入</strong>：记忆膨胀后全量塞 prompt，token 爆炸且陈旧记忆干扰。需检索注入 + 衰减。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C12.32 工具合约：副作用分级 / 错误 taxonomy / 幂等作用域 / 版本兼容 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C12.32" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C12.32</div>
+          <div class="qa-question">工具合约如何成为一等公民：副作用分级、错误 taxonomy、幂等作用域与版本兼容？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察把「工具」从散落的 <code class="inline-code">@Tool</code> 方法升维为<strong>可评审、可演进、可观测的合约</strong>。C12.06 讲如何让模型发起调用，C12.23/E04.07/S12.08 讲运行时护栏与生产化；本题回答：合约里必须写清什么——副作用等级、错误语义、幂等边界、schema 版本——否则护栏只能事后救火。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>进程内函数</strong>（描述字符串 + 反射）→ <strong>Function Calling JSON schema</strong>（参数类型约束）→ <strong>MCP Tools</strong>（跨进程发现）→ <strong>工具合约</strong>（副作用/错误/幂等/版本成为发布物）。驱动因素：Agent 自主重试会放大副作用；多团队共用 MCP Server 必须有兼容策略；审计与 FinOps 需要稳定工具身份，而非临时方法名。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p>合约 = <strong>能力声明 + 安全语义 + 演进规则</strong>。能力声明（name/description/params）决定模型能否选对工具；安全语义（副作用、错误、幂等）决定失败时系统该重试还是熔断；演进规则决定跨版本 Client/Server 是否共存。缺任一维，都会在生产表现为「偶发资损」或「升级即全挂」。</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>必须写清</th><th>典型失败若缺失</th></tr></thead>
+              <tbody>
+                <tr><td>副作用分级</td><td>read / idempotent-write / non-idempotent / money</td><td>读工具当写工具重试 → 重复下单</td></tr>
+                <tr><td>错误 taxonomy</td><td>retryable / reparam / fatal / human</td><td>不可重试错误被 Agent 死循环</td></tr>
+                <tr><td>幂等作用域</td><td>intent-id 还是 args-hash</td><td>「再转一笔相同金额」被误去重</td></tr>
+                <tr><td>版本兼容</td><td>加可选字段优先、弃用窗口</td><td>MCP schema 变更导致全链路解析失败</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>1. 副作用分级（发布门禁）</strong>：read 默认可自动重试；idempotent-write 必须声明幂等键；non-idempotent/money 默认 HITL + 模拟预演。编排层按等级选护栏，而不是统一 max_steps。</p>
+            <p><strong>2. 错误 taxonomy</strong>：工具返回结构化错误码，禁止只抛异常打断循环。retryable（超时/429）→ 退避重试；reparam（参数非法）→ 回填 Observation 让模型改参；fatal（权限/资源不存在）→ 终止该支路；human → 转人工。与 C12.23 护栏互补：合约定义语义，护栏执行策略。</p>
+            <p><strong>3. 幂等作用域</strong>：键绑定<strong>业务意图 ID</strong>（request_id），不要只用金额+收款人等参数哈希。同意图内去重，不同意图独立。查询类可不强制；写类合约字段必填 <code class="inline-code">idempotency_key</code>。</p>
+            <p><strong>4. 版本兼容</strong>：工具名稳定；参数只增可选字段；破坏性变更用新 tool 名或 version 后缀并行双跑一个弃用窗口。MCP Server 发布走目录版本号，Client 声明可消费范围。</p>
+            <p><strong>5. 落地载体</strong>：进程内用注解/元数据（risk、errorCodes、idempotent）；跨进程写入 MCP tool descriptor 扩展字段；CI 校验「写工具无幂等键」「money 无 HITL」直接失败。互链 E04.07/E04.08、S12.08。</p>
+            <pre class="code-block"><code>// 工具合约元数据示意（发布物，而非仅运行时开关）
+@ToolContract(
+  name = "transfer",
+  sideEffect = SideEffect.MONEY,
+  idempotency = IdempotencyScope.INTENT,
+  errors = {ErrorClass.RETRYABLE, ErrorClass.REPARAM, ErrorClass.HUMAN},
+  version = "1.2.0"
+)
+public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }</code></pre>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：合约与运行时护栏谁先谁后？</strong></p>
+            <p>合约先定义「允许发生什么」；护栏执行「超出则终止」。没有合约的护栏只能靠通用步数熔断，误杀与漏杀都高。</p>
+            <p><strong>追问 2：为何不能把所有写操作都标成 money？</strong></p>
+            <p>分级过粗会导致人工确认爆炸、体验崩盘。应按真实资损面分级；可用「模拟+限额内自动」做中间档。</p>
+            <p><strong>追问 3：MCP 标准化后还要不要进程内合约？</strong></p>
+            <p>要。MCP 解决供给与发现；合约解决语义。本地 <code class="inline-code">@Tool</code> 与远程 MCP Tool 应共用同一套副作用/错误/幂等字段，避免双标准。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-danger">
+              <div class="callout-title">踩坑警告</div>
+              <ul>
+                <li><strong>只有 description 没有副作用字段</strong>：模型「会调」不等于系统「敢重试」。</li>
+                <li><strong>错误一律当字符串拼回 Prompt</strong>：无 taxonomy，Agent 无法选择策略。</li>
+                <li><strong>幂等键 = 参数哈希</strong>：合法的第二次同参意图被吞掉。</li>
+                <li><strong>schema 原地破坏性修改</strong>：旧 Client 全挂，缺少并行版本窗口。</li>
+                <li><strong>与 C12.23 重复只谈熔断</strong>：本题必须把合约当设计产物，而非再写一遍运行时应急。</li>
               </ul>
             </div>
           </div>

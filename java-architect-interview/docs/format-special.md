@@ -27,7 +27,7 @@
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
 - **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 75）。
-- **优先级**：**部分卡片（31/75）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 44 卡不带；不计入全站题目优先级口径（90/195/60 = 345）。
+- **优先级**：**部分卡片（31/75）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 44 卡不带；不计入全站题目优先级口径（92/209/58 = 359）。
 - **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签）；携带优先级的卡片另加 `priority-p*` 徽标。
 - **目录**：按模块（M01~M11）分组的多段侧边目录，各模块一组锚点 `M##.##`。
 - 单条新增规则：`id = M{模块}.{序}`；`insight → principle → application` 三层层序固定。
@@ -39,15 +39,15 @@
 
   ```
   ov-stats（两行统计；ov-stat-num 顶部 11 项 + 9 子组标题计数 = 全页 20 处）
-  ├─ ov-stats-row ① 题目总数 345 / P0 90 / P1 195 / P2 60
-  ├─ ov-stats-row ② 专家 44 / 架构 160 / 高级开发 141 / 章节题 220 / 核心原理 58 / 场景题 67 / 方法论 75
+  ├─ ov-stats-row ① 题目总数 359 / P0 93 / P1 211 / P2 55
+  ├─ ov-stats-row ② 专家 46 / 架构 172 / 高级开发 141 / 章节题 228 / 核心原理 61 / 场景题 70 / 方法论 75
   ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title
   │    └─ ov-group-body
   │         └─ ov-subgroup（子组 = 优先级 × 难度）×9
   │              ├─ ov-subgroup-title (+ ov-stat-num/ov-stat-label)
   │              └─ ov-items
-  │                   └─ ov-item ×345
+  │                   └─ ov-item ×359
   │                        ├─ ov-num        # 序号
   │                        ├─ ov-title      # 条目名
   │                        └─ ov-badges     # 难度 / 优先级徽标
@@ -57,7 +57,7 @@
 
 ## <a id="3"></a>3. 核心原理速查 chapter-questions-eight-part（epq 组件）
 
-- **定位**：核心原理速查手册，58 条目（`E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
+- **定位**：核心原理速查手册，61 条目（`E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
 - **TOC**：`toc-group`（分组）+ `toc-group-title` + `toc-number` 分层锚点。
 - **条目**：
 
@@ -74,11 +74,11 @@
   │    └─ epq-fu-list       延伸追问列表
   ```
 
-- 每条目携带难度 / 优先级徽标（`data-priority` p0 19 / p1 31 / p2 8 = 58 全覆盖）；内容内联代码 `inline-code`、变量 `var` 使用频繁。页面引入 `shared/js/` 需按需（本页通常含 echarts / 表格组件）。
+- 每条目携带难度 / 优先级徽标（`data-priority` p0 20 / p1 33 / p2 8 = 61 全覆盖）；内容内联代码 `inline-code`、变量 `var` 使用频繁。页面引入 `shared/js/` 需按需（本页通常含 echarts / 表格组件）。
 
 ## <a id="4"></a>4. 场景题 chapter-questions-scenario（S 系列场景卡片）
 
-- **定位**：场景设计题集，67 卡，ID 前缀 `S`（如 `S01.01`）。
+- **定位**：场景设计题集，70 卡，ID 前缀 `S`（如 `S01.01`）。
 - **卡片**：复用 `.qa-card` 外壳，但卡片内层为**场景专属序列**（非标准六层），顺序如下：
 
   | data-layer 对应 | 层标题 | 职责 |

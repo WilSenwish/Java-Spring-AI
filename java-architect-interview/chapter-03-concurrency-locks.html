@@ -290,19 +290,18 @@ sequenceDiagram
             <div class="mermaid-container">
               <div class="mermaid">
 graph TD
-    A[新建对象<br/>无锁 01] -->|首次加锁| B[偏向锁<br/>记录 threadId<br/>01 + biased=1]
-    B -->|同线程再次进入<br/>只需比较 threadId| B
-    B -->|另一线程竞争| C[撤销偏向<br/>升级为轻量级锁]
-    C --> D[轻量级锁<br/>CAS 把 Mark Word 复制到栈帧<br/>Lock Record 00]
-    D -->|CAS 成功| D
-    D -->|自旋失败/有竞争| E[重量级锁<br/>ObjectMonitor 10]
-    E -->|线程阻塞| F[内核态 park<br/>进入 EntryList 等待]
-    F -->|锁释放| G[唤醒 EntryList 线程]
-    style B fill:#dbeafe,stroke:#2563eb
+    A[新建对象<br/>无锁 01] -->|加锁 CAS| D[轻量级锁<br/>Lock Record 00]
+    D -->|CAS 成功 / 交替进入| D
+    D -->|自旋失败或真实竞争| E[重量级锁<br/>ObjectMonitor 10]
+    E -->|线程阻塞| F[内核态 park<br/>EntryList]
+    F -->|锁释放| G[唤醒等待线程]
+    A -.->|历史路径 JDK15 前<br/>已废弃 JEP 374| B[偏向锁 threadId]
+    B -.->|竞争撤销| D
     style D fill:#fef3c7,stroke:#d97706
     style E fill:#fee2e2,stroke:#dc2626
+    style B fill:#e5e7eb,stroke:#9ca3af,stroke-dasharray: 5 5
               </div>
-              <div class="chart-caption">图 3.2-1 synchronized 锁升级流程（含历史偏向锁路径；JDK 15 起偏向锁废弃 JEP 374，现升级路径为：无锁 → 轻量级锁 → 重量级锁）</div>
+              <div class="chart-caption">图 3.2-1 synchronized 现行升级路径：无锁 → 轻量级锁 → 重量级锁（虚线为 JDK 15 前偏向锁历史路径，JEP 374 已废弃）</div>
             </div>
 
             <p><strong>三级锁的核心机制</strong>：</p>
@@ -831,6 +830,24 @@ sequenceDiagram
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：虚拟线程时代的临界区再平衡</div>
+          <div class="qa-layer-body">
+            <p><strong>心智切换</strong>：平台线程时代「线程数 ≈ 并发度」；虚拟线程时代「载体线程数 ≈ CPU 并行度」，临界区过长会<strong>钉住载体</strong>（JDK 21–23 的 synchronized；任何版本的 native/JNI），把百万虚拟线程吞吐打回「核数级」。</p>
+            <p><strong>再平衡原则</strong>：① 临界区只保护共享可变状态，IO/远程调用移出锁外；② JDK 21–23 偏好短临界区 + <code class="inline-code">ReentrantLock</code>；JDK 24+（JEP 491）synchronized 主要 pinning 源消除，选型回归语义；③ 仍用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code> 验收（工具版本线见 <a href="chapter-04-threadpool-virtual-threads.html#C04.09">C04.09</a>）。</p>
+            <p><strong>容量公式（量化）</strong>：设载体并行度 <code class="inline-code">C ≈ CPU</code>，单请求在临界区内平均占用 <code class="inline-code">t_crit</code>，临界区外阻塞/计算 <code class="inline-code">t_out</code>。粗估：</p>
+            <ul>
+              <li>无 pinning 时吞吐 ≈ 受下游与业务逻辑限制，虚拟线程可高并发等待；</li>
+              <li>若临界区 pinning：有效并发 ≤ <code class="inline-code">C</code>，吞吐上限 ≈ <code class="inline-code">C / t_crit</code>（数量级）。例：C=16，t_crit=5ms → 上限约 3200 QPS，再多虚拟线程也救不了；</li>
+              <li>优化目标：把 t_crit 压到亚毫秒，或改为无共享可变（线程封闭/并发集合/分片）。</li>
+            </ul>
+            <div class="callout callout-tip">
+              <div class="callout-title">工程表达</div>
+              <p>沟通时先报「是否 pinning + 临界区耗时占比」，再谈锁类型。空谈「上了虚拟线程」而无临界区度量，是常见翻车点。互链 C03.05 / C04.09 / S06.01。</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================ -->
@@ -977,10 +994,10 @@ graph TB
       <!-- ============================================================ -->
       <!-- C03.07 Condition 条件变量与 LockSupport 如何实现等待/通知？ -->
       <!-- ============================================================ -->
-      <div class="qa-card" id="C03.07" data-difficulty="senior" data-priority="p0">
+      <div class="qa-card" id="C03.07" data-difficulty="senior" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C03.07</div>
-          <div class="qa-question">Condition 条件变量与 LockSupport 如何实现等待/通知？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+          <div class="qa-question">Condition 条件变量与 LockSupport 如何实现等待/通知？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">

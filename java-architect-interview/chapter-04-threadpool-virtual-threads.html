@@ -543,7 +543,7 @@ timeline
     JDK 7 : 2011 : ForkJoinPool : 工作窃取，分治任务模型
     JDK 8 : 2014 : CompletableFuture : 链式异步编排，回调组合
     JDK 21 : 2023 : Virtual Threads : 轻量级线程，同步写法异步性能
-    JDK 21+ Preview : Structured Concurrency : 父子任务生命周期绑定
+    JDK 21~26 Preview : Structured Concurrency : 父子任务生命周期绑定（至 JDK 26 仍未 GA）
               </div>
               <div class="chart-caption">图 4.4-1 Java 并发模型六代演进：从 OS 线程到结构化并发</div>
             </div>
@@ -554,7 +554,7 @@ timeline
               <li><strong>ForkJoinPool（JDK 7）</strong>：工作窃取提升 CPU 利用率，适合 CPU 密集分治，但仍是平台线程。</li>
               <li><strong>CompletableFuture（JDK 8）</strong>：异步回调组合，解决"IO 等待时线程浪费"，但回调地狱破坏可读性、异常处理复杂、调试困难。</li>
               <li><strong>Virtual Threads（JDK 21）</strong>：N:M 调度，JDK 调度器把虚拟线程挂载到少量载体线程，遇到可卸载阻塞点时 unmount 而非长期占用载体线程。<strong>用同步代码的写法获得异步的扩展性</strong>，是并发编程的"回归命令式"。</li>
-              <li><strong>Structured Concurrency（JDK 21+ Preview）</strong>：将并发任务组织成父子树，父任务等待所有子任务，错误与取消自动传播，解决"异步任务逃逸"的可观测性与正确性问题。</li>
+              <li><strong>Structured Concurrency（JDK 21+ Preview，截至 JDK 26 仍 Preview，与 C04.08 一致）</strong>：将并发任务组织成父子树，父任务等待所有子任务，错误与取消自动传播；需 <code class="inline-code">--enable-preview</code>，勿绑核心生产路径。</li>
             </ul>
           </div>
         </div>
@@ -1344,6 +1344,50 @@ flowchart TD
           </div>
         </div>
 
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展补全 · pinning / JEP 491 版本对照</div>
+          <div class="qa-layer-body">
+            <p>跨 C04 / E03 / C15 的统一对照（本表为准；速查见 E03.06，响应式边界见 C15）。核心结论：<strong>JDK 24+（JEP 491）消除几乎全部 synchronized pinning</strong>，native/FFI 钉住仍在；不要把「升级到 24」写成「彻底零 pinning」。</p>
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>JDK 21（LTS）</th>
+                  <th>JDK 24（JEP 491）</th>
+                  <th>JDK 25（LTS）</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>synchronized pinning</td>
+                  <td>块内 park/阻塞会钉住载体线程</td>
+                  <td>monitor 可虚拟化，几乎全部可卸载</td>
+                  <td>继承 24 行为，生产 LTS 首选升级目标</td>
+                </tr>
+                <tr>
+                  <td>native / FFM pinning</td>
+                  <td>存在（栈帧不可拷贝）</td>
+                  <td>仍存在，需隔离线程池</td>
+                  <td>仍存在，压测验证</td>
+                </tr>
+                <tr>
+                  <td>诊断</td>
+                  <td><code class="inline-code">-Djdk.tracePinnedThreads</code> + JFR <code class="inline-code">VirtualThreadPinned</code></td>
+                  <td>同左；钉住事件应显著下降（同步锁路径）</td>
+                  <td>同左；建立基线对比 21→25</td>
+                </tr>
+                <tr>
+                  <td>工程策略</td>
+                  <td>ReentrantLock 替 synchronized；native 提交专用池</td>
+                  <td>可保留 synchronized 语义，仍隔离 native</td>
+                  <td>新系统默认 25；存量 21 按 pinning 热点评估升级</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>互链：原理速查 <a href="chapter-questions-eight-part.html#E03.06"><strong>E03.06</strong></a>（排查）/ <a href="chapter-questions-eight-part.html#E03.07"><strong>E03.07</strong></a>（锁与 JEP 491）；响应式边界见 <a href="chapter-15-reactive.html#C15.05"><strong>C15.05</strong></a>，讨论 VT 与阻塞模型时以本表为准，避免三处表述漂移。</p>
+          </div>
+        </div>
         <div class="qa-layer" data-layer="pitfall">
           <div class="qa-layer-title">常见陷阱</div>
           <div class="qa-layer-body">

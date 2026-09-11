@@ -213,14 +213,14 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">扩展：Redis 8.0 新特性 — 从缓存到统一多模数据平台（2025-05 GA）</div>
           <div class="qa-layer-body">
-            <p><strong>核心变化</strong>：Redis 8.0 是历史上最大的单版本跃迁——从"内存缓存 + 模块扩展"向<strong>统一多模数据平台</strong>的范式转变。三条主线：① <strong>One Redis 统一发行</strong>（Redis Stack 的搜索/JSON/时序/概率等能力内置化，消除模块管理碎片化）；② <strong>性能大幅跃迁</strong>（全新多线程 I/O、命令延迟降 87%、副本内存省 35%）；③ <strong>向 AI 原生演进</strong>（Vector Set 向量检索数据结构，Beta）。</p>
+            <p><strong>核心变化</strong>：Redis 8.0 是历史上最大的单版本跃迁——从"内存缓存 + 模块扩展"向<strong>统一多模数据平台</strong>的范式转变。三条主线：① <strong>One Redis 统一发行</strong>（Redis Stack 的搜索/JSON/时序/概率等能力内置化，消除模块管理碎片化）；② <strong>性能大幅跃迁</strong>（全新多线程 I/O；官方相对 Redis 7.2.5 基准：149 项测试中 90 项更快，p50 延迟降幅约 <strong>5.4%～87.4%</strong>——峰值非全命令保证；全量同步峰值复制缓冲约省 <strong>35%</strong>）；③ <strong>向 AI 原生演进</strong>（Vector Set 向量检索数据结构，Beta）。</p>
 
             <p><strong>版本演进脉络</strong>：</p>
             <ul>
               <li><strong>Redis 6.0（2020）</strong>：多线程网络 IO（命令执行仍单线程），网络读写多线程化，多核利用第一步。</li>
               <li><strong>Redis 7.0（2022）</strong>：listpack 替换 ziplist（消除连锁更新）+ Functions（Lua 脚本服务端一等公民管理）+ ACL 细粒度权限。</li>
               <li><strong>Redis 7.2~7.4（2023~2024）</strong>：Hash 字段过期（<code class="inline-code">HEXPIRE</code>/<code class="inline-code">HPEXPIRE</code>/<code class="inline-code">HTTL</code>），为 8.0 新 Hash 命令铺路。</li>
-              <li><strong>Redis 8.0（2025-05 GA）</strong>：One Redis 统一发行 + 全新多线程 I/O + Vector Set（Beta，HNSW 索引）+ 30+ 项性能优化（延迟最高降 87%、副本内存省 35%）。</li>
+              <li><strong>Redis 8.0（2025-05 GA）</strong>：One Redis 统一发行 + 全新多线程 I/O + Vector Set（Beta，HNSW 索引）+ 30+ 项性能优化（见 Redis 8 GA：相对 7.2.5，命令 p50 延迟降幅区间约 5.4%～87.4%；全量同步峰值缓冲约省 35%，非日常驻留内存普降）。</li>
             </ul>
 
             <p><strong>Redis 7.x vs 8.0 关键对比</strong>：</p>
@@ -233,8 +233,8 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
                   <tr><td><strong>I/O 多线程</strong></td><td>6.0 引入旧实现（网络读写）</td><td>全新实现，多核吞吐更高</td></tr>
                   <tr><td><strong>向量检索</strong></td><td>仅 Redis Search 模块</td><td>Vector Set 原生数据结构（Beta）+ Redis Search 内置</td></tr>
                   <tr><td><strong>Hash 字段操作</strong></td><td>HEXPIRE/HPEXPIRE/HTTL（7.4+）</td><td>新增 HGETEX/HSETEX/HGETDEL</td></tr>
-                  <tr><td><strong>命令延迟</strong></td><td>基线</td><td>最高降低 87%</td></tr>
-                  <tr><td><strong>副本内存</strong></td><td>基线</td><td>节省 35%</td></tr>
+                  <tr><td><strong>命令延迟</strong></td><td>官方对照基线 Redis 7.2.5</td><td>149 测中 90 项更快；p50 降幅约 5.4%～87.4%（峰值≠均值，生产以自身压测为准）</td></tr>
+                  <tr><td><strong>复制缓冲峰值</strong></td><td>全量同步峰值缓冲</td><td>官方场景峰值缓冲约省 35%（非副本日常驻留内存普降）</td></tr>
                   <tr><td><strong>全文检索评分</strong></td><td>TF-IDF 默认</td><td>BM25 默认（Redis Search）</td></tr>
               </tbody>
             </table>
@@ -603,7 +603,8 @@ flowchart LR
               </div>
               <div class="chart-caption">图 8.4-2 Canal 订阅 binlog 异步同步缓存：DB 为唯一写入源</div>
             </div>
-            <p>Canal 伪装成 MySQL 从库，接收 binlog 流，解析 ROW 模式的变更事件（INSERT/UPDATE/DELETE 的具体行），投递给消费端删除对应缓存。优点：业务无感知、DB 单一写入源。缺点：引入 Canal 组件、消费链路有延迟；binlog/Canal 投递有序不等于消费端并行处理有序，同一 key 还必须进入同一有序队列，并按事务位图/position 或版本去重。</p>
+            <p>Canal 伪装成 MySQL 从库，接收 binlog 流，解析 ROW 模式的变更事件，投递给消费端删除对应缓存。优点：业务无感知、DB 单一写入源。缺点：引入组件与消费延迟；同一 key 须进同一有序队列，并用 position/GTID 或版本去重。</p>
+            <p><strong>Canal vs Debezium（选型对照）</strong>：Canal 偏阿里系、常直连业务消费/自建投递，运维模型贴近“假从库 + Client”；<strong>Debezium</strong> 走 Kafka Connect 生态，多源（MySQL/PG/Oracle…）与 Schema History、SMT 更成熟，适合已有 Kafka 中台、要跨库 CDC 入仓/Outbox 的场景（与 <a href="chapter-09-distributed-systems.html#C09.16">C09.16</a> / <a href="chapter-14-databases.html#C14.12">C14.12</a> 衔接）。缓存失效两者都能做：团队已有 Canal 运维经验可继续；新建链路且已上 Kafka Connect 优先 Debezium。</p>
           </div>
         </div>
 

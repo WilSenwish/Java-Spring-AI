@@ -63,15 +63,15 @@ java-architect-interview/
 | `chapter-08-redis-cache` | Redis 与缓存 | `C08.##` | 11 | 标准QA（共用） |
 | `chapter-09-distributed-systems` | 分布式系统 | `C09.##` | 16 | 标准QA（共用） |
 | `chapter-10-microservice-cloud` | 微服务与云原生 | `C10.##` | 27 | 标准QA（共用） |
-| `chapter-11-middleware-engineering` | 中间件工程化 | `C11.##` | 23 | 标准QA（共用） |
+| `chapter-11-middleware-engineering` | 中间件工程化 | `C11.##` | 25 | 标准QA（共用） |
 | `chapter-12-ai-engineering` | AI 工程化 | `C12.##` | 31 | 标准QA（共用） |
 | `chapter-13-network-io` | 网络与 IO | `C13.##` | 13 | 标准QA（共用） |
-| `chapter-14-databases` | 数据库扩展 | `C14.##` | 9 | 标准QA（共用） |
+| `chapter-14-databases` | 数据库扩展 | `C14.##` | 12 | 标准QA（共用） |
 | `chapter-15-reactive` | 响应式编程 | `C15.##` | 6 | 标准QA（共用） |
 | `chapter-core-methodology` | 核心方法论 | `M##.##` | 75 | 独享（方法论变体卡片） |
-| `chapter-overview-priority` | 知识点大盘与优先级 | `ov-*` 组件 | 345 条目 | 独享（优先级矩阵） |
-| `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | 58 | 独享（epq 速查组件） |
-| `chapter-questions-scenario` | 场景设计题 | `S##.##` | 67 | 独享（场景卡片变体） |
+| `chapter-overview-priority` | 知识点大盘与优先级 | `ov-*` 组件 | 359 条目 | 独享（优先级矩阵） |
+| `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | 61 | 独享（epq 速查组件） |
+| `chapter-questions-scenario` | 场景设计题 | `S##.##` | 70 | 独享（场景卡片变体） |
 | `chapter-server-security-checkpoint` | 服务端安全自检清单 | 章节式 `h2/h3` | – | 独享（独立样式单页） |
 
 ### 3.1 规则分组一句话
@@ -82,8 +82,8 @@ java-architect-interview/
 
 ### 3.2 全站难度 / 优先级分布（按卡片）
 
-- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)。**题目 345**（篇章+核心原理+场景）：专家 44 / 架构 160 / 高级开发 141；**方法论 75 卡另计**（专家 23 / 架构 49 / 高级开发 3）；全站合计 420（expert 67 / architect 209 / senior 144）。
-- 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 90/195/60 = 345）；方法论仅部分卡片（31/75）携带；安全手册**不含**优先级。
+- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)。**题目 359**（篇章+核心原理+场景）：专家 46 / 架构 172 / 高级开发 141；**方法论 75 卡另计**（专家 23 / 架构 49 / 高级开发 3）；全站合计 425（expert 68 / architect 213 / senior 144）。
+- 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 92/209/58 = 359）；方法论仅部分卡片（31/75）携带；安全手册**不含**优先级。
 
 ## 4. 规则文档索引
 

@@ -24,6 +24,9 @@
         <li><a href="#C14.07"><span class="toc-number">C14.07</span>Neo4j 图数据库与 Cypher</a></li>
         <li><a href="#C14.08"><span class="toc-number">C14.08</span>分布式 SQL/NewSQL 选型</a></li>
         <li><a href="#C14.09"><span class="toc-number">C14.09</span>时序数据库与建模</a></li>
+        <li><a href="#C14.10"><span class="toc-number">C14.10</span>PostgreSQL 体系化选型</a></li>
+        <li><a href="#C14.11"><span class="toc-number">C14.11</span>Doris/StarRocks 与 ClickHouse</a></li>
+        <li><a href="#C14.12"><span class="toc-number">C14.12</span>CDC 端到端数据管道</a></li>
       </ol>
     </aside>
 
@@ -42,17 +45,17 @@
       <div class="chapter-header">
         <div class="chapter-number">CHAPTER 14 / DATABASES</div>
         <h1 class="chapter-title">数据库与存储深度</h1>
-        <p class="chapter-subtitle">从 MongoDB 文档模型到分片副本集到多文档事务的 NoSQL 演进、从 FAISS 到 Milvus 到 Qdrant 的向量检索引擎演进、从 HNSW 到 IVF 到 DiskANN 的 ANN 索引演进、从分库分表到 TiDB NewSQL 到 HTAP 行列共存的分布式数据库演进、从行存到列存到 MergeTree 的 OLAP 分析引擎演进、从多表 JOIN 到属性图到 Cypher 的图数据库演进、从通用存储到 TSDB 到 InfluxDB/TimescaleDB 的时序数据库演进：直击 BSON 与分片键设计、副本集选举与 WiredTiger、MongoDB Atlas Vector Search 混合检索、Milvus 存算分离与十亿级检索、Qdrant Rust 与 Payload 过滤、TiDB Raft 共识与 Percolator 事务、ClickHouse 列存压缩与物化视图、Neo4j 属性图模型与 Cypher 模式匹配、时序数据库 InfluxDB 时序线协议与 TimescaleDB Hypertable 分区建模</p>
+        <p class="chapter-subtitle">从 MongoDB 文档模型到分片副本集到多文档事务的 NoSQL 演进、从 FAISS 到 Milvus 到 Qdrant 的向量检索引擎演进、从 HNSW 到 IVF 到 DiskANN 的 ANN 索引演进、从分库分表到 TiDB NewSQL 到 HTAP 行列共存的分布式数据库演进、从行存到列存到 MergeTree 的 OLAP 分析引擎演进、从多表 JOIN 到属性图到 Cypher 的图数据库演进、从通用存储到 TSDB 到 InfluxDB/TimescaleDB 的时序数据库演进：直击 BSON 与分片键设计、副本集选举与 WiredTiger、MongoDB Atlas Vector Search 混合检索、Milvus 存算分离与十亿级检索、Qdrant Rust 与 Payload 过滤、TiDB Raft 共识与 Percolator 事务、ClickHouse 列存压缩与物化视图、Neo4j 属性图模型与 Cypher 模式匹配、时序数据库 InfluxDB 时序线协议与 TimescaleDB Hypertable 分区建模、PostgreSQL MVCC/扩展生态、Doris/StarRocks MPP 实时数仓、CDC 端到端入湖入仓</p>
         <div class="chapter-meta">
-          <span>题目数：9</span>
+          <span>题目数：12</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×3</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×4</span>
+          <span>架构级 ×6</span>
           <span class="meta-divider">|</span>
-          <span>专家级 ×2</span>
+          <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：200 分钟</span>
+          <span>预计复习：270 分钟</span>
         </div>
       </div>
 
@@ -1467,6 +1470,259 @@ flowchart TD
             <div class="callout callout-tip">
               <div class="callout-title">关键结论</div>
               <p>压测聚焦写入吞吐（points/s）与压缩比，落库必须批量；查询用连续聚合预计算而非扫原始。以上为参考基准，需以自身生产数据替换。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C14.10 PostgreSQL 体系化选型与工程要点 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C14.10" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C14.10</div>
+          <div class="qa-question">PostgreSQL 相对 MySQL 的体系化差异与选型边界？MVCC/VACUUM、扩展生态与生产陷阱如何应对？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>本题把 PostgreSQL 从「对比表里的一列」提升为<strong>可独立选型的 OLTP/分析基座</strong>：与 MySQL 的差异不只在语法，而在 <strong>MVCC 实现（堆元组 + VACUUM）、扩展生态（PostGIS/Timescale/pgvector）、优化器与锁模型</strong>。分库分表工程见 <a href="chapter-07-mysql-deep.html#C07.07">C07.07</a>；NewSQL/PG 协议系见 <a href="#C14.08">C14.08</a>；时序扩展见 <a href="#C14.09">C14.09</a>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>对象-关系起步</strong>：强调标准 SQL、扩展类型与规则系统，长期走「内核稳定 + 扩展丰富」路线。</p>
+            <p><strong>MVCC 成熟</strong>：更新产生新元组版本，旧版本靠 VACUUM/autovacuum 回收；可见性靠 xmin/xmax 与快照。</p>
+            <p><strong>扩展爆发</strong>：PostGIS（空间）、TimescaleDB（时序）、Citus（分布式）、pgvector（向量）、FDW（外部表）把 PG 做成多模平台。</p>
+            <p><strong>云与托管</strong>：RDS/Aurora PostgreSQL、云厂商分支强化高可用与只读副本；逻辑复制成为 CDC/蓝绿切换标配。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>PostgreSQL</th><th>MySQL/InnoDB</th></tr></thead>
+              <tbody>
+                <tr><td>MVCC</td><td>堆表多版本 + VACUUM 回收</td><td>Undo + Purge，更新常原地改</td></tr>
+                <tr><td>锁/死锁</td><td>行锁粒度细，DDL 锁策略需谨慎</td><td>生态工具与运维套路更统一</td></tr>
+                <tr><td>SQL/类型</td><td>标准 SQL、JSONB、数组、自定义类型强</td><td>简单 OLTP 友好，生态偏业务中间件</td></tr>
+                <tr><td>复制</td><td>物理流复制 + 逻辑复制（CDC 友好）</td><td>Binlog 生态（Canal/Debezium）极成熟</td></tr>
+                <tr><td>扩展</td><td>扩展是一等公民</td><td>能力多在外围中间件/引擎插件</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p><strong>复杂查询/分析扩展/地理/JSONB/向量同库</strong> → 优先 PG；<strong>超高并发简单交易 + 国内中间件栈</strong> → MySQL 仍强。选 PG 就必须把 <strong>autovacuum、膨胀、长事务</strong> 纳入容量与 SRE 指标。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>VACUUM 治理</strong>：监控 <code class="inline-code">n_dead_tup</code>、表膨胀、autovacuum 滞后；大表用调参 + 分区降低单次回收成本；避免长事务拖住 xmin horizon。</p>
+            <p><strong>指标与演练清单</strong>（进生产必盯）：① <code class="inline-code">pg_stat_user_tables</code> 的 dead/live 比、last_autovacuum；② <code class="inline-code">pg_stat_activity</code> 长事务与 idle in transaction；③ 复制延迟（写放大时 VACUUM 与 checkpoint 争 IO）；④ 季度做一次「大表膨胀演练」——观测 autovacuum workers 打满时的 RT。目标：核心表 dead 比例与 vacuum 滞后有告警，而不是等磁盘满。</p>
+            <p><strong>连接池</strong>：PG 每连接私有内存（常数十 MB 级，视 work_mem/临时对象而定），应用侧 200 直连极易拖垮小规格实例。生产默认 <strong>PgBouncer（transaction 模式）</strong> 或云托管连接池；把 <code class="inline-code">max_connections</code> 留给池与超管，应用池大小按「活跃事务数」而非「Tomcat 线程数」估算。</p>
+            <p><strong>逻辑复制演练</strong>：上线前至少演一次「表过滤 + DDL 变更」：发布端加列、订阅端兼容默认值；验证冲突表/复制槽增长告警。蓝绿切流用逻辑复制追平后改流量，回滚预案写清槽与快照保留时间。</p>
+            <p><strong>索引与查询</strong>：善用部分索引、表达式索引、GIN（JSONB/全文）；复杂 SQL 看 <code class="inline-code">EXPLAIN (ANALYZE, BUFFERS)</code>，警惕错误选择度与统计信息过期。大批量导入后强制 <code class="inline-code">ANALYZE</code>。</p>
+            <p><strong>高可用</strong>：主从流复制 + 同步/异步策略；切换用 Patroni/云托管；逻辑复制服务蓝绿与在线 DDL 配套。</p>
+            <p><strong>多模边界</strong>：pgvector 适合中小规模同库检索；十亿级向量仍看 <a href="#C14.03">C14.03</a>/<a href="#C14.04">C14.04</a>。时序重度用 Timescale（见 C14.09），勿把 PG 当万能仓。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：为何 PG 更新多了会「表胀」？</strong> 更新写新版本，旧行暂留；VACUUM 不及时或长事务阻止回收 → 堆与索引膨胀，缓存命中下降。</p>
+            <p><strong>追问 2：逻辑复制 vs 物理复制？</strong> 物理复制字节级、延迟低、库级；逻辑复制表级、可过滤、适合 CDC/异构同步，但 DDL/大对象有边界。</p>
+            <p><strong>追问 3：与 Citus/NewSQL 如何分工？</strong> 单库垂直扩展 + 只读副本不够时：清晰分片键可 Citus；要强透明分布式事务再评估 Yugabyte/Cockroach（C14.08）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>关掉或忽视 autovacuum</strong>：短期写快，长期性能雪崩。</li>
+                <li><strong>用 PG 硬扛分库分表全套</strong>：无清晰分片与治理时，复杂度不低于 MySQL+ShardingSphere。</li>
+                <li><strong>把连接池当无限资源</strong>：PG 每连接内存成本高，需 PgBouncer 等池化。</li>
+                <li><strong>统计信息过期</strong>：大批量导入后不 ANALYZE，计划劣化。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C14.11 Apache Doris / StarRocks MPP 选型 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C14.11" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C14.11</div>
+          <div class="qa-question">Apache Doris / StarRocks 与 ClickHouse 如何选型？MPP、明细查询与实时数仓边界在哪？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>C14.06 已覆盖 ClickHouse 列存机理；本题补齐国内实时数仓主航道 <strong>Doris / StarRocks</strong>：二者以 <strong>MPP + 向量化 + 实时导入</strong>见长，强调高并发明细点查、标准 SQL JOIN、物化视图与湖仓一体。选型本质是 <strong>「宽表极致扫描」vs「多表关联 + 并发服务」</strong> 的取舍。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>离线数仓</strong>：Hive/Spark 批处理，T+1，难支撑看板秒级。</p>
+            <p><strong>ClickHouse 崛起</strong>：单表宽表、极致压缩与扫描，适合日志/行为分析。</p>
+            <p><strong>Doris/StarRocks</strong>：继承 MPP 思想，强化 FE/BE、实时导入（Stream Load/Routine Load）、物化视图与 MySQL 协议兼容，面向「实时数仓 + 高并发查询」。</p>
+            <p><strong>湖仓一体</strong>：外表/Catalog 对接 Iceberg/Hudi，冷热分层，与 <strong>S11.05</strong> 湖仓场景呼应。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>ClickHouse</th><th>Doris / StarRocks</th></tr></thead>
+              <tbody>
+                <tr><td>执行模型</td><td>散列表/管道，大 JOIN 偏弱</td><td>MPP 分布式 JOIN 更友好</td></tr>
+                <tr><td>查询形态</td><td>宽表聚合、扫描吞吐极致</td><td>多表关联、高并发点查/看板</td></tr>
+                <tr><td>导入</td><td>批/异步为主</td><td>Stream/Routine Load 实时友好</td></tr>
+                <tr><td>协议/生态</td><td>自有 SQL 方言</td><td>MySQL 协议，BI 接入成本低</td></tr>
+                <tr><td>运维心智</td><td>表引擎族繁多</td><td>FE/BE、分桶/分区模型统一</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p><strong>日志/行为宽表、极致吞吐</strong> → ClickHouse；<strong>实时数仓、多表 JOIN、高并发明细与 MySQL 协议 BI</strong> → Doris/StarRocks。二者都不是 OLTP 替代品。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>模型</strong>：分区（时间）+ 分桶（高基数维）控制剪枝；明细与汇总分层，关键看板用异步/同步物化视图。</p>
+            <p><strong>表模型速查</strong>：明细模型适合追加日志；聚合模型适合固定指标预聚合；主键/UNIQUE 模型适合「最新状态」与部分更新。选错模型会在导入阶段埋下「无法纠正的语义债」——上线前用真实 SQL 集压测 JOIN 与点查。</p>
+            <p><strong>导入</strong>：Kafka Routine Load 做近实时；大批次用 Broker/Stream Load；Exactly-Once 靠幂等与去重模型（UNIQUE KEY / 主键模型）。容量经验：先定「日增量行数 × 行宽 × 副本」估 BE 磁盘，再按并发查询 QPS 估 FE/BE CPU；导入与查询抢同一集群时要做资源组隔离。</p>
+            <p><strong>物化视图</strong>：看板热查询优先异步刷新 MV，避免每次扫明细；刷新延迟写入 SLO（如 P95 &lt; 5min）。变更基表 schema 前检查 MV 依赖，防止发布后查询打回明细拖垮集群。</p>
+            <p><strong>资源隔离</strong>：FE 元数据与 BE 计算存储分离思维；大查询限流、资源组，避免打爆在线看板。小文件/空分区定期合并治理。</p>
+            <p><strong>与 CDC 衔接</strong>：业务库变更经 Debezium/Kafka 入仓（见 <a href="#C14.12">C14.12</a>），避免应用双写。入仓作业与看板集群配额分开，防止追数作业挤占在线查询。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Doris 与 StarRocks 怎么分？</strong> 同源演进、生态与版本节奏不同；选型看团队存量、云厂商支持与具体版本特性（物化视图、存算分离），用压测与 SQL 兼容矩阵说话。</p>
+            <p><strong>追问 2：为何大 JOIN 仍可能慢？</strong> 数据倾斜、广播/Shuffle 选择失误、统计信息不准；需分桶对齐、Colocate、预聚合。</p>
+            <p><strong>追问 3：能否替代 TiDB HTAP？</strong> 不能简单替代：TiDB 强在 TP+轻量分析一体；Doris/SR 是分析面专用，TP 仍在 MySQL/PG/TiDB。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>用数仓扛 OLTP</strong>：高并发行更新、事务语义不匹配。</li>
+                <li><strong>无分区/分桶设计就上线</strong>：全表扫与小文件/小分片问题。</li>
+                <li><strong>只对标 ClickHouse 吞吐</strong>：忽略并发点查与 JOIN 才是 Doris/SR 主场。</li>
+                <li><strong>导入链路无幂等</strong>：重复消费导致指标翻倍。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C14.12 CDC 端到端数据管道 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C14.12" data-difficulty="expert" data-priority="p0">
+        <div class="qa-header">
+          <div class="qa-badge">C14.12</div>
+          <div class="qa-question">如何设计端到端 CDC 管道？Debezium/Canal → Kafka → 湖仓/ES/缓存的一致性、顺序与回放怎么保证？<span class="difficulty difficulty-expert">专家级</span><span class="priority priority-p0">P0</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>C09.16 解决的是 <strong>Outbox + CDC 作为可靠消息投递</strong>；本题升级为 <strong>数据面 CDC</strong>：把 OLTP 变更稳定输送到数仓、搜索、缓存、向量索引等下游。核心矛盾是 <strong>至少一次投递 vs 下游幂等</strong>、<strong>单表顺序 vs 全局并发</strong>、<strong>schema 演进 vs 消费兼容</strong>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>应用双写</strong>：业务同时写 DB 与 MQ/ES——一致性差、漏写难追。</p>
+            <p><strong>定时 ETL</strong>：批抽简单，实时性差、删改难捕获。</p>
+            <p><strong>Binlog 订阅</strong>：Canal/Debezium 读日志，近实时、对业务侵入低。</p>
+            <p><strong>流式入湖入仓</strong>：Kafka Connect / Flink CDC → Iceberg/Doris/CH；与流处理（C11.24/C11.25）和向量同步（C14.03）交汇。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>日志是真相源</strong>：以 binlog/WAL 为变更序列；下游是物化视图。端到端不承诺跨系统分布式事务，而承诺 <strong>可重放 + 可对账 + 幂等收敛</strong>。</p>
+            <table class="compare-table">
+              <thead><tr><th>环节</th><th>关键设计</th><th>失败模式</th></tr></thead>
+              <tbody>
+                <tr><td>捕获</td><td>GTID/LSN、快照+增量、心跳</td><td>位点丢失、DDL 中断</td></tr>
+                <tr><td>传输</td><td>按主键分区保序、Schema Registry</td><td>乱序、毒消息、积压</td></tr>
+                <tr><td>应用</td><td>幂等键、版本戳、回放窗口</td><td>重复写、旧事件覆盖新值</td></tr>
+                <tr><td>治理</td><td>延迟 SLA、对账、DLQ</td><td>静默不一致</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>CDC 管道 = <strong>位点可信</strong> + <strong>分区保序</strong> + <strong>下游幂等/版本</strong> + <strong>延迟与对账可观测</strong>。Outbox（C09.16）解决「业务事件是否发出」；本卡解决「库变更是否正确流向数据面」。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>参考链路</strong>：MySQL/PG → Debezium → Kafka（按表.主键哈希分区）→ Flink/Connect → Doris/Iceberg/ES；缓存失效走旁路主题。</p>
+            <p><strong>顺序</strong>：同一主键进入同一分区；跨表业务顺序用聚合根 ID 或最终对账，不幻想全局总序。</p>
+            <p><strong>Schema 演进</strong>：兼容变更（加列默认值）优先；破坏性变更用双写窗口/版本化 topic。DDL 兼容窗口：先加可空列 → 消费者升级 → 再收缩。</p>
+            <p><strong>幂等落地</strong>：下游以 <code class="inline-code">(table, pk, binlog_pos/gtid)</code> 或业务 version 单调比较；乱序/重放丢弃旧位点。</p>
+            <div class="code-block"><pre><code>if (event.sourcePos() &lt;= state.lastPos(pk)) return; // 旧事件
+repo.upsert(pk, event.payload(), event.sourcePos());
+// ALTER TABLE orders ADD COLUMN risk_score INT NULL; -- 旧消费者可忽略</code></pre></div>
+            <p><strong>回放</strong>：保留日志与 Kafka 保留期；按位点重放前冻结下游或写修正主题；全量用快照引导 + 增量追平。</p>
+            <p><strong>SLO</strong>：监控抓取延迟、分区 lag、DDL 失败、DLQ 速率、抽样对账差异率。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Exactly-Once 能做到吗？</strong> 捕获与 Kafka 常至少一次；下游用幂等表/主键 upsert/版本比较达到「效果一次」。Flink 两阶段提交可对特定 sink 加强，但不能替代业务版本语义。</p>
+            <p><strong>追问 2：DDL 怎么处理？</strong> 连接器需可解析的 DDL 策略（忽略/演进/停服）；在线改大表配合 gh-ost 等，避免锁表导致抓取中断。</p>
+            <p><strong>追问 3：与 Outbox 并存吗？</strong> 并存：领域事件（业务语义）走 Outbox；数据面镜像（行级变更）走 CDC。勿用一种管道硬扛两种语义。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">易错点</div>
+              <ul>
+                <li><strong>按表随机分区</strong>：同主键乱序，状态机被旧事件打回。</li>
+                <li><strong>无 DLQ/无对账</strong>：错误静默，数仓与线上长期漂移。</li>
+                <li><strong>用 CDC 替代领域事件</strong>：行变更难表达业务意图与聚合边界。</li>
+                <li><strong>忽略大事务/热点表</strong>：单表 binlog 洪峰打爆下游，需限流与拆分。</li>
+              </ul>
             </div>
           </div>
         </div>

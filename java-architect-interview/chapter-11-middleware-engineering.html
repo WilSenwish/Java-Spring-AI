@@ -38,6 +38,8 @@
         <li><a href="#C11.21"><span class="toc-number">C11.21</span>分布式任务调度框架选型</a></li>
         <li><a href="#C11.22"><span class="toc-number">C11.22</span>时间轮与延时任务</a></li>
         <li><a href="#C11.23"><span class="toc-number">C11.23</span>分布式定时任务一致性</a></li>
+        <li><a href="#C11.24"><span class="toc-number">C11.24</span>Kafka Streams 有状态流处理</a></li>
+        <li><a href="#C11.25"><span class="toc-number">C11.25</span>Flink 有状态流计算</a></li>
       </ol>
     </aside>
 
@@ -57,15 +59,15 @@
         <h1 class="chapter-title">中间件与工程化</h1>
         <p class="chapter-subtitle">jBPM→Activiti→Flowable→Camunda 的工作流引擎演进、硬编码→脚本→规则引擎→决策引擎的业务规则演进、OAuth1.0→2.0→2.1 的授权演进、Session→JWT→双Token 的认证演进、Jenkins→GitLab CI→GitOps(ArgoCD) 的 CI/CD 演进、日志→APM→OpenTelemetry→eBPF 的可观测性演进：直击 BPMN 2.0 执行原理、QLExpress/Drools 选型、授权码+PKCE、双 Token 续期、Java Agent 字节码增强、TraceId 透传、OTel Collector、混沌工程稳态假设</p>
         <div class="chapter-meta">
-          <span>题目数：23</span>
+          <span>题目数：25</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×14</span>
+          <span>架构级 ×16</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×2</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：320 分钟</span>
+          <span>预计复习：350 分钟</span>
         </div>
       </div>
 
@@ -3049,10 +3051,10 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
       </div>
 
       <!-- C11.20 成本优化与 FinOps -->
-      <div class="qa-card" id="C11.20" data-difficulty="architect" data-priority="p2">
+      <div class="qa-card" id="C11.20" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C11.20</div>
-          <div class="qa-question">成本优化 / FinOps：云账单失控背景下如何体系化降本与用云责任共担<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p2">P2</span></div>
+          <div class="qa-question">成本优化 / FinOps：云账单失控背景下如何体系化降本与用云责任共担<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -3335,6 +3337,186 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
           </div>
         </div>
       </div>
+
+
+      <!-- ============================================================ -->
+      <!-- C11.24 Kafka Streams 拓扑、状态存储与 EOS -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C11.24" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C11.24</div>
+          <div class="qa-question">Kafka Streams 如何做有状态流处理？拓扑、状态存储、EOS 与 Flink 如何取舍？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>Kafka Streams 是<strong>嵌入式流处理库</strong>（跑在应用 JVM 内），不是独立集群。核心抽象是<strong>Stream-Table Duality</strong>：事件流（KStream）与物化视图（KTable）可互相转换；有状态计算靠<strong>本地状态存储 + changelog topic</strong>实现故障恢复。与 C11.11（Broker 侧 EOS）、C11.18（仅点名流生态）互补——本题回答「在 Kafka 上如何做应用级有状态处理」。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>0.10（2016）</strong>：引入 Streams DSL，把消费-处理-生产做成库，免独立作业集群。</p>
+            <p><strong>0.11+</strong>：对接幂等生产者与事务，支持 <code class="inline-code">processing.guarantee=exactly_once_v2</code>（读-处理-写原子）。</p>
+            <p><strong>Interactive Queries</strong>：状态可被本机/远程查询，把「流处理结果」变成可服务的物化视图。</p>
+            <p><strong>与 Flink 分道</strong>：Streams 绑定 Kafka 生态、运维轻；Flink 做跨源/复杂窗口/CEP（场景落地见 <a href="chapter-questions-scenario.html#S11.03">S11.03</a>）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>拓扑</strong>：Source → Processor → Sink 构成 DAG；DSL（<code class="inline-code">filter/map/groupByKey/aggregate/join</code>）编译为 Processor Topology，按 <strong>task = 分区子集</strong>并行。</p>
+            <p><strong>状态存储</strong>：Keyed 状态默认 RocksDB 本地盘；每次更新写<strong>changelog topic</strong>。实例故障后从 changelog 重放恢复，Standby Replica 可缩短恢复时间。</p>
+            <p><strong>EOS</strong>：消费位移 + 状态 changelog + 产出 topic 纳入同一事务（依赖 Broker 事务协调器，原理见 C11.11）。语义边界是「Kafka 内读-处理-写」，外接 DB 仍需业务幂等。</p>
+            <table class="compare-table">
+              <thead><tr><th>维度</th><th>Kafka Streams</th><th>Flink</th></tr></thead>
+              <tbody>
+                <tr><td>部署形态</td><td>嵌入应用，无独立 JM/TM</td><td>独立集群（JobManager/TaskManager）</td></tr>
+                <tr><td>数据源</td><td>强绑定 Kafka</td><td>多源多 Sink（Kafka/JDBC/Iceberg…）</td></tr>
+                <tr><td>窗口/CEP</td><td>够用，复杂模式弱</td><td>事件时间/Watermark/CEP 一等公民</td></tr>
+                <tr><td>运维成本</td><td>低（跟微服务一起扩缩）</td><td>高（资源池、Checkpoint、背压治理）</td></tr>
+                <tr><td>典型场景</td><td>Kafka 内聚合/ enrich / 物化视图</td><td>实时特征、风控 CEP、湖仓入湖</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>数据已在 Kafka、逻辑以聚合/Join/物化视图为主 → Streams；跨系统、复杂事件时间/CEP、大规模状态 → Flink（见 <a href="#C11.25">C11.25</a> / <a href="chapter-questions-scenario.html#S11.03">S11.03</a>）。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <div class="code-block"><pre><code><span class="com">// Streams DSL：按 userId 聚合近 1h 点击次数（简化）</span>
+<span class="type">StreamsBuilder</span> <span class="var">b</span> = <span class="kw">new</span> <span class="type">StreamsBuilder</span>();
+<span class="var">b</span>.<span class="fn">stream</span>(<span class="str">"clicks"</span>, Consumed.<span class="fn">with</span>(Serdes.<span class="fn">String</span>(), clickSerde))
+  .<span class="fn">groupByKey</span>()
+  .<span class="fn">windowedBy</span>(TimeWindows.<span class="fn">ofSizeWithNoGrace</span>(Duration.<span class="fn">ofHours</span>(<span class="num">1</span>)))
+  .<span class="fn">count</span>(Materialized.<span class="fn">as</span>(<span class="str">"click-store"</span>))
+  .<span class="fn">toStream</span>()
+  .<span class="fn">to</span>(<span class="str">"click-1h"</span>);
+<span class="type">Properties</span> <span class="var">props</span> = <span class="kw">new</span> <span class="type">Properties</span>();
+<span class="var">props</span>.<span class="fn">put</span>(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2);
+<span class="kw">new</span> <span class="type">KafkaStreams</span>(<span class="var">b</span>.<span class="fn">build</span>(), <span class="var">props</span>).<span class="fn">start</span>();</code></pre></div>
+            <p><strong>容量</strong>：并行度 ≤ 输入 topic 分区数；状态盘 IOPS 与 changelog 吞吐要预留。开启 Standby 换恢复时间。</p>
+            <p><strong>运维</strong>：关注 rebalance、状态恢复耗时、任务迁移；changelog 保留策略与状态大小绑定，勿随意缩 retention。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：为何 EOS 仍要业务幂等？</strong> 事务保证 Kafka 内原子，下游 HTTP/DB、重复部署窗口、手动重置 offset 仍可能重复，业务唯一键不可省。</p>
+            <p><strong>追问 2：rebalance 风暴怎么治？</strong> 静态成员（group.instance.id）、合理 session.timeout、减少不必要重启；大状态优先 Standby + 调大 rebalance 超时。</p>
+            <p><strong>追问 3：Interactive Queries 的一致性？</strong> 查询本地状态是异步最终一致；跨实例需 metadata 路由到 owning task，故障切换期可能短暂不可查。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>把 Streams 当独立集群</strong>：无 JM，扩缩靠应用副本；副本数与分区/任务分配需一起设计。</li>
+              <li><strong>忽略 changelog 成本</strong>：大状态 = 大 changelog 流量与恢复时间，磁盘与 Kafka 容量要算进容量规划。</li>
+              <li><strong>用 Streams 硬做跨 DB 事务</strong>：库外副作用不在 EOS 边界内，应改 Flink 两阶段提交 Sink 或业务幂等表。</li>
+              <li><strong>与 C11.11 混淆</strong>：Broker EOS ≠ Streams 应用拓扑；前者是消息语义底座，后者是处理层编排。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C11.25 Flink 有状态流计算 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C11.25" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C11.25</div>
+          <div class="qa-question">Flink 有状态流计算如何落地？Checkpoint/Savepoint、Watermark、状态后端与背压怎么设计？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>Flink 把<strong>事件时间 + 分布式状态 + 一致性快照</strong>做成一等公民：用 Checkpoint 在失败时恢复「算子状态与输入位置」的一致切面，用 Watermark 推进事件时间窗口。本题讲引擎与运维契约；CEP/风控场景编排见 <a href="chapter-questions-scenario.html#S11.03"><strong>S11.03</strong></a>，Kafka 内轻量流处理见 <a href="#C11.24"><strong>C11.24</strong></a>，Broker EOS 底座见 <a href="#C11.11"><strong>C11.11</strong></a>。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>批处理时代</strong>：MapReduce/Spark 以微批近似实时，延迟与状态语义弱。</p>
+            <p><strong>Flink 流优先</strong>：真正记录级流，Chandy-Lamport 风格分布式快照（Barrier）实现 Exactly-Once 状态恢复。</p>
+            <p><strong>流批一体</strong>：同一 DataStream/Table API 覆盖实时与回溯；湖仓 Sink（Iceberg/Hudi）成为标配。</p>
+            <p><strong>运维成熟度</strong>：Unaligned Checkpoint、增量 RocksDB Checkpoint、弹性扩缩与自动调参进入生产主流。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <p><strong>Checkpoint</strong>：JobManager 注入 Barrier，对齐后各算子把状态快照到 State Backend，Source 记录偏移。恢复时从最近成功 Checkpoint 重启，状态与输入位置一致。</p>
+            <p><strong>端到端 EOS</strong>：状态 EOS + Sink 两阶段提交（如 KafkaTransactionalSink）→ 外部系统也「只提交一次」。Sink 不支持事务时退化为至少一次 + 幂等写。</p>
+            <p><strong>Watermark</strong>：表示「小于该时间戳的事件基本到齐」，驱动事件时间窗口关闭。乱序用 <code class="inline-code">allowedLateness</code> / side output；空闲源需 idle 标记，否则 Watermark 不推进、窗口永不关。</p>
+            <table class="compare-table">
+              <thead><tr><th>机制</th><th>用途</th><th>注意点</th></tr></thead>
+              <tbody>
+                <tr><td>Checkpoint</td><td>故障自动恢复</td><td>间隔/超时/minPause；反压时易超时</td></tr>
+                <tr><td>Savepoint</td><td>有计划停机、升级、改并行度</td><td>与 Checkpoint 格式兼容策略要显式</td></tr>
+                <tr><td>HashMapStateBackend</td><td>小状态、纯内存</td><td>大状态 OOM，生产少用</td></tr>
+                <tr><td>EmbeddedRocksDB</td><td>大状态落盘 + 增量 CP</td><td>本地盘 IOPS、托管内存调优</td></tr>
+              </tbody>
+            </table>
+            <div class="callout callout-tip">
+              <div class="callout-title">关键结论</div>
+              <p>生产默认：RocksDB 状态后端 + 增量 Checkpoint + 事件时间 Watermark + Kafka EOS Sink；反压先治瓶颈算子，再调 Checkpoint 参数。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <div class="code-block"><pre><code><span class="com">// 事件时间窗口 + Watermark（示意）</span>
+<span class="type">DataStream</span>&lt;<span class="type">Event</span>&gt; <span class="var">s</span> = env.<span class="fn">fromSource</span>(kafkaSource, WatermarkStrategy
+    .&lt;<span class="type">Event</span>&gt;<span class="fn">forBoundedOutOfOrderness</span>(Duration.<span class="fn">ofSeconds</span>(<span class="num">5</span>))
+    .<span class="fn">withTimestampAssigner</span>((e, ts) -&gt; e.<span class="fn">getEventTime</span>()), <span class="str">"src"</span>);
+<span class="var">s</span>.<span class="fn">keyBy</span>(Event::<span class="fn">getUserId</span>)
+  .<span class="fn">window</span>(TumblingEventTimeWindows.<span class="fn">of</span>(Time.<span class="fn">minutes</span>(<span class="num">1</span>)))
+  .<span class="fn">aggregate</span>(<span class="kw">new</span> <span class="type">CountAgg</span>())
+  .<span class="fn">sinkTo</span>(kafkaSink);  <span class="com">// 事务 Sink 拿端到端 EOS</span>
+env.<span class="fn">enableCheckpointing</span>(<span class="num">60000</span>);
+env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBetweenCheckpoints</span>(<span class="num">30000</span>);</code></pre></div>
+            <p><strong>背压</strong>：Web UI 看算子忙闲与缓冲；常见瓶颈是同步外部 IO、过重序列化、数据倾斜。对策：Async I/O、再平衡 key、提并行度、本地聚合后再外发。</p>
+            <p><strong>状态治理</strong>：TTL 清理过期 Keyed State；大状态作业预留恢复窗口；Savepoint 进发布流水线（蓝绿切作业）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：Aligned vs Unaligned Checkpoint？</strong> Aligned 等 Barrier 对齐，反压时易卡住；Unaligned 可带着未处理缓冲一起快照，缩短反压下 CP 时间，但快照更大，需权衡。</p>
+            <p><strong>追问 2：Checkpoint 成功是否等于端到端不丢不重？</strong> 否——还取决于 Sink 是否参与两阶段提交；否则状态精确恢复 + 外部至少一次，要靠幂等收敛。</p>
+            <p><strong>追问 3：与 S11.03 如何分工？</strong> 本题是引擎契约（CP/WM/状态/背压）；S11.03 是「Kafka + Flink CEP + 规则热更新」风控场景拼装，两者交叉引用、不重复展开 CEP DSL。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>处理时间冒充事件时间</strong>：乱序与回溯重放会算错窗口，生产尽量事件时间 + Watermark。</li>
+              <li><strong>Watermark 不推进</strong>：某并行度空闲未标 idle、或时间戳解析错误，窗口永久挂起。</li>
+              <li><strong>Checkpoint 超时只调大间隔</strong>：根因常是反压/外部 IO；先消瓶颈，再改 timeout/minPause。</li>
+              <li><strong>状态无限增长</strong>：无 TTL、窗口状态未清理，RocksDB 与 Checkpoint 存储被打满。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
 
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">

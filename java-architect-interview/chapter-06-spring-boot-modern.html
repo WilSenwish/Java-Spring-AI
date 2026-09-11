@@ -28,6 +28,7 @@
         <li><a href="#C06.11"><span class="toc-number">C06.11</span>Spring Security 6 与 OAuth2</a></li>
         <li><a href="#C06.12"><span class="toc-number">C06.12</span>优雅停机与 K8s 滚动发布协同</a></li>
         <li><a href="#C06.13"><span class="toc-number">C06.13</span>Quarkus/Micronaut vs Spring Boot</a></li>
+<li><a href="#C06.14"><span class="toc-number">C06.14</span>测试策略：Testcontainers/契约/ArchUnit</a></li>
       </ol>
     </aside>
 
@@ -47,15 +48,15 @@
         <h1 class="chapter-title">Spring Boot 与现代框架</h1>
         <p class="chapter-subtitle">从自动配置 SPI 到 AOT/GraalVM Native Image：理解 spring.factories→AutoConfiguration.imports 演进、JIT→AOT→Native 编译范式转移、Spring Security 过滤器链、Spring Boot 启动流程与七事件生命周期编排</p>
         <div class="chapter-meta">
-          <span>题目数：13</span>
+          <span>题目数：14</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×8</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×4</span>
+          <span>架构级 ×5</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×1</span>
           <span class="meta-divider">|</span>
-          <span>预计复习：150 分钟</span>
+          <span>预计复习：170 分钟</span>
         </div>
       </div>
 
@@ -1627,7 +1628,8 @@ flowchart TD
             <p><strong>云原生诉求</strong>：容器高密度、Serverless 按需冷启、FaaS 毫秒计费的场景，倒逼"快启动 + 小内存"。</p>
             <p><strong>新选手</strong>：Quarkus（Red Hat，build-time 扩展 + 原生优先）、Micronaut（Object Computing 主导，编译期 DI/AOP，API 近似 Spring）；二者均拥抱 GraalVM Native Image。</p>
             <p><strong>Spring 反击</strong>：Spring Boot 3 引入 AOT（Ahead-Of-Time）处理 + <code class="inline-code">spring-boot-maven-plugin</code> build-image 支持原生镜像，缩小差距。</p>
-            <p><strong>Spring Boot 3.x 版本演进</strong>：① <strong>3.0（2022-11）</strong>：Java 17 基线 + Jakarta EE 迁移（javax→jakarta）+ AOT/Native Image 原生支持 + Micrometer Observation API 统一可观测性 + 声明式 HTTP 客户端（<code class="inline-code">@HttpExchange</code>）+ RFC 7807 Problem Details 标准错误响应；② <strong>3.1（2023-05）</strong>：Docker Compose 集成 + <code class="inline-code">@ServiceConnection</code>（Testcontainers 零配置）+ Spring Authorization Server 生产可用；③ <strong>3.2（2023-11）</strong>：虚拟线程支持（JDK 21，<code class="inline-code">spring.threads.virtual.enabled=true</code>）+ RestClient（RestTemplate 现代替代）+ JdbcClient + SSL Bundle 热重载 + CDS 启动加速；④ <strong>3.3（2024-05）</strong>：<strong>SBOM Actuator 端点</strong>（CycloneDX 格式，供应链安全透明度）+ 可观测性零配置扩展至 Spring Data 等组件 + WebSocket 虚拟线程支持 + Base64 资源内联配置 + SSL SNI 支持 + Antora 文档重构；⑤ <strong>3.4（2024-11）</strong>：<strong>原生结构化日志</strong>（JSON 日志开箱即用）+ <strong>优雅停机默认开启</strong>（所有内嵌 Web 服务器）+ RestClient/RestTemplate 自动配置多 HTTP 客户端（Apache HC / Reactor Netty / JDK HttpClient）+ Actuator 端点访问控制重构 + ARM 镜像构建 + MockMvcTester（AssertJ 风格）；⑥ <strong>3.5（2025-05）</strong>：3.x 系列最终小版本（4.0 计划 2025-11），Bean 后台初始化自动配置（并行 ApplicationContext 启动）+ 全局 HTTP 连接器配置 + Profile 命名规则收紧 + GraalVM Native Image 支持扩展。3.x 系列从"Java 17 基线 + 云原生"奠基，到虚拟线程、结构化日志、SBOM 安全透明度逐步演进，持续缩小与 Quarkus/Micronaut 的启动/内存差距。</p>
+            <p><strong>Spring Boot 3.x 版本演进</strong>：① <strong>3.0（2022-11）</strong>：Java 17 基线 + Jakarta EE 迁移（javax→jakarta）+ AOT/Native Image 原生支持 + Micrometer Observation API 统一可观测性 + 声明式 HTTP 客户端（<code class="inline-code">@HttpExchange</code>）+ RFC 7807 Problem Details 标准错误响应；② <strong>3.1（2023-05）</strong>：Docker Compose 集成 + <code class="inline-code">@ServiceConnection</code>（Testcontainers 零配置）+ Spring Authorization Server 生产可用；③ <strong>3.2（2023-11）</strong>：虚拟线程支持（JDK 21，<code class="inline-code">spring.threads.virtual.enabled=true</code>）+ RestClient（RestTemplate 现代替代）+ JdbcClient + SSL Bundle 热重载 + CDS 启动加速；④ <strong>3.3（2024-05）</strong>：<strong>SBOM Actuator 端点</strong>（CycloneDX 格式，供应链安全透明度）+ 可观测性零配置扩展至 Spring Data 等组件 + WebSocket 虚拟线程支持 + Base64 资源内联配置 + SSL SNI 支持 + Antora 文档重构；⑤ <strong>3.4（2024-11）</strong>：<strong>原生结构化日志</strong>（JSON 日志开箱即用）+ <strong>优雅停机默认开启</strong>（所有内嵌 Web 服务器）+ RestClient/RestTemplate 自动配置多 HTTP 客户端（Apache HC / Reactor Netty / JDK HttpClient）+ Actuator 端点访问控制重构 + ARM 镜像构建 + MockMvcTester（AssertJ 风格）；⑥ <strong>3.5（2025-05）</strong>：3.x 系列最终小版本（此后进入 4.x 代际），Bean 后台初始化自动配置（并行 ApplicationContext 启动）+ 全局 HTTP 连接器配置 + Profile 命名规则收紧 + GraalVM Native Image 支持扩展。3.x 系列从"Java 17 基线 + 云原生"奠基，到虚拟线程、结构化日志、SBOM 安全透明度逐步演进，持续缩小与 Quarkus/Micronaut 的启动/内存差距。</p>
+            <p><strong>Spring Boot 4.0（2025-11-20 GA）</strong>：已正式发布（非“计划中”）。建立在 <strong>Spring Framework 7</strong> 之上，主线包括：① <strong>模块化</strong>（更小、更聚焦的 starter/jar，按需依赖）；② 组合件级 <strong>JSpecify</strong> 空安全；③ <strong>Java 25</strong> 一等支持（仍兼容 Java 17）；④ API Versioning 与 HTTP Service Client 等 REST 能力增强。升级属主版本，需对照官方 Migration Guide（Jackson 2 弃用形态、EnvironmentPostProcessor 包名迁移等）。生产选型：存量 Boot 3.x 可继续吃安全补丁窗口，新系统/大版本窗口优先评估 4.0；Native/AOT 与可观测路径仍以本篇 C06.02/C06.07 与 C10.22 为准。</p>
           </div>
         </div>
 
@@ -1681,6 +1683,88 @@ flowchart TD
                 <li><strong>忽略构建时间</strong>：Native build 分钟级，CI 时间翻倍，需评估发布效率。</li>
                 <li><strong>Spring Boot 3 AOT 兼容性假设</strong>：并非所有 starter/三方库都支持原生，踩坑在反射配置。</li>
                 <li><strong>为换而换</strong>：传统长连接/重生态微服务强行迁 Quarkus，收益不足以覆盖改造成本。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- C06.14 测试策略：Testcontainers / 契约测试 / 架构守护 -->
+      <!-- ============================================================ -->
+      <div class="qa-card" id="C06.14" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C06.14</div>
+          <div class="qa-question">微服务测试策略如何分层：Testcontainers、契约测试与架构守护如何组合？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>这道题考察<strong>可维护的质量金字塔在云原生下的变形</strong>：纯 mock 集成测易漂；打真集群太慢。Testcontainers 提供「真依赖、可抛环境」；契约测试锁住服务间 API；ArchUnit/架构守护锁住分层与依赖规则。三者分别防：环境漂移、接口背刺、结构腐化。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p>单测 + 手工联调 → Spring MockMvc/切片测 → <strong>Testcontainers</strong>（Docker 真依赖）→ <strong>Pact/Spring Cloud Contract</strong>（消费者驱动契约）→ <strong>ArchUnit</strong>（代码结构即测试）。驱动力：微服务爆炸、CI 成本、回归不可见。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <table class="compare-table">
+              <thead><tr><th>层级</th><th>验证什么</th><th>典型工具</th><th>速度/保真</th></tr></thead>
+              <tbody>
+                <tr><td>单元</td><td>纯逻辑</td><td>JUnit/Mockito</td><td>最快 / 低保真</td></tr>
+                <tr><td>组件+真依赖</td><td>仓储/消息/缓存行为</td><td>Testcontainers</td><td>中 / 高保真</td></tr>
+                <tr><td>契约</td><td>服务间 API 兼容</td><td>Pact / SCC</td><td>快 / 接口保真</td></tr>
+                <tr><td>架构守护</td><td>包依赖/分层/命名</td><td>ArchUnit</td><td>快 / 结构保真</td></tr>
+                <tr><td>端到端</td><td>关键旅程</td><td>少量流水线</td><td>慢 / 最高</td></tr>
+              </tbody>
+            </table>
+            <p>原则：<strong>能下沉的不要上浮</strong>；E2E 只保留黄金路径；契约失败应阻断合并。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>1. Testcontainers</strong>：MySQL/Redis/Kafka 用官方模块；复用容器（reuse）降 CI 时间；与 <code class="inline-code">@ServiceConnection</code>（Boot 3.1+）集成减少手工属性。</p>
+            <p><strong>2. 契约测试</strong>：消费者定义期望 → 提供者 CI 验证；破坏性变更走版本化 API。勿用契约替代业务断言。</p>
+            <p><strong>3. 架构守护</strong>：禁止 domain → infrastructure 反向依赖；控制中心/api 包边界；规则进主构建，失败即红。</p>
+            <p><strong>4. 组合</strong>：PR 门禁 = 单测 + ArchUnit + 契约；夜间 = Testcontainers 全量；预发 = 少量 E2E。</p>
+            <pre class="code-block"><code>@Testcontainers
+class OrderRepoIT {
+  @Container static MySQLContainer&lt;?&gt; db = new MySQLContainer&lt;&gt;("mysql:8.4");
+  // Boot 3.1+ 可用 @ServiceConnection 自动注入
+}
+
+@Test
+void domain_should_not_depend_on_adapters() {
+  classes().that().resideInAPackage("..domain..")
+    .should().onlyDependOnClassesThat()
+    .resideInAnyPackage("..domain..", "java..", "jakarta..")
+    .check(importedClasses);
+}</code></pre>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：全部用 Testcontainers 行吗？</strong>不行。过慢且脆；只覆盖「与真实协议/SQL 方言强相关」的路径。</p>
+            <p><strong>追问 2：契约测和 API 文档谁为准？</strong>契约以可执行交互为准；OpenAPI 是文档。理想态由契约/代码生成文档。</p>
+            <p><strong>追问 3：ArchUnit 能否替代 Code Review？</strong>不能。它锁可编码规则；业务语义与取舍仍靠人。</p>
+          </div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-danger">
+              <div class="callout-title">踩坑警告</div>
+              <ul>
+                <li><strong>CI 无 Docker</strong>：Testcontainers 全挂，需 DinD/远程 Docker。</li>
+                <li><strong>契约只生成不验证</strong>：提供者从不跑验证任务，形同虚设。</li>
+                <li><strong>ArchUnit 规则过宽</strong>：允许「..」过大，等于没守护。</li>
+                <li><strong>用 E2E 冒充集成测</strong>：反馈链路变小时级，团队放弃维护。</li>
               </ul>
             </div>
           </div>

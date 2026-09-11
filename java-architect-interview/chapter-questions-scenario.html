@@ -252,6 +252,7 @@
           <li><a href="#S06.03"><span class="toc-number">S06.03</span>RAG 知识库实现</a></li>
           <li><a href="#S06.04"><span class="toc-number">S06.04</span>K8s 容器化部署</a></li>
           <li><a href="#S06.05"><span class="toc-number">S06.05</span>向量数据库与 RAG 检索增强架构</a></li>
+          <li><a href="#S06.06"><span class="toc-number">S06.06</span>Spring Boot 4 迁移与 Leyden 启动 SLO</a></li>
         </ol>
       </div>
 
@@ -276,6 +277,7 @@
             <li><a href="#S08.05"><span class="toc-number">S08.05</span>SLA 保障与容量规划</a></li>
             <li><a href="#S08.06"><span class="toc-number">S08.06</span>全链路可观测性建设</a></li>
             <li><a href="#S08.07"><span class="toc-number">S08.07</span>分布式追踪专项：异构系统 TraceId 传递断裂与海量 Trace 数据治理</a></li>
+<li><a href="#S08.08"><span class="toc-number">S08.08</span>可观测中台建设</a></li>
           </ol>
         </div>
         <div class="toc-group">
@@ -306,6 +308,7 @@
             <li><a href="#S11.03"><span class="toc-number">S11.03</span>Spark/Flink 海量数据实时计算架构</a></li>
             <li><a href="#S11.04"><span class="toc-number">S11.04</span>ClickHouse 实时 OLAP 分析与画像引擎</a></li>
             <li><a href="#S11.05"><span class="toc-number">S11.05</span>数据湖仓一体架构设计与治理</a></li>
+<li><a href="#S11.06"><span class="toc-number">S11.06</span>云/GPU FinOps 失控治理</a></li>
           </ol>
         </div>
         <div class="toc-group">
@@ -318,6 +321,7 @@
             <li><a href="#S12.05"><span class="toc-number">S12.05</span>多模型供应商故障 AI 服务高可用</a></li>
             <li><a href="#S12.06"><span class="toc-number">S12.06</span>RAG 知识库投毒越狱安全应急</a></li>
             <li><a href="#S12.07"><span class="toc-number">S12.07</span>流式 AI 接口并发背压与降级</a></li>
+<li><a href="#S12.08"><span class="toc-number">S12.08</span>MCP/多 Agent 生产化</a></li>
           </ol>
         </div>
     </aside>
@@ -334,13 +338,13 @@
       <div class="chapter-header">
         <div class="chapter-number">SCENARIO QUESTIONS / REAL-WORLD SYSTEM DESIGN</div>
         <h1 class="chapter-title">高频真实场景题</h1>
-        <p class="chapter-subtitle">基于 2026 工程能力要求 · 67 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
+        <p class="chapter-subtitle">基于 2026 工程能力要求 · 71 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
         <div class="chapter-meta">
-          <span>题目数：67</span>
+          <span>题目数：71</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×17</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×43</span>
+          <span>架构级 ×47</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×7</span>
           <span class="meta-divider">|</span>
@@ -433,24 +437,26 @@
     <div class="qa-layer" data-layer="practice">
       <div class="qa-layer-title">关键代码</div>
       <div class="qa-layer-body">
-        <div class="code-block"><pre><code><span class="com">// Redis Lua 原子扣减库存脚本，保证检查与扣减的原子性</span>
+        <div class="code-block"><pre><code><span class="com">// Redis Lua：用户去重(SADD) + 库存检查/扣减 必须同脚本原子执行</span>
+<span class="com">// 返回：1=成功  0=售罄  -1=活动不存在  2=已参与过</span>
 <span class="kw">private</span> <span class="kw">static</span> <span class="kw">final</span> <span class="type">String</span> <span class="var">LUA_SCRIPT</span> =
-    <span class="str">"if redis.call('exists', KEYS[1]) == 1 then "</span> +
-    <span class="str">"  local stock = tonumber(redis.call('get', KEYS[1])) "</span> +
-    <span class="str">"  if stock &gt; 0 then "</span> +
-    <span class="str">"    redis.call('decr', KEYS[1]) "</span> +
-    <span class="str">"    return 1 "</span> +  <span class="com">// 1=扣减成功</span>
-    <span class="str">"  else return 0 end "</span> +  <span class="com">// 0=售罄</span>
-    <span class="str">"else return -1 end"</span>;  <span class="com">// -1=活动不存在</span>
+    <span class="str">"if redis.call('exists', KEYS[1]) == 0 then return -1 end "</span> +
+    <span class="str">"if redis.call('sadd', KEYS[2], ARGV[1]) == 0 then return 2 end "</span> +
+    <span class="str">"local stock = tonumber(redis.call('get', KEYS[1])) "</span> +
+    <span class="str">"if (not stock) or stock &lt;= 0 then "</span> +
+    <span class="str">"  redis.call('srem', KEYS[2], ARGV[1]) "</span> +  <span class="com">// 售罄回滚去重标记，允许活动补货后重试</span>
+    <span class="str">"  return 0 "</span> +
+    <span class="str">"end "</span> +
+    <span class="str">"redis.call('decr', KEYS[1]) "</span> +
+    <span class="str">"return 1"</span>;
 
 <span class="kw">public</span> <span class="type">String</span> <span class="fn">seckill</span>(<span class="type">Long</span> <span class="var">skuId</span>, <span class="type">Long</span> <span class="var">userId</span>) {
     <span class="type">String</span> <span class="var">stockKey</span> = <span class="str">"seckill:stock:"</span> + <span class="var">skuId</span>;
-    <span class="com">// 已下单用户去重，防止重复扣减</span>
-    <span class="type">Boolean</span> <span class="var">isNew</span> = redis.<span class="fn">opsForSet</span>().<span class="fn">add</span>(<span class="str">"seckill:users:"</span> + <span class="var">skuId</span>, <span class="var">userId</span>.<span class="fn">toString</span>()) == <span class="num">1</span>;
-    <span class="kw">if</span> (!<span class="var">isNew</span>) { <span class="kw">return</span> <span class="str">"已参与过"</span>; }
-    <span class="com">// 执行 Lua 原子扣减，保证多线程安全</span>
+    <span class="type">String</span> <span class="var">usersKey</span> = <span class="str">"seckill:users:"</span> + <span class="var">skuId</span>;
+    <span class="com">// 禁止把 SADD 放在 Lua 外：会出现「去重通过但扣减失败」的并发窗口</span>
     <span class="type">Long</span> <span class="var">ret</span> = redis.<span class="fn">execute</span>(<span class="kw">new</span> <span class="type">DefaultRedisScript</span>&lt;&gt;(<span class="var">LUA_SCRIPT</span>, <span class="type">Long</span>.<span class="kw">class</span>),
-            <span class="type">Collections</span>.<span class="fn">singletonList</span>(<span class="var">stockKey</span>), <span class="str">""</span>);
+            <span class="type">Arrays</span>.<span class="fn">asList</span>(<span class="var">stockKey</span>, <span class="var">usersKey</span>), <span class="var">userId</span>.<span class="fn">toString</span>());
+    <span class="kw">if</span> (<span class="var">ret</span> == <span class="num">2</span>) { <span class="kw">return</span> <span class="str">"已参与过"</span>; }
     <span class="kw">if</span> (<span class="var">ret</span> == <span class="num">1</span>) {
         <span class="com">// 扣减成功发送 MQ，异步落库，前端立即返回排队中</span>
         rocketMQTemplate.<span class="fn">asyncSend</span>(<span class="str">"seckill_order"</span>, <span class="kw">new</span> <span class="type">OrderMsg</span>(<span class="var">skuId</span>, <span class="var">userId</span>), <span class="kw">null</span>);
@@ -933,20 +939,20 @@
     </div>
     <div class="qa-layer" data-layer="principle">
       <div class="qa-layer-title">分析框架</div>
-      <div class="qa-layer-body"><p>分布式锁三要素：<strong>互斥性、防死锁、可重入</strong>。选型按场景：性能优先（CP 弱一致可接受）选 Redis SET NX PX + Lua 释放 + 看门狗续期（Redisson 实现）；强一致优先选 ZooKeeper 临时顺序节点（CP，session 失效自动释放锁）；极端可靠场景用 Redlock（多数节点加锁成功）。锁续命用后台线程定时（锁 TTL/3）续期，业务结束停止续期并主动释放。</p></div>
+      <div class="qa-layer-body"><p>分布式锁三要素：<strong>互斥性、防死锁、可重入</strong>。选型按场景：性能优先（CP 弱一致可接受）选 Redis SET NX PX + Lua 释放 + 看门狗续期（Redisson 实现）；强一致优先选 ZooKeeper 临时顺序节点（CP，session 失效自动释放锁）；跨机房/正确性敏感默认 <strong>ZK/etcd + fencing token + 幂等</strong>；Redlock 仅作可选且争议大（见 E06.02/C08），勿当默认“更高可靠”。锁续命用后台线程定时（锁 TTL/3）续期，业务结束停止续期并主动释放。</p></div>
     </div>
     <div class="qa-layer" data-layer="practice">
       <div class="qa-layer-title">解决方案</div>
       <div class="qa-layer-body">
         <p><strong>Redis 方案（Redisson）</strong>：加锁用 SET key value NX PX 30000（value=UUID+threadId 标识持锁者）；释放用 Lua 脚本比对 value 后 DEL（防误删他人锁）；看门狗（WatchDog）每 10s（TTL/3）检测锁仍持有则续期到 30s，业务结束主动释放并停止续期。支持可重入（Hash 结构记录重入次数）。</p>
         <p><strong>ZooKeeper 方案</strong>：创建临时顺序节点 /lock/node-xxxx，判断自己是否最小节点序号，是则获锁，否则 watch 前一个节点；持锁者宕机 session 失效自动删除临时节点触发下一节点获锁（避免死锁）；可重入用本地计数器 + 节点数据记录重入次数。</p>
-        <p><strong>选型决策</strong>：订单防重、库存扣减等短临界区用 Redis（性能高、AP 可接受偶尔失效兜底）；金融转账、配置变更等强一致用 ZK；跨多机房高可靠用 Redlock（5 节点多数派）。</p>
+        <p><strong>选型决策</strong>：订单防重、库存扣减等短临界区用 Redis（性能高、AP 可接受偶尔失效兜底）；金融转账、配置变更等强一致用 ZK；跨多机房正确性敏感优先 ZK/etcd + fencing；Redlock 多数派可选但需接受 Kleppmann 争议与时钟假设。</p>
         <table class="compare-table">
           <thead><tr><th>方案</th><th>优点</th><th>缺点</th></tr></thead>
           <tbody>
             <tr><td>Redis SETNX + 看门狗</td><td>性能高（10万+ QPS）、实现成熟</td><td>AP 模型，主从切换瞬间可能锁丢失</td></tr>
             <tr><td>ZooKeeper 临时顺序节点</td><td>CP 强一致、宕机自动释放无死锁</td><td>性能较低（万级 QPS）、频繁 watch 有惊群</td></tr>
-            <tr><td>Redlock 多数派</td><td>跨机房高可用、抗单点故障</td><td>实现复杂、争议较多（时钟漂移问题）</td></tr>
+            <tr><td>Redlock 多数派</td><td>可选增强（非默认）；需幂等/fencing 兜底</td><td>实现复杂、时钟漂移争议大；Redisson 封装需核版本是否弃用</td></tr>
           </tbody>
         </table>
       </div>
@@ -1016,7 +1022,7 @@
       <div class="qa-layer-title">破题点拨</div>
       <div class="qa-layer-body">
         <div class="insight-method"><strong>一眼定位：</strong>分布式锁选型=互斥+防死锁+可重入，三要素贯穿。</div>
-        <div class="insight-method"><strong>破题主线：</strong>按一致性选：Redis(SET NX PX+Lua释放+看门狗续期)性能优先 / ZK(临时顺序节点)强一致 / 极端Redlock。</div>
+        <div class="insight-method"><strong>破题主线：</strong>按一致性选：Redis(SET NX PX+Lua+看门狗)性能优先 / ZK·etcd(临时节点+fencing)强一致 / Redlock 慎用且非默认。</div>
         <div class="insight-method"><strong>易错点：</strong>释放锁误删他人锁(比对value)；SETNX与EXPIRE非原子；无看门狗锁过期死锁；锁不可重入(用Hash记threadId)。</div>
       </div>
     </div>
@@ -3689,7 +3695,7 @@ public class BadPool {
   <h2 class="group-title">
     <span class="group-number">六</span>
     云原生与AI
-    <span class="group-count">5 题</span>
+    <span class="group-count">6 题</span>
   </h2>
 
   <!-- S06.01 Java 21虚拟线程落地 -->
@@ -3710,17 +3716,17 @@ public class BadPool {
     </div>
     <div class="qa-layer" data-layer="challenge">
       <div class="qa-layer-title">核心挑战</div>
-      <div class="qa-layer-body"><p>1）虚拟线程不适合所有场景——CPU 密集型任务、synchronized 锁持有期间会 pin（钉住）虚拟线程，丧失高并发优势；2）ThreadLocal 在虚拟线程下因线程数暴增（百万级）导致内存膨胀，需迁移到 ScopedValue；3）现有代码大量使用 CompletableFuture + 共享 ForkJoinPool，迁移后线程模型变化可能引发难以发现的并发 bug；4）第三方库（如 MyBatis、HikariCP）内部使用 synchronized 需评估兼容性；5）结构化并发（StructuredTaskScope）尚处预览阶段，生产可用性需验证。</p></div>
+      <div class="qa-layer-body"><p>1）虚拟线程不适合所有场景——CPU 密集型任务不适合；JDK 21–23 在 synchronized 持锁阻塞时会 pin，JDK 24+ 该问题基本消除（native 仍可能 pin）；2）ThreadLocal 在虚拟线程下因线程数暴增（百万级）导致内存膨胀，需迁移到 ScopedValue；3）现有代码大量使用 CompletableFuture + 共享 ForkJoinPool，迁移后线程模型变化可能引发难以发现的并发 bug；4）第三方库（如 MyBatis、HikariCP）内部使用 synchronized 需评估兼容性；5）结构化并发（StructuredTaskScope）尚处预览阶段，生产可用性需验证。</p></div>
     </div>
     <div class="qa-layer" data-layer="principle">
       <div class="qa-layer-title">分析框架</div>
-      <div class="qa-layer-body"><p>虚拟线程的核心原理是 "用户态调度 + IO 时让出载体内（载体线程）"。平台线程（OS 线程）是载体，虚拟线程在 IO 阻塞时自动 unmount 从载体线程卸载，载体线程去执行其他虚拟线程，从而用少量载体线程（默认 = CPU 核数）调度海量虚拟线程。关键约束：虚拟线程在 synchronized 块或 native 方法执行期间无法 unmount（称为 pinning），此时载体线程被独占。迁移评估框架：1）扫描 synchronized 使用点，替换为 ReentrantLock；2）评估 ThreadLocal 使用量，大对象迁移到 ScopedValue；3）IO 密集型接口启用虚拟线程，CPU 密集型仍用平台线程池；4）用 jcmd Thread.dump_to_file -format=json 检查 pinning 频率。</p></div>
+      <div class="qa-layer-body"><p>虚拟线程的核心原理是 "用户态调度 + IO 时让出载体内（载体线程）"。平台线程（OS 线程）是载体，虚拟线程在 IO 阻塞时自动 unmount 从载体线程卸载，载体线程去执行其他虚拟线程，从而用少量载体线程（默认 = CPU 核数）调度海量虚拟线程。关键约束：pinning 使载体线程被独占。版本线（真源 <strong>C04.09</strong>）：JDK 21–23 在 synchronized 内阻塞会 pin；JDK 24+（JEP 491）几乎消除 synchronized pinning，native/JNI 仍可能 pin。迁移评估：1）按 JDK 版本选诊断工具并定位热点；2）JDK 21–23 热点 synchronized 可改 ReentrantLock，JDK 24+ 按功能需求改锁；3）ThreadLocal 大对象评估 ScopedValue；4）IO 密集启用 VT，CPU 密集仍用平台线程池。</p></div>
     </div>
     <div class="qa-layer" data-layer="practice">
       <div class="qa-layer-title">解决方案</div>
       <div class="qa-layer-body">
         <p>迁移分四阶段推进：</p>
-        <p><strong>阶段一 - 评估与兼容性改造</strong>：用 jfr 采集线上应用 synchronized 使用情况，jcmd &lt;pid&gt; Thread.dump 分析 pinning。将 HikariCP 的 getConnection 内部 synchronized 替换（HikariCP 5.1+ 已支持虚拟线程）。MyBatis 的 SqlSession 同步块评估替换为 ReentrantLock。启动参数加 -Djdk.tracePinnedThreads=full 打印 pinning 堆栈。</p>
+        <p><strong>阶段一 - 评估与兼容性改造</strong>：用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code> 与 <code class="inline-code">jcmd &lt;pid&gt; Thread.dump_to_file</code> 分析钉住。HikariCP 升 5.1+。JDK <strong>21–23</strong> 可加 <code class="inline-code">-Djdk.tracePinnedThreads=full|short</code> 定位热点 synchronized，并评估改 ReentrantLock；JDK <strong>24+</strong> 该属性已移除，以 JFR/线程转储为准，不必仅为 pinning 全量改锁。MyBatis 等第三方同步块按压测热点治理。</p>
         <p><strong>阶段二 - 网关层启用虚拟线程</strong>：Spring Boot 3.2 配置 spring.threads.virtual.enabled=true，Tomcat/Netty 自动使用虚拟线程处理 HTTP 请求。网关的下游 RPC 调用（Dubbo/Feign）在虚拟线程中阻塞等待响应，不再占用平台线程。</p>
         <p><strong>阶段三 - 结构化并发改造</strong>：用 StructuredTaskScope 替代 CompletableFuture，实现父子任务生命周期绑定——父任务取消时所有子任务自动取消，避免线程泄漏。</p>
         <p><strong>阶段四 - 渐进灰度与监控</strong>：按路由灰度 10% → 50% → 100%，监控载体线程数（应稳定在 CPU 核数附近）、虚拟线程数（可达数万）、GC 频率（虚拟线程对象在 Young Gen，需关注 GC 压力）、P99 延迟。</p>
@@ -3771,7 +3777,7 @@ public class BadPool {
         }
     }
 
-    <span class="com">// 替换 synchronized 为 ReentrantLock 避免 pinning</span>
+    <span class="com">// JDK 21-23: 热点同步可改 ReentrantLock 避免 pinning；JDK 24+ 按功能需求选择</span>
     <span class="kw">public class</span> <span class="type">VirtualThreadSafeCache</span> {
         <span class="kw">private final</span> <span class="type">Lock</span> lock = <span class="kw">new</span> <span class="type">ReentrantLock</span>();
         <span class="kw">private final</span> <span class="type">Map</span>&lt;<span class="type">String</span>, <span class="type">String</span>&gt; cache = <span class="kw">new</span> <span class="type">HashMap</span>&lt;&gt;();
@@ -3793,7 +3799,7 @@ public class BadPool {
       <div class="qa-layer-title">深度追问</div>
       <div class="qa-layer-body">
         <ul class="followup-list">
-          <li><div class="followup-q">虚拟线程什么场景下会退化为平台线程（pinning）？如何检测？</div><div class="followup-a">两种场景：1）synchronized 块内阻塞（IO/锁等待），虚拟线程无法 unmount，载体线程被钉住；2）native 方法（JNI）执行期间。检测方式：启动参数 -Djdk.tracePinnedThreads=full 打印完整 pinning 堆栈，或 -Djdk.tracePinnedThreads=short 只打印简略信息。JFR 也可采集 jdk.VirtualThreadPinned 事件。生产中建议先在压测环境开启 tracePinnedThreads 排查，修复后再关闭以避免日志开销。</div></li>
+          <li><div class="followup-q">虚拟线程什么场景下会退化为平台线程（pinning）？如何检测？</div><div class="followup-a">JDK 21–23：synchronized 内阻塞或 native/JNI 期间可能 pin。JDK 24+（JEP 491）：synchronized 几乎不再 pin，剩余多为 native/FFI。检测：21–23 可用 -Djdk.tracePinnedThreads=full|short；24+ 该属性移除，改用 JFR jdk.VirtualThreadPinned + Thread.dump_to_file。完整对照见 C04.09。</div></li>
           <li><div class="followup-q">虚拟线程下 ThreadLocal 为什么会有内存问题？怎么替代？</div><div class="followup-a">平台线程几百个，ThreadLocal 数据量可控。虚拟线程可达百万级，每个都有独立的 ThreadLocal Map，若存大对象（如 UserContext 2KB），百万虚拟线程 = 2GB 内存。替代方案：用 ScopedValue（JEP 446，不可变且绑定作用域，方法调用栈结束自动释放），或显式传递参数而非 ThreadLocal 隐式传递。必须用 ThreadLocal 的场景，用 ThreadLocal.ofInitialValue 并在 finally 中 remove。</div></li>
           <li><div class="followup-q">虚拟线程 vs 响应式编程，如何选型？</div><div class="followup-a">虚拟线程适用：IO 密集型、同步编程心智更易接受、团队对响应式掌握不足、调试可读性要求高。响应式适用：需要背压控制的流式处理（如 SSE/WebSocket 数据流）、CPU 与 IO 混合且需精细调度、已有 Reactor 生态沉淀。两者不互斥：网关层可用虚拟线程，流式处理模块仍用响应式。Spring Boot 3.2 支持混用：spring.threads.virtual.enabled=true 时 MVC 用虚拟线程，WebFlux 仍用 Reactor。</div></li>
           <li><div class="followup-q">迁移过程中如何做兼容性回退？</div><div class="followup-a">通过配置开关控制：spring.threads.virtual.enabled 设为条件配置（@ConditionalOnProperty），按环境变量切换虚拟线程/平台线程。灰度策略：先在预发环境全量虚拟线程压测，生产按路由灰度（10% 流量走虚拟线程节点），对比 P99、吞吐量、GC、错误率。准备回退方案：一旦异常，修改配置重启即可回退到平台线程，无需改代码。关键：迁移期间保持两套线程模型代码兼容，避免硬编码线程池。</div></li>
@@ -3805,7 +3811,7 @@ public class BadPool {
       <div class="qa-layer-body">
         <ul class="pitfall-list">
           <li><strong>对 CPU 密集型任务用虚拟线程</strong>：虚拟线程优势在 IO 阻塞时让出载体线程。CPU 密集型任务（加密、压缩、排序）不阻塞 IO，虚拟线程不会 unmount，反而因调度开销比平台线程更慢。CPU 密集型应继续用固定大小平台线程池（Executors.newFixedThreadPool），仅 IO 密集型用虚拟线程。</li>
-          <li><strong>未排查 synchronized 导致大量 pinning</strong>：直接启用虚拟线程但未替换 synchronized，pinning 频繁导致载体线程被钉住，吞吐量不升反降。迁移前必须用 -Djdk.tracePinnedThreads=full 全量排查，将热点 synchronized 替换为 ReentrantLock。</li>
+          <li><strong>未按 JDK 版本排查 pinning</strong>：JDK 21–23 在启用 VT 前须用 tracePinnedThreads/JFR 定位热点 synchronized；JDK 24+ 勿再依赖已移除的 tracePinnedThreads，改用 JFR，且不要机械“凡 synchronized 必换锁”。</li>
           <li><strong>虚拟线程池未限制数量导致资源耗尽</strong>：虽然虚拟线程轻量，但不限制数量可能导致 DB 连接池耗尽——10 万虚拟线程同时请求 HikariCP（maxPoolSize=50），9 万+ 线程阻塞在 getConnection。需用 Semaphore 限制并发 IO 调用数，或虚拟线程池配合信号量限流。</li>
           <li><strong>结构化并发 API 在正式版被移除/变更</strong>：StructuredTaskScope 截至 JDK 25 仍为 Preview 特性（JEP 505 第五次预览），API 仍在迭代。生产环境需封装抽象隔离 API 变化，或等正式转正后再全面使用。过渡期可用 CompletableFuture + 自定义超时管理替代。</li>
         </ul>
@@ -4245,7 +4251,6 @@ public class BadPool {
       </div>
     </div>
   </div>
-</section>
 
   <!-- S06.05 向量数据库与 RAG 检索增强架构：企业知识库语义搜索与大模型融合 -->
   <div class="qa-card" id="S06.05" data-difficulty="architect" data-priority="p2">
@@ -4334,6 +4339,84 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       </div>
     </div>
   </div>
+
+
+  <!-- S06.06 Spring Boot 4 迁移与 Leyden 启动 SLO -->
+  <div class="qa-card" id="S06.06" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S06.06</div>
+      <div class="qa-question">Spring Boot 4 迁移：Jakarta/依赖基线升级、回归矩阵，与 Leyden/CDS 启动 SLO 联合落地<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">Spring Boot 4</span>
+      <span class="scenario-tag">Leyden</span>
+      <span class="scenario-tag">启动优化</span>
+      <span class="scenario-tag">迁移</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某交易中台 80+ 微服务仍在 Spring Boot 3.3.x / JDK 21。平台要求 2026 Q2 前完成 <strong>Spring Boot 4.0.0（2025-11-20 GA）</strong> 升级，并满足 K8s 滚动发布时 <strong>P95 就绪时间 &lt; 8s</strong>（含探针）。部分核心链路已用虚拟线程；另有一批批处理服务冷启动 25s+，希望叠加 Leyden/CDS/AOT 压启动。要求给出迁移波次、兼容性矩阵、回滚与启动 SLO 验收。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① Boot 4 依赖与第三方 Starter 兼容窗口不一；② 测试金字塔（单测/Testcontainers/契约）须防「编译过、运行炸」；③ Native/AOT 与 Leyden/CDS 手段叠加时诊断变难；④ 启动 SLO 与功能回归抢同一发布窗口；⑤ 灰度与一键回滚必须可操作。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用「<strong>基线锁定 → 波次升级 → 双轨验证 → 启动专项 → 灰度回滚</strong>」：先锁 JDK 与 Boot BOM；按风险波次（工具链 → 边缘服务 → 核心）；功能用 C06.14 测试策略；启动用 CDS/Leyden/AOT 分档（见 C06.13、C01.12）；发布用金丝雀 + 快速回滚包。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 基线</strong>：统一 Boot 4 BOM + 兼容 JDK（以团队认证矩阵为准，优先 21 LTS，评估 25）；第三方依赖建「红/黄/绿」清单，红灯阻断合入。</p>
+        <p><strong>2. 波次</strong>：① 构建插件/父 POM；② 无流量/内部工具；③ 读写分离的边缘 API；④ 核心交易。每波保留 Boot 3 镜像 tag 可秒级回滚。</p>
+        <p><strong>3. 回归矩阵</strong>：单测 + Testcontainers 关键路径 + 契约测试（消费方驱动）+ 冒烟拓扑；禁止只靠人工点点点。</p>
+        <p><strong>4. 启动 SLO</strong>：基线测量（classload/Bean 初始化分段）；CDS 归档预热 → 评估 Leyden 训练（JEP 线以当前 JDK 为准）→ 仍不达标再上 AOT/Native 子集。目标：P95 &lt; 8s Ready。</p>
+        <p><strong>5. 发布</strong>：金丝雀 5%→20%→100%；观察错误率、P99、Ready 时长、pinning（若 VT）；失败自动回滚上一镜像。</p>
+        <table class="compare-table">
+          <thead><tr><th>手段</th><th>收益</th><th>代价</th><th>适用</th></tr></thead>
+          <tbody>
+            <tr><td>CDS/AppCDS</td><td>降 classload</td><td>归档维护</td><td>大多数 JVM 服务首选</td></tr>
+            <tr><td>Leyden 训练</td><td>进一步压启动</td><td>版本/工具链绑定</td><td>冷启动敏感批次</td></tr>
+            <tr><td>AOT/Native</td><td>极致启动/内存</td><td>反射封闭世界</td><td>函数式/边缘子集</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">Boot 4 与 Boot 3 能否同集群混部？</div><div class="followup-a">可以按服务混部，但同一服务双版本要用兼容 API/契约；共享库（序列化/消息 schema）必须向后兼容一个窗口。</div></li>
+          <li><div class="followup-q">启动变快但首次请求很慢怎么办？</div><div class="followup-a">区分 Ready 与「业务预热」。探针通过后可再跑预热流量（缓存/连接池/JIT）；Leyden/CDS 主要帮 classload，不替代业务预热。</div></li>
+          <li><div class="followup-q">迁移期如何控制风险？</div><div class="followup-a">特性开关 + 数据面兼容 + 镜像回滚；数据库 schema 变更仍走 Expand-Contract，不与框架大版本绑死同发。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>把 Boot 4 仍写成「计划中」</strong>：4.0.0 已于 2025-11-20 GA，沟通与文档须更新（见 C06.13）。</li>
+          <li><strong>只升父 POM 不跑契约</strong>：编译绿、运行期 Starter 冲突才爆。</li>
+          <li><strong>启动优化与功能变更同列车</strong>：问题难归因；启动专项独立变更集。</li>
+          <li><strong>Native 一刀切</strong>：反射/动态代理重的服务先 CDS/Leyden，再评估 Native。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="insight">
+      <div class="qa-layer-title">破题点拨</div>
+      <div class="qa-layer-body">
+        <div class="insight-method"><strong>一眼定位：</strong>Boot4迁移=基线+波次+回归；启动SLO=CDS/Leyden/AOT分档。</div>
+        <div class="insight-method"><strong>破题主线：</strong>BOM锁定→边缘到核心波次→C06.14矩阵→启动专项与功能变更解耦→金丝雀回滚。</div>
+        <div class="insight-method"><strong>易错点：</strong>时效仍写「计划」；无契约只编译；启动与功能同发难归因；Native一刀切。</div>
+      </div>
+    </div>
+  </div>
+
+
+</section>
 
 <section class="scenario-group" id="group-7">
   <h2 class="group-title">
@@ -5060,7 +5143,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
   <h2 class="group-title">
     <span class="group-number">八</span>
     高可用架构
-    <span class="group-count">7 题</span>
+    <span class="group-count">8 题</span>
   </h2>
 
   <!-- S08.01 异地多活架构设计 -->
@@ -5725,7 +5808,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     <div class="qa-layer" data-layer="practice">
       <div class="qa-layer-title">解决方案</div>
       <div class="qa-layer-body">
-        <p><strong>1. 统一采集与埋点</strong>：全量接入 OpenTelemetry SDK（Java Agent 无侵入 + Go SDK），导出到 SkyWalking/Jeager 或自建（OTLP Collector → ClickHouse）；关键链路（下单/支付）单独配置「全量采样」，其余默认 10% 头部采样 + 尾部采样兜底（错误/慢请求强制采样率 100%）。</p>
+        <p><strong>1. 统一采集与埋点</strong>：全量接入 OpenTelemetry SDK（Java Agent 无侵入 + Go SDK），导出到 SkyWalking/Jaeger 或自建（OTLP Collector → ClickHouse）；关键链路（下单/支付）单独配置「全量采样」，其余默认 10% 头部采样 + 尾部采样兜底（错误/慢请求强制采样率 100%）。</p>
         <p><strong>2. TraceId 贯穿传递</strong>：网关生成/透传 <code class="inline-code">traceparent</code>（W3C 标准）；HTTP 用拦截器注入请求头；线程池用装饰器（<code class="inline-code">TtlRunnable</code> 或自定义包装）传递上下文；MQ 生产者塞消息头、消费者还原；异步回调/定时任务补建 trace 根。日志统一 MDC 携带 traceId+spanId，结构化 JSON 输出。</p>
         <p><strong>3. 关联检索</strong>：日志平台支持「按 TraceId 一键拉全链路日志」，链路平台支持「按 traceId 跳转日志 + 按时间片拉取指标」；服务间调用关系由 trace 数据自动生成依赖拓扑（服务 × 接口 × 耗时分布矩阵）。</p>
         <p><strong>4. 自动根因初筛</strong>：慢 Trace 自动关联其 span 耗时占比（哪个 span 耗时最大）、该 span 所在服务当前指标（CPU/GC/连接池/线程池）、SQL 执行计划耗时、下游依赖 RT；输出「候选根因列表」给值班人员，人工确认后沉淀为根因知识库。</p>
@@ -5900,6 +5983,94 @@ msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, ca
         <div class="insight-method"><strong>一眼定位：</strong>分布式追踪=异构贯穿+采样，核心是“先保证调用树可还原再采样”。</div>
         <div class="insight-method"><strong>破题主线：</strong>OpenTelemetry+W3C公示标，自动埋点+边界补全(线程池/MQ/定时任务)，头部+尾部采样，OTLP→Kafka→ClickHouse。</div>
         <div class="insight-method"><strong>易错点：</strong>只埋点不贯穿(断裂率度量)；线程池复用不装TTL幽灵span；只用头部采样丢下游；全量直写ES打爆。</div>
+      </div>
+    </div>
+  </div>
+
+<div class="qa-card" id="S08.08" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S08.08</div>
+      <div class="qa-question">可观测中台建设：从排障工具堆到统一遥测平台的架构演进<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag">可观测中台</span>
+      <span class="scenario-tag">OpenTelemetry</span>
+      <span class="scenario-tag">平台化</span>
+      <span class="scenario-tag">采样与成本</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>某集团 200+ 微服务、多语言栈，历史上「谁痛谁买工具」：APM、日志、指标各三套，大促排障要在五个控制台间跳转。平台部要求 6 个月内建成统一可观测中台：任意请求 5 分钟内还原调用瀑布，告警可下钻到 span/日志，遥测成本下降 50%，且业务线只接 SDK、不各自搭后端。与 S08.06/S08.07（排障与追踪专项）互补——本题考<strong>平台产品与组织落地</strong>，非单次故障定位。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 标准统一：厂商锁定 vs OpenTelemetry 语义约定；② 接入成本：Java Agent 无侵入 + 边界补全（线程池/MQ/定时任务）；③ 数据平面：OTLP→Collector→多后端，尾部采样与存储分级；④ Trace/Metrics/Logs 关联与统一查询体验；⑤ 多租户隔离、敏感字段脱敏、成本分摊；⑥ 平台与业务线的 SLO/告警所有权边界。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>用「<strong>标准层 → 采集层 → 管道层 → 存储/查询层 → 产品层</strong>」五层设计：标准选 OTel（互链 E11.04）；采集 Java Agent + 显式传播；管道 Collector 做批处理/尾采样/脱敏；存储按信号分治（指标 Prometheus/Mimir，Trace Tempo/ClickHouse，日志 Loki/ES）；产品层提供服务目录、黄金信号大盘、告警路由与自助排障工作流。组织上实行「平台保管道、业务保仪表与 SLO」。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 标准与接入</strong>：全站强制 W3C <code>traceparent</code>；Java 优先 OTel Agent；网关校验/重建非法上下文；异步边界用 Context wrap / TaskDecorator（呼应 E11.04）。</p>
+        <p><strong>2. Collector 中台</strong>：各集群边车/Daemon 收 OTLP，中心 Collector 做尾部采样（错误/慢请求必留）、属性脱敏、导出限流；禁止业务直写后端。</p>
+        <p><strong>3. 关联与产品</strong>：日志强制注入 trace_id；大盘以服务×接口黄金信号为主；告警绑定 runbook 与负责人；提供「从告警一键打开 Trace」。</p>
+        <p><strong>4. 成本与治理</strong>：按团队配额 + 基数爆炸检测（高基数 label 拒绝）；热 7 天/温 30 天/冷对象存储；季度复盘各团队遥测单价。</p>
+        <p><strong>5. 迁移</strong>：双写期旧 APM 只读保留 1～2 个迭代，按域灰度切查询入口，最后下线重复后端。</p>
+        <p><strong>6. 容量与组织检查表</strong>：① 估算「服务数 × 峰值 QPS × 头部采样 × 平均 span 数 × 保留天」得 Trace 存储量；② Collector CPU/内存按尾采样缓冲留 2×；③ 断链率 &lt; 1%、告警噪声周环比下降作为验收；④ 每个服务 Owner 认领黄金信号看板，平台只提供模板与管道。</p>
+        <p><strong>失败回滚</strong>：采样误配导致存储打满时，Collector 优先降头部采样并保错误全留；查询入口可临时切回旧 APM 只读，管道配置走 GitOps 可回滚。</p>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code>// Collector 尾部采样策略示意
+policies:
+  - name: errors-and-slow
+    type: and
+    and:
+      policies:
+        - type: status_code
+          status_code: {status_codes: [ERROR]}
+        - type: latency
+          latency: {threshold_ms: 500}
+  - name: probabilistic-baseline
+    type: probabilistic
+    probabilistic: {sampling_percentage: 5}
+
+// Java 异步边界包装 Context，避免断链
+Executor wrapped = Context.taskWrapping(executor);
+wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul>
+          <li><strong>追问 1：中台与「再买一个 APM」差在哪？</strong>APM 是单一后端产品；中台是标准+管道+多后端+组织契约，可换存储、可多租户分摊成本。</li>
+          <li><strong>追问 2：为何禁止业务直写 Tempo/ES？</strong>绕过采样与脱敏会导致成本失控与合规风险；统一出口才能做配额与审计。</li>
+          <li><strong>追问 3：如何度量中台成功？</strong>MTTR、告警噪声率、断链率、遥测单位成本、自助排障占比——不是「接入服务数」虚荣指标。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul>
+          <li><strong>只统一 UI 不统一协议</strong>：五个后端套一层门户，数据仍割裂。</li>
+          <li><strong>全量 Trace「先收着」</strong>：存储暴涨，最终被迫关采集。</li>
+          <li><strong>平台包办告警阈值</strong>：业务无主，噪声回流平台；应「平台给路由，业务认 SLO」。</li>
+          <li><strong>高基数当 metric label</strong>：userId/orderId 进指标，时间序列爆炸。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="insight">
+      <div class="qa-layer-title">破题点拨</div>
+      <div class="qa-layer-body">
+        <div class="insight-method"><strong>一眼定位：</strong>可观测中台=标准+管道+产品+组织，不是又一个控制台。</div>
+        <div class="insight-method"><strong>破题主线：</strong>OTel 统一 → Collector 治理采样/脱敏 → 信号分治存储 → 告警可下钻 → 成本配额。</div>
+        <div class="insight-method"><strong>易错点：</strong>与 S08.06 混成排障题；直写后端；全量 Trace；平台背业务告警锅。</div>
       </div>
     </div>
   </div>
@@ -7013,7 +7184,7 @@ msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, ca
   <h2 class="group-title">
     <span class="group-number">十一</span>
     搜索与大数据
-    <span class="group-count">5 题</span>
+    <span class="group-count">6 题</span>
   </h2>
 
   <!-- S11.01 亿级数据 Elasticsearch 集群设计与优化：电商商品搜索高可用架构 -->
@@ -7464,13 +7635,94 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
       </div>
     </div>
   </div>
+<div class="qa-card" id="S11.06" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S11.06</div>
+      <div class="qa-question">云/GPU FinOps 失控治理：账单翻倍下的归因、责任制与弹性降本<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag">FinOps</span>
+      <span class="scenario-tag">GPU</span>
+      <span class="scenario-tag">云成本</span>
+      <span class="scenario-tag">责任共担</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>公司月云账单从 800 万涨到 1600 万：K8s 集群 idle 高、对象存储无生命周期、NAT/流量费飙升；AI 平台 32 张 H100 平均利用率 &lt; 25%，训练作业占坑不释放。CFO 要求两周定位 Top 成本驱动，一季度建立 FinOps 责任制（互链 C11.20）。S12.02 覆盖 LLM Token 侧，本题覆盖<strong>云资源与 GPU 闲置</strong>，二者成本账要能合并归因到业务线。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 账单粒度与业务标签不对齐（缺统一 cost allocation tag）；② 弹性资源「开了忘关」与预留/节省计划错配；③ GPU 队列占坑、碎片化、无抢占/闲时回收；④ 工程优化（rightsizing）与采购优化（RI/SP）职责分裂；⑤ 降本动作可能伤可用性，需与 SLO 联动。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>FinOps 闭环：<strong>Inform（可见）→ Optimize（优化）→ Operate（运营）</strong>。Inform：统一标签（team/env/service/model）+ 日级成本单元；Optimize：rightsizing、调度与生命周期、RI/SP 覆盖率；Operate：预算告警、Showback/Chargeback、变更门禁（超预算阻断扩容）。GPU 单独一条：利用率×排队等待×抢占策略，避免「为峰值永久买断」。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 归因</strong>：强制标签准入（无标签不得进生产命名空间）；账单按 team×service 下钻；GPU 按队列/作业/模型维度。</p>
+        <p><strong>2. 计算与存储快赢</strong>：HPA/VPA + 空闲命名空间回收；Spot/抢占实例跑批处理；OSS 生命周期（热→低成本→归档）；清理未挂载盘与空负载均衡。</p>
+        <p><strong>3. GPU</strong>：配额+闲置回收（N 分钟无算力释放）；训练用抢占队列，在线推理用保证配额；MIG/分时复用提高碎片利用率；闲时自动缩容到最小保障副本。</p>
+        <p><strong>4. 采购</strong>：稳定基线买 RI/SP，毛刺用按需+Spot；季度复盘覆盖率与浪费率。</p>
+        <p><strong>5. 治理</strong>：预算阈值（80% 告警/100% 冻结非核心扩容）；Showback 周报到业务负责人；重大扩容需附成本预测。</p>
+        <p><strong>6. 两周归因公式（可算）</strong>：浪费率 ≈ idle 计算费 + 未挂载盘 + 无生命周期存储 + GPU(1−利用率)×卡时费。目标：Top5 驱动覆盖账单增量的 70%+；GPU 队列「占坑无心跳」回收 SLA ≤ 30min。</p>
+        <p><strong>失败回滚</strong>：缩容导致 SLO 燃烧加速则立即回扩并冻结该类降本动作；RI/SP 错配先停新购，用按需顶峰，下季度再调覆盖率。</p>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code>// K8s：强制 cost 标签的 Validating 思路（伪代码）
+if (ns.isProduction() &amp;&amp; !labels.containsKeys("team", "service", "env")) {
+    deny("missing FinOps labels: team/service/env");
+}
+
+// GPU 闲置回收：作业心跳超时则释放占坑
+if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
+        &amp;&amp; job.gpuUtilAvg15m() &lt; 0.05) {
+    scheduler.preempt(job, reason="finops-idle-reclaim");
+}</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul>
+          <li><strong>追问 1：Showback 与 Chargeback 怎么选？</strong>文化未成熟先 Showback（可见不扣款）；责任制建立后再 Chargeback，避免「为省钱关掉监控」。</li>
+          <li><strong>追问 2：GPU 利用率低是否一律缩容？</strong>否。看排队等待与 SLA；在线推理保底副本不可盲缩；优化占坑与调度优先于砍容量。</li>
+          <li><strong>追问 3：和 Token FinOps 如何一张账？</strong>统一 business_id/team 维度，云资源+Token+第三方 API 进同一成本单元，否则 AI 成本会在两本账间漂移。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul>
+          <li><strong>只砍机器不改标签</strong>：下月仍无法归因，浪费复发。</li>
+          <li><strong>RI 买满「感觉稳定」</strong>：业务形态变了变闲置预留。</li>
+          <li><strong>降本不管 SLO</strong>：缩容导致错误预算打穿，业务反弹扩容更贵。</li>
+          <li><strong>GPU 与 CPU 成本混谈</strong>：单位经济模型不同，必须分队列策略。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="insight">
+      <div class="qa-layer-title">破题点拨</div>
+      <div class="qa-layer-body">
+        <div class="insight-method"><strong>一眼定位：</strong>FinOps=可见→优化→运营，核心是标签归因+责任制，不是一次性砍配置。</div>
+        <div class="insight-method"><strong>破题主线：</strong>统一标签 → Top 驱动定位 → rightsizing/生命周期/GPU 回收 → RI/Spot 组合 → 预算门禁。</div>
+        <div class="insight-method"><strong>易错点：</strong>与 S12.02 Token 题混为一谈；无标签先砍机器；GPU 盲缩伤推理 SLA。</div>
+      </div>
+    </div>
+  </div>
+
   </section>
 
 <section class="scenario-group" id="group-12">
   <h2 class="group-title">
     <span class="group-number">十二</span>
     AI 生产级场景
-    <span class="group-count">7 题</span>
+    <span class="group-count">8 题</span>
   </h2>
 
   <!-- S12.01 AI 客服系统 RAG 幻觉致客诉的线上止血与根治 -->
@@ -8266,6 +8518,94 @@ spark.<span class="fn">table</span>(<span class="str">"hive.events"</span>)
       </div>
     </div>
   </div>
+<div class="qa-card" id="S12.08" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S12.08</div>
+      <div class="qa-question">MCP/多 Agent 生产化：工具供给、权限边界与协作编排上线<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag">MCP</span>
+      <span class="scenario-tag">Multi-Agent</span>
+      <span class="scenario-tag">工具治理</span>
+      <span class="scenario-tag">生产化</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>团队要把「客服 Agent + 工单 Agent + 知识 Agent」从演示环境推生产：工具原先散落在各服务 <code>@Tool</code>，现要 MCP 化复用；多 Agent 经编排器协作。安全要求：工具白名单、租户隔离、高危 HITL；稳定性要求：超时、幂等、环检测、可观测。S12.03 讲资损应急，E04.07/E04.08/C12.07 讲原理——本题考<strong>上线方案与治理面</strong>。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① MCP Server 生命周期：发布、版本兼容、发现（注册中心）；② 权限：谁可连哪类 Server、工具级鉴权与审计；③ 多 Agent：任务分解、共享状态、A→B→A 环、责任归因；④ 与网关/配额/FinOps 打通（Token+工具调用费）；⑤ 失败语义：工具错误回填 vs 抛异常打断。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>三层：<strong>供给（MCP Server）→ 编排（Agent Runtime/护栏）→ 治理（目录/权限/配额/观测）</strong>。供给标准化解决 M×N；编排层落实 max_steps/幂等/HITL（E04.07）；治理层把工具当一等生产资源（变更评审、SLO、审计）。多 Agent 优先 Supervisor/状态图，避免无边界自由对话。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. MCP 供给</strong>：按域拆 Server（工单/库存/知识）；HTTP 传输进生产；schema 变更加可选字段优先；注册到目录（如 Nacos MCP Registry）供发现。</p>
+        <p><strong>2. 安全</strong>：Client 允许列表；Server mTLS+令牌；工具分级（读/写/资金）；写操作强制幂等键与 HITL；审计记 tool、参数摘要、tenant、trace_id。</p>
+        <p><strong>3. 多 Agent 编排</strong>：Supervisor 持全局目标与预算；子 Agent 上下文最小化；Orchestrator 维护调用栈做环检测；共享状态进显式 store，不靠「聊天记录碰巧记得」。</p>
+        <p><strong>4. 可靠性</strong>：会话 max_steps、单工具次数、总超时；工具失败回 Observation；关键路径可回放。</p>
+        <p><strong>5. 可观测与成本</strong>：span 打 agent/tool/model；与 S12.02 配额体系统一；演示环境配置禁止进生产连接串。</p>
+        <p><strong>6. 上线检查表</strong>：① Server 鉴权（mTLS/令牌）+ Client 允许列表；② 写工具幂等键与 HITL 开关；③ 全局 max_steps/预算与环检测；④ 工具目录版本与回滚；⑤ 演练「工具超时 / 错误 Observation / 人工拒绝」三条路径。</p>
+        <p><strong>失败回滚</strong>：生产异常时切断高危工具 ACL、会话熔断到人工客服；MCP Server 回滚到上一 schema 版本；编排配置 GitOps 一键退回单 Agent 模式。</p>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">关键代码</div>
+      <div class="qa-layer-body">
+        <div class="code-block"><pre><code>// 编排层护栏 + 环检测（示意）
+public Outcome run(AgentGraph graph, Session s) {
+    Deque&lt;String&gt; stack = s.callStack();
+    while (!s.done()) {
+        if (s.steps() &gt;= MAX_STEPS) return Outcome.halt("max_steps");
+        Step step = graph.next(s);
+        if (stack.contains(step.agentId())) return Outcome.halt("cycle");
+        stack.push(step.agentId());
+        try {
+            Observation obs = mcpClient.call(step.tool(), step.args(), s.idemKey());
+            s.append(obs); // 错误也回填，不抛穿
+        } finally {
+            stack.pop();
+        }
+    }
+    return Outcome.ok(s.result());
+}</code></pre></div>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul>
+          <li><strong>追问 1：全部工具 MCP 化是否必须？</strong>否。低延迟强事务可留进程内；跨团队复用、多运行时共享走 MCP。</li>
+          <li><strong>追问 2：Multi-Agent 何时不该上？</strong>单域短流程用单 Agent+工具即可；多角色带来协调与调试成本，需有明确分工收益。</li>
+          <li><strong>追问 3：MCP 能否替代业务幂等？</strong>不能。协议只保证调用通道；Exactly-Once 靠工具幂等与编排去重。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul>
+          <li><strong>MCP Server 裸奔内网</strong>：无鉴权当 RPC 用，工具被任意 Client 滥用。</li>
+          <li><strong>多 Agent 无全局预算</strong>：子 Agent 各自循环，Token/工具费叠加爆炸。</li>
+          <li><strong>只讲协议不讲目录</strong>：没有发现与版本治理，生产无法协作。</li>
+          <li><strong>与 S12.03 重复只写熔断</strong>：本题必须覆盖供给、权限、编排上线，而非仅应急。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="insight">
+      <div class="qa-layer-title">破题点拨</div>
+      <div class="qa-layer-body">
+        <div class="insight-method"><strong>一眼定位：</strong>生产化=MCP 供给 + 编排护栏 + 治理面，三角缺一不可。</div>
+        <div class="insight-method"><strong>破题主线：</strong>域内 Server → 鉴权分级 → Supervisor/状态图 → 环检测/幂等 → 观测与配额。</div>
+        <div class="insight-method"><strong>易错点：</strong>演示配置上生产；工具失败抛穿循环；无环检测；把 MCP 当 Exactly-Once。</div>
+      </div>
+    </div>
+  </div>
+
   </section>
 
 
