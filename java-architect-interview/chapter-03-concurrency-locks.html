@@ -150,7 +150,26 @@
               <p><strong>可见性的底层机制：内存屏障 + MESI 协议</strong>。JVM 在 volatile 写之后插入 <code class="inline-code">StoreLoad</code> 屏障，在 volatile 读之前插入 <code class="inline-code">LoadLoad</code>/<code class="inline-code">LoadStore</code> 屏障。这些屏障在 x86 上对应 <code class="inline-code">lock</code> 前缀指令或 <code class="inline-code">mfence</code>，强制 CPU 将 Store Buffer 刷新到 L1 Cache，并通过 <strong>MESI 缓存一致性协议</strong>让其他 CPU 核上持有该缓存行的状态从 M（Modified）/S（Shared）降级为 I（Invalid），下次读取时强制从主内存或拥有最新值的缓存行重新加载。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant T1 as 线程1 (CPU0) participant SB1 as StoreBuffer(CPU0) participant L1 as L1 Cache(CPU0) participant Bus as 总线/MESI participant L2 as L1 Cache(CPU1) participant T2 as 线程2 (CPU1) T1->>SB1: volatile 写 v=1 Note over SB1: StoreLoad 屏障触发 SB1->>L1: 刷新到 L1 (lock 指令) L1->>Bus: 广播 Invalidate Bus->>L2: 将 v 的缓存行置为 I(Invalid) Note over L2: 缓存行失效 T2->>L2: 读 v (cache miss) L2->>Bus: Read 请求 Bus->>L1: 取最新值 v=1 L1-->>L2: 返回 v=1 L2-->>T2: 读到 v=1 (可见性保证)</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant T1 as 线程1 (CPU0)
+    participant SB1 as StoreBuffer(CPU0)
+    participant L1 as L1 Cache(CPU0)
+    participant Bus as 总线/MESI
+    participant L2 as L1 Cache(CPU1)
+    participant T2 as 线程2 (CPU1)
+    T1->>SB1: volatile 写 v=1
+    Note over SB1: StoreLoad 屏障触发
+    SB1->>L1: 刷新到 L1 (lock 指令)
+    L1->>Bus: 广播 Invalidate
+    Bus->>L2: 将 v 的缓存行置为 I(Invalid)
+    Note over L2: 缓存行失效
+    T2->>L2: 读 v (cache miss)
+    L2->>Bus: Read 请求
+    Bus->>L1: 取最新值 v=1
+    L1-->>L2: 返回 v=1
+    L2-->>T2: 读到 v=1 (可见性保证)
+                </div>
                 <div class="chart-caption">图 3.1-1 volatile 写读的内存屏障与 MESI 缓存一致性交互</div>
               </div>
 
@@ -375,7 +394,19 @@
               </table>
 
               <div class="mermaid-container">
-                <div class="mermaid">graph TD A[新建对象<br />无锁 01] -->|加锁 CAS| D[轻量级锁<br />Lock Record 00] D -->|CAS 成功 / 交替进入| D D -->|自旋失败或真实竞争| E[重量级锁<br />ObjectMonitor 10] E -->|线程阻塞| F[内核态 park<br />EntryList] F -->|锁释放| G[唤醒等待线程] A -.->|历史路径 JDK15 前<br />已废弃 JEP 374| B[偏向锁 threadId] B -.->|竞争撤销| D style D fill:#fef3c7,stroke:#d97706 style E fill:#fee2e2,stroke:#dc2626 style B fill:#e5e7eb,stroke:#9ca3af,stroke-dasharray: 5 5</div>
+                <div class="mermaid">
+graph TD
+    A[新建对象<br/>无锁 01] -->|加锁 CAS| D[轻量级锁<br/>Lock Record 00]
+    D -->|CAS 成功 / 交替进入| D
+    D -->|自旋失败或真实竞争| E[重量级锁<br/>ObjectMonitor 10]
+    E -->|线程阻塞| F[内核态 park<br/>EntryList]
+    F -->|锁释放| G[唤醒等待线程]
+    A -.->|历史路径 JDK15 前<br/>已废弃 JEP 374| B[偏向锁 threadId]
+    B -.->|竞争撤销| D
+    style D fill:#fef3c7,stroke:#d97706
+    style E fill:#fee2e2,stroke:#dc2626
+    style B fill:#e5e7eb,stroke:#9ca3af,stroke-dasharray: 5 5
+                </div>
                 <div class="chart-caption">图 3.2-1 synchronized 现行升级路径：无锁 → 轻量级锁 → 重量级锁（虚线为 JDK 15 前偏向锁历史路径，JEP 374 已废弃）</div>
               </div>
 
@@ -493,7 +524,18 @@
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">graph LR subgraph AQS 内部结构 H[head 哨兵节点] --> N1[Node1<br />Thread-A<br />SIGNAL] N1 --> N2[Node2<br />Thread-B<br />WAITING] N2 --> N3[Node3<br />Thread-C<br />WAITING] N3 -.-> T[tail] end S["state （volatile int）<br />0=未占用 1=已占用"] -.-> H style S fill:#fef3c7,stroke:#d97706 style H fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+graph LR
+    subgraph AQS 内部结构
+        H[head 哨兵节点] --> N1[Node1<br/>Thread-A<br/>SIGNAL]
+        N1 --> N2[Node2<br/>Thread-B<br/>WAITING]
+        N2 --> N3[Node3<br/>Thread-C<br/>WAITING]
+        N3 -.-> T[tail]
+    end
+    S["state （volatile int）<br/>0=未占用 1=已占用"] -.-> H
+    style S fill:#fef3c7,stroke:#d97706
+    style H fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 3.3-1 AQS 的 CLH 变体队列结构（双向链表 + state 同步状态）</div>
               </div>
 
@@ -718,7 +760,19 @@
               <p><strong>ABA 问题</strong>：线程 1 读到值 A，准备 CAS(A→C)；此时线程 2 把 A 改成 B 又改回 A；线程 1 的 CAS 仍成功（值还是 A），但中间的 B 状态被"无视"了。在多数计数场景（如 increment）ABA 无害，但在<strong>涉及对象复用/状态机</strong>的场景（如无锁栈中节点弹出后又被压回）会导致逻辑错误。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant T1 as 线程1 participant V as 共享变量 V participant T2 as 线程2 T1->>V: 读 V = A Note over T1: 准备 CAS(A → C) T2->>V: CAS(A → B) 成功 T2->>V: CAS(B → A) 成功 Note over V: V 又变回 A（但经历了 B） T1->>V: CAS(A → C) 成功 Note over T1: 以为 V 没变过, 实际经历了 A→B→A</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant T1 as 线程1
+    participant V as 共享变量 V
+    participant T2 as 线程2
+    T1->>V: 读 V = A
+    Note over T1: 准备 CAS(A → C)
+    T2->>V: CAS(A → B) 成功
+    T2->>V: CAS(B → A) 成功
+    Note over V: V 又变回 A（但经历了 B）
+    T1->>V: CAS(A → C) 成功
+    Note over T1: 以为 V 没变过, 实际经历了 A→B→A
+                </div>
                 <div class="chart-caption">图 3.4-1 ABA 问题：值"看似没变"实则经历了中间状态</div>
               </div>
 
@@ -1029,7 +1083,24 @@
               <p><strong>JDK8 ConcurrentHashMap（CAS + synchronized + 红黑树）</strong>：废弃 Segment，退回 Node[] 数组，对单个桶头节点 synchronized + CAS。并发度 = 桶数（默认 16，随扩容增长）。引入红黑树解决哈希冲突下的链表过长问题。这是"锁粒度从段细化到桶"的演进。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">graph TB subgraph JDK7 分段锁 S1[Segment0<br />ReentrantLock] --> H1[HashEntry数组] S2[Segment1<br />ReentrantLock] --> H2[HashEntry数组] SN[...Segment15] --> HN[HashEntry数组] end subgraph JDK8 CAS+synchronized NA[Node 数组] NA --> B0[桶0 synchronized] NA --> B1[桶1 synchronized] NA --> BN[桶N synchronized] B0 --> L0[链表/红黑树] end J7[JDK7: 锁粒度=Segment<br />并发度=16] --> J8[JDK8: 锁粒度=桶头节点<br />并发度=桶数,随扩容增长] style S1 fill:#dbeafe,stroke:#2563eb style B0 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+graph TB
+    subgraph JDK7 分段锁
+        S1[Segment0<br/>ReentrantLock] --> H1[HashEntry数组]
+        S2[Segment1<br/>ReentrantLock] --> H2[HashEntry数组]
+        SN[...Segment15] --> HN[HashEntry数组]
+    end
+    subgraph JDK8 CAS+synchronized
+        NA[Node 数组]
+        NA --> B0[桶0 synchronized]
+        NA --> B1[桶1 synchronized]
+        NA --> BN[桶N synchronized]
+        B0 --> L0[链表/红黑树]
+    end
+    J7[JDK7: 锁粒度=Segment<br/>并发度=16] --> J8[JDK8: 锁粒度=桶头节点<br/>并发度=桶数,随扩容增长]
+    style S1 fill:#dbeafe,stroke:#2563eb
+    style B0 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 3.6-1 ConcurrentHashMap 从 JDK7 分段锁到 JDK8 CAS+synchronized 的结构演进</div>
               </div>
 
@@ -1161,7 +1232,14 @@
               <p><strong>三层关系</strong>：Condition.await 会借助 LockSupport.park 阻塞，HotSpot Object.wait 也进入 ObjectMonitor 等待机制。LockSupport 是常用的线程阻塞原语，但不同等待机制的持锁、队列和唤醒契约不同，不能混成一个模型。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">graph TD A[Object.wait/notify] -->|JVM ObjectMonitor| P[LockSupport.park/unpark] C[Condition.await/signal] -->|AQS Condition 队列| P P -->|Unsafe.unpark| OS[OS 层: pthread_mutex+futex] P -->|线程 permit 机制| T[Thread.parkBlocker] style P fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+graph TD
+    A[Object.wait/notify] -->|JVM ObjectMonitor| P[LockSupport.park/unpark]
+    C[Condition.await/signal] -->|AQS Condition 队列| P
+    P -->|Unsafe.unpark| OS[OS 层: pthread_mutex+futex]
+    P -->|线程 permit 机制| T[Thread.parkBlocker]
+    style P fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 3.7-1 等待/通知三层抽象：Object/Condition 最终都落到 LockSupport</div>
               </div>
 
@@ -1481,7 +1559,23 @@
               <p><strong>分治任务模型</strong>：ForkJoinTask 有两个核心子类——RecursiveTask（有返回值）和 RecursiveAction（无返回值）。任务通过 fork() 拆分子任务异步执行，join() 等待结果。典型用法：递归把大任务拆成两个小任务，直到小于阈值直接计算。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">graph TB subgraph Worker0 双端队列 A1[大任务] --> A2[子任务1 fork] --> A3[子任务2 fork] A1 -.LIFO处理.-> A2 end subgraph Worker1 空闲 W1[窃取 Worker0 队尾的子任务2 FIFO] end A3 -.被窃取.-> W1 A2 --> R1[本地计算结果] W1 --> R2[窃取任务结果] R1 --> J[join 合并] R2 --> J style W1 fill:#fef3c7,stroke:#d97706 style A3 fill:#fee2e2,stroke:#dc2626</div>
+                <div class="mermaid">
+graph TB
+    subgraph Worker0 双端队列
+        A1[大任务] --> A2[子任务1 fork] --> A3[子任务2 fork]
+        A1 -.LIFO处理.-> A2
+    end
+    subgraph Worker1 空闲
+        W1[窃取 Worker0 队尾的子任务2 FIFO]
+    end
+    A3 -.被窃取.-> W1
+    A2 --> R1[本地计算结果]
+    W1 --> R2[窃取任务结果]
+    R1 --> J[join 合并]
+    R2 --> J
+    style W1 fill:#fef3c7,stroke:#d97706
+    style A3 fill:#fee2e2,stroke:#dc2626
+                </div>
                 <div class="chart-caption">图 3.9-1 工作窃取：空闲线程从其他线程队列尾部窃取任务</div>
               </div>
 
@@ -1623,7 +1717,14 @@
               <p><strong>演进动机的本质</strong>：从"单点 CAS"到"分散 CAS 热点"，是并发量级从几十到几千的必然选择。这与其他系统的演进同构——ConcurrentHashMap 的 Segment 到单桶、数据库的行锁代替表锁，都是"细化锁/CAS 粒度以提升并发度"。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">graph LR A["synchronized++<br />全串行<br />低并发可用"] --> B["AtomicLong<br />单点 CAS 自旋<br />中并发最优"] B --> C["LongAdder<br />Cell[] 分段 CAS<br />高并发最优"] style A fill:#fee2e2,stroke:#dc2626 style B fill:#fef3c7,stroke:#d97706 style C fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+graph LR
+    A["synchronized++<br/>全串行<br/>低并发可用"] --> B["AtomicLong<br/>单点 CAS 自旋<br/>中并发最优"]
+    B --> C["LongAdder<br/>Cell[] 分段 CAS<br/>高并发最优"]
+    style A fill:#fee2e2,stroke:#dc2626
+    style B fill:#fef3c7,stroke:#d97706
+    style C fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 3.10-1 计数器性能演进：synchronized → AtomicLong → LongAdder</div>
               </div>
             </div>
@@ -1659,7 +1760,25 @@
               <p><strong>LongAdder 的分段 CAS 原理</strong>：内部维护一个 base（基础值）和 Cell[] 数组（每个 Cell 用 @Contended 避免伪共享）。increment 时：① 先尝试 CAS base，成功则返回；② 失败说明有竞争，根据线程的 probe（哈希值）定位一个 Cell，CAS 该 Cell 的 value；③ Cell 的 CAS 也失败，则重新 hash 探测其他 Cell。最终 sum() = base + 所有 Cell.value 之和。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">graph TB subgraph LongAdder 内部 B["base （volatile long）"] C0["Cell0 @Contended<br />volatile long"] C1["Cell1 @Contended<br />volatile long"] C2["Cell2 @Contended<br />volatile long"] CN["...CellN"] end T1[线程1 probe=h0] -->|CAS| C0 T2[线程2 probe=h1] -->|CAS| C1 T3[线程3 probe=h2] -->|CAS| C2 T4[线程4 无竞争] -->|CAS base| B SUM["sum（） = base + Cell0 + Cell1 + ... + CellN"] style B fill:#fef3c7,stroke:#d97706 style C0 fill:#dbeafe,stroke:#2563eb style C1 fill:#dbeafe,stroke:#2563eb style C2 fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+graph TB
+    subgraph LongAdder 内部
+        B["base （volatile long）"]
+        C0["Cell0 @Contended<br/>volatile long"]
+        C1["Cell1 @Contended<br/>volatile long"]
+        C2["Cell2 @Contended<br/>volatile long"]
+        CN["...CellN"]
+    end
+    T1[线程1 probe=h0] -->|CAS| C0
+    T2[线程2 probe=h1] -->|CAS| C1
+    T3[线程3 probe=h2] -->|CAS| C2
+    T4[线程4 无竞争] -->|CAS base| B
+    SUM["sum（） = base + Cell0 + Cell1 + ... + CellN"]
+    style B fill:#fef3c7,stroke:#d97706
+    style C0 fill:#dbeafe,stroke:#2563eb
+    style C1 fill:#dbeafe,stroke:#2563eb
+    style C2 fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 3.10-2 LongAdder 分段 CAS：不同线程操作不同 Cell，热点分散</div>
               </div>
 

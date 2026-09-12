@@ -346,7 +346,24 @@ pool.<span class="fn">setMaximumPoolSize</span>(<span class="num">64</span>);   
               <p><strong>任务提交流程（execute 方法决策链）</strong>：这是核心，必须按顺序说清。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["提交任务 execute"] --> B{"当前线程数 < corePoolSize?"} B -- 是 --> C["创建核心线程执行任务"] B -- 否 --> D["尝试入队 workQueue"] D --> E{"入队成功?"} E -- 是 --> F["等待空闲线程领取"] E -- 否 --> G{"当前线程数 < maximumPoolSize?"} G -- 是 --> H["创建非核心线程执行任务"] G -- 否 --> I["触发拒绝策略 handler.rejectedExecution"] C --> J[任务执行完成] F --> K[空闲线程从队列领取] H --> J K --> J style C fill:#dbeafe,stroke:#2563eb style H fill:#fef3c7,stroke:#d97706 style I fill:#fee2e2,stroke:#dc2626</div>
+                <div class="mermaid">
+flowchart TD
+    A["提交任务 execute"] --> B{"当前线程数 < corePoolSize?"}
+    B -- 是 --> C["创建核心线程执行任务"]
+    B -- 否 --> D["尝试入队 workQueue"]
+    D --> E{"入队成功?"}
+    E -- 是 --> F["等待空闲线程领取"]
+    E -- 否 --> G{"当前线程数 < maximumPoolSize?"}
+    G -- 是 --> H["创建非核心线程执行任务"]
+    G -- 否 --> I["触发拒绝策略 handler.rejectedExecution"]
+    C --> J[任务执行完成]
+    F --> K[空闲线程从队列领取]
+    H --> J
+    K --> J
+    style C fill:#dbeafe,stroke:#2563eb
+    style H fill:#fef3c7,stroke:#d97706
+    style I fill:#fee2e2,stroke:#dc2626
+                </div>
                 <div class="chart-caption">图 4.2-1 ThreadPoolExecutor.execute 任务提交流程：核心→队列→最大→拒绝</div>
               </div>
 
@@ -377,7 +394,21 @@ pool.<span class="fn">setMaximumPoolSize</span>(<span class="num">64</span>);   
               <p><strong>五状态机与 ctl 设计</strong>：<code class="inline-code">ctl</code> 是一个 AtomicInteger，高 3 位存状态、低 29 位存工作线程数，用一次 CAS 同时原子更新两者。这是"用一个 int 编码两个维度"的极致压缩。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">stateDiagram-v2 [*] --> RUNNING : new ThreadPoolExecutor RUNNING --> SHUTDOWN : shutdown RUNNING --> STOP : shutdownNow SHUTDOWN --> STOP : shutdownNow SHUTDOWN --> TIDYING : 队列空且工作线程为0 STOP --> TIDYING : 工作线程为0 TIDYING --> TERMINATED : terminated 钩子执行完 TERMINATED --> [*] note right of RUNNING: 接收新任务 + 处理队列任务 note right of SHUTDOWN: 不接收新任务 + 处理队列剩余任务 note right of STOP: 不接收新任务 + 丢弃队列 + 中断执行中任务 note right of TIDYING: terminated() 钩子执行</div>
+                <div class="mermaid">
+stateDiagram-v2
+    [*] --> RUNNING : new ThreadPoolExecutor
+    RUNNING --> SHUTDOWN : shutdown
+    RUNNING --> STOP : shutdownNow
+    SHUTDOWN --> STOP : shutdownNow
+    SHUTDOWN --> TIDYING : 队列空且工作线程为0
+    STOP --> TIDYING : 工作线程为0
+    TIDYING --> TERMINATED : terminated 钩子执行完
+    TERMINATED --> [*]
+    note right of RUNNING: 接收新任务 + 处理队列任务
+    note right of SHUTDOWN: 不接收新任务 + 处理队列剩余任务
+    note right of STOP: 不接收新任务 + 丢弃队列 + 中断执行中任务
+    note right of TIDYING: terminated() 钩子执行
+                </div>
                 <div class="chart-caption">图 4.2-2 线程池五状态流转：RUNNING→SHUTDOWN→STOP→TIDYING→TERMINATED</div>
               </div>
 
@@ -532,7 +563,27 @@ pool.<span class="fn">shutdown</span>();                              <span clas
               <p><strong>引用链结构</strong>：每个 Thread 持有一个 <code class="inline-code">ThreadLocalMap</code>，Map 的 Entry 继承 WeakReference，Key 是 ThreadLocal 的弱引用，Value 是强引用。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph 栈与堆引用 TL["ThreadLocal 实例<br />（栈局部变量）"] end subgraph Thread 对象 T["Thread"] TLM["ThreadLocalMap<br />table: Entry 数组"] end subgraph Entry 结构 E["Entry<br />Key: WeakReference&lt;ThreadLocal&gt;<br />Value: Object （强引用）"] V["Value 对象<br />（如 UserContext）"] end TL -.弱引用.-> E T --> TLM TLM --> E E --强引用--> V style TL fill:#dbeafe,stroke:#2563eb style E fill:#fef3c7,stroke:#d97706 style V fill:#fee2e2,stroke:#dc2626</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph 栈与堆引用
+        TL["ThreadLocal 实例<br/>（栈局部变量）"]
+    end
+    subgraph Thread 对象
+        T["Thread"]
+        TLM["ThreadLocalMap<br/>table: Entry 数组"]
+    end
+    subgraph Entry 结构
+        E["Entry<br/>Key: WeakReference&lt;ThreadLocal&gt;<br/>Value: Object （强引用）"]
+        V["Value 对象<br/>（如 UserContext）"]
+    end
+    TL -.弱引用.-> E
+    T --> TLM
+    TLM --> E
+    E --强引用--> V
+    style TL fill:#dbeafe,stroke:#2563eb
+    style E fill:#fef3c7,stroke:#d97706
+    style V fill:#fee2e2,stroke:#dc2626
+                </div>
                 <div class="chart-caption">图 4.3-1 ThreadLocal 引用链：Key 弱引用、Value 强引用的不对称结构</div>
               </div>
 
@@ -650,7 +701,16 @@ pool.<span class="fn">shutdown</span>();                              <span clas
               <p>Java 并发模型经历了六代演进，每一代都在解决上一代的"表达力 vs 性能"权衡：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">timeline title Java 并发模型六代演进 JDK 1.0 : 1996 : Thread / Runnable : 一切皆平台线程，OS 调度，1:1 映射 JDK 5 : 2004 : Executor 框架 : 线程池化，任务与执行策略解耦 JDK 7 : 2011 : ForkJoinPool : 工作窃取，分治任务模型 JDK 8 : 2014 : CompletableFuture : 链式异步编排，回调组合 JDK 21 : 2023 : Virtual Threads : 轻量级线程，同步写法异步性能 JDK 21~26 Preview : Structured Concurrency : 父子任务生命周期绑定（至 JDK 26 仍未 GA）</div>
+                <div class="mermaid">
+timeline
+    title Java 并发模型六代演进
+    JDK 1.0 : 1996 : Thread / Runnable : 一切皆平台线程，OS 调度，1:1 映射
+    JDK 5 : 2004 : Executor 框架 : 线程池化，任务与执行策略解耦
+    JDK 7 : 2011 : ForkJoinPool : 工作窃取，分治任务模型
+    JDK 8 : 2014 : CompletableFuture : 链式异步编排，回调组合
+    JDK 21 : 2023 : Virtual Threads : 轻量级线程，同步写法异步性能
+    JDK 21~26 Preview : Structured Concurrency : 父子任务生命周期绑定（至 JDK 26 仍未 GA）
+                </div>
                 <div class="chart-caption">图 4.4-1 Java 并发模型六代演进：从 OS 线程到结构化并发</div>
               </div>
 
@@ -719,7 +779,32 @@ pool.<span class="fn">shutdown</span>();                              <span clas
               <p><strong>unmount/mount 机制（核心原理）</strong>：虚拟线程的栈是堆上的 <code class="inline-code">StackChunk</code> 对象。当虚拟线程执行到可卸载阻塞操作（如 socket IO、<code class="inline-code">LockSupport.park</code>）时，JVM 把当前栈帧<strong>拷贝出载体线程</strong>（unmount），载体线程立即去运行下一个虚拟线程；当 IO 就绪，JVM 把栈帧<strong>拷贝回某个载体线程</strong>（mount）继续执行。JEP 444 明确当前不为虚拟线程实现 CPU 时间片抢占（time sharing）；CPU 密集任务不会因用完时间片被 JVM 强制换出，只有显式 <code class="inline-code">Thread.yield()</code> 或可卸载阻塞才会交还载体线程。载体线程本身仍由 OS 正常调度。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD subgraph CarrierThreads ["载体线程 Carrier Threads （ForkJoinPool）"] C1[Carrier-1] C2[Carrier-2] end subgraph VirtualThreads ["虚拟线程 Virtual Threads （百万级）"] V1[VT-A 执行中] V2[VT-B 阻塞 IO] V3[VT-C 等待锁] V4[VT-D 就绪] VN[...VT-N] end V1 -.mount.-> C1 V4 -.mount.-> C2 V2 --unmount 栈存堆--> S2[(堆: StackChunk)] V3 --unmount 栈存堆--> S3[(堆: StackChunk)] S2 -.IO就绪后 mount.-> C1 S3 -.锁释放后 mount.-> C2 style V1 fill:#dbeafe,stroke:#2563eb style V4 fill:#dbeafe,stroke:#2563eb style V2 fill:#fef3c7,stroke:#d97706 style V3 fill:#fef3c7,stroke:#d97706 style C1 fill:#d1fae5,stroke:#059669 style C2 fill:#d1fae5,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TD
+    subgraph CarrierThreads ["载体线程 Carrier Threads （ForkJoinPool）"]
+        C1[Carrier-1]
+        C2[Carrier-2]
+    end
+    subgraph VirtualThreads ["虚拟线程 Virtual Threads （百万级）"]
+        V1[VT-A 执行中]
+        V2[VT-B 阻塞 IO]
+        V3[VT-C 等待锁]
+        V4[VT-D 就绪]
+        VN[...VT-N]
+    end
+    V1 -.mount.-> C1
+    V4 -.mount.-> C2
+    V2 --unmount 栈存堆--> S2[(堆: StackChunk)]
+    V3 --unmount 栈存堆--> S3[(堆: StackChunk)]
+    S2 -.IO就绪后 mount.-> C1
+    S3 -.锁释放后 mount.-> C2
+    style V1 fill:#dbeafe,stroke:#2563eb
+    style V4 fill:#dbeafe,stroke:#2563eb
+    style V2 fill:#fef3c7,stroke:#d97706
+    style V3 fill:#fef3c7,stroke:#d97706
+    style C1 fill:#d1fae5,stroke:#059669
+    style C2 fill:#d1fae5,stroke:#059669
+                </div>
                 <div class="chart-caption">图 4.4-2 虚拟线程 N:M 调度：阻塞时 unmount 栈到堆，就绪后 mount 回载体线程</div>
               </div>
 
@@ -1173,7 +1258,36 @@ spring:
               <p><strong>Virtual Threads（Spring 6.1/Boot 3.2，2023）</strong>：让 Servlet 模型用虚拟线程，<strong>同步代码获得异步吞吐</strong>，许多人视为 WebFlux 的"终结者"。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB subgraph S["Servlet 模型"] direction LR R1[请求1] --> T1[平台线程1<br />阻塞 IO] R2[请求2] --> T2[平台线程2<br />阻塞 IO] R3[请求N] --> TN[平台线程N<br />阻塞 IO] end subgraph W["WebFlux 模型"] direction LR Q1[请求1] --> EL[EventLoop x N<br />非阻塞 IO] Q2[请求2] --> EL Q3[请求N] --> EL end subgraph V["Virtual Threads 模型"] direction LR P1[请求1] --> VT1[虚拟线程1<br />同步阻塞但可 unmount] P2[请求2] --> VT2[虚拟线程2] PN[请求N] --> VTN[虚拟线程N] VT1 -.mount.- C1[载体线程 x 核数] VT2 -.mount.- C1 VTN -.mount.- C1 end style T1 fill:#fee2e2,stroke:#dc2626 style T2 fill:#fee2e2,stroke:#dc2626 style TN fill:#fee2e2,stroke:#dc2626 style EL fill:#d1fae5,stroke:#059669 style VT1 fill:#dbeafe,stroke:#2563eb style C1 fill:#d1fae5,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TB
+    subgraph S["Servlet 模型"]
+        direction LR
+        R1[请求1] --> T1[平台线程1<br/>阻塞 IO]
+        R2[请求2] --> T2[平台线程2<br/>阻塞 IO]
+        R3[请求N] --> TN[平台线程N<br/>阻塞 IO]
+    end
+    subgraph W["WebFlux 模型"]
+        direction LR
+        Q1[请求1] --> EL[EventLoop x N<br/>非阻塞 IO]
+        Q2[请求2] --> EL
+        Q3[请求N] --> EL
+    end
+    subgraph V["Virtual Threads 模型"]
+        direction LR
+        P1[请求1] --> VT1[虚拟线程1<br/>同步阻塞但可 unmount]
+        P2[请求2] --> VT2[虚拟线程2]
+        PN[请求N] --> VTN[虚拟线程N]
+        VT1 -.mount.- C1[载体线程 x 核数]
+        VT2 -.mount.- C1
+        VTN -.mount.- C1
+    end
+    style T1 fill:#fee2e2,stroke:#dc2626
+    style T2 fill:#fee2e2,stroke:#dc2626
+    style TN fill:#fee2e2,stroke:#dc2626
+    style EL fill:#d1fae5,stroke:#059669
+    style VT1 fill:#dbeafe,stroke:#2563eb
+    style C1 fill:#d1fae5,stroke:#059669
+                </div>
                 <div class="chart-caption">图 4.7-1 三种并发模型线程模型对比：Servlet 一请求一线程 / WebFlux EventLoop / Virtual Threads N:M</div>
               </div>
             </div>
@@ -1334,7 +1448,22 @@ spring:
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD P[父任务 / StructuredTaskScope] P -->|fork| C1[子任务1 虚拟线程] P -->|fork| C2[子任务2 虚拟线程] P -->|fork| C3[子任务3 虚拟线程] C1 -->|异常| X[ShutdownOnFailure 触发] X -.中断.-> C2 X -.中断.-> C3 P -->|join 等待全部| R[收集结果/异常] R -->|throw 传播| UP[父任务抛异常] style P fill:#dbeafe,stroke:#2563eb style C1 fill:#fee2e2,stroke:#dc2626 style X fill:#fef3c7,stroke:#d97706 style UP fill:#fee2e2,stroke:#dc2626</div>
+                <div class="mermaid">
+flowchart TD
+    P[父任务 / StructuredTaskScope]
+    P -->|fork| C1[子任务1 虚拟线程]
+    P -->|fork| C2[子任务2 虚拟线程]
+    P -->|fork| C3[子任务3 虚拟线程]
+    C1 -->|异常| X[ShutdownOnFailure 触发]
+    X -.中断.-> C2
+    X -.中断.-> C3
+    P -->|join 等待全部| R[收集结果/异常]
+    R -->|throw 传播| UP[父任务抛异常]
+    style P fill:#dbeafe,stroke:#2563eb
+    style C1 fill:#fee2e2,stroke:#dc2626
+    style X fill:#fef3c7,stroke:#d97706
+    style UP fill:#fee2e2,stroke:#dc2626
+                </div>
                 <div class="chart-caption">图 4.8-1 结构化并发：父子任务生命周期绑定，异常自动传播与取消</div>
               </div>
 
@@ -1451,7 +1580,21 @@ spring:
               <p><strong>卸载机制</strong>：虚拟线程的本质是"栈存堆、调度由 JVM 接管"。当虚拟线程在<strong>可卸载阻塞点</strong>（park、socket IO、文件 IO 的 NIO 适配）阻塞时，JVM 将其完整栈复制到堆，unmount 载体线程，载体线程立即调度下一个就绪虚拟线程。<strong>关键约束</strong>：卸载要求虚拟线程的栈帧全部是可序列化的 Java 帧——一旦出现 native 栈帧或绑定了 OS 线程的 monitor，JVM 无法保存恢复，只能钉住。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["虚拟线程阻塞"] --> B{"阻塞点类型?"} B -- "IO/park 可卸载" --> C["yield 卸载<br />栈存堆<br />载体线程释放"] B -- "synchronized 块内<br />JDK21-23" --> D["PINNED 钉住<br />载体线程被占"] B -- "native/JNI 阻塞" --> E["PINNED 钉住<br />native 栈无法保存"] C --> F["载体线程服务其他 VT<br />吞吐正常"] D --> G{"载体线程池耗尽?"} E --> G G -- 是 --> H["吞吐崩塌<br />等同平台线程模型"] style D fill:#fee2e2,stroke:#dc2626 style E fill:#fee2e2,stroke:#dc2626 style H fill:#fee2e2,stroke:#dc2626 style C fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TD
+    A["虚拟线程阻塞"] --> B{"阻塞点类型?"}
+    B -- "IO/park 可卸载" --> C["yield 卸载<br/>栈存堆<br/>载体线程释放"]
+    B -- "synchronized 块内<br/>JDK21-23" --> D["PINNED 钉住<br/>载体线程被占"]
+    B -- "native/JNI 阻塞" --> E["PINNED 钉住<br/>native 栈无法保存"]
+    C --> F["载体线程服务其他 VT<br/>吞吐正常"]
+    D --> G{"载体线程池耗尽?"}
+    E --> G
+    G -- 是 --> H["吞吐崩塌<br/>等同平台线程模型"]
+    style D fill:#fee2e2,stroke:#dc2626
+    style E fill:#fee2e2,stroke:#dc2626
+    style H fill:#fee2e2,stroke:#dc2626
+    style C fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 4.9-1 虚拟线程 pinning：不可卸载阻塞点导致载体线程被占用</div>
               </div>
 

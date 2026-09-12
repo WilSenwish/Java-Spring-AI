@@ -252,7 +252,19 @@
               </table>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD P["Provider 服务提供者"] -->|"1、注册/心跳"| RC["注册中心集群"] C["Consumer 服务消费者"] -->|"2、拉取实例列表"| RC RC -.->|"3、推送变更（长轮询/Watch）"| C C -->|"4、软负载 + 重试"| P subgraph RC1["注册中心 CAP 取舍"] AP["AP: Eureka / Nacos-Distro<br />允许短暂不一致,可用性优先"] CP["CP: ZK / etcd / Consul / Nacos-Raft<br />强一致,Leader选举期间不可写"] end style AP fill:#ede9fe,stroke:#7c3aed style CP fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart TD
+    P["Provider 服务提供者"] -->|"1、注册/心跳"| RC["注册中心集群"]
+    C["Consumer 服务消费者"] -->|"2、拉取实例列表"| RC
+    RC -.->|"3、推送变更（长轮询/Watch）"| C
+    C -->|"4、软负载 + 重试"| P
+    subgraph RC1["注册中心 CAP 取舍"]
+        AP["AP: Eureka / Nacos-Distro<br/>允许短暂不一致,可用性优先"]
+        CP["CP: ZK / etcd / Consul / Nacos-Raft<br/>强一致,Leader选举期间不可写"]
+    end
+    style AP fill:#ede9fe,stroke:#7c3aed
+    style CP fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 10.1-1 服务注册发现架构与 CAP 取舍</div>
               </div>
             </div>
@@ -375,7 +387,22 @@ spring:
               <p><strong>Spring Cloud Gateway 原理</strong>：Route = Predicate（匹配条件）+ Filter（处理逻辑）。请求进入后由 RoutePredicateHandlerMapping 评估 Predicate 并选中 Route；选中的 Route 内置 GatewayFilter 与全局 GlobalFilter 会按 order 合并成一个链。order 小的 Filter 在前置阶段先执行，响应阶段通常按相反方向回流；真正发起下游转发的是 <code class="inline-code">NettyRoutingFilter</code>（全局 Filter，位于链最末端、order = Ordered.LOWEST_PRECEDENCE）。它是 Reactor 异步非阻塞模型，但并非“无线程数瓶颈”，EventLoop、连接池和下游能力仍需压测规划。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR Client["客户端"] -->|"HTTP/HTTPS"| GW["API 网关"] subgraph GW["网关 Filter 链 （异步非阻塞）"] direction TB F1["认证鉴权<br />JWT/OAuth2"] --> F2["限流熔断<br />Sentinel/Resilience4j"] F2 --> F3["路由匹配<br />Predicate"] F3 --> F4["协议转换<br />HTTP→RPC"] F4 --> F5["负载均衡<br />选实例"] F5 --> F6["日志监控<br />TraceId/Metrics"] end GW -->|"转发"| S1["order-service"] GW -->|"转发"| S2["user-service"] GW -->|"转发"| S3["payment-service"] style GW fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart LR
+    Client["客户端"] -->|"HTTP/HTTPS"| GW["API 网关"]
+    subgraph GW["网关 Filter 链 （异步非阻塞）"]
+        direction TB
+        F1["认证鉴权<br/>JWT/OAuth2"] --> F2["限流熔断<br/>Sentinel/Resilience4j"]
+        F2 --> F3["路由匹配<br/>Predicate"]
+        F3 --> F4["协议转换<br/>HTTP→RPC"]
+        F4 --> F5["负载均衡<br/>选实例"]
+        F5 --> F6["日志监控<br/>TraceId/Metrics"]
+    end
+    GW -->|"转发"| S1["order-service"]
+    GW -->|"转发"| S2["user-service"]
+    GW -->|"转发"| S3["payment-service"]
+    style GW fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 10.2-1 API 网关 Filter 链与核心职责</div>
               </div>
 
@@ -582,7 +609,16 @@ spring:
 
               <p><strong>熔断器状态机</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR Closed["Closed 闭合<br />正常放行<br />统计错误率/慢调用率"] -->|"错误率超阈值"| Open["Open 断开<br />快速失败 fallback"] Open -->|"等待熔断恢复时间<br />（如 10s）"| Half["Half-Open 半开<br />放少量探测请求"] Half -->|"探测成功率达阈值"| Closed Half -->|"探测仍失败"| Open style Closed fill:#dcfce7,stroke:#059669 style Open fill:#fee2e2,stroke:#dc2626 style Half fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    Closed["Closed 闭合<br/>正常放行<br/>统计错误率/慢调用率"] -->|"错误率超阈值"| Open["Open 断开<br/>快速失败 fallback"]
+    Open -->|"等待熔断恢复时间<br/>（如 10s）"| Half["Half-Open 半开<br/>放少量探测请求"]
+    Half -->|"探测成功率达阈值"| Closed
+    Half -->|"探测仍失败"| Open
+    style Closed fill:#dcfce7,stroke:#059669
+    style Open fill:#fee2e2,stroke:#dc2626
+    style Half fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 10.3-1 熔断器三态机：Closed→Open→Half-Open 自动恢复</div>
               </div>
 
@@ -890,7 +926,37 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
               <p><strong>K8s 控制平面</strong>：API Server（唯一入口）+ etcd（状态存储，Raft）+ Scheduler（调度 Pod 到节点）+ Controller Manager（副本/节点/端点等控制循环）+ Kubelet（节点代理）+ Kube-proxy（Service 转发，早期 userspace 模式已移除；iptables/IPVS/nftables 等实现按集群版本和节点能力选择并压测）。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB subgraph CP["控制平面 Control Plane"] API["API Server"] ETCD["etcd （Raft）"] SCHED["Scheduler"] CM["Controller Manager"] end subgraph Node1["Node 1"] K1["Kubelet"] KP1["Kube-proxy"] P1["Pod: order-service"] P2["Pod: user-service"] end subgraph Node2["Node 2"] K2["Kubelet"] KP2["Kube-proxy"] P3["Pod: order-service"] end API <--> ETCD SCHED --> API CM --> API K1 --> API K2 --> API KP1 -.-> P1 KP1 -.-> P2 KP2 -.-> P3 style CP fill:#dbeafe,stroke:#2563eb style Node1 fill:#f0f3f7,stroke:#6b7280 style Node2 fill:#f0f3f7,stroke:#6b7280</div>
+                <div class="mermaid">
+flowchart TB
+    subgraph CP["控制平面 Control Plane"]
+        API["API Server"]
+        ETCD["etcd （Raft）"]
+        SCHED["Scheduler"]
+        CM["Controller Manager"]
+    end
+    subgraph Node1["Node 1"]
+        K1["Kubelet"]
+        KP1["Kube-proxy"]
+        P1["Pod: order-service"]
+        P2["Pod: user-service"]
+    end
+    subgraph Node2["Node 2"]
+        K2["Kubelet"]
+        KP2["Kube-proxy"]
+        P3["Pod: order-service"]
+    end
+    API <--> ETCD
+    SCHED --> API
+    CM --> API
+    K1 --> API
+    K2 --> API
+    KP1 -.-> P1
+    KP1 -.-> P2
+    KP2 -.-> P3
+    style CP fill:#dbeafe,stroke:#2563eb
+    style Node1 fill:#f0f3f7,stroke:#6b7280
+    style Node2 fill:#f0f3f7,stroke:#6b7280
+                </div>
                 <div class="chart-caption">图 10.4-1 K8s 集群架构：控制平面 + 工作节点</div>
               </div>
 
@@ -1113,7 +1179,14 @@ spec:
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR M["单体<br />进程内调用"] --> SOA["SOA<br />ESB 集中编排"] SOA --> MS["微服务（库治理）<br />SDK 嵌入<br />Spring Cloud/Dubbo"] MS --> SM["Service Mesh<br />Sidecar 下沉<br />Istio/Envoy"] SM --> SL["Serverless<br />平台全托管<br />FaaS+BaaS"] style SM fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    M["单体<br/>进程内调用"] --> SOA["SOA<br/>ESB 集中编排"]
+    SOA --> MS["微服务（库治理）<br/>SDK 嵌入<br/>Spring Cloud/Dubbo"]
+    MS --> SM["Service Mesh<br/>Sidecar 下沉<br/>Istio/Envoy"]
+    SM --> SL["Serverless<br/>平台全托管<br/>FaaS+BaaS"]
+    style SM fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 10.5-1 微服务架构演进：治理能力从应用内逐步外移到平台</div>
               </div>
 
@@ -1135,7 +1208,34 @@ spec:
               <p><strong>xDS 协议</strong>：Envoy 的动态配置 API——EDS（端点发现）、CDS（集群发现）、RDS（路由发现）、LDS（监听发现）。Istiod 推送配置，Envoy 热更新无需重启，实现<strong>动态路由与流量治理</strong>。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB subgraph CP["控制面 Istiod（现行一体；Pilot/Citadel/Galley 为历史拆分叙事）"] Pilot["发现+路由<br />（历史名 Pilot）"] Citadel["mTLS 证书<br />（历史名 Citadel）"] Galley["配置校验<br />（历史名 Galley）"] end subgraph Node1["Pod A"] App1["App 进程"] Env1["Envoy Sidecar"] App1 -->|出流量| Env1 Env1 -->|入流量| App1 end subgraph Node2["Pod B"] App2["App 进程"] Env2["Envoy Sidecar"] App2 -->|出流量| Env2 Env2 -->|入流量| App2 end Env1 -.->|mTLS 加密流量| Env2 Pilot -->|xDS 推送| Env1 Pilot -->|xDS 推送| Env2 Citadel -->|证书分发| Env1 Citadel -->|证书分发| Env2 style CP fill:#ede9fe,stroke:#7c3aed style Node1 fill:#f0f3f7,stroke:#6b7280 style Node2 fill:#f0f3f7,stroke:#6b7280</div>
+                <div class="mermaid">
+flowchart TB
+    subgraph CP["控制面 Istiod（现行一体；Pilot/Citadel/Galley 为历史拆分叙事）"]
+        Pilot["发现+路由<br/>（历史名 Pilot）"]
+        Citadel["mTLS 证书<br/>（历史名 Citadel）"]
+        Galley["配置校验<br/>（历史名 Galley）"]
+    end
+    subgraph Node1["Pod A"]
+        App1["App 进程"]
+        Env1["Envoy Sidecar"]
+        App1 -->|出流量| Env1
+        Env1 -->|入流量| App1
+    end
+    subgraph Node2["Pod B"]
+        App2["App 进程"]
+        Env2["Envoy Sidecar"]
+        App2 -->|出流量| Env2
+        Env2 -->|入流量| App2
+    end
+    Env1 -.->|mTLS 加密流量| Env2
+    Pilot -->|xDS 推送| Env1
+    Pilot -->|xDS 推送| Env2
+    Citadel -->|证书分发| Env1
+    Citadel -->|证书分发| Env2
+    style CP fill:#ede9fe,stroke:#7c3aed
+    style Node1 fill:#f0f3f7,stroke:#6b7280
+    style Node2 fill:#f0f3f7,stroke:#6b7280
+                </div>
                 <div class="chart-caption">图 10.5-2 Service Mesh 架构：Sidecar 拦截流量，控制面 xDS 下发配置</div>
               </div>
 
@@ -1358,7 +1458,27 @@ spec:
               </ol>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph S1["阶段1: 单体"] M1["单体应用<br />+ 共享大库"] end subgraph S2["阶段2: 模块化单体"] M2["模块化单体<br />模块间接口调用<br />仍共享库"] end subgraph S3["阶段3: 绞杀者迁移"] N1["新服务 order"] N2["新服务 user"] O1["旧单体（逐步萎缩）"] end subgraph S4["阶段4: 领域微服务"] MS1["order-service<br />+order库"] MS2["user-service<br />+user库"] MS3["payment-service<br />+pay库"] end S1 --> S2 --> S3 --> S4 style S4 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph S1["阶段1: 单体"]
+        M1["单体应用<br/>+ 共享大库"]
+    end
+    subgraph S2["阶段2: 模块化单体"]
+        M2["模块化单体<br/>模块间接口调用<br/>仍共享库"]
+    end
+    subgraph S3["阶段3: 绞杀者迁移"]
+        N1["新服务 order"]
+        N2["新服务 user"]
+        O1["旧单体（逐步萎缩）"]
+    end
+    subgraph S4["阶段4: 领域微服务"]
+        MS1["order-service<br/>+order库"]
+        MS2["user-service<br/>+user库"]
+        MS3["payment-service<br/>+pay库"]
+    end
+    S1 --> S2 --> S3 --> S4
+    style S4 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 10.6-1 单体到微服务渐进演进路线：模块化单体→绞杀者→领域微服务</div>
               </div>
 
@@ -1458,7 +1578,19 @@ spec:
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB Goal["高可用目标: SLA 99.99%+<br />（年宕机 < 52.6 分钟）"] Goal --> R1["1.冗余<br />多副本/多机房/多AZ"] Goal --> R2["2.故障隔离<br />舱壁/泳道/机房隔离"] Goal --> R3["3.故障转移<br />健康检查+自动切换"] Goal --> R4["4.降级预案<br />限流熔断+有损服务"] Goal --> R5["5.可观测<br />监控+追踪+日志"] R1 --> MT["异地多活单元化<br />流量按用户路由单元"] R4 --> CH["混沌工程验证<br />ChaosBlade/Litmus"] style Goal fill:#dbeafe,stroke:#2563eb style MT fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TB
+    Goal["高可用目标: SLA 99.99%+<br/>（年宕机 < 52.6 分钟）"]
+    Goal --> R1["1.冗余<br/>多副本/多机房/多AZ"]
+    Goal --> R2["2.故障隔离<br/>舱壁/泳道/机房隔离"]
+    Goal --> R3["3.故障转移<br/>健康检查+自动切换"]
+    Goal --> R4["4.降级预案<br/>限流熔断+有损服务"]
+    Goal --> R5["5.可观测<br/>监控+追踪+日志"]
+    R1 --> MT["异地多活单元化<br/>流量按用户路由单元"]
+    R4 --> CH["混沌工程验证<br/>ChaosBlade/Litmus"]
+    style Goal fill:#dbeafe,stroke:#2563eb
+    style MT fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 10.7-1 高可用架构设计框架：五大原则 + 单元化 + 混沌验证</div>
               </div>
 
@@ -1613,7 +1745,21 @@ blade destroy &lt;experiment-id&gt;</code></pre>
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph CC["配置中心集群"] Store["配置存储<br />（MySQL/etcd）"] Push["推送服务<br />（长轮询 hold 29.5s）"] end Admin["运维/平台"] -->|"改配置+灰度规则"| Store Store --> Push Push -.->|"变更立即返回<br />否则超时重发"| C1["App-1<br />本地快照"] Push -.->|"变更立即返回"| C2["App-2<br />本地快照"] C1 -->|"@RefreshScope<br />重新注入"| Biz1["业务 Bean"] C2 -->|"@RefreshScope<br />重新注入"| Biz2["业务 Bean"] C1 -.->|"容灾: CC宕机用快照"| Snap1[(本地snapshot)] style CC fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph CC["配置中心集群"]
+        Store["配置存储<br/>（MySQL/etcd）"]
+        Push["推送服务<br/>（长轮询 hold 29.5s）"]
+    end
+    Admin["运维/平台"] -->|"改配置+灰度规则"| Store
+    Store --> Push
+    Push -.->|"变更立即返回<br/>否则超时重发"| C1["App-1<br/>本地快照"]
+    Push -.->|"变更立即返回"| C2["App-2<br/>本地快照"]
+    C1 -->|"@RefreshScope<br/>重新注入"| Biz1["业务 Bean"]
+    C2 -->|"@RefreshScope<br/>重新注入"| Biz2["业务 Bean"]
+    C1 -.->|"容灾: CC宕机用快照"| Snap1[(本地snapshot)]
+    style CC fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 10.8-1 配置中心架构：长轮询推送 + 本地快照容灾 + 热刷新</div>
               </div>
 
@@ -1888,7 +2034,19 @@ spring:
               <p><strong>全链路灰度</strong>：微服务下，一次请求经过多个服务，灰度标签必须在<strong>全链路透传</strong>——入口/网关染色（加 Header 如 X-Gray-Tag=v2）→ 服务 A 识别标签路由到 A 的 v2 → A 调 B 时透传标签 → B 路由到 B 的 v2 → 跨 MQ 也要透传。实现前提按平台分层确认：Spring Cloud 用注册中心元数据 + LoadBalancer 过滤；Dubbo 用 TagRouter/标签附件；Ingress/API Gateway 需要路由规则支持 Header/权重；Service Mesh 由 Sidecar 执行路由；MQ 要求生产者和消费者都携带并处理版本标签。此外，金丝雀/灰度若要求同一用户稳定命中同一版本，需要路由层支持会话亲和（sticky session）或基于用户标识的一致性哈希；这类能力取决于 Ingress/Service Mesh/LB 的具体实现，并非所有平台默认可用，规划时需先确认平台能力边界。缺少任一环，标签只是“可见”，不能保证“可路由”。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR Client["客户端"] --> GW["API 网关"] GW -->|"染色: X-Gray=v2<br />（按用户/地域）"| Route{"路由判断"} Route -->|"灰度标签"| A2["order-service v2"] Route -->|"无标签"| A1["order-service v1"] A2 -->|"透传 X-Gray"| B2["user-service v2"] A1 --> B1["user-service v1"] A2 -.->|"MQ 透传标签"| C2["payment-service v2"] style A2 fill:#fef3c7,stroke:#d97706 style B2 fill:#fef3c7,stroke:#d97706 style C2 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    Client["客户端"] --> GW["API 网关"]
+    GW -->|"染色: X-Gray=v2<br/>（按用户/地域）"| Route{"路由判断"}
+    Route -->|"灰度标签"| A2["order-service v2"]
+    Route -->|"无标签"| A1["order-service v1"]
+    A2 -->|"透传 X-Gray"| B2["user-service v2"]
+    A1 --> B1["user-service v1"]
+    A2 -.->|"MQ 透传标签"| C2["payment-service v2"]
+    style A2 fill:#fef3c7,stroke:#d97706
+    style B2 fill:#fef3c7,stroke:#d97706
+    style C2 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 10.9-1 全链路灰度：网关染色 + 标签透传 + 按版本路由</div>
               </div>
 
@@ -1990,7 +2148,15 @@ spring:
               <p><strong>云计算演进</strong>：物理机（自建机房）→ <strong>IaaS</strong>（虚拟机，AWS EC2，管 OS 以下）→ <strong>PaaS</strong>（应用托管，Heroku/云引擎，管运行时以下）→ <strong>CaaS</strong>（容器即服务，K8s/容器服务）→ <strong>FaaS</strong>（函数即服务，只管代码）→ <strong>Serverless</strong>（FaaS + BaaS，全托管）。本质是<strong>运维边界不断上移，开发者只关注业务代码</strong>。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR PM["物理机<br />全自管"] --> IAAS["IaaS<br />虚拟机<br />管OS以上"] IAAS --> PAAS["PaaS<br />应用托管<br />管应用以上"] PAAS --> CAAS["CaaS<br />容器编排<br />管容器以上"] CAAS --> FAAS["FaaS<br />函数即服务<br />只管代码"] FAAS --> SL["Serverless<br />FaaS+BaaS<br />按需按量计费"] style SL fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    PM["物理机<br/>全自管"] --> IAAS["IaaS<br/>虚拟机<br/>管OS以上"]
+    IAAS --> PAAS["PaaS<br/>应用托管<br/>管应用以上"]
+    PAAS --> CAAS["CaaS<br/>容器编排<br/>管容器以上"]
+    CAAS --> FAAS["FaaS<br/>函数即服务<br/>只管代码"]
+    FAAS --> SL["Serverless<br/>FaaS+BaaS<br/>按需按量计费"]
+    style SL fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 10.10-1 云计算演进：运维边界上移，开发者只关注业务代码</div>
               </div>
 
@@ -3115,7 +3281,17 @@ spring:
               <p><strong>2. 拦截器完整执行链路</strong>：<code class="inline-code">ClientHttpRequestInterceptor#intercept</code> 被触发 → 从原始 URL 提取 serviceId（如 <code class="inline-code">http://order-service/api</code> → serviceId=<code class="inline-code">order-service</code>）→ 调用 <code class="inline-code">LoadBalancerClient.choose(serviceId)</code> → 从 <code class="inline-code">ServiceInstance</code> 列表按策略（RoundRobin/Random/Weighted）选一个实例 → 将 URL 的 serviceId 替换为 <code class="inline-code">host:port</code>（如 <code class="inline-code">10.0.1.5:8080</code>）→ delegate 给底层 HTTP Client 执行真正请求。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["@LoadBalanced RestTemplate<br />getForObject('http://order-service/api')"] --> B["LoadBalancerInterceptor<br />ClientHttpRequestInterceptor"] B --> C["LoadBalancerClient.choose('order-service')"] C --> D["ServiceInstanceListSupplier<br />从 DiscoveryClient / 静态配置拉实例列表"] D --> E["RoundRobinLoadBalancer<br />按轮询策略选 1 个 ServiceInstance"] E --> F["URL 重写: order-service → 10.0.1.5:8080"] F --> G["底层 HTTP Client<br />URLConnection / HC5 / OkHttp 执行请求"] style A fill:#ede9fe,stroke:#7c3aed style G fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart TD
+    A["@LoadBalanced RestTemplate<br/>getForObject('http://order-service/api')"] --> B["LoadBalancerInterceptor<br/>ClientHttpRequestInterceptor"]
+    B --> C["LoadBalancerClient.choose('order-service')"]
+    C --> D["ServiceInstanceListSupplier<br/>从 DiscoveryClient / 静态配置拉实例列表"]
+    D --> E["RoundRobinLoadBalancer<br/>按轮询策略选 1 个 ServiceInstance"]
+    E --> F["URL 重写: order-service → 10.0.1.5:8080"]
+    F --> G["底层 HTTP Client<br/>URLConnection / HC5 / OkHttp 执行请求"]
+    style A fill:#ede9fe,stroke:#7c3aed
+    style G fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 10.18-1 @LoadBalanced RestTemplate 完整调用链路</div>
               </div>
 
@@ -3304,7 +3480,24 @@ spring:
               </ol>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD U["业务调用 userClient.getUser(123)"] --> P["JDK Dynamic Proxy<br />FeignInvocationHandler"] P --> M["MethodHandler(按方法缓存)<br />SpringMvcContract 解析注解"] M --> RT["RequestTemplate 构建<br />URL+Method+Headers+Body"] RT --> RI["RequestInterceptor 链<br />TraceId | 鉴权 | 灰度标签"] RI --> C["Client.execute(HTTP)<br />HC5 / OkHttp / 默认"] C --> LB["LoadBalancer 选实例<br />order-service → IP:Port"] LB --> R["后端服务响应 JSON"] R --> D["Decoder 反序列化<br />SpringDecoder(ObjectMapper)"] D --> E{"异常?"} E -->|否| OK["返回 Java 对象"] E -->|是| FF["FallbackFactory.create(t)"] FF --> FB["返回降级结果"] style P fill:#ede9fe,stroke:#7c3aed style LB fill:#dbeafe,stroke:#2563eb style FF fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TD
+    U["业务调用 userClient.getUser(123)"] --> P["JDK Dynamic Proxy<br/>FeignInvocationHandler"]
+    P --> M["MethodHandler(按方法缓存)<br/>SpringMvcContract 解析注解"]
+    M --> RT["RequestTemplate 构建<br/>URL+Method+Headers+Body"]
+    RT --> RI["RequestInterceptor 链<br/>TraceId | 鉴权 | 灰度标签"]
+    RI --> C["Client.execute(HTTP)<br/>HC5 / OkHttp / 默认"]
+    C --> LB["LoadBalancer 选实例<br/>order-service → IP:Port"]
+    LB --> R["后端服务响应 JSON"]
+    R --> D["Decoder 反序列化<br/>SpringDecoder(ObjectMapper)"]
+    D --> E{"异常?"}
+    E -->|否| OK["返回 Java 对象"]
+    E -->|是| FF["FallbackFactory.create(t)"]
+    FF --> FB["返回降级结果"]
+    style P fill:#ede9fe,stroke:#7c3aed
+    style LB fill:#dbeafe,stroke:#2563eb
+    style FF fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 10.19-1 OpenFeign 调用链完整路径</div>
               </div>
 
@@ -3520,7 +3713,18 @@ spring:
               </p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR IN["请求进入<br />Netty EventLoop"] --> A["AdaptCachedBodyGlobalFilter<br />(-2147482648) 缓存Body"] A --> B["自定义 JwtAuthGlobalFilter<br />(order=-100) 解析JWT+鉴权+打标"] B --> C["自定义 GrayGlobalFilter<br />(order=-50) 灰度标签路由决策"] C --> D["GatewayMetricsFilter<br />(order=0) 记录指标开始时间"] D --> E["NettyWriteResponseFilter<br />(order=-1，后置写响应)"] E --> F["NettyRoutingFilter<br />(LOWEST_PRECEDENCE=2147483647) 真正转发到后端"] F --> OUT["后端服务 → 响应回流 → NettyWriteResponseFilter 写回"] style B fill:#ede9fe,stroke:#7c3aed style F fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart LR
+    IN["请求进入<br/>Netty EventLoop"] --> A["AdaptCachedBodyGlobalFilter<br/>(-2147482648) 缓存Body"]
+    A --> B["自定义 JwtAuthGlobalFilter<br/>(order=-100) 解析JWT+鉴权+打标"]
+    B --> C["自定义 GrayGlobalFilter<br/>(order=-50) 灰度标签路由决策"]
+    C --> D["GatewayMetricsFilter<br/>(order=0) 记录指标开始时间"]
+    D --> E["NettyWriteResponseFilter<br/>(order=-1，后置写响应)"]
+    E --> F["NettyRoutingFilter<br/>(LOWEST_PRECEDENCE=2147483647) 真正转发到后端"]
+    F --> OUT["后端服务 → 响应回流 → NettyWriteResponseFilter 写回"]
+    style B fill:#ede9fe,stroke:#7c3aed
+    style F fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 10.20-1 Gateway GlobalFilter 执行顺序与推荐自定义位置</div>
               </div>
 
@@ -3719,7 +3923,18 @@ spring:
               <p><strong>③ @RefreshScope 动态刷新原理</strong>：<code class="inline-code">RefreshScope</code> 是一个自定义 Scope（默认 singleton/prototype/request/session 之外），<code class="inline-code">@RefreshScope</code> 标注的 Bean 实际被 Spring 包装成 <code class="inline-code">ScopedProxyFactoryBean</code> 的代理对象。代理里持有一个 ObjectFactory，第一次调用 <code class="inline-code">getObject</code> 时创建 target 并缓存；当 <code class="inline-code">ContextRefresher.refresh()</code> 或 <code class="inline-code">/actuator/refresh</code> 端点被触发时：<code class="inline-code">RefreshScope</code> 会调用 <code class="inline-code">cache.clear()</code> 销毁所有被代理的 target，下次调用代理 <code class="inline-code">getObject</code> 时重新创建 target，新 target 拿到的 Environment 就是刷新过的。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["@RefreshScope Bean 定义"] --> B["ScopedProxyFactoryBean(CGLIB 代理)"] B --> C["RefreshScope Cache"] C --> D["target Bean\n(第一次调用创建\n持有旧 Environment)"] E["/actuator/refresh\n或 ContextRefresher.refresh()"] --> F["RefreshScope.cache.clear()\n销毁 target"] F --> G["下一次方法调用"] G --> H["getObject() 创建新 target\n加载刷新后的 Environment 新值"] style B fill:#ede9fe,stroke:#7c3aed style F fill:#fef3c7,stroke:#d97706 style H fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart TD
+    A["@RefreshScope Bean 定义"] --> B["ScopedProxyFactoryBean(CGLIB 代理)"]
+    B --> C["RefreshScope Cache"]
+    C --> D["target Bean\n(第一次调用创建\n持有旧 Environment)"]
+    E["/actuator/refresh\n或 ContextRefresher.refresh()"] --> F["RefreshScope.cache.clear()\n销毁 target"]
+    F --> G["下一次方法调用"]
+    G --> H["getObject() 创建新 target\n加载刷新后的 Environment 新值"]
+    style B fill:#ede9fe,stroke:#7c3aed
+    style F fill:#fef3c7,stroke:#d97706
+    style H fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 10.21-1 @RefreshScope 代理 + cache.clear() 重建 target 流程图</div>
               </div>
 
@@ -3872,7 +4087,16 @@ spring:
               <p><strong>2024~2025 Micrometer Tracing 1.2/1.3+（配套 OTel Java SDK 同期演进）</strong>：W3C TraceContext 为默认传播格式（自 Micrometer Tracing 1.0 / Boot 3.0 起），B3 仍可通过配置切换用于老系统兼容。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR A["Spring Cloud Sleuth 1.x\n(Brave 4.x + B3 + Zipkin)"] --> B["Sleuth 2.x\n(Brave 5.x + 试验性 OTel Bridge)"] B --> C["Micrometer Tracing 1.0\n(Spring Boot 3.0，Sleuth 停止维护)"] C --> D["Micrometer Tracing 1.2\n(Brave Bridge 与 OTel Bridge 并驾齐驱)"] D --> E["Micrometer Tracing 1.3 + OTel SDK 1.35\n(W3C TraceContext 默认、Metrcs/Tracing/Logging 三合一)"] style A fill:#e0e7ff,stroke:#4f46e5 style C fill:#ede9fe,stroke:#7c3aed style E fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart LR
+    A["Spring Cloud Sleuth 1.x\n(Brave 4.x + B3 + Zipkin)"] --> B["Sleuth 2.x\n(Brave 5.x + 试验性 OTel Bridge)"]
+    B --> C["Micrometer Tracing 1.0\n(Spring Boot 3.0，Sleuth 停止维护)"]
+    C --> D["Micrometer Tracing 1.2\n(Brave Bridge 与 OTel Bridge 并驾齐驱)"]
+    D --> E["Micrometer Tracing 1.3 + OTel SDK 1.35\n(W3C TraceContext 默认、Metrcs/Tracing/Logging 三合一)"]
+    style A fill:#e0e7ff,stroke:#4f46e5
+    style C fill:#ede9fe,stroke:#7c3aed
+    style E fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 10.22-1 Sleuth → Micrometer Tracing 演进路线图</div>
               </div>
             </div>
@@ -4127,7 +4351,18 @@ spring:
               <p><strong>核心抽象 4 件套 + Spring Factories / AutoConfiguration.imports 机制</strong>：业务代码 → Commons 抽象层 → AutoConfiguration 条件装配 → 具体实现（Nacos/Eureka/Consul/Zookeeper）。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["业务代码层\n@LoadBalanced RestTemplate\nDiscoveryClient.getInstances()\nLoadBalancer.choose()"] --> B["Spring Cloud Commons 抽象层\n【4 件套】\n① DiscoveryClient\n② ServiceInstance\n③ ReactorLoadBalancer\n④ @LoadBalanced + LoadBalancerInterceptor"] B --> C["AutoConfiguration 条件装配\n@ConditionalOnClass\n@ConditionalOnProperty\n@AutoConfigureBefore/After"] C --> D1["Nacos 实现\nNacosDiscoveryClient\nNacosDiscoveryAutoConfiguration\nAutoConfiguration.imports"] C --> D2["Eureka 实现\nEurekaDiscoveryClient\nEurekaClientAutoConfiguration\nspring.factories(Boot2)"] C --> D3["Consul 实现\nConsulDiscoveryClient\nConsulAutoConfiguration"] C --> D4["K8s 实现\nKubernetesDiscoveryClient\nSpring Cloud Kubernetes"] style A fill:#dbeafe,stroke:#2563eb style B fill:#ede9fe,stroke:#7c3aed style C fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TD
+    A["业务代码层\n@LoadBalanced RestTemplate\nDiscoveryClient.getInstances()\nLoadBalancer.choose()"] --> B["Spring Cloud Commons 抽象层\n【4 件套】\n① DiscoveryClient\n② ServiceInstance\n③ ReactorLoadBalancer\n④ @LoadBalanced + LoadBalancerInterceptor"]
+    B --> C["AutoConfiguration 条件装配\n@ConditionalOnClass\n@ConditionalOnProperty\n@AutoConfigureBefore/After"]
+    C --> D1["Nacos 实现\nNacosDiscoveryClient\nNacosDiscoveryAutoConfiguration\nAutoConfiguration.imports"]
+    C --> D2["Eureka 实现\nEurekaDiscoveryClient\nEurekaClientAutoConfiguration\nspring.factories(Boot2)"]
+    C --> D3["Consul 实现\nConsulDiscoveryClient\nConsulAutoConfiguration"]
+    C --> D4["K8s 实现\nKubernetesDiscoveryClient\nSpring Cloud Kubernetes"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style B fill:#ede9fe,stroke:#7c3aed
+    style C fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 10.23-1 Spring Cloud Commons 抽象 → 条件装配 → 多注册中心实现 调用链</div>
               </div>
 

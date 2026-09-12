@@ -150,7 +150,24 @@
               </p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["1、prepareRefresh（） 上下文准备,校验必要属性"] --> B["2、obtainFreshBeanFactory（） 刷新并获取 BeanFactory"] B --> C["3、prepareBeanFactory（） 配置 BeanFactory（ClassLoader/后置处理器）"] C --> D["4、postProcessBeanFactory（） 子类扩展点"] D --> E["5、invokeBeanFactoryPostProcessors（） 调用 BFPP,修改 BeanDefinition"] E --> F["6、registerBeanPostProcessors（） 注册 BPP 但不执行"] F --> G["7、initMessageSource（） 国际化"] G --> H["8、initApplicationEventMulticaster（） 事件广播器"] H --> I["9、onRefresh（） 子类初始化特殊Bean（Tomcat等）"] I --> J["10、registerListeners（） 注册监听器"] J --> K["11、finishBeanFactoryInitialization（） 实例化所有非懒加载单例"] K --> L["12、finishRefresh（） 发布 ContextRefreshedEvent"] L --> M["13、resetCommonCaches（） 清理反射缓存"] style E fill:#dbeafe,stroke:#2563eb style K fill:#fef3c7,stroke:#d97706 style L fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TD
+    A["1、prepareRefresh（） 上下文准备,校验必要属性"] --> B["2、obtainFreshBeanFactory（） 刷新并获取 BeanFactory"]
+    B --> C["3、prepareBeanFactory（） 配置 BeanFactory（ClassLoader/后置处理器）"]
+    C --> D["4、postProcessBeanFactory（） 子类扩展点"]
+    D --> E["5、invokeBeanFactoryPostProcessors（） 调用 BFPP,修改 BeanDefinition"]
+    E --> F["6、registerBeanPostProcessors（） 注册 BPP 但不执行"]
+    F --> G["7、initMessageSource（） 国际化"]
+    G --> H["8、initApplicationEventMulticaster（） 事件广播器"]
+    H --> I["9、onRefresh（） 子类初始化特殊Bean（Tomcat等）"]
+    I --> J["10、registerListeners（） 注册监听器"]
+    J --> K["11、finishBeanFactoryInitialization（） 实例化所有非懒加载单例"]
+    K --> L["12、finishRefresh（） 发布 ContextRefreshedEvent"]
+    L --> M["13、resetCommonCaches（） 清理反射缓存"]
+    style E fill:#dbeafe,stroke:#2563eb
+    style K fill:#fef3c7,stroke:#d97706
+    style L fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 5.1-1 refresh() 13 步启动流程：第 5 步 BFPP 改图纸，第 11 步实例化 Bean，第 12 步发布事件</div>
               </div>
 
@@ -159,7 +176,34 @@
               <p><strong>单个 Bean 生命周期（核心 5 大阶段）</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR A["BeanDefinition 注册"] --> B["实例化 createBeanInstance"] B --> C["属性填充 populateBean"] C --> D["初始化 initializeBean"] D --> E["使用"] E --> F["销毁 destroy"] subgraph B [实例化阶段] B1["InstantiationAwareBPP.postProcessBeforeInstantiation"] --> B2["doCreateBean: 反射构造"] B2 --> B3["applyMergedBeanDefinitionPostProcessor"] B3 --> B4["addSingletonFactory 三级缓存暴露早期引用"] end subgraph C [属性填充] C1["InstantiationAwareBPP.postProcessAfterInstantiation"] C1 --> C2["autowire: @Autowired/@Value 注入"] C2 --> C3["InstantiationAwareBPP.postProcessProperties"] end subgraph D [初始化] D1["Aware 回调 BeanName/BeanFactory/ApplicationContext"] D1 --> D2["BPP.postProcessBeforeInitialization @PostConstruct"] D2 --> D3["InitializingBean.afterPropertiesSet"] D3 --> D4["init-method"] D4 --> D5["BPP.postProcessAfterInitialization AOP代理"] end style B4 fill:#fef3c7,stroke:#d97706 style D5 fill:#dbeafe,stroke:#2563eb style D1 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    A["BeanDefinition 注册"] --> B["实例化 createBeanInstance"]
+    B --> C["属性填充 populateBean"]
+    C --> D["初始化 initializeBean"]
+    D --> E["使用"]
+    E --> F["销毁 destroy"]
+    subgraph B [实例化阶段]
+        B1["InstantiationAwareBPP.postProcessBeforeInstantiation"] --> B2["doCreateBean: 反射构造"]
+        B2 --> B3["applyMergedBeanDefinitionPostProcessor"]
+        B3 --> B4["addSingletonFactory 三级缓存暴露早期引用"]
+    end
+    subgraph C [属性填充]
+        C1["InstantiationAwareBPP.postProcessAfterInstantiation"]
+        C1 --> C2["autowire: @Autowired/@Value 注入"]
+        C2 --> C3["InstantiationAwareBPP.postProcessProperties"]
+    end
+    subgraph D [初始化]
+        D1["Aware 回调 BeanName/BeanFactory/ApplicationContext"]
+        D1 --> D2["BPP.postProcessBeforeInitialization @PostConstruct"]
+        D2 --> D3["InitializingBean.afterPropertiesSet"]
+        D3 --> D4["init-method"]
+        D4 --> D5["BPP.postProcessAfterInitialization AOP代理"]
+    end
+    style B4 fill:#fef3c7,stroke:#d97706
+    style D5 fill:#dbeafe,stroke:#2563eb
+    style D1 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 5.1-2 Bean 生命周期全流程：实例化→属性填充→初始化（含 Aware 回调、BPP 前后置、AOP 代理生成）→销毁</div>
               </div>
 
@@ -322,7 +366,35 @@
               <p><strong>以 A 依赖 B、B 依赖 A（均需 AOP 代理）为例的完整时序</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant C as Container participant A as Bean A participant B as Bean B participant L1 as 一级 singletonObjects participant L2 as 二级 earlySingletonObjects participant L3 as 三级 singletonFactories C->>A: 1. getBean(A) 开始创建 C->>A: 2. createBeanInstance 实例化裸对象A C->>L3: 3. addSingletonFactory(A, ObjectFactory) Note over L3: 三级缓存放入 A 的 ObjectFactory<br />内含 getEarlyBeanReference(会生成代理) C->>A: 4. populateBean 填充属性,发现需要 B C->>B: 5. getBean(B) 开始创建 B C->>B: 6. createBeanInstance 实例化裸对象B C->>L3: 7. addSingletonFactory(B, ObjectFactory) C->>B: 8. populateBean 填充属性,发现需要 A C->>L3: 9. getSingleton(A) 查一级(无)→查二级(无)→查三级(命中!) L3->>L3: 10. 执行 ObjectFactory.getObject = getEarlyBeanReference(A) Note over L3: 10. 此时提前为 A 生成 AOP 代理对象 A_proxy L3-->>L2: 11. 将 A_proxy 升级放入二级缓存,并从三级移除 L2-->>B: 12. 返回 A_proxy,B 完成属性填充 C->>B: 13. initializeBean(B) 生成 B 的代理 B_proxy C->>L1: 14. B_proxy 放入一级缓存,清空 B 的二三级 L1-->>A: 15. B 完成,回到 A 的 populateBean,B_proxy 注入 A C->>A: 16. initializeBean(A) Note over C: 16. 关键!检测到 A 已提前暴露代理<br />直接复用第10步生成的 A_proxy,不再重新代理 C->>L1: 17. A(实际是 A_proxy) 放入一级缓存</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant C as Container
+    participant A as Bean A
+    participant B as Bean B
+    participant L1 as 一级 singletonObjects
+    participant L2 as 二级 earlySingletonObjects
+    participant L3 as 三级 singletonFactories
+    C->>A: 1. getBean(A) 开始创建
+    C->>A: 2. createBeanInstance 实例化裸对象A
+    C->>L3: 3. addSingletonFactory(A, ObjectFactory)
+    Note over L3: 三级缓存放入 A 的 ObjectFactory<br/>内含 getEarlyBeanReference(会生成代理)
+    C->>A: 4. populateBean 填充属性,发现需要 B
+    C->>B: 5. getBean(B) 开始创建 B
+    C->>B: 6. createBeanInstance 实例化裸对象B
+    C->>L3: 7. addSingletonFactory(B, ObjectFactory)
+    C->>B: 8. populateBean 填充属性,发现需要 A
+    C->>L3: 9. getSingleton(A) 查一级(无)→查二级(无)→查三级(命中!)
+    L3->>L3: 10. 执行 ObjectFactory.getObject = getEarlyBeanReference(A)
+    Note over L3: 10. 此时提前为 A 生成 AOP 代理对象 A_proxy
+    L3-->>L2: 11. 将 A_proxy 升级放入二级缓存,并从三级移除
+    L2-->>B: 12. 返回 A_proxy,B 完成属性填充
+    C->>B: 13. initializeBean(B) 生成 B 的代理 B_proxy
+    C->>L1: 14. B_proxy 放入一级缓存,清空 B 的二三级
+    L1-->>A: 15. B 完成,回到 A 的 populateBean,B_proxy 注入 A
+    C->>A: 16. initializeBean(A)
+    Note over C: 16. 关键!检测到 A 已提前暴露代理<br/>直接复用第10步生成的 A_proxy,不再重新代理
+    C->>L1: 17. A(实际是 A_proxy) 放入一级缓存
+                </div>
                 <div class="chart-caption">图 5.2-1 三级缓存打破循环依赖时序：三级缓存存 ObjectFactory，被引用时提前生成代理并升级到二级，确保全程只有一个代理</div>
               </div>
 
@@ -542,7 +614,19 @@
 
               <p><strong>代理链执行模型（ReflectiveMethodInvocation 责任链）</strong>：当多个切面（@Around/@Before/@After）作用于同一方法，Spring 用 <code class="inline-code">ReflectiveMethodInvocation</code> 组织成责任链。代理对象调用方法时，依次执行各 Aspect 的 Advice，最后才调用目标方法。</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR C["调用方"] --> P["代理对象 proxy.method（）"] P --> M1["ReflectiveMethodInvocation 责任链"] M1 --> A1["Aspect1 @Around （前）"] A1 --> A2["Aspect2 @Before"] A2 --> T["目标方法 target.method（）"] T --> A3["Aspect2 @AfterReturning"] A3 --> A4["Aspect1 @Around （后）"] A4 --> R["返回结果"] style P fill:#dbeafe,stroke:#2563eb style T fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    C["调用方"] --> P["代理对象 proxy.method（）"]
+    P --> M1["ReflectiveMethodInvocation 责任链"]
+    M1 --> A1["Aspect1 @Around （前）"]
+    A1 --> A2["Aspect2 @Before"]
+    A2 --> T["目标方法 target.method（）"]
+    T --> A3["Aspect2 @AfterReturning"]
+    A3 --> A4["Aspect1 @Around （后）"]
+    A4 --> R["返回结果"]
+    style P fill:#dbeafe,stroke:#2563eb
+    style T fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 5.3-1 AOP 代理链执行：多个切面按责任链顺序织入，目标方法在链末执行</div>
               </div>
 
@@ -855,7 +939,21 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR P["发布者 publishEvent（event）"] --> AC["ApplicationContext"] AC --> MC["ApplicationEventMulticaster<br />SimpleApplicationEventMulticaster"] MC --> E{"Executor 是否为 null?"} E -- "是（默认） 同步" --> S1["当前线程遍历监听器"] E -- "否 配置了线程池" --> S2["线程池异步执行监听器"] S1 --> L1["Listener1.onApplicationEvent"] S1 --> L2["@EventListener 方法"] S1 --> L3["@TransactionalEventListener<br />（事务提交后）"] S2 --> L1 MC -.注册.-> R["EventListenerMethodProcessor<br />扫描 @EventListener 注册为 ApplicationListener"] style MC fill:#dbeafe,stroke:#2563eb style E fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    P["发布者 publishEvent（event）"] --> AC["ApplicationContext"]
+    AC --> MC["ApplicationEventMulticaster<br/>SimpleApplicationEventMulticaster"]
+    MC --> E{"Executor 是否为 null?"}
+    E -- "是（默认） 同步" --> S1["当前线程遍历监听器"]
+    E -- "否 配置了线程池" --> S2["线程池异步执行监听器"]
+    S1 --> L1["Listener1.onApplicationEvent"]
+    S1 --> L2["@EventListener 方法"]
+    S1 --> L3["@TransactionalEventListener<br/>（事务提交后）"]
+    S2 --> L1
+    MC -.注册.-> R["EventListenerMethodProcessor<br/>扫描 @EventListener 注册为 ApplicationListener"]
+    style MC fill:#dbeafe,stroke:#2563eb
+    style E fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 5.5-1 事件广播流程：ApplicationContext 委托 Multicaster，按 Executor 是否为空决定同步/异步</div>
               </div>
 
@@ -1259,7 +1357,30 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
               <p><strong>Spring 扩展点完整时序</strong>（一张图理解所有扩展点何时触发）：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD S1["refresh 第5步: invokeBeanFactoryPostProcessors"] --> S2["BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry<br />（动态注册 BeanDefinition,如扫描 @Configuration）"] S2 --> S3["BeanFactoryPostProcessor.postProcessBeanFactory<br />（修改已有 BeanDefinition,如占位符替换）"] S3 --> S4["refresh 第6步: registerBeanPostProcessors<br />（注册 BPP 实例,不执行）"] S4 --> S5["refresh 第11步: finishBeanFactoryInitialization"] S5 --> S6["遍历每个非懒加载单例 Bean"] S6 --> S7["InstantiationAwareBPP.postProcessBeforeInstantiation<br />（可短路:返回非null则跳过实例化）"] S7 --> S8["createBeanInstance 反射构造"] S8 --> S9["MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition<br />（收集 @Autowired/@Resource 元数据缓存）"] S9 --> S10["addSingletonFactory 三级缓存暴露"] S10 --> S11["populateBean: InstantiationAwareBPP.postProcessAfterInstantiation"] S11 --> S12["populateBean: InstantiationAwareBPP.postProcessProperties<br />（实际执行 @Autowired 注入）"] S12 --> S13["initializeBean: Aware 回调"] S13 --> S14["BPP.postProcessBeforeInitialization<br />（触发 @PostConstruct）"] S14 --> S15["InitializingBean.afterPropertiesSet / init-method"] S15 --> S16["BPP.postProcessAfterInitialization<br />（生成 AOP 代理）"] S16 --> S17["所有单例就绪"] S17 --> S18["SmartInitializingSingleton.afterSingletonsInstantiated<br />（全局就绪回调）"] style S2 fill:#f0f3f7,stroke:#6b7280 style S3 fill:#f0f3f7,stroke:#6b7280 style S16 fill:#dbeafe,stroke:#2563eb style S18 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TD
+    S1["refresh 第5步: invokeBeanFactoryPostProcessors"] --> S2["BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry<br/>（动态注册 BeanDefinition,如扫描 @Configuration）"]
+    S2 --> S3["BeanFactoryPostProcessor.postProcessBeanFactory<br/>（修改已有 BeanDefinition,如占位符替换）"]
+    S3 --> S4["refresh 第6步: registerBeanPostProcessors<br/>（注册 BPP 实例,不执行）"]
+    S4 --> S5["refresh 第11步: finishBeanFactoryInitialization"]
+    S5 --> S6["遍历每个非懒加载单例 Bean"]
+    S6 --> S7["InstantiationAwareBPP.postProcessBeforeInstantiation<br/>（可短路:返回非null则跳过实例化）"]
+    S7 --> S8["createBeanInstance 反射构造"]
+    S8 --> S9["MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition<br/>（收集 @Autowired/@Resource 元数据缓存）"]
+    S9 --> S10["addSingletonFactory 三级缓存暴露"]
+    S10 --> S11["populateBean: InstantiationAwareBPP.postProcessAfterInstantiation"]
+    S11 --> S12["populateBean: InstantiationAwareBPP.postProcessProperties<br/>（实际执行 @Autowired 注入）"]
+    S12 --> S13["initializeBean: Aware 回调"]
+    S13 --> S14["BPP.postProcessBeforeInitialization<br/>（触发 @PostConstruct）"]
+    S14 --> S15["InitializingBean.afterPropertiesSet / init-method"]
+    S15 --> S16["BPP.postProcessAfterInitialization<br/>（生成 AOP 代理）"]
+    S16 --> S17["所有单例就绪"]
+    S17 --> S18["SmartInitializingSingleton.afterSingletonsInstantiated<br/>（全局就绪回调）"]
+    style S2 fill:#f0f3f7,stroke:#6b7280
+    style S3 fill:#f0f3f7,stroke:#6b7280
+    style S16 fill:#dbeafe,stroke:#2563eb
+    style S18 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 5.7-1 Spring 扩展点完整时序：BFPP 改图纸在前，BPP 改产品在后，InstantiationAwareBPP 细化实例化阶段，SmartInitializingSingleton 收尾</div>
               </div>
 
@@ -1390,7 +1511,20 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
             <div class="qa-layer-body">
               <p><strong>容器接口层次</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD BF["BeanFactory 根接口<br />getBean/containsBean"] BF --> LBF["ListableBeanFactory<br />枚举 Bean（getBeanNamesForType）"] BF --> HBF["HierarchicalBeanFactory<br />父子容器（parentBeanFactory）"] LBF --> AC["ApplicationContext<br />环境/事件/资源/国际化/AOP"] HBF --> AC AC --> CPAC["ClassPathXmlApplicationContext"] AC --> ACAC["AnnotationConfigApplicationContext"] AC --> ACSWSAC["AnnotationConfigServletWebServerApplicationContext<br />Boot 默认"] AC --> GAC["GenericApplicationContext<br />Spring 5 函数式基础"] style BF fill:#fef3c7,stroke:#d97706 style AC fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart TD
+    BF["BeanFactory 根接口<br/>getBean/containsBean"]
+    BF --> LBF["ListableBeanFactory<br/>枚举 Bean（getBeanNamesForType）"]
+    BF --> HBF["HierarchicalBeanFactory<br/>父子容器（parentBeanFactory）"]
+    LBF --> AC["ApplicationContext<br/>环境/事件/资源/国际化/AOP"]
+    HBF --> AC
+    AC --> CPAC["ClassPathXmlApplicationContext"]
+    AC --> ACAC["AnnotationConfigApplicationContext"]
+    AC --> ACSWSAC["AnnotationConfigServletWebServerApplicationContext<br/>Boot 默认"]
+    AC --> GAC["GenericApplicationContext<br/>Spring 5 函数式基础"]
+    style BF fill:#fef3c7,stroke:#d97706
+    style AC fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 5.8-1 容器接口层次：BeanFactory 是根，ApplicationContext 扩展企业级能力，Boot 用其 Web 变体</div>
               </div>
 
@@ -1529,7 +1663,24 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
             <div class="qa-layer-body">
               <p><strong>核心接口关系</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR PE["PropertyEditor （JDK,有状态,线程不安全）"] CV["Converter S->T （无状态,线程安全）"] CF["ConverterFactory （一对多,如 String->Enum）"] GC["GenericConverter （多对多,带上下文）"] FM["Formatter T （String&lt;-&gt;T,带 Locale）"] CV --> CS["ConversionService<br />DefaultFormattingConversionService"] CF --> CS GC --> CS FM --> CS CS --> DB["DataBinder<br />绑定 + 校验"] DB --> MVC["Spring MVC 参数解析"] DB --> CP["@ConfigurationProperties 绑定"] CS --> SP["SpEL 求值类型转换"] style CS fill:#dbeafe,stroke:#2563eb style DB fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    PE["PropertyEditor （JDK,有状态,线程不安全）"]
+    CV["Converter S->T （无状态,线程安全）"]
+    CF["ConverterFactory （一对多,如 String->Enum）"]
+    GC["GenericConverter （多对多,带上下文）"]
+    FM["Formatter T （String&lt;-&gt;T,带 Locale）"]
+    CV --> CS["ConversionService<br/>DefaultFormattingConversionService"]
+    CF --> CS
+    GC --> CS
+    FM --> CS
+    CS --> DB["DataBinder<br/>绑定 + 校验"]
+    DB --> MVC["Spring MVC 参数解析"]
+    DB --> CP["@ConfigurationProperties 绑定"]
+    CS --> SP["SpEL 求值类型转换"]
+    style CS fill:#dbeafe,stroke:#2563eb
+    style DB fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 5.9-1 类型转换体系：Converter/Formatter 注册到 ConversionService，供 DataBinder/SpEL/MVC 复用</div>
               </div>
 
@@ -1660,7 +1811,17 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
               <p><strong>解析执行流程</strong>：表达式字符串 → <strong>词法分析</strong>（Tokenizer 分词）→ <strong>语法分析</strong>（Parser 生成 AST，如 PropertyOrFieldReference/MethodReference/Indexer 等节点）→ <strong>求值</strong>（递归遍历 AST，按 EvaluationContext 解析引用与调用方法）。AST 可缓存复用，避免重复解析。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR S["表达式字符串<br />user.name.toUpperCase（）"] --> T["Tokenizer 词法分析"] T --> P["SpelParser 语法分析"] P --> AST["AST 抽象语法树<br />（MethodRef->PropertyRef->VariableRef）"] AST --> EC["EvaluationContext 求值"] EC --> R["结果"] AST -.缓存.-> CACHE["Expression 复用"] style AST fill:#dbeafe,stroke:#2563eb style EC fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    S["表达式字符串<br/>user.name.toUpperCase（）"] --> T["Tokenizer 词法分析"]
+    T --> P["SpelParser 语法分析"]
+    P --> AST["AST 抽象语法树<br/>（MethodRef->PropertyRef->VariableRef）"]
+    AST --> EC["EvaluationContext 求值"]
+    EC --> R["结果"]
+    AST -.缓存.-> CACHE["Expression 复用"]
+    style AST fill:#dbeafe,stroke:#2563eb
+    style EC fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 5.10-1 SpEL 解析执行流程：字符串→词法→语法→AST→上下文求值，AST 可缓存复用</div>
               </div>
 
@@ -1814,7 +1975,22 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
                 <li><strong>主线程 ThreadLocal 已销毁</strong>：<code class="inline-code">afterCommit</code> 执行时主业务方法栈已退出，原主线程 ThreadLocal / MDC 已被清空。所有需要的数据（用户 ID、租户 ID、业务 ID）必须通过 lambda 闭包传入，<strong>绝不在 task 内部再从上下文取</strong>；MDC 需手动 copy。</li>
               </ul>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant M as 主线程(事务内) participant TSM as TransactionSynchronizationManager participant EX as 线程池 participant DB as 数据库 M->>DB: 写业务数据(未提交) alt 有事务 isActualTransactionActive=true M->>TSM: registerSynchronization(afterCommit) M->>DB: commit 成功 TSM-->>EX: afterCommit 回调 执行 execute(task) else 无事务(导入/批量) M->>EX: 直接 execute(task) end Note over M,EX: 回滚时不触发 afterCommit 通知绝不发出</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant M as 主线程(事务内)
+    participant TSM as TransactionSynchronizationManager
+    participant EX as 线程池
+    participant DB as 数据库
+    M->>DB: 写业务数据(未提交)
+    alt 有事务 isActualTransactionActive=true
+        M->>TSM: registerSynchronization(afterCommit)
+        M->>DB: commit 成功
+        TSM-->>EX: afterCommit 回调 执行 execute(task)
+    else 无事务(导入/批量)
+        M->>EX: 直接 execute(task)
+    end
+    Note over M,EX: 回滚时不触发 afterCommit 通知绝不发出
+                </div>
               </div>
             </div>
           </div>

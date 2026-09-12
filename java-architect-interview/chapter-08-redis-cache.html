@@ -531,7 +531,20 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
               <p><strong>AOF 重写原理</strong>：fork 子进程，遍历当前内存生成"达到当前状态所需的最小命令集"（如对同一 key 的多次 SET 只保留最后一次）。重写期间父进程新写入的命令缓存在 aof_rewrite_buffer，子进程完成后追加到新 AOF 末尾。重写触发条件：当前 AOF 大小 ≥ <code class="inline-code">auto-aof-rewrite-percentage</code>(默认 100%) 且 ≥ <code class="inline-code">auto-aof-rewrite-min-size</code>(默认 64MB)。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["主进程 fork（）"] --> B["子进程: 遍历内存生成新AOF"] A --> C["父进程: 继续处理命令<br />写入 aof_rewrite_buffer"] B --> D["子进程完成, 写入新AOF文件"] C --> E["父进程收到信号"] D --> E E --> F["追加 buffer 到新AOF"] F --> G["原子 rename 替换旧AOF"] style A fill:#dbeafe,stroke:#2563eb style B fill:#dcfce7,stroke:#059669 style C fill:#fef3c7,stroke:#d97706 style G fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart TD
+    A["主进程 fork（）"] --> B["子进程: 遍历内存生成新AOF"]
+    A --> C["父进程: 继续处理命令<br/>写入 aof_rewrite_buffer"]
+    B --> D["子进程完成, 写入新AOF文件"]
+    C --> E["父进程收到信号"]
+    D --> E
+    E --> F["追加 buffer 到新AOF"]
+    F --> G["原子 rename 替换旧AOF"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style B fill:#dcfce7,stroke:#059669
+    style C fill:#fef3c7,stroke:#d97706
+    style G fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 8.2-1 AOF 重写流程：fork + buffer 追加 + 原子替换</div>
               </div>
             </div>
@@ -827,7 +840,19 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
 
               <p><strong>Cache Aside 并发不一致场景</strong>（先更DB后删缓存）：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant T1 as 线程A(读) participant DB participant C as Cache participant T2 as 线程B(写) T1->>DB: 1. 读(读到旧值v1) Note over T2: 此时线程B要写 T2->>DB: 2. 更新DB=v2 T2->>C: 3. 删除缓存 T1->>C: 4. 写入旧值v1(脏数据!) Note over T1,C: 此后缓存一直是v1直到过期</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant T1 as 线程A(读)
+    participant DB
+    participant C as Cache
+    participant T2 as 线程B(写)
+    T1->>DB: 1. 读(读到旧值v1)
+    Note over T2: 此时线程B要写
+    T2->>DB: 2. 更新DB=v2
+    T2->>C: 3. 删除缓存
+    T1->>C: 4. 写入旧值v1(脏数据!)
+    Note over T1,C: 此后缓存一直是v1直到过期
+                </div>
                 <div class="chart-caption">图 8.4-1 Cache Aside 极端并发不一致（读慢于写，概率极低）</div>
               </div>
               <p>此场景发生条件：① 线程A读DB(旧值)后阻塞；② 线程B完成 更DB+删缓存；③ 线程A恢复写入旧值。因"读DB"通常快于"更DB+删缓存"，实际概率极低，但强一致场景需防范。</p>
@@ -844,7 +869,19 @@ redis.<span class="fn">del</span>(key);              <span class="com">// 4. 再
 
               <p><strong>Canal binlog 订阅架构</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR A["业务服务"] -->|"1、只更新DB"| B[("MySQL")] B -->|"2、binlog流"| C[Canal Server] C -->|"3、解析变更事件"| D["Canal Client"] D -->|"4、删除/更新缓存"| E[("Redis")] D -.->|"4'. 失败重试"| F[("MQ")] F -.-> D style A fill:#dbeafe,stroke:#2563eb style B fill:#fef3c7,stroke:#d97706 style C fill:#dcfce7,stroke:#059669 style E fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    A["业务服务"] -->|"1、只更新DB"| B[("MySQL")]
+    B -->|"2、binlog流"| C[Canal Server]
+    C -->|"3、解析变更事件"| D["Canal Client"]
+    D -->|"4、删除/更新缓存"| E[("Redis")]
+    D -.->|"4'. 失败重试"| F[("MQ")]
+    F -.-> D
+    style A fill:#dbeafe,stroke:#2563eb
+    style B fill:#fef3c7,stroke:#d97706
+    style C fill:#dcfce7,stroke:#059669
+    style E fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 8.4-2 Canal 订阅 binlog 异步同步缓存：DB 为唯一写入源</div>
               </div>
               <p>Canal 伪装成 MySQL 从库，接收 binlog 流，解析 ROW 模式的变更事件，投递给消费端删除对应缓存。优点：业务无感知、DB 单一写入源。缺点：引入组件与消费延迟；同一 key 须进同一有序队列，并用 position/GTID 或版本去重。</p>
@@ -943,7 +980,22 @@ redis.<span class="fn">del</span>(key);              <span class="com">// 4. 再
               <p><strong>WatchDog 看门狗续期机制</strong>：加锁成功后，若未指定 leaseTime（即用默认 -1），Redisson 启动一个定时任务，每 <code class="inline-code">lockWatchdogTimeout/3</code>（默认 10s）检查锁是否仍被当前线程持有，若是则续期到 <code class="inline-code">lockWatchdogTimeout</code>（默认 30s）。业务完成 unlock 后定时任务取消。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant T as 业务线程 participant R as Redis participant W as WatchDog定时任务 T->>R: 1. Lua加锁(NX+Hash, TTL=30s) R-->>T: 加锁成功 T->>W: 2. 启动看门狗(每10s续期) loop 每10秒 W->>R: 3. Lua检查hexists+续期到30s R-->>W: 续期成功 end Note over T: 业务执行(可能耗时很长) T->>R: 4. unlock(Lua: 重入数-1, 归零则删) T->>W: 5. 取消看门狗定时任务</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant T as 业务线程
+    participant R as Redis
+    participant W as WatchDog定时任务
+    T->>R: 1. Lua加锁(NX+Hash, TTL=30s)
+    R-->>T: 加锁成功
+    T->>W: 2. 启动看门狗(每10s续期)
+    loop 每10秒
+        W->>R: 3. Lua检查hexists+续期到30s
+        R-->>W: 续期成功
+    end
+    Note over T: 业务执行(可能耗时很长)
+    T->>R: 4. unlock(Lua: 重入数-1, 归零则删)
+    T->>W: 5. 取消看门狗定时任务
+                </div>
                 <div class="chart-caption">图 8.5-1 Redisson WatchDog 续期时序：业务不结束锁不过期</div>
               </div>
 
@@ -1040,7 +1092,23 @@ redis.<span class="fn">del</span>(key);              <span class="com">// 4. 再
             <div class="qa-layer-body">
               <p><strong>多级缓存架构图</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD REQ["请求"] --> L1["L1: 本地缓存 Caffeine<br />（纳秒级, 单机MB级）"] L1 -->|miss| L2["L2: 分布式缓存 Redis<br />（毫秒级, GB~TB级）"] L2 -->|miss| DB[("DB MySQL<br />（毫秒~秒级, 持久化）")] DB --> L2 L2 --> L1 L1 --> REQ BINLOG["DB binlog"] --> CANAL["Canal"] CANAL -->|"删L2"| L2 CANAL -->|"广播删L1"| MQ["MQ/Redis PubSub"] MQ -->|"各实例清本地"| L1 style L1 fill:#dcfce7,stroke:#059669 style L2 fill:#dbeafe,stroke:#2563eb style DB fill:#fef3c7,stroke:#d97706 style CANAL fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart TD
+    REQ["请求"] --> L1["L1: 本地缓存 Caffeine<br/>（纳秒级, 单机MB级）"]
+    L1 -->|miss| L2["L2: 分布式缓存 Redis<br/>（毫秒级, GB~TB级）"]
+    L2 -->|miss| DB[("DB MySQL<br/>（毫秒~秒级, 持久化）")]
+    DB --> L2
+    L2 --> L1
+    L1 --> REQ
+    BINLOG["DB binlog"] --> CANAL["Canal"]
+    CANAL -->|"删L2"| L2
+    CANAL -->|"广播删L1"| MQ["MQ/Redis PubSub"]
+    MQ -->|"各实例清本地"| L1
+    style L1 fill:#dcfce7,stroke:#059669
+    style L2 fill:#dbeafe,stroke:#2563eb
+    style DB fill:#fef3c7,stroke:#d97706
+    style CANAL fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 8.6-1 多级缓存架构：L1 本地 + L2 Redis + Canal 同步失效</div>
               </div>
 
@@ -1186,7 +1254,34 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
               <p><strong>为何是 16384 而非 65536</strong>：① Gossip 消息携带每个节点的槽位 bitmap，16384 位 = 2KB，65536 位 = 8KB，前者带宽友好；② 集群规模实际不超过 1000 节点，16384 槽足够细粒度；③ CRC16 的 14 位即可覆盖。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB subgraph Cluster["Redis Cluster （3主3从）"] direction TB subgraph M1["节点A （主） 0-5460"] A1[("master A")] A2[("slave A'")] end subgraph M2["节点B （主） 5461-10922"] B1[("master B")] B2[("slave B'")] end subgraph M3["节点C （主） 10923-16383"] C1[("master C")] C2[("slave C'")] end end CLI["客户端"] -->|"CRC16（key）%16384"| SLOT["槽位计算"] SLOT -->|"0-5460"| A1 SLOT -->|"5461-10922"| B1 SLOT -->|"10923-16383"| C1 A1 -.->|"主从复制"| A2 B1 -.->|"主从复制"| B2 C1 -.->|"主从复制"| C2 style A1 fill:#dbeafe,stroke:#2563eb style B1 fill:#dcfce7,stroke:#059669 style C1 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TB
+    subgraph Cluster["Redis Cluster （3主3从）"]
+        direction TB
+        subgraph M1["节点A （主） 0-5460"]
+            A1[("master A")]
+            A2[("slave A'")]
+        end
+        subgraph M2["节点B （主） 5461-10922"]
+            B1[("master B")]
+            B2[("slave B'")]
+        end
+        subgraph M3["节点C （主） 10923-16383"]
+            C1[("master C")]
+            C2[("slave C'")]
+        end
+    end
+    CLI["客户端"] -->|"CRC16（key）%16384"| SLOT["槽位计算"]
+    SLOT -->|"0-5460"| A1
+    SLOT -->|"5461-10922"| B1
+    SLOT -->|"10923-16383"| C1
+    A1 -.->|"主从复制"| A2
+    B1 -.->|"主从复制"| B2
+    C1 -.->|"主从复制"| C2
+    style A1 fill:#dbeafe,stroke:#2563eb
+    style B1 fill:#dcfce7,stroke:#059669
+    style C1 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 8.7-1 Redis Cluster 槽位分片与主从架构</div>
               </div>
 
@@ -1437,7 +1532,24 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
               <p><strong>布隆过滤器结构</strong>：m 位位数组 + k 个独立哈希函数。添加元素 x：对每个哈希函数 h_i 计算 h_i(x) mod m，将位数组对应位置 1。查询：k 个位置全为 1 则"可能存在"（可能误判），任一为 0 则"一定不存在"（绝不漏判）。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR X["元素 x"] --> H1["h1（x）=3"] X --> H2["h2（x）=7"] X --> H3["h3（x）=11"] H1 --> B3["位3=1"] H2 --> B7["位7=1"] H3 --> B11["位11=1"] subgraph Bits["位数组 m=16"] B0["0:0"] --- B1["1:0"] --- B2["2:0"] --- B3["3:1"] B3 --- B4["4:0"] --- B5["5:0"] --- B6["6:0"] --- B7["7:1"] B7 --- B8["8:0"] --- B9["9:0"] --- B10["10:0"] --- B11["11:1"] B11 --- B12["12:0"] --- B13["13:0"] --- B14["14:0"] --- B15["15:0"] end style B3 fill:#dcfce7,stroke:#059669 style B7 fill:#dcfce7,stroke:#059669 style B11 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    X["元素 x"] --> H1["h1（x）=3"]
+    X --> H2["h2（x）=7"]
+    X --> H3["h3（x）=11"]
+    H1 --> B3["位3=1"]
+    H2 --> B7["位7=1"]
+    H3 --> B11["位11=1"]
+    subgraph Bits["位数组 m=16"]
+        B0["0:0"] --- B1["1:0"] --- B2["2:0"] --- B3["3:1"]
+        B3 --- B4["4:0"] --- B5["5:0"] --- B6["6:0"] --- B7["7:1"]
+        B7 --- B8["8:0"] --- B9["9:0"] --- B10["10:0"] --- B11["11:1"]
+        B11 --- B12["12:0"] --- B13["13:0"] --- B14["14:0"] --- B15["15:0"]
+    end
+    style B3 fill:#dcfce7,stroke:#059669
+    style B7 fill:#dcfce7,stroke:#059669
+    style B11 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 8.9-1 布隆过滤器：k=3 个哈希函数映射到位数组</div>
               </div>
 
@@ -1552,7 +1664,17 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
               <p><strong>扩展 1：布谷鸟过滤器的二维桶结构与指纹</strong>。与"位数组"不同，布谷鸟过滤器是<strong>桶数组 + 槽位 + 指纹</strong>的二维逻辑结构 <code class="inline-code">buckets[m][b]</code>：m 个桶，标准实现每桶 <code class="inline-code">b=4</code> 个 slot，每个 slot 存一个定长指纹（常见 8bit，工程取值 4–12bit），<code class="inline-code">0</code> 表示空槽。指纹 <code class="inline-code">f = fingerprint(x)</code> 取哈希低 N 位，<strong>取值不能为 0</strong>（取到 0 时置 1）；指纹长度直接决定假阳性率。底层内存是紧凑打包的比特数组，而非"m×b 个对象"，这是它内存接近标准布隆的根本原因。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR X["元素 x"] --> F["指纹 f = fingerprint(x)"] F --> I1["i1 = hash(x) mod m"] I1 --> B0["Bucket i1 / 4 slots"] I1 -->|"i2 = i1 XOR hash(f)"| I2["备选桶 i2"] I2 --> B2["Bucket i2 / 4 slots"] B2 -->|"两桶皆满则 kick-out 踢挪"| B0 style B0 fill:#dbeafe,stroke:#2563eb style B2 fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart LR
+    X["元素 x"] --> F["指纹 f = fingerprint(x)"]
+    F --> I1["i1 = hash(x) mod m"]
+    I1 --> B0["Bucket i1 / 4 slots"]
+    I1 -->|"i2 = i1 XOR hash(f)"| I2["备选桶 i2"]
+    I2 --> B2["Bucket i2 / 4 slots"]
+    B2 -->|"两桶皆满则 kick-out 踢挪"| B0
+    style B0 fill:#dbeafe,stroke:#2563eb
+    style B2 fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 8.9-2 布谷鸟过滤器：二维桶 buckets[m][b=4] + 异或备选桶 + 踢挪循环</div>
               </div>
 

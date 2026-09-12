@@ -170,7 +170,21 @@
               <p><strong>反证法证明核心</strong>：假设存在协议同时满足 C+A+P。设两个节点 N1、N2 分区。客户端向 N1 写 v1，因可用性 N1 必须响应成功；客户端向 N2 读，因可用性 N2 必须返回。但分区使 N1 的 v1 无法同步到 N2，N2 只能返回旧值 v0，违反线性一致性。故 C 与 A 在分区下不可兼得。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD subgraph CAP["CAP 三角（P 不可选，实为 C vs A 权衡）"] direction TB C["Consistency 一致性<br />线性一致性:读返回最新写"] A["Availability 可用性<br />非故障节点必响应"] P["Partition Tolerance 分区容忍<br />网络分区时继续工作（必然）"] end P -.->|"网络分区发生"| F{"权衡选择"} F -->|"选 C: 拒绝响应未同步节点"| CP["偏 CP 默认<br />etcd/Spanner 等<br />分区时牺牲可用性"] F -->|"选 A: 允许返回旧数据"| AP["偏 AP 默认<br />Eureka 等<br />牺牲线性一致"] style CP fill:#dbeafe,stroke:#2563eb style AP fill:#ede9fe,stroke:#7c3aed style P fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TD
+    subgraph CAP["CAP 三角（P 不可选，实为 C vs A 权衡）"]
+        direction TB
+        C["Consistency 一致性<br/>线性一致性:读返回最新写"]
+        A["Availability 可用性<br/>非故障节点必响应"]
+        P["Partition Tolerance 分区容忍<br/>网络分区时继续工作（必然）"]
+    end
+    P -.->|"网络分区发生"| F{"权衡选择"}
+    F -->|"选 C: 拒绝响应未同步节点"| CP["偏 CP 默认<br/>etcd/Spanner 等<br/>分区时牺牲可用性"]
+    F -->|"选 A: 允许返回旧数据"| AP["偏 AP 默认<br/>Eureka 等<br/>牺牲线性一致"]
+    style CP fill:#dbeafe,stroke:#2563eb
+    style AP fill:#ede9fe,stroke:#7c3aed
+    style P fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 9.1-1 CAP 定理：P 必然存在，分区时 C 与 A 二选一</div>
               </div>
 
@@ -293,7 +307,19 @@
               <p><strong>可靠消息最终一致（本地消息表/RocketMQ 事务消息）</strong>：本地事务+消息表原子写入，异步投递消费端。最轻量，但只适合"最终一致+异步"场景。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR A["2PC<br />1970s<br />强一致·阻塞"] --> B["3PC<br />加超时·仍分区不安全"] B --> C["TCC<br />2007<br />业务侵入·无锁"] A --> D["Seata AT<br />2019<br />无侵入·undo log"] B --> E["SAGA<br />长事务·补偿"] C --> F["可靠消息<br />最终一致·异步"] D --> F style A fill:#fee2e2,stroke:#dc2626 style C fill:#fef3c7,stroke:#d97706 style D fill:#dbeafe,stroke:#2563eb style F fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    A["2PC<br/>1970s<br/>强一致·阻塞"] --> B["3PC<br/>加超时·仍分区不安全"]
+    B --> C["TCC<br/>2007<br/>业务侵入·无锁"]
+    A --> D["Seata AT<br/>2019<br/>无侵入·undo log"]
+    B --> E["SAGA<br/>长事务·补偿"]
+    C --> F["可靠消息<br/>最终一致·异步"]
+    D --> F
+    style A fill:#fee2e2,stroke:#dc2626
+    style C fill:#fef3c7,stroke:#d97706
+    style D fill:#dbeafe,stroke:#2563eb
+    style F fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 9.2-1 分布式事务演进：从强一致阻塞到柔性最终一致</div>
               </div>
 
@@ -306,7 +332,22 @@
             <div class="qa-layer-body">
               <p><strong>2PC 流程与缺陷</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant C as 协调者 participant P1 as 参与者1 participant P2 as 参与者2 C->>P1: Prepare(准备+锁资源) C->>P2: Prepare(准备+锁资源) P1-->>C: Yes(持锁等待) P2-->>C: Yes(持锁等待) Note over C: 全部Yes则Commit C->>P1: Commit C->>P2: Commit P1-->>C: ACK P2-->>C: ACK Note over C,P2: 缺陷: 协调者宕机→参与者阻塞持锁</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant C as 协调者
+    participant P1 as 参与者1
+    participant P2 as 参与者2
+    C->>P1: Prepare(准备+锁资源)
+    C->>P2: Prepare(准备+锁资源)
+    P1-->>C: Yes(持锁等待)
+    P2-->>C: Yes(持锁等待)
+    Note over C: 全部Yes则Commit
+    C->>P1: Commit
+    C->>P2: Commit
+    P1-->>C: ACK
+    P2-->>C: ACK
+    Note over C,P2: 缺陷: 协调者宕机→参与者阻塞持锁
+                </div>
                 <div class="chart-caption">图 9.2-2 2PC 时序：Prepare 持锁 + Commit，协调者单点导致阻塞</div>
               </div>
 
@@ -516,7 +557,19 @@ redis.<span class="fn">eval</span>(lua, <span class="type">Collections</span>.<s
 
               <p><strong>ZK 公平锁流程</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["客户端创建临时顺序节点<br />/lock/node-00000001"] --> B["获取 /lock 下所有子节点排序"] B --> C{"自己是最小序号?"} C -->|是| D["获得锁,执行业务"] C -->|否| E["watch 前一个节点<br />（避免惊群）"] E --> F{"前一个节点删除?"} F -->|是| D D --> G["业务完成,删除自己的节点"] G --> H["后继 watch 者被唤醒"] style D fill:#dcfce7,stroke:#059669 style E fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart TD
+    A["客户端创建临时顺序节点<br/>/lock/node-00000001"] --> B["获取 /lock 下所有子节点排序"]
+    B --> C{"自己是最小序号?"}
+    C -->|是| D["获得锁,执行业务"]
+    C -->|否| E["watch 前一个节点<br/>（避免惊群）"]
+    E --> F{"前一个节点删除?"}
+    F -->|是| D
+    D --> G["业务完成,删除自己的节点"]
+    G --> H["后继 watch 者被唤醒"]
+    style D fill:#dcfce7,stroke:#059669
+    style E fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 9.3-1 ZK 临时顺序节点公平锁：watch 前驱避免惊群</div>
               </div>
 
@@ -672,7 +725,19 @@ redis.<span class="fn">eval</span>(lua, <span class="type">Collections</span>.<s
 
               <p><strong>可靠投递：ISR 副本机制</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR P["Producer"] -->|"acks=all"| L["Leader Partition"] L -->|"同步复制"| F1["Follower1<br />（in ISR）"] L -->|"同步复制"| F2["Follower2<br />（in ISR）"] L -.->|"落后,移出ISR"| F3["Follower3<br />（out of ISR）"] F1 -->|"HW=LEO取小"| HW["High Watermark<br />消费可见位置"] F2 --> HW style L fill:#dbeafe,stroke:#2563eb style F1 fill:#dcfce7,stroke:#059669 style F2 fill:#dcfce7,stroke:#059669 style F3 fill:#fee2e2,stroke:#dc2626</div>
+                <div class="mermaid">
+flowchart LR
+    P["Producer"] -->|"acks=all"| L["Leader Partition"]
+    L -->|"同步复制"| F1["Follower1<br/>（in ISR）"]
+    L -->|"同步复制"| F2["Follower2<br/>（in ISR）"]
+    L -.->|"落后,移出ISR"| F3["Follower3<br/>（out of ISR）"]
+    F1 -->|"HW=LEO取小"| HW["High Watermark<br/>消费可见位置"]
+    F2 --> HW
+    style L fill:#dbeafe,stroke:#2563eb
+    style F1 fill:#dcfce7,stroke:#059669
+    style F2 fill:#dcfce7,stroke:#059669
+    style F3 fill:#fee2e2,stroke:#dc2626
+                </div>
                 <div class="chart-caption">图 9.4-1 Kafka ISR 机制：Leader 等待 ISR 全部 ack，HW 取 ISR 最小 LEO</div>
               </div>
 
@@ -838,7 +903,21 @@ props.<span class="fn">put</span>(ProducerConfig.TRANSACTIONAL_ID_CONFIG, <span 
               <p><strong>积压数学模型</strong>：积压量 = ∫(生产速率 − 消费速率)dt。消费速率 = min(消费者数, 分区数) × 单消费者 TPS。Kafka 中消费者数 &gt; 分区数时多余消费者空闲，<strong>扩容上限 = 分区数</strong>。</p>
               <p><strong>紧急处理三步法</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["发现积压1000万<br />告警触发"] --> B{"止血决策"} B -->|"消费慢,分区数充足"| C["扩消费组实例至=分区数"] B -->|"分区数不足,扩容无效"| D["临时方案:跳过堆积"] B -->|"生产端暴增"| E["降级生产:限流/暂停非核心"] C --> F{"消费仍追不上?"} F -->|"是"| D F -->|"否"| G["等待消化,监控收敛"] D --> H["1、记录当前待处理区间并转存<br />2、实时组切到最新offset<br />3、异步限速回放补偿"] H --> I["业务恢复后,离线回溯补偿"] E --> G style D fill:#fee2e2,stroke:#dc2626 style C fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart TD
+    A["发现积压1000万<br/>告警触发"] --> B{"止血决策"}
+    B -->|"消费慢,分区数充足"| C["扩消费组实例至=分区数"]
+    B -->|"分区数不足,扩容无效"| D["临时方案:跳过堆积"]
+    B -->|"生产端暴增"| E["降级生产:限流/暂停非核心"]
+    C --> F{"消费仍追不上?"}
+    F -->|"是"| D
+    F -->|"否"| G["等待消化,监控收敛"]
+    D --> H["1、记录当前待处理区间并转存<br/>2、实时组切到最新offset<br/>3、异步限速回放补偿"]
+    H --> I["业务恢复后,离线回溯补偿"]
+    E --> G
+    style D fill:#fee2e2,stroke:#dc2626
+    style C fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 9.5-1 消息积压紧急处理决策树</div>
               </div>
 
@@ -940,7 +1019,16 @@ kafka-consumer-groups --bootstrap-server <span class="var">$BS</span> \
             <div class="qa-layer-body">
               <p><strong>Snowflake 64 位结构</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph Snowflake["Snowflake 64 bit 结构"] direction LR S["1 bit<br />符号位<br />（0）"] --- T["41 bit<br />时间戳（ms）<br />约69年"] --- W["10 bit<br />机器ID<br />1024节点"] --- SEQ["12 bit<br />序列号<br />4096/ms"] end style T fill:#dbeafe,stroke:#2563eb style W fill:#fef3c7,stroke:#d97706 style SEQ fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph Snowflake["Snowflake 64 bit 结构"]
+        direction LR
+        S["1 bit<br/>符号位<br/>（0）"] --- T["41 bit<br/>时间戳（ms）<br/>约69年"] --- W["10 bit<br/>机器ID<br/>1024节点"] --- SEQ["12 bit<br/>序列号<br/>4096/ms"]
+    end
+    style T fill:#dbeafe,stroke:#2563eb
+    style W fill:#fef3c7,stroke:#d97706
+    style SEQ fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 9.6-1 Snowflake 64 位结构：时间戳+机器ID+序列号</div>
               </div>
 
@@ -1141,7 +1229,20 @@ kafka-consumer-groups --bootstrap-server <span class="var">$BS</span> \
             <div class="qa-layer-body">
               <p><strong>一致性哈希环</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD subgraph Ring["一致性哈希环 0 ~ 2^32-1"] direction TB N1["Node A<br />（含150虚拟节点）"] N2["Node B<br />（含150虚拟节点）"] N3["Node C<br />（含150虚拟节点）"] K1["key1 → 顺时针→ Node B"] K2["key2 → 顺时针→ Node C"] K3["key3 → 顺时针→ Node A"] end N1 -.->|"扩容Node D<br />只迁移NodeD到下个节点间key"| N4["Node D"] style N4 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TD
+    subgraph Ring["一致性哈希环 0 ~ 2^32-1"]
+        direction TB
+        N1["Node A<br/>（含150虚拟节点）"]
+        N2["Node B<br/>（含150虚拟节点）"]
+        N3["Node C<br/>（含150虚拟节点）"]
+        K1["key1 → 顺时针→ Node B"]
+        K2["key2 → 顺时针→ Node C"]
+        K3["key3 → 顺时针→ Node A"]
+    end
+    N1 -.->|"扩容Node D<br/>只迁移NodeD到下个节点间key"| N4["Node D"]
+    style N4 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 9.7-1 一致性哈希环：扩容只迁移相邻区间，虚拟节点解决倾斜</div>
               </div>
 
@@ -1325,7 +1426,21 @@ kafka-consumer-groups --bootstrap-server <span class="var">$BS</span> \
 
               <p><strong>Token 机制流程</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant F as 前端 participant B as 后端 participant R as Redis F->>B: 1. GET /token (获取令牌) B->>R: SET token_value EX 600 B-->>F: 返回 token_value F->>B: 2. POST /order (Header: X-Idempotent-Token) B->>R: CHECK token + SET used (Lua 原子) Note over B: token 存在则置为已用;不存在则按重复/过期处理 B->>B: 3. 执行业务(创建订单) B->>B: 4. DB 唯一约束/状态机兜底;失败补偿或标记重试 B-->>F: 返回结果</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant F as 前端
+    participant B as 后端
+    participant R as Redis
+    F->>B: 1. GET /token (获取令牌)
+    B->>R: SET token_value EX 600
+    B-->>F: 返回 token_value
+    F->>B: 2. POST /order (Header: X-Idempotent-Token)
+    B->>R: CHECK token + SET used (Lua 原子)
+    Note over B: token 存在则置为已用;不存在则按重复/过期处理
+    B->>B: 3. 执行业务(创建订单)
+    B->>B: 4. DB 唯一约束/状态机兜底;失败补偿或标记重试
+    B-->>F: 返回结果
+                </div>
                 <div class="chart-caption">图 9.8-1 Token 快路径：Lua 原子置为已用，数据库约束/状态机兜底</div>
               </div>
 
@@ -1437,7 +1552,29 @@ kafka-consumer-groups --bootstrap-server <span class="var">$BS</span> \
             <div class="qa-layer-body">
               <p><strong>可靠投递全链路</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph P["生产端"] P1["本地事务+消息表<br />或事务消息"] P2["发送+确认ACK"] P3["失败重试"] end subgraph B["Broker"] B1["持久化落盘"] B2["多副本同步<br />（ISR/Quorum）"] end subgraph C["消费端"] C1["手动ACK"] C2["消费幂等"] C3["死信队列"] end P1 --> P2 --> P3 --> B1 --> B2 --> C1 --> C2 --> C3 P3 -.->|"重试耗尽"| DL["死信/告警"] C3 -.-> DL style P1 fill:#dbeafe,stroke:#2563eb style B2 fill:#dcfce7,stroke:#059669 style C2 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph P["生产端"]
+        P1["本地事务+消息表<br/>或事务消息"]
+        P2["发送+确认ACK"]
+        P3["失败重试"]
+    end
+    subgraph B["Broker"]
+        B1["持久化落盘"]
+        B2["多副本同步<br/>（ISR/Quorum）"]
+    end
+    subgraph C["消费端"]
+        C1["手动ACK"]
+        C2["消费幂等"]
+        C3["死信队列"]
+    end
+    P1 --> P2 --> P3 --> B1 --> B2 --> C1 --> C2 --> C3
+    P3 -.->|"重试耗尽"| DL["死信/告警"]
+    C3 -.-> DL
+    style P1 fill:#dbeafe,stroke:#2563eb
+    style B2 fill:#dcfce7,stroke:#059669
+    style C2 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 9.9-1 消息可靠投递全链路：生产确认+持久化副本+消费ACK+幂等死信</div>
               </div>
 
@@ -1633,7 +1770,19 @@ template.<span class="fn">convertAndSend</span>(<span class="str">"order.exchang
               <p><strong>ZAB（ZooKeeper Atomic Broadcast，2008）</strong>：ZooKeeper 专用，类似 Paxos/Raft 但为"主备复制广播"优化。ZXID（epoch + counter）保证顺序。崩溃恢复的快速 Leader 选举。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR B["拜占庭将军问题<br />1982 Lamport"] --> P["Paxos<br />1989/1998<br />崩溃故障共识"] B --> PBFT["PBFT<br />1999<br />实用BFT"] P --> R["Raft<br />2014<br />可理解Paxos"] P --> Z["ZAB<br />2008<br />ZK广播协议"] B --> POW["PoW<br />2008<br />区块链共识"] PBFT --> BC["联盟链<br />Hyperledger"] POW --> BC2["公链<br />Bitcoin/Ethereum"] style R fill:#dbeafe,stroke:#2563eb style Z fill:#dcfce7,stroke:#059669 style P fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    B["拜占庭将军问题<br/>1982 Lamport"] --> P["Paxos<br/>1989/1998<br/>崩溃故障共识"]
+    B --> PBFT["PBFT<br/>1999<br/>实用BFT"]
+    P --> R["Raft<br/>2014<br/>可理解Paxos"]
+    P --> Z["ZAB<br/>2008<br/>ZK广播协议"]
+    B --> POW["PoW<br/>2008<br/>区块链共识"]
+    PBFT --> BC["联盟链<br/>Hyperledger"]
+    POW --> BC2["公链<br/>Bitcoin/Ethereum"]
+    style R fill:#dbeafe,stroke:#2563eb
+    style Z fill:#dcfce7,stroke:#059669
+    style P fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 9.10-1 共识算法演进：从理论(Paxos)到工程(Raft/ZAB)与区块链(PoW)</div>
               </div>
             </div>
@@ -1654,7 +1803,17 @@ template.<span class="fn">convertAndSend</span>(<span class="str">"order.exchang
               </ol>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD F["Follower<br />（被动）"] -->|"选举超时"| C["Candidate<br />（自荐）"] C -->|"获多数票"| L["Leader<br />（主导）"] L -->|"心跳超时被发现"| F C -->|"发现更高term的Leader"| F C -->|"选举超时再选<br />（随机化超时避免活锁）"| C style L fill:#dbeafe,stroke:#2563eb style C fill:#fef3c7,stroke:#d97706 style F fill:#f0f3f7,stroke:#6b7280</div>
+                <div class="mermaid">
+flowchart TD
+    F["Follower<br/>（被动）"] -->|"选举超时"| C["Candidate<br/>（自荐）"]
+    C -->|"获多数票"| L["Leader<br/>（主导）"]
+    L -->|"心跳超时被发现"| F
+    C -->|"发现更高term的Leader"| F
+    C -->|"选举超时再选<br/>（随机化超时避免活锁）"| C
+    style L fill:#dbeafe,stroke:#2563eb
+    style C fill:#fef3c7,stroke:#d97706
+    style F fill:#f0f3f7,stroke:#6b7280
+                </div>
                 <div class="chart-caption">图 9.10-2 Raft 节点状态机：Follower↔Candidate↔Leader，随机超时避免活锁</div>
               </div>
 
@@ -1749,7 +1908,14 @@ template.<span class="fn">convertAndSend</span>(<span class="str">"order.exchang
               <p><strong>统一可观测性（2020s）</strong>：OpenTelemetry（CNCF，2019 合并 OpenTracing + OpenCensus）提供跨语言 API/SDK、OTLP 数据协议和 Collector；云厂商后端接受 OTLP 或通过 exporter/collector 适配。趋势：<strong>从三支柱独立走向融合（TraceID 关联 Log + Metrics）</strong>，并用自动插桩、Agent 或 eBPF 降低侵入，但其覆盖范围以官方支持矩阵为准。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR LOG["Logging<br />文本/结构化<br />ELK/Loki"] --> OBS["统一可观测性<br />OpenTelemetry"] MET["Metrics<br />时序指标<br />Prometheus"] --> OBS TRA["Tracing<br />链路追踪<br />Jaeger/SkyWalking"] --> OBS OBS --> AUTO["自动插桩/Agent/eBPF<br />仅覆盖受支持组件"] style OBS fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart LR
+    LOG["Logging<br/>文本/结构化<br/>ELK/Loki"] --> OBS["统一可观测性<br/>OpenTelemetry"]
+    MET["Metrics<br/>时序指标<br/>Prometheus"] --> OBS
+    TRA["Tracing<br/>链路追踪<br/>Jaeger/SkyWalking"] --> OBS
+    OBS --> AUTO["自动插桩/Agent/eBPF<br/>仅覆盖受支持组件"]
+    style OBS fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 9.11-1 可观测性演进：从独立三支柱到统一 OpenTelemetry</div>
               </div>
             </div>
@@ -2446,7 +2612,21 @@ template.<span class="fn">convertAndSend</span>(<span class="str">"order.exchang
               <p><strong>Outbox vs 本地消息表</strong>：两者都把"业务操作 + 消息发送"收敛到一个本地事务，保证业务与消息原子性。差异在<strong>消息投递机制</strong>。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph Local["本地消息表：轮询投递"] L1["业务写库<br />+ 消息表"] --> L2["定时轮询消息表"] L2 --> L3["投递 MQ"] L3 --> L4["标记已投递"] end subgraph Outbox["Outbox + CDC：订阅投递"] O1["业务写库<br />+ outbox 表"] --> O2["binlog"] O2 --> O3["Debezium/Canal<br />订阅解析"] O3 --> O4["投递 MQ"] end style L2 fill:#fee2e2,stroke:#dc2626 style O3 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph Local["本地消息表：轮询投递"]
+        L1["业务写库<br/>+ 消息表"] --> L2["定时轮询消息表"]
+        L2 --> L3["投递 MQ"]
+        L3 --> L4["标记已投递"]
+    end
+    subgraph Outbox["Outbox + CDC：订阅投递"]
+        O1["业务写库<br/>+ outbox 表"] --> O2["binlog"]
+        O2 --> O3["Debezium/Canal<br/>订阅解析"]
+        O3 --> O4["投递 MQ"]
+    end
+    style L2 fill:#fee2e2,stroke:#dc2626
+    style O3 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 9.16-1 本地消息表（轮询）vs Outbox（CDC 订阅）</div>
               </div>
 

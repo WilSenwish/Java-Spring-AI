@@ -183,7 +183,17 @@
               <p><strong>Camunda（2013，Activiti 商业分叉）</strong>：同样源自 Activiti，走<strong>开源核心 + 商业企业版</strong>路线，强调流程监控分析（Operate/Optimize），云原生 Camunda 8 基于 Zeebe 引擎（事件流 + Raft 日志复制，告别数据库轮询），面向高并发云原生场景。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR H["硬编码流程<br />（if-else+状态字段）"] --> J["jBPM 1.x<br />jPDL 自有格式<br />（2004）"] J --> A["Activiti 5/6<br />全面 BPMN 2.0<br />轻量嵌入（2010）"] A --> F["Flowable 6/7<br />BPMN+DMN+CMMN<br />三引擎合一（2016）"] A --> C["Camunda 7<br />开源核心+商业版<br />监控分析强（2013）"] C --> Z["Camunda 8/Zeebe<br />事件流+Raft<br />云原生高并发（2021）"] style A fill:#dbeafe,stroke:#2563eb style F fill:#ede9fe,stroke:#7c3aed style Z fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    H["硬编码流程<br/>（if-else+状态字段）"] --> J["jBPM 1.x<br/>jPDL 自有格式<br/>（2004）"]
+    J --> A["Activiti 5/6<br/>全面 BPMN 2.0<br/>轻量嵌入（2010）"]
+    A --> F["Flowable 6/7<br/>BPMN+DMN+CMMN<br/>三引擎合一（2016）"]
+    A --> C["Camunda 7<br/>开源核心+商业版<br/>监控分析强（2013）"]
+    C --> Z["Camunda 8/Zeebe<br/>事件流+Raft<br/>云原生高并发（2021）"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style F fill:#ede9fe,stroke:#7c3aed
+    style Z fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 11.1-1 工作流引擎演进：jBPM → Activiti → Flowable/Camunda → Zeebe 云原生</div>
               </div>
 
@@ -256,7 +266,30 @@
               </ol>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB subgraph DEF["流程定义（静态模板）"] S((开始)) --> GW1{"排他网关<br />金额>1万?"} GW1 -->|"是"| M["经理审批<br />（用户任务）"] GW1 -->|"否"| A2["自动通过<br />（服务任务）"] M --> PG((并行网关)) A2 --> PG PG --> N1["通知申请人"] PG --> N2["归档"] N1 --> E((结束)) N2 --> E end subgraph RUN["运行态（令牌漫游）"] T1["Token-1 主令牌"] -.->|前进| M T1 -.->|complete 后分裂| T2["Token-2"] T1 -.->|complete 后分裂| T3["Token-3"] T2 -.-> N1 T3 -.-> N2 end style S fill:#d1fae5,stroke:#059669 style E fill:#fee2e2,stroke:#dc2626 style PG fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart TB
+    subgraph DEF["流程定义（静态模板）"]
+        S((开始)) --> GW1{"排他网关<br/>金额>1万?"}
+        GW1 -->|"是"| M["经理审批<br/>（用户任务）"]
+        GW1 -->|"否"| A2["自动通过<br/>（服务任务）"]
+        M --> PG((并行网关))
+        A2 --> PG
+        PG --> N1["通知申请人"]
+        PG --> N2["归档"]
+        N1 --> E((结束))
+        N2 --> E
+    end
+    subgraph RUN["运行态（令牌漫游）"]
+        T1["Token-1 主令牌"] -.->|前进| M
+        T1 -.->|complete 后分裂| T2["Token-2"]
+        T1 -.->|complete 后分裂| T3["Token-3"]
+        T2 -.-> N1
+        T3 -.-> N2
+    end
+    style S fill:#d1fae5,stroke:#059669
+    style E fill:#fee2e2,stroke:#dc2626
+    style PG fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 11.1-2 BPMN 2.0 元素与令牌(Token)漫游执行模型</div>
               </div>
 
@@ -535,7 +568,16 @@ taskService.<span class="fn">complete</span>(task.<span class="fn">getId</span>(
               <p><strong>阶段 5：智能决策(趋势)</strong>。规则引擎 + ML 模型 + LLM 混合决策：简单规则用规则引擎（可解释、可审计），复杂非线性用 ML 模型，模糊判断用 LLM。规则引擎负责"硬性约束"，模型负责"柔性预测"。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR H["硬编码<br />if-else"] --> S["脚本引擎<br />Groovy/Aviator<br />（动态加载）"] S --> R["规则引擎<br />QLExpress/Drools<br />（Rete 匹配）"] R --> D["决策引擎/DMN<br />决策表可视化<br />（业务可维护）"] D --> I["智能决策<br />规则+ML+LLM<br />（硬约束+柔性预测）"] style R fill:#dbeafe,stroke:#2563eb style D fill:#ede9fe,stroke:#7c3aed style I fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    H["硬编码<br/>if-else"] --> S["脚本引擎<br/>Groovy/Aviator<br/>（动态加载）"]
+    S --> R["规则引擎<br/>QLExpress/Drools<br/>（Rete 匹配）"]
+    R --> D["决策引擎/DMN<br/>决策表可视化<br/>（业务可维护）"]
+    D --> I["智能决策<br/>规则+ML+LLM<br/>（硬约束+柔性预测）"]
+    style R fill:#dbeafe,stroke:#2563eb
+    style D fill:#ede9fe,stroke:#7c3aed
+    style I fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 11.3-1 业务规则演进：硬编码 → 脚本 → 规则引擎 → 决策引擎 → 智能决策</div>
               </div>
             </div>
@@ -563,7 +605,20 @@ taskService.<span class="fn">complete</span>(task.<span class="fn">getId</span>(
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR F["Facts 事实<br />（订单/用户对象）"] --> AN["Alpha 网络<br />（单条件过滤,共享）"] AN -->|"age&gt;18"| BN1["Beta 节点"] AN -->|"vip=true"| BN1 AN -->|"amount&gt;1000"| BN2["Beta 节点"] BN1 --> T1["Terminal: 规则R1<br />送优惠券"] BN2 --> T2["Terminal: 规则R2<br />赠送积分"] T1 --> AG["Agenda 议程<br />（按优先级排序）"] T2 --> AG AG --> EX["执行 Action"] style AN fill:#dbeafe,stroke:#2563eb style AG fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    F["Facts 事实<br/>（订单/用户对象）"] --> AN["Alpha 网络<br/>（单条件过滤,共享）"]
+    AN -->|"age&gt;18"| BN1["Beta 节点"]
+    AN -->|"vip=true"| BN1
+    AN -->|"amount&gt;1000"| BN2["Beta 节点"]
+    BN1 --> T1["Terminal: 规则R1<br/>送优惠券"]
+    BN2 --> T2["Terminal: 规则R2<br/>赠送积分"]
+    T1 --> AG["Agenda 议程<br/>（按优先级排序）"]
+    T2 --> AG
+    AG --> EX["执行 Action"]
+    style AN fill:#dbeafe,stroke:#2563eb
+    style AG fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.3-2 Drools Rete 网络：Alpha/Beta 节点共享 + Agenda 议程</div>
               </div>
 
@@ -742,7 +797,20 @@ taskService.<span class="fn">complete</span>(task.<span class="fn">getId</span>(
               <p><strong>OAuth 2.1（草案，2020+）</strong>：<strong>收敛而非新增</strong>，把 2.0 的最佳实践固化成标准——废弃隐式模式(Implicit)与密码模式(Password)，<strong>强制所有客户端用授权码+PKCE</strong>，统一安全基线。本质是"2.0 + BCP(Best Current Practice) 的合并整理"。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR O1["OAuth 1.0<br />HMAC 签名<br />单流程（2007）"] --> O2["OAuth 2.0<br />四种授权模式<br />Bearer Token（2012）"] O2 --> O21["OAuth 2.1<br />收敛为三种模式<br />强制授权码+PKCE（草案）"] O2 -.->|废弃| IMPL["隐式模式 Implicit"] O2 -.->|废弃| PASS["密码模式 Password"] O21 --> AC["授权码+PKCE<br />Web/移动/SPA"] O21 --> CC["客户端凭证<br />M2M"] O21 --> DF["设备授权<br />电视/IoT"] style O2 fill:#dbeafe,stroke:#2563eb style O21 fill:#ede9fe,stroke:#7c3aed style IMPL fill:#fee2e2,stroke:#dc2626,stroke-dasharray:5 5 style PASS fill:#fee2e2,stroke:#dc2626,stroke-dasharray:5 5</div>
+                <div class="mermaid">
+flowchart LR
+    O1["OAuth 1.0<br/>HMAC 签名<br/>单流程（2007）"] --> O2["OAuth 2.0<br/>四种授权模式<br/>Bearer Token（2012）"]
+    O2 --> O21["OAuth 2.1<br/>收敛为三种模式<br/>强制授权码+PKCE（草案）"]
+    O2 -.->|废弃| IMPL["隐式模式 Implicit"]
+    O2 -.->|废弃| PASS["密码模式 Password"]
+    O21 --> AC["授权码+PKCE<br/>Web/移动/SPA"]
+    O21 --> CC["客户端凭证<br/>M2M"]
+    O21 --> DF["设备授权<br/>电视/IoT"]
+    style O2 fill:#dbeafe,stroke:#2563eb
+    style O21 fill:#ede9fe,stroke:#7c3aed
+    style IMPL fill:#fee2e2,stroke:#dc2626,stroke-dasharray:5 5
+    style PASS fill:#fee2e2,stroke:#dc2626,stroke-dasharray:5 5
+                </div>
                 <div class="chart-caption">图 11.4-1 OAuth 演进：1.0 签名 → 2.0 四种模式 → 2.1 收敛为三种（废弃隐式与密码）</div>
               </div>
 
@@ -799,7 +867,23 @@ taskService.<span class="fn">complete</span>(task.<span class="fn">getId</span>(
 
               <p><strong>授权码 + PKCE 流程（核心）</strong>：PKCE(Proof Key for Code Exchange) 解决"授权码被恶意应用拦截"问题。恶意应用在移动端可注册相同 URL Scheme 拦截回调，PKCE 让拦截到 code 也换不到 token：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant U as 用户/浏览器 participant C as 客户端(SPA/App) participant A as 授权服务器 participant R as 资源服务器 C->>C: 1. 生成 code_verifier(随机串) + code_challenge=SHA256(verifier) C->>U: 2. 重定向到授权页(带 code_challenge + method=S256) U->>A: 3. 登录 + 同意授权 A->>U: 4. 重定向回客户端(带 authorization_code) U->>C: 5. 浏览器带回 code C->>A: 6. 用 code + code_verifier 换 token Note over A: 7. 校验: SHA256(verifier)==原 challenge? 通过才发 token A->>C: 8. 返回 access_token + refresh_token C->>R: 9. 带 access_token 访问资源 R->>C: 10. 返回受保护资源</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant U as 用户/浏览器
+    participant C as 客户端(SPA/App)
+    participant A as 授权服务器
+    participant R as 资源服务器
+    C->>C: 1. 生成 code_verifier(随机串) + code_challenge=SHA256(verifier)
+    C->>U: 2. 重定向到授权页(带 code_challenge + method=S256)
+    U->>A: 3. 登录 + 同意授权
+    A->>U: 4. 重定向回客户端(带 authorization_code)
+    U->>C: 5. 浏览器带回 code
+    C->>A: 6. 用 code + code_verifier 换 token
+    Note over A: 7. 校验: SHA256(verifier)==原 challenge? 通过才发 token
+    A->>C: 8. 返回 access_token + refresh_token
+    C->>R: 9. 带 access_token 访问资源
+    R->>C: 10. 返回受保护资源
+                </div>
                 <div class="chart-caption">图 11.4-2 授权码 + PKCE 时序：code_verifier 绑定防拦截</div>
               </div>
 
@@ -915,7 +999,14 @@ taskService.<span class="fn">complete</span>(task.<span class="fn">getId</span>(
               <p><strong>阶段 4：Opaque Token + 令牌内省（趋势）</strong>。JWT 无状态导致吊销难，部分场景回归"不透明令牌 + 内省端点(Introspection)"，token 是随机串，服务端调授权服务器内省校验，可即时吊销。Gateway 做内省缓存兼顾性能。或用 <strong>JWT + 黑名单/版本号</strong>折中。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR S["Session+Cookie<br />有状态<br />需共享存储"] --> J["JWT<br />无状态<br />自包含验签"] J --> DT["双 Token<br />Access+Refresh<br />短期+静默续期"] DT --> OP["Opaque Token<br />内省+可吊销<br />或 JWT+黑名单"] style J fill:#dbeafe,stroke:#2563eb style DT fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    S["Session+Cookie<br/>有状态<br/>需共享存储"] --> J["JWT<br/>无状态<br/>自包含验签"]
+    J --> DT["双 Token<br/>Access+Refresh<br/>短期+静默续期"]
+    DT --> OP["Opaque Token<br/>内省+可吊销<br/>或 JWT+黑名单"]
+    style J fill:#dbeafe,stroke:#2563eb
+    style DT fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.5-1 认证演进：Session → JWT → 双Token → Opaque/混合</div>
               </div>
             </div>
@@ -1082,7 +1173,14 @@ HMACSHA256(
               <p><strong>阶段 4：GitOps(ArgoCD/Flux，2018+)</strong>。把<strong>期望状态(部署清单)存 Git</strong>，集群内的 Controller(ArgoCD) 持续比对 Git 期望状态与集群实际状态，发现偏差自动 Pull 同步。Git 成为<strong>唯一可信源(Single Source of Truth)</strong>，部署即 commit，回滚即 revert。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR M["手工构建部署<br />易错不可重复"] --> J["Jenkins 脚本式<br />Jenkinsfile<br />Push 部署（2011）"] J --> G["GitLab CI/GitHub Actions<br />YAML 声明式<br />与 Git 深度集成（2015）"] G --> GO["GitOps/ArgoCD<br />Git 为唯一可信源<br />Pull 同步（2018）"] style G fill:#dbeafe,stroke:#2563eb style GO fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    M["手工构建部署<br/>易错不可重复"] --> J["Jenkins 脚本式<br/>Jenkinsfile<br/>Push 部署（2011）"]
+    J --> G["GitLab CI/GitHub Actions<br/>YAML 声明式<br/>与 Git 深度集成（2015）"]
+    G --> GO["GitOps/ArgoCD<br/>Git 为唯一可信源<br/>Pull 同步（2018）"]
+    style G fill:#dbeafe,stroke:#2563eb
+    style GO fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.6-1 CI/CD 演进：手工 → Jenkins → GitLab CI → GitOps</div>
               </div>
 
@@ -1163,7 +1261,18 @@ HMACSHA256(
 
               <p><strong>GitOps 工作流(ArgoCD)</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB Dev["开发提交代码"] --> CI["CI 流水线<br />（GitLab CI/Jenkins）"] CI -->|"构建镜像推仓库"| REG[("镜像仓库<br />Harbor")] CI -->|"更新部署清单<br />（改 image tag）"| GIT[("配置仓库<br />Git（期望状态）")] GIT -->|"Webhook/定时同步"| ARGO["ArgoCD<br />（集群内 Controller）"] ARGO -->|"Pull 拉取清单"| GIT ARGO -->|"检测偏差,Apply<br />协调实际=期望"| K8S["K8s 集群"] ARGO -->|"状态反馈"| UI["ArgoCD UI<br />同步状态可视化"] style GIT fill:#dbeafe,stroke:#2563eb style ARGO fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart TB
+    Dev["开发提交代码"] --> CI["CI 流水线<br/>（GitLab CI/Jenkins）"]
+    CI -->|"构建镜像推仓库"| REG[("镜像仓库<br/>Harbor")]
+    CI -->|"更新部署清单<br/>（改 image tag）"| GIT[("配置仓库<br/>Git（期望状态）")]
+    GIT -->|"Webhook/定时同步"| ARGO["ArgoCD<br/>（集群内 Controller）"]
+    ARGO -->|"Pull 拉取清单"| GIT
+    ARGO -->|"检测偏差,Apply<br/>协调实际=期望"| K8S["K8s 集群"]
+    ARGO -->|"状态反馈"| UI["ArgoCD UI<br/>同步状态可视化"]
+    style GIT fill:#dbeafe,stroke:#2563eb
+    style ARGO fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.6-2 GitOps 工作流：CI 更新配置仓库，ArgoCD Pull 同步集群</div>
               </div>
 
@@ -1324,7 +1433,15 @@ spec:
               <p><strong>阶段 4：eBPF 内核级无侵入（2021+）</strong>。eBPF(extended Berkeley Packet Filter) 在 Linux 内核运行沙箱程序，<strong>无需 Java Agent、无需改字节码</strong>，从内核态捕获网络调用(syscall/socket)自动关联 Trace。代表：Pixie、Cilium Tetragon、Datadog eBPF。优势：语言无关、零应用侵入、内核级精度；限制：需 Linux 4.4+/5.x+ 内核。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR L["日志+手动埋点<br />侵入性强<br />无跨服务关联"] --> A["字节码增强 APM<br />Java Agent<br />Pinpoint/SkyWalking（2012）"] A --> OT["OpenTelemetry<br />统一三支柱标准<br />厂商中立（2019）"] OT --> E["eBPF<br />内核级无侵入<br />语言无关（2021）"] style A fill:#dbeafe,stroke:#2563eb style OT fill:#ede9fe,stroke:#7c3aed style E fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    L["日志+手动埋点<br/>侵入性强<br/>无跨服务关联"] --> A["字节码增强 APM<br/>Java Agent<br/>Pinpoint/SkyWalking（2012）"]
+    A --> OT["OpenTelemetry<br/>统一三支柱标准<br/>厂商中立（2019）"]
+    OT --> E["eBPF<br/>内核级无侵入<br/>语言无关（2021）"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style OT fill:#ede9fe,stroke:#7c3aed
+    style E fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 11.7-1 监控技术演进：日志 → 字节码增强 → OpenTelemetry → eBPF</div>
               </div>
 
@@ -1341,7 +1458,24 @@ spec:
 
               <p><strong>APM 系统架构（微内核+插件）——五件套全景</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB subgraph APP["应用进程（被监控）"] AGENT["Java Agent<br />（微内核）"] P1["Spring 插件"] P2["MyBatis 插件"] P3["Dubbo 插件"] AGENT --> P1 & P2 & P3 CTX["ContextManager<br />（Trace 上下文）"] AGENT --> CTX end AGENT -->|"异步批量上报<br />（gRPC/Kafka）"| COLLECTOR["Collector<br />采集集群"] COLLECTOR --> STORE[("存储<br />ES/HBase/Cassandra")] STORE --> UI["UI 拓扑/调用链/告警"] CTX -.->|"跨服务透传<br />traceId via Header"| AGENT2["下游应用 Agent"] style AGENT fill:#dbeafe,stroke:#2563eb style COLLECTOR fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart TB
+    subgraph APP["应用进程（被监控）"]
+        AGENT["Java Agent<br/>（微内核）"]
+        P1["Spring 插件"]
+        P2["MyBatis 插件"]
+        P3["Dubbo 插件"]
+        AGENT --> P1 & P2 & P3
+        CTX["ContextManager<br/>（Trace 上下文）"]
+        AGENT --> CTX
+    end
+    AGENT -->|"异步批量上报<br/>（gRPC/Kafka）"| COLLECTOR["Collector<br/>采集集群"]
+    COLLECTOR --> STORE[("存储<br/>ES/HBase/Cassandra")]
+    STORE --> UI["UI 拓扑/调用链/告警"]
+    CTX -.->|"跨服务透传<br/>traceId via Header"| AGENT2["下游应用 Agent"]
+    style AGENT fill:#dbeafe,stroke:#2563eb
+    style COLLECTOR fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.7-2 APM 微内核+插件架构：Agent 采集 + Collector 聚合 + 存储可视化</div>
               </div>
 
@@ -1429,7 +1563,21 @@ spec:
               <p><strong>跨服务透传：W3C TraceContext</strong>：HTTP 请求加 Header <code class="inline-code">traceparent: 00-{traceId}-{spanId}-{flags}</code>，下游解析并延续 traceId。RPC(Dubbo/gRPC) 用 attachment/metadata 透传。MQ 把 traceId 塞消息属性(Properties)，消费端取出放入当前上下文。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph SVC_A["服务 A"] T1["主线程<br />ThreadLocal={traceId:T1}"] T1 -->|"提交任务"| POOL["线程池"] POOL --> T2["工作线程<br />（无 TTL 则丢失）"] POOL --> T2B["工作线程<br />（TTL 回放 traceId）"] end T2B -->|"HTTP 调用<br />Header: traceparent=00-T1-SPAN1-01"| SVC_B["服务 B"] SVC_B --> T3["B 主线程<br />解析 traceId=T1"] T3 -->|"发送 MQ<br />消息属性: traceId=T1"| MQ["MQ"] MQ --> T4["消费线程<br />取出 traceId=T1"] style T2B fill:#d1fae5,stroke:#059669 style SVC_B fill:#dbeafe,stroke:#2563eb</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph SVC_A["服务 A"]
+        T1["主线程<br/>ThreadLocal={traceId:T1}"]
+        T1 -->|"提交任务"| POOL["线程池"]
+        POOL --> T2["工作线程<br/>（无 TTL 则丢失）"]
+        POOL --> T2B["工作线程<br/>（TTL 回放 traceId）"]
+    end
+    T2B -->|"HTTP 调用<br/>Header: traceparent=00-T1-SPAN1-01"| SVC_B["服务 B"]
+    SVC_B --> T3["B 主线程<br/>解析 traceId=T1"]
+    T3 -->|"发送 MQ<br/>消息属性: traceId=T1"| MQ["MQ"]
+    MQ --> T4["消费线程<br/>取出 traceId=T1"]
+    style T2B fill:#d1fae5,stroke:#059669
+    style SVC_B fill:#dbeafe,stroke:#2563eb
+                </div>
                 <div class="chart-caption">图 11.8-1 TraceId 多线程与跨服务透传全链路</div>
               </div>
             </div>
@@ -1599,7 +1747,15 @@ spec:
               <p><strong>阶段 5：eBPF 补充 + 生态融合（2021+）</strong>。OTel eBPF Profiler 从内核采集无侵入 Profile，补足应用层 Trace 看不到的网络/系统层细节；Spring Boot 3.2+ 内置 Micrometer Tracing(桥接 OTel/Brave)；JDK 21 虚拟线程带来 ThreadLocal 上下文传播新挑战。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR L["日志 ELK<br />三支柱割裂<br />（2000s）"] --> A["APM 兴起<br />Trace+Metrics+Log<br />各自为政（2012）"] A --> OT["OpenTracing<br />+OpenCensus<br />两标准并存（2016）"] OT --> OTEL["OpenTelemetry<br />统一三支柱<br />厂商中立（2019）"] OTEL --> E["OTel+eBPF<br />应用层+内核层<br />融合（2021+）"] style OTEL fill:#ede9fe,stroke:#7c3aed style E fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    L["日志 ELK<br/>三支柱割裂<br/>（2000s）"] --> A["APM 兴起<br/>Trace+Metrics+Log<br/>各自为政（2012）"]
+    A --> OT["OpenTracing<br/>+OpenCensus<br/>两标准并存（2016）"]
+    OT --> OTEL["OpenTelemetry<br/>统一三支柱<br/>厂商中立（2019）"]
+    OTEL --> E["OTel+eBPF<br/>应用层+内核层<br/>融合（2021+）"]
+    style OTEL fill:#ede9fe,stroke:#7c3aed
+    style E fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 11.9-1 可观测性演进：日志 → APM → 双标准 → OpenTelemetry → +eBPF</div>
               </div>
             </div>
@@ -1651,7 +1807,22 @@ spec:
 
               <p><strong>OpenTelemetry 架构：API + SDK + Collector</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph APP["应用进程"] API["OTel API<br />（接口,厂商中立）"] SDK["OTel SDK<br />（实现,采样/批处理/导出）"] INST["Auto Instrumentation<br />（Java Agent 自动埋点）"] API --> SDK INST --> API end SDK -->|"OTLP（gRPC/HTTP）<br />批量导出"| COL["OTel Collector<br />（管道:接收→处理→导出）"] COL -->|"Trace"| JAEGER["Jaeger/Tempo"] COL -->|"Metrics"| PROM["Prometheus/VictoriaMetrics"] COL -->|"Log"| LOKI["Loki/ES"] style API fill:#dbeafe,stroke:#2563eb style COL fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph APP["应用进程"]
+        API["OTel API<br/>（接口,厂商中立）"]
+        SDK["OTel SDK<br/>（实现,采样/批处理/导出）"]
+        INST["Auto Instrumentation<br/>（Java Agent 自动埋点）"]
+        API --> SDK
+        INST --> API
+    end
+    SDK -->|"OTLP（gRPC/HTTP）<br/>批量导出"| COL["OTel Collector<br/>（管道:接收→处理→导出）"]
+    COL -->|"Trace"| JAEGER["Jaeger/Tempo"]
+    COL -->|"Metrics"| PROM["Prometheus/VictoriaMetrics"]
+    COL -->|"Log"| LOKI["Loki/ES"]
+    style API fill:#dbeafe,stroke:#2563eb
+    style COL fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.9-2 OpenTelemetry 架构：API/SDK 采集 + Collector 管道 + 多后端</div>
               </div>
 
@@ -1671,7 +1842,19 @@ spec:
 
               <p><strong>Collector 三级部署拓扑（生产推荐）</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB subgraph NODE["K8s 每个 Node（DaemonSet）"] AGT["Agent Collector<br />（轻量）<br />receivers: otlp/filelog<br />无重处理器<br />exporter: otlp→GW"] end subgraph NS["网关层（独立 Deployment）"] GW["Gateway Collector<br />（重量级）<br />receivers: otlp(来自Agent)<br />processors: tail_sampling/servicegraph/batch/memory_limiter<br />exporters: OTLP→Jaeger / RemoteWrite→Prom / OTLP→Loki"] end APP["应用 SDK / Agent"] -->|OTLP 本地节点| AGT AGT -->|OTLP 跨节点| GW style AGT fill:#dbeafe,stroke:#2563eb style GW fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart TB
+    subgraph NODE["K8s 每个 Node（DaemonSet）"]
+        AGT["Agent Collector<br/>（轻量）<br/>receivers: otlp/filelog<br/>无重处理器<br/>exporter: otlp→GW"]
+    end
+    subgraph NS["网关层（独立 Deployment）"]
+        GW["Gateway Collector<br/>（重量级）<br/>receivers: otlp(来自Agent)<br/>processors: tail_sampling/servicegraph/batch/memory_limiter<br/>exporters: OTLP→Jaeger / RemoteWrite→Prom / OTLP→Loki"]
+    end
+    APP["应用 SDK / Agent"] -->|OTLP 本地节点| AGT
+    AGT -->|OTLP 跨节点| GW
+    style AGT fill:#dbeafe,stroke:#2563eb
+    style GW fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.9-3 Collector 三级拓扑：应用 SDK→Node Agent（DaemonSet）→Gateway（集群级）</div>
               </div>
               <p>拓扑分工：① <strong>Agent 级（DaemonSet 每节点一个）</strong>——只做接收 + 轻量 batch，无 tail_sampling 等重处理器，避免占用业务节点资源，本地就近上报减少跨节点流量；② <strong>Gateway 级（独立 Deployment）</strong>——做重处理（tail_sampling/servicegraph/跨集群路由），集中式多副本弹性伸缩，与业务节点资源隔离。</p>
@@ -1862,7 +2045,15 @@ processors:
               <p><strong>阶段 5：持续混沌与自适应韧性（趋势）</strong>。① <strong>持续混沌</strong>——实验自动化纳入 CI/CD，每次发布自动跑混沌实验验证韧性回归；② <strong>自适应弹性</strong>——根据混沌实验结果自动调整容量/限流/熔断阈值；③ <strong>多维度故障组合</strong>——从单故障注入到多故障组合（网络分区+磁盘满+实例宕），逼近真实灾难场景。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR T["传统测试<br />正常+已知异常路径"] --> G["故障演练 GameDay<br />手动制造故障<br />不可重复（2010）"] G --> CM["Chaos Monkey<br />随机 kill 生产实例<br />开创混沌工程（2011）"] CM --> PL["混沌平台化<br />ChaosBlade/Litmus/ChaosMesh<br />可控可编排（2018）"] PL --> CC["持续混沌<br />纳入 CI/CD<br />自适应韧性（趋势）"] style CM fill:#dbeafe,stroke:#2563eb style PL fill:#ede9fe,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    T["传统测试<br/>正常+已知异常路径"] --> G["故障演练 GameDay<br/>手动制造故障<br/>不可重复（2010）"]
+    G --> CM["Chaos Monkey<br/>随机 kill 生产实例<br/>开创混沌工程（2011）"]
+    CM --> PL["混沌平台化<br/>ChaosBlade/Litmus/ChaosMesh<br/>可控可编排（2018）"]
+    PL --> CC["持续混沌<br/>纳入 CI/CD<br/>自适应韧性（趋势）"]
+    style CM fill:#dbeafe,stroke:#2563eb
+    style PL fill:#ede9fe,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 11.10-1 混沌工程演进：测试 → GameDay → Chaos Monkey → 平台化 → 持续混沌</div>
               </div>
             </div>
@@ -1921,7 +2112,19 @@ processors:
               <p><strong>爆炸半径(Blast Radius) 控制</strong>：故障实验必须可控，避免把生产搞挂。① <strong>小范围开始</strong>——先单个实例/单个可用区；② <strong>自动中止</strong>——稳态指标超阈值自动停止实验；③ <strong>灰度扩大</strong>——验证小范围无影响再扩大范围；④ <strong>回滚预案</strong>——实验前准备快速回滚；⑤ <strong>非高峰期</strong>——选低峰时段实验降低影响。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TB H["1、定义稳态指标<br />（QPS/RT/错误率）"] --> E["2、设计实验假设<br />（故障下稳态保持）"] E --> P["3、准备实验<br />（选故障类型,设爆炸半径,配自动中止）"] P --> I["4、注入故障<br />（kill/网络/磁盘/JVM）"] I --> M["5、监控稳态指标"] M -->|"稳态保持"| S["6a. 实验通过<br />韧性达标,扩大范围"] M -->|"稳态破坏"| F["6b. 实验失败<br />发现脆弱点"] F --> R["7、修复脆弱点<br />（加熔断/冗余/降级）"] R --> H style S fill:#d1fae5,stroke:#059669 style F fill:#fee2e2,stroke:#dc2626</div>
+                <div class="mermaid">
+flowchart TB
+    H["1、定义稳态指标<br/>（QPS/RT/错误率）"] --> E["2、设计实验假设<br/>（故障下稳态保持）"]
+    E --> P["3、准备实验<br/>（选故障类型,设爆炸半径,配自动中止）"]
+    P --> I["4、注入故障<br/>（kill/网络/磁盘/JVM）"]
+    I --> M["5、监控稳态指标"]
+    M -->|"稳态保持"| S["6a. 实验通过<br/>韧性达标,扩大范围"]
+    M -->|"稳态破坏"| F["6b. 实验失败<br/>发现脆弱点"]
+    F --> R["7、修复脆弱点<br/>（加熔断/冗余/降级）"]
+    R --> H
+    style S fill:#d1fae5,stroke:#059669
+    style F fill:#fee2e2,stroke:#dc2626
+                </div>
                 <div class="chart-caption">图 11.10-2 混沌工程实验流程：稳态假设驱动 + 爆炸半径控制 + 闭环修复</div>
               </div>
             </div>
@@ -2489,7 +2692,14 @@ mcp_tools_quota:
               <p><strong>ES 7.x/8.x（2019—至今）</strong>：引入<strong>向量检索（dense_vector + KNN）</strong>支撑语义搜索、SQL 查询接口、安全默认开启（TLS + 认证）、新类型组件提高聚合性能，向"搜索 + 分析 + 向量数据库"综合体演进。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR L["Lucene 1.x<br />单机全文检索库<br />（1999）"] --> S["Solr<br />企业级搜索<br />HTTP+主从（2004）"] S --> E["Elasticsearch<br />原生分布式<br />REST+JSON（2010）"] E --> V["ES 7.x/8.x<br />向量检索 KNN<br />SQL/语义搜索（2019+）"] style E fill:#dbeafe,stroke:#2563eb style V fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    L["Lucene 1.x<br/>单机全文检索库<br/>（1999）"] --> S["Solr<br/>企业级搜索<br/>HTTP+主从（2004）"]
+    S --> E["Elasticsearch<br/>原生分布式<br/>REST+JSON（2010）"]
+    E --> V["ES 7.x/8.x<br/>向量检索 KNN<br/>SQL/语义搜索（2019+）"]
+    style E fill:#dbeafe,stroke:#2563eb
+    style V fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 11.14-1 搜索引擎演进：Lucene → Solr → Elasticsearch → 向量化</div>
               </div>
 
@@ -2677,7 +2887,14 @@ mcp_tools_quota:
               <p><strong>gRPC-Web / Connect（2018+）</strong>：浏览器原生不支持 HTTP/2 Trailer，gRPC-Web 通过代理转译让前端可调 gRPC；Buf Connect 重新设计协议，更贴合 HTTP 语义，降低网关复杂度。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR C["CORBA/SOAP<br />重量级 RPC<br />强耦合（2000）"] --> R["REST/JSON<br />轻量但低效<br />HTTP/1.1（2010）"] R --> G["gRPC<br />HTTP/2+Protobuf<br />多路复用（2015）"] G --> W["gRPC-Web/Connect<br />浏览器支持<br />网关友好（2018+）"] style G fill:#dbeafe,stroke:#2563eb style W fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    C["CORBA/SOAP<br/>重量级 RPC<br/>强耦合（2000）"] --> R["REST/JSON<br/>轻量但低效<br/>HTTP/1.1（2010）"]
+    R --> G["gRPC<br/>HTTP/2+Protobuf<br/>多路复用（2015）"]
+    G --> W["gRPC-Web/Connect<br/>浏览器支持<br/>网关友好（2018+）"]
+    style G fill:#dbeafe,stroke:#2563eb
+    style W fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 11.15-1 RPC 演进：CORBA/SOAP → REST/JSON → gRPC → gRPC-Web</div>
               </div>
 
@@ -2874,7 +3091,15 @@ mcp_tools_quota:
               <p><strong>Nacos 2.0（2021）</strong>：通信模型从 HTTP 短连接长轮询升级为 gRPC 长连接；官方基准测试称连接管理与推送延迟较 1.x 有数量级（约 10x）提升，实际以官方与自身压测为准。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR P["properties<br />硬编码/随包发布"] --> D["DB 配置表<br />定时轮询拉取"] D --> Z["ZooKeeper<br />Watch 通知<br />强一致（2010s）"] Z --> A["Apollo<br />长轮询+灰度+回滚<br />（2016）"] Z --> N["Nacos<br />长轮询+UDP<br />AP/CP（2018）"] style A fill:#dbeafe,stroke:#2563eb style N fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    P["properties<br/>硬编码/随包发布"] --> D["DB 配置表<br/>定时轮询拉取"]
+    D --> Z["ZooKeeper<br/>Watch 通知<br/>强一致（2010s）"]
+    Z --> A["Apollo<br/>长轮询+灰度+回滚<br/>（2016）"]
+    Z --> N["Nacos<br/>长轮询+UDP<br/>AP/CP（2018）"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style N fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 11.16-1 配置中心演进：硬编码 → DB → ZK → Apollo/Nacos</div>
               </div>
 

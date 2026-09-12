@@ -206,7 +206,23 @@
               </table>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD subgraph BTree["B树：数据散布各层"] direction TB B1["根: 键+数据"] --> B2["内部: 键+数据"] B2 --> B3["叶子: 键+数据"] end subgraph BPlusTree["B+树：数据全在叶子"] direction TB P1["根: 仅键+指针<br />扇出大"] --> P2["内部: 仅键+指针"] P2 --> P3["叶子1: 键+数据"] -.双向链表.- P4["叶子2: 键+数据"] end style B1 fill:#fee2e2,stroke:#dc2626 style P1 fill:#dbeafe,stroke:#2563eb style P3 fill:#dcfce7,stroke:#059669 style P4 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TD
+    subgraph BTree["B树：数据散布各层"]
+        direction TB
+        B1["根: 键+数据"] --> B2["内部: 键+数据"]
+        B2 --> B3["叶子: 键+数据"]
+    end
+    subgraph BPlusTree["B+树：数据全在叶子"]
+        direction TB
+        P1["根: 仅键+指针<br/>扇出大"] --> P2["内部: 仅键+指针"]
+        P2 --> P3["叶子1: 键+数据"] -.双向链表.- P4["叶子2: 键+数据"]
+    end
+    style B1 fill:#fee2e2,stroke:#dc2626
+    style P1 fill:#dbeafe,stroke:#2563eb
+    style P3 fill:#dcfce7,stroke:#059669
+    style P4 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 7.1-1 B树 vs B+树：扇出与范围查询的根本差异</div>
               </div>
 
@@ -294,7 +310,19 @@
               <p>每行数据有两个隐藏字段：<code class="inline-code">DB_TRX_ID</code>（6 字节，最后修改该行的事务 ID）、<code class="inline-code">DB_ROLL_PTR</code>（7 字节，回滚指针，指向 undo log 中该行的上一版本）。每次 UPDATE 不是原地改，而是<strong>把旧版本写入 undo log，新版本写回数据页，roll_ptr 串联成版本链</strong>。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph Current["数据页当前版本"] R1["行数据<br />trx_id=300<br />roll_ptr→"] end subgraph Undo["Undo Log 版本链"] U1["版本v2<br />trx_id=200<br />roll_ptr→"] --> U2["版本v1<br />trx_id=100<br />roll_ptr=NULL"] end R1 -.指向.-> U1 style R1 fill:#dbeafe,stroke:#2563eb style U1 fill:#fef3c7,stroke:#d97706 style U2 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph Current["数据页当前版本"]
+        R1["行数据<br/>trx_id=300<br/>roll_ptr→"]
+    end
+    subgraph Undo["Undo Log 版本链"]
+        U1["版本v2<br/>trx_id=200<br/>roll_ptr→"] --> U2["版本v1<br/>trx_id=100<br/>roll_ptr=NULL"]
+    end
+    R1 -.指向.-> U1
+    style R1 fill:#dbeafe,stroke:#2563eb
+    style U1 fill:#fef3c7,stroke:#d97706
+    style U2 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 7.2-1 undo log 版本链：roll_ptr 串联历史版本</div>
               </div>
 
@@ -456,7 +484,16 @@
               </ul>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD A["事务A: SELECT * FROM t<br />WHERE id=10 FOR UPDATE<br />id 唯一索引，命中"] --> A1["加 Record Lock on id=10<br />仅锁该记录"] B["事务A: WHERE id=15 未命中<br />id 唯一索引"] --> B1["加 Gap Lock （10,20）<br />阻止插入 11~19"] C["事务A: WHERE id>=10 AND id&lt;20<br />范围扫描"] --> C1["Next-Key Lock （10,20]<br />+ Gap Lock （20,30） 前闭后开"] D["事务A: WHERE name='x'<br />name 非唯一索引命中"] --> D1["Next-Key Lock 不退化<br />锁所有 name='x' 记录及间隙"] style A1 fill:#dcfce7,stroke:#059669 style B1 fill:#fef3c7,stroke:#d97706 style C1 fill:#fee2e2,stroke:#dc2626</div>
+                <div class="mermaid">
+flowchart TD
+    A["事务A: SELECT * FROM t<br/>WHERE id=10 FOR UPDATE<br/>id 唯一索引，命中"] --> A1["加 Record Lock on id=10<br/>仅锁该记录"]
+    B["事务A: WHERE id=15 未命中<br/>id 唯一索引"] --> B1["加 Gap Lock （10,20）<br/>阻止插入 11~19"]
+    C["事务A: WHERE id>=10 AND id&lt;20<br/>范围扫描"] --> C1["Next-Key Lock （10,20]<br/>+ Gap Lock （20,30） 前闭后开"]
+    D["事务A: WHERE name='x'<br/>name 非唯一索引命中"] --> D1["Next-Key Lock 不退化<br/>锁所有 name='x' 记录及间隙"]
+    style A1 fill:#dcfce7,stroke:#059669
+    style B1 fill:#fef3c7,stroke:#d97706
+    style C1 fill:#fee2e2,stroke:#dc2626
+                </div>
                 <div class="chart-caption">图 7.3-1 不同查询条件下的加锁规则（RR 级别）</div>
               </div>
 
@@ -593,7 +630,19 @@
 
               <p><strong>两阶段提交（2PC）保证 Redo 与 Binlog 一致</strong>。这是协同的核心：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant T as 事务 participant R as Redo Log participant B as Binlog participant T1 as 两阶段协调 T->>R: 1. Prepare 阶段<br />写 redo log (PREPARE 状态) + fsync R-->>T1: redo 已落盘 T1->>B: 2. 写 binlog + fsync B-->>T1: binlog 已落盘 T1->>R: 3. Commit 阶段<br />写 redo log (COMMIT 状态) Note over T1: 崩溃恢复判断：<br />有 COMMIT → 事务完成<br />有 PREPARE 无 COMMIT →<br />查 binlog 是否完整<br />完整则提交，否则回滚</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant T as 事务
+    participant R as Redo Log
+    participant B as Binlog
+    participant T1 as 两阶段协调
+    T->>R: 1. Prepare 阶段<br/>写 redo log (PREPARE 状态) + fsync
+    R-->>T1: redo 已落盘
+    T1->>B: 2. 写 binlog + fsync
+    B-->>T1: binlog 已落盘
+    T1->>R: 3. Commit 阶段<br/>写 redo log (COMMIT 状态)
+    Note over T1: 崩溃恢复判断：<br/>有 COMMIT → 事务完成<br/>有 PREPARE 无 COMMIT →<br/>查 binlog 是否完整<br/>完整则提交，否则回滚
+                </div>
                 <div class="chart-caption">图 7.4-1 两阶段提交时序：Redo Prepare → Binlog → Redo Commit</div>
               </div>
 
@@ -681,7 +730,16 @@
             <div class="qa-layer-body">
               <p><strong>排查五步法</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR A["1、发现<br />慢日志/APM/告警"] --> B["2、EXPLAIN<br />看执行计划"] B --> C["3、定位根因<br />索引失效? 扫描行数多?"] C --> D["4、优化<br />加索引/改写SQL/分页"] D --> E["5、验证<br />EXPLAIN ANALYZE 复测"] style A fill:#dbeafe,stroke:#2563eb style C fill:#fef3c7,stroke:#d97706 style D fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    A["1、发现<br/>慢日志/APM/告警"] --> B["2、EXPLAIN<br/>看执行计划"]
+    B --> C["3、定位根因<br/>索引失效? 扫描行数多?"]
+    C --> D["4、优化<br/>加索引/改写SQL/分页"]
+    D --> E["5、验证<br/>EXPLAIN ANALYZE 复测"]
+    style A fill:#dbeafe,stroke:#2563eb
+    style C fill:#fef3c7,stroke:#d97706
+    style D fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 7.5-1 慢 SQL 排查五步法</div>
               </div>
 
@@ -1027,7 +1085,20 @@
               </table>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD APP["业务应用"] --> MW["分片中间件<br />ShardingSphere"] MW --> R1["分片0: DB0.table0"] MW --> R2["分片1: DB1.table0"] MW --> R3["分片2: DB2.table0"] MW --> R4["分片3: DB3.table0"] R1 -.复制.-> S1["从库0"] R2 -.复制.-> S2["从库1"] R3 -.复制.-> S3["从库2"] R4 -.复制.-> S4["从库3"] style MW fill:#dbeafe,stroke:#2563eb style R1 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TD
+    APP["业务应用"] --> MW["分片中间件<br/>ShardingSphere"]
+    MW --> R1["分片0: DB0.table0"]
+    MW --> R2["分片1: DB1.table0"]
+    MW --> R3["分片2: DB2.table0"]
+    MW --> R4["分片3: DB3.table0"]
+    R1 -.复制.-> S1["从库0"]
+    R2 -.复制.-> S2["从库1"]
+    R3 -.复制.-> S3["从库2"]
+    R4 -.复制.-> S4["从库3"]
+    style MW fill:#dbeafe,stroke:#2563eb
+    style R1 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 7.7-1 分库分表架构：业务 → 分片中间件 → 多分片主从</div>
               </div>
 
@@ -1154,7 +1225,23 @@
             <div class="qa-layer-body">
               <p><strong>复制三线程模型</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant M as 主库 Master participant BD as Binlog Dump Thread participant N as 从库 participant IO as IO Thread (从库) participant RL as Relay Log (从库) participant SQL as SQL Thread (从库) participant D as 从库数据 M->>M: 事务提交，写 Binlog BD->>M: 读取新 Binlog 事件 BD->>IO: 发送 Binlog 事件 IO->>RL: 写入 Relay Log SQL->>RL: 读取 Relay Log SQL->>D: 重放 SQL/行变更 Note over IO,SQL: 8.0: SQL Thread 退化为<br />协调器，worker 线程并行应用</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant M as 主库 Master
+    participant BD as Binlog Dump Thread
+    participant N as 从库
+    participant IO as IO Thread (从库)
+    participant RL as Relay Log (从库)
+    participant SQL as SQL Thread (从库)
+    participant D as 从库数据
+    M->>M: 事务提交，写 Binlog
+    BD->>M: 读取新 Binlog 事件
+    BD->>IO: 发送 Binlog 事件
+    IO->>RL: 写入 Relay Log
+    SQL->>RL: 读取 Relay Log
+    SQL->>D: 重放 SQL/行变更
+    Note over IO,SQL: 8.0: SQL Thread 退化为<br/>协调器，worker 线程并行应用
+                </div>
                 <div class="chart-caption">图 7.8-1 主从复制三线程模型：Dump → IO → Relay Log → SQL</div>
               </div>
 
@@ -1604,7 +1691,21 @@ public class ParallelReplicationMonitorService {
               <p><strong>MGR 核心原理</strong>：3-9 个节点组成复制组，事务通过 Paxos 变种（XCom）在组内<strong>多数派认证</strong>后才提交。写流程：事务在发起节点本地执行 → 提交时广播到组 → 多数节点认证（冲突检测：不同节点并发改同一行则后到者回滚）→ 多数认证通过则提交并复制到所有节点。<strong>多数节点存活即可服务</strong>，自动选主（单主模式），脑裂时少数派分区自动只读。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD subgraph MGR["MGR 复制组（3节点，多数派=2）"] P1["主节点 Primary<br />读写"] -->|Paxos 复制| S1["从节点 Secondary<br />只读"] P1 -->|Paxos 复制| S2["从节点 Secondary<br />只读"] S1 -.认证.-> P1 S2 -.认证.-> P1 end APP["应用"] --> R["MySQL Router<br />读写分离路由"] R -->|写| P1 R -->|读| S1 R -->|读| S2 style P1 fill:#dbeafe,stroke:#2563eb style R fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TD
+    subgraph MGR["MGR 复制组（3节点，多数派=2）"]
+        P1["主节点 Primary<br/>读写"] -->|Paxos 复制| S1["从节点 Secondary<br/>只读"]
+        P1 -->|Paxos 复制| S2["从节点 Secondary<br/>只读"]
+        S1 -.认证.-> P1
+        S2 -.认证.-> P1
+    end
+    APP["应用"] --> R["MySQL Router<br/>读写分离路由"]
+    R -->|写| P1
+    R -->|读| S1
+    R -->|读| S2
+    style P1 fill:#dbeafe,stroke:#2563eb
+    style R fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 7.9-1 MGR + MySQL Router：多数派强一致 + 自动路由</div>
               </div>
 
@@ -2038,7 +2139,21 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
               <p><strong>影子表三件套</strong>：pt-osc/gh-ost 本质都是"创建影子表 → 全量拷贝 + 增量同步 → 原子 rename"。差异在<strong>增量同步机制</strong>。</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR subgraph PTOSC["pt-osc：触发器同步"] A1["原表 _t_"] -- "INSERT/UPDATE/DELETE<br />触发器同步" --> B1["影子表 _t_new_"] A1 -- "分块 chunk 拷贝" --> B1 end subgraph GHOST["gh-ost：binlog 回放"] A2["原表 _t_"] -- "写产生 binlog" --> C2["binlog"] C2 -- "gh-ost 解析回放" --> B2["影子表 _t_ghost_"] A2 -- "分块 chunk 拷贝" --> B2 end style A1 fill:#fee2e2,stroke:#dc2626 style A2 fill:#dbeafe,stroke:#2563eb style C2 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart LR
+    subgraph PTOSC["pt-osc：触发器同步"]
+        A1["原表 _t_"] -- "INSERT/UPDATE/DELETE<br/>触发器同步" --> B1["影子表 _t_new_"]
+        A1 -- "分块 chunk 拷贝" --> B1
+    end
+    subgraph GHOST["gh-ost：binlog 回放"]
+        A2["原表 _t_"] -- "写产生 binlog" --> C2["binlog"]
+        C2 -- "gh-ost 解析回放" --> B2["影子表 _t_ghost_"]
+        A2 -- "分块 chunk 拷贝" --> B2
+    end
+    style A1 fill:#fee2e2,stroke:#dc2626
+    style A2 fill:#dbeafe,stroke:#2563eb
+    style C2 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 7.12-1 pt-osc vs gh-ost：增量同步机制的根本差异</div>
               </div>
 

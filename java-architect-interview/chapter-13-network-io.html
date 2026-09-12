@@ -143,7 +143,14 @@
               <p><strong>网络协议分层演进</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR O["OSI 七层模型<br />（1984, ISO）<br />理论完备"] --> T["TCP/IP 四层模型<br />（1983, DARPA）<br />工程落地"] T --> Q["QUIC/HTTP3<br />（2022, RFC 9000）<br />用户空间传输"] style O fill:#dbeafe,stroke:#2563eb style T fill:#dcfce7,stroke:#059669 style Q fill:#f3e8ff,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    O["OSI 七层模型<br/>（1984, ISO）<br/>理论完备"] --> T["TCP/IP 四层模型<br/>（1983, DARPA）<br/>工程落地"]
+    T --> Q["QUIC/HTTP3<br/>（2022, RFC 9000）<br/>用户空间传输"]
+    style O fill:#dbeafe,stroke:#2563eb
+    style T fill:#dcfce7,stroke:#059669
+    style Q fill:#f3e8ff,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 13.1-1 网络协议模型演进：OSI（理论）→ TCP/IP（工程）→ QUIC（应用层接管传输）</div>
               </div>
 
@@ -160,7 +167,34 @@
               <p><strong>OSI 七层与 TCP/IP 四层映射关系</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD subgraph OSI ["OSI 七层"] O7["7 应用层 HTTP/FTP/DNS/SMTP"] O6["6 表示层 TLS/SSL/ASCII/JSON"] O5["5 会话层 NetBIOS/RPC"] O4["4 传输层 TCP/UDP"] O3["3 网络层 IP/ICMP/ARP/OSPF"] O2["2 数据链路层 Ethernet/WiFi/PPP"] O1["1 物理层 光纤/双绞线/无线电"] end subgraph TCP ["TCP/IP 四层"] T4["应用层 HTTP/FTP/DNS/RPC/TLS"] T3["传输层 TCP/UDP"] T2["网际层 IP/ICMP/ARP/IGMP"] T1["网络接口层 Ethernet/WiFi/驱动"] end O7 --> T4 O6 --> T4 O5 --> T4 O4 --> T3 O3 --> T2 O2 --> T1 O1 --> T1 style T4 fill:#dbeafe,stroke:#2563eb style T3 fill:#dcfce7,stroke:#059669 style T2 fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TD
+    subgraph OSI ["OSI 七层"]
+        O7["7 应用层 HTTP/FTP/DNS/SMTP"]
+        O6["6 表示层 TLS/SSL/ASCII/JSON"]
+        O5["5 会话层 NetBIOS/RPC"]
+        O4["4 传输层 TCP/UDP"]
+        O3["3 网络层 IP/ICMP/ARP/OSPF"]
+        O2["2 数据链路层 Ethernet/WiFi/PPP"]
+        O1["1 物理层 光纤/双绞线/无线电"]
+    end
+    subgraph TCP ["TCP/IP 四层"]
+        T4["应用层 HTTP/FTP/DNS/RPC/TLS"]
+        T3["传输层 TCP/UDP"]
+        T2["网际层 IP/ICMP/ARP/IGMP"]
+        T1["网络接口层 Ethernet/WiFi/驱动"]
+    end
+    O7 --> T4
+    O6 --> T4
+    O5 --> T4
+    O4 --> T3
+    O3 --> T2
+    O2 --> T1
+    O1 --> T1
+    style T4 fill:#dbeafe,stroke:#2563eb
+    style T3 fill:#dcfce7,stroke:#059669
+    style T2 fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 13.1-2 OSI 七层与 TCP/IP 四层映射关系</div>
               </div>
 
@@ -310,7 +344,15 @@ $ tcpdump -i eth0 -nn host 192.168.1.1</code></pre>
               <p><strong>TCP 拥塞控制演进</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR T["Tahoe （1988）<br />慢启动+拥塞避免<br />+快速重传"] --> R["Reno （1990）<br />+快速恢复"] R --> N["NewReno （1995）<br />部分 ACK 优化"] N --> C["CUBIC （2006）<br />三次方增长<br />Linux 默认"] C --> B["BBR （2016）<br />基于瓶颈带宽<br />+RTT 探测"] style C fill:#dbeafe,stroke:#2563eb style B fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    T["Tahoe （1988）<br/>慢启动+拥塞避免<br/>+快速重传"] --> R["Reno （1990）<br/>+快速恢复"]
+    R --> N["NewReno （1995）<br/>部分 ACK 优化"]
+    N --> C["CUBIC （2006）<br/>三次方增长<br/>Linux 默认"]
+    C --> B["BBR （2016）<br/>基于瓶颈带宽<br/>+RTT 探测"]
+    style C fill:#dbeafe,stroke:#2563eb
+    style B fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.2-1 TCP 拥塞控制算法演进：Tahoe → Reno → NewReno → CUBIC → BBR</div>
               </div>
 
@@ -329,7 +371,15 @@ $ tcpdump -i eth0 -nn host 192.168.1.1</code></pre>
               <p><strong>三次握手的本质：同步初始序号 + 双向确认</strong></p>
               <p>TCP 是全双工可靠传输，双方都需要确认：① 自己能发；② 自己能收；③ 对方能收发。两次握手只能确认单向，四次可以但冗余。</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant C as Client participant S as Server C->>S: SYN=1, seq=x S->>C: SYN=1, ACK=1, seq=y, ack=x+1 C->>S: ACK=1, seq=x+1, ack=y+1 Note over C,S: ESTABLISHED (双向确认完成)</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: SYN=1, seq=x
+    S->>C: SYN=1, ACK=1, seq=y, ack=x+1
+    C->>S: ACK=1, seq=x+1, ack=y+1
+    Note over C,S: ESTABLISHED (双向确认完成)
+                </div>
                 <div class="chart-caption">图 13.2-2 TCP 三次握手时序</div>
               </div>
               <ul>
@@ -341,7 +391,17 @@ $ tcpdump -i eth0 -nn host 192.168.1.1</code></pre>
 
               <p><strong>四次挥手的本质：全双工连接需分别关闭</strong></p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant C as Client participant S as Server C->>S: FIN=1, seq=u S->>C: ACK=1, ack=u+1 Note over S: CLOSE_WAIT (被动方继续发数据) S->>C: FIN=1, seq=w C->>S: ACK=1, ack=w+1 Note over C: TIME_WAIT (2MSL)</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: FIN=1, seq=u
+    S->>C: ACK=1, ack=u+1
+    Note over S: CLOSE_WAIT (被动方继续发数据)
+    S->>C: FIN=1, seq=w
+    C->>S: ACK=1, ack=w+1
+    Note over C: TIME_WAIT (2MSL)
+                </div>
                 <div class="chart-caption">图 13.2-3 TCP 四次挥手时序</div>
               </div>
               <ul>
@@ -483,7 +543,14 @@ $ sysctl net.ipv4.tcp_fin_timeout=30</code></pre>
               <p><strong>HTTP 协议演进时间线</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR H1["HTTP/1.1 （1997）<br />持久连接+管道<br />队头阻塞严重"] --> H2["HTTP/2 （2015）<br />二进制分帧+多路复用<br />TCP 层队头阻塞"] H2 --> H3["HTTP/3 （2022）<br />QUIC+UDP<br />无队头阻塞+0-RTT"] style H1 fill:#dbeafe,stroke:#2563eb style H2 fill:#dcfce7,stroke:#059669 style H3 fill:#f3e8ff,stroke:#7c3aed</div>
+                <div class="mermaid">
+flowchart LR
+    H1["HTTP/1.1 （1997）<br/>持久连接+管道<br/>队头阻塞严重"] --> H2["HTTP/2 （2015）<br/>二进制分帧+多路复用<br/>TCP 层队头阻塞"]
+    H2 --> H3["HTTP/3 （2022）<br/>QUIC+UDP<br/>无队头阻塞+0-RTT"]
+    style H1 fill:#dbeafe,stroke:#2563eb
+    style H2 fill:#dcfce7,stroke:#059669
+    style H3 fill:#f3e8ff,stroke:#7c3aed
+                </div>
                 <div class="chart-caption">图 13.3-1 HTTP 协议演进：HTTP/1.1 → HTTP/2 → HTTP/3</div>
               </div>
 
@@ -647,7 +714,14 @@ ssl_early_data on;  <span class="com"># 0-RTT</span></code></pre>
               <p><strong>TLS 协议演进</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR T10["TLS 1.0 （1999）<br />SSL 3.1<br />已废弃"] --> T11["TLS 1.1 （2006）<br />CBC 防护<br />已废弃"] T11 --> T12["TLS 1.2 （2008）<br />AES-GCM/SHA-256<br />2-RTT 握手"] T12 --> T13["TLS 1.3 （2018）<br />简化握手<br />1-RTT/0-RTT"] style T12 fill:#dbeafe,stroke:#2563eb style T13 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    T10["TLS 1.0 （1999）<br/>SSL 3.1<br/>已废弃"] --> T11["TLS 1.1 （2006）<br/>CBC 防护<br/>已废弃"]
+    T11 --> T12["TLS 1.2 （2008）<br/>AES-GCM/SHA-256<br/>2-RTT 握手"]
+    T12 --> T13["TLS 1.3 （2018）<br/>简化握手<br/>1-RTT/0-RTT"]
+    style T12 fill:#dbeafe,stroke:#2563eb
+    style T13 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.4-1 TLS 协议演进：1.0→1.1→1.2→1.3</div>
               </div>
 
@@ -663,7 +737,16 @@ ssl_early_data on;  <span class="com"># 0-RTT</span></code></pre>
             <div class="qa-layer-body">
               <p><strong>TLS 1.2 完整握手（2-RTT）</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant C as Client participant S as Server C->>S: ClientHello (支持的密码套件+随机数) S->>C: ServerHello + Certificate + ServerKeyExchange + ServerHelloDone C->>S: ClientKeyExchange + ChangeCipherSpec + Finished S->>C: ChangeCipherSpec + Finished Note over C,S: 应用数据 (2-RTT 后)</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: ClientHello (支持的密码套件+随机数)
+    S->>C: ServerHello + Certificate + ServerKeyExchange + ServerHelloDone
+    C->>S: ClientKeyExchange + ChangeCipherSpec + Finished
+    S->>C: ChangeCipherSpec + Finished
+    Note over C,S: 应用数据 (2-RTT 后)
+                </div>
                 <div class="chart-caption">图 13.4-2 TLS 1.2 完整握手（2-RTT）</div>
               </div>
               <ul>
@@ -674,7 +757,15 @@ ssl_early_data on;  <span class="com"># 0-RTT</span></code></pre>
 
               <p><strong>TLS 1.3 握手（1-RTT）</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant C as Client participant S as Server C->>S: ClientHello + key_share + {extensions} S->>C: ServerHello + EncryptedExtensions + Certificate + Finished C->>S: Finished + 应用数据 Note over C,S: 应用数据 (1-RTT 后)</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: ClientHello + key_share + {extensions}
+    S->>C: ServerHello + EncryptedExtensions + Certificate + Finished
+    C->>S: Finished + 应用数据
+    Note over C,S: 应用数据 (1-RTT 后)
+                </div>
                 <div class="chart-caption">图 13.4-3 TLS 1.3 握手（1-RTT）</div>
               </div>
               <p>TLS 1.3 把 ServerHello 之后的大部分消息加密（EncryptedExtensions），并在 ClientHello 中直接携带 <strong>key_share</strong>（ECDHE 公钥猜测），Server 回复时直接用匹配的公钥完成密钥协商，省掉一轮往返。<strong>重连时用 PSK（Pre-Shared Key）可实现 0-RTT</strong>——Client 在第一个包就携带应用数据（基于上次会话的 PSK 加密）。</p>
@@ -771,7 +862,14 @@ ssl_early_data on;  <span class="com"># 0-RTT</span></code></pre>
               <p><strong>Java IO 模型演进</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR B["BIO （JDK 1.0）<br />阻塞+一连接一线程<br />简单但扩展差"] --> N["NIO （JDK 1.4）<br />非阻塞+Selector<br />Reactor 模式"] N --> A["AIO/NIO.2 （JDK 7）<br />异步+回调<br />Proactor 模式"] A --> V["Virtual Threads （JDK 21）<br />阻塞代码+轻量线程<br />回归同步编程模型"] style N fill:#dbeafe,stroke:#2563eb style V fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    B["BIO （JDK 1.0）<br/>阻塞+一连接一线程<br/>简单但扩展差"] --> N["NIO （JDK 1.4）<br/>非阻塞+Selector<br/>Reactor 模式"]
+    N --> A["AIO/NIO.2 （JDK 7）<br/>异步+回调<br/>Proactor 模式"]
+    A --> V["Virtual Threads （JDK 21）<br/>阻塞代码+轻量线程<br/>回归同步编程模型"]
+    style N fill:#dbeafe,stroke:#2563eb
+    style V fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.5-1 Java IO 模型演进：BIO → NIO → AIO → Virtual Threads</div>
               </div>
 
@@ -800,7 +898,19 @@ ssl_early_data on;  <span class="com"># 0-RTT</span></code></pre>
 
               <p><strong>NIO 三大组件协作</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD S["Selector<br />选择器<br />监听就绪事件"] C["Channel<br />通道<br />数据来源/去向"] B["Buffer<br />缓冲区<br />数据读写容器"] S -->|"select（） 返回<br />SelectionKey"| K["SelectionKey<br />就绪事件+Channel"] K -->|"attachment（）"| H["Handler<br />业务处理"] C <-->|"read/write"| B H -->|"解码Buffer<br />处理业务<br />编码Buffer"| B style S fill:#dbeafe,stroke:#2563eb style C fill:#dcfce7,stroke:#059669 style B fill:#fef3c7,stroke:#d97706</div>
+                <div class="mermaid">
+flowchart TD
+    S["Selector<br/>选择器<br/>监听就绪事件"]
+    C["Channel<br/>通道<br/>数据来源/去向"]
+    B["Buffer<br/>缓冲区<br/>数据读写容器"]
+    S -->|"select（） 返回<br/>SelectionKey"| K["SelectionKey<br/>就绪事件+Channel"]
+    K -->|"attachment（）"| H["Handler<br/>业务处理"]
+    C <-->|"read/write"| B
+    H -->|"解码Buffer<br/>处理业务<br/>编码Buffer"| B
+    style S fill:#dbeafe,stroke:#2563eb
+    style C fill:#dcfce7,stroke:#059669
+    style B fill:#fef3c7,stroke:#d97706
+                </div>
                 <div class="chart-caption">图 13.5-2 NIO 三大核心组件：Selector、Channel、Buffer 协作关系</div>
               </div>
               <ul>
@@ -964,7 +1074,21 @@ ssl_early_data on;  <span class="com"># 0-RTT</span></code></pre>
 
               <p><strong>EventLoopGroup 与 EventLoop</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart TD subgraph BG ["Boss EventLoopGroup<br />通常 1 个线程"] B1["EventLoop<br />监听 ACCEPT"] end subgraph WG ["Worker EventLoopGroup<br />默认 CPU*2 线程"] W1["EventLoop-1<br />管理 Channel A,B"] W2["EventLoop-2<br />管理 Channel C,D"] W3["EventLoop-N<br />..."] end B1 -->|"注册新连接"| W1 B1 -->|"注册新连接"| W2 style BG fill:#dbeafe,stroke:#2563eb style WG fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart TD
+    subgraph BG ["Boss EventLoopGroup<br/>通常 1 个线程"]
+        B1["EventLoop<br/>监听 ACCEPT"]
+    end
+    subgraph WG ["Worker EventLoopGroup<br/>默认 CPU*2 线程"]
+        W1["EventLoop-1<br/>管理 Channel A,B"]
+        W2["EventLoop-2<br/>管理 Channel C,D"]
+        W3["EventLoop-N<br/>..."]
+    end
+    B1 -->|"注册新连接"| W1
+    B1 -->|"注册新连接"| W2
+    style BG fill:#dbeafe,stroke:#2563eb
+    style WG fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.6-1 Netty 主从 Reactor 线程模型</div>
               </div>
               <ul>
@@ -1097,8 +1221,16 @@ ch.pipeline()
               <p><strong>PooledByteBufAllocator 的 jemalloc 算法</strong>：</p>
               <div class="mermaid-container">
                 <div class="mermaid">
-                  flowchart TD A["PooledByteBufAllocator"] A -->|"每个线程"| C["PoolThreadCache<br />线程本地缓存"] A -->|"全局"| R["PoolArena<br />
-                  arenas 数组"] R --> D["Tiny Subpages<br />（&lt; 512B）"] R --> E["Small Subpages<br />（512B ~ 8KB）"] R --> F["Normal Runs<br />（8KB ~ 16MB）"] R --> G["Huge<br />（&gt; 16MB）<br />直接分配"] style C fill:#dbeafe,stroke:#2563eb style R fill:#dcfce7,stroke:#059669
+flowchart TD
+    A["PooledByteBufAllocator"]
+    A -->|"每个线程"| C["PoolThreadCache<br/>线程本地缓存"]
+    A -->|"全局"| R["PoolArena<br/> arenas 数组"]
+    R --> D["Tiny Subpages<br/>（&lt; 512B）"]
+    R --> E["Small Subpages<br/>（512B ~ 8KB）"]
+    R --> F["Normal Runs<br/>（8KB ~ 16MB）"]
+    R --> G["Huge<br/>（&gt; 16MB）<br/>直接分配"]
+    style C fill:#dbeafe,stroke:#2563eb
+    style R fill:#dcfce7,stroke:#059669
                 </div>
                 <div class="chart-caption">图 13.7-1 Netty 内存池化架构：PoolThreadCache → PoolArena → 分级分配</div>
               </div>
@@ -1207,7 +1339,15 @@ ch.pipeline()
               <p><strong>数据传输拷贝次数演进</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR T4["传统 read/write<br />4 次拷贝<br />4 次上下文切换"] --> S2["sendfile<br />1×CPU + 2×DMA<br />2 次切换"] S2 --> M2["mmap<br />1×CPU + 1×DMA<br />4 次切换"] S2 --> G0["sendfile + DMA gather<br />0×CPU + 2×DMA<br />2 次切换"] G0 --> Z["理想零拷贝<br />0 次 CPU 拷贝<br />内核直接收发"] style S2 fill:#dbeafe,stroke:#2563eb style G0 fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    T4["传统 read/write<br/>4 次拷贝<br/>4 次上下文切换"] --> S2["sendfile<br/>1×CPU + 2×DMA<br/>2 次切换"]
+    S2 --> M2["mmap<br/>1×CPU + 1×DMA<br/>4 次切换"]
+    S2 --> G0["sendfile + DMA gather<br/>0×CPU + 2×DMA<br/>2 次切换"]
+    G0 --> Z["理想零拷贝<br/>0 次 CPU 拷贝<br/>内核直接收发"]
+    style S2 fill:#dbeafe,stroke:#2563eb
+    style G0 fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.8-1 零拷贝技术演进：关注 CPU 拷贝次数；gather 为 0 CPU + 2 DMA</div>
               </div>
 
@@ -1233,7 +1373,14 @@ ch.pipeline()
 
               <p><strong>sendfile 原理（2 次拷贝）</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR D["磁盘"] -->|"DMA"| K["内核 Page Cache"] K -->|"CPU<br />sendfile"| S["Socket 缓冲区"] S -->|"DMA"| N["网卡"] style K fill:#dbeafe,stroke:#2563eb style S fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    D["磁盘"] -->|"DMA"| K["内核 Page Cache"]
+    K -->|"CPU<br/>sendfile"| S["Socket 缓冲区"]
+    S -->|"DMA"| N["网卡"]
+    style K fill:#dbeafe,stroke:#2563eb
+    style S fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.8-2 sendfile 数据传输路径：内核态直通，不经过用户空间</div>
               </div>
               <p><code class="inline-code">sendfile(int out_fd, int in_fd, off_t* offset, size_t count)</code> 在内核态完成 in_fd（文件）到 out_fd（Socket）的数据搬运。Java 中对应 <code class="inline-code">FileChannel.transferTo(position, count, SocketChannel)</code>。</p>
@@ -1330,7 +1477,14 @@ ch.pipeline()
               <p><strong>实时通信技术演进</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR P["轮询 Polling<br />简单但延迟高<br />浪费带宽"] --> LP["长轮询 Long Polling<br />延迟降低<br />服务端 hold 连接"] LP --> SSE["SSE<br />服务端单向推送<br />HTTP 流"] SSE --> WS["WebSocket<br />全双工长连接<br />低延迟双向"] style LP fill:#dbeafe,stroke:#2563eb style WS fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    P["轮询 Polling<br/>简单但延迟高<br/>浪费带宽"] --> LP["长轮询 Long Polling<br/>延迟降低<br/>服务端 hold 连接"]
+    LP --> SSE["SSE<br/>服务端单向推送<br/>HTTP 流"]
+    SSE --> WS["WebSocket<br/>全双工长连接<br/>低延迟双向"]
+    style LP fill:#dbeafe,stroke:#2563eb
+    style WS fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.9-1 实时通信演进：轮询 → 长轮询 → SSE → WebSocket</div>
               </div>
 
@@ -1526,7 +1680,14 @@ Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=</code></pre>
               <p><strong>DNS 技术演进</strong>：</p>
 
               <div class="mermaid-container">
-                <div class="mermaid">flowchart LR D["传统 DNS<br />（UDP 53）<br />递归+缓存"] --> H["DNSSEC<br />签名防篡改<br />（2005）"] H --> HD["HTTPDNS<br />HTTP 绕过劫持<br />精准调度"] HD --> E["EDNS Client Subnet<br />传递用户子网<br />精准 CDN 调度"] style HD fill:#dbeafe,stroke:#2563eb style E fill:#dcfce7,stroke:#059669</div>
+                <div class="mermaid">
+flowchart LR
+    D["传统 DNS<br/>（UDP 53）<br/>递归+缓存"] --> H["DNSSEC<br/>签名防篡改<br/>（2005）"]
+    H --> HD["HTTPDNS<br/>HTTP 绕过劫持<br/>精准调度"]
+    HD --> E["EDNS Client Subnet<br/>传递用户子网<br/>精准 CDN 调度"]
+    style HD fill:#dbeafe,stroke:#2563eb
+    style E fill:#dcfce7,stroke:#059669
+                </div>
                 <div class="chart-caption">图 13.10-1 DNS 技术演进：传统 DNS → DNSSEC → HTTPDNS → EDNS</div>
               </div>
 
@@ -1543,7 +1704,22 @@ Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=</code></pre>
             <div class="qa-layer-body">
               <p><strong>DNS 查询的完整链路</strong>：</p>
               <div class="mermaid-container">
-                <div class="mermaid">sequenceDiagram participant C as 客户端 participant L as Local DNS<br />递归解析器 participant R as 根 DNS<br />(.) participant T as 顶级域 DNS<br />(.com) participant A as 权威 DNS<br />(example.com) C->>L: 查询 www.example.com L->>R: 迭代查询 .com 谁管？ R->>L: 返回 .com NS L->>T: 迭代查询 example.com 谁管？ T->>L: 返回 example.com NS L->>A: 迭代查询 www 的 A 记录 A->>L: 返回 IP + TTL L->>C: 返回 IP + TTL</div>
+                <div class="mermaid">
+sequenceDiagram
+    participant C as 客户端
+    participant L as Local DNS<br/>递归解析器
+    participant R as 根 DNS<br/>(.)
+    participant T as 顶级域 DNS<br/>(.com)
+    participant A as 权威 DNS<br/>(example.com)
+    C->>L: 查询 www.example.com
+    L->>R: 迭代查询 .com 谁管？
+    R->>L: 返回 .com NS
+    L->>T: 迭代查询 example.com 谁管？
+    T->>L: 返回 example.com NS
+    L->>A: 迭代查询 www 的 A 记录
+    A->>L: 返回 IP + TTL
+    L->>C: 返回 IP + TTL
+                </div>
                 <div class="chart-caption">图 13.10-2 DNS 迭代查询完整链路</div>
               </div>
               <p><strong>递归 vs 迭代</strong>：递归（Recursive）是 Local DNS 帮客户端一层层查到底，客户端只等最终结果；迭代（Iterative）是 Local DNS 向上级逐个问，上级只返回知道的信息（"我不知道，但你去问 X"），Local DNS 自己继续追问。实际中，客户端→Local DNS 是递归，Local DNS→根/顶级/权威 是迭代。</p>

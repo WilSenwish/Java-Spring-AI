@@ -648,7 +648,24 @@
                 <p><strong>应用层</strong>：库存预热到 Redis（key=seckill:stock:{skuId}），下单请求先走 Lua 脚本原子扣减 Redis 库存，扣减成功即发送 MQ 消息（Topic=seckill_order），立即返回"排队中"；Redis 扣减失败直接返回售罄，不进 DB。</p>
                 <p><strong>数据层</strong>：消费者从 MQ 拉取消息，执行 DB 真正扣减（UPDATE stock SET num=num-1 WHERE sku_id=? AND num&gt;0 利用乐观锁兜底防超卖），生成订单；库存分桶（将 1000 件拆为 10 桶各 100 件）打散热点；DB 采用分库分表按 skuId 取模。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[用户请求 120W QPS] --> B[CDN 静态资源] A --> C[Nginx 限流 IP 10QPS] C --> D[API 网关 Sentinel 集群限流] D --> E{风控校验 设备指纹} E -->|恶意| F[滑块验证码/拒绝] E -->|正常| G[应用层 Redis Lua 预扣减] G -->|扣减成功| H[发送 RocketMQ 消息] G -->|库存不足| I[返回售罄] H --> J[返回排队中 异步] H --> K[MQ 消费者集群] K --> L[DB 乐观锁扣减库存] L --> M[创建订单 写库] M --> N[通知用户成功] L -.->|分桶| O[库存 10 桶 x100] M -.->|对账| P[定时任务 Redis vs DB 对账]</div>
+                  <div class="mermaid">
+graph TD
+    A[用户请求 120W QPS] --> B[CDN 静态资源]
+    A --> C[Nginx 限流 IP 10QPS]
+    C --> D[API 网关 Sentinel 集群限流]
+    D --> E{风控校验 设备指纹}
+    E -->|恶意| F[滑块验证码/拒绝]
+    E -->|正常| G[应用层 Redis Lua 预扣减]
+    G -->|扣减成功| H[发送 RocketMQ 消息]
+    G -->|库存不足| I[返回售罄]
+    H --> J[返回排队中 异步]
+    H --> K[MQ 消费者集群]
+    K --> L[DB 乐观锁扣减库存]
+    L --> M[创建订单 写库]
+    M --> N[通知用户成功]
+    L -.->|分桶| O[库存 10 桶 x100]
+    M -.->|对账| P[定时任务 Redis vs DB 对账]
+                  </div>
                   <div class="chart-caption">秒杀系统整体架构</div>
                 </div>
                 <table class="compare-table">
@@ -1547,7 +1564,31 @@
                 <p><strong>方案二：TCC（强一致高性能）</strong>：Try（预留资源，如冻结库存）、Confirm（确认扣减）、Cancel（释放预留）。订单服务作为事务发起者编排，库存/券/积分各自实现三阶段接口；Confirm/Cancel 由 TC 重试保证最终执行，必须幂等。适合资金等需精确控制的场景。</p>
                 <p><strong>方案三：本地消息表（最终一致）</strong>：订单服务本地事务内同时写 order 表与 message 表（同事务保证一致），定时任务扫描 message 表投递 MQ；下游服务消费 MQ 执行业务并幂等。积分等弱一致场景用此方案，解耦且可靠。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">sequenceDiagram participant U as 用户 participant O as 订单服务 participant TC as Seata TC participant I as 库存服务 participant C as 优惠券服务 participant P as 积分服务 U->>O: 下单请求 O->>TC: 开启全局事务(XID) O->>O: 写订单(本地事务+undo_log) O->>I: RPC 扣库存(XID) I->>I: 扣库存+undo_log(分支注册) I-->>O: 成功 O->>C: RPC 核销券(XID) C->>C: 核销+undo_log C-->>O: 成功 O->>P: RPC 加积分(XID) P-->>O: 失败! O->>TC: 全局回滚 TC->>I: 下发Cancel(回滚) TC->>C: 下发Cancel(回滚) Note over I,C: 按undo_log反向回滚 O-->>U: 下单失败已回滚</div>
+                  <div class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant O as 订单服务
+    participant TC as Seata TC
+    participant I as 库存服务
+    participant C as 优惠券服务
+    participant P as 积分服务
+    U->>O: 下单请求
+    O->>TC: 开启全局事务(XID)
+    O->>O: 写订单(本地事务+undo_log)
+    O->>I: RPC 扣库存(XID)
+    I->>I: 扣库存+undo_log(分支注册)
+    I-->>O: 成功
+    O->>C: RPC 核销券(XID)
+    C->>C: 核销+undo_log
+    C-->>O: 成功
+    O->>P: RPC 加积分(XID)
+    P-->>O: 失败!
+    O->>TC: 全局回滚
+    TC->>I: 下发Cancel(回滚)
+    TC->>C: 下发Cancel(回滚)
+    Note over I,C: 按undo_log反向回滚
+    O-->>U: 下单失败已回滚
+                  </div>
                   <div class="chart-caption">Seata AT 分布式事务时序（含失败回滚）</div>
                 </div>
                 <table class="compare-table">
@@ -2252,7 +2293,28 @@ public void saveAbnormal(...) {
                 <p><strong>应用层</strong>：订单 ID 采用 Snowflake 改造方案，将 user_id 的低 4 位作为"分片基因"嵌入 order_id 的指定 bit 位，商家查询时通过 order_id 中的基因反向路由到对应分片，避免全表扫描。跨片查询通过绑定表（t_order 与 t_order_item 按 user_id 绑定）和广播表（t_merchant）优化。</p>
                 <p><strong>数据层</strong>：16 库分布在 4 台物理 MySQL 实例上（每实例 4 库），主从架构为一主一从。扩容采用"倍增翻倍"策略：4 库扩 8 库时，每个原分片的数据按 user_id 二分，仅涉及数据搬移不涉及重新 Hash，通过影子表预同步 + 双写 + 一次性切换完成，停机窗口控制在 30 分钟内。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[客户端请求] --> B[ShardingSphere-JDBC] B --> C{解析SQL} C -->|分片键: user_id| D[标准分片路由] C -->|无分片键| E[全路由广播/基因路由] D --> F[分库算法: user_id % 16] D --> G[分表算法: user_id / 16 % 16] F --> H[db_0] F --> I[db_1] F --> J[db_15] G --> K[t_order_0] G --> L[t_order_15] H --> M[MySQL实例1 主从] I --> N[MySQL实例2 主从] J --> O[MySQL实例4 主从] E --> P[结果归并 Merge] P --> Q[返回结果] style B fill:#4A90D9,color:#fff style D fill:#7B68EE,color:#fff style P fill:#FF6B35,color:#fff</div>
+                  <div class="mermaid">
+graph TD
+    A[客户端请求] --> B[ShardingSphere-JDBC]
+    B --> C{解析SQL}
+    C -->|分片键: user_id| D[标准分片路由]
+    C -->|无分片键| E[全路由广播/基因路由]
+    D --> F[分库算法: user_id % 16]
+    D --> G[分表算法: user_id / 16 % 16]
+    F --> H[db_0]
+    F --> I[db_1]
+    F --> J[db_15]
+    G --> K[t_order_0]
+    G --> L[t_order_15]
+    H --> M[MySQL实例1 主从]
+    I --> N[MySQL实例2 主从]
+    J --> O[MySQL实例4 主从]
+    E --> P[结果归并 Merge]
+    P --> Q[返回结果]
+    style B fill:#4A90D9,color:#fff
+    style D fill:#7B68EE,color:#fff
+    style P fill:#FF6B35,color:#fff
+                  </div>
                   <div class="chart-caption">ShardingSphere 分库分表路由架构图</div>
                 </div>
                 <table class="compare-table">
@@ -3278,7 +3340,31 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
                 <p><strong>过滤链层</strong>：自定义 GlobalFilter 链，执行顺序：① TraceFilter（生成 TraceID 注入 Header，接入 SkyWalking）→ ② AuthFilter（统一鉴权：JWT 解析/OAuth2 Token 校验/API Key 验证，校验失败直接返回 401）→ ③ RateLimitFilter（Sentinel 限流：全局 8 万 QPS + 单 API 1 万 QPS + 单用户 100 QPS）→ ④ GrayFilter（灰度路由：按 Header X-Gray-Tag 或用户 ID Hash 决定路由版本）→ ⑤ LogFilter（记录访问日志 + 响应耗时，异步写入 Kafka 供 ELK 分析）。</p>
                 <p><strong>路由与协议转换层</strong>：动态路由规则存储在 Nacos Config，修改后秒级生效无需重启。HTTP → Dubbo 协议转换通过自定义 GatewayFilter 实现（解析 HTTP 参数 → 构造 Dubbo RpcInvocation → 泛化调用 Dubbo 服务 → 转换返回结果为 JSON）。响应聚合通过网关的聚合接口（如 /api/home/aggregate）并行调用商品/推荐/广告/用户服务，使用 Mono.zip 合并响应，减少客户端 RTT。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[客户端 APP/H5/小程序] -->|HTTPS| B[LVS/Nginx LB] B --> C[Spring Cloud Gateway 集群] C --> D[TraceFilter 生成TraceID] D --> E[AuthFilter 统一鉴权] E -->|401 未授权| F[返回 401] E -->|鉴权通过| G[RateLimitFilter 限流] G -->|超限| H[返回 429 限流] G -->|放行| I[GrayFilter 灰度路由] I -->|X-Gray-Tag=v2| J[路由到 v2 实例] I -->|默认| K[路由到 v1 实例] J --> L{协议判断} K --> L L -->|HTTP| M[直接转发 HTTP] L -->|Dubbo| N[HTTP转Dubbo 泛化调用] M --> O[后端微服务集群] N --> O O --> P[LogFilter 记录日志] P --> Q[返回响应] style C fill:#4A90D9,color:#fff style E fill:#E74C3C,color:#fff style G fill:#F39C12,color:#fff style I fill:#9B59B6,color:#fff</div>
+                  <div class="mermaid">
+graph TD
+    A[客户端 APP/H5/小程序] -->|HTTPS| B[LVS/Nginx LB]
+    B --> C[Spring Cloud Gateway 集群]
+    C --> D[TraceFilter 生成TraceID]
+    D --> E[AuthFilter 统一鉴权]
+    E -->|401 未授权| F[返回 401]
+    E -->|鉴权通过| G[RateLimitFilter 限流]
+    G -->|超限| H[返回 429 限流]
+    G -->|放行| I[GrayFilter 灰度路由]
+    I -->|X-Gray-Tag=v2| J[路由到 v2 实例]
+    I -->|默认| K[路由到 v1 实例]
+    J --> L{协议判断}
+    K --> L
+    L -->|HTTP| M[直接转发 HTTP]
+    L -->|Dubbo| N[HTTP转Dubbo 泛化调用]
+    M --> O[后端微服务集群]
+    N --> O
+    O --> P[LogFilter 记录日志]
+    P --> Q[返回响应]
+    style C fill:#4A90D9,color:#fff
+    style E fill:#E74C3C,color:#fff
+    style G fill:#F39C12,color:#fff
+    style I fill:#9B59B6,color:#fff
+                  </div>
                   <div class="chart-caption">API 网关请求路由与过滤链流程图</div>
                 </div>
                 <table class="compare-table">
@@ -5965,7 +6051,35 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
                 <p><strong>数据层</strong>：MySQL 订单表按 user_id 分 1024 库 × 4 表，库存表按 sku_id 分库。Redis Cluster 16 分片存预扣库存。Elasticsearch 承担订单搜索。TiDB 兜底对账与历史数据归档。binlog 通过 Canal 同步到 ES 与数仓。</p>
                 <p><strong>容灾方案</strong>：同城双活（A/B 机房各承载 50%，故障切换 RTO &lt; 1min）+ 异地灾备（异步复制）。Redis 预扣失败降级为 DB 限流扣减（牺牲性能保一致）。MQ 集群三节点同步刷盘，宕机自动主从切换。全链路 Sentry + SkyWalking 监控，故障自愈（Resilience4j 熔断，Hystrix 已停止维护仅作演进对比）。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">sequenceDiagram participant U as 用户 participant GW as 网关 participant OS as 订单服务 participant RS as Redis participant MQ as RocketMQ participant PS as 支付服务 participant IS as 库存服务 participant LS as 物流服务 U->>GW: 1. 下单请求(含幂等号) GW->>GW: 限流/防刷校验 GW->>OS: 2. 路由下单 OS->>RS: 3. Lua原子预扣库存 RS-->>OS: 4. 扣减成功(剩余库存) OS->>OS: 5. 生成订单号(雪花) OS->>MQ: 6. 发送订单创建消息(异步落库) OS-->>GW: 7. 返回订单号+待支付 GW-->>U: 8. 收银台 U->>PS: 9. 发起支付 PS->>PS: 10. 调用支付通道 PS->>MQ: 11. 支付成功消息(幂等) MQ->>OS: 12. 消费支付成功(幂等校验) OS->>IS: 13. 异步确认库存扣减(落DB) OS->>MQ: 14. 发送发货消息 MQ->>LS: 15. 消费发货消息 LS->>U: 16. 物流通知(短信/PUSH) Note over OS,IS: 定时对账: 订单/库存/支付三表核对</div>
+                  <div class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant GW as 网关
+    participant OS as 订单服务
+    participant RS as Redis
+    participant MQ as RocketMQ
+    participant PS as 支付服务
+    participant IS as 库存服务
+    participant LS as 物流服务
+    U->>GW: 1. 下单请求(含幂等号)
+    GW->>GW: 限流/防刷校验
+    GW->>OS: 2. 路由下单
+    OS->>RS: 3. Lua原子预扣库存
+    RS-->>OS: 4. 扣减成功(剩余库存)
+    OS->>OS: 5. 生成订单号(雪花)
+    OS->>MQ: 6. 发送订单创建消息(异步落库)
+    OS-->>GW: 7. 返回订单号+待支付
+    GW-->>U: 8. 收银台
+    U->>PS: 9. 发起支付
+    PS->>PS: 10. 调用支付通道
+    PS->>MQ: 11. 支付成功消息(幂等)
+    MQ->>OS: 12. 消费支付成功(幂等校验)
+    OS->>IS: 13. 异步确认库存扣减(落DB)
+    OS->>MQ: 14. 发送发货消息
+    MQ->>LS: 15. 消费发货消息
+    LS->>U: 16. 物流通知(短信/PUSH)
+    Note over OS,IS: 定时对账: 订单/库存/支付三表核对
+                  </div>
                   <div class="chart-caption">电商订单全链路时序图（下单→扣库存→支付→通知物流）</div>
                 </div>
                 <table class="compare-table">
@@ -6968,7 +7082,28 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
                 <p><strong>3. 容灾切换</strong>：DNS 调度（HTTPDNS 客服端秒级生效）+ 健康检查（探测单元存活）+ 自动切换开关（运维一键切换）；切换前先停止故障单元写入（Fencing），再切流量，避免脑裂。</p>
                 <p><strong>4. 脑裂防护</strong>：基于 ZooKeeper/ETCD 的分布式租约锁，只有持租约的单元可写，租约过期自动降级只读。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD subgraph 北京中心 A1[用户请求] --> A2[接入层 GSLB/DNS] A2 --> A3[API网关 单元路由] A3 --> A4{userId取模} A4 -->|0-49| A5[北京单元 Cell-BJ] A5 --> A6[订单/支付/账户服务] A6 --> A7[(北京MySQL主)] end subgraph 杭州中心 B4{userId取模} -->|50-99| B5[杭州单元 Cell-HZ] B5 --> B6[订单/支付/账户服务] B6 --> B7[(杭州MySQL主)] end A3 -.跨单元写拒绝.-> B5 A7 ==>|Binlog增量同步 OTTS| B7 B7 ==>|Binlog增量同步 OTTS| A7 A2 -->|健康检查失败| C1[DNS切流到杭州] C1 --> C2[Fencing租约锁 北京降级只读] C2 --> C3[杭州接管全量流量]</div>
+                  <div class="mermaid">
+graph TD
+    subgraph 北京中心
+      A1[用户请求] --> A2[接入层 GSLB/DNS]
+      A2 --> A3[API网关 单元路由]
+      A3 --> A4{userId取模}
+      A4 -->|0-49| A5[北京单元 Cell-BJ]
+      A5 --> A6[订单/支付/账户服务]
+      A6 --> A7[(北京MySQL主)]
+    end
+    subgraph 杭州中心
+      B4{userId取模} -->|50-99| B5[杭州单元 Cell-HZ]
+      B5 --> B6[订单/支付/账户服务]
+      B6 --> B7[(杭州MySQL主)]
+    end
+    A3 -.跨单元写拒绝.-> B5
+    A7 ==>|Binlog增量同步 OTTS| B7
+    B7 ==>|Binlog增量同步 OTTS| A7
+    A2 -->|健康检查失败| C1[DNS切流到杭州]
+    C1 --> C2[Fencing租约锁 北京降级只读]
+    C2 --> C3[杭州接管全量流量]
+                  </div>
                   <div class="chart-caption">两地三中心单元化路由与容灾切换架构</div>
                 </div>
                 <table class="compare-table">
@@ -7134,7 +7269,24 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
                 <p><strong>4. 降级链设计</strong>：核心→非核心逐级降级，如库存查询降级为返回缓存、推荐降级为返回默认列表、评论降级为直接关闭入口，保住下单主链路。</p>
                 <p><strong>5. 动态规则推送</strong>：规则存储在 Nacos，Sentinel 通过监听 Nacos 配置变更秒级生效，无需重启。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[客户端请求 50万QPS] --> B[Nginx限流 limit_req] B -->|过载拒绝| B1[429 Too Many Requests] B --> C[Gateway集群限流 Redis令牌桶] C -->|超阈值| C1[限流降级 返回兜底] C --> D[应用服务 Sentinel] D --> E{熔断状态机} E -->|Closed 正常| F[调用下游] E -->|Open 熔断| G[降级 fallback] E -->|Half-Open 探测| F F --> H[线程池隔离 支付/库存] F --> I[信号量隔离 评论/推荐] H -->|超时/异常| J[触发熔断] I -->|超时/异常| K[降级返回缓存] G --> L[返回默认值/兜底数据] J --> E</div>
+                  <div class="mermaid">
+graph TD
+    A[客户端请求 50万QPS] --> B[Nginx限流 limit_req]
+    B -->|过载拒绝| B1[429 Too Many Requests]
+    B --> C[Gateway集群限流 Redis令牌桶]
+    C -->|超阈值| C1[限流降级 返回兜底]
+    C --> D[应用服务 Sentinel]
+    D --> E{熔断状态机}
+    E -->|Closed 正常| F[调用下游]
+    E -->|Open 熔断| G[降级 fallback]
+    E -->|Half-Open 探测| F
+    F --> H[线程池隔离 支付/库存]
+    F --> I[信号量隔离 评论/推荐]
+    H -->|超时/异常| J[触发熔断]
+    I -->|超时/异常| K[降级返回缓存]
+    G --> L[返回默认值/兜底数据]
+    J --> E
+                  </div>
                   <div class="chart-caption">三级限流熔断降级全链路防护流程</div>
                 </div>
                 <table class="compare-table">
@@ -8302,7 +8454,27 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre>
               <div class="qa-layer-body">
                 <p><strong>一、OAuth2 + JWT 双 Token 体系</strong><br />- 授权流程：第三方应用引导用户跳转授权页 → 用户同意 → 回调授权码 code → 应用用 code + appSecret 换取 access_token(JWT) + refresh_token(UUID)。<br />- access_token：JWT 格式，RS256 签名（公钥分发到各网关节点验签），有效期 2 小时，claims 携带 app_id/user_id/scope/exp。<br />- refresh_token：UUID 格式，存 Redis（refresh_token:{token} → {app_id, user_id}，TTL 30 天），用于刷新 access_token，每次刷新轮换（旧 token 失效）。<br />- PKCE 支持：移动端应用使用 S256 方法，code_verifier + code_challenge 防止授权码拦截。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[第三方应用] -->|1.引导授权| B[用户浏览器] B -->|2.登录+同意授权| C[授权服务器] C -->|3.重定向+授权码code| B B -->|4.携带code回调| A A -->|5.code+appSecret+PKCE| C C -->|6.校验通过 颁发Token| A A -->|7.access_token调用API| D[API网关] D -->|8.验签+校验scope| D D -->|9.签名校验+nonce去重| D D -->|10.限流检查| D D -->|11.转发请求| E[业务服务] E -->|12.返回结果| D D -->|13.响应| A A -->|14.access_token过期| C C -->|15.refresh_token换新| A style C fill:#e1f5fe style D fill:#fff3e0 style E fill:#e8f5e9</div>
+                  <div class="mermaid">
+graph TD
+    A[第三方应用] -->|1.引导授权| B[用户浏览器]
+    B -->|2.登录+同意授权| C[授权服务器]
+    C -->|3.重定向+授权码code| B
+    B -->|4.携带code回调| A
+    A -->|5.code+appSecret+PKCE| C
+    C -->|6.校验通过 颁发Token| A
+    A -->|7.access_token调用API| D[API网关]
+    D -->|8.验签+校验scope| D
+    D -->|9.签名校验+nonce去重| D
+    D -->|10.限流检查| D
+    D -->|11.转发请求| E[业务服务]
+    E -->|12.返回结果| D
+    D -->|13.响应| A
+    A -->|14.access_token过期| C
+    C -->|15.refresh_token换新| A
+    style C fill:#e1f5fe
+    style D fill:#fff3e0
+    style E fill:#e8f5e9
+                  </div>
                   <div class="chart-caption">OAuth2 + JWT 认证授权与 API 调用全流程图</div>
                 </div>
                 <p><strong>二、请求签名方案（HMAC-SHA256）</strong><br />签名算法：sign = HMAC-SHA256(secret, method + path + sortedParams + timestamp + nonce + bodyMd5)<br />参数排序：所有业务参数按 key 字典序升序排列，拼接为 key1=value1&amp;key2=value2。<br />请求头：X-App-Key、X-Timestamp、X-Nonce、X-Signature。<br />密钥管理：appSecret 存储于 KMS，应用启动时拉取至内存，定期轮换。</p>
@@ -10230,7 +10402,20 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
                 <p><strong>根治（7d 内）</strong>：检索层引入 BM25 + 向量混合检索 + Cross-Encoder Rerank，Recall@5 从 78% 提升到 94%；生成层强制引用——每个答案必须标注来源 chunk_id，无来源片段则拒答；增加答案-原文一致性校验器（NLI 模型判断"答案是否被原文蕴含"，低于阈值拒绝输出）。</p>
                 <p><strong>长效</strong>：知识库引入版本号 + 生效时间，政策变更走"发布审核 → 增量索引 → 旧版失效"流程；用户点踩反馈回流到人工标注队列，标注结果反哺 Rerank 模型；幻觉率看板（按类目/模型/Prompt 版本维度）+ 1% 阈值告警。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[用户提问] --> B[混合检索 BM25+向量] B --> C[Rerank Cross-Encoder] C --> D{TopK 召回置信度} D -->|低| E[拒答/转人工] D -->|高| F[LLM 约束生成 强制引用] F --> G[NLI 一致性校验 答案vs原文] G -->|不蕴含| E G -->|蕴含| H[输出答案+引用] H --> I[用户反馈点踩] I --> J[人工标注回流 Rerank] K[知识库变更] --> L[版本化+增量索引]</div>
+                  <div class="mermaid">
+graph TD
+    A[用户提问] --> B[混合检索 BM25+向量]
+    B --> C[Rerank Cross-Encoder]
+    C --> D{TopK 召回置信度}
+    D -->|低| E[拒答/转人工]
+    D -->|高| F[LLM 约束生成 强制引用]
+    F --> G[NLI 一致性校验 答案vs原文]
+    G -->|不蕴含| E
+    G -->|蕴含| H[输出答案+引用]
+    H --> I[用户反馈点踩]
+    I --> J[人工标注回流 Rerank]
+    K[知识库变更] --> L[版本化+增量索引]
+                  </div>
                   <div class="chart-caption">RAG 幻觉治理闭环</div>
                 </div>
                 <table class="compare-table">
@@ -10503,7 +10688,22 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
                 <p><strong>4. 高危操作防护</strong>：transfer/refund 等高危工具强制走"沙箱预演 + 用户二次确认"——Agent 先调 simulate 工具预演结果，向用户推送确认卡片，用户确认后才执行真实工具。</p>
                 <p><strong>5. LLM 输出约束</strong>：用 JSON Schema / Structured Output 强校验 tool_call 参数，格式错误不直接重试，而是触发"格式修复"专用 Prompt（最多 2 次），仍失败则终止。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[LLM 输出 tool_call] --> B{JSON Schema 校验} B -->|失败| C[格式修复Prompt 最多2次] C -->|仍失败| D[终止转人工] B -->|成功| E{循环检测 相同args?} E -->|重复| D E -->|非重复| F{单工具次数超限?} F -->|是| D F -->|否| G[带Idempotency-Key调用工具] G --> H{高危操作?} H -->|是| I[沙箱预演+用户确认] I -->|确认| J[真实执行] H -->|否| J J --> K[审计日志+资损检测]</div>
+                  <div class="mermaid">
+graph TD
+    A[LLM 输出 tool_call] --> B{JSON Schema 校验}
+    B -->|失败| C[格式修复Prompt 最多2次]
+    C -->|仍失败| D[终止转人工]
+    B -->|成功| E{循环检测 相同args?}
+    E -->|重复| D
+    E -->|非重复| F{单工具次数超限?}
+    F -->|是| D
+    F -->|否| G[带Idempotency-Key调用工具]
+    G --> H{高危操作?}
+    H -->|是| I[沙箱预演+用户确认]
+    I -->|确认| J[真实执行]
+    H -->|否| J
+    J --> K[审计日志+资损检测]
+                  </div>
                   <div class="chart-caption">Agent 工具调用护栏链路</div>
                 </div>
               </div>
@@ -10780,7 +10980,20 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
                 <p><strong>4. 故障期间请求处理</strong>：超时请求用 request_id 幂等，重试切到备选供应商时携带 request_id，避免超时但实际成功的请求被重复计费/重复生成。</p>
                 <p><strong>5. 成本控制</strong>：各供应商配额上限 + 预算告警，故障切换推高备选成本时告警，必要时对低优先级流量限流保核心。</p>
                 <div class="mermaid-container">
-                  <div class="mermaid">graph TD A[请求] --> B[网关 健康分路由] B --> C{OpenAI 健康分} C -->|正常| D[OpenAI] C -->|熔断| E[Claude 同档优先] E -->|配额满| F[通义/文心 降级] F -->|全故障| G[语义缓存命中?] G -->|命中| H[返回缓存] G -->|未命中| I[本地小模型兜底] D --> J[request_id 幂等去重] E --> J F --> J</div>
+                  <div class="mermaid">
+graph TD
+    A[请求] --> B[网关 健康分路由]
+    B --> C{OpenAI 健康分}
+    C -->|正常| D[OpenAI]
+    C -->|熔断| E[Claude 同档优先]
+    E -->|配额满| F[通义/文心 降级]
+    F -->|全故障| G[语义缓存命中?]
+    G -->|命中| H[返回缓存]
+    G -->|未命中| I[本地小模型兜底]
+    D --> J[request_id 幂等去重]
+    E --> J
+    F --> J
+                  </div>
                   <div class="chart-caption">多供应商故障转移链路</div>
                 </div>
               </div>
