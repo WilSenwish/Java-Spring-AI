@@ -16,11 +16,11 @@ agent_created: true
 
 题库为**纯静态 HTML 双站**，两站经导航互链：
 
-- **章节站** `java-architect-interview/`：15 个编号篇章页 `chapter-01~15-*.html` + 方法论页 `chapter-core-methodology.html`（M 前缀）+ 安全卡 `chapter-server-security-checkpoint.html` + 核心原理页 `chapter-questions-eight-part.html`（E 前缀）+ 场景页 `chapter-questions-scenario.html`（S 前缀）+ 章节导航 `index.html`。
-- **导图站** `java-architect-interview-mind/`：对应 `mind-01~15-*.html` + `mind-core-methodology.html` + `mind-server-security-checkpoint.html` + 导图导航 `index.html`（17 个导图页，线性链顺序见 `references/conventions.md` §7）。
+- **章节站** `java-architect-interview/`：15 个编号篇章页 `chapter-01~15-*.html` + 方法论页 `chapter-core-methodology.html`（M 前缀）+ 工程化要点页 `chapter-engineering-practices.html`（G 前缀）+ 安全卡 `chapter-server-security-checkpoint.html` + 核心原理页 `chapter-questions-eight-part.html`（E 前缀）+ 场景页 `chapter-questions-scenario.html`（S 前缀）+ 章节导航 `index.html`。
+- **导图站** `java-architect-interview-mind/`：对应 `mind-01~15-*.html` + `mind-core-methodology.html` + `mind-engineering-practices.html` + `mind-server-security-checkpoint.html` + 导图导航 `index.html`（18 个导图页，线性链顺序见 `references/conventions.md` §7）。
 - **项目根** `Java Spring AI/index.html`：全部题目的扁平全量快照（每题一个 `q-item` li，带难度 + `priority-pX` 徽标）。
 
-题号前缀：方法论页（`chapter-core-methodology.html`）用 **M**，`chapter-01~15` 用 **C**，`E` 核心原理、`S` 场景。卡片三级目录为 `页面篇章 / 分组 / 题号`。
+题号前缀：方法论页用 **M**，工程化要点页用 **G**，`chapter-01~15` 用 **C**，`E` 核心原理、`S` 场景。卡片三级目录为 `页面篇章 / 分组 / 题号`。
 
 聚合统计页共 **4 份**，任何题目数/优先级的增删改都必须联动（详见 `references/conventions.md` §4）：① 项目根 `index.html`；② `java-architect-interview/index.html`；③ `java-architect-interview-mind/index.html`（题量表达式 `N篇章+N核心原理+N场景`）；④ `chapter-overview-priority.html`（`ov-stat-num` + 9 子组标题，按**优先级×难度**组织）。
 
@@ -39,8 +39,9 @@ agent_created: true
 - 题目总量 **365** = 篇章 229 + 核心原理 64 + 场景 72
 - 优先级 **P0=92 / P1=217 / P2=56**（求和 = 365）
 - 难度 **专家 46 / 架构 178 / 高级开发 141**（求和 = 365）
-- 方法论 **75 卡**（M01~M11），不计入 365；全站合计 **440**
-- 方法论细分：带优先级 31/75；难度 专家 23 / 架构 49 / 高级开发 3
+- 方法论 **91 卡**（M01~M12），不计入 365
+- 工程化 **24 卡**（G01~G08），不计入 365；全站合计 **480** = 题目 + 方法论 + 工程化
+- 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -68,6 +69,9 @@ agent_created: true
 | P20 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 场景题数 |
 | P22 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 题目总量 |
+| P23 | `index.html` | 根 index 工程化统计卡 |
+| P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
+| P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）

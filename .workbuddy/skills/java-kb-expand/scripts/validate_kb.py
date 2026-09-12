@@ -32,13 +32,15 @@ _cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
 EXPECT = {k: _cfg["counts"][k] for k in
           ("total", "p0", "p1", "p2", "expert", "architect", "senior",
            "methodology", "chapters", "basics", "scenarios")}
-# 根 index 合计 = 题数 + 方法论卡片数
-ROOT_SUM_EXTRA = _cfg["counts"]["methodology"]
-# 全站卡片总数（题目 + 方法论），用于 id 总数校验
+# 根 index 合计 = 题数 + 方法论 + 工程化（若有 engineering 键）
+ROOT_SUM_EXTRA = _cfg["counts"]["methodology"] + _cfg["counts"].get("engineering", 0)
+# 全站卡片总数（题目 + 方法论 + 工程化），用于 id 总数校验
 SUM_ALL = _cfg["counts"]["sum_all"]
+ENGINEERING = _cfg["counts"].get("engineering", 0)
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
-NEW_IDS = ["C10.26"]  # 例：["C13.13"] 或 ["C10.26", "S04.06"]
+# 注意：方法论/工程化卡默认不进 overview；含 M/G 时跳过 overview 落位检查
+NEW_IDS = ["M12.01", "G01.01"]  # 例：["C13.13"] 或 ["C10.26", "S04.06"]
 
 # 4 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
 AGG_FILES = {
@@ -104,18 +106,27 @@ def main():
     check(root_ch == EXPECT["chapters"], f"[根index] 深度Q&A={root_ch} 期望 {EXPECT['chapters']}")
     check(root_sum == EXPECT["total"] + ROOT_SUM_EXTRA, f"[根index] 合计={root_sum} 期望 {EXPECT['total']+ROOT_SUM_EXTRA}")
     check(root_all == EXPECT["total"], f"[根index] 全站={root_all} 期望 {EXPECT['total']}")
+    if ENGINEERING:
+        root_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化</div>', texts["root"])
+        check(root_eng == ENGINEERING, f"[根index] 工程化={root_eng} 期望 {ENGINEERING}")
 
     # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站 N 道
     chap_ch = stat(r'(\d+)</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
     chap_all = stat(r'全站\s*(\d+)\s*道', texts["chap_idx"])
     check(chap_ch == EXPECT["chapters"], f"[章节index] 深度Q&A={chap_ch} 期望 {EXPECT['chapters']}")
     check(chap_all == EXPECT["total"], f"[章节index] 全站={chap_all} 期望 {EXPECT['total']}")
+    if ENGINEERING:
+        chap_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化要点</div>', texts["chap_idx"])
+        if chap_eng is None:
+            chap_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化</div>', texts["chap_idx"])
+        check(chap_eng == ENGINEERING, f"[章节index] 工程化={chap_eng} 期望 {ENGINEERING}")
 
     # 6) 新卡双编码 + 落位（按题号前缀自动定位宿主章节页）
     chap_text_all = "\n@@@\n".join(read(p) for p in chap_files)
     mind_text_all = "\n@@@\n".join(read(p) for p in mind_files)
     for nid in NEW_IDS:
         # 双编码：在宿主章节页（含该 ID 的 chapter 文件）找 data-priority 属性 + 可见 priority-pX
+        # 工程化卡可能无优先级双编码，仅校验卡片存在
         host = None
         for p in chap_files:
             if re.search(rf'id="{re.escape(nid)}"', read(p)):
@@ -128,12 +139,17 @@ def main():
             if card and visible:
                 check(card.group(1) == visible.group(1),
                       f"[双编码] {nid}: data-priority={card.group(1)} 徽标={visible.group(1)}")
+            elif nid.startswith("G"):
+                check(True, f"[双编码] {nid}: 工程化卡无强制优先级（宿主 {os.path.basename(host)}）")
             else:
-                check(False, f"[双编码] {nid}: 未找到属性或徽标（宿主 {os.path.basename(host)}）")
+                # 方法论部分卡可能无 priority
+                has_card = bool(re.search(rf'id="{re.escape(nid)}"', ht))
+                check(has_card, f"[双编码] {nid}: 未找到属性或徽标（宿主 {os.path.basename(host)}）")
         else:
             check(False, f"[双编码] {nid}: 未在任何章节页找到该卡片")
-        # overview 落位
-        check(nid in texts["overview"], f"[落位] {nid} 在 overview")
+        # overview 落位（C/E/S 必进；M/G 默认不进 overview）
+        if not (nid.startswith("M") or nid.startswith("G")):
+            check(nid in texts["overview"], f"[落位] {nid} 在 overview")
         # 根 index 落位（q-id）
         check(nid in texts["root"], f"[落位] {nid} 在 根index")
         # mind 落位（扫描全部 mind 文件，命中任一即 PASS）
@@ -143,9 +159,11 @@ def main():
     check(EXPECT["p0"]+EXPECT["p1"]+EXPECT["p2"] == EXPECT["total"], "[自洽] P0+P1+P2=总量")
     check(EXPECT["expert"]+EXPECT["architect"]+EXPECT["senior"] == EXPECT["total"], "[自洽] 难度三级=总量")
     check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"] == EXPECT["total"], "[自洽] 类型三级=总量")
+    check(EXPECT["total"] + EXPECT["methodology"] + ENGINEERING == SUM_ALL,
+          "[自洽] total+methodology+engineering=sum_all")
 
     # 8) 卡片 id 三方一致性：章节正文 ↔ 章节 TOC ↔ 导图引用，且总数 == sum_all
-    IDPAT = r"((?:M|C|E|S)\d{2}\.\d{2})"
+    IDPAT = r"((?:M|C|E|S|G)\d{2}\.\d{2})"
     body_ids, toc_ids, mind_ids = set(), set(), set()
     for p in chap_files:
         t = read(p)
@@ -154,7 +172,7 @@ def main():
     for p in mind_files:
         mind_ids |= set(re.findall(IDPAT, read(p)))
     check(len(body_ids) == SUM_ALL,
-          f"[id总数] 章节页卡片 {len(body_ids)} 期望 {SUM_ALL}（sum_all，含方法论）")
+          f"[id总数] 章节页卡片 {len(body_ids)} 期望 {SUM_ALL}（sum_all，含方法论+工程化）")
     check(not (body_ids - toc_ids),
           f"[TOC缺失] 正文有但目录无：{sorted(body_ids - toc_ids)[:10]}")
     check(not (toc_ids - body_ids),

@@ -11,13 +11,14 @@
 3. [核心原理速查 chapter-questions-eight-part（epq 组件）](#3)
 4. [场景题 chapter-questions-scenario（S 系列场景卡片）](#4)
 5. [安全 Checkpoint chapter-server-security-checkpoint（独立单页）](#5)
-6. [首页 index.html](#6)
+6. [工程化要点 chapter-engineering-practices（G 系列）](#6)
+7. [首页 index.html](#7)
 
 ---
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：核心思维方法论，75 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M11` 共 11 组分层侧边目录。
+- **定位**：核心思维方法论，91 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M11` 共 11 组分层侧边目录。
 - **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -26,8 +27,8 @@
   | `principle` | 原理映射 | 把公理落到工程化手段 |
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
-- **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 75）。
-- **优先级**：**部分卡片（31/75）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 44 卡不带；不计入全站题目优先级口径（92/209/58 = 359）。
+- **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 91）。
+- **优先级**：**部分卡片（39/91）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 52 卡不带；不计入全站题目优先级口径（92/209/58 = 359）。
 - **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签）；携带优先级的卡片另加 `priority-p*` 徽标。
 - **目录**：按模块（M01~M11）分组的多段侧边目录，各模块一组锚点 `M##.##`。
 - 单条新增规则：`id = M{模块}.{序}`；`insight → principle → application` 三层层序固定。
@@ -39,7 +40,7 @@
 
   ```
   ov-stats（两行统计；ov-stat-num 顶部 11 项 + 9 子组标题计数 = 全页 20 处；顺序见 `kb-counts.json` → `ov_stat_order`）
-  ├─ ov-stats-row ① 题目总数 / 方法论 75 / P0 / P1 / P2
+  ├─ ov-stats-row ① 题目总数 / 方法论 91 / P0 / P1 / P2
   ├─ ov-stats-row ② 专家级 / 架构级 / 高级开发 / 章节题 / 核心原理 / 场景题
   ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title
@@ -109,7 +110,16 @@
   - 底部：`.footer-note`。
 - 无 `Mermaid` / `ECharts`。CSS 资源引用路径为 `assets/design-system.css`（曾由 `security/` 目录迁入本目录，注意相对路径）。
 
-## <a id="6"></a>6. 首页 index.html
+
+## <a id="6"></a>6. 工程化要点 chapter-engineering-practices（G 系列）
+
+- **定位**：与方法论并列的工程门禁手册，**24 卡**，ID 前缀 `G`（如 `G01.01`）；**不计入题目总量 365**，计入 `sum_all`。
+- **卡片**：与方法论相同三层（`insight` / `principle` / `application`）。
+- **分组**：G01～G08 八组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全）。
+- **导图**：`mind-engineering-practices.html`；导航与方法论互链。
+
+## <a id="7"></a>7. 首页 index.html
+
 
 - **定位**：全站入口导航页。
 - **组件**：
@@ -131,4 +141,5 @@
 | chapter-questions-eight-part | – | `epq-*` 问答速查 | `E##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-scenario | – | `qa-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
 | chapter-server-security-checkpoint | page-wrapper + sidebar | 章节式 h2/h3 + compare-table + checklist | – | – | – | ✔ |
+| chapter-engineering-practices | page-wrapper + sidebar | `qa-card` 三层（insight/principle/application） | `G##.##` | ✔ | – | ✔ |
 | index | – | chapter-card / stat / tag-cloud | – | – | – | ✔ |

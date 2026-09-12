@@ -4,7 +4,7 @@
 
 ## 1. 题号前缀与三级目录
 
-- 篇章页：`chapter-core-methodology.html` 用 **M**（分组 M01~M11，共 75 卡，如 `M01.06`；2026-09-04 序章 5 块升层重编号：M01~M05=核心哲学/通用核心思维模式/通用方法论/通用架构与工程原则/Java 生态思维，M06~M10=高并发/高可用/高性能/安全/线上问题处理，M11=附录实战表达），`chapter-01~15` 用 **C**（如 `C10.26`）。
+- 篇章页：`chapter-core-methodology.html` 用 **M**（分组 M01~M12，共 91 卡，如 `M01.06` / `M12.01`；序章：M01~M05=核心哲学/通用核心思维模式/通用方法论/通用架构与工程原则/Java 生态思维，M12=生产与领域思维速查，M06~M10=高并发/高可用/高性能/安全/线上问题处理，M11=附录实战表达），`chapter-engineering-practices.html` 用 **G**（G01~G08，共 24 卡，方法论同款三层 insight/principle/application，不计入题目总量），`chapter-01~15` 用 **C**（如 `C10.26`）。
 - 核心原理页：`E`（如 `E07.02`）。
 - 场景页：`S`（如 `S04.06`），按 `group-N` 归组（微服务架构 / 并发 / 数据库 …）。
 - 目录层级：页面篇章 / 分组 / 题号。
@@ -90,8 +90,9 @@
 - 题目总量 **365** = 篇章 229 + 核心原理 64 + 场景 72
 - 优先级 **P0=92 / P1=217 / P2=56**（求和 = 365）
 - 难度 **专家 46 / 架构 178 / 高级开发 141**（求和 = 365）
-- 方法论 **75 卡**（M01~M11），不计入 365；全站合计 **440**
-- 方法论细分：带优先级 31/75；难度 专家 23 / 架构 49 / 高级开发 3
+- 方法论 **91 卡**（M01~M12），不计入 365
+- 工程化 **24 卡**（G01~G08），不计入 365；全站合计 **480** = 题目 + 方法论 + 工程化
+- 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -119,6 +120,9 @@
 | P20 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 场景题数 |
 | P22 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 题目总量 |
+| P23 | `index.html` | 根 index 工程化统计卡 |
+| P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
+| P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
