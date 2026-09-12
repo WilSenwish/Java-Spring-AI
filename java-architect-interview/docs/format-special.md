@@ -127,13 +127,27 @@
 ## <a id="7"></a>7. 首页 index.html
 
 
-- **定位**：全站入口导航页。
+- **定位**：全站入口导航页（`java-architect-interview/index.html`）。卡片顺序**允许人工编排**，不以文件名自然序强制重排；Agent 改卡时**保持现有 DOM 顺序**，除非用户明确要求调整位置。
+- **当前卡片顺序**（手工编排，改动须同步本条）：
+  1. 思维导图站入口（通栏）
+  2. 核心方法论（通栏）
+  3. 工程化要点（通栏）
+  4. 核心原理速查（通栏）
+  5. 场景题（通栏）
+  6. 优先级总览（通栏）
+  7. 第 01～15 篇（网格）
+  8. 服务端安全 Checkpoint（通栏）
 - **组件**：
-  - `chapter-card`（21 张章节卡片，含 1 张思维导图站入口）：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`；
-  - `stat-item` / `stat-label` / `stat-number`：全站统计区；
-  - `tag` / `tag-cat` / `tag-cloud` / `trend-section`：知识点标签云与趋势块。
-- 每张章节卡片须链接到对应 `chapter-*.html`，卡片上的 `card-number / card-title / 难度` 应与目标章节页 `chapter-header` 一致。
-- 引用更新规则：任何章节文件改名，须同步 `../../index.html` 与 `../index.html`（两者路径写法不同：前者为页面级相对路径）。
+  - `chapter-card`：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`
+  - `stat-item` / `stat-label` / `stat-number`：全站统计区
+  - `tag-cloud` / `trend-section`：知识点标签云与趋势块；**须用 `<details class="… index-fold">` 包裹且默认折叠**（不加 `open`），`<summary>` 内放原 `h2` 标题
+- **难度徽标（`card-tags`）约定**：
+  - **统一顺序**：有计数时按 **专家 → 架构 → 高级**；某档为 0 则省略该档（不写 `×0`）。
+  - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心方法论、工程化、核心原理、场景、优先级总览（总览口径 = 篇章+核心原理+场景，合计 365）。
+  - **无法实计的卡**（思维导图站入口、安全 Checkpoint 等无 `data-difficulty` 题卡）：只标档位文案，不写 ×N。
+  - 数字须与目标页 `data-difficulty` 实计一致；改题难度后同步本页对应卡徽标。
+- 每张章节卡片须链接到对应目标页；`card-number / card-title` 应与目标页一致；`card-footer` 题数须与目标页实卡数一致。
+- 引用更新规则：任何章节文件改名，须同步根 `index.html` 与本目录 `index.html`（路径写法不同）。
 
 ---
 
@@ -148,4 +162,4 @@
 | chapter-questions-scenario | – | `qa-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
 | chapter-server-security-checkpoint | page-wrapper + sidebar | 章节式 h2/h3 + compare-table + checklist | – | – | – | ✔ |
 | chapter-engineering-practices | page-wrapper + sidebar | `qa-card` 三层（insight/principle/application） | `G##.##` | ✔ | – | ✔ |
-| index | – | chapter-card / stat / tag-cloud | – | – | – | ✔ |
+| index | – | chapter-card / stat / tag-cloud（`index-fold` 默认折叠） | – | 可计卡带 ×N（专家→架构→高级） | – | ✔ |
