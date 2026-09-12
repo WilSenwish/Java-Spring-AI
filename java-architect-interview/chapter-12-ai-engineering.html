@@ -1105,7 +1105,7 @@ sequenceDiagram
               <li><strong>Plan-and-Execute（2023+）</strong>：先<strong>规划</strong>（拆成步骤列表）再<strong>执行</strong>（逐步执行），比 ReAct 边想边做更可控，适合长任务。</li>
               <li><strong>LangGraph（2024）</strong>：把 Agent 建模为<strong>状态图</strong>（节点=动作，边=条件转移），支持循环、分支、人机协同、持久化，可控性大幅提升。</li>
               <li><strong>Multi-Agent（AutoGen/CrewAI，2024+）</strong>：多 Agent 角色分工（Planner/Researcher/Coder/Reviewer），消息通信协作，解决单 Agent 上下文爆炸与角色混淆。</li>
-              <li><strong>MCP 协议（Anthropic 2024.11）</strong>：标准化"工具/资源/Prompt"供给，像 USB-C 一样统一 Agent 与工具的接口。</li>
+              <li><strong>MCP 协议（Anthropic 主导；规范持续修订）</strong>：2024-11 起公开；现行工程应对齐 <strong>2025-06 / 2026-07-28</strong> 等修订中的鉴权与传输语义（OAuth 2.1 资源服务器角色、远程 Streamable HTTP），勿只写"2024.11"一笔带过。</li>
             </ul>
             <p><strong>演进驱动力</strong>：从"<strong>单步反应式</strong>"（ReAct）到"<strong>先规划后执行</strong>"（Plan-Execute）到"<strong>图状态机</strong>"（LangGraph，可控）到"<strong>分工协作</strong>"（Multi-Agent），核心是解决<strong>可靠性、可控性、复杂度</strong>三大挑战——LLM 越自主越不可控，工程化的核心是"用结构约束自主性"。</p>
           </div>
@@ -1155,7 +1155,8 @@ flowchart TB
               <li><strong>三大原语</strong>：<strong>Tools</strong>（可执行函数，如查库存）、<strong>Resources</strong>（可读数据，如文件/数据库）、<strong>Prompts</strong>（可复用 Prompt 模板）。</li>
               <li><strong>架构</strong>：MCP Server（工具提供方，独立进程）↔ MCP Client（Agent/IDE，如 Claude Desktop/Cursor）经 JSON-RPC 2.0 通信。一个 Client 可连多个 Server，一个 Server 可被多个 Client 复用。传输层支持 stdio（本地子进程）与 Streamable HTTP（远程/多 Client 共享）两种，二者均基于 JSON-RPC 2.0，Client 与 Server 解耦于具体传输方式。</li>
               <li><strong>价值</strong>：工具<strong>一次封装到处可用</strong>——同一个"查库存"MCP Server，Claude/Cursor/Spring AI Agent 都能调，无需重复集成。</li>
-              <li><strong>生产鉴权与治理（必补）</strong>：远程 MCP（Streamable HTTP）须鉴权——OAuth2/OIDC 或 mTLS，禁止“内网裸奔 JSON-RPC”；按工具声明 <code class="inline-code">risk_level</code> / ACL（租户、角色、只读 vs 写/资金类）；短时会话与凭证轮换；调用全链路审计（谁、调了什么、参数摘要、结果码）。进程内 stdio 也要防“Agent 进程被劫持=工具全集沦陷”。细节与副作用分级见 <a href="#C12.32">C12.32</a>、<a href="#C12.23">C12.23</a>。</li>
+              <li><strong>生产鉴权与治理（必补）</strong>：远程 MCP（Streamable HTTP）须鉴权——按现行规范（如 2026-07-28）走 OAuth 2.1 / OIDC 资源服务器或 mTLS，禁止“内网裸奔 JSON-RPC”；按工具声明 <code class="inline-code">risk_level</code> / ACL（租户、角色、只读 vs 写/资金类）；短时会话与凭证轮换；调用全链路审计（谁、调了什么、参数摘要、结果码）。进程内 stdio 也要防“Agent 进程被劫持=工具全集沦陷”。细节与副作用分级见 <a href="#C12.32">C12.32</a>、<a href="#C12.23">C12.23</a>。</li>
+              <li><strong>落地调用链（Java）</strong>：① Agent/ChatClient 决策要调工具 → ② MCP Client 按协议发现 Tools 列表 → ③ JSON-RPC 调用目标 MCP Server → ④ Server 执行并返回结构化结果 → ⑤ 结果回填模型上下文继续推理。错误治理：工具超时/4xx/5xx 要可区分重试与熔断；资金类工具强制幂等键 + 人工闸。</li>
             </ul>
 
             <div class="mermaid-container">
@@ -1378,6 +1379,19 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产实证：OTel GenAI 语义约定</div>
+          <div class="qa-layer-body">
+            <p>LLM 调用要进入统一可观测，优先对齐 OpenTelemetry <strong>GenAI 语义约定</strong>（模型名、token 用量、finish_reason、tool_call 等属性），避免各团队私造高基数 tag。</p>
+            <ul>
+              <li><strong>必采</strong>：model、operation（chat/embed）、input/output token、错误码、链路 traceId。</li>
+              <li><strong>慎采</strong>：完整 Prompt/响应原文（脱敏与采样）；user_id 等高基数维放 baggage/事件而非无限标签。</li>
+              <li><strong>关联</strong>：同一 Observation/Span 挂 Metrics（QPS/延迟/Token）与 Logs，才能从"账单翻倍"下钻到具体工具调用。</li>
+            </ul>
+          </div>
+        </div>
+
       </div>
 
       <!-- ============================================================ -->
@@ -4097,6 +4111,19 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：向量删除/更新一致性 SOP</div>
+          <div class="qa-layer-body">
+            <ol>
+              <li><strong>更新</strong>：按 doc_id <strong>先删后写</strong>（删该文档全部 chunk 向量 → 重切块 Embedding → 写入），禁止只追加。</li>
+              <li><strong>删除</strong>：业务删文档必须级联删向量；对账 job 定期 diff MySQL doc 集 vs 向量库 doc_id 集。</li>
+              <li><strong>换模型</strong>：维度/空间变化 → 新集合/新索引灰度，双读对比召回后再切流，旧索引保留回滚窗口。</li>
+              <li><strong>失败</strong>：CDC/MQ 消费失败进死信；重放必须幂等（doc_id+version）。</li>
+            </ol>
+          </div>
+        </div>
+
       </div>
 
       <!-- ============================================================ -->

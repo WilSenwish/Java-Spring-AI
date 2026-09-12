@@ -265,6 +265,7 @@
           <li><a href="#S07.04"><span class="toc-number">S07.04</span>数据迁移零停机</a></li>
           <li><a href="#S07.05"><span class="toc-number">S07.05</span>跨境电商平台全球多租户架构</a></li>
           <li><a href="#S07.06"><span class="toc-number">S07.06</span>支付链路一致性保障</a></li>
+<li><a href="#S07.07"><span class="toc-number">S07.07</span>订单超时关闭与库存回补</a></li>
         </ol>
       </div>
         <div class="toc-group">
@@ -338,7 +339,7 @@
       <div class="chapter-header">
         <div class="chapter-number">SCENARIO QUESTIONS / REAL-WORLD SYSTEM DESIGN</div>
         <h1 class="chapter-title">高频真实场景题</h1>
-        <p class="chapter-subtitle">基于 2026 工程能力要求 · 71 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
+        <p class="chapter-subtitle">基于 2026 工程能力要求 · 72 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
         <div class="chapter-meta">
           <span>题目数：71</span>
           <span class="meta-divider">|</span>
@@ -643,14 +644,20 @@
       <div class="qa-layer-title">关键代码</div>
       <div class="qa-layer-body">
         <div class="code-block"><pre><code><span class="com">// 二倍均值法预拆分红包，保证金额随机且总额守恒（单位：分）</span>
+<span class="com">// 前置条件：totalCent &gt;= count（每人至少 1 分）；循环中保持 remain &gt;= remainCount</span>
 <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">Integer</span>&gt; <span class="fn">splitRedPacket</span>(<span class="kw">int</span> <span class="var">totalCent</span>, <span class="kw">int</span> <span class="var">count</span>) {
+    <span class="kw">if</span> (<span class="var">totalCent</span> &lt; <span class="var">count</span> || <span class="var">count</span> &lt;= <span class="num">0</span>) {
+        <span class="kw">throw new</span> <span class="type">IllegalArgumentException</span>(<span class="str">"totalCent must be &gt;= count &gt; 0"</span>);
+    }
     <span class="type">List</span>&lt;<span class="type">Integer</span>&gt; <span class="var">result</span> = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;&gt;(<span class="var">count</span>);
     <span class="kw">int</span> <span class="var">remain</span> = <span class="var">totalCent</span>, <span class="var">remainCount</span> = <span class="var">count</span>;
     <span class="type">Random</span> <span class="var">rnd</span> = <span class="kw">new</span> <span class="type">Random</span>();
     <span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">count</span> - <span class="num">1</span>; <span class="var">i</span>++) {
-        <span class="com">// 二倍均值：上限 = 剩余金额 / 剩余人数 × 2，保证公平且不超发</span>
+        <span class="com">// 二倍均值：上限 = 剩余金额 / 剩余人数 × 2；下界保证 nextInt 合法且留给他人至少 1 分</span>
         <span class="kw">int</span> <span class="var">max</span> = <span class="var">remain</span> / <span class="var">remainCount</span> * <span class="num">2</span>;
-        <span class="kw">int</span> <span class="var">amount</span> = <span class="var">rnd</span>.<span class="fn">nextInt</span>(<span class="var">max</span>) + <span class="num">1</span>; <span class="com">// 至少 1 分</span>
+        <span class="var">max</span> = <span class="type">Math</span>.<span class="fn">max</span>(<span class="var">max</span>, <span class="num">2</span>);
+        <span class="var">max</span> = <span class="type">Math</span>.<span class="fn">min</span>(<span class="var">max</span>, <span class="var">remain</span> - (<span class="var">remainCount</span> - <span class="num">1</span>)); <span class="com">// 留给剩余人数每人至少 1 分</span>
+        <span class="kw">int</span> <span class="var">amount</span> = <span class="var">rnd</span>.<span class="fn">nextInt</span>(<span class="var">max</span>) + <span class="num">1</span>; <span class="com">// nextInt(bound) 要求 bound &gt; 0</span>
         <span class="var">result</span>.<span class="fn">add</span>(<span class="var">amount</span>);
         <span class="var">remain</span> -= <span class="var">amount</span>; <span class="var">remainCount</span>--;
     }
@@ -905,6 +912,7 @@
         <div class="insight-method"><strong>一眼定位：</strong>热点账户=行锁热点+强一致，约束“单账户5万TPS+不能超扣+余额准确”。</div>
         <div class="insight-method"><strong>破题主线：</strong>记账分离+异步汇总+影子账户拆分，写流水(无热点)→聚合更新余额，强一致读走DB。</div>
         <div class="insight-method"><strong>易错点：</strong>查余额与扣减非原子(用UPDATE...WHERE balance&gt;=amt)；缓冲无持久化(流水先落库)；汇总与扣款并发冲突(加锁)；对账只看总额(须逐笔)。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-core-methodology.html#M06.06">M06.06 热点治理方法论</a> · <a href="chapter-11-middleware-engineering.html#C11.22">C11.22 延时任务</a></div>
       </div>
     </div>
   </div>
@@ -1024,6 +1032,7 @@
         <div class="insight-method"><strong>一眼定位：</strong>分布式锁选型=互斥+防死锁+可重入，三要素贯穿。</div>
         <div class="insight-method"><strong>破题主线：</strong>按一致性选：Redis(SET NX PX+Lua+看门狗)性能优先 / ZK·etcd(临时节点+fencing)强一致 / Redlock 慎用且非默认。</div>
         <div class="insight-method"><strong>易错点：</strong>释放锁误删他人锁(比对value)；SETNX与EXPIRE非原子；无看门狗锁过期死锁；锁不可重入(用Hash记threadId)。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-08-redis-cache.html#C08.05">C08.05 Redisson</a> · <a href="chapter-09-distributed-systems.html#C09.03">C09.03 分布式锁</a></div>
       </div>
     </div>
   </div>
@@ -2117,6 +2126,7 @@ public void saveAbnormal(...) {
         <div class="insight-method"><strong>一眼定位：</strong>缓存三问题=穿透/击穿/雪崩，核心是“先辨别是哪一种再对症”。</div>
         <div class="insight-method"><strong>破题主线：</strong>穿透(不存在的key)→布隆过滤器+空值；击穿(热点key瞬间)→互斥锁+逻辑过期+预热；雪崩(批量过期)→TTL随机化+多级缓存+降级。</div>
         <div class="insight-method"><strong>易错点：</strong>互斥锁无超时保护；空值TTL过长；批量预热相同TTL致雪崩；布隆更新延迟导致误判。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-08-redis-cache.html#C08.03">C08.03 穿透/击穿/雪崩</a> · <a href="chapter-08-redis-cache.html#C08.10">C08.10</a></div>
       </div>
     </div>
   </div>
@@ -2694,6 +2704,7 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
         <div class="insight-method"><strong>一眼定位：</strong>MQ积压=消费能力vs分区，核心是“扩消费+优化单条+应急+治理”。</div>
         <div class="insight-method"><strong>破题主线：</strong>扩容(分区限制消费者数→线程数需≤分区)，单条批量化/异步化，溢压跳过过期消息+临时扩分区。</div>
         <div class="insight-method"><strong>易错点：</strong>消费者数超分区数闲置；自动提交offset丢消息(须手动ack)；单条同步RPC限消费速度(异步化)。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-09-distributed-systems.html#C09.04">C09.04 Kafka</a> · <a href="chapter-11-middleware-engineering.html#C11.11">C11.11</a></div>
       </div>
     </div>
   </div>
@@ -3079,7 +3090,7 @@ public class BadPool {
     </div>
     <div class="qa-layer" data-layer="scenario">
       <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某电商平台订单中心服务（4核8G x 8节点），日均订单量 120 万，大促期间峰值 QPS 8000。大促当晚 22:00 告警群集中爆发 java.lang.OutOfMemoryError: Java heap space，3 个节点相继重启，GC 日志显示 Full GC 后堆内存仅从 6.2G 回落到 5.8G（回收不足 7%），Old Gen 占用持续上升。JVM 启动参数为 -Xms6g -Xmx6g -XX:+UseG1GC -XX:MaxGCPauseMillis=200，应用使用 SpringBoot 2.1.3 + MyBatis + Redisson。</p></div>
+      <div class="qa-layer-body"><p>某电商平台订单中心服务（4核8G x 8节点），日均订单量 120 万，大促期间峰值 QPS 8000。大促当晚 22:00 告警群集中爆发 java.lang.OutOfMemoryError: Java heap space，3 个节点相继重启，GC 日志显示 Full GC 后堆内存仅从 6.2G 回落到 5.8G（回收不足 7%），Old Gen 占用持续上升。JVM 启动参数为 -Xms6g -Xmx6g -XX:+UseG1GC -XX:MaxGCPauseMillis=200，应用使用 SpringBoot 2.1.3 + MyBatis + Redisson（存量 2.x 现场设定；排障方法同样适用于 Boot 3.x）。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
       <div class="qa-layer-title">核心挑战</div>
@@ -3109,7 +3120,7 @@ public class BadPool {
           <tbody>
             <tr><td>jmap + MAT</td><td>离线全量分析，Dominator Tree 直观定位泄漏链</td><td>dump 期间 STW，文件大下载慢</td></tr>
             <tr><td>Arthas heapdump</td><td>在线 attach，可 --live 只看存活对象</td><td>无法做引用链深度分析</td></tr>
-            <tr><td>JFR (Java Flight Recorder)</td><td>持续采样开销低（&lt;1%），可看对象分配热点</td><td>JDK 11+ 默认可用，8u 需商业授权解锁</td></tr>
+            <tr><td>JFR (Java Flight Recorder)</td><td>持续采样开销低（&lt;1%），可看对象分配热点</td><td>JDK 11+ 为标准开源能力（JDK 8u 商业版曾需授权）；生产以目标 JDK 为准</td></tr>
             <tr><td>jcmd + NMT</td><td>Native Memory Tracking 看堆外内存分布</td><td>需启动参数 -XX:NativeMemoryTracking=summary，有 5%-10% 性能损耗</td></tr>
           </tbody>
         </table>
@@ -3178,6 +3189,7 @@ public class BadPool {
         <div class="insight-method"><strong>一眼定位：</strong>OOM=五步定位法，核心是“先分类确认OOM类型再收栈”。</div>
         <div class="insight-method"><strong>破题主线：</strong>现象→归因(泄漏vs溢出看GC斜率)→证据(Arthas在线,jmap--live)→根因(MAT Dominator+GC Root)→修复(JFR观测24h)。</div>
         <div class="insight-method"><strong>易错点：</strong>不摘流量直接dump触发长STW；只看Shallow不看Retained；漏配HeapDumpOnOOM；只看溢出不查泄漏。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-02-gc-performance.html#C02.05">C02.05 内存泄漏</a> · <a href="chapter-02-gc-performance.html#C02.12">C02.12</a></div>
       </div>
     </div>
   </div>
@@ -3197,7 +3209,7 @@ public class BadPool {
     </div>
     <div class="qa-layer" data-layer="scenario">
             <div class="qa-layer-title">场景背景</div>
-      <div class="qa-layer-body"><p>某支付平台核心交易服务（8核16G x 12节点），日均交易 500 万笔，峰值 TPS 3000。某日 14:30 监控告警 3 个节点 CPU 持续 100% 持续 8 分钟未恢复，接口 P99 从 50ms 飙到 8000ms，支付成功率从 99.99% 跌至 97%。应用使用 SpringBoot 2.1.3 + Dubbo + Redis，JVM 参数 -Xms8g -Xmx8g -XX:+UseG1GC，线程池配置 corePoolSize=200, maxPoolSize=400。</p></div>
+      <div class="qa-layer-body"><p>某支付平台核心交易服务（8核16G x 12节点），日均交易 500 万笔，峰值 TPS 3000。某日 14:30 监控告警 3 个节点 CPU 持续 100% 持续 8 分钟未恢复，接口 P99 从 50ms 飙到 8000ms，支付成功率从 99.99% 跌至 97%。应用使用 SpringBoot 2.1.3 + Dubbo + Redis（存量 2.x 现场设定；排障方法同样适用于 Boot 3.x），JVM 参数 -Xms8g -Xmx8g -XX:+UseG1GC，线程池配置 corePoolSize=200, maxPoolSize=400。</p></div>
     </div>
     <div class="qa-layer" data-layer="challenge">
       <div class="qa-layer-title">核心挑战</div>
@@ -3237,7 +3249,7 @@ public class BadPool {
             <tr><td>top -Hp + jstack</td><td>JDK 自带无需安装，通用性强</td><td>jstack 输出大需 grep，高 CPU 时可能超时</td></tr>
             <tr><td>Arthas thread</td><td>一步到位显示线程+堆栈+CPU，支持火焰图</td><td>需预装 Arthas，attach 有性能开销</td></tr>
             <tr><td>async-profiler</td><td>生成火焰图最精准，开销极低（采样式）</td><td>需单独安装，生产环境需审批</td></tr>
-            <tr><td>JFR + JMC</td><td>JDK 内置持续 profiling，可回溯历史</td><td>JDK 8 需商业解锁，分析需桌面端 JMC</td></tr>
+            <tr><td>JFR + JMC</td><td>JDK 内置持续 profiling，可回溯历史</td><td>JDK 11+ 为标准开源能力；分析可用 JMC 桌面端</td></tr>
           </tbody>
         </table>
       </div>
@@ -3316,6 +3328,7 @@ public class BadPool {
         <div class="insight-method"><strong>一眼定位：</strong>CPU100%=四层下钻，核心是“区分业务线程还是GC/单核还是多核”。</div>
         <div class="insight-method"><strong>破题主线：</strong>top整机→top -Hp线程→jstack(连续3次转16进制grep)→代码级，并行查GC日志排除GC飙升。</div>
         <div class="insight-method"><strong>易错点：</strong>jstack单次快照误判；线程ID忘转十六进制；漏查jstat排GC导致CPU；未区分单点(数据倾斜)vs共性(代码bug)。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-02-gc-performance.html#C02.04">C02.04 CPU 排查</a> · <a href="chapter-02-gc-performance.html#C02.09">C02.09 调优全流程</a></div>
       </div>
     </div>
   </div>
@@ -3823,6 +3836,7 @@ public class BadPool {
         <div class="insight-method"><strong>一眼定位：</strong>虚拟线程=IO密集迁移+pinning规避，核心是“只用对场景”。</div>
         <div class="insight-method"><strong>破题主线：</strong>原理用户态调度+IO让出载体，迁移扫描synchronized换ReentrantLock、ThreadLocal改ScopedValue，IO密集启用/CPU密集保留。</div>
         <div class="insight-method"><strong>易错点：</strong>对CPU密集用虚拟线程更慢；synchronized致大量pinning；ThreadLocal内存膨胀；未检查pin频率。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-04-threadpool-virtual-threads.html#C04.04">C04.04 Virtual Threads</a> · <a href="chapter-04-threadpool-virtual-threads.html#C04.09">C04.09 pinning 治理</a></div>
       </div>
     </div>
   </div>
@@ -4227,7 +4241,7 @@ public class BadPool {
           <li><div class="followup-q">容器 OOMKilled 和 JVM OOM 有什么区别？如何区分？</div><div class="followup-a">JVM OOM 是堆内内存不足，抛 OutOfMemoryError，进程可能存活（取决于 -XX:+ExitOnOutOfMemoryError 配置）。OOMKilled 是容器内存超 cgroup limit 被内核 OOM Killer 杀死（exit code 137），JVM 来不及抛异常。区分方式：kubectl describe pod 看 Last State 的 Reason，OOMKilled 显示 "OOMKilled"；JVM OOM 在应用日志有 java.lang.OutOfMemoryError。解决：OOMKilled 调大容器 limit 或调小 -XX:MaxRAMPercentage；JVM OOM 排查内存泄漏。</div></li>
           <li><div class="followup-q">HPA 扩容滞后怎么解决？</div><div class="followup-a">三管齐下：1）缩短扩容触发周期——HPA 默认 15 秒采样，可调 --horizontal-pod-autoscaler-sync-period=10s；2）预扩容——大促前定时 CronJob 手动 scale 或调整 minReplicas；3）预测式扩容——基于历史流量曲线用 KEDA 或自定义预测算法提前扩容。缩容需保守：默认缩容稳定窗口 5 分钟（--horizontal-pod-autoscaler-downscale-stabilization），避免流量波动导致频繁缩扩。</div></li>
           <li><div class="followup-q">如何实现 Pod 的优雅下线不丢请求？</div><div class="followup-a">完整链路：K8s 删除 Pod → 发送 SIGTERM → 同时从 Endpoints 摘除（有 ~5 秒传播延迟）→ preStop hook 执行 sleep 15 等待 Endpoints 更新 → Spring Boot graceful shutdown 处理在途请求（server.shutdown=graceful, spring.lifecycle.timeout-per-shutdown-phase=30s）→ 关闭。关键：preStop 的 sleep 时间要大于 Endpoints 传播延迟（kube-proxy/iptables 更新），否则 SIGTERM 后还有新请求进来但 Pod 已关闭接收。</div></li>
-          <li><div class="followup-q">Java 21 在容器中有什么特殊优化？</div><div class="followup-a">1）容器感知默认开启（-XX:+UseContainerSupport），JVM 自动按 cgroup limit 设置 MaxHeapSize；2）G1 GC 在容器环境表现优，Java 21 G1 支持 NUMA 感知；3）虚拟线程在容器中更友好——高并发下线程数不爆炸，Pod 内存可控；4）-XX:+UseStringDeduplication 减少字符串内存占用，适合内存受限的容器；5）CRaC（Coordinated Restore at Checkpoint）在 Java 21 预览，可实现 Pod 秒级冷启动，解决 Java 启动慢问题。</div></li>
+          <li><div class="followup-q">Java 21 在容器中有什么特殊优化？</div><div class="followup-a">1）容器感知默认开启（-XX:+UseContainerSupport），JVM 自动按 cgroup limit 设置 MaxHeapSize；2）G1 GC 在容器环境表现优，Java 21 G1 支持 NUMA 感知；3）虚拟线程在容器中更友好——高并发下线程数不爆炸，Pod 内存可控；4）-XX:+UseStringDeduplication 减少字符串内存占用，适合内存受限的容器；5）CRaC（Coordinated Restore at Checkpoint）是 OpenJDK 项目/支持该机制的发行版能力（非 JDK 21 标准能力），可实现 Pod 秒级冷启动，需验证连接池与句柄的 restore 钩子。</div></li>
         </ul>
       </div>
     </div>
@@ -4422,7 +4436,7 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
   <h2 class="group-title">
     <span class="group-number">七</span>
     综合场景
-    <span class="group-count">6 题</span>
+    <span class="group-count">7 题</span>
   </h2>
 
   <!-- S07.01 电商订单全链路设计 -->
@@ -5136,6 +5150,73 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
       </div>
     </div>
   </div>
+
+
+  <!-- S07.07 订单超时关闭与库存回补 -->
+  <div class="qa-card" id="S07.07" data-difficulty="architect" data-priority="p1">
+    <div class="qa-header">
+      <div class="qa-badge">S07.07</div>
+      <div class="qa-question">订单超时关闭与库存回补：延时任务如何做到不重不漏且可对账？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+    </div>
+    <div class="scenario-tags">
+      <span class="scenario-tag tag-hot">高频</span>
+      <span class="scenario-tag">延时任务</span>
+      <span class="scenario-tag">状态机</span>
+      <span class="scenario-tag">库存</span>
+      <span class="scenario-tag">对账</span>
+    </div>
+    <div class="qa-layer" data-layer="scenario">
+      <div class="qa-layer-title">场景背景</div>
+      <div class="qa-layer-body"><p>电商交易日均创单 800 万，未支付订单需在 30 分钟后自动关闭并回补库存与优惠券。峰值创单 QPS 2 万，延时任务堆积可达千万级。要求：关单幂等、库存不超卖不丢回补、时钟回拨不误关、可对账可补跑。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="challenge">
+      <div class="qa-layer-title">核心挑战</div>
+      <div class="qa-layer-body"><p>① 延时驱动选型（Redis ZSET / MQ 延时 / 时间轮）与精度；② 关单与支付回调竞态；③ 库存回补与优惠券回滚的一致性；④ 分片扫描与执行器扩缩不漏单；⑤ 补跑与对账。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="principle">
+      <div class="qa-layer-title">分析框架</div>
+      <div class="qa-layer-body"><p>采用<strong>"状态机权威 + 延时触发可重复 + 副作用幂等"</strong>：订单状态机（CREATED→PAID/CLOSED）用 CAS/乐观锁；延时消息只负责唤醒；关单事务内做库存回补（或本地消息表异步），重复唤醒因状态已终态而空操作。驱动层见 <a href="chapter-11-middleware-engineering.html#C11.22">C11.22</a>。</p></div>
+    </div>
+    <div class="qa-layer" data-layer="practice">
+      <div class="qa-layer-title">解决方案</div>
+      <div class="qa-layer-body">
+        <p><strong>1. 触发</strong>：创单时写入 Redis ZSET（score=expireAt）或投递 RocketMQ 延时消息；分钟级精度足够，不必时间轮。</p>
+        <p><strong>2. 关单</strong>：<code>UPDATE orders SET status='CLOSED' WHERE id=? AND status='CREATED'</code>，影响行=0 则退出（已支付或已关闭）。</p>
+        <p><strong>3. 回补</strong>：同事务或 Outbox 发库存回补事件；库存侧按 orderId 幂等。</p>
+        <p><strong>4. 分片</strong>：ZSET 按 hash 分 16/32 槽，多消费者抢槽；扩缩容后补偿扫描近 2 个窗口。</p>
+        <p><strong>5. 对账</strong>：日终比对"应关未关 / 已关未回补"，自动补跑 + 告警。</p>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="deep">
+      <div class="qa-layer-title">深度追问</div>
+      <div class="qa-layer-body">
+        <ul class="followup-list">
+          <li><div class="followup-q">支付回调与关单并发谁赢？</div><div class="followup-a">状态机 CAS：支付成功把 CREATED→PAID；关单只接受 CREATED→CLOSED。两者互斥，后到者失败即安全。</div></li>
+          <li><div class="followup-q">时钟回拨导致提前关单？</div><div class="followup-a">expireAt 用业务库写入的绝对时间；扫描用 DB/Redis 服务端时间；检测到回拨则暂停自动关并告警。</div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="pitfall">
+      <div class="qa-layer-title">常见陷阱</div>
+      <div class="qa-layer-body">
+        <ul class="pitfall-list">
+          <li><strong>先删 ZSET 再关单</strong>：进程崩溃会漏关；应先关单成功再清理触发器，或依赖幂等可重复触发。</li>
+          <li><strong>回补无幂等</strong>：重复关单导致库存多回。库存流水按 orderId 唯一。</li>
+          <li><strong>单 ZSET 热点</strong>：千万成员集中一个 key，改分片。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-layer" data-layer="insight">
+      <div class="qa-layer-title">破题点拨</div>
+      <div class="qa-layer-body">
+        <div class="insight-method"><strong>一眼定位：</strong>超时关单=状态机权威+延时可重复+回补幂等。</div>
+        <div class="insight-method"><strong>破题主线：</strong>ZSET/延时消息唤醒→CAS 关单→Outbox 回补→分片+对账补跑。</div>
+        <div class="insight-method"><strong>易错点：</strong>先删触发器漏关；回补无幂等；单 key 热点；与支付回调竞态未用状态机。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-11-middleware-engineering.html#C11.22">C11.22</a> · <a href="chapter-11-middleware-engineering.html#C11.23">C11.23</a> · <a href="#S07.01">S07.01</a></div>
+      </div>
+    </div>
+  </div>
+
 
 </section>
 
@@ -5983,6 +6064,7 @@ msg.<span class="fn">putHeader</span>(<span class="str">"traceparent"</span>, ca
         <div class="insight-method"><strong>一眼定位：</strong>分布式追踪=异构贯穿+采样，核心是“先保证调用树可还原再采样”。</div>
         <div class="insight-method"><strong>破题主线：</strong>OpenTelemetry+W3C公示标，自动埋点+边界补全(线程池/MQ/定时任务)，头部+尾部采样，OTLP→Kafka→ClickHouse。</div>
         <div class="insight-method"><strong>易错点：</strong>只埋点不贯穿(断裂率度量)；线程池复用不装TTL幽灵span；只用头部采样丢下游；全量直写ES打爆。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-11-middleware-engineering.html#C11.09">C11.09 可观测性</a> · <a href="chapter-10-microservice-cloud.html#C10.15">C10.15</a></div>
       </div>
     </div>
   </div>
@@ -6071,6 +6153,7 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
         <div class="insight-method"><strong>一眼定位：</strong>可观测中台=标准+管道+产品+组织，不是又一个控制台。</div>
         <div class="insight-method"><strong>破题主线：</strong>OTel 统一 → Collector 治理采样/脱敏 → 信号分治存储 → 告警可下钻 → 成本配额。</div>
         <div class="insight-method"><strong>易错点：</strong>与 S08.06 混成排障题；直写后端；全量 Trace；平台背业务告警锅。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-11-middleware-engineering.html#C11.09">C11.09 可观测性</a> · <a href="chapter-10-microservice-cloud.html#C10.15">C10.15</a></div>
       </div>
     </div>
   </div>
@@ -7831,6 +7914,7 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
         <div class="insight-method"><strong>一眼定位：</strong>RAG幻觉=止血-诊断-根治-长效，约束“2h止血+7d根治+幻觉0.5%”。</div>
         <div class="insight-method"><strong>破题主线：</strong>止血(高险转人工+Prompt收紧+过期文档下线)→诊断(埋点定位)RAR→根治(混合检索+Rerank+强制引用+一致性校验+拒答)→长效(版本化+增量索引+反馈回流+告警)。</div>
         <div class="insight-method"><strong>易错点：</strong>只调Prompt不治本(检索错再严Prompt也错)；阈值一刀切(按类目分级)；无引用无法溯源；知识库无版本回滚。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-12-ai-engineering.html#C12.02">C12.02 RAG</a> · <a href="chapter-12-ai-engineering.html#C12.17">C12.17 幻觉治理</a></div>
       </div>
     </div>
   </div>
@@ -7929,6 +8013,7 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
         <div class="insight-method"><strong>一眼定位：</strong>LLM成本=计量-归因-优化-管控，约束“Token单月翻倍”。</div>
         <div class="insight-method"><strong>破题主线：</strong>网关Token级本地埋点+招牌对账，打业务/用户/场景标签归因，Prompt瘦身+模型分级+上下文压缩+缓存，租户配额。</div>
         <div class="insight-method"><strong>易错点：</strong>只看总成本不归因；限流只QPS不Token；缓存键动态前缀不命中(固定前缀动态后缀)；降级欠质量回归。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-12-ai-engineering.html#C12.09">C12.09 成本治理</a> · <a href="chapter-12-ai-engineering.html#C12.23">C12.23</a></div>
       </div>
     </div>
   </div>
@@ -8049,6 +8134,7 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
         <div class="insight-method"><strong>一眼定位：</strong>Agent死循环=应急-阻断-防护-验证，约束“秒级资损”。</div>
         <div class="insight-method"><strong>破题主线：</strong>冻结账户+人工核账+冲正，运行时护栏(总步数+单工具次数+循环检测)，工具幂等+高危二次确认+沙箱，全链路审计。</div>
         <div class="insight-method"><strong>易错点：</strong>只限总步数不限单工具次数；幂等键用业务参数(改request_id)；无沙箱直接执行高危；LLM格式错简单重试死循环(专项修复)。</div>
+        <div class="insight-method"><strong>相关卡片：</strong><a href="chapter-12-ai-engineering.html#C12.18">C12.18 Agent 治理</a> · <a href="chapter-12-ai-engineering.html#C12.23">C12.23</a></div>
       </div>
     </div>
   </div>

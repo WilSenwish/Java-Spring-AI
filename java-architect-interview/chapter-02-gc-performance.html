@@ -488,7 +488,7 @@ graph TD
             <p>若 -Xms &lt; -Xmx，堆从初始值向最大值扩张时需要申请内存并可能触发 FullGC 来重新划分分代。生产环境流量波动大，扩张时的 FullGC 不可控。相等则堆固定，分代边界稳定，GC 行为可预测。</p>
 
             <p><strong>追问 2：ParallelGCThreads 在容器内为什么不能默认？</strong></p>
-            <p>JVM 默认按<strong>宿主机</strong> CPU 核数计算 GC 线程数，容器内即使限制了 2 核，JVM 仍可能看到 32 核而启动 20 个 GC 线程，导致 GC 时过度抢占 CPU、应用线程饿死。容器场景务必显式设 <code class="inline-code">-XX:ParallelGCThreads</code> 和 <code class="inline-code">-XX:ConcGCThreads</code>，按 cgroup 实际核数（通常为 limit 的 5/8）设置。</p>
+            <p>JDK 10+ 默认开启 <code class="inline-code">UseContainerSupport</code>，有 CPU quota 时 JVM 按 cgroup 的 <code class="inline-code">ActiveProcessorCount</code> 推导 GC 线程数；<strong>未设 CPU limit / 旧 JDK</strong> 才可能看到宿主机核数，从而开出远超配额的 GC 线程，STW 时过度抢占。生产仍建议显式设 <code class="inline-code">-XX:ParallelGCThreads</code> 与 <code class="inline-code">-XX:ConcGCThreads</code>。注意：默认公式里的「核数×5/8」是 <code class="inline-code">ParallelGCThreads</code> 的启发式，不是「把 limit 再乘 5/8」。</p>
 
             <p><strong>追问 3：MaxGCPauseMillis 设成 10ms 会怎样？</strong></p>
             <p>G1 会尝试缩小 CSet（每次回收更少 Region）来满足 10ms，导致回收速度跟不上分配速度，堆占用上升，最终触发 FullGC（退化为 Serial Old 单线程整理）。停顿目标要与吞吐权衡，一般 100-200ms 是甜点区。</p>

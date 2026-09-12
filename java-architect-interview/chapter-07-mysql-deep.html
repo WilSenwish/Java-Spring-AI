@@ -518,7 +518,7 @@ sequenceDiagram
                 <li><strong>误以为 binlog 参与崩溃恢复</strong>：崩溃恢复靠 redo；binlog 仅在 2PC 的 PREPARE 未决事务裁决时被查询。</li>
                 <li><strong>redo log 设太小</strong>：导致"redo 追不上脏页刷盘"频繁主动 checkpoint，业务抖动。</li>
                 <li><strong>STATEMENT 格式主从不一致</strong>：<code class="inline-code">NOW()</code>、<code class="inline-code">UUID()</code>、自增列并发在从库重放结果不同，生产应用 ROW。</li>
-                <li><strong>忽略半同步降级</strong>：从库超时后半同步自动降级为异步，此时主库崩溃会丢数据——需监控 <code class="inline-code">RPL_SEMI_SYNC_MASTER_STATUS</code>。</li>
+                <li><strong>忽略半同步降级</strong>：从库超时后半同步自动降级为异步，此时主库崩溃会丢数据——需监控半同步状态（8.4：<code class="inline-code">RPL_SEMI_SYNC_SOURCE_STATUS</code>；8.0 旧名 <code class="inline-code">RPL_SEMI_SYNC_MASTER_STATUS</code>）。</li>
               </ul>
             </div>
           </div>
@@ -655,6 +655,21 @@ flowchart LR
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：慢 SQL 治理 SOP 闭环</div>
+          <div class="qa-layer-body">
+            <p>把"发现 → 归因 → 治理 → 回归 → 防回归"做成可复用闭环，而不是单次 EXPLAIN：</p>
+            <ol>
+              <li><strong>发现</strong>：慢查询日志（<code class="inline-code">long_query_time</code>）+ <code class="inline-code">pt-query-digest</code> 按总耗时排序；并行看 performance_schema <code class="inline-code">events_statements_summary_by_digest</code> 的 TOP SQL。</li>
+              <li><strong>归因</strong>：线下/只读副本 <code class="inline-code">EXPLAIN</code> → 必要时 <code class="inline-code">EXPLAIN ANALYZE</code>（8.0.18+）对比估算 vs 实际；可疑优化器用 optimizer_trace。</li>
+              <li><strong>治理</strong>：索引/改写/分页/拆分；变更走灰度与回滚预案（见 C07.12 DDL）。</li>
+              <li><strong>回归</strong>：同负载重放或影子流量对比 P95/扫描行数；确认无新全表扫。</li>
+              <li><strong>防回归</strong>：CI 拦截无索引大表扫描（可选）、慢 SQL 看板告警、统计信息定期 ANALYZE。</li>
+            </ol>
+          </div>
+        </div>
+
       </div>
 
       <!-- ============================================================ -->
@@ -1040,7 +1055,8 @@ SELECT CHANNEL_NAME, SERVICE_STATE, LAST_ERROR_NUMBER, LAST_ERROR_MESSAGE
 FROM performance_schema.replication_connection_status;</code></pre>
 
             <p><strong>半同步复制详细配置</strong>（插件与变量：master/slave → <strong>source/replica</strong>）：</p>
-            <p><strong>MySQL 8.4 LTS（现行）</strong>：源端 <code class="inline-code">semisync_source.so</code>，副本 <code class="inline-code">semisync_replica.so</code>。启用后若副本接收线程已在跑，需 <code class="inline-code">STOP REPLICA IO_THREAD; START REPLICA IO_THREAD;</code> 才会以半同步身份重连。</p>
+            <p><strong>MySQL 8.4 LTS（生产主线）</strong>：源端 <code class="inline-code">semisync_source.so</code>，副本 <code class="inline-code">semisync_replica.so</code>。启用后若副本接收线程已在跑，需 <code class="inline-code">STOP REPLICA IO_THREAD; START REPLICA IO_THREAD;</code> 才会以半同步身份重连。8.4 LTS 官方支持窗口长（至约 2032），仍是多数企业默认基线。</p>
+            <p><strong>MySQL 9.x / 9.7 LTS（2026）</strong>：可作为演进目标跟踪；升级须单独评估兼容性与工具链。新集群若无强制约束，优先 8.4 LTS；跟进 9.x 时对照官方 LTS 说明，勿把创新版默认当生产唯一基线。</p>
             <pre><code># 源端 my.cnf（8.4）
 [mysqld]
 # INSTALL PLUGIN rpl_semi_sync_source SONAME 'semisync_source.so';
@@ -1069,12 +1085,12 @@ public class SemiSyncMonitorService {
     private JdbcTemplate jdbcTemplate;
     
     /**
-     * 检查主库半同步状态
+     * 检查源端半同步状态（8.4 用 SOURCE；8.0 旧名为 RPL_SEMI_SYNC_MASTER_STATUS）
      */
-    public boolean isMasterSemiSyncEnabled() {
+    public boolean isSourceSemiSyncEnabled() {
         try {
             String status = jdbcTemplate.queryForObject(
-                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_MASTER_STATUS'", 
+                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_SOURCE_STATUS'", 
                 String.class
             );
             return "ON".equals(status);
@@ -1084,12 +1100,12 @@ public class SemiSyncMonitorService {
     }
     
     /**
-     * 获取半同步等待的从库数量
+     * 获取半同步等待的副本数量（8.4；8.0 旧名 RPL_SEMI_SYNC_MASTER_WAITING_SLAVE_COUNT）
      */
-    public int getWaitingSlaveCount() {
+    public int getWaitingReplicaCount() {
         try {
             String count = jdbcTemplate.queryForObject(
-                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_MASTER_WAITING_SLAVE_COUNT'", 
+                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_SOURCE_WAITING_FOR_REPLICA_COUNT'", 
                 String.class
             );
             return Integer.parseInt(count);
@@ -1099,12 +1115,12 @@ public class SemiSyncMonitorService {
     }
     
     /**
-     * 检查从库半同步状态
+     * 检查副本半同步状态（8.4；8.0 旧名 RPL_SEMI_SYNC_SLAVE_STATUS）
      */
-    public boolean isSlaveSemiSyncEnabled() {
+    public boolean isReplicaSemiSyncEnabled() {
         try {
             String status = jdbcTemplate.queryForObject(
-                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_SLAVE_STATUS'", 
+                "SHOW STATUS LIKE 'RPL_SEMI_SYNC_REPLICA_STATUS'", 
                 String.class
             );
             return "ON".equals(status);
@@ -1119,15 +1135,15 @@ public class SemiSyncMonitorService {
     public void monitorSemiSyncDelay() {
         try {
             // 检查半同步是否正常
-            if (!isMasterSemiSyncEnabled()) {
-                logger.warn("主库半同步复制已关闭，可能存在数据丢失风险");
+            if (!isSourceSemiSyncEnabled()) {
+                logger.warn("源端半同步复制已关闭，可能存在数据丢失风险");
                 return;
             }
             
-            // 检查等待的从库数量
-            int waitingCount = getWaitingSlaveCount();
+            // 检查等待的副本数量
+            int waitingCount = getWaitingReplicaCount();
             if (waitingCount == 0) {
-                logger.warn("没有从库等待半同步ACK，数据一致性可能存在问题");
+                logger.warn("没有副本等待半同步ACK，数据一致性可能存在问题");
                 return;
             }
             
@@ -1533,6 +1549,22 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：窗口函数与 CTE（MySQL 8.0+ 高频）</div>
+          <div class="qa-layer-body">
+            <p><strong>窗口函数</strong>：<code class="inline-code">ROW_NUMBER/RANK/DENSE_RANK</code>、<code class="inline-code">SUM() OVER (PARTITION BY … ORDER BY …)</code> 等，在结果集上开窗而不折叠行，适合排行榜、去重留最新、会话连续区间。对比：GROUP BY 会折叠行；窗口保留明细并附聚合列。</p>
+            <p><strong>CTE</strong>：<code class="inline-code">WITH … AS (…)</code> 提升可读性；<code class="inline-code">WITH RECURSIVE</code> 做树/图有界遍历（组织树、账单层级）。约束：递归终止条件必须明确，防止无限递归；深树优先物化路径/闭包表。</p>
+            <div class="code-block"><pre><code><span class="com">-- 每用户保留最新一条订单</span>
+<span class="kw">WITH</span> ranked <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> o.*, <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> user_id <span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>) rn
+  <span class="kw">FROM</span> orders o
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> ranked <span class="kw">WHERE</span> rn = <span class="num">1</span>;</code></pre></div>
+            <p>工程注意：窗口/CTE 不能替代索引设计；大分区窗口易临时表/文件排序，仍要看 EXPLAIN。</p>
+          </div>
+        </div>
+
       </div>
 
       <!-- C07.11 MySQL 的死锁检测原理与排查实战？ -->

@@ -1123,20 +1123,20 @@ flowchart TD
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart LR
-    T4["传统 read/write<br/>4 次拷贝<br/>4 次上下文切换"] --> S2["sendfile<br/>1 次 CPU 拷贝<br/>2 次切换"]
-    S2 --> M2["mmap<br/>1 次 CPU 拷贝<br/>4 次切换"]
-    S2 --> G0["sendfile + DMA gather<br/>1 次拷贝<br/>2 次切换"]
+    T4["传统 read/write<br/>4 次拷贝<br/>4 次上下文切换"] --> S2["sendfile<br/>1×CPU + 2×DMA<br/>2 次切换"]
+    S2 --> M2["mmap<br/>1×CPU + 1×DMA<br/>4 次切换"]
+    S2 --> G0["sendfile + DMA gather<br/>0×CPU + 2×DMA<br/>2 次切换"]
     G0 --> Z["理想零拷贝<br/>0 次 CPU 拷贝<br/>内核直接收发"]
     style S2 fill:#dbeafe,stroke:#2563eb
     style G0 fill:#dcfce7,stroke:#059669
               </div>
-              <div class="chart-caption">图 13.8-1 零拷贝技术演进：4 次 → 2 次 → 1 次 → 0 次 CPU 拷贝</div>
+              <div class="chart-caption">图 13.8-1 零拷贝技术演进：关注 CPU 拷贝次数；gather 为 0 CPU + 2 DMA</div>
             </div>
 
             <p><strong>传统 read/write（4 次拷贝，4 次上下文切换）</strong>：磁盘 → 内核页缓存 → 用户空间 Buffer → Socket 缓冲区 → 网卡。CPU 全程参与拷贝。</p>
             <p><strong>mmap（2 次拷贝，4 次切换）</strong>：把文件映射到用户虚拟地址空间，用户直接读写映射区，实际由内核按需换页。省一次内核→用户的显式拷贝，但仍需 CPU 把数据从页缓存拷到 Socket 缓冲区。</p>
-            <p><strong>sendfile（2 次拷贝，2 次切换）</strong>：Linux 2.1 引入，内核态直接把页缓存数据发送到 Socket，无需经过用户空间。拷贝次数降到 2 次（DMA 磁盘→内核，CPU 内核→Socket 缓冲区），上下文切换从 4 次降到 2 次。</p>
-            <p><strong>sendfile + DMA gather copy（1 次拷贝）</strong>：Linux 2.4+，网卡支持 scatter-gather，内核把页缓存的内存地址和长度描述符传给网卡，DMA 直接从页缓存取数据发网卡，<strong>CPU 完全不参与数据拷贝</strong>。仅剩 1 次 DMA 拷贝（磁盘→内存）。</p>
+            <p><strong>sendfile（2 次拷贝，2 次切换）</strong>：Linux 2.1 引入，内核态直接把页缓存数据发送到 Socket，无需经过用户空间。拷贝 = <strong>1 次 DMA</strong>（磁盘→页缓存）+ <strong>1 次 CPU</strong>（页缓存→Socket 缓冲区），上下文切换从 4 次降到 2 次。</p>
+            <p><strong>sendfile + DMA gather（0 次 CPU 拷贝，2 次 DMA）</strong>：Linux 2.4+，网卡支持 scatter-gather，内核把页缓存的内存地址和长度描述符传给网卡，DMA 直接从页缓存取数据发网卡，<strong>CPU 完全不参与数据拷贝</strong>。路径仍含磁盘→页缓存（DMA）与页缓存→网卡（DMA），合计 <strong>2 次 DMA、0 次 CPU 拷贝</strong>。</p>
             <p><strong>演进驱动力</strong>：CPU 参与内存拷贝是浪费——数据根本不经过业务逻辑，只是在内核与用户空间之间"搬运"。零拷贝把搬运工作交给 DMA 和内核管道，释放 CPU 做有用功。</p>
           </div>
         </div>

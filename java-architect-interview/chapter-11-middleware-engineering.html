@@ -3272,6 +3272,18 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             </ul>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：时钟回拨、动态分片与关单场景</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>时钟回拨</strong>：依赖本地时钟的延时任务在 NTP 回拨时可能早触发/晚触发；分布式场景优先用 Redis/MQ 服务端时间或单调业务截止时间戳，并对回拨做检测（拒绝过大负跳）。</li>
+              <li><strong>动态分片</strong>：海量延时任务按 <code class="inline-code">shard = hash(bizId) % N</code> 分槽扫描，执行器增减时重算分片并做窗口补偿，避免漏关单。</li>
+              <li><strong>订单超时关单</strong>：分钟级宽松延时用 Redis ZSET/延时消息即可；关单必须幂等（状态机：待支付→已关闭），并与库存回补、优惠券回滚同事务或本地消息表，详见场景题互链。</li>
+            </ul>
+          </div>
+        </div>
+
       </div>
 
       <!-- ============================================================ -->

@@ -135,7 +135,7 @@ flowchart TD
               <li><strong>范围分片（Range）</strong>：按分片键值范围划分 Chunk，利于范围查询，但易热点（自增 ID/时间戳集中写入同一 Chunk）。</li>
               <li><strong>哈希分片（Hash）</strong>：对分片键取哈希均匀分布，写入分散抗热点，但范围查询需广播到所有 Shard（scatter-gather）。</li>
             </ul>
-            <p><strong>Chunk 迁移</strong>：Balancer 后台检测各 Shard Chunk 数量不均，按分片键范围迁移 Chunk 到目标 Shard。迁移期间源 Shard 仍服务读，写双重写入，迁移完成更新 Config Server 路由表。分片键<strong>一经设定即不可变</strong>（5.0 起支持 resharding 在线重分片，但成本高）。</p>
+            <p><strong>Chunk 迁移</strong>：Balancer 后台检测各 Shard Chunk 数量不均，按分片键范围迁移 Chunk 到目标 Shard。迁移期间源 Shard 仍服务读，写双重写入，迁移完成更新 Config Server 路由表。历史集合的分片键是<strong>强约束</strong>：上线前必须审慎设计；MongoDB 5.0+ 支持 resharding 在线重分片，但代价高（全量数据搬迁），不宜当作随意变更手段。</p>
 
             <p><strong>副本集与选举</strong>：每个 Shard 是一个副本集，含 1 个 Primary（读写）+ N 个 Secondary（同步复制，可读）+ 可选 Arbiter（仅投票不存数据）。Primary 故障时，具备投票权的节点发起选举（<strong>Raft 变体</strong>），多数派同意后新 Primary 上位。关键参数：<code class="inline-code">writeConcern</code>（写多少节点才确认，如 w:majority 防回滚）、<code class="inline-code">readPreference</code>（读主还是读从）。脑裂通过"多数派投票"避免——少数派分区无法选出 Primary，自动降级为只读。</p>
 
@@ -1370,6 +1370,21 @@ flowchart TD
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产实证：信创与国产库迁移边界</div>
+          <div class="qa-layer-body">
+            <p>信创场景常见路径：MySQL/Oracle → <strong>OceanBase / TiDB / openGauss</strong> 等。决策不只看协议兼容，还要看：</p>
+            <ul>
+              <li><strong>SQL 方言与工具链</strong>：存储过程、序列、HINT、备份恢复、监控导出是否齐套。</li>
+              <li><strong>一致性与多活</strong>：金融核心偏强一致多副本（OceanBase/Paxos 等）；互联网 HTAP 可看 TiDB+TiFlash。</li>
+              <li><strong>迁移方法</strong>：结构转换 → 全量+增量（CDC）→ 双写/影子流量 → 切流回滚；禁止"停机一天全量导入"作为唯一方案。</li>
+              <li><strong>应用改造</strong>：去掉强依赖的 Oracle 私有包/自治事务；隐式类型与排序规则一次性治理。</li>
+            </ul>
+            <p>与平台工程配合：把"兼容性矩阵 + 回归用例集"固化为 Golden Path，避免每个项目重复踩坑。</p>
+          </div>
+        </div>
+
       </div>
 
       <!-- ============================================================ -->

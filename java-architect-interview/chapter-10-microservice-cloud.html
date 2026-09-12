@@ -42,6 +42,7 @@
         <li><a href="#C10.25"><span class="toc-number">C10.25</span>Dubbo vs Spring Cloud 选型</a></li>
         <li><a href="#C10.26"><span class="toc-number">C10.26</span>@RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用</a></li>
         <li><a href="#C10.27"><span class="toc-number">C10.27</span>Nacos 与配置/注册中心推送范式全景</a></li>
+<li><a href="#C10.28"><span class="toc-number">C10.28</span>平台工程与内部开发者平台（IDP）</a></li>
       </ol>
     </aside>
 
@@ -61,11 +62,11 @@
         <h1 class="chapter-title">微服务与云原生</h1>
         <p class="chapter-subtitle">单体→SOA→微服务→Service Mesh→Serverless 的架构演进、Eureka→Nacos→xDS 的服务发现演进、Zuul→Gateway→APISIX 的网关演进、Hystrix→Resilience4j→Sentinel 的熔断框架演进、IaaS→PaaS→Serverless 的云计算演进：直击 K8s 容器感知、Istio Sidecar 解耦、绞杀者模式迁移、单元化异地多活、全链路灰度与 FaaS 冷启动</p>
         <div class="chapter-meta">
-          <span>题目数：27</span>
+          <span>题目数：28</span>
           <span class="meta-divider">|</span>
           <span>高级开发 ×7</span>
           <span class="meta-divider">|</span>
-          <span>架构级 ×17</span>
+          <span>架构级 ×18</span>
           <span class="meta-divider">|</span>
           <span>专家级 ×3</span>
           <span class="meta-divider">|</span>
@@ -97,7 +98,7 @@
             <p><strong>Eureka（2012，Netflix）</strong>：专为服务注册设计的 <strong>AP 系统</strong>。去中心化对等节点，Peer-to-Peer 复制，允许分区内各节点数据不一致；客户端 30s 心跳 + 自我保护模式。Spring Cloud Netflix 1.x 时代的事实标准。（Eureka 2.x 开发中止，Spring Cloud Netflix 时代已过，当前推荐 Nacos 作为注册发现与配置中心）Eureka 1.x 作为演进历史对比保留。</p>
             <p><strong>etcd（2013，CoreOS）/ Consul（2014，HashiCorp）</strong>：均 CP（Raft）。etcd 是 K8s 的元数据存储底座，通用 KV，可做注册中心但非其设计目标；Consul 集服务发现 + KV 配置 + 健康检查 + 多数据中心于一体，功能丰富但生态偏运维侧。</p>
             <p><strong>Nacos（2018，阿里）</strong>：同时支持 <strong>AP（默认，Distro 协议）与 CP（Raft 协议）</strong>按需切换，临时实例走 AP、持久实例走 CP；并将<strong>注册中心与配置中心合二为一</strong>。Spring Cloud Alibaba 标配，国产化主流。</p>
-            <p><strong>趋势：Service Mesh 时代，注册发现下沉到 Sidecar</strong>。Istio 通过 Pilot 从 K8s API Server、Consul、Nacos 等多种来源订阅服务端点，经 xDS 协议下发到 Envoy，应用代码完全无感知。注册发现从"应用 SDK 职责"演变为"平台能力"。</p>
+            <p><strong>趋势：Service Mesh 时代，注册发现下沉到 Sidecar</strong>。现代 Istio 以 <strong>Istiod</strong>（一体化控制面；文献中的 Pilot/Citadel/Galley 为历史组件拆分叙事）从 K8s API Server、Consul、Nacos 等多种来源订阅服务端点，经 xDS 协议下发到 Envoy，应用代码完全无感知。注册发现从"应用 SDK 职责"演变为"平台能力"。</p>
           </div>
         </div>
 
@@ -152,7 +153,7 @@ flowchart TD
             <ul>
               <li><strong>中小规模 + Spring Cloud Alibaba</strong> → <strong>Nacos</strong>（注册 + 配置一体，AP/CP 可切，开箱即用）。</li>
               <li><strong>云原生 K8s 体系</strong> → K8s 内置 <strong>Service + CoreDNS + Endpoints</strong> 做注册发现（平台能力），配置中心用 <strong>Nacos/Apollo</strong> 或 K8s ConfigMap。</li>
-              <li><strong>Service Mesh</strong> → <strong>Istio Pilot + xDS</strong>，应用无感知，注册来源可为 K8s/Nacos/Consul。</li>
+              <li><strong>Service Mesh</strong> → <strong>Istiod + xDS</strong>（现行控制面；Pilot 为历史组件名），应用无感知，注册来源可为 K8s/Nacos/Consul。</li>
               <li><strong>老项目 Dubbo</strong> → ZK 或迁移到 Nacos（Dubbo 3 推荐 Nacos）。</li>
               <li><strong>多语言 + 多数据中心</strong> → Consul。</li>
             </ul>
@@ -578,7 +579,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
                 <tr><td>1.5.0</td><td>2019</td><td>WebFlux / Reactor 响应式限流支持</td></tr>
                 <tr><td>1.6.0</td><td>2019</td><td>Spring Cloud Gateway / Zuul 网关流控、热点参数限流增强</td></tr>
                 <tr><td>1.8.x</td><td>2020</td><td>慢调用比例熔断重构、熔断与限流规则统一（至今仍是默认行为）</td></tr>
-                <tr><td>2.0 alpha</td><td>规划中</td><td>云原生（K8s CRD 声明规则、与 Mesh Sidecar 融合、去历史包袱）</td></tr>
+                <tr><td>2.0.0-alpha</td><td>2023-02（预览，尚未 GA）</td><td>云原生方向（流量路由/负载均衡基础能力等）；生产仍以 1.8.x 为主，勿当 GA 使用</td></tr>
               </tbody>
             </table>
             <p><strong>② 集群限流生产部署要点</strong>：解决"单机限流控不住全局总量"——Sentinel Token Server 统一发令牌，全局 QPS 可控。</p>
@@ -776,6 +777,7 @@ spec:
                 <li><strong>JDK 8 旧版本无容器感知</strong>：JVM 按宿主机算内存，容器内 OOM。</li>
                 <li><strong>忽视 K8s API 版本废弃迁移</strong>：extensions/v1beta1 等旧 API 在 1.16 移除、PodSecurityPolicy 在 1.25 移除，升级集群版本前需用 <code class="inline-code">kubectl convert</code> / deprecation 工具预检并迁移 YAML。</li>
                 <li><strong>Dockershim 移除后仍用 Docker 运行时</strong>：K8s 1.24+ 不再内置 dockershim，需切换到 containerd/CRI-O 或安装 cri-dockerd 作为过渡，否则节点 Kubelet 启动失败。</li>
+                <li><strong>版本基线（2026）</strong>：生产跟踪集群常落在受支持次新小版本；至 2026-08 官方线已推进到 <strong>1.37</strong> 一带（具体以所用发行版支持矩阵为准），升级前核对 API 废弃与准入控制器变更。</li>
               </ul>
             </div>
           </div>
@@ -883,7 +885,7 @@ flowchart LR
               <div class="chart-caption">图 10.5-1 微服务架构演进：治理能力从应用内逐步外移到平台</div>
             </div>
 
-            <p><strong>趋势</strong>：① <strong>Ambient Mesh（Istio 1.22 GA，2024）</strong>：去 Sidecar，用 ztunnel（L4 代理）+ waypoint（L7 代理）分层，大幅降低资源开销与延迟；② <strong>eBPF 加速数据面</strong>：Cilium Service Mesh 在内核态处理流量，绕过内核协议栈；③ <strong>多集群 Mesh</strong>：跨集群统一治理与故障迁移。</p>
+            <p><strong>趋势</strong>：① <strong>Ambient Mesh（Istio 1.24 GA，2024-11；1.22 仍为预览）</strong>：去 Sidecar，用 ztunnel（L4 代理）+ waypoint（L7 代理）分层，大幅降低资源开销与延迟；② <strong>eBPF 加速数据面</strong>：Cilium Service Mesh 在内核态处理流量，绕过内核协议栈；③ <strong>多集群 Mesh</strong>：跨集群统一治理与故障迁移。</p>
           </div>
         </div>
 
@@ -903,10 +905,10 @@ flowchart LR
             <div class="mermaid-container">
               <div class="mermaid">
 flowchart TB
-    subgraph CP["控制面 Istiod"]
-        Pilot["Pilot<br/>服务发现+路由"]
-        Citadel["Citadel<br/>mTLS 证书"]
-        Galley["Galley<br/>配置校验"]
+    subgraph CP["控制面 Istiod（现行一体；Pilot/Citadel/Galley 为历史拆分叙事）"]
+        Pilot["发现+路由<br/>（历史名 Pilot）"]
+        Citadel["mTLS 证书<br/>（历史名 Citadel）"]
+        Galley["配置校验<br/>（历史名 Galley）"]
     end
     subgraph Node1["Pod A"]
         App1["App 进程"]
@@ -1663,7 +1665,7 @@ flowchart LR
               <thead><tr><th>方案</th><th>原理</th><th>启动时间</th><th>代价</th></tr></thead>
               <tbody>
                 <tr><td>GraalVM Native Image</td><td>AOT 编译为原生可执行文件，启动即就绪</td><td>毫秒级</td><td>编译慢、反射/动态代理需配置、生态适配（Spring Boot 3 AOT）</td></tr>
-                <tr><td>CRaC（JDK 21）</td><td>应用启动后打快照，下次从快照恢复</td><td>百毫秒级</td><td>需适配 CRaC 接口、快照存储依赖</td></tr>
+                <tr><td>CRaC（OpenJDK 项目/支持该机制的发行版）</td><td>应用启动后打快照，下次从快照恢复</td><td>百毫秒级</td><td>非 JDK 21 标准能力；需适配 CRaC 接口、快照存储依赖</td></tr>
                 <tr><td>AppCDS</td><td>类数据共享，减少类加载开销</td><td>秒级</td><td>提升有限，需配合其他方案</td></tr>
                 <tr><td>轻量框架</td><td>Quarkus/Micronaut/Helidon，原生支持 Native</td><td>毫秒级（Native）</td><td>学习成本、迁移成本</td></tr>
               </tbody>
@@ -1977,7 +1979,7 @@ flowchart LR
               <li><strong>OIDC</strong>：基于 OAuth2 的身份层，标准化 ID Token（JWT），解决"用户是谁"。</li>
             </ul>
 
-            <p><strong>Istio 安全模型</strong>：① <strong>身份</strong>：Citadel（istio-ca）为每个服务签发 X.509 证书，SPIFFE ID 作为身份标识；② <strong>认证</strong>：PeerAuthentication（mTLS 严格/宽容模式）+ RequestAuthentication（JWT 校验）；③ <strong>授权</strong>：AuthorizationPolicy 定义 L4/L7 访问控制（基于 namespace/service/method/header）；④ <strong>加密</strong>：Sidecar 间自动 mTLS，应用无感知。</p>
+            <p><strong>Istio 安全模型</strong>：① <strong>身份</strong>：Istiod 内建 CA（历史组件名 Citadel / istio-ca）为每个服务签发 X.509 证书，SPIFFE ID 作为身份标识；② <strong>认证</strong>：PeerAuthentication（mTLS 严格/宽容模式）+ RequestAuthentication（JWT 校验）；③ <strong>授权</strong>：AuthorizationPolicy 定义 L4/L7 访问控制（基于 namespace/service/method/header）；④ <strong>加密</strong>：Sidecar 间自动 mTLS，应用无感知。</p>
           </div>
         </div>
 
@@ -4023,15 +4025,9 @@ flowchart TD
                 <tr><td>9</td><td>旧资源未关闭 OOM</td><td>线程数只涨不跌最终 OOM</td><td>刷新建新 Bean 但旧线程池/HttpClient 未 shutdown</td></tr>
               </tbody>
             </table>
-            <div class="callout callout-pitfall">
-              <div class="callout-title">避坑黄金准则</div>
-              <ul>
-                <li>@RefreshScope <strong>只给纯配置属性类</strong>，禁止加在业务 Service / Mapper / Feign / 定时任务类上。</li>
-                <li>业务代码<strong>不要缓存 RefreshScope Bean 的字段快照</strong>；每次用时实时 get 或走监听回调。</li>
-                <li>重型资源（线程池、连接池、客户端）<strong>禁止交给 @RefreshScope</strong>，需手动销毁旧资源再建新资源。</li>
-                <li>事务 / @Async / AOP 切面 Bean <strong>禁止加 @RefreshScope</strong>。</li>
-                <li>最优替代：放弃 @RefreshScope，用 @NacosConfigListener / EnvironmentChangeEvent 手动监听，刷新单例 Bean 字段，无新旧双实例问题。</li>
-              </ul>
+            <div class="callout callout-tip">
+              <div class="callout-title">避坑提要</div>
+              <p>@RefreshScope 只给纯配置属性类；业务勿缓存字段快照；重资源与事务/AOP Bean 禁止加 @RefreshScope。完整准则见下方「常见陷阱」层。</p>
             </div>
           </div>
         </div>
@@ -4100,6 +4096,22 @@ flowchart TD
           </div>
         </div>
 
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <div class="callout callout-pitfall">
+              <div class="callout-title">避坑黄金准则</div>
+              <ul>
+                <li>@RefreshScope <strong>只给纯配置属性类</strong>，禁止加在业务 Service / Mapper / Feign / 定时任务类上。</li>
+                <li>业务代码<strong>不要缓存 RefreshScope Bean 的字段快照</strong>；每次用时实时 get 或走监听回调。</li>
+                <li>重型资源（线程池、连接池、客户端）<strong>禁止交给 @RefreshScope</strong>，需手动销毁旧资源再建新资源。</li>
+                <li>事务 / @Async / AOP 切面 Bean <strong>禁止加 @RefreshScope</strong>。</li>
+                <li>最优替代：放弃 @RefreshScope，用 @NacosConfigListener / EnvironmentChangeEvent 手动监听，刷新单例 Bean 字段，无新旧双实例问题。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">排障 SOP 与工程速查</div>
           <div class="qa-layer-body">
@@ -4127,13 +4139,13 @@ flowchart TD
         </div>
       </div>
 
-      <div class="qa-card"id="C10.27" data-difficulty="architect" data-priority="p1">
+      <div class="qa-card" id="C10.27" data-difficulty="architect" data-priority="p1">
         <div class="qa-header">
           <div class="qa-badge">C10.27</div>
           <div class="qa-question">配置中心 / 注册中心的推送范式全景：通知+二次拉取 vs Watch 直推 vs 纯 Pull？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
         </div>
-        <div class="qa-layer" data-layer="scenario">
-          <div class="qa-layer-title">问题背景</div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
           <div class="qa-layer-body">
             <p>客户端如何"及时拿到"配置 / 服务实例变更，是配置中心（Nacos/Apollo）与注册中心（Nacos/Eureka/ZK/Etcd/Consul）的核心差异点。常要求横向对比"推送机制"，本质是对三种数据同步范式的取舍。</p>
           </div>
@@ -4187,6 +4199,79 @@ flowchart TD
                 <li><strong>依赖 UDP 单通道</strong>：不配定时拉取兜底，UDP 丢包导致实例列表陈旧。</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- C10.28 平台工程与内部开发者平台（IDP） -->
+      <div class="qa-card" id="C10.28" data-difficulty="architect" data-priority="p1">
+        <div class="qa-header">
+          <div class="qa-badge">C10.28</div>
+          <div class="qa-question">平台工程与内部开发者平台（IDP）：Golden Path、自助交付与平台团队边界如何设计？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+        </div>
+
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body">
+            <p>平台工程不是"再做一个运维门户"，而是把<strong>认知负荷从业务团队转移到平台</strong>：用 Golden Path（默认正确路径）让开发者自助完成创建服务、CI/CD、可观测、权限与环境，同时保留逃生舱。核心回答：IDP 装什么？平台与业务的所有权边界？如何用 SLO/错误预算约束平台自身？</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body">
+            <p><strong>运维工单时代</strong>：申请机器/域名/证书靠人肉，交付周期周级。</p>
+            <p><strong>DevOps 工具堆砌</strong>：Jenkins/K8s/Prometheus 齐了，但每个团队自建流水线，标准分裂、重复造轮。</p>
+            <p><strong>平台工程 / IDP（2020s）</strong>：以开发者体验为产品，Backstage 等门户聚合软件目录、模板、文档与评分；GitOps（Argo CD）+ Progressive Delivery 把发布能力产品化。</p>
+            <p><strong>与云原生合流</strong>：Service Mesh、可观测、密钥管理下沉为平台能力；业务只写业务（呼应 C10.05 Mesh、C10.17 SLO）。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>Golden Path</strong>：官方推荐默认路径（脚手架、基础镜像、流水线、探针、日志规范），可选但默认最优；逃生舱允许偏离并登记例外。</li>
+              <li><strong>软件目录</strong>：服务所有权、依赖、文档、SLO、Oncall 一处可查（Backstage Catalog 思路）。</li>
+              <li><strong>自助 &gt; 工单</strong>：环境、密钥、Topic、数据库 schema 变更尽量 API/门户自助，工单只处理例外。</li>
+              <li><strong>平台也是产品</strong>：有用户（研发）、有路线图、有采纳率/TTFV（Time To First Value）指标。</li>
+            </ul>
+            <table class="compare-table">
+              <thead><tr><th>职责</th><th>平台团队</th><th>业务团队</th></tr></thead>
+              <tbody>
+                <tr><td>流水线/基础镜像/合规门禁</td><td>拥有</td><td>消费，提需求</td></tr>
+                <tr><td>服务 SLO / 告警路由</td><td>提供模板与管道</td><td>定义业务 SLI/告警</td></tr>
+                <tr><td>业务功能发布</td><td>提供发布能力</td><td>对变更结果负责</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body">
+            <p><strong>最小可行 IDP</strong>：① 服务脚手架（Boot 4 + 探针 + OTel Agent + 结构化日志）；② 一键流水线（构建/单测/镜像/安全扫描/部署）；③ 软件目录（Owner、依赖、Runbook）；④ 环境自助（dev/staging 命名空间配额）；⑤ 可观测默认接入（互链 C10.15/C11.09）。</p>
+            <p><strong>治理</strong>：Scorecard（测试覆盖、有无 Runbook、有无 SLO）驱动改进，而非单纯审计惩罚。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body">
+            <p><strong>追问 1：平台工程和 SRE 什么关系？</strong> SRE 偏可靠性与错误预算；平台工程偏开发者生产力与路径标准化。二者重叠在可观测/发布，但 KPI 不同（MTTR vs TTFV）。</p>
+            <p><strong>追问 2：强制 Golden Path 会不会扼杀创新？</strong> 默认强制、例外可审批；创新在沙箱集群验证后回流成新路径版本。</p>
+          </div>
+        </div>
+
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body">
+            <ul>
+              <li><strong>门户堆链接</strong>：没有模板与自助 API，只是书签墙。</li>
+              <li><strong>平台背业务锅</strong>：未划清 SLO 所有权，业务告警全打给平台。</li>
+              <li><strong>一次做完大而全</strong>：先交付 1 条 Golden Path 端到端，再扩展。</li>
+            </ul>
           </div>
         </div>
       </div>

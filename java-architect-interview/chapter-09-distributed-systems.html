@@ -512,7 +512,7 @@ flowchart TD
             <p><strong>ActiveMQ（2004，JMS 规范）</strong>：传统消息中间件，支持持久化但基于 Queue 的"推/拉"模型，单机吞吐万级。痛点：Master-Slave 主备切换弱、消息堆积性能下降、路由灵活但复杂。（新项目使用率下降：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar，此处仅作为 MQ 演进历史对比保留）</p>
             <p><strong>RabbitMQ（2007，AMQP）</strong>：Erlang 实现，灵活的 Exchange-Queue-Binding 路由模型，低延迟。痛点：吞吐仍受限（万级~十万级）、消息堆积后性能急剧下降、集群镜像队列开销大。</p>
             <p><strong>Kafka（2010，LinkedIn）</strong>：颠覆性设计——分布式提交日志（Partition+Segment 追加写）、零拷贝、页缓存、消费者 pull 模型、副本 ISR。吞吐百万级，消息堆积不影响性能（顺序读盘）。从"消息队列"重新定义为"分布式流平台"。</p>
-            <p><strong>Kafka 版本演进</strong>：① <strong>0.11（2017）</strong>：幂等生产者 + 事务，实现 Kafka 内部 Exactly-Once；② <strong>2.4（2019）</strong>：Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区，减少 rebalance 迁移量；③ <strong>2.8（2021）</strong>：KRaft 模式预览（Kafka Raft Metadata Mode），开始"去 ZooKeeper 化"；④ <strong>3.3（2022）</strong>：KRaft 模式生产可用（GA），新集群推荐直接使用 KRaft，ZK 模式进入迁移路径；⑤ <strong>3.5~3.7（2023-2024）</strong>：ZK→KRaft 迁移与分层存储（Tiered Storage，KIP-405）能力逐步落地；3.7 支持动态 KRaft 仲裁增删 Controller 节点；⑥ <strong>3.9</strong>：ZooKeeper 模式的最后支持版本，也是升级 Kafka 4.0 前的迁移中间站；⑦ <strong>4.0（2025-03）</strong>：彻底移除 ZooKeeper 依赖，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议 GA（大幅缩短 rebalance 停顿），KIP-932 队列语义 Early Access（支持点对点消息模型），Broker 要求 Java 17、Client/Streams Java 11，MirrorMaker 1 移除。</p>
+            <p><strong>Kafka 版本演进</strong>：① <strong>0.11（2017）</strong>：幂等生产者 + 事务，实现 Kafka 内部 Exactly-Once；② <strong>2.4（2019）</strong>：Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区，减少 rebalance 迁移量；③ <strong>2.8（2021）</strong>：KRaft 模式预览（Kafka Raft Metadata Mode），开始"去 ZooKeeper 化"；④ <strong>3.3（2022）</strong>：KRaft 模式生产可用（GA），新集群推荐直接使用 KRaft，ZK 模式进入迁移路径；⑤ <strong>3.5~3.7（2023-2024）</strong>：ZK→KRaft 迁移与分层存储（Tiered Storage，KIP-405）能力逐步落地；3.7 支持动态 KRaft 仲裁增删 Controller 节点；⑥ <strong>3.9</strong>：ZooKeeper 模式的最后支持版本，也是升级 Kafka 4.0 前的迁移中间站；⑦ <strong>4.0（2025-03）</strong>：彻底移除 ZooKeeper 依赖，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议 GA（大幅缩短 rebalance 停顿），KIP-932 队列语义 Early Access（支持点对点消息模型），Broker 要求 Java 17、Client/Streams Java 11，MirrorMaker 1 移除。<strong>分层存储要点</strong>：本地盘保留热段，冷段迁对象存储以降本；读冷数据有额外延迟，需按保留策略/读放大评估，不是"无限保留无代价"。</p>
             <p><strong>Pulsar（2016，Yahoo）</strong>：计算存储分离——Broker 无状态（计算）、BookKeeper 分层存储（持久化）。原生多租户、跨地域复制、存算独立扩缩。弥补 Kafka 的存储与计算耦合、Rebalance 慢、多租户弱等痛点。</p>
             <p><strong>趋势</strong>：① 从"消息队列"到"流平台"再到"事件流基础设施"——Kafka Streams/KSQL 流处理、Schema Registry；② 存算分离（Pulsar/Redpanda）成为新架构方向；③ 云原生 MQ——Serverless Kafka（Confluent Cloud/阿里云 MSK）、按需扩缩；④ 流批一体——Kafka 替代部分数据仓库 ETL 链路；⑤ Kafka 4.0（2025-03）彻底移除 ZooKeeper，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议大幅缩短 rebalance 停顿。</p>
           </div>
@@ -640,6 +640,17 @@ props.<span class="fn">put</span>(ProducerConfig.TRANSACTIONAL_ID_CONFIG, <span 
             </div>
           </div>
         </div>
+
+        <div class="qa-layer" data-layer="extension">
+          <div class="qa-layer-title">扩展：Kafka Tiered Storage 落地边界</div>
+          <div class="qa-layer-body">
+            <p><strong>解决什么</strong>：本地盘成本随保留时长线性上涨；Tiered Storage（KIP-405）把冷段迁到对象存储，Broker 本地保留热数据与索引。</p>
+            <p><strong>何时启用</strong>：长保留（天~周以上）、读冷比例可控、可接受冷读延迟；审计/回溯类 Topic 优先。</p>
+            <p><strong>工程清单</strong>：① 对象存储权限与跨 AZ 成本；② 冷读放大与 Fetch 超时调参；③ 与压缩/紧凑 Topic 策略兼容性；④ 监控本地 vs 远端命中率；⑤ 升级路径确认所用小版本 Tiered 是否 GA。</p>
+            <p><strong>不是银弹</strong>：超高频随机冷读、强实时全量重放场景，分层可能拖垮尾延迟——此时缩短保留或独立冷数据管道更合适。</p>
+          </div>
+        </div>
+
       </div>
 
       <!-- ============================================================ -->

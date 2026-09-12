@@ -213,14 +213,16 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
         <div class="qa-layer" data-layer="extension">
           <div class="qa-layer-title">扩展：Redis 8.0 新特性 — 从缓存到统一多模数据平台（2025-05 GA）</div>
           <div class="qa-layer-body">
-            <p><strong>核心变化</strong>：Redis 8.0 是历史上最大的单版本跃迁——从"内存缓存 + 模块扩展"向<strong>统一多模数据平台</strong>的范式转变。三条主线：① <strong>One Redis 统一发行</strong>（Redis Stack 的搜索/JSON/时序/概率等能力内置化，消除模块管理碎片化）；② <strong>性能大幅跃迁</strong>（全新多线程 I/O；官方相对 Redis 7.2.5 基准：149 项测试中 90 项更快，p50 延迟降幅约 <strong>5.4%～87.4%</strong>——峰值非全命令保证；全量同步峰值复制缓冲约省 <strong>35%</strong>）；③ <strong>向 AI 原生演进</strong>（Vector Set 向量检索数据结构，Beta）。</p>
+            <p><strong>核心变化</strong>：Redis 8.0 是历史上最大的单版本跃迁——从"内存缓存 + 模块扩展"向<strong>统一多模数据平台</strong>的范式转变。三条主线：① <strong>One Redis 统一发行</strong>（Redis Stack 的搜索/JSON/时序/概率等能力内置化，消除模块管理碎片化）；② <strong>性能大幅跃迁</strong>（全新多线程 I/O；官方相对 Redis 7.2.5 基准：149 项测试中 90 项更快，p50 延迟降幅约 <strong>5.4%～87.4%</strong>——峰值非全命令保证；全量同步峰值复制缓冲约省 <strong>35%</strong>）；③ <strong>向 AI 原生演进</strong>（Vector Set：8.0 引入时为 Beta；8.4+ 性能与命令面增强，生产需按版本评测召回/延迟）。</p>
 
             <p><strong>版本演进脉络</strong>：</p>
             <ul>
               <li><strong>Redis 6.0（2020）</strong>：多线程网络 IO（命令执行仍单线程），网络读写多线程化，多核利用第一步。</li>
               <li><strong>Redis 7.0（2022）</strong>：listpack 替换 ziplist（消除连锁更新）+ Functions（Lua 脚本服务端一等公民管理）+ ACL 细粒度权限。</li>
               <li><strong>Redis 7.2~7.4（2023~2024）</strong>：Hash 字段过期（<code class="inline-code">HEXPIRE</code>/<code class="inline-code">HPEXPIRE</code>/<code class="inline-code">HTTL</code>），为 8.0 新 Hash 命令铺路。</li>
-              <li><strong>Redis 8.0（2025-05 GA）</strong>：One Redis 统一发行 + 全新多线程 I/O + Vector Set（Beta，HNSW 索引）+ 30+ 项性能优化（见 Redis 8 GA：相对 7.2.5，命令 p50 延迟降幅区间约 5.4%～87.4%；全量同步峰值缓冲约省 35%，非日常驻留内存普降）。</li>
+              <li><strong>Redis 8.0（2025-05 GA）</strong>：One Redis 统一发行 + 全新多线程 I/O + Vector Set（发布时 Beta，HNSW 索引）+ 30+ 项性能优化（相对 7.2.5，命令 p50 延迟降幅区间约 5.4%～87.4%；全量同步峰值缓冲约省 35%）。</li>
+              <li><strong>Redis 8.4（2025-11 GA）</strong>：Vector Set 性能强化（AVX2/AVX512、<code class="inline-code">VRANGE</code>）、<code class="inline-code">FT.HYBRID</code> 混合检索、原子字符串 CAS（DIGEST/DELEX）、Cluster 原子槽迁移等；向量能力进入可生产评估窗口。</li>
+              <li><strong>Redis 8.8 / 8.10（2026）</strong>：8.x 线持续小版本；选型以目标发行版 Release Notes 为准，勿把 8.0 当作"最新终态"。</li>
             </ul>
 
             <p><strong>Redis 7.x vs 8.0 关键对比</strong>：</p>
@@ -231,7 +233,7 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre></di
               <tbody>
                   <tr><td><strong>发行形态</strong></td><td>Redis CE + Redis Stack（模块需单独安装）</td><td>Redis Open Source（统一内置，无模块）</td></tr>
                   <tr><td><strong>I/O 多线程</strong></td><td>6.0 引入旧实现（网络读写）</td><td>全新实现，多核吞吐更高</td></tr>
-                  <tr><td><strong>向量检索</strong></td><td>仅 Redis Search 模块</td><td>Vector Set 原生数据结构（Beta）+ Redis Search 内置</td></tr>
+                  <tr><td><strong>向量检索</strong></td><td>仅 Redis Search 模块</td><td>Vector Set 原生（8.0 引入；8.4+ 强化）+ Redis Search 内置</td></tr>
                   <tr><td><strong>Hash 字段操作</strong></td><td>HEXPIRE/HPEXPIRE/HTTL（7.4+）</td><td>新增 HGETEX/HSETEX/HGETDEL</td></tr>
                   <tr><td><strong>命令延迟</strong></td><td>官方对照基线 Redis 7.2.5</td><td>149 测中 90 项更快；p50 降幅约 5.4%～87.4%（峰值≠均值，生产以自身压测为准）</td></tr>
                   <tr><td><strong>复制缓冲峰值</strong></td><td>全量同步峰值缓冲</td><td>官方场景峰值缓冲约省 35%（非副本日常驻留内存普降）</td></tr>

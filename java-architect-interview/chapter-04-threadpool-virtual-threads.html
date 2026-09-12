@@ -357,7 +357,7 @@ pool.<span class="fn">shutdown</span>();                              <span clas
               <li><strong>Tomcat 自定义 TaskQueue 的反直觉行为</strong>：Tomcat 的 <code class="inline-code">org.apache.tomcat.util.threads.TaskQueue</code> 继承 <code class="inline-code">LinkedBlockingQueue</code>，其 <code class="inline-code">offer</code> 方法在线程数未达 <code class="inline-code">maxThreads</code> 时<strong>返回 false</strong>，迫使 <code class="inline-code">ThreadPoolExecutor</code> 创建新线程而非排队等待——这与原生 <code class="inline-code">ThreadPoolExecutor</code> 的"核心→队列→最大"流程不同，Tomcat 实际行为是"核心→最大→队列"，优先用线程而非积压。</li>
               <li><strong>拒绝策略</strong>：默认 <code class="inline-code">ThreadPoolExecutor.AbortPolicy</code>（抛 <code class="inline-code">RejectedExecutionException</code>），可配置为 <code class="inline-code">CallerRunsPolicy</code> 让提交线程（即 Tomcat Acceptor 线程）自己执行任务，起到背压效果。</li>
               <li><strong>虚拟线程整合（JDK 21+）</strong>：设置 <code class="inline-code">spring.threads.virtual.enabled=true</code> 后，Tomcat 请求处理线程自动切换为虚拟线程，每个请求分配一个 VT，不受 <code class="inline-code">maxThreads</code> 限制（VT 数量可达百万级）。此时 <code class="inline-code">maxThreads</code> 退化为"平台线程数"限制，仅控制载体线程规模。</li>
-              <li><strong>VT 的 pinning 陷阱</strong>：VT 在 <code class="inline-code">synchronized</code> 块中执行阻塞 IO（如数据库查询、HTTP 调用）时会 pin 到 carrier thread 无法卸载，等效于平台线程，降低吞吐。JDK 21 已优化 <code class="inline-code">synchronized + Object.wait</code> 可卸载的场景，但 <code class="inline-code">synchronized + IO</code> 仍会 pin。</li>
+              <li><strong>VT 的 pinning 陷阱</strong>：VT 在 <code class="inline-code">synchronized</code> 块中执行阻塞 IO（如数据库查询、HTTP 调用）时会 pin 到 carrier thread 无法卸载，等效于平台线程，降低吞吐。JDK 21（JEP 444）下 <code class="inline-code">Object.wait</code> <strong>仍钉住</strong>，调度器通过临时扩并行度补偿；真正接近可卸载是 JDK 24（JEP 491）对 synchronized pinning 的改造。<code class="inline-code">synchronized + IO</code> 在 JDK 21–23 仍会 pin。</li>
               <li><strong>混合模式建议</strong>：IO 密集型任务用 VT，CPU 密集型任务仍用平台线程池（如 <code class="inline-code">ForkJoinPool</code>），避免 VT 被 CPU 计算长期占用载体线程。</li>
               <li><strong>生产实践</strong>：典型 IO 密集场景下，Spring Boot 3.2 + JDK 21 的收益取决于 IO 等待占比、连接池和下游容量，必须用同一业务压测验证。JDK 21-23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 排查 pinning 热点，JDK 24+ 改用 <code class="inline-code">jdk.VirtualThreadPinned</code> JFR 事件。</li>
             </ul>
@@ -514,12 +514,12 @@ flowchart LR
       </div>
 
       <!-- ============================================================ -->
-      <!-- C04.04 Virtual Threads(Java 21)如何重构并发模型？ -->
+      <!-- C04.04 Virtual Threads(Java 21/25)如何重构并发模型？ -->
       <!-- ============================================================ -->
       <div class="qa-card" id="C04.04" data-difficulty="architect" data-priority="p0">
         <div class="qa-header">
           <div class="qa-badge">C04.04</div>
-          <div class="qa-question">Virtual Threads(Java 21)如何重构并发模型？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
+          <div class="qa-question">Virtual Threads(Java 21/25)如何重构并发模型？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p0">P0</span></div>
         </div>
 
         <div class="qa-layer" data-layer="essence">
@@ -945,7 +945,7 @@ spring:
             <ul>
               <li><strong><code class="inline-code">spring.threads.virtual.enabled=true</code> 的作用范围</strong>：① Tomcat/Jetty/Undertow 的请求处理线程 → VT；② <code class="inline-code">@Async</code> 异步任务执行器 → VT；③ Spring <code class="inline-code">TaskExecutor</code> bean → VT。</li>
               <li><strong>不受影响的组件</strong>：<code class="inline-code">ScheduledExecutor</code>、Stream <code class="inline-code">parallel()</code>、<code class="inline-code">CompletableFuture</code> 默认仍用 <code class="inline-code">ForkJoinPool.commonPool()</code>——需手动传 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 或注入 Spring 管理的 <code class="inline-code">TaskExecutor</code>。</li>
-              <li><strong>局限性一：synchronized 阻塞导致 pinning</strong>：<code class="inline-code">synchronized</code> 块内有阻塞 IO（如 DB 查询、HTTP 调用），VT 会固定在 carrier thread 上无法卸载，等效于平台线程。JDK 21 已优化 <code class="inline-code">synchronized + Object.wait</code> 可卸载，但 <code class="inline-code">synchronized + IO</code> 仍会 pin。</li>
+              <li><strong>局限性一：synchronized 阻塞导致 pinning</strong>：<code class="inline-code">synchronized</code> 块内有阻塞 IO（如 DB 查询、HTTP 调用），VT 会固定在 carrier thread 上无法卸载，等效于平台线程。JDK 21（JEP 444）下 <code class="inline-code">Object.wait</code> <strong>仍钉住</strong>（调度器扩并行度补偿）；JDK 24（JEP 491）起 synchronized pinning 基本消除。<code class="inline-code">synchronized + IO</code> 在 JDK 21–23 仍会 pin。</li>
               <li><strong>局限性二：ThreadLocal 继承问题</strong>：新建虚拟线程不会自动继承父线程的普通 ThreadLocal；JDK 21 推荐在 one-way immutable context 场景使用 ScopedValue（当时为预览特性，JDK 25 转正）。</li>
               <li><strong>局限性三：第三方库未适配</strong>：MySQL JDBC 驱动在 <code class="inline-code">synchronized</code> 块内执行 IO 会 pin；Netty EventLoop 不支持 VT（VT 不适合事件驱动框架）。</li>
               <li><strong>局限性四：监控与排查困难</strong>：jstack 中 VT 数量极多，传统线程分析工具（如 async-profiler）需适配。</li>
