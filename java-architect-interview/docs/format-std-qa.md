@@ -46,13 +46,26 @@
       <div class="chapter-header">
         <div class="chapter-number">CHAPTER NN / TOPIC WORDS</div>
         <h1 class="chapter-title">主标题</h1>
-        <p class="chapter-subtitle">一句话副题</p>
+        <p class="chapter-subtitle">钩子副题（约一两句；禁止「演进罗列：直击考点」句式）</p>
         <div class="chapter-meta">
           <span>题目数：N</span> <span class="meta-divider">|</span>
           <span>高级开发 ×a</span> <span class="meta-divider">|</span>
           <span>专家级 ×b</span>   <span class="meta-divider">|</span>
           <span>架构级 ×c</span>   <span class="meta-divider">|</span>
           <span>预计复习：XX 分钟</span>
+        </div>
+        <!-- 篇章导读：对齐对应 mind 页 ①②③，不堆目录 -->
+        <div class="chapter-lead">
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">核心知识链</div>
+            <p class="chapter-lead-chain">A → B → C → D</p>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">本篇思维模式</div>
+            <ul class="chapter-lead-mind">
+              <li><strong>模式名</strong>：一句落地口径（通用能力链到方法论页）</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -74,6 +87,7 @@
 要点：
 - 每章**正文几乎不使用 `h2/h3` 分隔**（正文以 `qa-card` 为唯一单元，通常仅侧栏 `h3 本篇目录` 与末尾 `h2 参考资料` 两个标题）。
 - `chapter-header` 的难度分布（`×a/×b/×c`）必须与下方各卡片的 `data-difficulty` 统计一致；`题目数：N` 必须等于 `qa-card` 数量。
+- `chapter-subtitle` 只做钩子；**核心知识链 + 本篇思维模式** 放在 `chapter-lead`（每章恰好一处）。知识链对齐对应 mind 页 ①②③，写成有因果的箭头链；思维模式写本领域口径 2～4 条，通用能力链到 `chapter-core-methodology.html`。
 
 ## 3. `qa-card` 卡片规范
 
