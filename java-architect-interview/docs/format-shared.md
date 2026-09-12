@@ -71,10 +71,37 @@
 
 ## 4. 资源按需载入规则
 
-- `assets/nav.js`：全站导航交互脚本，**所有页面（含安全手册单页）均引入**；职责含：侧栏 TOC 滚动高亮（按 `href="#id"` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`）、返回顶部、阅读进度条、以及**表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
+- `assets/nav.js`：全站导航交互脚本，**所有页面（含安全手册单页）均引入**；职责含：
+  1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）。
+  2. 返回顶部、阅读进度条。
+  3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
 - `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
 - 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。
+
+### 4.1 侧栏分组标题（`toc-group-title`）
+
+- **必须**写成可点击锚点：`<a class="toc-group-title" href="#…">…</a>`。**禁止** `<div class="toc-group-title">`（`nav.js` 只高亮带 `href="#id"` 的链接，div 无法参与高亮同步）。
+- 目标锚点须在正文存在对应 `id`（组导读 / `section` / `m-subgroup-title` 等），并建议带 `scroll-margin-top`（`design-system.css` 已覆盖 `.epq-group-head` / `.scenario-group` / `.eng-group` / `.m-subgroup-title[id]` / `.dimension-section[id]`）。
+- 有分组的页面一览：
+
+  | 页面 | 分组标题 `href` 目标 | 正文锚点载体 |
+  |------|----------------------|--------------|
+  | 核心原理八篇 | `#epq-group-NN` | `.epq-group-head` |
+  | 场景题 | `#group-N` | `.scenario-group` |
+  | 核心方法论 | `#m-group-01~06` / `#hc-section` 等 | `.m-subgroup-title[id]` / `.dimension-section[id]` |
+  | 工程化要点 | `#G01`～`#G08` | `.eng-group` |
+
+### 4.2 顶 / 底章节导航（`chapter-nav-top` / `chapter-nav`）
+
+- **顶底内容必须一致**：`.chapter-nav-top` 与 `.chapter-nav` 的内侧 HTML（链接集合与文案）须相同，仅外层 class 不同。
+- **箭头**：统一字面量 `←` / `→`（禁止底栏用 `&#8592;` / `&#8594;`、顶栏用字面量的混用）；思维导图外链箭头仍用 `&#8599;`。
+- **回目录文案**：统一「返回目录」（禁止「返回首页」）。
+- **结构**（三槽）：
+  - 左：`nav-prev`（上一篇）或首页首篇 / 特殊页用 `nav-home`（`← 返回目录`）
+  - 中：`nav-center` 内 `nav-mind` 链接；篇章页顺序固定为 **核心方法论 → 全部章节 → 本章思维导图**
+  - 右：`nav-next`（下一篇）或末篇 / 收束页用 `nav-home`（`返回目录 →`）
+- **去重**：若左侧 `nav-prev` 已指向某页，中间 `nav-center` **不得再重复**同一目标（方法论 / 工程化互链页尤须注意）。
 
 ## 5. 通用内容元素
 
@@ -99,6 +126,7 @@ index.html                         # 首页
 |------|------|------|----------|
 | `C##.##` | 标准 QA 题号（Chapter.编号） | `C01.01` | chapter-01 ~ 15 |
 | `M##.##` | 核心方法论条目 | `M01.01` | chapter-core-methodology |
+| `G##.##` | 工程化要点条目 | `G01.01` | chapter-engineering-practices |
 | `E##.##` | 核心原理速查条目 | `E01.01` | chapter-questions-eight-part |
 | `S##.##` | 场景题条目 | `S01.01` | chapter-questions-scenario |
 
@@ -119,3 +147,5 @@ index.html                         # 首页
 - **命令占位符转义**：`<pid>` 之类占位符必须写 `&lt;pid&gt;`，否则被浏览器当作未知标签、"pid" 文本被吞（mind-02 曾踩坑）。
 - **顶层 div 必须平衡**：`qa-card` 的关闭 `</div>` 缺失会让后续所有卡片嵌套进该卡、并"偷走" `page-wrapper` 的关闭标签（chapter-09 曾踩坑）；改卡后应复核整页 div 深度为 0。
 - **改文件名后的同步**：凡改名为 `chapter-*` 的文件，需同步更新 `../../index.html`、`../index.html`、`chapter-overview-priority.html` 内的引用 href（曾发生安全手册从 `security/` 移入本目录并更名）。
+- **侧栏分组标题禁止用 div**：`<div class="toc-group-title">` 无法被 `nav.js` 高亮；必须用 `<a class="toc-group-title" href="#…">`，且正文有对应 `id`（方法论 / 工程化曾踩坑）。
+- **顶底导航须同文**：改 `chapter-nav-top` 时同步 `chapter-nav`；箭头与「返回目录」文案见 §4.2。

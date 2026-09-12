@@ -35,10 +35,11 @@
     <!-- ② 主体 -->
     <main class="content-main">
 
-      <!-- ③ 顶部章节导航 -->
+      <!-- ③ 顶部章节导航（底部 .chapter-nav 内侧须与此完全一致） -->
       <nav class="chapter-nav-top">
-        <a href="index.html" class="nav-home">← 返回目录</a>
-        <a href="index.html" class="nav-home">全部章节</a>
+        <a href="chapter-NN-prev.html" class="nav-prev">← 第 NN 篇 …</a>
+        <!-- 首篇可用：<a href="index.html" class="nav-home">← 返回目录</a> -->
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-NN-….html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-NN-next.html" class="nav-next">第 NN 篇 … →</a>
       </nav>
 
@@ -98,7 +99,7 @@
 要点：
 - 每章**正文几乎不使用 `h2/h3` 分隔**（正文以 `qa-card` 为唯一单元，通常仅侧栏 `h3 本篇目录` 与末尾 `h2 参考资料` 两个标题）。
 - `chapter-header` 的难度分布（`×a/×b/×c`）必须与下方各卡片的 `data-difficulty` 统计一致；`题目数：N` 必须等于 `qa-card` 数量。
-- `chapter-subtitle` 只做钩子；**核心知识链（含阶段说明）+ 工程化要点（分点）+ 本篇思维模式** 放在 `chapter-lead`（每章恰好一处）。知识链要对齐 mind ①②③ 并写清因果，禁止只剩箭头关键词；工程化要点用 `<ul class="chapter-lead-points">`，建议 **7～8 条**，每条写清发布/观测/回滚/门禁/容量等可执行口径，忌口号化短句；思维模式用命名条目（`<strong>模式名</strong>：口径`），建议 **6 条**，写本领域落地口径，禁止每章复制同一句「见方法论」。顶部/底部 `nav-center` 须含指向 `chapter-core-methodology.html` 的「核心方法论」链接，且位于「全部章节」左侧（顺序：核心方法论 → 全部章节 → 本章思维导图）。
+- `chapter-subtitle` 只做钩子；**核心知识链（含阶段说明）+ 工程化要点（分点）+ 本篇思维模式** 放在 `chapter-lead`（每章恰好一处）。知识链要对齐 mind ①②③ 并写清因果，禁止只剩箭头关键词；工程化要点用 `<ul class="chapter-lead-points">`，建议 **7～8 条**，每条写清发布/观测/回滚/门禁/容量等可执行口径，忌口号化短句；思维模式用命名条目（`<strong>模式名</strong>：口径`），建议 **6 条**，写本领域落地口径，禁止每章复制同一句「见方法论」。顶部/底部导航须同文（详见 `format-shared.md` §4.2）：箭头用字面量 `←`/`→`；`nav-center` 顺序固定为 **核心方法论 → 全部章节 → 本章思维导图**。
 
 ## 3. `qa-card` 卡片规范
 
@@ -165,3 +166,4 @@
 3. 6 个核心层顺序不可乱；`extension / production` 为可选项。
 4. 更新首页 / 大盘页对该题锚点的引用（`../../index.html`、`chapter-overview-priority.html`）。
 5. 含图卡片才引入 mermaid；数字 / 括号 / 颜色须符合 `format-shared.md` 第 7 节转义铁律。
+6. 若改动顶/底导航：保证 `chapter-nav-top` 与 `chapter-nav` 内侧同文（`format-shared.md` §4.2）。

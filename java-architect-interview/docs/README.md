@@ -89,6 +89,6 @@ java-architect-interview/
 
 | 文档 | 内容 | 适用对象 |
 |------|------|----------|
-| [`format-shared.md`](format-shared.md) | 全站共用格式规则：资源与骨架、设计令牌、标签体系、命名/ID 规范、通用注意事项 | 所有页面 |
+| [`format-shared.md`](format-shared.md) | 全站共用格式规则：资源与骨架、设计令牌、标签体系、**侧栏分组标题 / 顶底导航归一**（§4.1–4.2）、命名/ID 规范、通用注意事项 | 所有页面 |
 | [`format-std-qa.md`](format-std-qa.md) | 标准 QA 章节格式规则：15 个 `C##.##` 章节共用 | chapter-01 ~ 15 |
-| [`format-special.md`](format-special.md) | 特殊章节独享规则 | 方法论 / 大盘 / 原理 / 场景 / 安全 / 首页 |
+| [`format-special.md`](format-special.md) | 特殊章节独享规则（含方法论 / 工程化侧栏分组锚点） | 方法论 / 工程化 / 大盘 / 原理 / 场景 / 安全 / 首页 |

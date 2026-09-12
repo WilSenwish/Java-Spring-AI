@@ -18,7 +18,7 @@
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：核心思维方法论，91 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M11` 共 11 组分层侧边目录。
+- **定位**：核心思维方法论，91 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M12` 共 12 组分层侧边目录。
 - **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -30,7 +30,11 @@
 - **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 91）。
 - **优先级**：**部分卡片（39/91）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 52 卡不带；不计入全站题目优先级口径（92/209/58 = 359）。
 - **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签）；携带优先级的卡片另加 `priority-p*` 徽标。
-- **目录**：按模块（M01~M12）分组的多段侧边目录，各模块一组锚点 `M##.##`。
+- **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
+  - 元思维组 ①～⑥ → `#m-group-01`～`#m-group-06`（正文 `.m-subgroup-title` 带同名 `id`）
+  - 五大主题 + 附录 → `#hc-section` / `#ha-section` / `#hp-section` / `#sec-section` / `#ir-section` / `#iv-section`
+  - 条目锚点仍为 `M##.##`
+- **导航**：顶/底 `chapter-nav-top` / `chapter-nav` 内容一致；左 `nav-home`「← 返回目录」、右 `nav-next`「工程化要点 →」；中间 `nav-center` 为「全部章节 → 本章思维导图」（勿与左右重复链工程化）。
 - 单条新增规则：`id = M{模块}.{序}`；`insight → principle → application` 三层层序固定。
 
 ## <a id="2"></a>2. 优先级大盘 chapter-overview-priority（ov 组件）
@@ -59,8 +63,8 @@
 ## <a id="3"></a>3. 核心原理速查 chapter-questions-eight-part（epq 组件）
 
 - **定位**：核心原理速查手册，61 条目（`E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
-- **TOC**：`toc-group`（分组）+ `toc-group-title`（须为 `<a href="#epq-group-NN">` 可点击，跳到组导读）+ `toc-number` 分层锚点。
-- **分组导读**：每组（E01~E12）在首题前有 `epq-group-head`（`epq-group-title` + `group-lead`）。`group-lead` 三块：① **本组知识链**（`group-lead-chain`：intro + 分阶段 `ol`，阶段说明写清因果与边界，禁止只剩箭头关键词）② **工程化要点**（`group-lead-points`，约 **7 条**，可执行口径）③ **本组思维模式**（`group-lead-mind`，约 **5 条**命名条目）。页底须有 `chapter-nav`（与顶栏对称：首页 / 核心方法论 / 全部章节 / 场景题）。
+- **TOC**：`toc-group`（分组）+ `toc-group-title`（须为 `<a href="#epq-group-NN">` 可点击，跳到组导读；禁止 `div`）+ `toc-number` 分层锚点。
+- **分组导读**：每组（E01~E12）在首题前有 `epq-group-head`（`epq-group-title` + `group-lead`）。`group-lead` 三块：① **本组知识链**（`group-lead-chain`：intro + 分阶段 `ol`，阶段说明写清因果与边界，禁止只剩箭头关键词）② **工程化要点**（`group-lead-points`，约 **7 条**，可执行口径）③ **本组思维模式**（`group-lead-mind`，约 **5 条**命名条目）。页底须有 `chapter-nav`（与顶栏内容一致：返回目录 / 核心方法论 / 全部章节 / 场景题）。
 - **条目**：
 
   ```
@@ -81,7 +85,7 @@
 ## <a id="4"></a>4. 场景题 chapter-questions-scenario（S 系列场景卡片）
 
 - **定位**：场景设计题集，70 卡，ID 前缀 `S`（如 `S01.01`）。
-- **分组导读**：每个 `scenario-group` 在 `group-title` 后插入 `group-lead`（结构与核心原理页一致：本组知识链 intro+`ol` / 工程化要点 / 本组思维模式）；侧栏 `toc-group-title` 须链接到 `#group-N`。
+- **分组导读**：每个 `scenario-group` 在 `group-title` 后插入 `group-lead`（结构与核心原理页一致：本组知识链 intro+`ol` / 工程化要点 / 本组思维模式）；侧栏 `toc-group-title` 须为 `<a href="#group-N">`（禁止 `div`）。
 - **卡片**：复用 `.qa-card` 外壳，但卡片内层为**场景专属序列**（非标准六层），顺序如下：
 
   | data-layer 对应 | 层标题 | 职责 |
@@ -100,7 +104,7 @@
 
 ## <a id="5"></a>5. 安全 Checkpoint chapter-server-security-checkpoint（独立单页）
 
-- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无 `qa-card`**；顶/底导航与篇章页一致（`chapter-nav-top` / `chapter-nav`：上一篇 / 核心方法论 / 全部章节 / 思维导图 / 返回首页），并**引入 `nav.js`**。
+- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无 `qa-card`**；顶/底导航与篇章页一致（`chapter-nav-top` / `chapter-nav`：上一篇 / 核心方法论 / 全部章节 / 思维导图 / 返回目录），并**引入 `nav.js`**。
 - **布局 / 目录**：与篇章页一致，使用 `page-wrapper` + 左侧 `sidebar-toc`（「本篇目录」）+ `content-main`；禁止正文中置目录或浅蓝 `.toc` / `.doc-toc` 盒子。
 - **样式**：仅引入 `assets/design-system.css`，页面内联 `<style>` 仅定义少量独占令牌与正文排版覆盖（如 `--quote-bg`、`--quote-border`、`--th-bg`、`--zebra`），其余取值自全局令牌。
 - **内容结构**：传统「文档章节」式，标题层级清晰：
@@ -115,8 +119,10 @@
 
 - **定位**：与方法论并列的工程门禁手册，**24 卡**，ID 前缀 `G`（如 `G01.01`）；**不计入题目总量 365**，计入 `sum_all`。
 - **卡片**：与方法论相同三层（`insight` / `principle` / `application`）。
-- **分组**：G01～G08 八组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全）。
-- **导图**：`mind-engineering-practices.html`；导航与方法论互链。
+- **分组**：G01～G08 八组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全）；每组正文载体为 `<section class="eng-group" id="G0N">`。
+- **目录**：侧栏分组标题必须为 `<a class="toc-group-title" href="#G0N">`（禁止 `div`），与组 `id` 一一对应。
+- **导图**：`mind-engineering-practices.html`。
+- **导航**：顶/底一致；左 `nav-prev`「← 核心方法论」、右 `nav-next`「优先级总览 →」；中间 `nav-center` 为「全部章节 → 本章思维导图」（勿再重复链核心方法论）。
 
 ## <a id="7"></a>7. 首页 index.html
 

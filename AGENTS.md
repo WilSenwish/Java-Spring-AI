@@ -10,7 +10,7 @@
 - `index.html`：站点总目录（聚合统计页，三权威源之一）
 - `java-architect-interview/`：章节站。方法论页 `chapter-core-methodology.html`、工程化要点页 `chapter-engineering-practices.html`、`chapter-01~15-*`、`chapter-questions-eight-part.html`（核心原理）、`chapter-questions-scenario.html`（场景）、`chapter-server-security-checkpoint.html`、`chapter-overview-priority.html`（聚合页）
 - `java-architect-interview-mind/`：导图站，18 个 `mind-*.html`，与章节页一一对应互链
-- 共享资源：`assets/design-system.css`、`shared/js/nav.js`
+- 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/nav.js`（导图站相对路径引用同套文件）
 
 **卡片编号**：`M##.##`（方法论，M01~M12 共 91 卡）/ `G##.##`（工程化，G01~G08 共 24 卡）/ `C##.##`（篇章 229）/ `E##.##`（核心原理 64）/ `S##.##`（场景 72）。
 

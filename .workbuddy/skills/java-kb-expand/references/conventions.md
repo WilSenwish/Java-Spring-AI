@@ -142,7 +142,12 @@
 
 ## 7. 双站导航约定（简述）
 
-- 章节页 `.chapter-nav-top`（顶部）+ `.chapter-nav`（底部），四按钮分两组：翻页组（前一篇/后一篇/返回目录，灰底）+ 居中组（全部章节/查看本章思维导图，浅蓝 `nav-mind`）。
+- 章节页 `.chapter-nav-top`（顶部）+ `.chapter-nav`（底部），**顶底内侧 HTML 必须一致**。三槽结构：
+  - 左：翻页 `nav-prev`（← 上一篇）或 `nav-home`（← 返回目录）
+  - 中：`nav-center` 内 `nav-mind`（篇章页固定顺序：核心方法论 → 全部章节 → 本章思维导图）
+  - 右：`nav-next`（下一篇 →）或收束用 `nav-home`（返回目录 →）
+- 箭头统一字面量 `←` / `→`；回目录文案统一「返回目录」（禁止「返回首页」）；左右已链过的目标勿在 `nav-center` 重复。
+- **侧栏分组标题**：凡带 `toc-group` 的页面，`toc-group-title` 必须是 `<a href="#…">`（禁止 `div`）；`nav.js` 会在条目高亮时同步给同组 `a.toc-group-title` 加 `.active`。锚点约定见 `docs/format-shared.md` §4.1。
 - 导图页五按钮：翻页组（前一篇导图 `nav-prev` / 后一篇导图 `nav-next`，带 ←/→ 与具体篇章名）+ 居中组（全部章节/导图总览/本导图对应章节，`nav-mind`）。
 - 顶部/底部按钮 `padding`/`font-size`/`gap` 须同步一致，避免高度差。
-- 两站共用 `assets/design-system.css`，一处修改惠及全部。
+- 两站共用 `java-architect-interview/assets/design-system.css` 与 `nav.js`，一处修改惠及全部。
