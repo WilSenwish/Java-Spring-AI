@@ -383,38 +383,43 @@
     <a class="group-title-link" href="#group-1">高并发系统设计</a>
     <span class="group-count">5 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>高并发场景的破题链是「量化约束 → 漏斗削峰 → 热点正确性 → 资损兜底」：先算清峰值与成功率，再分层滤流量，最后用状态机与对账守住资金安全。</p>
+            <p>高并发场景的破题链是「量化约束 → 漏斗削峰 → 热点正确性 → 资损兜底」：先算清峰值与成功率，再分层滤流量，用状态机与幂等守住库存，最后用对账与容灾兜住资金安全。</p>
             <ol>
-              <li><strong>流量模型</strong>：峰值倍数、转化漏斗、机器流量占比。</li>
-              <li><strong>削峰与限流</strong>：网关/缓存/MQ 分层，拒绝可解释。</li>
-              <li><strong>热点与库存</strong>：单 key/单行热点；扣减与落库窗口。</li>
-              <li><strong>对账与容灾</strong>：活动后对账、降级、多活。</li>
+              <li><strong>流量模型</strong>：峰值倍数、转化漏斗、机器流量占比、活动时长；没有数字的方案无法验收。</li>
+              <li><strong>削峰与限流</strong>：网关/缓存/MQ 分层，拒绝可解释、对客文案一致；预算化超时。</li>
+              <li><strong>热点与库存</strong>：单 key/单行热点分型；扣减、预扣与落库窗口，防超卖。</li>
+              <li><strong>对账与容灾</strong>：活动后对账、降级、多活；单点故障不损资金安全。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>开场先复述并量化 P99/QPS/成功率，再谈方案。</li>
-              <li>超卖与资损用状态机+幂等+对账，不靠一把锁。</li>
-              <li>热 key/热行分型治理（分段、本地缓存、异步化）。</li>
-              <li>演练单点故障不损资金安全。</li>
-              <li>限流与降级文案/返回码对客一致。</li>
+              <li>开场先复述并量化 P99/QPS/成功率/资损红线，再谈方案；缺指标的设计打回。</li>
+              <li>超卖与资损用状态机+幂等+对账，不靠一把分布式锁「一把梭」。</li>
+              <li>热 key/热行分型治理（分段、本地缓存、异步化），并有验收指标。</li>
+              <li>演练单点故障与依赖抖动，证明不损资金安全。</li>
+              <li>限流与降级文案/返回码对客一致，避免前端误解与重试风暴。</li>
+              <li>库存扣减与订单状态机有对账任务与告警闭环。</li>
+              <li>大促容量与熔断参数有依据，变更可回滚。</li>
       </ul>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">本组思维模式</div>
       <ul class="group-lead-mind">
-              <li><strong>约束锚定</strong>：硬指标是评分锚点也是设计边界。</li>
+              <li><strong>约束锚定</strong>：硬指标是评分锚点也是设计边界，先钉数字。</li>
               <li><strong>漏斗思维</strong>：能滤则滤，不硬扛峰值本身。</li>
               <li><strong>资损零容忍</strong>：兜底与对账优先于极致性能炫技。</li>
+              <li><strong>热点先分型</strong>：读热点、写热点、热行对策不同。</li>
+              <li><strong>演练证明</strong>：没演练的高并发方案只是纸面方案。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -967,27 +972,29 @@
     <a class="group-title-link" href="#group-2">分布式系统</a>
     <span class="group-count">6 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>分布式场景链：一致承诺 → 锁/ID/事务 → 消息可靠 → 雪崩治理 → 缓存一致。</p>
+            <p>分布式场景链：一致承诺 → 锁/ID/事务 → 消息可靠 → 雪崩治理 → 缓存一致；重试是常态，副作用必须可重入，最终一致靠对账兜底。</p>
             <ol>
-              <li><strong>一致模型</strong>：强/最终/因果与业务容忍。</li>
-              <li><strong>协调原语</strong>：锁租约、ID 时钟、事务模式。</li>
-              <li><strong>消息</strong>：投递、重复、积压。</li>
-              <li><strong>稳态</strong>：熔断限流与缓存协议。</li>
+              <li><strong>一致模型</strong>：强/最终/因果与业务容忍窗口；承诺先于组件。</li>
+              <li><strong>协调原语</strong>：锁租约、ID 时钟、事务模式；失效与脑裂要设计。</li>
+              <li><strong>消息</strong>：投递、重复、积压；去重与死信可运营。</li>
+              <li><strong>稳态</strong>：熔断限流与缓存协议；超时重试可加总。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>先写一致性窗口再选 TCC/Saga/消息。</li>
-              <li>锁与 ID 有租约/续期/回拨策略。</li>
-              <li>最终一致必有对账。</li>
-              <li>雪崩治理看预算化超时重试。</li>
-              <li>缓存一致写清补偿。</li>
+              <li>先写一致性窗口再选 TCC/Saga/消息；缺承诺打回。</li>
+              <li>锁与 ID 有租约/续期/回拨策略，跨机房场景单独评审。</li>
+              <li>最终一致必有对账与人工补偿入口。</li>
+              <li>雪崩治理看预算化超时重试，防重试风暴。</li>
+              <li>缓存一致写清补偿与最大不一致时间。</li>
+              <li>Outbox/CDC 兜底双写，禁止无补偿双写。</li>
+              <li>混沌演练覆盖超时、分区、重复投递。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -996,9 +1003,12 @@
               <li><strong>承诺先行</strong>：没有一致承诺就没有正确方案。</li>
               <li><strong>重试可重入</strong>：副作用默认按会重复设计。</li>
               <li><strong>治理防风暴</strong>：超时重试可加总。</li>
+              <li><strong>对账兜底</strong>：最终正确性靠对账闭环。</li>
+              <li><strong>租约可失效</strong>：锁/领导选举必须处理续期失败。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -1652,38 +1662,43 @@ public void saveAbnormal(...) {
     <a class="group-title-link" href="#group-3">数据库与存储</a>
     <span class="group-count">5 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>存储场景链：单机计划与锁 → 切分键 → 迁移切流 → 对象/多模存储边界。</p>
+            <p>存储场景链：单机计划与锁 → 切分键 → 迁移切流 → 对象/多模存储边界；扩展前先挖尽单机，迁移必须可回切。</p>
             <ol>
-              <li><strong>单机挖潜</strong>：计划、索引、锁。</li>
-              <li><strong>切分</strong>：键、扩容、跨片。</li>
-              <li><strong>迁移</strong>：双写、影子、回滚。</li>
-              <li><strong>专用存储</strong>：小文件/对象等形态。</li>
+              <li><strong>单机挖潜</strong>：计划、索引、锁；慢 SQL 闭环。</li>
+              <li><strong>切分</strong>：键、扩容、跨片事务与对账成本。</li>
+              <li><strong>迁移</strong>：双写、影子、回滚；切流可回切。</li>
+              <li><strong>专用存储</strong>：小文件/对象等形态；边界与成本。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>变更有备份与回滚。</li>
-              <li>分片前证明单机瓶颈。</li>
-              <li>迁移可回切。</li>
+              <li>变更有备份与回滚；高峰窗口禁止盲上 DDL。</li>
+              <li>分片前证明单机瓶颈；切分键写 ADR。</li>
+              <li>迁移可回切；双写对账齐全。</li>
               <li>跨片事务与对账成本明示。</li>
               <li>慢 SQL/主从延迟有运营闭环。</li>
+              <li>大表变更用 online 方案与中断续跑剧本。</li>
+              <li>多模引擎选型用真查询 POC。</li>
       </ul>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">本组思维模式</div>
       <ul class="group-lead-mind">
               <li><strong>先单机后分布</strong>：过早分片是常见事故源。</li>
-              <li><strong>切分键决定命运</strong>：二次切分极贵。</li>
+              <li><strong>切分键决定命运</strong>：二次切分极贵，选型阶段锁定。</li>
               <li><strong>迁移可回滚</strong>：切流与数据修复成对出现。</li>
+              <li><strong>计划驱动</strong>：先 EXPLAIN 再谈分片。</li>
+              <li><strong>对账必有</strong>：跨片正确性靠对账。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -2330,27 +2345,29 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
     <a class="group-title-link" href="#group-4">微服务架构</a>
     <span class="group-count">5 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>微服务场景链：拆分边界 → 同步预算 → 网关灰度 → Mesh/配置事故 → 可观测。</p>
+            <p>微服务场景链：拆分边界 → 同步预算 → 网关灰度 → Mesh/配置事故 → 可观测；拆分目标是独立发布与故障隔离，配置热更新按发布管控。</p>
             <ol>
-              <li><strong>边界</strong>：领域与数据归属。</li>
-              <li><strong>治理</strong>：超时重试幂等。</li>
-              <li><strong>发布</strong>：灰度染色与回滚。</li>
-              <li><strong>运行时</strong>：Mesh 与配置热更新风险。</li>
+              <li><strong>边界</strong>：领域与数据归属；拆错比拆慢更贵。</li>
+              <li><strong>治理</strong>：超时重试幂等；预算写进契约。</li>
+              <li><strong>发布</strong>：灰度染色与回滚；错误预算联动。</li>
+              <li><strong>运行时</strong>：Mesh 与配置热更新风险；可快速关停。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>同步链路预算写进契约。</li>
-              <li>金丝雀联动错误预算。</li>
+              <li>同步链路预算写进契约，防级联超时。</li>
+              <li>金丝雀联动错误预算，SLO 燃尽收缩。</li>
               <li>配置热更新有毒变更可快速关停。</li>
-              <li>Trace 默认开。</li>
+              <li>Trace 默认开，采样可解释。</li>
               <li>拆分以独立发布与故障隔离为目标。</li>
+              <li>网关/Mesh 策略变更与代码发布同级。</li>
+              <li>本地配置快照兜底配置中心抖动。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -2359,9 +2376,12 @@ spark.<span class="fn">read</span>().<span class="fn">json</span>(<span class="s
               <li><strong>边界大于技术</strong>：拆错比拆慢更贵。</li>
               <li><strong>预算化调用</strong>：超时重试可加总。</li>
               <li><strong>配置也是发布</strong>：热更新按发布管控。</li>
+              <li><strong>可观测默认</strong>：无三支柱不上核心。</li>
+              <li><strong>回滚优先</strong>：流量/配置/镜像都能退。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -3219,27 +3239,29 @@ public class BadPool {
     <a class="group-title-link" href="#group-5">性能与稳定性</a>
     <span class="group-count">5 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>性能稳定性链：证据定位 → 容量饱和 → 线程/GC/池 → 长效门禁。</p>
+            <p>性能稳定性链：证据定位 → 容量饱和 → 线程/GC/池 → 长效门禁；先证据后优化，临时止血必须升级为自动回归。</p>
             <ol>
-              <li><strong>定位</strong>：profile/日志/指标。</li>
-              <li><strong>容量</strong>：饱和点与排队。</li>
-              <li><strong>运行时</strong>：池、GC、锁。</li>
-              <li><strong>长效</strong>：回归与看板。</li>
+              <li><strong>定位</strong>：profile/日志/指标/转储；分层找饱和点。</li>
+              <li><strong>容量</strong>：饱和点与排队；资源先满的是哪类。</li>
+              <li><strong>运行时</strong>：池、GC、锁；争用可观测。</li>
+              <li><strong>长效</strong>：回归与看板；优化变成门禁。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>先证据后优化。</li>
-              <li>性能变更对照实验+回滚。</li>
+              <li>先证据后优化；无火焰图/指标不调。</li>
+              <li>性能变更对照实验+回滚条件。</li>
               <li>大促前容量与故障演练。</li>
-              <li>临时止血升级为门禁。</li>
-              <li>拒绝「加机器掩盖」。</li>
+              <li>临时止血升级为门禁与告警。</li>
+              <li>拒绝「加机器掩盖」；根因闭环。</li>
+              <li>GC/池/锁变更进性能回归。</li>
+              <li>饱和告警可行动，绑定 Runbook。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -3248,9 +3270,12 @@ public class BadPool {
               <li><strong>证据驱动</strong>：没有火焰图/指标不调。</li>
               <li><strong>饱和可解释</strong>：知道先满的是哪类资源。</li>
               <li><strong>防回归</strong>：优化要变成自动门禁。</li>
+              <li><strong>止血非终点</strong>：临时手段必须固化。</li>
+              <li><strong>对照实验</strong>：无基线的「变快」不可信。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -3889,27 +3914,29 @@ public class BadPool {
     <a class="group-title-link" href="#group-6">云原生与 AI</a>
     <span class="group-count">6 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>云原生与 AI 链：弹性探针 → 发布配置 → VT/启动 → AI 评测与成本。</p>
+            <p>云原生与 AI 链：弹性探针 → 发布配置 → VT/启动 → AI 评测与成本；编排与应用一体，AI 变更无评测不上线，成本进门禁。</p>
             <ol>
-              <li><strong>编排</strong>：探针资源。</li>
-              <li><strong>发布</strong>：配置回滚。</li>
-              <li><strong>运行时</strong>：VT 与启动 SLO。</li>
-              <li><strong>AI</strong>：评测集与 FinOps。</li>
+              <li><strong>编排</strong>：探针资源；与 JVM/线程同模型。</li>
+              <li><strong>发布</strong>：配置回滚；金丝雀与错误预算。</li>
+              <li><strong>运行时</strong>：VT 与启动 SLO；pin 对照。</li>
+              <li><strong>AI</strong>：评测集与 FinOps；版本化回放。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>资源/探针与 SLO 对齐。</li>
-              <li>AI 改动过测试集。</li>
-              <li>成本进门禁。</li>
+              <li>资源/探针与 SLO 对齐，防误杀假就绪。</li>
+              <li>AI 改动过测试集；无黄金集不上线。</li>
+              <li>成本进门禁，超配额降级。</li>
               <li>VT 迁移对照 pin 与延迟。</li>
-              <li>配置变更可回滚。</li>
+              <li>配置变更可回滚，有毒变更可关停。</li>
+              <li>启动 SLO 与 Leyden/CDS 有回退路径。</li>
+              <li>可观测默认接入，采样可回放。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -3918,9 +3945,12 @@ public class BadPool {
               <li><strong>编排一体</strong>：limit 与应用同模型。</li>
               <li><strong>AI 变更即发布</strong>：无评测不上线。</li>
               <li><strong>成本可见</strong>：Token/算力进配额。</li>
+              <li><strong>回退优先</strong>：加速技术可退回经典路径。</li>
+              <li><strong>配置当发布</strong>：热更新按发布管控。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -4651,27 +4681,29 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     <a class="group-title-link" href="#group-7">综合场景</a>
     <span class="group-count">7 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>综合场景链：端到端主链路 → 状态机一致 → 多域协作 → 超时/支付/迁移闭环。</p>
+            <p>综合场景链：端到端主链路 → 状态机一致 → 多域协作 → 超时/支付/迁移闭环；消息只唤醒，状态机裁决，跨域靠契约与对账收口。</p>
             <ol>
-              <li><strong>主链路</strong>：关键路径与失败点。</li>
-              <li><strong>状态机</strong>：CAS 与幂等。</li>
-              <li><strong>协作</strong>：契约与对账。</li>
-              <li><strong>特例</strong>：关单、支付、迁移。</li>
+              <li><strong>主链路</strong>：关键路径与失败点；先画图再堆组件。</li>
+              <li><strong>状态机</strong>：CAS 与幂等；半成功可补偿。</li>
+              <li><strong>协作</strong>：契约与对账；跨域正确性收口。</li>
+              <li><strong>特例</strong>：关单、支付、迁移；可回切可审计。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>先画主链路再堆组件。</li>
-              <li>跨域用契约+对账收口。</li>
-              <li>超时关单触发可重复、关单用 CAS。</li>
+              <li>先画主链路再堆组件；缺主链路的方案打回。</li>
+              <li>跨域用契约+对账收口，禁止口头约定。</li>
+              <li>超时关单触发可重复、关单用 CAS，防重入。</li>
               <li>支付类三层保障（事务/消息/对账）。</li>
-              <li>迁移可回切。</li>
+              <li>迁移可回切；双写对账齐全。</li>
+              <li>死信与人工补偿入口可运营。</li>
+              <li>全链路 Trace 能串起跨域步骤。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -4680,9 +4712,12 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
               <li><strong>主链路思维</strong>：先关键路径后优化枝节。</li>
               <li><strong>状态机权威</strong>：消息只唤醒不裁决。</li>
               <li><strong>对账兜底</strong>：跨域正确性靠对账。</li>
+              <li><strong>半成功可补偿</strong>：超时不是结束而是补偿起点。</li>
+              <li><strong>回切优先</strong>：迁移与切流必须可退。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -5473,27 +5508,29 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
     <a class="group-title-link" href="#group-8">高可用架构</a>
     <span class="group-count">8 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>高可用链：故障域与 RPO/RTO → 多活切流 → 限流熔断 → 自愈与可观测中台。</p>
+            <p>高可用链：故障域与 RPO/RTO → 多活切流 → 限流熔断 → 自愈与可观测中台；隔离半径优先于堆冗余，演练证明容灾。</p>
             <ol>
-              <li><strong>目标</strong>：RPO/RTO 与爆炸半径。</li>
-              <li><strong>拓扑</strong>：多活/单元化。</li>
-              <li><strong>稳态</strong>：限流熔断降级。</li>
-              <li><strong>运营</strong>：自愈、演练、观测中台。</li>
+              <li><strong>目标</strong>：RPO/RTO 与爆炸半径；先定目标再堆机房。</li>
+              <li><strong>拓扑</strong>：多活/单元化；数据归属与切流。</li>
+              <li><strong>稳态</strong>：限流熔断降级；参数有依据。</li>
+              <li><strong>运营</strong>：自愈、演练、观测中台；告警可行动。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>先定爆炸半径再堆机房。</li>
-              <li>切流开关可演练。</li>
-              <li>限流参数有依据。</li>
-              <li>自愈与人工边界清晰。</li>
-              <li>混沌演练常态化。</li>
+              <li>先定爆炸半径再堆机房；隔离优先。</li>
+              <li>切流开关可演练，剧本进值班。</li>
+              <li>限流参数有依据，变更可回滚。</li>
+              <li>自愈与人工边界清晰，避免自动扩大事故。</li>
+              <li>混沌演练常态化，结果进错误预算。</li>
+              <li>多活一致性窗口对业务可感知。</li>
+              <li>可观测中台默认接入，排障不靠人肉。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -5502,9 +5539,12 @@ milvusClient.<span class="fn">createCollection</span>(<span class="type">CreateC
               <li><strong>半径优先</strong>：隔离比堆冗余重要。</li>
               <li><strong>演练证明</strong>：没演练的容灾是幻觉。</li>
               <li><strong>告警可行动</strong>：拒绝不可决策的噪声。</li>
+              <li><strong>切流可退</strong>：多活不是单向赌博。</li>
+              <li><strong>自愈有边界</strong>：自动动作不能无限放大。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -6446,27 +6486,29 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
     <a class="group-title-link" href="#group-9">安全架构</a>
     <span class="group-count">5 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>安全架构链：威胁模型 → 认证授权 → 数据保护 → 供应链与运行时。</p>
+            <p>安全架构链：威胁模型 → 认证授权 → 数据保护 → 供应链与运行时；无威胁模型的清单是盲打，失败时默认拒绝。</p>
             <ol>
-              <li><strong>建模</strong>：资产与攻击面。</li>
-              <li><strong>身份</strong>：认证授权会话。</li>
-              <li><strong>数据</strong>：加密脱敏。</li>
-              <li><strong>供应链</strong>：依赖镜像与运行时。</li>
+              <li><strong>建模</strong>：资产与攻击面；按资产分级。</li>
+              <li><strong>身份</strong>：认证授权会话；最小权限。</li>
+              <li><strong>数据</strong>：加密脱敏；密钥轮换。</li>
+              <li><strong>供应链</strong>：依赖镜像与运行时；扫描进 CI。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>按资产分级控制。</li>
-              <li>密钥证书轮换可演练。</li>
-              <li>依赖扫描进 CI。</li>
-              <li>高危变更双人+回滚。</li>
-              <li>内网不隐式信任。</li>
+              <li>按资产分级控制；高危变更双人+回滚。</li>
+              <li>密钥证书轮换可演练，泄露有撤销。</li>
+              <li>依赖扫描进 CI，SBOM 可追溯。</li>
+              <li>内网不隐式信任；服务间同样鉴权。</li>
+              <li>异常时 fail-secure，禁止降级明文。</li>
+              <li>审计日志 who/what/when/result 齐全。</li>
+              <li>生产关闭调试端点与宽松配置。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -6475,9 +6517,12 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
               <li><strong>威胁建模先行</strong>：无模型的安全清单是盲打。</li>
               <li><strong>最小权限</strong>：默认拒绝显式授予。</li>
               <li><strong>失败安全</strong>：异常时拒绝而非放行。</li>
+              <li><strong>供应链可视</strong>：依赖与镜像可追溯。</li>
+              <li><strong>轮换可运营</strong>：密钥证书当一等资源。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -7118,27 +7163,29 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
     <a class="group-title-link" href="#group-10">网络 IO</a>
     <span class="group-count">5 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>网络 IO 场景链：分层定位 → 连接治理 → 实时通道 → 零拷贝与调度。</p>
+            <p>网络 IO 场景链：分层定位 → 连接治理 → 实时通道 → 零拷贝与调度；先判定层次，连接当资源，协议升级看兼容矩阵。</p>
             <ol>
-              <li><strong>分层</strong>：DNS/TLS/拥塞/应用。</li>
-              <li><strong>连接</strong>：池化泄漏心跳。</li>
-              <li><strong>实时</strong>：WS/SSE 治理。</li>
-              <li><strong>优化</strong>：零拷贝与调度。</li>
+              <li><strong>分层</strong>：DNS/TLS/拥塞/应用；分不清不优化。</li>
+              <li><strong>连接</strong>：池化泄漏心跳；FD/缓冲要治理。</li>
+              <li><strong>实时</strong>：WS/SSE 治理；背压与踢出策略。</li>
+              <li><strong>优化</strong>：零拷贝与调度；对照实验。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>问题先分层。</li>
+              <li>问题先分层，禁止一上来调超时。</li>
               <li>长连接有上限与泄漏检测。</li>
               <li>协议升级带兼容与回退。</li>
               <li>握手失败独立告警。</li>
-              <li>压测含重连风暴。</li>
+              <li>压测含重连风暴与慢连接。</li>
+              <li>EventLoop 禁阻塞，违规审计。</li>
+              <li>实时通道有踢出与背压策略。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -7147,9 +7194,12 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
               <li><strong>分层定位</strong>：先判定在哪一层。</li>
               <li><strong>连接是资源</strong>：FD/缓冲要治理。</li>
               <li><strong>兼容决定升级</strong>：矩阵不过不全量。</li>
+              <li><strong>握手可观测</strong>：失败率独立看板。</li>
+              <li><strong>慢连接可驱逐</strong>：防资源耗尽。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -7618,27 +7668,29 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
     <a class="group-title-link" href="#group-11">搜索与大数据</a>
     <span class="group-count">6 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>搜索大数据链：理解→召回→排序 → 索引一致 → 数仓时效。</p>
+            <p>搜索大数据链：理解→召回→排序 → 索引一致 → 数仓时效；搜推是流水线，时效可承诺，引擎按查询形状选。</p>
             <ol>
-              <li><strong>检索链路</strong>：query 理解与融合。</li>
-              <li><strong>索引</strong>：重建与一致。</li>
-              <li><strong>数据时效</strong>：批/流与回补。</li>
-              <li><strong>引擎边界</strong>：交易 vs 分析。</li>
+              <li><strong>检索链路</strong>：query 理解与融合；相关性与延迟分目标。</li>
+              <li><strong>索引</strong>：重建与一致；影子切换可回滚。</li>
+              <li><strong>数据时效</strong>：批/流与回补；窗口对业务可见。</li>
+              <li><strong>引擎边界</strong>：交易 vs 分析；忌一库通吃。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>相关性与延迟分目标。</li>
+              <li>相关性与延迟分目标调参，留实验记录。</li>
               <li>索引影子切换可回滚。</li>
-              <li>回补策略明确。</li>
-              <li>查询形状选引擎。</li>
+              <li>回补策略明确，漏数可检测。</li>
+              <li>查询形状选引擎，POC 用真查询。</li>
               <li>大查询有配额与熔断。</li>
+              <li>近实时可见性延迟有告警。</li>
+              <li>数仓与在线库同步延迟进 SLO。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -7647,9 +7699,12 @@ wrapped.execute(() -&gt; business.handle(orderId));</code></pre></div>
               <li><strong>链路思维</strong>：搜推是流水线不是单点。</li>
               <li><strong>时效可承诺</strong>：批流窗口对业务可见。</li>
               <li><strong>形状选引擎</strong>：忌一库通吃。</li>
+              <li><strong>切换可回滚</strong>：索引版本可退。</li>
+              <li><strong>大查询可熔断</strong>：防拖垮集群。</li>
       </ul>
     </div>
   </div>
+
 
 
 
@@ -8190,27 +8245,29 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
     <a class="group-title-link" href="#group-12">AI 生产级场景</a>
     <span class="group-count">8 题</span>
   </h2>
-    <div class="group-lead">
+      <div class="group-lead">
     <div class="group-lead-block">
       <div class="group-lead-label">本组知识链</div>
       <div class="group-lead-chain">
-            <p>AI 生产场景链：制品版本 → 评测回归 → 工具/MCP 契约 → 灰度护栏与资损应急。</p>
+            <p>AI 生产场景链：制品版本 → 评测回归 → 工具/MCP 契约 → 灰度护栏与资损应急；任何层改动过同一测试集，可写工具默认鉴权审计。</p>
             <ol>
-              <li><strong>版本化制品</strong>：模型/Prompt/索引/工具。</li>
-              <li><strong>评测</strong>：黄金集与门禁。</li>
-              <li><strong>工具治理</strong>：鉴权幂等 HITL。</li>
-              <li><strong>应急</strong>：死循环/投毒/供应商故障。</li>
+              <li><strong>版本化制品</strong>：模型/Prompt/索引/工具；可回放回退。</li>
+              <li><strong>评测</strong>：黄金集与门禁；离线+小流量双确认。</li>
+              <li><strong>工具治理</strong>：鉴权幂等 HITL；副作用分级。</li>
+              <li><strong>应急</strong>：死循环/投毒/供应商故障；熔断与人工接管。</li>
             </ol>
       </div>
     </div>
     <div class="group-lead-block">
       <div class="group-lead-label">工程化要点</div>
       <ul class="group-lead-points">
-              <li>无黄金集不上线。</li>
-              <li>放量靠离线+小流量双确认。</li>
-              <li>可写工具默认鉴权审计。</li>
-              <li>死循环/资损有熔断。</li>
+              <li>无黄金集不上线；放量靠离线+小流量双确认。</li>
+              <li>可写工具默认鉴权审计与超时。</li>
+              <li>死循环/资损有熔断与 HITL。</li>
               <li>供应商故障有多模型降级。</li>
+              <li>Token 成本进租户配额与门禁。</li>
+              <li>全链路记录 prompt/检索/工具/费用。</li>
+              <li>投毒/越狱应急剧本可演练。</li>
       </ul>
     </div>
     <div class="group-lead-block">
@@ -8219,9 +8276,12 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
               <li><strong>变更必回归</strong>：任何层改动过同一测试集。</li>
               <li><strong>工具有契约</strong>：副作用分级默认开启。</li>
               <li><strong>应急可演练</strong>：投毒/死循环/断供有剧本。</li>
+              <li><strong>成本与质量并列</strong>：超配额即降级。</li>
+              <li><strong>版本可回放</strong>：事故能对齐到制品版本。</li>
       </ul>
     </div>
   </div>
+
 
 
 

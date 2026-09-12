@@ -71,23 +71,26 @@
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">工程化要点</div>
-                        <ul class="chapter-lead-points">
-              <li>权威在 DB（或指定源）；缓存失败必须可降级，用户路径不能「缓存挂了就全站 500」。</li>
-              <li>热点预案（本地缓存/互斥重建）、大 key 治理、持久化与副本切换演练进常态。</li>
-              <li>删缓存/更新失败要有补偿与对账；禁止假设「删 key 一定成功」。</li>
-              <li>策略变更对照命中率、回源 QPS、错误率、源库连接池，防止回源打爆。</li>
-              <li>分布式锁必须处理租约、续期、时钟与误删；锁不是事务，不能替代幂等。</li>
-              <li>Cluster 槽迁移与热 key 有观测；单 key 热点用拆分/本地缓存/读写分离思路治理。</li>
+                                    <ul class="chapter-lead-points">
+              <li>权威在 DB（或指定源）；缓存失败必须可降级，用户路径不能「缓存挂了就全站 500」，降级策略写进 Runbook。</li>
+              <li>热点预案（本地缓存/互斥重建）、大 key 治理、持久化与副本切换演练进常态；切换 RTO/RPO 可测。</li>
+              <li>删缓存/更新失败要有补偿与对账；禁止假设「删 key 一定成功」，失败有重试与告警。</li>
+              <li>策略变更对照命中率、回源 QPS、错误率、源库连接池，防止回源打爆；变更可回滚。</li>
+              <li>分布式锁必须处理租约、续期、时钟与误删；锁不是事务，不能替代幂等与状态机。</li>
+              <li>Cluster 槽迁移与热 key 有观测；单 key 热点用拆分/本地缓存/读写分离思路治理并验收。</li>
+              <li>内存、驱逐、阻塞、慢查询、连接数进统一告警；驱逐飙升视为事故前兆，不是「正常清理」。</li>
+              <li>序列化与 key 规范（前缀、版本、TTL）平台统一，禁止各服务自创无法治理的编码。</li>
             </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-                        <ul class="chapter-lead-mind">
-              <li><strong>缓存非源</strong>：源故障与缓存故障的体验与降级路径要事先设计。</li>
+                                    <ul class="chapter-lead-mind">
+              <li><strong>缓存非源</strong>：源故障与缓存故障的体验与降级路径要事先设计；缓存只是加速层。</li>
               <li><strong>一致性选代价</strong>：按业务容忍窗口选协议，写清失败补偿与最大不一致时间。</li>
               <li><strong>按故障模式防护</strong>：穿透/击穿/雪崩/热 key 分型，忌永不过期通杀。</li>
-              <li><strong>容量与驱逐可观测</strong>：内存、驱逐、阻塞、慢查询进统一告警。</li>
+              <li><strong>容量与驱逐可观测</strong>：内存、驱逐、阻塞、慢查询进统一告警，并能关联到业务接口。</li>
               <li><strong>锁外必幂等</strong>：拿到锁只保证互斥，不保证业务副作用只发生一次。</li>
+              <li><strong>热 key 先分型</strong>：读热点、写热点、大 value 对策不同；先分型再上方案。</li>
             </ul>
           </div>
         </div>

@@ -87,14 +87,10 @@ def main():
         trunc = len(re.findall(r"</spa(?!n>)", t))
         check(trunc == 0, f"[截断] {k}: </spa 残留={trunc} (须 0)")
 
-    # 3) overview ov-stat-num 顺序（11 项）：
-    #    total,p0,p1,p2,expert,architect,senior,methodology,chapters,basics,scenarios
+    # 3) overview ov-stat-num 顺序（11 项，顺序以 kb-counts.json ov_stat_order 为准）
     ov = re.findall(r'ov-stat-num">(\d+)</div>', texts["overview"])
     ov = [int(x) for x in ov[:11]]
-    expect_order = [EXPECT["total"], EXPECT["p0"], EXPECT["p1"], EXPECT["p2"],
-                    EXPECT["expert"], EXPECT["architect"], EXPECT["senior"],
-                    EXPECT["methodology"], EXPECT["chapters"],
-                    EXPECT["basics"], EXPECT["scenarios"]]
+    expect_order = [_cfg["counts"][k] for k in _cfg["ov_stat_order"]]
     check(ov == expect_order,
           f"[overview] ov-stat-num={ov} 期望={expect_order}")
 

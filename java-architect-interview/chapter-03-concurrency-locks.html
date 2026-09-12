@@ -72,23 +72,26 @@
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">工程化要点</div>
-                        <ul class="chapter-lead-points">
-              <li>死锁要有线程转储采集规范与锁顺序纪律；多锁场景在代码评审中强制声明获取顺序。</li>
-              <li>热点锁拆分/分段必须附带争用指标（持锁时间、队列长度、CAS 失败率）验收。</li>
+                                    <ul class="chapter-lead-points">
+              <li>死锁要有线程转储采集规范与锁顺序纪律；多锁场景在代码评审中强制声明获取顺序，违规不得合入。</li>
+              <li>热点锁拆分/分段必须附带争用指标（持锁时间、队列长度、CAS 失败率）验收，无指标的「优化」打回。</li>
               <li>无锁/并发容器上线前必须有压力下的不变量或线性一致性测试，禁止只跑功能单测。</li>
               <li>超时与熔断不能掩盖数据竞争：竞态类缺陷按 P0 缺陷管理，而不是「偶现可忽略」。</li>
-              <li>ThreadLocal / 上下文传递在线程池与虚拟线程场景要有泄漏检测与显式清理策略。</li>
-              <li>并发变更（锁粒度、容器类型）纳入性能回归门禁：吞吐、尾延迟、错误率三联对照。</li>
+              <li>ThreadLocal / 上下文传递在线程池与虚拟线程场景要有泄漏检测与显式清理策略，池化复用必须可证明不串号。</li>
+              <li>并发变更（锁粒度、容器类型、AQS 自定义）纳入性能回归门禁：吞吐、尾延迟、错误率三联对照。</li>
+              <li>中断、取消与锁的可响应性写进接口契约：谁响应中断、半成功如何回滚，禁止吞中断。</li>
+              <li>ABA、伪共享与 false sharing 在热点路径有专项检查；计数类优先评估 LongAdder 等分段方案。</li>
             </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-                        <ul class="chapter-lead-mind">
-              <li><strong>先三性后原语</strong>：分清原子/可见/有序，再选 synchronized、Lock、CAS。</li>
-              <li><strong>排队成本 vs CAS</strong>：高争用看锁膨胀与队列；低争用才评估无锁复杂度与 ABA。</li>
+                                    <ul class="chapter-lead-mind">
+              <li><strong>先三性后原语</strong>：分清原子/可见/有序，再选 synchronized、Lock、CAS；原语选错比实现慢更危险。</li>
+              <li><strong>排队成本 vs CAS</strong>：高争用看锁膨胀与队列；低争用才评估无锁复杂度与 ABA 风险。</li>
               <li><strong>锁顺序纪律</strong>：多锁获取顺序写死并可静态检查；死锁当缺陷而非运气。</li>
-              <li><strong>不变量可测</strong>：并发结构变更必须有压力下的正确性与回归用例。</li>
+              <li><strong>不变量可测</strong>：并发结构变更必须有压力下的正确性与回归用例，覆盖重入与取消路径。</li>
               <li><strong>争用可观测</strong>：没有持锁/队列/CAS 指标的「优化」不允许进生产。</li>
+              <li><strong>上下文不隐式穿透</strong>：异步与池化场景下 ThreadLocal 默认为风险，优先显式传参或 ScopedValue。</li>
             </ul>
           </div>
         </div>

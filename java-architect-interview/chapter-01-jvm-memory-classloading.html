@@ -72,23 +72,26 @@
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">工程化要点</div>
-                        <ul class="chapter-lead-points">
-              <li>每服务书面化堆 / 元空间 / 直接内存 / 线程数预算，并与容器 limit、告警阈值三联对齐；OOM 与 OOMKilled 分诊 Runbook 进值班手册。</li>
-              <li>类加载器泄漏（动态代理、热部署、自定义 ClassLoader）纳入发布回归与金丝雀观察窗口，禁止只看功能验收。</li>
-              <li>排障标准动作固定为：业务现象 → 区域归因 → jcmd/jmap/MAT/异步日志证据链；禁止先拍脑袋调 -Xmx。</li>
-              <li>JDK 大版本升级单独验收：对象头布局、模块封装、诊断工具与 GC 默认行为；预览 API 不得绑核心路径。</li>
-              <li>Native/DirectBuffer 与堆外分配纳入同一容量模型，防止「堆内健康、堆外打满」的隐蔽事故。</li>
-              <li>热更新与插件化场景必须证明类卸载与 Metaspace 回落，否则按泄漏缺陷处理。</li>
+                                    <ul class="chapter-lead-points">
+              <li>每服务书面化堆 / 元空间 / 直接内存 / 线程栈 / 线程数预算，并与容器 limit、kubelet eviction、告警阈值三联对齐；OOM 与 OOMKilled 分诊 Runbook 进值班手册，含「先看哪类指标、采什么转储」。</li>
+              <li>类加载器泄漏（动态代理、热部署、自定义 ClassLoader、SPI）纳入发布回归与金丝雀观察窗口：必须证明 Metaspace 可回落，禁止只看功能验收。</li>
+              <li>排障标准动作固定为：业务现象 → 区域归因 → jcmd/jmap/MAT/异步日志证据链；无证据禁止先改 -Xmx 或盲目扩容。</li>
+              <li>JDK 大版本升级单独验收：对象头布局、模块封装、诊断工具、默认 GC 与预览 API 边界；预览能力不得绑核心路径，并准备一键回退基线。</li>
+              <li>Native/DirectBuffer 与堆外分配纳入同一容量模型与看板，防止「堆内健康、堆外打满」；Netty/NIO 缓冲池泄漏有专项检测。</li>
+              <li>热更新与插件化必须有类卸载验收项：加载次数、Metaspace、ClassLoader 实例数；卸载失败按泄漏缺陷管理。</li>
+              <li>字符串常量池、软/弱引用缓存与大对象晋升路径写入容量评审材料，避免把「能跑」当「能扛流量」。</li>
+              <li>容器与 JVM 诊断工具链（jcmd 权限、只读根文件系统、sidecar 采集）在上线前打通，避免出事才发现采不到转储。</li>
             </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-                        <ul class="chapter-lead-mind">
-              <li><strong>分区归因</strong>：先把症状钉到堆 / 元空间 / 直接内存 / 栈 / 线程创建，再谈 GC 或业务泄漏。</li>
-              <li><strong>加载器隔离</strong>：同名类冲突与热加载问题优先画 ClassLoader / JPMS 边界，而不是改业务碰运气。</li>
-              <li><strong>可见性先于加锁</strong>：跨线程陈旧读先用 happens-before 解释，再选 synchronized / volatile / Lock。</li>
-              <li><strong>证据优于经验</strong>：无日志/转储/指标对照的调参视为违规变更。</li>
-              <li><strong>容量与编排一体</strong>：JVM 预算必须能映射到 cgroup/kubelet 行为，避免「JVM 有内存、节点已杀进程」。</li>
+                                    <ul class="chapter-lead-mind">
+              <li><strong>分区归因</strong>：先把症状钉到堆 / 元空间 / 直接内存 / 栈 / 线程创建失败，再谈 GC 或业务泄漏；分区错了后续全错。</li>
+              <li><strong>加载器隔离</strong>：同名类冲突与热加载问题优先画 ClassLoader / JPMS 边界图，而不是改业务碰运气或「重启试试」。</li>
+              <li><strong>可见性先于加锁</strong>：跨线程陈旧读先用 happens-before 解释，再选 synchronized / volatile / Lock；加锁不能掩盖语义错误。</li>
+              <li><strong>证据优于经验</strong>：无日志/转储/指标对照的调参视为违规变更；「以前这么调过」不能替代本次证据。</li>
+              <li><strong>容量与编排一体</strong>：JVM 预算必须能映射到 cgroup/kubelet 行为，避免「JVM 还有内存、节点已杀进程」。</li>
+              <li><strong>升级当变更管理</strong>：JDK/工具链升级按生产变更管控：对照清单、金丝雀、回滚条件与错误预算写进变更单。</li>
             </ul>
           </div>
         </div>

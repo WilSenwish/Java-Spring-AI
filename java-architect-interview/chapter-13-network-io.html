@@ -74,23 +74,26 @@
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">工程化要点</div>
-                        <ul class="chapter-lead-points">
-              <li>网络问题先分层定位：DNS、握手、拥塞、应用线程还是依赖方；分层看板齐全。</li>
-              <li>连接池/长连接有上限、心跳与泄漏检测；FD 与缓冲纳入限流与容量。</li>
-              <li>TLS 证书与协议版本有到期治理与轮换演练；握手失败率独立告警。</li>
+                                    <ul class="chapter-lead-points">
+              <li>网络问题先分层定位：DNS、握手、拥塞、应用线程还是依赖方；分层看板齐全，禁止一上来调超时。</li>
+              <li>连接池/长连接有上限、心跳与泄漏检测；FD 与缓冲纳入限流与容量，泄漏按事故管理。</li>
+              <li>TLS 证书与协议版本有到期治理与轮换演练；握手失败率独立告警，证书到期进日历。</li>
               <li>压测覆盖握手、重连风暴与慢连接；避免只测「已建立连接的理想路径」。</li>
-              <li>换协议（HTTP/2/3 等）必须带兼容矩阵、中间盒评估与回退方案。</li>
-              <li>EventLoop/IO 线程禁止跑阻塞业务；阻塞调用隔离到工作池并有超时。</li>
+              <li>换协议（HTTP/2/3 等）必须带兼容矩阵、中间盒评估与回退方案，不全量赌一把。</li>
+              <li>EventLoop/IO 线程禁止跑阻塞业务；阻塞调用隔离到工作池并有超时与队列水位。</li>
+              <li>粘包拆包与自定义协议有契约测试；升级报文必须向前兼容或双版本共存。</li>
+              <li>零拷贝、批处理等优化有对照实验；优化不得牺牲可观测与背压信号。</li>
             </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-                        <ul class="chapter-lead-mind">
-              <li><strong>先找阻塞点</strong>：EventLoop/IO 线程上的阻塞是第一嫌疑。</li>
-              <li><strong>连接是资源</strong>：FD、缓冲、上游连接数纳入限流与容量。</li>
+                                    <ul class="chapter-lead-mind">
+              <li><strong>先找阻塞点</strong>：EventLoop/IO 线程上的阻塞是第一嫌疑，先排除再谈协议调优。</li>
+              <li><strong>连接是资源</strong>：FD、缓冲、上游连接数纳入限流与容量，耗尽即故障。</li>
               <li><strong>协议升级看兼容</strong>：客户端与中间盒矩阵决定能否全量。</li>
-              <li><strong>握手可观测</strong>：TLS/TCP 失败率与 RT 分位数独立看板。</li>
+              <li><strong>握手可观测</strong>：TLS/TCP 失败率与 RT 分位数独立看板，不与业务 RT 混谈。</li>
               <li><strong>慢连接可驱逐</strong>：空闲与异常连接要有回收策略，防止资源耗尽。</li>
+              <li><strong>分层定位</strong>：DNS/TLS/拥塞/应用分不清，优化就是盲打。</li>
             </ul>
           </div>
         </div>

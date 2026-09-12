@@ -67,23 +67,26 @@
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">工程化要点</div>
-                        <ul class="chapter-lead-points">
-              <li>严禁「半响应式」：EventLoop 上掺同步 JDBC/远程调用；阻塞调用必须隔离并审计。</li>
-              <li>明确哪些服务真需要背压；无背压契约的异步只是延后崩溃。</li>
-              <li>超时与重试有预算与抖动；retryWhen 必须有上限，防重试风暴。</li>
-              <li>具备队列、丢弃、延迟、订阅生命周期等可读指标与调试手段。</li>
+                                    <ul class="chapter-lead-points">
+              <li>严禁「半响应式」：EventLoop 上掺同步 JDBC/远程调用；阻塞调用必须隔离并审计，代码扫描/评审检查。</li>
+              <li>明确哪些服务真需要背压；无背压契约的异步只是延后崩溃，契约写进接口文档。</li>
+              <li>超时与重试有预算与抖动；retryWhen 必须有上限，防重试风暴计入下游容量。</li>
+              <li>具备队列、丢弃、延迟、订阅生命周期等可读指标与调试手段；取消与资源释放可测。</li>
               <li>团队心智与工具跟不上时，优先 VT + 清晰超时，不强上全栈 Reactive。</li>
-              <li>响应式与阻塞客户端混用边界写进规范；代码扫描或评审检查 EventLoop 阻塞点。</li>
+              <li>响应式与阻塞客户端混用边界写进规范；违规引入阻塞按缺陷管理。</li>
+              <li>背压策略（缓冲/丢弃/降采样）对客影响写清；丢弃必须可观测，禁止静默丢。</li>
+              <li>调度器选型（并行/弹性/单线程）与线程亲和写进设计；错误切调度器会导致隐蔽阻塞。</li>
             </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-                        <ul class="chapter-lead-mind">
+                                    <ul class="chapter-lead-mind">
               <li><strong>背压是契约</strong>：上游快下游慢必须有传播策略，否则换一种 OOM。</li>
-              <li><strong>非阻塞忌掺阻塞</strong>：EventLoop 上禁止同步 IO 与重 CPU。</li>
+              <li><strong>非阻塞忌掺阻塞</strong>：EventLoop 上禁止同步 IO 与重 CPU；掺了就不是响应式。</li>
               <li><strong>选型看心智成本</strong>：流式/背压刚需才上 Reactive，否则 VT 往往更稳。</li>
               <li><strong>错误与重试预算</strong>：重试必须有上限与抖动，并计入下游容量。</li>
               <li><strong>订阅生命周期</strong>：取消与资源释放要可测，避免泄漏订阅拖垮进程。</li>
+              <li><strong>半响应式零容忍</strong>：一条阻塞调用足以否定整条链路的响应式收益。</li>
             </ul>
           </div>
         </div>

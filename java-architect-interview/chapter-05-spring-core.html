@@ -71,23 +71,26 @@
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">工程化要点</div>
-                        <ul class="chapter-lead-points">
-              <li>关键 Bean 与配置变更走集成测试；事务与幂等在服务边界显式设计并有回归用例。</li>
-              <li>启动失败快速失败并保留诊断；半初始化服务禁止接入流量（探针未就绪不接请求）。</li>
-              <li>禁用生产动态改 Bean 定义、反射乱改单例等黑科技；扩展走官方扩展点。</li>
-              <li>框架升级对照弃用 API 与默认行为变化，形成回归清单并金丝雀验证。</li>
-              <li>事务/AOP 失效类问题按代理边界排查清单处理（自调用、private、final、同类调用）。</li>
+                                    <ul class="chapter-lead-points">
+              <li>关键 Bean 与配置变更走集成测试；事务与幂等在服务边界显式设计并有回归用例，覆盖自调用与异常回滚。</li>
+              <li>启动失败快速失败并保留诊断；半初始化服务禁止接入流量（就绪探针未通过不接请求）。</li>
+              <li>禁用生产动态改 Bean 定义、反射乱改单例等黑科技；扩展走官方扩展点并文档化。</li>
+              <li>框架升级对照弃用 API 与默认行为变化，形成回归清单并金丝雀验证，禁止「编译过了就算过」。</li>
+              <li>事务/AOP 失效类问题按代理边界排查清单处理（自调用、private、final、同类调用、异步边界）。</li>
               <li>循环依赖与启动期副作用在架构评审中明示；能拆边界就不要靠三级缓存「碰巧能转」。</li>
+              <li>条件装配与 Profile 生效条件必须可从日志解释；环境漂移用配置审计，而不是「换环境再试」。</li>
+              <li>监听器、初始化回调与销毁钩子的失败策略写清：失败是否阻断启动、资源是否可回滚释放。</li>
             </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-                        <ul class="chapter-lead-mind">
-              <li><strong>代理边界决定事务</strong>：先画调用是否经过代理，再查传播属性与异常回滚规则。</li>
-              <li><strong>生命周期可观测</strong>：问题落在实例化/注入/初始化/销毁哪一段，就查哪类扩展点。</li>
-              <li><strong>扩展点优于改源码</strong>：PostProcessor / Listener / Advisor 优先于私有 fork。</li>
-              <li><strong>启动失败即失败</strong>：带病启动比快速失败更危险。</li>
+                                    <ul class="chapter-lead-mind">
+              <li><strong>代理边界决定事务</strong>：先画调用是否经过代理，再查传播属性与异常回滚规则；边界错了注解全失效。</li>
+              <li><strong>生命周期可观测</strong>：问题落在实例化/注入/初始化/销毁哪一段，就查哪类扩展点与日志。</li>
+              <li><strong>扩展点优于改源码</strong>：PostProcessor / Listener / Advisor 优先于私有 fork；fork 必须进架构债清单。</li>
+              <li><strong>启动失败即失败</strong>：带病启动比快速失败更危险；半开服务是级联故障温床。</li>
               <li><strong>配置即契约</strong>：条件装配未生效要能从条件与日志解释，禁止「重启碰运气」。</li>
+              <li><strong>副作用可回放</strong>：启动期写库、调远程、占端口等副作用必须可幂等重试或可清理。</li>
             </ul>
           </div>
         </div>

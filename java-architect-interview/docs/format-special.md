@@ -38,9 +38,9 @@
 - **结构层级**：
 
   ```
-  ov-stats（两行统计；ov-stat-num 顶部 11 项 + 9 子组标题计数 = 全页 20 处）
-  ├─ ov-stats-row ① 题目总数 359 / P0 93 / P1 211 / P2 55
-  ├─ ov-stats-row ② 专家 46 / 架构 172 / 高级开发 141 / 章节题 228 / 核心原理 61 / 场景题 70 / 方法论 75
+  ov-stats（两行统计；ov-stat-num 顶部 11 项 + 9 子组标题计数 = 全页 20 处；顺序见 `kb-counts.json` → `ov_stat_order`）
+  ├─ ov-stats-row ① 题目总数 / 方法论 75 / P0 / P1 / P2
+  ├─ ov-stats-row ② 专家级 / 架构级 / 高级开发 / 章节题 / 核心原理 / 场景题
   ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title
   │    └─ ov-group-body
@@ -59,7 +59,7 @@
 
 - **定位**：核心原理速查手册，61 条目（`E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
 - **TOC**：`toc-group`（分组）+ `toc-group-title`（须为 `<a href="#epq-group-NN">` 可点击，跳到组导读）+ `toc-number` 分层锚点。
-- **分组导读**：每组（E01~E12）在首题前有 `epq-group-head`（`epq-group-title` + `group-lead`）。`group-lead` 三块：① **本组知识链**（`group-lead-chain`：intro + 分阶段 `ol`，禁止只剩箭头关键词）② **工程化要点**（`group-lead-points`，约 5 条）③ **本组思维模式**（`group-lead-mind`，命名条目）。页底须有 `chapter-nav`（与顶栏对称：首页 / 核心方法论 / 全部章节 / 场景题）。
+- **分组导读**：每组（E01~E12）在首题前有 `epq-group-head`（`epq-group-title` + `group-lead`）。`group-lead` 三块：① **本组知识链**（`group-lead-chain`：intro + 分阶段 `ol`，阶段说明写清因果与边界，禁止只剩箭头关键词）② **工程化要点**（`group-lead-points`，约 **7 条**，可执行口径）③ **本组思维模式**（`group-lead-mind`，约 **5 条**命名条目）。页底须有 `chapter-nav`（与顶栏对称：首页 / 核心方法论 / 全部章节 / 场景题）。
 - **条目**：
 
   ```
