@@ -103,7 +103,7 @@ def patch_mind(t):
     t = replace_once(t, ANCHOR_INSERT_MAPCARD, "<!-- TODO: map-card -->\n    " + ANCHOR_INSERT_MAPCARD, "mind-insert-mapcard")
     return t
 def patch_mind_idx(t):
-    # TODO: 题量表达式 N+N+N 同步（方法论 75 不计入该表达式）
+    # TODO: 题量表达式 N+N+N 同步（方法论/工程化不计入该表达式）
     return t
 
 def main():

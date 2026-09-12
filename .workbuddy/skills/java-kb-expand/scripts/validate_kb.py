@@ -107,7 +107,9 @@ def main():
     check(root_sum == EXPECT["total"] + ROOT_SUM_EXTRA, f"[根index] 合计={root_sum} 期望 {EXPECT['total']+ROOT_SUM_EXTRA}")
     check(root_all == EXPECT["total"], f"[根index] 全站={root_all} 期望 {EXPECT['total']}")
     if ENGINEERING:
-        root_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化</div>', texts["root"])
+        root_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
+        if root_eng is None:
+            root_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化</div>', texts["root"])
         check(root_eng == ENGINEERING, f"[根index] 工程化={root_eng} 期望 {ENGINEERING}")
 
     # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站 N 道
@@ -120,6 +122,13 @@ def main():
         if chap_eng is None:
             chap_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化</div>', texts["chap_idx"])
         check(chap_eng == ENGINEERING, f"[章节index] 工程化={chap_eng} 期望 {ENGINEERING}")
+
+    # root methodology label may be 核心方法论
+    root_m = stat(r'(\d+)</div>\s*<div class="stat-label">核心方法论</div>', texts["root"])
+    if root_m is None:
+        root_m = stat(r'(\d+)</div>\s*<div class="stat-label">方法论</div>', texts["root"])
+    if ENGINEERING is not None and EXPECT.get("methodology") is not None and root_m is not None:
+        check(root_m == EXPECT["methodology"], f"[根index] 方法论={root_m} 期望 {EXPECT['methodology']}")
 
     # 6) 新卡双编码 + 落位（按题号前缀自动定位宿主章节页）
     chap_text_all = "\n@@@\n".join(read(p) for p in chap_files)

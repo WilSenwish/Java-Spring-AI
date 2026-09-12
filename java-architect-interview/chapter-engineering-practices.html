@@ -1,626 +1,667 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>工程化要点 — Java 工程能力知识库</title>
-  <link rel="stylesheet" href="assets/design-system.css">
-  <style>
-    .qa-layer[data-layer="insight"] .qa-layer-title::before { background: var(--accent); }
-    .qa-layer[data-layer="principle"] .qa-layer-title::before { background: var(--success); }
-    .qa-layer[data-layer="application"] .qa-layer-title::before { background: var(--accent2); }
-    .eng-group { margin: var(--space-lg) 0; }
-    .eng-group-title {
-      font-size: 1.25rem; font-weight: 700; color: var(--ink);
-      margin: 0 0 var(--space-md); padding-bottom: var(--space-xs);
-      border-bottom: 2px solid var(--accent);
-    }
-    .sidebar-toc .toc-group { margin-bottom: var(--space-md); }
-    .sidebar-toc .toc-group-title {
-      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
-      color: var(--accent); margin-bottom: 4px; padding-left: 10px;
-    }
-  </style>
-</head>
-<body>
-  <div class="page-wrapper">
-    <aside class="sidebar-toc">
-      <h3>本篇目录</h3>
-      <div class="toc-group">
-        <div class="toc-group-title">发布回滚与变更门禁</div>
-        <ol>
-          <li><a href="#G01.01"><span class="toc-number">G01.01</span>发布三要素：灰度·卡点·回滚</a></li>
-          <li><a href="#G01.02"><span class="toc-number">G01.02</span>配置变更当发布</a></li>
-          <li><a href="#G01.03"><span class="toc-number">G01.03</span>框架与依赖升级门禁</a></li>
-        </ol>
-      </div>
-      <div class="toc-group">
-        <div class="toc-group-title">可观测与排障证据链</div>
-        <ol>
-          <li><a href="#G02.01"><span class="toc-number">G02.01</span>三支柱默认交付</a></li>
-          <li><a href="#G02.02"><span class="toc-number">G02.02</span>排障标准动作</a></li>
-          <li><a href="#G02.03"><span class="toc-number">G02.03</span>告警可行动</a></li>
-        </ol>
-      </div>
-      <div class="toc-group">
-        <div class="toc-group-title">容量与资源预算</div>
-        <ol>
-          <li><a href="#G03.01"><span class="toc-number">G03.01</span>应用与编排同一容量模型</a></li>
-          <li><a href="#G03.02"><span class="toc-number">G03.02</span>池化与拒绝可观测</a></li>
-          <li><a href="#G03.03"><span class="toc-number">G03.03</span>大促前演练清单</a></li>
-        </ol>
-      </div>
-      <div class="toc-group">
-        <div class="toc-group-title">数据变更与 SQL 治理</div>
-        <ol>
-          <li><a href="#G04.01"><span class="toc-number">G04.01</span>DDL/数据修复可回滚</a></li>
-          <li><a href="#G04.02"><span class="toc-number">G04.02</span>SQL 审核与慢 SQL 闭环</a></li>
-          <li><a href="#G04.03"><span class="toc-number">G04.03</span>扩展前先单机</a></li>
-        </ol>
-      </div>
-      <div class="toc-group">
-        <div class="toc-group-title">缓存一致与热点治理</div>
-        <ol>
-          <li><a href="#G05.01"><span class="toc-number">G05.01</span>缓存失败可降级</a></li>
-          <li><a href="#G05.02"><span class="toc-number">G05.02</span>一致性窗口写进契约</a></li>
-          <li><a href="#G05.03"><span class="toc-number">G05.03</span>热 key / 大 key 专项</a></li>
-        </ol>
-      </div>
-      <div class="toc-group">
-        <div class="toc-group-title">调用预算与服务治理</div>
-        <ol>
-          <li><a href="#G06.01"><span class="toc-number">G06.01</span>同步链路预算入契约</a></li>
-          <li><a href="#G06.02"><span class="toc-number">G06.02</span>治理参数可回滚</a></li>
-          <li><a href="#G06.03"><span class="toc-number">G06.03</span>双写用 Outbox/CDC</a></li>
-        </ol>
-      </div>
-      <div class="toc-group">
-        <div class="toc-group-title">AI 制品与评测门禁</div>
-        <ol>
-          <li><a href="#G07.01"><span class="toc-number">G07.01</span>制品全版本化</a></li>
-          <li><a href="#G07.02"><span class="toc-number">G07.02</span>无黄金集不上线</a></li>
-          <li><a href="#G07.03"><span class="toc-number">G07.03</span>工具副作用分级</a></li>
-        </ol>
-      </div>
-      <div class="toc-group">
-        <div class="toc-group-title">安全运营与供应链</div>
-        <ol>
-          <li><a href="#G08.01"><span class="toc-number">G08.01</span>威胁建模先行</a></li>
-          <li><a href="#G08.02"><span class="toc-number">G08.02</span>密钥证书可轮换</a></li>
-          <li><a href="#G08.03"><span class="toc-number">G08.03</span>依赖与镜像可追溯</a></li>
-        </ol>
-      </div>
-    </aside>
-    <main class="content-main">
-      <nav class="chapter-nav-top">
-        <a href="chapter-core-methodology.html" class="nav-prev">← 核心方法论</a>
-        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-engineering-practices.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-        <a href="chapter-overview-priority.html" class="nav-next">优先级总览 →</a>
-      </nav>
-      <div class="chapter-header">
-        <div class="chapter-number">ENGINEERING PRACTICES / 工程化要点</div>
-        <h1 class="chapter-title">工程化要点</h1>
-        <p class="chapter-subtitle">从篇章、核心原理与场景导读的「工程化要点」去重提炼为平台可执行口径：发布、观测、容量、数据、缓存、治理、AI 与安全八组门禁。</p>
-        <div class="chapter-meta">
-          <span>24 工程化卡片</span>
-          <span class="meta-divider">|</span>
-          <span>不计入题目总量 365</span>
-          <span class="meta-divider">|</span>
-          <span>ID 前缀 G</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工程化要点 — Java 工程能力知识库</title>
+    <link rel="stylesheet" href="assets/design-system.css" />
+    <style>
+      .qa-layer[data-layer="insight"] .qa-layer-title::before {
+        background: var(--accent);
+      }
+      .qa-layer[data-layer="principle"] .qa-layer-title::before {
+        background: var(--success);
+      }
+      .qa-layer[data-layer="application"] .qa-layer-title::before {
+        background: var(--accent2);
+      }
+      .eng-group {
+        margin: var(--space-lg) 0;
+      }
+      .eng-group-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0 0 var(--space-md);
+        padding-bottom: var(--space-xs);
+        border-bottom: 2px solid var(--accent);
+      }
+      .sidebar-toc .toc-group {
+        margin-bottom: var(--space-md);
+      }
+      .sidebar-toc .toc-group-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+        margin-bottom: 4px;
+        padding-left: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <aside class="sidebar-toc">
+        <h3>本篇目录</h3>
+        <div class="toc-group">
+          <div class="toc-group-title">发布回滚与变更门禁</div>
+          <ol>
+            <li>
+              <a href="#G01.01"><span class="toc-number">G01.01</span>发布三要素：灰度·卡点·回滚</a>
+            </li>
+            <li>
+              <a href="#G01.02"><span class="toc-number">G01.02</span>配置变更当发布</a>
+            </li>
+            <li>
+              <a href="#G01.03"><span class="toc-number">G01.03</span>框架与依赖升级门禁</a>
+            </li>
+          </ol>
         </div>
-      </div>
-      <p>本篇与<a href="chapter-core-methodology.html">核心方法论</a>并列：方法论回答「怎么想」，本篇回答「上线前必须守住哪些工程门禁」。卡片采用与方法论相同的三层结构（核心洞察 / 原理映射 / 工程表达），内容源自杀青导读，并可回链各篇章。</p>
-      <section class="eng-group" id="G01">
-        <h2 class="eng-group-title">发布回滚与变更门禁</h2>
+        <div class="toc-group">
+          <div class="toc-group-title">可观测与排障证据链</div>
+          <ol>
+            <li>
+              <a href="#G02.01"><span class="toc-number">G02.01</span>三支柱默认交付</a>
+            </li>
+            <li>
+              <a href="#G02.02"><span class="toc-number">G02.02</span>排障标准动作</a>
+            </li>
+            <li>
+              <a href="#G02.03"><span class="toc-number">G02.03</span>告警可行动</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <div class="toc-group-title">容量与资源预算</div>
+          <ol>
+            <li>
+              <a href="#G03.01"><span class="toc-number">G03.01</span>应用与编排同一容量模型</a>
+            </li>
+            <li>
+              <a href="#G03.02"><span class="toc-number">G03.02</span>池化与拒绝可观测</a>
+            </li>
+            <li>
+              <a href="#G03.03"><span class="toc-number">G03.03</span>大促前演练清单</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <div class="toc-group-title">数据变更与 SQL 治理</div>
+          <ol>
+            <li>
+              <a href="#G04.01"><span class="toc-number">G04.01</span>DDL/数据修复可回滚</a>
+            </li>
+            <li>
+              <a href="#G04.02"><span class="toc-number">G04.02</span>SQL 审核与慢 SQL 闭环</a>
+            </li>
+            <li>
+              <a href="#G04.03"><span class="toc-number">G04.03</span>扩展前先单机</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <div class="toc-group-title">缓存一致与热点治理</div>
+          <ol>
+            <li>
+              <a href="#G05.01"><span class="toc-number">G05.01</span>缓存失败可降级</a>
+            </li>
+            <li>
+              <a href="#G05.02"><span class="toc-number">G05.02</span>一致性窗口写进契约</a>
+            </li>
+            <li>
+              <a href="#G05.03"><span class="toc-number">G05.03</span>热 key / 大 key 专项</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <div class="toc-group-title">调用预算与服务治理</div>
+          <ol>
+            <li>
+              <a href="#G06.01"><span class="toc-number">G06.01</span>同步链路预算入契约</a>
+            </li>
+            <li>
+              <a href="#G06.02"><span class="toc-number">G06.02</span>治理参数可回滚</a>
+            </li>
+            <li>
+              <a href="#G06.03"><span class="toc-number">G06.03</span>双写用 Outbox/CDC</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <div class="toc-group-title">AI 制品与评测门禁</div>
+          <ol>
+            <li>
+              <a href="#G07.01"><span class="toc-number">G07.01</span>制品全版本化</a>
+            </li>
+            <li>
+              <a href="#G07.02"><span class="toc-number">G07.02</span>无黄金集不上线</a>
+            </li>
+            <li>
+              <a href="#G07.03"><span class="toc-number">G07.03</span>工具副作用分级</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <div class="toc-group-title">安全运营与供应链</div>
+          <ol>
+            <li>
+              <a href="#G08.01"><span class="toc-number">G08.01</span>威胁建模先行</a>
+            </li>
+            <li>
+              <a href="#G08.02"><span class="toc-number">G08.02</span>密钥证书可轮换</a>
+            </li>
+            <li>
+              <a href="#G08.03"><span class="toc-number">G08.03</span>依赖与镜像可追溯</a>
+            </li>
+          </ol>
+        </div>
+      </aside>
+      <main class="content-main">
+        <nav class="chapter-nav-top">
+          <a href="chapter-core-methodology.html" class="nav-prev">← 核心方法论</a>
+          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-engineering-practices.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+          <a href="chapter-overview-priority.html" class="nav-next">优先级总览 →</a>
+        </nav>
+        <div class="chapter-header">
+          <div class="chapter-number">ENGINEERING PRACTICES / 工程化要点</div>
+          <h1 class="chapter-title">工程化要点</h1>
+          <p class="chapter-subtitle">从篇章、核心原理与场景导读的「工程化要点」去重提炼为平台可执行口径：发布、观测、容量、数据、缓存、治理、AI 与安全八组门禁。</p>
+          <div class="chapter-meta">
+            <span>24 工程化卡片</span>
+            <span class="meta-divider">|</span>
+            <span>不计入题目总量 365</span>
+            <span class="meta-divider">|</span>
+            <span>ID 前缀 G</span>
+          </div>
+        </div>
+        <p>本篇与<a href="chapter-core-methodology.html">核心方法论</a>并列：方法论回答「怎么想」，本篇回答「上线前必须守住哪些工程门禁」。卡片采用与方法论相同的三层结构（核心洞察 / 原理映射 / 工程表达），内容源自杀青导读，并可回链各篇章。</p>
+        <section class="eng-group" id="G01">
+          <h2 class="eng-group-title">发布回滚与变更门禁</h2>
 
-      <div class="qa-card" id="G01.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G01.01</div>
-          <div class="qa-question">发布三要素：灰度·卡点·回滚<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>高风险变更默认按「分批放量 + 指标卡点 + 一键回滚」执行；回滚路径必须演练过。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>对应篇章工程化要点中的金丝雀、错误预算、配置/镜像/流量三维可退。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>变更单模板固定三要素；卡点未过不得扩量。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G01.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G01.01</div>
+              <div class="qa-question">发布三要素：灰度·卡点·回滚<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>高风险变更默认按「分批放量 + 指标卡点 + 一键回滚」执行；回滚路径必须演练过。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>对应篇章工程化要点中的金丝雀、错误预算、配置/镜像/流量三维可退。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>变更单模板固定三要素；卡点未过不得扩量。</p></div>
+            </div>
+          </div>
 
+          <div class="qa-card" id="G01.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G01.02</div>
+              <div class="qa-question">配置变更当发布<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>热更新与配置推送按发布管控：审批、灰度、快速关停与本地快照兜底。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>配置中心抖动不得拖垮核心链路；有毒变更可秒级关停。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>评审配置项时同步评审回滚开关与生效范围。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G01.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G01.02</div>
-          <div class="qa-question">配置变更当发布<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>热更新与配置推送按发布管控：审批、灰度、快速关停与本地快照兜底。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>配置中心抖动不得拖垮核心链路；有毒变更可秒级关停。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>评审配置项时同步评审回滚开关与生效范围。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G01.03" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G01.03</div>
+              <div class="qa-question">框架与依赖升级门禁<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>大版本升级用契约测试+金丝雀；弃用 API 与默认行为变化进回归清单。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>基线 BOM 由平台抬升，业务少私锁版本。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>「编译过了」不等于可上线。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="G02">
+          <h2 class="eng-group-title">可观测与排障证据链</h2>
 
+          <div class="qa-card" id="G02.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G02.01</div>
+              <div class="qa-question">三支柱默认交付<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>日志规范、指标、追踪随脚手架默认接入，禁止上线后补丁式接入。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>采样可解释可回放；告警绑定 Runbook。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>新服务验收检查三支柱是否齐活。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G01.03" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G01.03</div>
-          <div class="qa-question">框架与依赖升级门禁<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>大版本升级用契约测试+金丝雀；弃用 API 与默认行为变化进回归清单。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>基线 BOM 由平台抬升，业务少私锁版本。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>「编译过了」不等于可上线。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G02.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G02.02</div>
+              <div class="qa-question">排障标准动作<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>固定：现象 → 分层/分区归因 → 采证（日志/指标/转储/profile）→ 动作 → 回滚条件。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>无证据调参视为违规。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>值班手册按此动作编排。</p></div>
+            </div>
+          </div>
 
-      </section>
-      <section class="eng-group" id="G02">
-        <h2 class="eng-group-title">可观测与排障证据链</h2>
+          <div class="qa-card" id="G02.03" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">G02.03</div>
+              <div class="qa-question">告警可行动<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>没有下一步动作的告警是噪声；告警必须能关联到责任人与 Runbook。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>饱和、驱逐、拒绝、握手失败等红线独立看板。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>复盘时清理不可行动告警。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="G03">
+          <h2 class="eng-group-title">容量与资源预算</h2>
 
-      <div class="qa-card" id="G02.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G02.01</div>
-          <div class="qa-question">三支柱默认交付<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>日志规范、指标、追踪随脚手架默认接入，禁止上线后补丁式接入。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>采样可解释可回放；告警绑定 Runbook。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>新服务验收检查三支柱是否齐活。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G03.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G03.01</div>
+              <div class="qa-question">应用与编排同一容量模型<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>堆/线程/连接/FD 与容器 limit、探针窗口同一模型，防误杀与假就绪。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>ActiveProcessorCount、CPU throttle 与 STW 放大一并考虑。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>容量评审材料含三联对照表。</p></div>
+            </div>
+          </div>
 
+          <div class="qa-card" id="G03.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G03.02</div>
+              <div class="qa-question">池化与拒绝可观测<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>有界队列、饱和指标、拒绝告警与降级路径成套；禁止无限队列伪装缓冲。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>拒绝必须打点并联动降级。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>池参数变更走审批与回滚。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G02.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G02.02</div>
-          <div class="qa-question">排障标准动作<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>固定：现象 → 分层/分区归因 → 采证（日志/指标/转储/profile）→ 动作 → 回滚条件。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>无证据调参视为违规。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>值班手册按此动作编排。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G03.03" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G03.03</div>
+              <div class="qa-question">大促前演练清单<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>分配画像、依赖抖动、单点故障、切流与回滚演练进大促门禁。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>演练结果进入错误预算讨论。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>未演练项目不得扩量。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="G04">
+          <h2 class="eng-group-title">数据变更与 SQL 治理</h2>
 
+          <div class="qa-card" id="G04.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G04.01</div>
+              <div class="qa-question">DDL/数据修复可回滚<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>变更有窗口、备份点、影子验证与回滚剧本；高峰窗口禁止盲上。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>向前兼容迁移优先于幻想 schema 轻易回滚。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>大表优先 online DDL 并有中断续跑预案。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G02.03" data-difficulty="senior">
-        <div class="qa-header">
-          <div class="qa-badge">G02.03</div>
-          <div class="qa-question">告警可行动<span class="difficulty difficulty-senior">高级开发</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>没有下一步动作的告警是噪声；告警必须能关联到责任人与 Runbook。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>饱和、驱逐、拒绝、握手失败等红线独立看板。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>复盘时清理不可行动告警。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G04.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G04.02</div>
+              <div class="qa-question">SQL 审核与慢 SQL 闭环<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>全表扫/无索引/深分页进 CI；慢 SQL 按总耗时排序并防回归。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>先 EXPLAIN 再改；计划突变可检测。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>热点 SQL 与死锁工单闭环到责任人。</p></div>
+            </div>
+          </div>
 
-      </section>
-      <section class="eng-group" id="G03">
-        <h2 class="eng-group-title">容量与资源预算</h2>
+          <div class="qa-card" id="G04.03" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G04.03</div>
+              <div class="qa-question">扩展前先单机<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>分片前证明单机与索引潜力挖尽；切分键与二次切分成本写 ADR。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>跨片事务与对账成本明示。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>未证实瓶颈的分布式方案打回。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="G05">
+          <h2 class="eng-group-title">缓存一致与热点治理</h2>
 
-      <div class="qa-card" id="G03.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G03.01</div>
-          <div class="qa-question">应用与编排同一容量模型<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>堆/线程/连接/FD 与容器 limit、探针窗口同一模型，防误杀与假就绪。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>ActiveProcessorCount、CPU throttle 与 STW 放大一并考虑。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>容量评审材料含三联对照表。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G05.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G05.01</div>
+              <div class="qa-question">缓存失败可降级<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>权威在源；缓存挂了不能全站 500，降级路径进 Runbook。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>策略变更对照命中率与回源，防打爆源库。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>删缓存失败有补偿与对账。</p></div>
+            </div>
+          </div>
 
+          <div class="qa-card" id="G05.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G05.02</div>
+              <div class="qa-question">一致性窗口写进契约<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>旁路/双删/CDC 的最大不一致时间对业务可见可告警。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>选协议先选容忍窗口。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>评审材料缺窗口声明则不通过。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G03.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G03.02</div>
-          <div class="qa-question">池化与拒绝可观测<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>有界队列、饱和指标、拒绝告警与降级路径成套；禁止无限队列伪装缓冲。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>拒绝必须打点并联动降级。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>池参数变更走审批与回滚。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G05.03" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G05.03</div>
+              <div class="qa-question">热 key / 大 key 专项<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>读热点、写热点、大 value 分型治理并验收。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>Cluster 槽迁移与热 key 有观测。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>上线前热点预案（本地缓存/互斥重建）齐备。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="G06">
+          <h2 class="eng-group-title">调用预算与服务治理</h2>
 
+          <div class="qa-card" id="G06.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G06.01</div>
+              <div class="qa-question">同步链路预算入契约<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>深度、超时、重试上限写进服务契约，端到端可加总。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>防重试风暴与级联超时。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>契约变更与代码发布同级管控。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G03.03" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G03.03</div>
-          <div class="qa-question">大促前演练清单<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>分配画像、依赖抖动、单点故障、切流与回滚演练进大促门禁。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>演练结果进入错误预算讨论。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>未演练项目不得扩量。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G06.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G06.02</div>
+              <div class="qa-question">治理参数可回滚<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>限流/熔断/舱壁参数有依据、可审批、可回滚。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>与错误预算联动。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>禁止凭感觉调大阈值。</p></div>
+            </div>
+          </div>
 
-      </section>
-      <section class="eng-group" id="G04">
-        <h2 class="eng-group-title">数据变更与 SQL 治理</h2>
+          <div class="qa-card" id="G06.03" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G06.03</div>
+              <div class="qa-question">双写用 Outbox/CDC<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>消息与 DB 双写禁止无补偿；Outbox/CDC 兜底。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>死信可人工补偿且可审计。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>上线清单含幂等键与对账任务。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="G07">
+          <h2 class="eng-group-title">AI 制品与评测门禁</h2>
 
-      <div class="qa-card" id="G04.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G04.01</div>
-          <div class="qa-question">DDL/数据修复可回滚<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>变更有窗口、备份点、影子验证与回滚剧本；高峰窗口禁止盲上。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>向前兼容迁移优先于幻想 schema 轻易回滚。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>大表优先 online DDL 并有中断续跑预案。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G07.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G07.01</div>
+              <div class="qa-question">制品全版本化<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>模型、Prompt、知识库快照、工具 schema、编排图全部打版本，可回放回退。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>版本号进日志与审计。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>事故对齐到制品版本。</p></div>
+            </div>
+          </div>
 
+          <div class="qa-card" id="G07.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G07.02</div>
+              <div class="qa-question">无黄金集不上线<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>任何层改动过同一测试集；离线+小流量双确认后再全量。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>拒绝个例体验放量。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>评测门禁与发布流水线绑定。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G04.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G04.02</div>
-          <div class="qa-question">SQL 审核与慢 SQL 闭环<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>全表扫/无索引/深分页进 CI；慢 SQL 按总耗时排序并防回归。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>先 EXPLAIN 再改；计划突变可检测。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>热点 SQL 与死锁工单闭环到责任人。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G07.03" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G07.03</div>
+              <div class="qa-question">工具副作用分级<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>可写工具默认鉴权、幂等、超时、审计与 HITL；禁止内网裸奔。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>Token/工具成本进租户配额与门禁。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>死循环/资损有熔断剧本。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="G08">
+          <h2 class="eng-group-title">安全运营与供应链</h2>
 
+          <div class="qa-card" id="G08.01" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G08.01</div>
+              <div class="qa-question">威胁建模先行<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>按资产分级与攻击面建模后再堆控制项；失败时默认拒绝。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>内网不隐式信任；服务间同样鉴权。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>高危变更双人+回滚。</p></div>
+            </div>
+          </div>
 
-      <div class="qa-card" id="G04.03" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G04.03</div>
-          <div class="qa-question">扩展前先单机<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>分片前证明单机与索引潜力挖尽；切分键与二次切分成本写 ADR。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>跨片事务与对账成本明示。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>未证实瓶颈的分布式方案打回。</p></div>
-        </div>
-      </div>
+          <div class="qa-card" id="G08.02" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G08.02</div>
+              <div class="qa-question">密钥证书可轮换<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>到期进日历，轮换可演练，泄露可撤销。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>密钥不进镜像与仓库。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>演练「过期当天」应急。</p></div>
+            </div>
+          </div>
 
-      </section>
-      <section class="eng-group" id="G05">
-        <h2 class="eng-group-title">缓存一致与热点治理</h2>
-
-      <div class="qa-card" id="G05.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G05.01</div>
-          <div class="qa-question">缓存失败可降级<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>权威在源；缓存挂了不能全站 500，降级路径进 Runbook。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>策略变更对照命中率与回源，防打爆源库。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>删缓存失败有补偿与对账。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G05.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G05.02</div>
-          <div class="qa-question">一致性窗口写进契约<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>旁路/双删/CDC 的最大不一致时间对业务可见可告警。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>选协议先选容忍窗口。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>评审材料缺窗口声明则不通过。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G05.03" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G05.03</div>
-          <div class="qa-question">热 key / 大 key 专项<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>读热点、写热点、大 value 分型治理并验收。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>Cluster 槽迁移与热 key 有观测。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>上线前热点预案（本地缓存/互斥重建）齐备。</p></div>
-        </div>
-      </div>
-
-      </section>
-      <section class="eng-group" id="G06">
-        <h2 class="eng-group-title">调用预算与服务治理</h2>
-
-      <div class="qa-card" id="G06.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G06.01</div>
-          <div class="qa-question">同步链路预算入契约<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>深度、超时、重试上限写进服务契约，端到端可加总。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>防重试风暴与级联超时。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>契约变更与代码发布同级管控。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G06.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G06.02</div>
-          <div class="qa-question">治理参数可回滚<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>限流/熔断/舱壁参数有依据、可审批、可回滚。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>与错误预算联动。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>禁止凭感觉调大阈值。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G06.03" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G06.03</div>
-          <div class="qa-question">双写用 Outbox/CDC<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>消息与 DB 双写禁止无补偿；Outbox/CDC 兜底。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>死信可人工补偿且可审计。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>上线清单含幂等键与对账任务。</p></div>
-        </div>
-      </div>
-
-      </section>
-      <section class="eng-group" id="G07">
-        <h2 class="eng-group-title">AI 制品与评测门禁</h2>
-
-      <div class="qa-card" id="G07.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G07.01</div>
-          <div class="qa-question">制品全版本化<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>模型、Prompt、知识库快照、工具 schema、编排图全部打版本，可回放回退。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>版本号进日志与审计。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>事故对齐到制品版本。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G07.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G07.02</div>
-          <div class="qa-question">无黄金集不上线<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>任何层改动过同一测试集；离线+小流量双确认后再全量。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>拒绝个例体验放量。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>评测门禁与发布流水线绑定。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G07.03" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G07.03</div>
-          <div class="qa-question">工具副作用分级<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>可写工具默认鉴权、幂等、超时、审计与 HITL；禁止内网裸奔。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>Token/工具成本进租户配额与门禁。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>死循环/资损有熔断剧本。</p></div>
-        </div>
-      </div>
-
-      </section>
-      <section class="eng-group" id="G08">
-        <h2 class="eng-group-title">安全运营与供应链</h2>
-
-      <div class="qa-card" id="G08.01" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G08.01</div>
-          <div class="qa-question">威胁建模先行<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>按资产分级与攻击面建模后再堆控制项；失败时默认拒绝。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>内网不隐式信任；服务间同样鉴权。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>高危变更双人+回滚。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G08.02" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G08.02</div>
-          <div class="qa-question">密钥证书可轮换<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>到期进日历，轮换可演练，泄露可撤销。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>密钥不进镜像与仓库。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>演练「过期当天」应急。</p></div>
-        </div>
-      </div>
-
-
-      <div class="qa-card" id="G08.03" data-difficulty="architect">
-        <div class="qa-header">
-          <div class="qa-badge">G08.03</div>
-          <div class="qa-question">依赖与镜像可追溯<span class="difficulty difficulty-architect">架构级</span></div>
-        </div>
-        <div class="qa-layer" data-layer="insight">
-          <div class="qa-layer-title">核心洞察</div>
-          <div class="qa-layer-body"><p>SCA 扫描进 CI，维护 SBOM；镜像与基础镜像有升级窗口。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="principle">
-          <div class="qa-layer-title">原理映射</div>
-          <div class="qa-layer-body"><p>对应供应链安全与生产调试端点关闭。</p></div>
-        </div>
-        <div class="qa-layer" data-layer="application">
-          <div class="qa-layer-title">工程表达</div>
-          <div class="qa-layer-body"><p>例外依赖走审批。</p></div>
-        </div>
-      </div>
-
-      </section>
-      <nav class="chapter-nav">
-        <a href="chapter-core-methodology.html" class="nav-prev">← 核心方法论</a>
-        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-engineering-practices.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-        <a href="chapter-overview-priority.html" class="nav-next">优先级总览 →</a>
-      </nav>
-    </main>
-  </div>
-  <script src="assets/nav.js"></script>
-</body>
+          <div class="qa-card" id="G08.03" data-difficulty="architect">
+            <div class="qa-header">
+              <div class="qa-badge">G08.03</div>
+              <div class="qa-question">依赖与镜像可追溯<span class="difficulty difficulty-architect">架构级</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body"><p>SCA 扫描进 CI，维护 SBOM；镜像与基础镜像有升级窗口。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body"><p>对应供应链安全与生产调试端点关闭。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body"><p>例外依赖走审批。</p></div>
+            </div>
+          </div>
+        </section>
+        <nav class="chapter-nav">
+          <a href="chapter-core-methodology.html" class="nav-prev">← 核心方法论</a>
+          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-engineering-practices.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+          <a href="chapter-overview-priority.html" class="nav-next">优先级总览 →</a>
+        </nav>
+      </main>
+    </div>
+    <script src="assets/nav.js"></script>
+  </body>
 </html>

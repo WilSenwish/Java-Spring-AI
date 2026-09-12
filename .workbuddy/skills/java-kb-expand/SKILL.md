@@ -146,10 +146,10 @@ agent_created: true
 |---|---|
 | `chapter-xx-*.html` | meta 题目数 / 难度计数 / 复习分钟 +N；TOC 加条目；导航前插卡片（双编码一致） |
 | `chapter-overview-priority.html` | 新增 ov-item；`ov-stat-num` 共 **11 个**字段须同步 +N（顺序见 `kb-counts.json` → `ov_stat_order`）：**总量 / 方法论 / P0 / P1 / P2 / 专家级 / 架构级 / 高级开发 / 章节题 / 核心原理 / 场景题**（「方法论」紧随总量，易漏，务必逐项核对）；对应子组标题（优先级×难度 9 宫格）+N |
-| `Java Spring AI/index.html`（根） | 类型计数 / 合计（题数+方法论卡片）/ 全站 / dir-count +N；新增 q-item li |
-| `java-architect-interview/index.html` | stat-number +N；全站 +N；章节 card-footer +N（**不枚举单题 ID**） |
-| `mind-xx-*.html` | 主干范围 `C10.01–C10.N` 扩尾；插 map-card（summary/body/tags）；meta |
-| `mind/index.html` | 题量表达式 `N+N+N` 同步 |
+| `Java Spring AI/index.html`（根） | 类型计数 / 合计（题数+方法论+工程化）/ 全站 / `dir-count` + `dir-group-count`（须=该组 q-list 长度）+N；新增 q-item li；M12 须平级插在序章⑤与「一、高并发」之间 |
+| `java-architect-interview/index.html` | stat-number +N；全站 +N；章节 card-footer +N（**不枚举单题 ID**；footer N=该章 C 卡数） |
+| `mind-xx-*.html` | 主干范围 `C10.01–C10.N` 扩尾；插 map-card（summary/body/tags）；meta；`map-note` 并入清单 |
+| `mind/index.html` | 题量表达式 `N+N+N`；对应卡片 `card-foot`（章节=C 卡数；原理/场景=该 mind `<summary>` 中 E/S 数） |
 
 ## 坑位速查（高频踩坑）
 
@@ -157,8 +157,9 @@ agent_created: true
 - **章节导航页不枚举单题 ID**：`java-architect-interview/index.html` 只列章节卡片与统计，不含 `Cxx.xx`/`Sxx.xx` 条目——校验时"落位=False"属预期。
 - **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家级/架构级/高级开发），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
 - **overview `ov-stat-num` 共 11 项全要改**：总量/方法论/P0/P1/P2/专家级/架构级/高级开发/章节题/核心原理/场景题（顺序见 `ov_stat_order`）。最易漏的是「章节题」（篇章数）与「方法论」（紧随总量），漏改会导致 overview 与根 index、章节 index 的计数不一致。
-- **根 index 合计 ≠ 题数**：合计 = 题数 + 方法论卡片数（取值见下方 COUNTS 块的「全站合计」），加题时题数与合计各 +1。
-- **mind 页 `1+15+1` 计数与题量无关**，勿动；只改题量表达式 `N+N+N`。
+- **根 index 合计 ≠ 题数**：合计 = 题数 + 方法论 + 工程化（取值见下方 COUNTS 块的「全站合计」）；加 C/E/S 题时题数与合计各 +1，加 M/G 卡时只动方法论/工程化与合计。
+- **mind 导图页数 18 与题量无关**（mind-01~15 + core + engineering + security）；只改题量表达式 `N+N+N` 与各卡 `card-foot`。
+- **`dir-group-count` / `group-count` / 篇章 `dir-count` 必须等于实际卡片数**；M12 禁止嵌套进「一、高并发」。
 - **`</spa` 误判**：截断检测用负向前瞻排除合法 `</span>`（正则 `</spa(?!n>)`）。
 - **路径双层**：`Java Spring AI/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
 - **Bash 内置 `grep` 受 `_zshz` 干扰**：交叉验证用 `Grep` 工具或 `git grep`。

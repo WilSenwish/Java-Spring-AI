@@ -50,8 +50,8 @@
 </details>
 ```
 - `map-tag` 类别：`t-c`（章节）/ `t-e`（核心原理）/ `t-s`（场景）。
-- 插入新节点后，更新该页顶部 `主干 Cxx.01–Cxx.N` 范围与底部 `map-note`（并入清单，如 `S04.01~06`）。
-- `mind/index.html` 题量表达式 `N篇章+N核心原理+N场景`（如 `220+58+67`），随计数变更同步。
+- 插入新节点后，更新该页顶部 `主干 Cxx.01–Cxx.N` 范围与底部 `map-note`（并入清单，如 `S04.01~06`），并同步 `mind/index.html` 对应卡片 `card-foot`（见 §5.4）。
+- `mind/index.html` 顶部 `idx-meta` 含：导图页数（18）、方法论卡数、题量表达式 `N篇章+N核心原理+N场景`（如 `229+64+72`），随计数变更同步。
 
 ## 5. 4 份聚合统计页字段名
 
@@ -72,18 +72,27 @@
 - 每个 ov-item：`<div class="ov-item" …><span class="priority priority-pX">…</span><span class="difficulty difficulty-architect">…</span><span class="ov-src">第X篇</span>…</div>`，与章节页卡片一一对应。
 
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
-- 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 各自计数、合计（= 题数 + 方法论卡片，如 345+75=420）、全站 N 题。
+- 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化，如 365+91+24=480）、全站 N 题。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
-- per-chapter `dir-count`（各篇章题数），求和须等于篇章总数。
+- per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（229）。
+- 方法论目录结构（平级 `dir-group`，禁止嵌套）：序章①~⑤ → **⑥ 生产与领域思维速查（M12，16 卡）** → 一~五主题（M06~M10）→ 附录（M11）。**禁止**把 M12 嵌进「一、高并发」。
 
 ### 5.3 `java-architect-interview/index.html`（章节导航）
-- `stat-number`：深度Q&A / 核心原理 / 场景、全站 N 道题目。
-- 每篇章 `<div class="chapter-card">…<div class="card-footer">第X篇 · N 题</div></div>`，footer 计数随该篇章题数变更。
+- `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化、全站 N 道题目。
+- 每篇章 `<div class="chapter-card">…<div class="card-footer"><span>N 题</span>…</div></div>`，`N` = 该章 `C##.##` 卡片数（与根 index `dir-count` 一致）。
 - **不枚举单题 ID**（无 `Cxx.xx`/`Sxx.xx` li）——校验时落位=False 属预期。
 
 ### 5.4 `java-architect-interview-mind/index.html`（导图导航）
-- 题量表达式 `N篇章+N核心原理+N场景`，随计数同步；`mind 页计数 1+15+1` 与题量无关，勿动。
+- 顶部 `idx-meta`：导图页 **18**（mind-01~15 + mind-core + mind-engineering + mind-security）；方法论卡数；题量 `N+N+N`；勿与题目总量混淆。
+- 每张卡片底部 `card-foot` 计数口径（改题后必须同步）：
+  - **篇章卡 mind-01~15**：`章节 N` = 对应 `chapter-NN` 的 C 卡数；`原理 N` / `场景 N` = 该 mind 页 `<summary>` 中实际列出的 E / S 卡数（无则省略该 chip）。
+  - **方法论卡**：`91 卡 · 12 组`（M01~M12）。
+  - **工程化卡**：`24 卡 · 8 组`（G01~G08）。
+  - **安全手册卡**：`手册 7 章` + 该 mind 页并入的原理/场景数。
 
+### 5.5 场景 / 核心原理页分组计数
+- 场景页正文 `span.group-count`、根 index 场景区 `dir-group-count`，均须等于该组 `S##.##` 实际题数（当前：5/6/5/6/5/6/7/8/5/5/6/8）。
+- 核心原理页各组实际题数（当前：4/4/8/8/4/3/10/4/3/3/5/8）；根 index 对应 `dir-group-count` 同步。
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
