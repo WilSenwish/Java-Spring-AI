@@ -51,7 +51,7 @@
 ```
 - `map-tag` 类别：`t-c`（章节）/ `t-e`（核心原理）/ `t-s`（场景）。
 - 插入新节点后，更新该页顶部 `主干 Cxx.01–Cxx.N` 范围与底部 `map-note`（并入清单，如 `S04.01~06`），并同步 `mind/index.html` 对应卡片 `card-foot`（见 §5.4）。
-- `mind/index.html` 顶部 `idx-meta` 含：导图页数（18）、方法论卡数、题量表达式 `N篇章+N核心原理+N场景`（如 `229+64+72`），随计数变更同步。
+- `mind/index.html` 顶部 `idx-meta`（5 格，随计数同步）：① 组成 `1+1+15+1`（方法论+工程化+篇章+安全）② 导图页数 **18** ③ 方法论卡数 ④ 工程化卡数 ⑤ 题量 `N篇章+N核心原理+N场景`（如 `229+64+72`）。
 
 ## 5. 4 份聚合统计页字段名
 
@@ -83,7 +83,12 @@
 - **不枚举单题 ID**（无 `Cxx.xx`/`Sxx.xx` li）——校验时落位=False 属预期。
 
 ### 5.4 `java-architect-interview-mind/index.html`（导图导航）
-- 顶部 `idx-meta`：导图页 **18**（mind-01~15 + mind-core + mind-engineering + mind-security）；方法论卡数；题量 `N+N+N`；勿与题目总量混淆。
+- 顶部 `idx-meta` 固定 **5** 格（`.idx-meta` 五列；窄屏两列）：
+  1. `1+1+15+1` — 方法论 + 工程化要点 + 篇章 + 服务端安全手册
+  2. `18` — 思维导图页（mind-01~15 + mind-core + mind-engineering + mind-security）
+  3. 方法论卡片数（`methodology`，P08）
+  4. 工程化要点卡片数（`engineering`，P26）
+  5. `N+N+N` — Q&A · 原理 · 场景（如 `229+64+72`）
 - 每张卡片底部 `card-foot` 计数口径（改题后必须同步）：
   - **篇章卡 mind-01~15**：`章节 N` = 对应 `chapter-NN` 的 C 卡数；`原理 N` / `场景 N` = 该 mind 页 `<summary>` 中实际列出的 E / S 卡数（无则省略该 chip）。
   - **方法论卡**：`91 卡 · 12 组`（M01~M12）。
@@ -114,7 +119,7 @@
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
 | P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
-| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 第 5 块 |
+| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
 | P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
 | P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
@@ -132,6 +137,7 @@
 | P23 | `index.html` | 根 index 工程化统计卡 |
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
 | P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 |
+| P26 | `java-architect-interview-mind/index.html` | mind index idx-meta 工程化要点卡片 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

@@ -53,7 +53,7 @@
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
 | P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
-| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 第 5 块 |
+| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
 | P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
 | P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
@@ -71,6 +71,7 @@
 | P23 | `index.html` | 根 index 工程化统计卡 |
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
 | P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 |
+| P26 | `java-architect-interview-mind/index.html` | mind index idx-meta 工程化要点卡片 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

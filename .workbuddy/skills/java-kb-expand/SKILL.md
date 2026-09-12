@@ -54,7 +54,7 @@ agent_created: true
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
 | P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
-| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 第 5 块 |
+| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
 | P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
 | P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
@@ -72,6 +72,7 @@ agent_created: true
 | P23 | `index.html` | 根 index 工程化统计卡 |
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
 | P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 |
+| P26 | `java-architect-interview-mind/index.html` | mind index idx-meta 工程化要点卡片 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -158,7 +159,7 @@ agent_created: true
 - **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家级/架构级/高级开发），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
 - **overview `ov-stat-num` 共 11 项全要改**：总量/方法论/P0/P1/P2/专家级/架构级/高级开发/章节题/核心原理/场景题（顺序见 `ov_stat_order`）。最易漏的是「章节题」（篇章数）与「方法论」（紧随总量），漏改会导致 overview 与根 index、章节 index 的计数不一致。
 - **根 index 合计 ≠ 题数**：合计 = 题数 + 方法论 + 工程化（取值见下方 COUNTS 块的「全站合计」）；加 C/E/S 题时题数与合计各 +1，加 M/G 卡时只动方法论/工程化与合计。
-- **mind 导图页数 18 与题量无关**（mind-01~15 + core + engineering + security）；只改题量表达式 `N+N+N` 与各卡 `card-foot`。
+- **mind 导图页数 18 与题量无关**（mind-01~15 + core + engineering + security）；`idx-meta` 五格含方法论/工程化卡数与 `N+N+N`；改题同步对应 `card-foot`。
 - **`dir-group-count` / `group-count` / 篇章 `dir-count` 必须等于实际卡片数**；M12 禁止嵌套进「一、高并发」。
 - **`</spa` 误判**：截断检测用负向前瞻排除合法 `</span>`（正则 `</spa(?!n>)`）。
 - **路径双层**：`Java Spring AI/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
