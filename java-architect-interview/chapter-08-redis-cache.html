@@ -34,7 +34,7 @@
       <!-- 顶部章节导航 -->
       <nav class="chapter-nav-top">
         <a href="chapter-07-mysql-deep.html" class="nav-prev">← 第 07 篇 MySQL 深度原理</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-09-distributed-systems.html" class="nav-next">第 09 篇 分布式系统 →</a>
         
       </nav>
@@ -59,18 +59,39 @@
         <div class="chapter-lead">
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">核心知识链</div>
-            <p class="chapter-lead-chain">数据结构编码与持久化 → 旁路 / 双删等一致性 → 分布式锁与过期 → 集群与穿透击穿雪崩</p>
+            <div class="chapter-lead-chain">
+            <p>缓存主线是「结构与持久化能力 → 与 DB 的一致性协议 → 锁/过期正确性 → 集群与故障模式防护」。</p>
+            <ol>
+              <li><strong>编码与持久化</strong>：内存效率与 RDB/AOF 恢复 RPO/RTO 取舍。</li>
+              <li><strong>一致性协议</strong>：Cache Aside、延迟双删、CDC 等各自的窗口与失败补偿。</li>
+              <li><strong>分布式锁与过期</strong>：互斥、续期、时钟与误删防护；过期策略与业务 TTL。</li>
+              <li><strong>集群与三大问题</strong>：槽迁移、热 key；穿透/击穿/雪崩分型治理。</li>
+            </ol>
+            </div>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">工程化要点</div>
+                        <ul class="chapter-lead-points">
+              <li>权威在 DB（或指定源）；缓存失败必须可降级，用户路径不能「缓存挂了就全站 500」。</li>
+              <li>热点预案（本地缓存/互斥重建）、大 key 治理、持久化与副本切换演练进常态。</li>
+              <li>删缓存/更新失败要有补偿与对账；禁止假设「删 key 一定成功」。</li>
+              <li>策略变更对照命中率、回源 QPS、错误率、源库连接池，防止回源打爆。</li>
+              <li>分布式锁必须处理租约、续期、时钟与误删；锁不是事务，不能替代幂等。</li>
+              <li>Cluster 槽迁移与热 key 有观测；单 key 热点用拆分/本地缓存/读写分离思路治理。</li>
+            </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-            <ul class="chapter-lead-mind">
-              <li><strong>缓存非源</strong>：DB（或权威存储）才是真相；缓存失败要有降级与回源策略。</li>
-              <li><strong>一致性选代价</strong>：最终一致、延迟双删、CDC 各有窗口与成本，按业务容忍度选型。</li>
-              <li><strong>按故障模式防护</strong>：穿透 / 击穿 / 雪崩分型治理，忌一套大 key + 永不过期「通杀」。</li>
-              <li>跨主题通用能力见 <a href="chapter-core-methodology.html">核心方法论</a>（识别单点 → 拆分 → 取舍）。</li>
+                        <ul class="chapter-lead-mind">
+              <li><strong>缓存非源</strong>：源故障与缓存故障的体验与降级路径要事先设计。</li>
+              <li><strong>一致性选代价</strong>：按业务容忍窗口选协议，写清失败补偿与最大不一致时间。</li>
+              <li><strong>按故障模式防护</strong>：穿透/击穿/雪崩/热 key 分型，忌永不过期通杀。</li>
+              <li><strong>容量与驱逐可观测</strong>：内存、驱逐、阻塞、慢查询进统一告警。</li>
+              <li><strong>锁外必幂等</strong>：拿到锁只保证互斥，不保证业务副作用只发生一次。</li>
             </ul>
           </div>
         </div>
+
       </div>
 
       <!-- ============================================================ -->
@@ -1660,7 +1681,7 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre></
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="chapter-07-mysql-deep.html" class="nav-prev">&#8592; 第 07 篇 MySQL 深度原理</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-09-distributed-systems.html" class="nav-next">第 09 篇 分布式系统 &#8594;</a>
               
 </nav>

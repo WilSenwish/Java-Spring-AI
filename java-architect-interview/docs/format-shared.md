@@ -71,7 +71,7 @@
 
 ## 4. 资源按需载入规则
 
-- `assets/nav.js`：全站导航交互脚本，**所有页面（含安全手册单页）均引入**；职责含章节页导航互链与**表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类，渲染为纵向卡片；含 `colspan/rowspan` 的表自动跳过）。
+- `assets/nav.js`：全站导航交互脚本，**所有页面（含安全手册单页）均引入**；职责含：侧栏 TOC 滚动高亮（按 `href="#id"` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`）、返回顶部、阅读进度条、以及**表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
 - `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
 - 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。

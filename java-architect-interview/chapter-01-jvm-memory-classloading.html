@@ -35,7 +35,7 @@
       <!-- 顶部章节导航 -->
       <nav class="chapter-nav-top">
         <a href="index.html" class="nav-home">← 返回目录</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-01-jvm-memory-classloading.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-01-jvm-memory-classloading.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-02-gc-performance.html" class="nav-next">第 02 篇 GC 算法与性能调优 →</a>
         
       </nav>
@@ -60,18 +60,39 @@
         <div class="chapter-lead">
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">核心知识链</div>
-            <p class="chapter-lead-chain">运行时分区与 OOM 归因 → 对象布局与引用类型 → 类加载 / JPMS → JMM 可见性与 happens-before</p>
+            <div class="chapter-lead-chain">
+            <p>JVM 生产排障的主线不是背区域名，而是「现象 → 落区 → 对象/类生命周期 → 可见性语义」闭环。</p>
+            <ol>
+              <li><strong>运行时分区与 OOM 归因</strong>：堆 / 元空间 / 直接内存 / 栈 / 线程创建失败各自对应不同监控与上限；容器下还要看 cgroup 与 Native。</li>
+              <li><strong>对象布局与引用语义</strong>：头、对齐、引用强度决定泄漏形态与 GC 可达性入口。</li>
+              <li><strong>类加载与 JPMS 边界</strong>：双亲委派、自定义加载器、模块导出决定「同名类不同世界」与热更新边界。</li>
+              <li><strong>JMM / happens-before</strong>：跨线程读到陈旧值时，先用内存语义解释，再谈锁与 volatile。</li>
+            </ol>
+            </div>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">工程化要点</div>
+                        <ul class="chapter-lead-points">
+              <li>每服务书面化堆 / 元空间 / 直接内存 / 线程数预算，并与容器 limit、告警阈值三联对齐；OOM 与 OOMKilled 分诊 Runbook 进值班手册。</li>
+              <li>类加载器泄漏（动态代理、热部署、自定义 ClassLoader）纳入发布回归与金丝雀观察窗口，禁止只看功能验收。</li>
+              <li>排障标准动作固定为：业务现象 → 区域归因 → jcmd/jmap/MAT/异步日志证据链；禁止先拍脑袋调 -Xmx。</li>
+              <li>JDK 大版本升级单独验收：对象头布局、模块封装、诊断工具与 GC 默认行为；预览 API 不得绑核心路径。</li>
+              <li>Native/DirectBuffer 与堆外分配纳入同一容量模型，防止「堆内健康、堆外打满」的隐蔽事故。</li>
+              <li>热更新与插件化场景必须证明类卸载与 Metaspace 回落，否则按泄漏缺陷处理。</li>
+            </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-            <ul class="chapter-lead-mind">
-              <li><strong>分区归因</strong>：现象先落到堆 / 元空间 / 直接内存 / 栈，再谈 GC 与泄漏。</li>
-              <li><strong>加载器隔离</strong>：类冲突与热加载问题优先看 ClassLoader 边界，而不是改业务代码碰运气。</li>
-              <li><strong>可见性先于加锁</strong>：并发疑难先用 happens-before 解释，再选 synchronized / volatile / 锁。</li>
-              <li>跨主题通用能力见 <a href="chapter-core-methodology.html">核心方法论</a>（识别单点 → 拆分 → 取舍）。</li>
+                        <ul class="chapter-lead-mind">
+              <li><strong>分区归因</strong>：先把症状钉到堆 / 元空间 / 直接内存 / 栈 / 线程创建，再谈 GC 或业务泄漏。</li>
+              <li><strong>加载器隔离</strong>：同名类冲突与热加载问题优先画 ClassLoader / JPMS 边界，而不是改业务碰运气。</li>
+              <li><strong>可见性先于加锁</strong>：跨线程陈旧读先用 happens-before 解释，再选 synchronized / volatile / Lock。</li>
+              <li><strong>证据优于经验</strong>：无日志/转储/指标对照的调参视为违规变更。</li>
+              <li><strong>容量与编排一体</strong>：JVM 预算必须能映射到 cgroup/kubelet 行为，避免「JVM 有内存、节点已杀进程」。</li>
             </ul>
           </div>
         </div>
+
       </div>
 
       <!-- ============================================================ -->
@@ -1617,7 +1638,7 @@ java -XX:SharedArchiveFile=app.jsa -jar app.jar</code></pre>
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="index.html" class="nav-prev">&#8592; 返回目录</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-01-jvm-memory-classloading.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-01-jvm-memory-classloading.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-02-gc-performance.html" class="nav-next">第 02 篇 GC 算法与性能调优 &#8594;</a>
               
 </nav>

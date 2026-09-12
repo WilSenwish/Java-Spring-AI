@@ -35,7 +35,7 @@
       <!-- 顶部章节导航 -->
       <nav class="chapter-nav-top">
         <a href="chapter-02-gc-performance.html" class="nav-prev">← 第 02 篇 GC 算法与性能调优</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-04-threadpool-virtual-threads.html" class="nav-next">第 04 篇 线程池与虚拟线程 →</a>
         
       </nav>
@@ -60,18 +60,39 @@
         <div class="chapter-lead">
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">核心知识链</div>
-            <p class="chapter-lead-chain">JMM / 内存屏障 → synchronized 与 AQS → 并发容器与等待通知 → 无锁结构与 OS 线程模型</p>
+            <div class="chapter-lead-chain">
+            <p>并发主线是「正确性语义 → 同步成本 → 数据结构选择 → 与 OS/CPU 的交互」。</p>
+            <ol>
+              <li><strong>JMM 三性与屏障</strong>：原子 / 可见 / 有序先分清，再谈指令重排与锁消除。</li>
+              <li><strong>synchronized 与 AQS</strong>：偏向/轻量/重量升级与队列等待，解释「锁住了仍慢」。</li>
+              <li><strong>并发容器与等待通知</strong>：CHM、队列、Condition 的迭代与 happens-before 契约。</li>
+              <li><strong>无锁与 OS 模型</strong>：CAS/ABA、伪共享、线程状态与上下文切换成本。</li>
+            </ol>
+            </div>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">工程化要点</div>
+                        <ul class="chapter-lead-points">
+              <li>死锁要有线程转储采集规范与锁顺序纪律；多锁场景在代码评审中强制声明获取顺序。</li>
+              <li>热点锁拆分/分段必须附带争用指标（持锁时间、队列长度、CAS 失败率）验收。</li>
+              <li>无锁/并发容器上线前必须有压力下的不变量或线性一致性测试，禁止只跑功能单测。</li>
+              <li>超时与熔断不能掩盖数据竞争：竞态类缺陷按 P0 缺陷管理，而不是「偶现可忽略」。</li>
+              <li>ThreadLocal / 上下文传递在线程池与虚拟线程场景要有泄漏检测与显式清理策略。</li>
+              <li>并发变更（锁粒度、容器类型）纳入性能回归门禁：吞吐、尾延迟、错误率三联对照。</li>
+            </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-            <ul class="chapter-lead-mind">
-              <li><strong>先三性</strong>：原子性、可见性、有序性分清后，再选原语；不要一上来就「加把锁」。</li>
-              <li><strong>排队成本 vs CAS</strong>：高争用看锁膨胀与队列；低争用可评估 CAS / 无锁，但要接受 ABA 与复杂度。</li>
-              <li><strong>容器语义优先</strong>：CHM、BlockingQueue 等先读清 happens-before 与迭代弱一致性，再谈性能。</li>
-              <li>跨主题通用能力见 <a href="chapter-core-methodology.html">核心方法论</a>（识别单点 → 拆分 → 取舍）。</li>
+                        <ul class="chapter-lead-mind">
+              <li><strong>先三性后原语</strong>：分清原子/可见/有序，再选 synchronized、Lock、CAS。</li>
+              <li><strong>排队成本 vs CAS</strong>：高争用看锁膨胀与队列；低争用才评估无锁复杂度与 ABA。</li>
+              <li><strong>锁顺序纪律</strong>：多锁获取顺序写死并可静态检查；死锁当缺陷而非运气。</li>
+              <li><strong>不变量可测</strong>：并发结构变更必须有压力下的正确性与回归用例。</li>
+              <li><strong>争用可观测</strong>：没有持锁/队列/CAS 指标的「优化」不允许进生产。</li>
             </ul>
           </div>
         </div>
+
       </div>
 
       <!-- ============================================================ -->
@@ -1777,7 +1798,7 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="chapter-02-gc-performance.html" class="nav-prev">&#8592; 第 02 篇 GC 算法与性能调优</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-04-threadpool-virtual-threads.html" class="nav-next">第 04 篇 线程池与虚拟线程 &#8594;</a>
               
 </nav>

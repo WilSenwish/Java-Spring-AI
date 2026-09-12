@@ -115,6 +115,10 @@
 | P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
 | P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
 | P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
+| P19 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 篇章题数 |
+| P20 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 核心原理数 |
+| P21 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 场景题数 |
+| P22 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 题目总量 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

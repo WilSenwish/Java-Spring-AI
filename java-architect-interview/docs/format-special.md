@@ -58,7 +58,8 @@
 ## <a id="3"></a>3. 核心原理速查 chapter-questions-eight-part（epq 组件）
 
 - **定位**：核心原理速查手册，61 条目（`E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
-- **TOC**：`toc-group`（分组）+ `toc-group-title` + `toc-number` 分层锚点。
+- **TOC**：`toc-group`（分组）+ `toc-group-title`（须为 `<a href="#epq-group-NN">` 可点击，跳到组导读）+ `toc-number` 分层锚点。
+- **分组导读**：每组（E01~E12）在首题前有 `epq-group-head`（`epq-group-title` + `group-lead`）。`group-lead` 三块：① **本组知识链**（`group-lead-chain`：intro + 分阶段 `ol`，禁止只剩箭头关键词）② **工程化要点**（`group-lead-points`，约 5 条）③ **本组思维模式**（`group-lead-mind`，命名条目）。页底须有 `chapter-nav`（与顶栏对称：首页 / 核心方法论 / 全部章节 / 场景题）。
 - **条目**：
 
   ```
@@ -79,6 +80,7 @@
 ## <a id="4"></a>4. 场景题 chapter-questions-scenario（S 系列场景卡片）
 
 - **定位**：场景设计题集，70 卡，ID 前缀 `S`（如 `S01.01`）。
+- **分组导读**：每个 `scenario-group` 在 `group-title` 后插入 `group-lead`（结构与核心原理页一致：本组知识链 intro+`ol` / 工程化要点 / 本组思维模式）；侧栏 `toc-group-title` 须链接到 `#group-N`。
 - **卡片**：复用 `.qa-card` 外壳，但卡片内层为**场景专属序列**（非标准六层），顺序如下：
 
   | data-layer 对应 | 层标题 | 职责 |
@@ -97,8 +99,9 @@
 
 ## <a id="5"></a>5. 安全 Checkpoint chapter-server-security-checkpoint（独立单页）
 
-- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无侧栏 TOC、无 `chapter-nav-top`、无 `qa-card`**，但**引入 `nav.js`**（表格纵向卡片化等共享行为生效）。
-- **样式**：仅引入 `assets/design-system.css`，页面内联 `<style>` 仅定义少量独占令牌覆盖（如 `--quote-bg`、`--quote-border`、`--th-bg`、`--zebra`、`--accent-soft`），其余取值自全局令牌。
+- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无 `qa-card`**；顶/底导航与篇章页一致（`chapter-nav-top` / `chapter-nav`：上一篇 / 核心方法论 / 全部章节 / 思维导图 / 返回首页），并**引入 `nav.js`**。
+- **布局 / 目录**：与篇章页一致，使用 `page-wrapper` + 左侧 `sidebar-toc`（「本篇目录」）+ `content-main`；禁止正文中置目录或浅蓝 `.toc` / `.doc-toc` 盒子。
+- **样式**：仅引入 `assets/design-system.css`，页面内联 `<style>` 仅定义少量独占令牌与正文排版覆盖（如 `--quote-bg`、`--quote-border`、`--th-bg`、`--zebra`），其余取值自全局令牌。
 - **内容结构**：传统「文档章节」式，标题层级清晰：
   - `h1`（`<title>` / 页首）→ `h2`(13 个主章节) → `h3`(57 个子节) → `h4`(7)；
   - 表格：`compare-table`（23 张，全部带 `class="compare-table"`）；
@@ -127,5 +130,5 @@
 | chapter-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |
 | chapter-questions-eight-part | – | `epq-*` 问答速查 | `E##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-scenario | – | `qa-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
-| chapter-server-security-checkpoint | 独立单页 | 章节式 h2/h3 + compare-table + checklist | – | – | – | ✔ |
+| chapter-server-security-checkpoint | page-wrapper + sidebar | 章节式 h2/h3 + compare-table + checklist | – | – | – | ✔ |
 | index | – | chapter-card / stat / tag-cloud | – | – | – | ✔ |

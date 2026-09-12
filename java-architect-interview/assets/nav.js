@@ -41,39 +41,80 @@
     });
   }
 
-  // ---------- TOC 高亮当前题号 ----------
+  // ---------- TOC 高亮当前条目（卡片 / 分组 / 章节标题） ----------
   function initTocHighlight() {
-    var tocLinks = document.querySelectorAll('.sidebar-toc a');
+    var tocLinks = Array.prototype.slice.call(
+      document.querySelectorAll('.sidebar-toc a[href^="#"]')
+    );
     if (tocLinks.length === 0) return;
 
-    var cards = document.querySelectorAll('.qa-card');
-    if (cards.length === 0) return;
+    // 以侧栏 href 为准解析目标，兼容 qa-card、epq 分组、安全手册 h2 等
+    var targets = [];
+    var seen = {};
+    tocLinks.forEach(function (link) {
+      var href = link.getAttribute('href') || '';
+      if (href.length < 2) return;
+      var id = href.slice(1);
+      if (seen[id]) return;
+      var el = document.getElementById(id);
+      if (!el) return;
+      seen[id] = true;
+      targets.push({ id: id, el: el, link: link });
+    });
+    if (targets.length === 0) return;
+
+    targets.sort(function (a, b) {
+      if (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return -1;
+      }
+      return 1;
+    });
+
+    var sidebar = document.querySelector('.sidebar-toc');
+    var ticking = false;
 
     function updateActive() {
       var scrollPos = window.scrollY + 120;
-      var activeCard = null;
+      var active = null;
 
-      for (var i = 0; i < cards.length; i++) {
-        if (cards[i].offsetTop <= scrollPos) {
-          activeCard = cards[i];
+      for (var i = 0; i < targets.length; i++) {
+        var top =
+          targets[i].el.getBoundingClientRect().top + window.scrollY;
+        if (top <= scrollPos) {
+          active = targets[i];
         }
       }
 
-      // 按 href 锚点与卡片 id 精确匹配，避免 TOC 链接数与卡片数不一致时按索引错位
-      var activeId = activeCard ? activeCard.id : '';
-
       tocLinks.forEach(function (link) {
-        var href = link.getAttribute('href');
-        var isActive = href === '#' + activeId;
-        if (isActive) {
-          link.classList.add('active');
-        } else {
-          link.classList.remove('active');
+        link.classList.remove('active');
+      });
+
+      if (active) {
+        active.link.classList.add('active');
+        // 侧栏内跟随，避免长目录下高亮项滚出可视区
+        if (sidebar) {
+          var linkRect = active.link.getBoundingClientRect();
+          var sideRect = sidebar.getBoundingClientRect();
+          if (
+            linkRect.top < sideRect.top + 8 ||
+            linkRect.bottom > sideRect.bottom - 8
+          ) {
+            active.link.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          }
         }
+      }
+    }
+
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        updateActive();
+        ticking = false;
       });
     }
 
-    window.addEventListener('scroll', updateActive);
+    window.addEventListener('scroll', onScroll, { passive: true });
     updateActive();
   }
 

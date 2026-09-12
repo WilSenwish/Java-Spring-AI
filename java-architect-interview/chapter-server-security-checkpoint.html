@@ -6,84 +6,82 @@
 <title>服务端开发安全 Checkpoint 手册</title>
 <link rel="stylesheet" href="assets/design-system.css">
 <style>
-/* 安全手册专属样式 — 基于 design-system.css 令牌，仅保留本文件独有规则 */
+/* 安全手册专属样式 — 布局复用 page-wrapper / sidebar-toc / content-main */
 :root{
   --quote-bg:#f1f5f9; --quote-border:#cbd5e1; --th-bg:#f1f5f9;
   --zebra:#fafbfc; --accent-soft:#eff4ff;
 }
-body{
-  margin:0; background:var(--bg2); color:var(--ink);
-  font-family:var(--font-body); line-height:var(--line-height);
-}
-.wrap{max-width:980px; margin:0 auto; padding:48px 28px 96px; background:var(--bg);
-  box-shadow:var(--shadow-sm); min-height:100vh;}
-h1{font-size:30px; line-height:1.3; margin:0 0 4px; padding-bottom:16px;
+.content-main h1{font-size:30px; line-height:1.3; margin:0 0 4px; padding-bottom:16px;
   border-bottom:3px solid var(--accent);}
-h2{font-size:23px; margin:42px 0 14px; padding-top:14px; border-top:1px solid var(--rule);}
-h3{font-size:19px; margin:28px 0 10px; color:var(--ink);}
-h4{font-size:16px; margin:20px 0 8px; color:var(--ink);}
-p{margin:12px 0;}
-a{color:var(--accent); text-decoration:none;}
-a:hover{text-decoration:underline;}
-hr{border:none; border-top:1px solid var(--rule); margin:28px 0;}
-blockquote{margin:16px 0; padding:12px 18px; background:var(--quote-bg);
+.content-main h2{font-size:23px; margin:42px 0 14px; padding-top:14px; border-top:1px solid var(--rule);
+  scroll-margin-top: 1.25rem;}
+.content-main h2:first-of-type{border-top:none; padding-top:0;}
+.content-main h3{font-size:19px; margin:28px 0 10px; color:var(--ink);}
+.content-main h4{font-size:16px; margin:20px 0 8px; color:var(--ink);}
+.content-main p{margin:12px 0;}
+.content-main a{color:var(--accent); text-decoration:none;}
+.content-main a:hover{text-decoration:underline;}
+.content-main hr{border:none; border-top:1px solid var(--rule); margin:28px 0;}
+.content-main blockquote{margin:16px 0; padding:12px 18px; background:var(--quote-bg);
   border-left:4px solid var(--quote-border); border-radius:0 6px 6px 0; color:var(--ink);}
-blockquote br{content:""; display:block; margin-bottom:4px;}
-code{font-family:var(--font-mono); background:var(--bg2); padding:2px 6px;
+.content-main blockquote br{content:""; display:block; margin-bottom:4px;}
+.content-main code{font-family:var(--font-mono); background:var(--bg2); padding:2px 6px;
   border-radius:var(--radius-sm); font-size:13.5px; color:#b3178a; border:1px solid var(--rule);}
-pre{margin:16px 0; border-radius:var(--radius-md); overflow:auto; border:1px solid var(--rule);}
-pre code{display:block; background:var(--code-bg); color:var(--code-ink); padding:18px 20px;
+.content-main pre{margin:16px 0; border-radius:var(--radius-md); overflow:auto; border:1px solid var(--rule);}
+.content-main pre code{display:block; background:var(--code-bg); color:var(--code-ink); padding:18px 20px;
   font-size:13px; line-height:1.6; white-space:pre; border:none;}
-ul{margin:12px 0; padding-left:24px;}
-li{margin:6px 0;}
-ul.checklist{list-style:none; padding-left:4px;}
-ul.checklist li{display:flex; align-items:flex-start; gap:8px; margin:8px 0;}
-ul.checklist input{margin-top:6px; width:16px; height:16px; accent-color:var(--accent);}
-.table-wrap{margin:16px 0; overflow-x:auto; border:1px solid var(--rule); border-radius:var(--radius-md);}
-table{border-collapse:collapse; width:100%; font-size:14.5px;}
-th,td{border:1px solid var(--rule); padding:9px 12px; text-align:left; vertical-align:top;}
-th{background:var(--th-bg); font-weight:600; white-space:nowrap;}
-tbody tr:nth-child(even){background:var(--zebra);}
-.meta-note{font-size:13px; color:var(--muted);}
-.footer-note{margin-top:48px; padding-top:16px; border-top:1px solid var(--rule);
+.content-main ul{margin:12px 0; padding-left:24px;}
+.content-main li{margin:6px 0;}
+.content-main ul.checklist{list-style:none; padding-left:4px;}
+.content-main ul.checklist li{display:flex; align-items:flex-start; gap:8px; margin:8px 0;}
+.content-main ul.checklist input{margin-top:6px; width:16px; height:16px; accent-color:var(--accent);}
+.content-main .table-wrap{margin:16px 0; overflow-x:auto; border:1px solid var(--rule); border-radius:var(--radius-md);}
+.content-main table{border-collapse:collapse; width:100%; font-size:14.5px;}
+.content-main th,.content-main td{border:1px solid var(--rule); padding:9px 12px; text-align:left; vertical-align:top;}
+.content-main th{background:var(--th-bg); font-weight:600; white-space:nowrap;}
+.content-main tbody tr:nth-child(even){background:var(--zebra);}
+.content-main .meta-note{font-size:13px; color:var(--muted);}
+.content-main .footer-note{margin-top:48px; padding-top:16px; border-top:1px solid var(--rule);
   font-size:13px; color:var(--muted); text-align:center;}
-.toc{background:var(--accent-soft); border:1px solid #dbe6ff; border-radius:var(--radius-lg);
-  padding:18px 24px; margin:20px 0;}
-.toc h2{border:none; margin:0 0 10px; padding:0; font-size:18px;}
-.toc ul{columns:2; column-gap:32px; margin:0;}
-.toc li{break-inside:avoid; margin:4px 0;}
-@media (max-width:640px){.toc ul{columns:1;} .wrap{padding:28px 16px 64px;}}
+@media (max-width:900px){
+  .sidebar-toc{display:none;}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-<h1 id="服务端开发安全-checkpoint-手册">服务端开发安全 Checkpoint 手册</h1>
+  <div class="page-wrapper">
+
+    <aside class="sidebar-toc">
+      <h3>本篇目录</h3>
+      <ol>
+        <li><a href="#第-0-章-文档导论"><span class="toc-number">0</span>文档导论</a></li>
+        <li><a href="#第-1-章-认证与授权安全"><span class="toc-number">1</span>认证与授权安全</a></li>
+        <li><a href="#第-2-章-会话管理"><span class="toc-number">2</span>会话管理</a></li>
+        <li><a href="#第-3-章-输入输出安全"><span class="toc-number">3</span>输入输出安全</a></li>
+        <li><a href="#第-4-章-密码学"><span class="toc-number">4</span>密码学</a></li>
+        <li><a href="#第-5-章-错误处理与日志"><span class="toc-number">5</span>错误处理与日志</a></li>
+        <li><a href="#第-6-章-api-安全"><span class="toc-number">6</span>API 安全</a></li>
+        <li><a href="#第-7-章-威胁建模与安全架构"><span class="toc-number">7</span>威胁建模与安全架构</a></li>
+        <li><a href="#附录-aowasp-top-102025-映射对照表"><span class="toc-number">A</span>OWASP Top 10:2025 映射</a></li>
+        <li><a href="#附录-b算法推荐与废弃速查表"><span class="toc-number">B</span>算法推荐与废弃速查</a></li>
+        <li><a href="#附录-ccheckpoint-自检清单汇总"><span class="toc-number">C</span>Checkpoint 自检清单</a></li>
+        <li><a href="#附录-d参考资料与权威链接"><span class="toc-number">D</span>参考资料与权威链接</a></li>
+      </ol>
+    </aside>
+
+    <main class="content-main">
       <nav class="chapter-nav-top">
-        <a href="index.html" class="nav-home">← 返回目录</a><span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-        
+        <a href="chapter-15-reactive.html" class="nav-prev">← 第 15 篇 响应式编程</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="index.html" class="nav-home">返回首页 →</a>
       </nav>
+
+<h1 id="服务端开发安全-checkpoint-手册">服务端开发安全 Checkpoint 手册</h1>
 
 <blockquote><strong>读者对象</strong>：Java 高级开发工程师 / 架构师<br>
 <strong>文档版本</strong>：v1.0<br>
 <strong>标准时效</strong>：基于 OWASP Top 10:2025、NIST SP 800-131A Rev2、NIST FIPS 203/204/205、OWASP ASVS v5.0<br>
 <strong>最后更新</strong>：2026-07-31</blockquote>
-<hr>
-<h2 id="目录">目录</h2>
-<ul>
-<li><a href="#第-0-章-文档导论">第 0 章 文档导论</a></li>
-<li><a href="#第-1-章-认证与授权安全">第 1 章 认证与授权安全</a></li>
-<li><a href="#第-2-章-会话管理">第 2 章 会话管理</a></li>
-<li><a href="#第-3-章-输入输出安全">第 3 章 输入输出安全</a></li>
-<li><a href="#第-4-章-密码学">第 4 章 密码学</a></li>
-<li><a href="#第-5-章-错误处理与日志">第 5 章 错误处理与日志</a></li>
-<li><a href="#第-6-章-api-安全">第 6 章 API 安全</a></li>
-<li><a href="#第-7-章-威胁建模与安全架构">第 7 章 威胁建模与安全架构</a></li>
-<li><a href="#附录-aowasp-top-102025-映射对照表">附录 A：OWASP Top 10:2025 映射对照表</a></li>
-<li><a href="#附录-b算法推荐与废弃速查表">附录 B：算法推荐与废弃速查表</a></li>
-<li><a href="#附录-ccheckpoint-自检清单汇总">附录 C：Checkpoint 自检清单汇总</a></li>
-<li><a href="#附录-d参考资料与权威链接">附录 D：参考资料与权威链接</a></li>
-</ul>
-<hr>
 <h2 id="第-0-章-文档导论">第 0 章 文档导论</h2>
 <h3 id="01-文档目的与使用方式">0.1 文档目的与使用方式</h3>
 <p>本文档面向 Java 服务端开发与架构评审场景，提供系统性的安全自检参考。每节采用统一的三段式结构：<strong>关键要点</strong>阐述核心原则与选型依据，<strong>Checkpoint</strong> 列出代码评审与架构评审中需逐项确认的检查点，<strong>雷区清单</strong>以「禁止…」句式列出高风险反模式。第 4 章密码学为核心重点，额外补充基于 JCA（Java Cryptography Architecture）与 Bouncy Castle 的规范实现代码范例。</p>
@@ -94,16 +92,16 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <table class="compare-table"><thead><tr><th>术语</th><th>含义</th></tr></thead><tbody><tr><td>CIA 三性</td><td>机密性（Confidentiality）、完整性（Integrity）、可用性（Availability）</td></tr><tr><td>AEAD</td><td>认证加密，同时提供机密性与完整性（如 AES-GCM、ChaCha20-Poly1305）</td></tr><tr><td>前向保密（PFS）</td><td>会话密钥泄露不影响历史会话安全，依赖临时密钥交换（ECDHE）</td></tr><tr><td>KDF</td><td>密钥派生函数，从口令或共享密钥派生密钥（如 PBKDF2、HKDF、Argon2）</td></tr><tr><td>CSPRNG</td><td>密码学安全随机数生成器（如 Java <code>SecureRandom</code>）</td></tr><tr><td>HSM / KMS</td><td>硬件安全模块 / 密钥管理服务，用于密钥的安全存储与运算</td></tr><tr><td>MAC</td><td>消息认证码，带密钥的完整性校验（如 HMAC）</td></tr><tr><td>salt</td><td>口令哈希的随机盐，每用户唯一，非秘密</td></tr><tr><td>pepper</td><td>全局秘密盐，存于 HSM/配置，与数据库分离</td></tr><tr><td>nonce / IV</td><td>一次性随机数 / 初始化向量，加密中使用，不可重复</td></tr><tr><td>JCA</td><td>Java Cryptography Architecture，JDK 内置密码学框架</td></tr><tr><td>JCE</td><td>Java Cryptography Extension，JCA 的扩展部分</td></tr><tr><td>PQC</td><td>后量子密码，抵御量子计算机攻击的密码算法</td></tr></tbody></table>
 <h3 id="04-安全设计总原则">0.4 安全设计总原则</h3>
 <ul>
-<li>*最小权限**：每个组件、用户、进程仅授予完成任务所需的最小权限。权限默认拒绝，显式授予。</li>
+<li><strong>最小权限</strong>：每个组件、用户、进程仅授予完成任务所需的最小权限。权限默认拒绝，显式授予。</li>
 </ul>
 <ul>
-<li>*纵深防御**：安全不依赖单一防线。网络层、应用层、数据层各自独立防护，任一层被突破不导致全盘失守。业务层不可将安全责任完全外包给网关或框架。</li>
+<li><strong>纵深防御</strong>：安全不依赖单一防线。网络层、应用层、数据层各自独立防护，任一层被突破不导致全盘失守。业务层不可将安全责任完全外包给网关或框架。</li>
 </ul>
 <ul>
-<li>*失败安全（Fail-Secure）**：异常或错误发生时，系统默认进入拒绝状态，而非放行。加密校验失败、签名验证异常时拒绝请求，而非降级为明文处理。</li>
+<li><strong>失败安全（Fail-Secure）</strong>：异常或错误发生时，系统默认进入拒绝状态，而非放行。加密校验失败、签名验证异常时拒绝请求，而非降级为明文处理。</li>
 </ul>
 <ul>
-<li>*零信任**：不因请求来自内网或已认证会话而隐式信任。每次资源访问均需验证身份与授权，服务间调用同样需要认证。</li>
+<li><strong>零信任</strong>：不因请求来自内网或已认证会话而隐式信任。每次资源访问均需验证身份与授权，服务间调用同样需要认证。</li>
 </ul>
 <hr>
 <h2 id="第-1-章-认证与授权安全">第 1 章 认证与授权安全</h2>
@@ -113,14 +111,14 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>认证因素分为三类：知识因素（口令、PIN）、持有因素（令牌、设备）、固有因素（生物特征）。强认证要求至少两种不同类型的因素组合（MFA）。</p>
 <p>认证失败的响应必须统一，避免通过错误消息差异或响应时间差异推断用户是否存在（用户枚举攻击）。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>登录失败提示是否统一为「用户名或密码错误」，不区分用户存在与否</li>
 <li>是否有登录尝试限制与账户锁定/延时机制（指数退避）</li>
 <li>认证端点是否强制 TLS 传输</li>
 <li>认证失败的响应时间是否恒定（防时序枚举）</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止通过不同错误消息或响应时间泄露用户是否存在</li>
 <li>禁止允许无限次暴力尝试（需限流 + 指数退避 + 锁定）</li>
 <li>禁止在 URL 参数中传递凭证</li>
@@ -133,7 +131,7 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <table class="compare-table"><thead><tr><th>优先级</th><th>算法</th><th>说明</th></tr></thead><tbody><tr><td>首选</td><td><strong>Argon2id</strong></td><td>PHC 获奖算法，抗 GPU/ASIC，内存困难型</td></tr><tr><td>次选</td><td>scrypt</td><td>内存困难型，抗 ASIC</td></tr><tr><td>可选</td><td>bcrypt</td><td>广泛使用，cost 可调</td></tr><tr><td>兼容</td><td>PBKDF2-HMAC-SHA-512</td><td>NIST 标准化，但抗 GPU 不如前三者</td></tr></tbody></table>
 <p>口令策略应遵循 NIST SP 800-63B：重视长度（建议 ≥12 位）而非强制复杂度规则（大小写+数字+特殊字符的强制组合已弃用）。维护已知泄露口令黑名单，注册/修改口令时比对拦截。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否使用 Argon2id / bcrypt / PBKDF2 而非 MD5 / SHA 直接哈希</li>
 <li>salt 是否每用户唯一且随机生成</li>
 <li>工作因子是否定期评估并随硬件升级（bcrypt cost ≥10，PBKDF2 迭代 ≥600000）</li>
@@ -141,7 +139,7 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <li>口令最小长度是否 ≥8 位（高敏感系统 ≥12 位）</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止用 MD5 / SHA-1 / SHA-256 直接哈希口令（即使加盐，速度过快，GPU 秒级爆破，CWE-916）</li>
 <li>禁止明文存储或可逆加密存储口令</li>
 <li>禁止全局共享 salt 或无 salt（彩虹表攻击，CWE-759/760）</li>
@@ -154,13 +152,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>MFA 注册与重置流程本身的认证强度需与登录等同，否则成为绕过入口。攻击者可通过「忘记设备」流程关闭 MFA。</p>
 <p>WebAuthn / Passkey 基于公钥密码学，原生抗钓鱼，是无密码认证的未来方向。服务端存储公钥，私钥永不离开设备。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>MFA 重置流程是否要求同等强度认证</li>
 <li>TOTP 密钥是否加密存储</li>
 <li>是否支持 WebAuthn / Passkey</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止允许 MFA 绕过（如「忘记设备」直接关闭 MFA 无二次验证）</li>
 <li>禁止短信 OTP 作为高敏感场景的唯一第二因素</li>
 <li>禁止 MFA 状态可被未认证流程修改</li>
@@ -171,14 +169,14 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>对象级授权（IDOR，Insecure Direct Object Reference）是高频漏洞：当资源通过自增 ID 或可猜测标识符暴露时，攻击者通过遍历 ID 访问他人数据。每个资源访问必须校验当前用户对该资源的归属权限。</p>
 <p>横向越权指同级别用户间的越权访问，纵向越权指普通用户访问管理功能。两者均需在服务端拦截。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>每个接口是否都有授权注解或拦截器</li>
 <li>资源 ID 访问是否校验当前用户归属</li>
 <li>管理后台是否独立鉴权域</li>
 <li>权限提升后是否重新校验</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止仅靠前端隐藏功能实现授权</li>
 <li>禁止用自增 ID 直接暴露资源且不做归属校验（IDOR）</li>
 <li>禁止信任请求中的 role / isAdmin 等权限字段</li>
@@ -189,13 +187,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p><code>state</code> 参数防止 CSRF 攻击，<code>nonce</code> 参数防止 OIDC 重放攻击。两者均需校验。</p>
 <p><code>redirect_uri</code> 必须严格白名单匹配，禁止通配或路径前缀匹配导致开放重定向。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否使用授权码 + PKCE 流程</li>
 <li>state / nonce 是否生成并校验</li>
 <li>redirect_uri 是否严格白名单匹配</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止隐式流程（implicit）用于敏感应用</li>
 <li>禁止忽略 state / nonce 校验</li>
 <li>禁止 redirect_uri 通配或可被绕过</li>
@@ -206,14 +204,14 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>access_token 应短生命周期（如 15-30 分钟），refresh_token 可较长但必须可撤销且绑定设备。JWT 本身无状态，撤销需配合黑名单或短时效设计。</p>
 <p>JWT payload 仅做 Base64 编码，非加密，禁止存储敏感数据。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>JWT 验签是否显式指定算法（如 <code>Algorithm.HMAC256(secret)</code>）</li>
 <li>access_token 生命周期是否 ≤30 分钟</li>
 <li>refresh_token 是否可撤销且绑定设备</li>
 <li>是否校验 exp / nbf / iss / aud 声明</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止接受 <code>alg=none</code> 的 JWT</li>
 <li>禁止用对称密钥签名却用公钥验签（算法混淆攻击）</li>
 <li>禁止在 JWT payload 存储敏感数据（仅 Base64，非加密）</li>
@@ -227,13 +225,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>会话需具备创建、续期、过期、销毁的完整闭环。登录成功后必须重新生成会话 ID（防会话固定攻击，CWE-384）。登出时服务端必须真正失效令牌，而非仅清除前端存储。</p>
 <p>会话应设置绝对超时（如 8 小时）与空闲超时（如 30 分钟），超时后强制重新认证。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>登录成功是否轮换 sessionId</li>
 <li>登出是否使服务端 token 失效</li>
 <li>是否有绝对超时与空闲超时</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止登录后复用旧 sessionId（会话固定，CWE-384）</li>
 <li>禁止登出仅清前端 token 而服务端仍有效</li>
 <li>禁止会话永不过期</li>
@@ -242,12 +240,12 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>会话令牌必须使用 CSPRNG 生成，长度不低于 128 位熵。令牌通过 Cookie 传输时需同时设置 <code>HttpOnly</code>（防 XSS 读取）、<code>Secure</code>（仅 HTTPS 传输）、<code>SameSite</code>（防 CSRF）。</p>
 <p>禁止在 URL 参数中传递会话令牌（Referer 头与日志会泄露）。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>令牌是否用 SecureRandom 生成且长度 ≥128 位</li>
 <li>Cookie 是否设置 HttpOnly + Secure + SameSite</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止用 <code>Math.random()</code> / <code>java.util.Random</code> / 时间戳生成会话令牌（CWE-338）</li>
 <li>禁止 Cookie 缺失 HttpOnly / Secure / SameSite 任一属性</li>
 <li>禁止在 URL 参数中传递 session</li>
@@ -256,38 +254,38 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>检测 IP 或 User-Agent 的突变可辅助发现会话劫持。并发会话数应有限制。敏感操作（如修改密码、转账）前应要求重新认证（Step-up Authentication）。</p>
 <p>权限提升后（如普通用户切换为管理员）必须轮换会话令牌。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>权限提升后是否轮换会话令牌</li>
 <li>敏感操作前是否要求重新认证</li>
 <li>是否限制并发会话数</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止权限提升后不轮换会话</li>
 <li>禁止长期不轮换长期令牌</li>
 </ul>
 <h3 id="24-csrf-防护">2.4 CSRF 防护</h3>
 <p>SameSite Cookie 属性为首选防御，配合 anti-CSRF token 实现双重防御。状态变更请求必须使用 POST / PUT / DELETE 方法，并校验 Origin / Referer 头。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>状态变更请求是否使用非 GET 方法</li>
 <li>是否校验 Origin / Referer 或 anti-CSRF token</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止 GET 请求执行状态变更操作</li>
 <li>禁止仅依赖 Referer 校验（可被缺失或伪造）</li>
 </ul>
 <h3 id="25-分布式会话与-redis-会话安全">2.5 分布式会话与 Redis 会话安全</h3>
 <p>Redis 存储会话需设置 TTL，敏感会话数据应加密或仅存储会话 ID。Redis 实例需配置密码、网络隔离、禁用危险命令（如 <code>FLUSHALL</code>、<code>CONFIG</code>）。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>Redis 是否配置 requirepass 与网络隔离</li>
 <li>会话数据是否避免明文存储敏感信息</li>
 <li>是否设置 TTL</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止 Redis 无密码暴露公网</li>
 <li>禁止会话数据明文存储敏感信息</li>
 <li>禁止 Redis 无 TTL 导致会话堆积</li>
@@ -299,12 +297,12 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>白名单验证优于黑名单。所有外部输入（表单、HTTP Header、Cookie、URL 参数、文件内容）均需在服务端校验，前端校验仅为用户体验，不可作为安全防线。</p>
 <p>校验维度包括类型、长度、范围、字符集、业务格式。验证不通过的输入应拒绝，而非尝试净化后使用。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否对所有外部输入入口做服务端校验</li>
 <li>是否使用参数化查询或预编译语句</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止仅前端校验</li>
 <li>禁止用黑名单过滤替代参数化查询</li>
 <li>禁止信任 Content-Type 决定处理逻辑</li>
@@ -316,13 +314,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>表达式注入：SpEL（Spring Expression Language）、OGNL、MVEL 等表达式引擎直接求值用户输入可导致 RCE，禁止将用户输入作为表达式求值。</p>
 <p>NoSQL 注入：校验查询操作符，参数化查询。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>SQL 查询是否全部使用 <code>#{}</code> 或 PreparedStatement</li>
 <li>命令执行是否避免拼接用户输入</li>
 <li>SpEL / OGNL 是否禁用动态求值用户输入</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止 MyBatis 用 <code>${}</code> 拼接用户输入（SQL 注入）</li>
 <li>禁止 <code>Runtime.getRuntime().exec(用户输入拼接字符串)</code>（命令注入）</li>
 <li>禁止 SpEL / OGNL 直接求值用户输入（RCE）</li>
@@ -333,13 +331,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>输出编码需按上下文区分：HTML 上下文用 HTML 实体编码，JavaScript 上下文用 JS 编码，URL 上下文用 URL 编码，CSS 上下文用 CSS 编码。</p>
 <p>Content-Security-Policy（CSP）作为深度防御，限制脚本来源。富文本场景使用白名单净化库（如 OWASP Java HTML Sanitizer），禁止黑名单过滤标签。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>输出是否按上下文做编码</li>
 <li>是否设置 CSP 头</li>
 <li>富文本是否使用白名单净化库</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止直接拼接用户输入到 HTML 响应</li>
 <li>禁止用 <code>innerHTML</code> 渲染未净化数据</li>
 <li>禁止富文本场景用黑名单过滤标签</li>
@@ -349,13 +347,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>服务端发起请求前必须校验目标主机，禁止访问内网地址段（127.0.0.0/8、10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、169.254.169.254 等）。</p>
 <p>需禁用或校验重定向跟随，防止通过 302 跳转绕过地址校验。DNS 重绑定攻击需通过解析后校验 IP、再使用解析结果连接的方式防护。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>服务端发起请求前是否校验目标 IP</li>
 <li>是否禁止内网地址段访问</li>
 <li>重定向是否校验目标</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止直接用用户输入作为 URL 发起请求</li>
 <li>禁止未校验重定向链</li>
 <li>禁止访问 127.0.0.1 / 10.0.0.0/8 / 169.254.169.254 等内网或元数据地址</li>
@@ -364,13 +362,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>文件校验应基于文件头魔数（magic bytes）而非扩展名。上传文件需重命名、存储于独立目录或域名下、禁止可执行权限。</p>
 <p>下载需防止路径穿越（<code>../</code> 序列），Zip 解压需防 ZipSlip 攻击（解压路径逃逸）。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否校验文件头魔数</li>
 <li>上传文件是否重命名并存储于独立目录</li>
 <li>下载路径是否校验 <code>../</code> 穿越</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止仅校验文件扩展名</li>
 <li>禁止上传文件保存为可被服务端执行的路径</li>
 <li>禁止用用户文件名直接拼接下载路径（路径穿越）</li>
@@ -381,13 +379,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <p>Java 原生序列化（<code>ObjectInputStream</code>）反序列化不可信数据可导致 RCE。优先使用 JSON 等安全格式。必须使用原生反序列化时，需通过 <code>ObjectInputFilter</code> 设置白名单类。</p>
 <p>关注 Jackson、Fastjson、XStream 等组件的反序列化漏洞，及时升级。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否避免 Java 原生序列化用户数据</li>
 <li>必须反序列化时是否使用 ObjectInputFilter 白名单</li>
 <li>依赖组件是否存在已知反序列化漏洞</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止 <code>ObjectInputStream</code> 直接反序列化不可信数据（RCE）</li>
 <li>禁止 Fastjson 启用 autotype 且无白名单</li>
 <li>禁止 XStream 反序列化不可信 XML</li>
@@ -398,13 +396,13 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <table class="compare-table"><thead><tr><th>响应头</th><th>作用</th></tr></thead><tbody><tr><td>Content-Security-Policy</td><td>限制脚本与资源来源，防 XSS</td></tr><tr><td>X-Content-Type-Options: nosniff</td><td>防止 MIME 类型嗅探</td></tr><tr><td>X-Frame-Options / CSP frame-ancestors</td><td>防点击劫持</td></tr><tr><td>Referrer-Policy</td><td>控制 Referer 泄露</td></tr><tr><td>Strict-Transport-Security</td><td>强制 HTTPS（HSTS）</td></tr></tbody></table>
 <p>API 响应应遵循最小化原则，不返回多余字段，不暴露内部堆栈或调试信息。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否设置上述安全响应头</li>
 <li>API 响应是否最小化</li>
 <li>错误响应是否泄露内部信息</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止缺失 X-Content-Type-Options: nosniff</li>
 <li>禁止 API 返回内部堆栈或调试信息</li>
 <li>禁止响应包含未授权字段（过度暴露）</li>
@@ -421,14 +419,14 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <table class="compare-table"><thead><tr><th>安全属性</th><th>提供者</th><th>说明</th></tr></thead><tbody><tr><td>机密性</td><td>加密（对称/非对称）</td><td>防止数据被读取</td></tr><tr><td>完整性</td><td>MAC / 哈希 / 签名</td><td>检测数据是否被篡改</td></tr><tr><td>真实性</td><td>MAC / 签名</td><td>验证数据来源</td></tr><tr><td>不可否认性</td><td>数字签名</td><td>签名者无法否认（MAC 无法提供，因对称密钥双方共享）</td></tr></tbody></table>
 <p>加密不提供完整性。裸加密（如 AES-CBC 无 MAC）是可篡改的——攻击者可翻转密文位导致明文对应位翻转。始终优先使用认证加密（AEAD，如 AES-GCM），同时提供机密性与完整性。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否使用标准库而非自实现密码学原语</li>
 <li>是否做了数据分级，确定加密范围</li>
 <li>密钥是否与代码、数据分离存储</li>
 <li>加密是否配合完整性校验（AEAD 或 MAC）</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止自实现加密算法、哈希函数或 PRNG</li>
 <li>禁止认为「加密即可保护完整性」（加密不提供完整性，需 MAC 或 AEAD）</li>
 <li>禁止用「算法保密」替代密钥保密（混淆非安全）</li>
@@ -438,17 +436,17 @@ tbody tr:nth-child(even){background:var(--zebra);}
 <h3 id="42-对称加密">4.2 对称加密</h3>
 <p>对称加密使用同一密钥进行加密与解密，适用于大块数据的机密性保护。</p>
 <ul>
-<li>*算法选型**：AES 是当前标准对称算法。AES-128 满足经典安全需求，AES-256 提供更高安全裕度（NIST SP 800-131A Rev2 推荐用于长期数据保护与抗量子场景）。DES、3DES、RC4、Blowfish 已被 NIST 禁用或弃用。</li>
+<li><strong>算法选型</strong>：AES 是当前标准对称算法。AES-128 满足经典安全需求，AES-256 提供更高安全裕度（NIST SP 800-131A Rev2 推荐用于长期数据保护与抗量子场景）。DES、3DES、RC4、Blowfish 已被 NIST 禁用或弃用。</li>
 </ul>
 <ul>
-<li>*模式选型**（关键决策）：</li>
+<li><strong>模式选型</strong>（关键决策）：</li>
 </ul>
 <table class="compare-table"><thead><tr><th>模式</th><th>是否 AEAD</th><th>推荐度</th><th>说明</th></tr></thead><tbody><tr><td>GCM</td><td>是</td><td>首选</td><td>同时提供机密性与完整性，性能好，硬件加速</td></tr><tr><td>ChaCha20-Poly1305</td><td>是</td><td>推荐</td><td>纯软件实现性能优，无硬件加速依赖</td></tr><tr><td>CTR + HMAC</td><td>否（需手动 MAC）</td><td>可用</td><td>需自行实现 Encrypt-then-MAC</td></tr><tr><td>CBC</td><td>否</td><td>不推荐</td><td>无内置完整性，易受 Padding Oracle 攻击</td></tr><tr><td>ECB</td><td>否</td><td>禁用</td><td>相同明文产生相同密文，泄露数据模式</td></tr></tbody></table>
 <ul>
-<li>*IV / Nonce 要求**：GCM 模式的 nonce 在同一密钥下绝不可重复——重复会导致认证密钥泄露，进而可伪造密文并恢复明文。IV 必须每次随机生成且不可预测。</li>
+<li><strong>IV / Nonce 要求</strong>：GCM 模式的 nonce 在同一密钥下绝不可重复——重复会导致认证密钥泄露，进而可伪造密文并恢复明文。IV 必须每次随机生成且不可预测。</li>
 </ul>
 <ul>
-<li>*Java 规范实现：AES-GCM 加解密**</li>
+<li><strong>Java 规范实现：AES-GCM 加解密</strong></li>
 </ul>
 <pre><code>import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -504,14 +502,14 @@ public class AesGcmExample {
 }</code></pre>
 <p>关键要点：每次加密生成随机 IV（<code>SecureRandom</code>）；GCM 自动计算并校验认证标签；解密时标签校验失败抛 <code>AEADBadTagException</code>，调用方必须捕获并拒绝该数据。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否使用 GCM 或 ChaCha20-Poly1305 等 AEAD 模式</li>
 <li>IV / Nonce 是否每次随机生成且不重复</li>
 <li>是否校验 GCM 认证标签（解密失败时拒绝）</li>
 <li>密钥是否随机生成且足够长度（AES-256 用 32 字节）</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止使用 ECB 模式（相同明文产生相同密文，泄露数据模式，CWE-327）</li>
 <li>禁止 IV 固定、复用或全零（GCM 中 IV 复用导致密钥恢复，CWE-329/323）</li>
 <li>禁止 CBC 模式不校验完整性（Padding Oracle 攻击）</li>
@@ -524,16 +522,16 @@ public class AesGcmExample {
 <h3 id="43-非对称加密与密钥协商">4.3 非对称加密与密钥协商</h3>
 <p>非对称加密使用公钥/私钥对，适用于密钥交换、数字签名与小数据加密。</p>
 <ul>
-<li>*RSA**：加密使用 OAEP 填充（Optimal Asymmetric Encryption Padding），签名使用 PSS 填充。PKCS#1 v1.5 填充因易受 Bleichenbacher 攻击已不推荐（CWE-780）。RSA 密钥长度需 ≥2048 位（推荐 3072，CNSA 2.0 要求 3072），1024 位已被 NIST 禁用。</li>
+<li><strong>RSA</strong>：加密使用 OAEP 填充（Optimal Asymmetric Encryption Padding），签名使用 PSS 填充。PKCS#1 v1.5 填充因易受 Bleichenbacher 攻击已不推荐（CWE-780）。RSA 密钥长度需 ≥2048 位（推荐 3072，CNSA 2.0 要求 3072），1024 位已被 NIST 禁用。</li>
 </ul>
 <ul>
-<li>*椭圆曲线**：ECDSA 用于签名，ECDH 用于密钥协商。优先使用 NIST 标准曲线 P-256 / P-384。ECDSA 签名必须使用确定性 nonce（RFC 6979）或高质量随机数 k——k 值复用或可预测会导致私钥被推算泄露。</li>
+<li><strong>椭圆曲线</strong>：ECDSA 用于签名，ECDH 用于密钥协商。优先使用 NIST 标准曲线 P-256 / P-384。ECDSA 签名必须使用确定性 nonce（RFC 6979）或高质量随机数 k——k 值复用或可预测会导致私钥被推算泄露。</li>
 </ul>
 <ul>
-<li>*密钥协商**：ECDHE（临时椭圆曲线 Diffie-Hellman）提供前向保密——即使长期私钥泄露，历史会话密钥仍然安全。RSA 密钥交换无前向保密，已在 TLS 1.3 中移除。</li>
+<li><strong>密钥协商</strong>：ECDHE（临时椭圆曲线 Diffie-Hellman）提供前向保密——即使长期私钥泄露，历史会话密钥仍然安全。RSA 密钥交换无前向保密，已在 TLS 1.3 中移除。</li>
 </ul>
 <ul>
-<li>*Java 规范实现：RSA-OAEP 加密**</li>
+<li><strong>Java 规范实现：RSA-OAEP 加密</strong></li>
 </ul>
 <pre><code>import javax.crypto.Cipher;
 import java.security.KeyPair;
@@ -569,7 +567,7 @@ public class RsaOaepExample {
     }
 }</code></pre>
 <ul>
-<li>*Java 规范实现：RSA-PSS 签名与验签**</li>
+<li><strong>Java 规范实现：RSA-PSS 签名与验签</strong></li>
 </ul>
 <pre><code>import java.security.Signature;
 import java.security.PrivateKey;
@@ -605,7 +603,7 @@ public class RsaPssExample {
     }
 }</code></pre>
 <ul>
-<li>*Java 规范实现：ECDSA 签名（确定性 nonce，需 Bouncy Castle）**</li>
+<li><strong>Java 规范实现：ECDSA 签名（确定性 nonce，需 Bouncy Castle）</strong></li>
 </ul>
 <pre><code>import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.PrivateKey;
@@ -631,7 +629,7 @@ public class EcdsaExample {
     }
 }</code></pre>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>RSA 加密是否使用 OAEP 填充</li>
 <li>RSA 签名是否使用 PSS 填充</li>
 <li>RSA 密钥长度是否 ≥2048 位</li>
@@ -639,7 +637,7 @@ public class EcdsaExample {
 <li>ECDSA 是否使用确定性签名或安全随机 k</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止 RSA 使用 PKCS#1 v1.5 填充（Bleichenbacher 攻击，CWE-780）</li>
 <li>禁止 RSA 密钥 &lt;2048 位（NIST 已禁用 1024 位）</li>
 <li>禁止 ECDSA 复用随机 k 或使用弱随机源（导致私钥泄露）</li>
@@ -651,12 +649,12 @@ public class EcdsaExample {
 <h3 id="44-哈希函数">4.4 哈希函数</h3>
 <p>哈希函数将任意长度输入映射为固定长度输出，提供完整性校验与数字指纹。</p>
 <ul>
-<li>*算法选型**：</li>
+<li><strong>算法选型</strong>：</li>
 </ul>
 <table class="compare-table"><thead><tr><th>算法</th><th>推荐度</th><th>说明</th></tr></thead><tbody><tr><td>SHA-256 / SHA-384 / SHA-512</td><td>推荐</td><td>SHA-2 家族，当前通用标准</td></tr><tr><td>SHA-3-256 / SHA-3-512</td><td>推荐</td><td>Keccak 结构，与 SHA-2 互补</td></tr><tr><td>BLAKE2 / BLAKE3</td><td>可用</td><td>高性能替代，适合非 NIST 合规场景</td></tr><tr><td>SHA-1</td><td>禁用</td><td>已被破解，数字签名 2014 年起禁用</td></tr><tr><td>MD5</td><td>禁用</td><td>碰撞已实战利用</td></tr></tbody></table>
 <p>哈希函数用途包括：完整性校验、数据指纹、HMAC 构造、KDF 派生。通用哈希函数（SHA-256）速度快，不适合口令存储（需慢哈希，见 4.6）。</p>
 <ul>
-<li>*Java 规范实现：SHA-256 / SHA-3 哈希**</li>
+<li><strong>Java 规范实现：SHA-256 / SHA-3 哈希</strong></li>
 </ul>
 <pre><code>import java.security.MessageDigest;
 
@@ -678,12 +676,12 @@ public class HashExample {
 }</code></pre>
 <p>关键要点：<code>MessageDigest</code> 是线程不安全的，每次调用应新建实例或使用线程局部变量。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否使用 SHA-2 / SHA-3 而非 MD5 / SHA-1</li>
 <li>哈希用途是否匹配算法特性（通用哈希不用于口令存储）</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止使用 MD5（碰撞已实战利用，CWE-327）</li>
 <li>禁止使用 SHA-1 用于安全用途（已被破解）</li>
 <li>禁止用通用快哈希（SHA-256）存储口令（需慢哈希 KDF）</li>
@@ -693,19 +691,19 @@ public class HashExample {
 <hr>
 <h3 id="45-消息认证码与数字签名">4.5 消息认证码与数字签名</h3>
 <ul>
-<li>*HMAC**（Hash-based Message Authentication Code）使用密钥与哈希函数构造 MAC，提供带密钥的完整性校验与真实性验证。推荐 HMAC-SHA-256 / HMAC-SHA-512。</li>
+<li><strong>HMAC</strong>（Hash-based Message Authentication Code）使用密钥与哈希函数构造 MAC，提供带密钥的完整性校验与真实性验证。推荐 HMAC-SHA-256 / HMAC-SHA-512。</li>
 </ul>
 <p>MAC 与签名的关键区别：MAC 使用对称密钥，双方共享，无法提供不可否认性；数字签名使用非对称密钥，私钥签名、公钥验签，提供不可否认性。</p>
 <ul>
-<li>*MAC 与加密的组合顺序**：</li>
+<li><strong>MAC 与加密的组合顺序</strong>：</li>
 </ul>
 <table class="compare-table"><thead><tr><th>顺序</th><th>安全性</th><th>说明</th></tr></thead><tbody><tr><td>Encrypt-then-MAC</td><td>安全</td><td>先加密再对密文做 MAC，推荐</td></tr><tr><td>MAC-then-Encrypt</td><td>不安全</td><td>Padding Oracle 攻击风险</td></tr><tr><td>Encrypt-and-MAC</td><td>不安全</td><td>明文可能从 MAC 泄露</td></tr></tbody></table>
 <p>使用 AEAD（如 GCM）时无需手动组合，AEAD 内部已正确处理。</p>
 <ul>
-<li>*常量时间比较**：比较 MAC 或哈希时必须使用常量时间比较，防止通过响应时间差异推断正确字节数（时序攻击）。Java 中使用 <code>MessageDigest.isEqual()</code>。</li>
+<li><strong>常量时间比较</strong>：比较 MAC 或哈希时必须使用常量时间比较，防止通过响应时间差异推断正确字节数（时序攻击）。Java 中使用 <code>MessageDigest.isEqual()</code>。</li>
 </ul>
 <ul>
-<li>*Java 规范实现：HMAC-SHA-256 与常量时间比较**</li>
+<li><strong>Java 规范实现：HMAC-SHA-256 与常量时间比较</strong></li>
 </ul>
 <pre><code>import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -729,14 +727,14 @@ public class HmacExample {
 }</code></pre>
 <p>关键要点：<code>MessageDigest.isEqual()</code> 在所有 JDK 版本中均为常量时间实现；<code>Arrays.equals()</code> 在发现第一个不匹配字节时即返回，泄露前缀信息。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否使用 HMAC 校验数据完整性</li>
 <li>比较 MAC / 哈希是否使用常量时间比较（<code>MessageDigest.isEqual</code>）</li>
 <li>签名是否使用 PSS / ECDSA 而非 PKCS#1 v1.5</li>
 <li>加密 + MAC 是否采用 Encrypt-then-MAC 顺序</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止用 <code>==</code> 或 <code>Arrays.equals()</code> 比较 MAC / 哈希 / 签名（时序攻击）</li>
 <li>禁止 MAC-then-Encrypt 组合（Padding Oracle 风险）</li>
 <li>禁止用无密钥哈希替代 MAC（任何人可伪造）</li>
@@ -745,20 +743,20 @@ public class HmacExample {
 <h3 id="46-口令哈希与密钥派生函数">4.6 口令哈希与密钥派生函数</h3>
 <p>口令哈希与密钥派生是密码学应用中最易出错的领域。通用哈希函数（SHA-256）速度快，不适合口令存储——GPU 每秒可计算数十亿次 SHA-256，使口令爆破成本极低。必须使用自适应慢哈希函数（KDF），通过内存与计算开销使暴力破解不可行。</p>
 <ul>
-<li>*口令存储算法选型**（OWASP A04 推荐优先级）：</li>
+<li><strong>口令存储算法选型</strong>（OWASP A04 推荐优先级）：</li>
 </ul>
 <table class="compare-table"><thead><tr><th>优先级</th><th>算法</th><th>内存困难</th><th>说明</th></tr></thead><tbody><tr><td>首选</td><td>Argon2id</td><td>是</td><td>PHC 获奖算法，抗 GPU/ASIC，参数可调（内存、迭代、并行度）</td></tr><tr><td>次选</td><td>scrypt</td><td>是</td><td>内存困难型，抗 ASIC</td></tr><tr><td>可选</td><td>bcrypt</td><td>否</td><td>广泛使用，cost 可调，但仅 CPU 困难</td></tr><tr><td>兼容</td><td>PBKDF2-HMAC-SHA-512</td><td>否</td><td>NIST 标准化，迭代次数需 ≥600000</td></tr></tbody></table>
 <ul>
-<li>*salt**：每用户唯一的随机盐，16 字节以上。salt 非秘密，可与哈希结果一同存储。salt 使相同口令产生不同哈希，使彩虹表预计算不可行。</li>
+<li><strong>salt</strong>：每用户唯一的随机盐，16 字节以上。salt 非秘密，可与哈希结果一同存储。salt 使相同口令产生不同哈希，使彩虹表预计算不可行。</li>
 </ul>
 <ul>
-<li>*pepper**：全局秘密盐，与数据库分离存储（HSM / 环境变量 / 配置中心）。pepper 是秘密，泄露后失去保护意义。pepper 使即使数据库泄露，攻击者仍需知道 pepper 才能爆破。</li>
+<li><strong>pepper</strong>：全局秘密盐，与数据库分离存储（HSM / 环境变量 / 配置中心）。pepper 是秘密，泄露后失去保护意义。pepper 使即使数据库泄露，攻击者仍需知道 pepper 才能爆破。</li>
 </ul>
 <ul>
-<li>*工作因子**：应随硬件升级定期提升。bcrypt 的 cost 参数每增加 1，计算时间翻倍。PBKDF2 的迭代次数需根据 OWASP 2025 建议：PBKDF2-HMAC-SHA-256 ≥600000，PBKDF2-HMAC-SHA-512 ≥210000。</li>
+<li><strong>工作因子</strong>：应随硬件升级定期提升。bcrypt 的 cost 参数每增加 1，计算时间翻倍。PBKDF2 的迭代次数需根据 OWASP 2025 建议：PBKDF2-HMAC-SHA-256 ≥600000，PBKDF2-HMAC-SHA-512 ≥210000。</li>
 </ul>
 <ul>
-<li>*Java 规范实现：Argon2id 口令哈希（需 Bouncy Castle）**</li>
+<li><strong>Java 规范实现：Argon2id 口令哈希（需 Bouncy Castle）</strong></li>
 </ul>
 <pre><code>import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
@@ -805,7 +803,7 @@ public class Argon2idExample {
     }
 }</code></pre>
 <ul>
-<li>*Java 规范实现：PBKDF2-HMAC-SHA-512 密钥派生**</li>
+<li><strong>Java 规范实现：PBKDF2-HMAC-SHA-512 密钥派生</strong></li>
 </ul>
 <pre><code>import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -828,7 +826,7 @@ public class Pbkdf2Example {
     }
 }</code></pre>
 <ul>
-<li>*Java 规范实现：HKDF 密钥派生（用于已共享密钥场景）**</li>
+<li><strong>Java 规范实现：HKDF 密钥派生（用于已共享密钥场景）</strong></li>
 </ul>
 <pre><code>import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
@@ -850,7 +848,7 @@ public class HkdfExample {
     }
 }</code></pre>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否使用 Argon2id / bcrypt / PBKDF2 而非 MD5 / SHA 直接哈希</li>
 <li>工作因子是否达标（bcrypt cost ≥10，PBKDF2-SHA-512 ≥210000）且定期评估</li>
 <li>salt 是否每用户唯一随机生成</li>
@@ -858,7 +856,7 @@ public class HkdfExample {
 <li>pepper 是否与数据库分离存储</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止用 MD5 / SHA-1 / SHA-256 直接哈希口令（即使加盐，GPU 秒级爆破，CWE-916）</li>
 <li>禁止无 salt 或全局共享 salt（彩虹表攻击，CWE-759/760）</li>
 <li>禁止工作因子过低（bcrypt cost&lt;10，PBKDF2 迭代&lt;210000）</li>
@@ -871,12 +869,12 @@ public class HkdfExample {
 <p>密码学场景的随机数必须使用 CSPRNG（密码学安全随机数生成器）。Java 中对应 <code>java.security.SecureRandom</code>。</p>
 <p><code>SecureRandom</code> 默认自动播种，从操作系统熵源获取种子（<code>/dev/urandom</code>），无需手动调用 <code>setSeed</code>。手动调用 <code>setSeed</code> 可能降低熵——若传入可预测值（如时间戳），则输出可预测。</p>
 <ul>
-<li>*不同场景的随机数需求**：</li>
+<li><strong>不同场景的随机数需求</strong>：</li>
 </ul>
 <table class="compare-table"><thead><tr><th>场景</th><th>最小长度</th><th>说明</th></tr></thead><tbody><tr><td>会话令牌</td><td>128 位（16 字节）</td><td>防暴力枚举</td></tr><tr><td>对称密钥</td><td>与算法匹配（AES-256 = 32 字节）</td><td>KeyGenerator 生成</td></tr><tr><td>IV / Nonce</td><td>GCM: 96 位（12 字节）</td><td>每次唯一随机</td></tr><tr><td>salt</td><td>128 位（16 字节）</td><td>每用户唯一</td></tr><tr><td>JWT ID</td><td>128 位</td><td>防碰撞</td></tr></tbody></table>
 <p><code>java.util.Random</code> 与 <code>Math.random()</code> 使用线性同余生成器，仅统计随机，输出可预测，禁止用于安全场景。<code>UUID.randomUUID()</code> 内部使用 <code>SecureRandom</code>，可用于生成标识符，但不应作为会话令牌（UUID v4 格式固定，熵利用不充分）。</p>
 <ul>
-<li>*Java 规范实现：SecureRandom 生成各类安全随机值**</li>
+<li><strong>Java 规范实现：SecureRandom 生成各类安全随机值</strong></li>
 </ul>
 <pre><code>import java.security.SecureRandom;
 import java.util.Base64;
@@ -910,12 +908,12 @@ public class SecureRandomExample {
 }</code></pre>
 <p>关键要点：<code>SecureRandom</code> 实例可复用（线程安全）；获取实例时优先使用 <code>new SecureRandom()</code> 或 <code>SecureRandom.getInstanceStrong()</code>（后者在 Linux 上可能阻塞等待熵，不推荐用于高频场景）。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>安全令牌、密钥、IV、salt 是否使用 SecureRandom</li>
 <li>是否避免手动 setSeed 固定值</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止用 <code>java.util.Random</code> / <code>Math.random()</code> 生成安全令牌（CWE-338）</li>
 <li>禁止用时间戳 / 进程 ID 作为随机种子（可预测，CWE-335/337）</li>
 <li>禁止手动 <code>setSeed</code> 固定值（如 <code>new SecureRandom(固定字节)</code>，CWE-336）</li>
@@ -925,22 +923,22 @@ public class SecureRandomExample {
 <h3 id="48-密钥管理">4.8 密钥管理</h3>
 <p>密钥管理覆盖密钥的完整生命周期：生成、存储、分发、使用、轮换、撤销、销毁。密钥泄露使所有基于该密钥的密码学保护失效。</p>
 <ul>
-<li>*密钥生成**：使用 CSPRNG（<code>KeyGenerator</code> / <code>SecureRandom</code>），密钥长度与算法匹配。</li>
+<li><strong>密钥生成</strong>：使用 CSPRNG（<code>KeyGenerator</code> / <code>SecureRandom</code>），密钥长度与算法匹配。</li>
 </ul>
 <ul>
-<li>*密钥存储**：最敏感的密钥应存储于 HSM（硬件安全模块）或 KMS（密钥管理服务），应用不持有明文密钥。次敏感密钥可存储于 <code>KeyStore</code>（JKS / PKCS12），配合口令保护。禁止密钥硬编码于源码或存于配置文件明文（CWE-321/260）。</li>
+<li><strong>密钥存储</strong>：最敏感的密钥应存储于 HSM（硬件安全模块）或 KMS（密钥管理服务），应用不持有明文密钥。次敏感密钥可存储于 <code>KeyStore</code>（JKS / PKCS12），配合口令保护。禁止密钥硬编码于源码或存于配置文件明文（CWE-321/260）。</li>
 </ul>
 <ul>
-<li>*密钥分离**：不同用途使用不同密钥——加密密钥、签名密钥、MAC 密钥分开，不可一钥多用。一钥多用时某用途泄露波及其他用途。</li>
+<li><strong>密钥分离</strong>：不同用途使用不同密钥——加密密钥、签名密钥、MAC 密钥分开，不可一钥多用。一钥多用时某用途泄露波及其他用途。</li>
 </ul>
 <ul>
-<li>*密钥轮换**：定期轮换密钥，泄露后可撤销旧密钥。加密数据需支持密钥版本，解密时按版本选择密钥。</li>
+<li><strong>密钥轮换</strong>：定期轮换密钥，泄露后可撤销旧密钥。加密数据需支持密钥版本，解密时按版本选择密钥。</li>
 </ul>
 <ul>
-<li>*密钥销毁**：内存中的密钥使用后应及时清零。Java 中 <code>byte[]</code> 可通过 <code>Arrays.fill(key, (byte)0)</code> 清零；<code>String</code> 不可变，无法清零，因此密钥不应以 <code>String</code> 存储。</li>
+<li><strong>密钥销毁</strong>：内存中的密钥使用后应及时清零。Java 中 <code>byte[]</code> 可通过 <code>Arrays.fill(key, (byte)0)</code> 清零；<code>String</code> 不可变，无法清零，因此密钥不应以 <code>String</code> 存储。</li>
 </ul>
 <ul>
-<li>*Java 规范实现：密钥存储于 KeyStore**</li>
+<li><strong>Java 规范实现：密钥存储于 KeyStore</strong></li>
 </ul>
 <pre><code>import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -980,7 +978,7 @@ public class KeyStoreExample {
     }
 }</code></pre>
 <ul>
-<li>*Java 规范实现：内存密钥安全清零**</li>
+<li><strong>Java 规范实现：内存密钥安全清零</strong></li>
 </ul>
 <pre><code>import java.util.Arrays;
 import javax.crypto.SecretKey;
@@ -1000,7 +998,7 @@ public class KeyCleanupExample {
     }
 }</code></pre>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>密钥是否存储于 HSM / KMS / KeyStore 而非配置文件或源码</li>
 <li>是否有密钥轮换策略</li>
 <li>是否不同用途使用独立密钥</li>
@@ -1008,7 +1006,7 @@ public class KeyCleanupExample {
 <li>密钥是否以 <code>byte[]</code> 而非 <code>String</code> 存储</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止硬编码密钥于源码（CWE-321，Git 历史永久泄露）</li>
 <li>禁止密钥存于配置文件明文（CWE-260）</li>
 <li>禁止密钥写入日志、异常信息、监控指标</li>
@@ -1021,20 +1019,20 @@ public class KeyCleanupExample {
 <h3 id="49-证书与-tls">4.9 证书与 TLS</h3>
 <p>TLS（Transport Layer Security）保障传输层机密性与完整性。TLS 1.3 是当前推荐版本，相比 1.2 移除了不安全算法（RSA 密钥交换、CBC、RC4、SHA-1），握手更快更安全。TLS 1.2 仍可用但需正确配置密码套件。</p>
 <ul>
-<li>*TLS 版本与密码套件**：</li>
+<li><strong>TLS 版本与密码套件</strong>：</li>
 </ul>
 <table class="compare-table"><thead><tr><th>项目</th><th>推荐</th><th>禁用</th></tr></thead><tbody><tr><td>TLS 版本</td><td>TLS 1.3（首选）、TLS 1.2</td><td>SSLv3、TLS 1.0、TLS 1.1</td></tr><tr><td>密钥交换</td><td>ECDHE（前向保密）</td><td>RSA 密钥交换（无 PFS）</td></tr><tr><td>对称加密</td><td>AES-GCM、ChaCha20-Poly1305</td><td>CBC、RC4、3DES</td></tr><tr><td>证书签名</td><td>RSA-PSS、ECDSA</td><td>RSA-PKCS#1v1.5、MD5、SHA-1</td></tr></tbody></table>
 <ul>
-<li>*证书校验**：客户端必须严格校验证书链、主机名、有效期、吊销状态（OCSP / CRL）。禁止信任所有证书（<code>TrustManager</code> 返回 true、<code>-DtrustAll</code> 参数），否则 TLS 降级为明文等效（CWE-295）。</li>
+<li><strong>证书校验</strong>：客户端必须严格校验证书链、主机名、有效期、吊销状态（OCSP / CRL）。禁止信任所有证书（<code>TrustManager</code> 返回 true、<code>-DtrustAll</code> 参数），否则 TLS 降级为明文等效（CWE-295）。</li>
 </ul>
 <ul>
-<li>*HSTS**：通过 <code>Strict-Transport-Security</code> 响应头强制浏览器使用 HTTPS，防止 SSL Strip 降级攻击。含 <code>preload</code> 指令可加入浏览器 HSTS 预加载列表。</li>
+<li><strong>HSTS</strong>：通过 <code>Strict-Transport-Security</code> 响应头强制浏览器使用 HTTPS，防止 SSL Strip 降级攻击。含 <code>preload</code> 指令可加入浏览器 HSTS 预加载列表。</li>
 </ul>
 <ul>
-<li>*PQC 迁移**：NIST FIPS 203（ML-KEM）、FIPS 204（ML-DSA）、FIPS 205（SLH-DSA）已于 2024 年正式发布。高风险系统需在 2030 年前完成迁移。当前阶段可采用混合模式（经典算法 + PQC），如 X25519MLKEM768 密码套件。</li>
+<li><strong>PQC 迁移</strong>：NIST FIPS 203（ML-KEM）、FIPS 204（ML-DSA）、FIPS 205（SLH-DSA）已于 2024 年正式发布。高风险系统需在 2030 年前完成迁移。当前阶段可采用混合模式（经典算法 + PQC），如 X25519MLKEM768 密码套件。</li>
 </ul>
 <ul>
-<li>*Java 规范实现：TLS 客户端正确证书校验**</li>
+<li><strong>Java 规范实现：TLS 客户端正确证书校验</strong></li>
 </ul>
 <pre><code>import javax.net.ssl.SSLContext;
 import javax.net.ssl.HttpsURLConnection;
@@ -1075,7 +1073,7 @@ public class TlsClientExample {
     }
 }</code></pre>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否仅启用 TLS ≥1.2 且优先 1.3</li>
 <li>密码套件是否使用 ECDHE + GCM（前向保密 + AEAD）</li>
 <li>是否启用 HSTS</li>
@@ -1083,7 +1081,7 @@ public class TlsClientExample {
 <li>是否规划 PQC 迁移路线</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止使用 TLS 1.0 / 1.1 / SSLv3（协议漏洞）</li>
 <li>禁止禁用证书校验（<code>TrustManager</code> 全信任，CWE-295）</li>
 <li>禁止忽略主机名校验（<code>setHostnameVerifier</code> 返回 true）</li>
@@ -1107,14 +1105,14 @@ public class TlsClientExample {
 <p>统一异常处理应避免将内部堆栈、SQL 语句、文件路径等技术信息暴露给客户端。生产环境返回通用错误信息，详细信息记录于服务端日志。</p>
 <p>异常捕获不应吞掉异常（empty catch），也不应捕获过宽（<code>catch (Exception e)</code> 或 <code>catch (Throwable t)</code>）掩盖真实问题。异常不应作为业务流程控制手段。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>异常发生时是否默认拒绝（fail-secure）</li>
 <li>是否有全局异常处理器统一封装错误响应</li>
 <li>错误响应是否泄露堆栈、SQL、文件路径等内部信息</li>
 <li>是否避免 empty catch 吞异常</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止异常时默认放行（fail-open）</li>
 <li>禁止返回堆栈跟踪、SQL 语句、文件路径给客户端</li>
 <li>禁止 empty catch 吞异常（CWE-390）</li>
@@ -1126,14 +1124,14 @@ public class TlsClientExample {
 <p>日志中禁止记录敏感数据：口令、密钥、令牌、完整卡号、身份证号、完整手机号。需要对敏感字段做脱敏处理（如卡号仅保留后四位）。</p>
 <p>日志应防篡改——独立存储于攻击者无法修改的系统，或使用 WORM（Write Once Read Many）存储。仅记录成功操作而忽略失败操作的日志会丢失攻击痕迹。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>安全事件是否记录 who / what / when / result</li>
 <li>日志是否对敏感字段脱敏</li>
 <li>日志是否防篡改（独立存储 / WORM）</li>
 <li>是否同时记录失败操作（攻击痕迹在失败中）</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止日志记录口令、密钥、令牌、完整卡号、身份证号</li>
 <li>禁止日志记录完整请求体含敏感字段</li>
 <li>禁止日志可被普通用户篡改</li>
@@ -1143,14 +1141,14 @@ public class TlsClientExample {
 <p>信息泄露不仅发生在 HTTP 响应中，还存在于日志、异常信息、监控指标、调试端点。全链路均需脱敏。</p>
 <p>生产环境必须关闭或鉴权保护调试端点：Spring Boot Actuator、Swagger / OpenAPI 文档、Druid 监控页面。错误页面不应暴露框架版本、服务器路径、组件信息。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>生产环境 Actuator 端点是否鉴权或关闭</li>
 <li>Swagger / 接口文档是否在生产关闭</li>
 <li>错误页面是否暴露框架版本或路径</li>
 <li>HTML 注释或隐藏域是否包含敏感信息</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止生产环境 Actuator 无鉴权暴露</li>
 <li>禁止 Swagger / 接口文档在生产环境暴露</li>
 <li>禁止错误页暴露框架版本、服务器路径</li>
@@ -1162,13 +1160,13 @@ public class TlsClientExample {
 <h3 id="61-api-认证与授权">6.1 API 认证与授权</h3>
 <p>API 鉴权应独立于 Web 会话，常用 OAuth2 / JWT / API Key。每个端点强制授权校验，对象级授权防 IDOR。API Key 不可硬编码于前端代码或出现在 URL 参数中。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>每个 API 端点是否都有鉴权与授权校验</li>
 <li>资源访问是否校验对象级归属</li>
 <li>API Key 是否避免出现在前端或 URL</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止 API 无鉴权暴露</li>
 <li>禁止 API Key 出现在前端代码或 URL 参数中</li>
 <li>禁止信任客户端传入的权限字段</li>
@@ -1176,26 +1174,26 @@ public class TlsClientExample {
 <h3 id="62-api-限流配额与防滥用">6.2 API 限流、配额与防滥用</h3>
 <p>限流（令牌桶 / 漏桶算法）防止暴力破解与 DoS 攻击。限流维度应包含用户、IP、接口多层级。超过限制时返回 HTTP 429 状态码与 <code>Retry-After</code> 头。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>敏感接口是否配置限流</li>
 <li>限流是否多维度（用户 + IP + 接口）</li>
 <li>超限是否返回 429 + Retry-After</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止敏感接口无限流</li>
 <li>禁止限流仅按 IP（NAT / 代理环境下失效）</li>
 </ul>
 <h3 id="63-api-数据保护与响应最小化">6.3 API 数据保护与响应最小化</h3>
 <p>API 响应应按调用者角色裁剪字段，不返回超权限数据。敏感字段加密或脱敏。批量查询接口必须分页，防止全量数据爬取。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>响应字段是否按角色裁剪</li>
 <li>敏感字段是否脱敏</li>
 <li>批量查询是否强制分页</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止接口返回超权限字段</li>
 <li>禁止无分页或无上限的批量查询</li>
 <li>禁止响应包含密码哈希等内部数据</li>
@@ -1203,12 +1201,12 @@ public class TlsClientExample {
 <h3 id="64-api-版本管理与生命周期">6.4 API 版本管理与生命周期</h3>
 <p>API 版本化便于安全修复与废弃管理。含已知漏洞的旧版本应有明确下线计划，不可无限期保留。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>API 是否版本化</li>
 <li>废弃版本是否有下线计划</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止旧版本无限期保留且含已知漏洞</li>
 <li>禁止无版本管理导致破坏性变更</li>
 </ul>
@@ -1217,14 +1215,14 @@ public class TlsClientExample {
 <p>OWASP 2025 将 A03 升级为「软件供应链失败」，涵盖依赖漏洞、构建产物完整性、第三方组件安全。应用需通过 SCA（软件成分分析）工具扫描依赖中的已知 CVE，维护 SBOM（软件物料清单）。</p>
 <p>第三方接口调用需设置超时与重试控制，严格校验 TLS 证书。构建产物（如 Docker 镜像、JAR 包）需校验签名或哈希完整性。</p>
 <ul>
-<li>*Checkpoint**</li>
+<li><strong>Checkpoint</strong></li>
 <li>是否有 SCA 工具扫描依赖漏洞</li>
 <li>是否维护 SBOM</li>
 <li>第三方调用是否校验证书并设超时</li>
 <li>构建产物是否校验完整性</li>
 </ul>
 <ul>
-<li>*雷区清单**</li>
+<li><strong>雷区清单</strong></li>
 <li>禁止使用含已知高危 CVE 的依赖而不升级</li>
 <li>禁止从不信任源拉取依赖（供应链投毒）</li>
 <li>禁止第三方调用 trustAll 证书</li>
@@ -1551,11 +1549,13 @@ const typeDefs = gql`
 <h2 id="附录-d参考资料与权威链接">附录 D：参考资料与权威链接</h2>
 <table class="compare-table"><thead><tr><th>来源</th><th>说明</th></tr></thead><tbody><tr><td>OWASP Top 10:2025</td><td><a href="https://owasp.org/Top10/" target="_blank" rel="noopener">https://owasp.org/Top10/</a></td></tr><tr><td>OWASP ASVS v5.0</td><td><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">https://owasp.org/www-project-application-security-verification-standard/</a></td></tr><tr><td>OWASP Cheat Sheet Series</td><td><a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/</a></td></tr><tr><td>NIST SP 800-131A Rev2</td><td>密码算法迁移指南</td></tr><tr><td>NIST FIPS 203 / 204 / 205</td><td>后量子密码标准（ML-KEM / ML-DSA / SLH-DSA）</td></tr><tr><td>NIST SP 800-63B</td><td>数字身份指南（口令策略）</td></tr><tr><td>NIST SP 800-90A</td><td>随机数生成器标准</td></tr><tr><td>CWE-321</td><td>硬编码密钥</td></tr><tr><td>CWE-327</td><td>使用已破解或风险的密码算法</td></tr><tr><td>CWE-329</td><td>IV 不可预测性失败</td></tr><tr><td>CWE-338</td><td>使用密码学不安全的 PRNG</td></tr><tr><td>CWE-780</td><td>RSA PKCS#1 v1.5 填充</td></tr><tr><td>CWE-916</td><td>口令哈希使用不足迭代次数</td></tr></tbody></table>
 <div class="footer-note">服务端开发安全 Checkpoint 手册 · 基于 OWASP Top 10:2025 / NIST / ASVS v5.0</div>
-    <nav class="chapter-nav-top">
-        <a href="index.html" class="nav-home">← 返回目录</a><span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-
-    </nav>
-</div>
+    <nav class="chapter-nav">
+        <a href="chapter-15-reactive.html" class="nav-prev">← 第 15 篇 响应式编程</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="index.html" class="nav-home">返回首页 →</a>
+      </nav>
+    </main>
+  </div>
   <script src="assets/nav.js"></script>
 </body>
 </html>

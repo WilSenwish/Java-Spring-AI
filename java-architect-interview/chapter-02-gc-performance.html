@@ -35,7 +35,7 @@
       <!-- 顶部章节导航 -->
       <nav class="chapter-nav-top">
         <a href="chapter-01-jvm-memory-classloading.html" class="nav-prev">← 第 01 篇 JVM 内存与类加载</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-03-concurrency-locks.html" class="nav-next">第 03 篇 并发编程与锁机制 →</a>
         
       </nav>
@@ -60,18 +60,39 @@
         <div class="chapter-lead">
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">核心知识链</div>
-            <p class="chapter-lead-chain">可达性与收集器谱系 → 停顿 / 吞吐 / 足迹权衡 → 日志与指标诊断 → 容器与大堆调参</p>
+            <div class="chapter-lead-chain">
+            <p>GC 工程化主线是「目标函数 → 收集器能力边界 → 证据链诊断 → 变更可回滚」。</p>
+            <ol>
+              <li><strong>可达性与收集器谱系</strong>：分代 / Region / 并发标记各自擅长的停顿与吞吐形状不同。</li>
+              <li><strong>延迟·吞吐·足迹三角</strong>：先定 SLO（P99 / 吞吐 / 堆上限），再选 G1/ZGC/Shenandoah 等。</li>
+              <li><strong>日志与指标诊断</strong>：GC 日志、分配失败、Humongous、到 STW 根因，形成可复现证据。</li>
+              <li><strong>容器与大堆调参</strong>：CPU share、ActiveProcessorCount、大页与多租户共池下的安全默认值。</li>
+            </ol>
+            </div>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">工程化要点</div>
+                        <ul class="chapter-lead-points">
+              <li>GC 调参必须带对照实验：基线 GC 日志 + 业务延迟直方图 + 错误率；禁止拍脑袋加堆或换收集器。</li>
+              <li>收集器 / 关键参数变更走灰度与一键回滚，并写入变更单的回滚条件（错误预算/延迟阈值）。</li>
+              <li>大促前完成分配画像、晋升失败与 Full GC 演练；演练结果进容量评审材料。</li>
+              <li>容器场景把 ActiveProcessorCount、CPU share、堆上限写成同一容量模型，避免 STW 被 CPU throttle 放大。</li>
+              <li>Humongous / 大对象与 Region 浪费要有专项看板；发现后优先改分配形态，而不是无限扩堆。</li>
+              <li>把「可解释的 GC 目标函数」（延迟/吞吐/足迹）写进服务 SLO 附录，调参围绕目标而非感觉。</li>
+            </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-            <ul class="chapter-lead-mind">
-              <li><strong>先定目标函数</strong>：延迟敏感、吞吐优先还是内存足迹，目标不清就不要调参。</li>
-              <li><strong>证据驱动</strong>：GC 日志、分配速率、晋升失败决定动作，忌凭经验乱改 -Xmx。</li>
-              <li><strong>容器边界</strong>：cgroup 限额下把 JVM 感知与 OOMKilled 一并纳入容量模型。</li>
-              <li>跨主题通用能力见 <a href="chapter-core-methodology.html">核心方法论</a>（识别单点 → 拆分 → 取舍）。</li>
+                        <ul class="chapter-lead-mind">
+              <li><strong>先定目标函数</strong>：延迟敏感、吞吐优先还是足迹受限，目标不清不调参。</li>
+              <li><strong>证据驱动</strong>：用 GC 日志与分配画像决定动作，忌凭经验乱改堆大小。</li>
+              <li><strong>变更可回滚</strong>：收集器切换与发布流水线同级管控，失败自动或一键退回。</li>
+              <li><strong>容量与编排一体</strong>：cgroup、CPU、堆三者一起建模，防 OOMKilled 误判为业务故障。</li>
+              <li><strong>先改分配再改 GC</strong>：多数「GC 问题」根因是分配速率与对象寿命，收集器只是放大器。</li>
             </ul>
           </div>
         </div>
+
       </div>
 
       <!-- ============================================================ -->
@@ -1812,7 +1833,7 @@ scrape_configs:
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="chapter-01-jvm-memory-classloading.html" class="nav-prev">&#8592; 第 01 篇 JVM 内存与类加载</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-03-concurrency-locks.html" class="nav-next">第 03 篇 并发编程与锁机制 &#8594;</a>
               
 </nav>

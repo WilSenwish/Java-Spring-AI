@@ -33,7 +33,7 @@
       <!-- 顶部章节导航 -->
       <nav class="chapter-nav-top">
         <a href="chapter-03-concurrency-locks.html" class="nav-prev">← 第 03 篇 并发编程与锁机制</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-04-threadpool-virtual-threads.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-04-threadpool-virtual-threads.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-05-spring-core.html" class="nav-next">第 05 篇 Spring 核心原理 →</a>
         
       </nav>
@@ -58,18 +58,39 @@
         <div class="chapter-lead">
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">核心知识链</div>
-            <p class="chapter-lead-chain">线程池参数与拒绝策略 → Future / 编排 → 虚拟线程与 pinning → 结构化并发与上下文传递</p>
+            <div class="chapter-lead-chain">
+            <p>任务承载主线是「工作负载分型 → 池化/虚拟线程选型 → 编排与取消 → 上下文传递」。</p>
+            <ol>
+              <li><strong>池化参数与拒绝策略</strong>：核数、队列、拒绝与业务降级挂钩，忌无限队列伪装缓冲。</li>
+              <li><strong>Future 与异步编排</strong>：超时、取消、异常传播决定会不会拖垮调用方。</li>
+              <li><strong>虚拟线程与 pinning</strong>：收益取决于是否长时间 pin 住载体；同步块/JNI 是关键。</li>
+              <li><strong>结构化并发与上下文</strong>：任务生命周期成组管理；ThreadLocal 在 VT/异步下要显式化。</li>
+            </ol>
+            </div>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">工程化要点</div>
+                        <ul class="chapter-lead-points">
+              <li>线程池按业务隔离：有界队列、饱和指标、拒绝告警与变更审批；禁止无限队列伪装缓冲。</li>
+              <li>IO 密集评估 VT/异步时，上线前做 pin 检测与平台线程对照压测，并记录诊断工具版本差异。</li>
+              <li>「加线程扛住」必须附带队列堆积、RT、错误率三联证据，并准备降级/限流开关。</li>
+              <li>拒绝策略必须可观测且触发明确降级路径，禁止静默丢任务。</li>
+              <li>结构化并发与任务取消语义写进接口契约：超时由谁取消、半成功如何补偿。</li>
+              <li>上下文（TraceId/租户/安全主体）禁止隐式 ThreadLocal 穿透；优先显式传参或 ScopedValue。</li>
+            </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
-            <ul class="chapter-lead-mind">
-              <li><strong>IO 密集别盲目加池</strong>：阻塞 IO 堆平台线程会先打满 OS 线程与内存，先分型再扩容。</li>
-              <li><strong>VT 看 pin 点</strong>：虚拟线程收益取决于是否长时间 pin 住载体线程（同步块 / JNI）。</li>
-              <li><strong>上下文显式化</strong>：ThreadLocal 在 VT / 异步链路易泄漏；优先 ScopedValue 或显式传参。</li>
-              <li>跨主题通用能力见 <a href="chapter-core-methodology.html">核心方法论</a>（识别单点 → 拆分 → 取舍）。</li>
+                        <ul class="chapter-lead-mind">
+              <li><strong>负载先分型</strong>：CPU 密集、阻塞 IO、混合负载用不同承载，忌一套池打天下。</li>
+              <li><strong>拒绝即可观测</strong>：拒绝要打点并联动降级，不能当「内部实现细节」。</li>
+              <li><strong>VT 看 pin 点</strong>：同步块/JNI/长时间监控会吃掉虚拟线程红利；按 JDK 版本选诊断手段。</li>
+              <li><strong>上下文显式化</strong>：异步与 VT 场景下隐式 ThreadLocal 视为泄漏风险。</li>
+              <li><strong>取消是一等公民</strong>：超时与取消必须穿透到下游，避免幽灵任务继续消耗资源。</li>
             </ul>
           </div>
         </div>
+
       </div>
 
       <!-- ============================================================ -->
@@ -1525,7 +1546,7 @@ flowchart TD
       <!-- ============ 章节间导航 ============ -->
       <nav class="chapter-nav">
         <a href="chapter-03-concurrency-locks.html" class="nav-prev">&#8592; 第 03 篇 并发编程与锁机制</a>
-        <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-04-threadpool-virtual-threads.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-04-threadpool-virtual-threads.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
         <a href="chapter-05-spring-core.html" class="nav-next">第 05 篇 Spring 核心原理 &#8594;</a>
               
 </nav>

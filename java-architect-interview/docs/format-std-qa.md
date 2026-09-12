@@ -54,16 +54,27 @@
           <span>架构级 ×c</span>   <span class="meta-divider">|</span>
           <span>预计复习：XX 分钟</span>
         </div>
-        <!-- 篇章导读：对齐对应 mind 页 ①②③，不堆目录 -->
+        <!-- 篇章导读：知识链（含阶段说明）+ 工程化要点 + 本篇思维模式 -->
         <div class="chapter-lead">
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">核心知识链</div>
-            <p class="chapter-lead-chain">A → B → C → D</p>
+            <div class="chapter-lead-chain">
+            <p>一句话主线。</p>
+            <ol>
+              <li><strong>阶段名</strong>：为何存在、解决什么。</li>
+            </ol>
+            </div>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">工程化要点</div>
+            <ul class="chapter-lead-points">
+              <li>大厂生产视角的发布 / 观测 / 回滚 / 门禁口径（分点）。</li>
+            </ul>
           </div>
           <div class="chapter-lead-block">
             <div class="chapter-lead-label">本篇思维模式</div>
             <ul class="chapter-lead-mind">
-              <li><strong>模式名</strong>：一句落地口径（通用能力链到方法论页）</li>
+              <li><strong>模式名</strong>：本领域落地口径（勿重复粘贴跨篇通用句；通用方法论见导航「核心方法论」）。</li>
             </ul>
           </div>
         </div>
@@ -87,7 +98,7 @@
 要点：
 - 每章**正文几乎不使用 `h2/h3` 分隔**（正文以 `qa-card` 为唯一单元，通常仅侧栏 `h3 本篇目录` 与末尾 `h2 参考资料` 两个标题）。
 - `chapter-header` 的难度分布（`×a/×b/×c`）必须与下方各卡片的 `data-difficulty` 统计一致；`题目数：N` 必须等于 `qa-card` 数量。
-- `chapter-subtitle` 只做钩子；**核心知识链 + 本篇思维模式** 放在 `chapter-lead`（每章恰好一处）。知识链对齐对应 mind 页 ①②③，写成有因果的箭头链；思维模式写本领域口径 2～4 条，通用能力链到 `chapter-core-methodology.html`。
+- `chapter-subtitle` 只做钩子；**核心知识链（含阶段说明）+ 工程化要点（分点）+ 本篇思维模式** 放在 `chapter-lead`（每章恰好一处）。知识链要对齐 mind ①②③ 并写清因果，禁止只剩箭头关键词；工程化要点用 `<ul class="chapter-lead-points">`，建议 **5～7 条**，覆盖发布/观测/回滚/门禁/容量，勿写成关键词口号；思维模式用命名条目（`<strong>模式名</strong>：口径`），建议 **4～6 条**，写本领域落地口径，禁止每章复制同一句「见方法论」。顶部/底部 `nav-center` 须含指向 `chapter-core-methodology.html` 的「核心方法论」链接，且位于「全部章节」左侧（顺序：核心方法论 → 全部章节 → 本章思维导图）。
 
 ## 3. `qa-card` 卡片规范
 
