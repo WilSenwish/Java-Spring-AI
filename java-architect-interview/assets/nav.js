@@ -91,6 +91,14 @@
 
       if (active) {
         active.link.classList.add('active');
+        // 分组标题同步高亮：当前条目所属 toc-group 的标题一并 active
+        var group = active.link.closest('.toc-group');
+        if (group) {
+          var groupTitle = group.querySelector('a.toc-group-title');
+          if (groupTitle) {
+            groupTitle.classList.add('active');
+          }
+        }
         // 侧栏内跟随，避免长目录下高亮项滚出可视区
         if (sidebar) {
           var linkRect = active.link.getBoundingClientRect();
