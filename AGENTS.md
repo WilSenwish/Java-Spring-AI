@@ -12,7 +12,7 @@
 - `java-architect-interview-mind/`：导图站，18 个 `mind-*.html`，与章节页一一对应互链
 - 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/nav.js`（导图站相对路径引用同套文件）
 
-**卡片编号**：`M##.##`（方法论，M01~M12 共 91 卡）/ `G##.##`（工程化，G01~G08 共 24 卡）/ `C##.##`（篇章 229）/ `E##.##`（核心原理 64）/ `S##.##`（场景 72）。
+**卡片编号**：`M##.##`（方法论，M01~M12 共 91 卡）/ `G##.##`（工程化，G01~G08 共 24 卡）/ `C##.##`（篇章 234）/ `E##.##`（核心原理 73）/ `S##.##`（场景 72）。
 
 ## 2. 硬红线（违反即返工）
 
@@ -99,6 +99,30 @@
 | P50 | `java-architect-interview/chapter-overview-priority.html` | overview P0 组标题题数 |
 | P51 | `java-architect-interview/chapter-overview-priority.html` | overview P1 组标题题数 |
 | P52 | `java-architect-interview/chapter-overview-priority.html` | overview P2 组标题题数 |
+| P53 | `index.html` | 根 index 深度 Q&A 统计 |
+| P54 | `index.html` | 根 index 场景题统计 |
+| P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A 统计 |
+| P56 | `java-architect-interview/index.html` | 章节 index 场景题统计 |
+| P57 | `java-architect-interview-mind/index.html` | mind index 题量表达式篇章 |
+| P58 | `java-architect-interview-mind/index.html` | mind index 题量表达式核心原理 |
+| P59 | `java-architect-interview-mind/index.html` | mind index 题量表达式场景 |
+| P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章题数 |
+| P61 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文篇章题数 |
+| P62 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页副标题卡数 |
+| P63 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 卡数 |
+| P64 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 题数 |
+| P65 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 专家数 |
+| P66 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 架构数 |
+| P67 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 高级数 |
+| P68 | `java-architect-interview/index.html` | 章节 index 场景卡 desc 题数 |
+| P69 | `java-architect-interview/index.html` | 章节 index 核心原理卡 footer 题数 |
+| P70 | `java-architect-interview/index.html` | 章节 index 场景卡 footer 题数 |
+| P71 | `java-architect-interview-mind/index.html` | mind index 方法论卡 footer 卡数 |
+| P72 | `java-architect-interview-mind/index.html` | mind index 工程化卡 footer 卡数 |
+| P73 | `java-architect-interview-mind/index.html` | mind index 工程化卡 desc 卡数 |
+| P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
+| P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
+| P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

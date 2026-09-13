@@ -99,6 +99,30 @@ agent_created: true
 | P50 | `java-architect-interview/chapter-overview-priority.html` | overview P0 组标题题数 |
 | P51 | `java-architect-interview/chapter-overview-priority.html` | overview P1 组标题题数 |
 | P52 | `java-architect-interview/chapter-overview-priority.html` | overview P2 组标题题数 |
+| P53 | `index.html` | 根 index 深度 Q&A 统计 |
+| P54 | `index.html` | 根 index 场景题统计 |
+| P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A 统计 |
+| P56 | `java-architect-interview/index.html` | 章节 index 场景题统计 |
+| P57 | `java-architect-interview-mind/index.html` | mind index 题量表达式篇章 |
+| P58 | `java-architect-interview-mind/index.html` | mind index 题量表达式核心原理 |
+| P59 | `java-architect-interview-mind/index.html` | mind index 题量表达式场景 |
+| P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章题数 |
+| P61 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文篇章题数 |
+| P62 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页副标题卡数 |
+| P63 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 卡数 |
+| P64 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 题数 |
+| P65 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 专家数 |
+| P66 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 架构数 |
+| P67 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 高级数 |
+| P68 | `java-architect-interview/index.html` | 章节 index 场景卡 desc 题数 |
+| P69 | `java-architect-interview/index.html` | 章节 index 核心原理卡 footer 题数 |
+| P70 | `java-architect-interview/index.html` | 章节 index 场景卡 footer 题数 |
+| P71 | `java-architect-interview-mind/index.html` | mind index 方法论卡 footer 卡数 |
+| P72 | `java-architect-interview-mind/index.html` | mind index 工程化卡 footer 卡数 |
+| P73 | `java-architect-interview-mind/index.html` | mind index 工程化卡 desc 卡数 |
+| P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
+| P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
+| P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -145,9 +169,9 @@ agent_created: true
 4. 环境 Python：`/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3`。
 
 ### Step 5 · 全量校验 + 记忆
-1. 跑 `scripts/validate_kb.py`（会**强制**子进程跑 `sync_counts.py check`）：三权威源一致、**散文计数位 P27–P52 与真源一致**、各文件 `data-page-node-id` 全 0、无 `</spa` 截断、新卡双编码与落位。
+1. 跑 `scripts/validate_kb.py`（会**强制**子进程跑 `sync_counts.py check`）：三权威源一致、**散文计数位 P01–P76 与真源一致**、各文件 `data-page-node-id` 全 0、无 `</spa` 截断、新卡双编码与落位。
 2. **散文计数硬约束（2026-09-13 固化，禁止遗漏）**：
-   - 页头/来源段里的「本页 N 道 / 229 道深度问答 / 72 道场景…」属于**散文位**，已登记为 `kb-counts.json` → `positions` 的 **P27–P52**（及后续扩展）。
+   - 页头/来源段里的「本页 N 道 / 234 道深度问答 / 72 道场景…」属于**散文位**，已登记为 `kb-counts.json` → `positions` 的 **P01–P76**（及后续扩展）。
    - **改题数必须**走 `sync_counts.py bump …`（或 bump 后 `apply`），禁止只改 HTML 散文数字。
    - `validate_kb.py` 第 0 步即 `sync_counts check`；任一散文位漂移 → **整次校验 FAIL**。
    - 新增散文数字时：先在 `kb-counts.json` 加 position（pattern 命中恰好 1 处），**同时**给数字套上 `data-kb-pos="Pxx"` 标记（见 `conventions.md` §5.1.4），再 `render` 更新 SKILL/AGENTS/conventions 的 COUNTS 表，最后 `check`。
@@ -190,8 +214,9 @@ agent_created: true
 - **章节导航页不枚举单题 ID**：`java-architect-interview/index.html` 只列章节卡片与统计，不含 `Cxx.xx`/`Sxx.xx` 条目——校验时"落位=False"属预期。
 - **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家级/架构级/高级开发），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
 - **overview 新卡落位排序（2026-09-13 硬约束）**：P0→P2 → 专家→架构→高级 → 子组内 **C→E→S** → **题号升序**。详见 `conventions.md` §5.1.1。`validate_kb.py` 校验子组内 `ov-num` 单调；曾因「插在同 priority 某 E 卡后」导致 E10 跑到 E09 前。三类占比见 §5.1.2（**不要求各桶均分**，按内容定级）。
-- **全站分组/页头页尾计数（2026-09-13 全站固化）**：见 `conventions.md` §5.1.3。高频坑：① 场景卡插在 `</section>` 外导致 `group-count` 表面正确、结构孤儿；② overview `ov-nav-cnt`/组 h2 与 `ov-stat` 脱节；③ mind `card-foot`/mermaid「章节·原理·场景」未随并入清单更新。`validate_kb` 3c + `sync_counts` P47–P52 覆盖导航/组标题；改后必跑 `validate_kb.py`。
+- **全站分组/页头页尾计数（2026-09-13 全站固化）**：见 `conventions.md` §5.1.3。高频坑：① 场景卡插在 `</section>` 外导致 `group-count` 表面正确、结构孤儿；② overview `ov-nav-cnt`/组 h2 与 `ov-stat` 脱节；③ mind `card-foot`/mermaid「章节·原理·场景」未随并入清单更新；④ overview 难度子组未拆 C/E/S `ov-type` 或 `ov-type-count` 漂移。`validate_kb` 3b2/3c + `sync_counts` P47–P62 覆盖导航/组标题/聚合统计；改后必跑 `validate_kb.py`。
 - **计数点标记（2026-09-13）**：见 `conventions.md` §5.1.4。新增/移动计数数字时必须带 `data-kb-pos` 或 `data-kb-count-local`；禁止留下裸数字权威位。`tmp/tag_kb_counts.py` 可幂等补标。
+- **overview 类型三级计数（2026-09-13）**：每个难度子组内须有 `ov-type`（篇章/核心原理/场景题）分块；禁止只挂一个「篇章」标题却混入 E/S。`ov-type-count` 必须=块内题数。见 `conventions.md` §5.1.3/§5.1.4；`validate_kb` 3b2。
 - **overview `ov-stat-num` 共 11 项全要改**：总量/方法论/P0/P1/P2/专家级/架构级/高级开发/章节题/核心原理/场景题（顺序见 `ov_stat_order`）。最易漏的是「章节题」（篇章数）与「方法论」（紧随总量），漏改会导致 overview 与根 index、章节 index 的计数不一致。另须同步组标题/`ov-nav-cnt`/页头副标题「全站 N 道（篇章+原理+场景）」。
 - **根 index 合计 ≠ 题数**：合计 = 题数 + 方法论 + 工程化（取值见下方 COUNTS 块的「全站合计」）；加 C/E/S 题时题数与合计各 +1，加 M/G 卡时只动方法论/工程化与合计。
 - **mind 导图页数 18 与题量无关**（mind-01~15 + core + engineering + security）；`idx-meta` 五格含方法论/工程化卡数与 `N+N+N`；改题同步对应 `card-foot`。

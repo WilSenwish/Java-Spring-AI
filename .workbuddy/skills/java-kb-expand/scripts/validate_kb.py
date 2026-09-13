@@ -7,12 +7,13 @@ java-kb-expand · 全量校验脚本（通用版）
 然后运行：python3 validate_kb.py
 
 校验项：
-  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P27–P52 等散文位，防页头「本页 N 道」漂移）
+  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P76，防页头「本页 N 道」漂移）
   0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×11）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（11 项：总量/优先级/难度/方法论/类型）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
+  3b2) overview 类型三级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题），`ov-type-count`=块内 ov-item 且前缀一致
   3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item；mind card-foot=篇章C/summary E·S
   4) 根 index / 章节 index 统计数字与 overview 一致
   5) 新卡双编码一致（data-priority 属性 + 可见 priority-pX 徽标）
@@ -76,7 +77,7 @@ def all_mind_files():
             if os.path.basename(p) != "index.html"]
 
 def run_sync_counts_check():
-    """散文计数位（P27–P52 等）与全部 positions 必须与 kb-counts.json 一致。
+    """散文计数位（P01–P76）与全部 positions 必须与 kb-counts.json 一致。
     改数入口：sync_counts.py bump/apply；禁止只改 HTML 散文数字。
     """
     script = os.path.join(os.path.dirname(__file__), "sync_counts.py")
@@ -94,7 +95,7 @@ def run_sync_counts_check():
     # 抽出 FAIL 行；无 FAIL 且 exit 0 则 PASS
     fails = [ln for ln in out.splitlines() if ln.startswith("FAIL ")]
     if r.returncode == 0 and not fails:
-        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P27–P52 等散文/导航位）")
+        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P01–P76）")
     else:
         for ln in fails[:12]:
             print(ln)
@@ -224,6 +225,54 @@ def main():
           f"[overview归属] item priority/difficulty 与所在组不一致数={_ov_bucket_fail}（须 0）")
     check(_ov_title_fail == 0,
           f"[overview子组题数] 标题 N ≠ 实际 ov-item 的子组数={_ov_title_fail}（须 0）")
+
+    # 3b2) overview 类型三级（篇章/核心原理/场景题）ov-type-count = 该块 ov-item 数
+    _ov_type_fail = 0
+    _ov_type_missing = 0
+    _type_pref = {"篇章": "C", "核心原理": "E", "场景题": "S"}
+    for _gm in re.finditer(
+        r'<section class="ov-group"[^>]*id="(group-p\d)"[^>]*>(.*?)</section>',
+        texts["overview"],
+        re.S,
+    ):
+        _gid, _gbody = _gm.group(1), _gm.group(2)
+        for _sm in re.split(r'(?=<h3 class="ov-subgroup-title">)', _gbody):
+            if not re.match(r'<h3 class="ov-subgroup-title">', _sm or ""):
+                continue
+            _type_blocks = list(
+                re.finditer(r'<div class="ov-type">(.*?)</div>', _sm, re.S)
+            )
+            if not _type_blocks:
+                _ov_type_missing += 1
+                continue
+            for _tb in _type_blocks:
+                _tbody = _tb.group(1)
+                _thm = re.search(
+                    rf'<h4 class="ov-type-title">(篇章|核心原理|场景题)'
+                    rf'<span class="ov-type-count">\s*{_KB_NUM}\s*题</span></h4>',
+                    _tbody,
+                )
+                if not _thm:
+                    _ov_type_fail += 1
+                    continue
+                _tlabel, _tn = _thm.group(1), int(_thm.group(2))
+                _ids = re.findall(r'class="ov-num">([^<]+)<', _tbody)
+                _pref = _type_pref[_tlabel]
+                if len(_ids) != _tn or any(not i.startswith(_pref) for i in _ids):
+                    _ov_type_fail += 1
+                    if _ov_type_fail <= 6:
+                        print(
+                            f"FAIL [overview类型] {_gid}: {_tlabel} title={_tn} "
+                            f"actual={len(_ids)} ids={_ids[:3]}"
+                        )
+    check(
+        _ov_type_missing == 0,
+        f"[overview类型结构] 缺少 ov-type 分块的子组数={_ov_type_missing}（须 0）",
+    )
+    check(
+        _ov_type_fail == 0,
+        f"[overview类型计数] ov-type-count 不一致数={_ov_type_fail}（须 0）",
+    )
 
     # 3c) 全站分组/页头页尾结构性计数（防孤儿卡与徽标漂移）
     # --- 场景页：S 卡必须在对应 group-N section 内；group-count = 卡数 ---

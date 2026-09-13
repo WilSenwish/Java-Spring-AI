@@ -89,12 +89,12 @@
 
 #### 5.1.3 全站聚合/分组/页头页尾计数清单（2026-09-13 全站核查固化）
 
-改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P07/P19–P22/P27–P52** + `validate_kb` 3b/3c）：
+改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P01–P76** + `validate_kb` 3b/3b2/3c）：
 
 | 层级 | 位置 | 规则 |
 |---|---|---|
 | SSOT | `kb-counts.json` | 唯一写源；`bump`/`apply`/`check` |
-| overview | `ov-stat-num`×11、顶栏 `ov-nav-cnt`、组 `h2 · N 题`、子组 `h3 · N 题`、页头副标题、页脚数据来源 | 与 P0/P1/P2/总量/类型一致；子组 N=该组 ov-item 数 |
+| overview | `ov-stat-num`×11、顶栏 `ov-nav-cnt`、组 `h2 · N 题`、子组 `h3 · N 题`、**类型三级 `ov-type-count`（篇章/核心原理/场景题）**、页头副标题、页脚数据来源 | 与 P0/P1/P2/总量/类型一致；子组 N=该组 ov-item 数；**每个难度子组必须拆成 C/E/S 三个（或有则建）`ov-type` 块，计数=块内题数** |
 | 根 index | `stat-number`、`dir-count`、`dir-group-count`、overview tagline | `dir-*` 必须等于紧随 `q-list` 的 `q-item` 数 |
 | 章节 index | `stat-number`、篇章 `card-footer N 题`、散文总量 | footer N=该章 C 卡数 |
 | 核心原理页 | title/h1/meta「N 题」 | = basics；TOC 各组 li 数=该组 E 卡 |
@@ -113,7 +113,7 @@
 | SSOT（`kb-counts.json` → `positions` P01–P52） | `<span class="kb-count" data-kb-count="{key}" data-kb-pos="Pxx">N</span>` | HTML 正文 / docs `*.md` 内嵌 HTML |
 | SSOT · title 特例 | `<title class="kb-count" data-kb-count="{key}" data-kb-pos="Pxx">…N…</title>` | **禁止**在 `<title>` 内嵌套 span（当前仅 P31） |
 | SSOT · ov_series | 同上 span，另加 `data-kb-ov-i="0..10"` | P07 的 11 个 `ov-stat-num`（顺序=`ov_stat_order`） |
-| 结构位（非 SSOT） | `<span class="kb-count kb-count-local" data-kb-count-local="{kind}">N</span>` | `dir-count` / `dir-group` / `group-count` / `ov-subgroup` / `chap-footer` / mind `card-foot` 等 |
+| 结构位（非 SSOT） | `<span class="kb-count kb-count-local" data-kb-count-local="{kind}">N</span>` | `dir-count` / `dir-group` / `group-count` / `ov-subgroup` / **`ov-type`** / `chap-footer` / mind `card-foot` / `site-meta` 等 |
 
 约定：
 
@@ -122,6 +122,7 @@
 3. **新增结构位**：写入 `data-kb-count-local`；`validate_kb.py` 对场景 `group-count`、根 `dir-group` 做抽检。
 4. 打标脚本（可复跑、幂等）：`java-architect-interview/tmp/tag_kb_counts.py`。
 5. `kb-counts.json` 的 `mark_note` 字段与本小节同义；`validate_kb` 第 0b 步校验每个 Pxx 的 `data-kb-pos` 出现次数。
+6. **overview `ov-type`（2026-09-13 补强）**：难度子组内不得把 E/S 混进「篇章」一块；须按 C→E→S 分 `<div class="ov-type">`，`<span class="ov-type-count">` 内数字带 `data-kb-count-local="ov-type"`，且等于该块 `ov-item` 数。`validate_kb` 3b2 门禁。
 
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
 - 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化，如 365+91+24=480）、全站 N 题。
@@ -150,7 +151,7 @@
 ### 5.5 场景 / 核心原理页分组计数
 - 场景页正文 `span.group-count`、根 index 场景区 `dir-group-count`，均须等于该组 `S##.##` 实际题数（当前：5/6/5/6/5/6/7/8/5/5/6/8）。
 - 核心原理页各组实际题数（当前：4/4/8/8/4/6/10/4/6/6/5/8）；根 index 对应 `dir-group-count` 同步。
-- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（含 P27–P52），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
+- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（**P01–P76**），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
@@ -217,6 +218,30 @@
 | P50 | `java-architect-interview/chapter-overview-priority.html` | overview P0 组标题题数 |
 | P51 | `java-architect-interview/chapter-overview-priority.html` | overview P1 组标题题数 |
 | P52 | `java-architect-interview/chapter-overview-priority.html` | overview P2 组标题题数 |
+| P53 | `index.html` | 根 index 深度 Q&A 统计 |
+| P54 | `index.html` | 根 index 场景题统计 |
+| P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A 统计 |
+| P56 | `java-architect-interview/index.html` | 章节 index 场景题统计 |
+| P57 | `java-architect-interview-mind/index.html` | mind index 题量表达式篇章 |
+| P58 | `java-architect-interview-mind/index.html` | mind index 题量表达式核心原理 |
+| P59 | `java-architect-interview-mind/index.html` | mind index 题量表达式场景 |
+| P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章题数 |
+| P61 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文篇章题数 |
+| P62 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页副标题卡数 |
+| P63 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 卡数 |
+| P64 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 题数 |
+| P65 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 专家数 |
+| P66 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 架构数 |
+| P67 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 高级数 |
+| P68 | `java-architect-interview/index.html` | 章节 index 场景卡 desc 题数 |
+| P69 | `java-architect-interview/index.html` | 章节 index 核心原理卡 footer 题数 |
+| P70 | `java-architect-interview/index.html` | 章节 index 场景卡 footer 题数 |
+| P71 | `java-architect-interview-mind/index.html` | mind index 方法论卡 footer 卡数 |
+| P72 | `java-architect-interview-mind/index.html` | mind index 工程化卡 footer 卡数 |
+| P73 | `java-architect-interview-mind/index.html` | mind index 工程化卡 desc 卡数 |
+| P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
+| P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
+| P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
