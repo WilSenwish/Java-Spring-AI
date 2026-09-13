@@ -123,6 +123,15 @@
 | P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
 | P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
 | P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
+| P77 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页副标题卡数 |
+| P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
+| P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
+| P80 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注方法论卡数 |
+| P81 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注全站合计 |
+| P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 不计入题目总量 |
+| P83 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页 Mermaid 旁注卡数 |
+| P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
+| P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

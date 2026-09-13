@@ -7,7 +7,7 @@ java-kb-expand · 全量校验脚本（通用版）
 然后运行：python3 validate_kb.py
 
 校验项：
-  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P76，防页头「本页 N 道」漂移）
+  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P85，防页头「本页 N 道」漂移）
   0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×11）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   2) 无 </spa(?!n>) 标签截断残留
@@ -77,7 +77,7 @@ def all_mind_files():
             if os.path.basename(p) != "index.html"]
 
 def run_sync_counts_check():
-    """散文计数位（P01–P76）与全部 positions 必须与 kb-counts.json 一致。
+    """散文计数位（P01–P85）与全部 positions 必须与 kb-counts.json 一致。
     改数入口：sync_counts.py bump/apply；禁止只改 HTML 散文数字。
     """
     script = os.path.join(os.path.dirname(__file__), "sync_counts.py")
@@ -95,7 +95,7 @@ def run_sync_counts_check():
     # 抽出 FAIL 行；无 FAIL 且 exit 0 则 PASS
     fails = [ln for ln in out.splitlines() if ln.startswith("FAIL ")]
     if r.returncode == 0 and not fails:
-        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P01–P76）")
+        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P01–P85）")
     else:
         for ln in fails[:12]:
             print(ln)

@@ -123,6 +123,15 @@ agent_created: true
 | P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
 | P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
 | P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
+| P77 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页副标题卡数 |
+| P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
+| P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
+| P80 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注方法论卡数 |
+| P81 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注全站合计 |
+| P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 不计入题目总量 |
+| P83 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页 Mermaid 旁注卡数 |
+| P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
+| P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -169,9 +178,9 @@ agent_created: true
 4. 环境 Python：`/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3`。
 
 ### Step 5 · 全量校验 + 记忆
-1. 跑 `scripts/validate_kb.py`（会**强制**子进程跑 `sync_counts.py check`）：三权威源一致、**散文计数位 P01–P76 与真源一致**、各文件 `data-page-node-id` 全 0、无 `</spa` 截断、新卡双编码与落位。
+1. 跑 `scripts/validate_kb.py`（会**强制**子进程跑 `sync_counts.py check`）：三权威源一致、**散文计数位 P01–P85 与真源一致**、各文件 `data-page-node-id` 全 0、无 `</spa` 截断、新卡双编码与落位。
 2. **散文计数硬约束（2026-09-13 固化，禁止遗漏）**：
-   - 页头/来源段里的「本页 N 道 / 234 道深度问答 / 72 道场景…」属于**散文位**，已登记为 `kb-counts.json` → `positions` 的 **P01–P76**（及后续扩展）。
+   - 页头/来源段里的「本页 N 道 / 234 道深度问答 / 72 道场景…」属于**散文位**，已登记为 `kb-counts.json` → `positions` 的 **P01–P85**（及后续扩展）。
    - **改题数必须**走 `sync_counts.py bump …`（或 bump 后 `apply`），禁止只改 HTML 散文数字。
    - `validate_kb.py` 第 0 步即 `sync_counts check`；任一散文位漂移 → **整次校验 FAIL**。
    - 新增散文数字时：先在 `kb-counts.json` 加 position（pattern 命中恰好 1 处），**同时**给数字套上 `data-kb-pos="Pxx"` 标记（见 `conventions.md` §5.1.4），再 `render` 更新 SKILL/AGENTS/conventions 的 COUNTS 表，最后 `check`。

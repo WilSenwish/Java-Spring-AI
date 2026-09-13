@@ -89,7 +89,7 @@
 
 #### 5.1.3 全站聚合/分组/页头页尾计数清单（2026-09-13 全站核查固化）
 
-改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P01–P76** + `validate_kb` 3b/3b2/3c）：
+改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P01–P85** + `validate_kb` 3b/3b2/3c）：
 
 | 层级 | 位置 | 规则 |
 |---|---|---|
@@ -123,6 +123,8 @@
 4. 打标脚本（可复跑、幂等）：`java-architect-interview/tmp/tag_kb_counts.py`。
 5. `kb-counts.json` 的 `mark_note` 字段与本小节同义；`validate_kb` 第 0b 步校验每个 Pxx 的 `data-kb-pos` 出现次数。
 6. **overview `ov-type`（2026-09-13 补强）**：难度子组内不得把 E/S 混进「篇章」一块；须按 C→E→S 分 `<div class="ov-type">`，`<span class="ov-type-count">` 内数字带 `data-kb-count-local="ov-type"`，且等于该块 `ov-item` 数。`validate_kb` 3b2 门禁。
+7. **Mermaid 节点例外**：流程图节点标签内**禁止**嵌套 `kb-count` span（会破坏渲染）；节点旁用 caption/`map-note` 挂同值锚点，节点内数字保持纯文本并与真源一致。
+8. **方法论统计表**：`chapter-core-methodology.html` 开篇 `compare-table`「卡数」列用 `data-kb-count-local="meth-table"`；表尾合计用 `data-kb-pos`（methodology）；页头「合计 N」同步登记。
 
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
 - 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化，如 365+91+24=480）、全站 N 题。
@@ -151,7 +153,7 @@
 ### 5.5 场景 / 核心原理页分组计数
 - 场景页正文 `span.group-count`、根 index 场景区 `dir-group-count`，均须等于该组 `S##.##` 实际题数（当前：5/6/5/6/5/6/7/8/5/5/6/8）。
 - 核心原理页各组实际题数（当前：4/4/8/8/4/6/10/4/6/6/5/8）；根 index 对应 `dir-group-count` 同步。
-- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（**P01–P76**），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
+- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（**P01–P85**），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
@@ -242,6 +244,15 @@
 | P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
 | P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
 | P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
+| P77 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页副标题卡数 |
+| P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
+| P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
+| P80 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注方法论卡数 |
+| P81 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注全站合计 |
+| P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 不计入题目总量 |
+| P83 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页 Mermaid 旁注卡数 |
+| P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
+| P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
