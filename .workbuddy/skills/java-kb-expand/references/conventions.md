@@ -68,8 +68,60 @@
   9. 篇章题数
   10. 核心原理题数
   11. 场景题数
-- 9 子组标题：`<h3 class="ov-subgroup-title">专家级 · 10 题</h3>` 格式，按 **优先级×难度** 排列（P0/P1/P2 各含 专家级/架构级/高级开发），求和须各自等于 P0/P1/P2 与难度三级。
-- 每个 ov-item：`<div class="ov-item" …><span class="priority priority-pX">…</span><span class="difficulty difficulty-architect">…</span><span class="ov-src">第X篇</span>…</div>`，与章节页卡片一一对应。
+- 9 子组标题：`<h3 class="ov-subgroup-title">专家级 · 10 题</h3>` 格式，按 **优先级×难度** 排列（P0/P1/P2 各含 专家级/架构级/高级开发），求和须各自等于 P0/P1/P2 与难度三级；**标题内题数 = 该子组 `ov-item` 实际个数**（易漏）。
+- 每个 ov-item：`<a class="ov-item" href="…#ID">…<span class="ov-num">ID</span>…`，与章节页卡片一一对应（仅 C/E/S；M/G 不进 overview）。
+
+#### 5.1.1 新卡插入排序（硬约束，2026-09-13 固化）
+
+页面声明顺序：**P0 → P2**，组内 **专家级 → 架构级 → 高级开发**，子组内再 **篇章(C) → 核心原理(E) → 场景(S)**，同类内 **题号升序**。
+
+插入算法（禁止「随便插在同优先级某卡后面」）：
+
+1. 定位目标桶：`#group-p{0|1|2}` → 对应难度的 `<h3 class="ov-subgroup-title">`。
+2. 在该子组已有 `ov-item` 中，按键 `(类型序 C=0,E=1,S=2, 题号字符串)` **升序**找到第一个「大于新卡」的项，插到其**前面**；若皆更小则插到该子组末尾（场景块之后、下一 `h3` / 子组结束之前）。
+3. 同步：子组标题 `· N 题`、组标题 `必考核心|高频重点|进阶补充 · N 题`、顶栏 `ov-nav-cnt`、`ov-stat-num`、页头副标题「全站 N 道…」。
+4. **禁止**仅按「同字母前缀相邻」插入（曾把 `E10.06` 插到 `E09.01` 前、把 `E06.06` 插到 `E09.03` 后，破坏题号升序）。
+5. `validate_kb.py` 会校验：每个子组内 `ov-num` 序列对上述键单调不减；属性 `priority`/`difficulty` 必须与所在 section/subgroup 一致。
+
+#### 5.1.2 三类占比（观察口径，非强制均分）
+
+全局 C:E:S ≈ 篇章:原理:场景（当前 234:73:72）。**各 P×难度桶不要求三类均分**——P1 专家级几乎全是篇章、P2 场景占比偏高属现状。新增时优先按知识点真实优先级/难度归桶，勿为「凑均衡」改级；若某桶长期缺失 E 或 S，可在扩库时优先补该桶缺口，但仍服从内容定级。
+
+#### 5.1.3 全站聚合/分组/页头页尾计数清单（2026-09-13 全站核查固化）
+
+改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P07/P19–P22/P27–P52** + `validate_kb` 3b/3c）：
+
+| 层级 | 位置 | 规则 |
+|---|---|---|
+| SSOT | `kb-counts.json` | 唯一写源；`bump`/`apply`/`check` |
+| overview | `ov-stat-num`×11、顶栏 `ov-nav-cnt`、组 `h2 · N 题`、子组 `h3 · N 题`、页头副标题、页脚数据来源 | 与 P0/P1/P2/总量/类型一致；子组 N=该组 ov-item 数 |
+| 根 index | `stat-number`、`dir-count`、`dir-group-count`、overview tagline | `dir-*` 必须等于紧随 `q-list` 的 `q-item` 数 |
+| 章节 index | `stat-number`、篇章 `card-footer N 题`、散文总量 | footer N=该章 C 卡数 |
+| 核心原理页 | title/h1/meta「N 题」 | = basics；TOC 各组 li 数=该组 E 卡 |
+| 场景页 | 「本页 N 道」、各组 `group-count` | **所有 `Sxx` 卡必须在对应 `#group-N` 的 `<section>` 内**（禁止卡在 `</section>` 与下一组之间）；`group-count`=组内卡数 |
+| 导图 index | `N+N+N`、`card-foot` 章节/原理/场景 | 章节=C 卡；原理/场景=`<summary>` 内唯一 E/S 题号数 |
+| 导图页 | mermaid 根节点「章节·原理·场景」 | 与上同口径；改并入清单后同步 |
+
+审计脚本（只读）：`java-architect-interview/tmp/full_site_count_audit.py`。
+
+#### 5.1.4 计数点特殊标记（2026-09-13 固化）
+
+**所有**权威计数位与结构计数位必须带可识别标记，便于人工扫视与机器校验；样式在 `java-architect-interview/assets/design-system.css`（`.kb-count` 虚线下划线，不改变字重）。
+
+| 类型 | 标记 | 适用范围 |
+|---|---|---|
+| SSOT（`kb-counts.json` → `positions` P01–P52） | `<span class="kb-count" data-kb-count="{key}" data-kb-pos="Pxx">N</span>` | HTML 正文 / docs `*.md` 内嵌 HTML |
+| SSOT · title 特例 | `<title class="kb-count" data-kb-count="{key}" data-kb-pos="Pxx">…N…</title>` | **禁止**在 `<title>` 内嵌套 span（当前仅 P31） |
+| SSOT · ov_series | 同上 span，另加 `data-kb-ov-i="0..10"` | P07 的 11 个 `ov-stat-num`（顺序=`ov_stat_order`） |
+| 结构位（非 SSOT） | `<span class="kb-count kb-count-local" data-kb-count-local="{kind}">N</span>` | `dir-count` / `dir-group` / `group-count` / `ov-subgroup` / `chap-footer` / mind `card-foot` 等 |
+
+约定：
+
+1. **改数仍只走** `sync_counts.py bump/apply`；`positions[].pattern` 已锚定 `data-kb-pos="Pxx"`，勿手改数字、勿拆标记。
+2. **新增 SSOT 位**：落数字的同时写入 `data-kb-pos`（或 title 属性），再登记 `kb-counts.json`，`render` + `check`。
+3. **新增结构位**：写入 `data-kb-count-local`；`validate_kb.py` 对场景 `group-count`、根 `dir-group` 做抽检。
+4. 打标脚本（可复跑、幂等）：`java-architect-interview/tmp/tag_kb_counts.py`。
+5. `kb-counts.json` 的 `mark_note` 字段与本小节同义；`validate_kb` 第 0b 步校验每个 Pxx 的 `data-kb-pos` 出现次数。
 
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
 - 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化，如 365+91+24=480）、全站 N 题。
@@ -98,7 +150,7 @@
 ### 5.5 场景 / 核心原理页分组计数
 - 场景页正文 `span.group-count`、根 index 场景区 `dir-group-count`，均须等于该组 `S##.##` 实际题数（当前：5/6/5/6/5/6/7/8/5/5/6/8）。
 - 核心原理页各组实际题数（当前：4/4/8/8/4/6/10/4/6/6/5/8）；根 index 对应 `dir-group-count` 同步。
-- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题」等必须登记为 `kb-counts.json` positions（含 P27–P42），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
+- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（含 P27–P52），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
@@ -155,6 +207,16 @@
 | P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
 | P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
 | P42 | `index.html` | 根 index overview 区 tagline |
+| P43 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
+| P44 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题篇章数 |
+| P45 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题核心原理数 |
+| P46 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题场景题数 |
+| P47 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P0 题数 |
+| P48 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P1 题数 |
+| P49 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P2 题数 |
+| P50 | `java-architect-interview/chapter-overview-priority.html` | overview P0 组标题题数 |
+| P51 | `java-architect-interview/chapter-overview-priority.html` | overview P1 组标题题数 |
+| P52 | `java-architect-interview/chapter-overview-priority.html` | overview P2 组标题题数 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

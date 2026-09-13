@@ -28,6 +28,7 @@
 **真源**：`java-architect-interview/docs/kb-counts.json`（唯一写源，勿在别处手改数字）。
 **改数唯一入口**：`python3 .workbuddy/skills/java-kb-expand/scripts/sync_counts.py bump 键=增量`
 （例：`bump methodology=+1 total=+1`；随后自动写回全部计数位并复核。只读核对用 `check`。）
+**计数点标记**：每个 SSOT 位须带 `data-kb-pos="Pxx"`（正文用 `.kb-count` span；`<title>` 用属性）；结构位用 `data-kb-count-local`。细则见 `conventions.md` §5.1.4。
 
 统计口径（易错）：题目统计**只算「篇章 + 核心原理 + 场景」三页**；方法论页、工程化要点页、概览页、安全卡页**不计入**。
 全文件扫描得 480（365+91+24）属正常，勿误判。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
@@ -88,6 +89,16 @@
 | P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
 | P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
 | P42 | `index.html` | 根 index overview 区 tagline |
+| P43 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
+| P44 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题篇章数 |
+| P45 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题核心原理数 |
+| P46 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题场景题数 |
+| P47 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P0 题数 |
+| P48 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P1 题数 |
+| P49 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P2 题数 |
+| P50 | `java-architect-interview/chapter-overview-priority.html` | overview P0 组标题题数 |
+| P51 | `java-architect-interview/chapter-overview-priority.html` | overview P1 组标题题数 |
+| P52 | `java-architect-interview/chapter-overview-priority.html` | overview P2 组标题题数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

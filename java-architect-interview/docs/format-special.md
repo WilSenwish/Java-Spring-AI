@@ -18,7 +18,7 @@
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：核心思维方法论，91 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M12` 共 12 组分层侧边目录。
+- **定位**：核心思维方法论，<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">91</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M12` 共 12 组分层侧边目录。
 - **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -27,7 +27,7 @@
   | `principle` | 原理映射 | 把公理落到工程化手段 |
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
-- **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 91）。
+- **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P17">91</span>）。
 - **优先级**：**部分卡片（39/91）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 52 卡不带；不计入全站题目优先级口径（92/209/58 = 359）。
 - **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签）；携带优先级的卡片另加 `priority-p*` 徽标。
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
@@ -44,7 +44,7 @@
 
   ```
   ov-stats（两行统计；ov-stat-num 顶部 11 项 + 9 子组标题计数 = 全页 20 处；顺序见 `kb-counts.json` → `ov_stat_order`）
-  ├─ ov-stats-row ① 题目总数 / 方法论 91 / P0 / P1 / P2
+  ├─ ov-stats-row ① 题目总数 / 方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P18">91</span> / P0 / P1 / P2
   ├─ ov-stats-row ② 专家级 / 架构级 / 高级开发 / 章节题 / 核心原理 / 场景题
   ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title

@@ -79,7 +79,11 @@ def patch_chapter(t):
 
 # ---------- Step B: overview 新增 ov-item + ov-stat-num ----------
 def patch_overview(t):
-    # TODO: 在对应位置插入 ov-item（NEW_ID 的 <div class="ov-item">…</div>）
+    # 插入位置硬约束（conventions.md §5.1.1）：
+    #   #group-p{N} → 对应难度 subgroup；子组内按 (C=0,E=1,S=2, 题号) 升序插入
+    #   同步：子组 ·N 题、组标题 ·N 题、ov-nav-cnt、ov-stat-num、页头「全站 N 道」
+    # 禁止：插在「同 priority 任意兄弟卡」后（会破坏 E 题号升序 / C→E→S）
+    # TODO: 在正确排序位置插入 ov-item（NEW_ID 的 <a class="ov-item">…</a>）
     # ov-stat-num 用脚本精确替换（Edit 对此大数字可能竞态未落盘）
     ov = re.findall(r'ov-stat-num">(\d+)</div>', t)
     ov = [int(x) for x in ov[:11]]

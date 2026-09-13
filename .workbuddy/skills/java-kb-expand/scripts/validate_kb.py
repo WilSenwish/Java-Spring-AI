@@ -7,10 +7,13 @@ java-kb-expand · 全量校验脚本（通用版）
 然后运行：python3 validate_kb.py
 
 校验项：
-  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P27–P42 等散文位，防页头「本页 N 道」漂移）
+  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P27–P52 等散文位，防页头「本页 N 道」漂移）
+  0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×11）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（11 项：总量/优先级/难度/方法论/类型）
+  3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
+  3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item；mind card-foot=篇章C/summary E·S
   4) 根 index / 章节 index 统计数字与 overview 一致
   5) 新卡双编码一致（data-priority 属性 + 可见 priority-pX 徽标）
   6) 新卡在 overview / 根 index / 宿主章节页 / 对应 mind 页落位
@@ -73,7 +76,7 @@ def all_mind_files():
             if os.path.basename(p) != "index.html"]
 
 def run_sync_counts_check():
-    """散文计数位（P27–P42 等）与全部 positions 必须与 kb-counts.json 一致。
+    """散文计数位（P27–P52 等）与全部 positions 必须与 kb-counts.json 一致。
     改数入口：sync_counts.py bump/apply；禁止只改 HTML 散文数字。
     """
     script = os.path.join(os.path.dirname(__file__), "sync_counts.py")
@@ -91,16 +94,52 @@ def run_sync_counts_check():
     # 抽出 FAIL 行；无 FAIL 且 exit 0 则 PASS
     fails = [ln for ln in out.splitlines() if ln.startswith("FAIL ")]
     if r.returncode == 0 and not fails:
-        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P27–P42 散文位）")
+        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P27–P52 等散文/导航位）")
     else:
         for ln in fails[:12]:
             print(ln)
         check(False, f"[散文计数/SSOT] sync_counts.py check 失败 exit={r.returncode} fail行={len(fails)}")
 
 
+def run_kb_count_markup_check():
+    """每个 SSOT position 必须带 data-kb-pos 标记；结构计数建议带 data-kb-count-local。
+    标记约定见 conventions.md §5.1.4。
+    """
+    cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
+    miss = []
+    for pos in cfg["positions"]:
+        m = re.match(r"(P\d+)", pos["id"])
+        pid = m.group(1) if m else pos["id"]
+        path = os.path.join(BASE, pos["file"])
+        if not os.path.isfile(path):
+            miss.append(f"{pid} 文件缺失 {pos['file']}")
+            continue
+        t = read(path)
+        n = t.count(f'data-kb-pos="{pid}"')
+        expect = len(cfg["ov_stat_order"]) if pos.get("kind") == "ov_series" else 1
+        if n != expect:
+            miss.append(f"{pid} 期望 data-kb-pos×{expect}，实际 {n} @ {pos['file']}")
+    # 结构位点抽检：场景 group-count / 根 dir-group 须有 local 标记
+    scen = read(os.path.join(BASE, "java-architect-interview/chapter-questions-scenario.html"))
+    gc = len(re.findall(r'class="group-count"', scen))
+    gc_m = scen.count('data-kb-count-local="group-count"')
+    if gc and gc_m < gc:
+        miss.append(f"场景 group-count 标记不足：class×{gc} local×{gc_m}")
+    root = read(os.path.join(BASE, "index.html"))
+    if 'class="dir-group-count">' in root and 'data-kb-count-local="dir-group"' not in root:
+        miss.append("根 index 缺少 dir-group local 标记")
+    if miss:
+        for x in miss[:15]:
+            print("FAIL [kb-count标记]", x)
+        check(False, f"[kb-count标记] {len(miss)} 处缺失/不一致（须 data-kb-pos / data-kb-count-local）")
+    else:
+        check(True, f"[kb-count标记] SSOT positions 均含 data-kb-pos（{len(cfg['positions'])} 位）+ 结构抽检通过")
+
+
 def main():
     # 0) 权威计数位（含散文）——必须先于其他统计断言
     run_sync_counts_check()
+    run_kb_count_markup_check()
 
     # 4 聚合页 + 全部章节 + 全部导图（红线校验覆盖全站）
     texts = {k: read(v) for k, v in AGG_FILES.items()}
@@ -120,43 +159,203 @@ def main():
         check(trunc == 0, f"[截断] {k}: </spa 残留={trunc} (须 0)")
 
     # 3) overview ov-stat-num 顺序（11 项，顺序以 kb-counts.json ov_stat_order 为准）
-    ov = re.findall(r'ov-stat-num">(\d+)</div>', texts["overview"])
-    ov = [int(x) for x in ov[:11]]
+    # 兼容 kb-count 标记：ov-stat-num"><span …>N</span></div>
+    _KB_NUM = r'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
+    ov = [int(x) for x in re.findall(
+        rf'ov-stat-num"[^>]*>\s*{_KB_NUM}\s*</div>', texts["overview"]
+    )[:11]]
     expect_order = [_cfg["counts"][k] for k in _cfg["ov_stat_order"]]
     check(ov == expect_order,
           f"[overview] ov-stat-num={ov} 期望={expect_order}")
 
-    # 4) 根 index 统计（数字在前、label 在后：<div class="stat-number">N</div><div class="stat-label">…）
+    # 3b) overview 排序硬约束：P0→P2 已由 section 顺序保证；
+    #     子组内必须 C→E→S + 题号升序；属性与所在组一致；标题计数=实际
+    def _ov_sort_key(nid: str):
+        return ({"C": 0, "E": 1, "S": 2}.get(nid[:1], 9), nid)
+
+    _diff_from_title = {"专家级": "expert", "架构级": "architect", "高级开发": "senior"}
+    _ov_sort_fail = 0
+    _ov_bucket_fail = 0
+    _ov_title_fail = 0
+    for _gm in re.finditer(
+        r'<section class="ov-group" id="(group-p[012])">(.*?)</section>',
+        texts["overview"],
+        re.S,
+    ):
+        _gid, _gbody = _gm.group(1), _gm.group(2)
+        _expect_prio = _gid.replace("group-", "")  # p0/p1/p2
+        for _sm in re.split(r'(?=<h3 class="ov-subgroup-title">)', _gbody):
+            _tm = re.match(
+                rf'<h3 class="ov-subgroup-title">(专家级|架构级|高级开发)\s*·\s*{_KB_NUM}\s*题</h3>',
+                _sm,
+            )
+            if not _tm:
+                continue
+            _label, _title_n = _tm.group(1), int(_tm.group(2))
+            _expect_diff = _diff_from_title[_label]
+            _ids = []
+            for _im in re.finditer(
+                r'<a class="ov-item"[^>]*>(.*?)</a>', _sm, re.S
+            ):
+                _inner = _im.group(1)
+                _nm = re.search(r'class="ov-num">([^<]+)<', _inner)
+                if not _nm:
+                    continue
+                _nid = _nm.group(1).strip()
+                _ids.append(_nid)
+                _pm = re.search(r'priority-(p\d)', _inner)
+                _dm = re.search(r'difficulty-(\w+)', _inner)
+                if _pm and _pm.group(1) != _expect_prio:
+                    _ov_bucket_fail += 1
+                if _dm and _dm.group(1) != _expect_diff:
+                    _ov_bucket_fail += 1
+            if len(_ids) != _title_n:
+                _ov_title_fail += 1
+            for _i in range(1, len(_ids)):
+                if _ov_sort_key(_ids[_i]) < _ov_sort_key(_ids[_i - 1]):
+                    _ov_sort_fail += 1
+                    if _ov_sort_fail <= 5:
+                        print(
+                            f"FAIL [overview排序] {_gid}/{_label}: {_ids[_i-1]} → {_ids[_i]}"
+                        )
+    check(_ov_sort_fail == 0,
+          f"[overview排序] 子组内 C→E→S+题号升序 违规数={_ov_sort_fail}（须 0）")
+    check(_ov_bucket_fail == 0,
+          f"[overview归属] item priority/difficulty 与所在组不一致数={_ov_bucket_fail}（须 0）")
+    check(_ov_title_fail == 0,
+          f"[overview子组题数] 标题 N ≠ 实际 ov-item 的子组数={_ov_title_fail}（须 0）")
+
+    # 3c) 全站分组/页头页尾结构性计数（防孤儿卡与徽标漂移）
+    # --- 场景页：S 卡必须在对应 group-N section 内；group-count = 卡数 ---
+    _sc_path = f"{CHAPTER_DIR}/chapter-questions-scenario.html"
+    _sc = read(_sc_path)
+    _sc_orphan = 0
+    for _gap in re.findall(
+        r'</section>\s*(.*?)\s*<section class="scenario-group"', _sc, re.S
+    ):
+        _sc_orphan += len(
+            re.findall(r'<div class="qa-card[^"]*"[^>]*id="S\d+\.\d+"', _gap)
+        )
+    check(_sc_orphan == 0, f"[场景结构] section 间隙孤儿 S 卡={_sc_orphan}（须 0）")
+    _sc_gc_fail = 0
+    for _g in range(1, 13):
+        _sm = re.search(
+            rf'<section class="scenario-group"[^>]*id="group-{_g}"[^>]*>(.*?)</section>',
+            _sc,
+            re.S,
+        )
+        if not _sm:
+            _sc_gc_fail += 1
+            continue
+        _body = _sm.group(1)
+        _cards = set(
+            re.findall(r'<div class="qa-card[^"]*"[^>]*id="(S\d+\.\d+)"', _body)
+        )
+        _gcm = re.search(rf'class="group-count"[^>]*>\s*{_KB_NUM}', _body)
+        if not _gcm or int(_gcm.group(1)) != len(_cards):
+            _sc_gc_fail += 1
+    check(_sc_gc_fail == 0, f"[场景group-count] 不一致组数={_sc_gc_fail}（须 0）")
+
+    # --- 根 index：dir-group-count / dir-count(题) = 后续 q-item 数 ---
+    _dg_fail = 0
+    for _dm in re.finditer(
+        rf'<div class="dir-group">\s*<div class="dir-group-title">.*?dir-group-count"[^>]*>\s*{_KB_NUM}\s*题</span></div>\s*<ul class="q-list">(.*?)</ul>',
+        texts["root"],
+        re.S,
+    ):
+        if int(_dm.group(1)) != len(re.findall(r'<li class="q-item"', _dm.group(2))):
+            _dg_fail += 1
+    check(_dg_fail == 0, f"[根index dir-group] 计数≠列表 组数={_dg_fail}（须 0）")
+    _ds_fail = 0
+    for _sm in re.finditer(r'<section class="dir-section">(.*?)</section>', texts["root"], re.S):
+        _body = _sm.group(1)
+        _hm = re.search(
+            rf'class="dir-count"[^>]*>\s*{_KB_NUM}\s*题</span>', _body
+        )
+        if not _hm:
+            continue
+        if int(_hm.group(1)) != len(re.findall(r'<li class="q-item"', _body)):
+            _ds_fail += 1
+    check(_ds_fail == 0, f"[根index dir-count] 计数≠列表 段数={_ds_fail}（须 0）")
+
+    # --- mind index card-foot ↔ 篇章 C 数 / 导图 summary 内 E·S 数 ---
+    _mf_fail = 0
+    for _mp in mind_files:
+        _bn = os.path.basename(_mp)
+        _mm = re.match(r"mind-(\d{2})-", _bn)
+        if not _mm:
+            continue
+        _num = _mm.group(1)
+        _mt = read(_mp)
+        _e = set()
+        _s = set()
+        for _sum in re.findall(r"<summary>([^<]*)</summary>", _mt):
+            _e.update(re.findall(r"\bE\d{2}\.\d{2}\b", _sum))
+            _s.update(re.findall(r"\bS\d{2}\.\d{2}\b", _sum))
+        _c_act = len(
+            set(
+                re.findall(
+                    rf'id="(C{_num}\.\d+)"',
+                    read(glob.glob(f"{CHAPTER_DIR}/chapter-{_num}-*.html")[0]),
+                )
+            )
+        )
+        _fm = re.search(
+            rf'href="{re.escape(_bn)}"[^>]*>.*?class="card-foot">(.*?)</div>',
+            texts["mind_idx"],
+            re.S,
+        )
+        if not _fm:
+            _mf_fail += 1
+            continue
+        _foot = _fm.group(1)
+        _cm = re.search(rf"章节\s*{_KB_NUM}", _foot)
+        _em = re.search(rf"原理\s*{_KB_NUM}", _foot)
+        _sm2 = re.search(rf"场景\s*{_KB_NUM}", _foot)
+        if not _cm or int(_cm.group(1)) != _c_act:
+            _mf_fail += 1
+        if _e and (not _em or int(_em.group(1)) != len(_e)):
+            _mf_fail += 1
+        if (not _e) and _em:
+            _mf_fail += 1
+        if _s and (not _sm2 or int(_sm2.group(1)) != len(_s)):
+            _mf_fail += 1
+        if (not _s) and _sm2:
+            _mf_fail += 1
+    check(_mf_fail == 0, f"[mind card-foot] 与篇章/summary 不一致数={_mf_fail}（须 0）")
+
+    # 4) 根 index 统计（数字在前、label 在后；兼容内层 kb-count span）
     def stat(pat, t):
         m = re.search(pat, t)
         return int(m.group(1)) if m else None
-    root_ch = stat(r'(\d+)</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
-    root_sum = stat(r'(\d+)</div>\s*<div class="stat-label">合计', texts["root"])
-    root_all = stat(r'全站\s*(\d+)\s*题', texts["root"])   # 避开 tagline 中 "P0→P2" 的数字干扰
+    _STAT_N = rf'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
+    root_ch = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
+    root_sum = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">合计', texts["root"])
+    root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 避开 tagline 中 "P0→P2" 的数字干扰
     check(root_ch == EXPECT["chapters"], f"[根index] 深度Q&A={root_ch} 期望 {EXPECT['chapters']}")
     check(root_sum == EXPECT["total"] + ROOT_SUM_EXTRA, f"[根index] 合计={root_sum} 期望 {EXPECT['total']+ROOT_SUM_EXTRA}")
     check(root_all == EXPECT["total"], f"[根index] 全站={root_all} 期望 {EXPECT['total']}")
     if ENGINEERING:
-        root_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
+        root_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
         if root_eng is None:
-            root_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化</div>', texts["root"])
+            root_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化</div>', texts["root"])
         check(root_eng == ENGINEERING, f"[根index] 工程化={root_eng} 期望 {ENGINEERING}")
 
     # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站 N 道
-    chap_ch = stat(r'(\d+)</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
-    chap_all = stat(r'全站\s*(\d+)\s*道', texts["chap_idx"])
+    chap_ch = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
+    chap_all = stat(rf'全站\s*{_STAT_N}\s*道', texts["chap_idx"])
     check(chap_ch == EXPECT["chapters"], f"[章节index] 深度Q&A={chap_ch} 期望 {EXPECT['chapters']}")
     check(chap_all == EXPECT["total"], f"[章节index] 全站={chap_all} 期望 {EXPECT['total']}")
     if ENGINEERING:
-        chap_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化要点</div>', texts["chap_idx"])
+        chap_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化要点</div>', texts["chap_idx"])
         if chap_eng is None:
-            chap_eng = stat(r'(\d+)</div>\s*<div class="stat-label">工程化</div>', texts["chap_idx"])
+            chap_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化</div>', texts["chap_idx"])
         check(chap_eng == ENGINEERING, f"[章节index] 工程化={chap_eng} 期望 {ENGINEERING}")
 
     # root methodology label may be 核心方法论
-    root_m = stat(r'(\d+)</div>\s*<div class="stat-label">核心方法论</div>', texts["root"])
+    root_m = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">核心方法论</div>', texts["root"])
     if root_m is None:
-        root_m = stat(r'(\d+)</div>\s*<div class="stat-label">方法论</div>', texts["root"])
+        root_m = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">方法论</div>', texts["root"])
     if ENGINEERING is not None and EXPECT.get("methodology") is not None and root_m is not None:
         check(root_m == EXPECT["methodology"], f"[根index] 方法论={root_m} 期望 {EXPECT['methodology']}")
 
