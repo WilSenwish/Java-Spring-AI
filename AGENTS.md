@@ -28,7 +28,7 @@
 **真源**：`java-architect-interview/docs/kb-counts.json`（唯一写源，勿在别处手改数字）。
 **改数唯一入口**：`python3 .workbuddy/skills/java-kb-expand/scripts/sync_counts.py bump 键=增量`
 （例：`bump methodology=+1 total=+1`；随后自动写回全部计数位并复核。只读核对用 `check`。）
-**计数点标记**：每个 SSOT 位须带 `data-kb-pos="Pxx"`（正文用 `.kb-count` span；`<title>` 用属性）；结构位用 `data-kb-count-local`。细则见 `conventions.md` §5.1.4。
+**计数点标记**：每个 SSOT 位须带 `data-kb-pos="Pxx"`（正文用 `.kb-count` span；`<title>` 用属性）；结构位用 `data-kb-count-local`。**分级 L0–L3/LX** 见 `conventions.md` §5.1.4；`validate_kb` 含 L1 容器扫描。
 
 统计口径（易错）：题目统计**只算「篇章 + 核心原理 + 场景」三页**；方法论页、工程化要点页、概览页、安全卡页**不计入**。
 全文件扫描得 480（365+91+24）属正常，勿误判。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
@@ -132,6 +132,10 @@
 | P83 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页 Mermaid 旁注卡数 |
 | P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
 | P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
+| P86 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc 篇章题数 |
+| P87 | `java-architect-interview/index.html` | 章节 index 工程化卡 desc 卡数 |
+| P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
+| P89 | `java-architect-interview-mind/mind-01-jvm-memory-classloading.html` | mind-01 尾注核心原理总量 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

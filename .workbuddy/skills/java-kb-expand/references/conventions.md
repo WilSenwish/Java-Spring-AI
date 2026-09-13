@@ -89,7 +89,7 @@
 
 #### 5.1.3 全站聚合/分组/页头页尾计数清单（2026-09-13 全站核查固化）
 
-改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P01–P85** + `validate_kb` 3b/3b2/3c）：
+改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P01–P89** + `validate_kb` 3b/3b2/3c）：
 
 | 层级 | 位置 | 规则 |
 |---|---|---|
@@ -104,32 +104,48 @@
 
 审计脚本（只读）：`java-architect-interview/tmp/full_site_count_audit.py`。
 
-#### 5.1.4 计数点特殊标记（2026-09-13 固化）
+#### 5.1.4 计数点分级与标记（2026-09-13 全量固化，禁止再漏）
 
-**所有**权威计数位与结构计数位必须带可识别标记，便于人工扫视与机器校验；样式在 `java-architect-interview/assets/design-system.css`（`.kb-count` 虚线下划线，不改变字重）。
+样式：`assets/design-system.css` → `.kb-count`（虚线下划线）。改数入口仍是 `sync_counts.py bump/apply`。
 
-| 类型 | 标记 | 适用范围 |
-|---|---|---|
-| SSOT（`kb-counts.json` → `positions` P01–P52） | `<span class="kb-count" data-kb-count="{key}" data-kb-pos="Pxx">N</span>` | HTML 正文 / docs `*.md` 内嵌 HTML |
-| SSOT · title 特例 | `<title class="kb-count" data-kb-count="{key}" data-kb-pos="Pxx">…N…</title>` | **禁止**在 `<title>` 内嵌套 span（当前仅 P31） |
-| SSOT · ov_series | 同上 span，另加 `data-kb-ov-i="0..10"` | P07 的 11 个 `ov-stat-num`（顺序=`ov_stat_order`） |
-| 结构位（非 SSOT） | `<span class="kb-count kb-count-local" data-kb-count-local="{kind}">N</span>` | `dir-count` / `dir-group` / `group-count` / `ov-subgroup` / **`ov-type`** / `chap-footer` / mind `card-foot` / `site-meta` 等 |
+##### 分级（先定级再决定是否打标）
 
-约定：
+| 级别 | 名称 | 必须打标？ | 典型载体 |
+|---|---|---|---|
+| **L0** | SSOT 权威位 | **必须** `data-kb-pos="Pxx"` | `kb-counts.json` → `positions`（当前 P01–P89）；`bump` 写回这些位 |
+| **L1** | 聚合 UI | **必须** `kb-count` 或 `kb-count-local` | 页头/副标题/`chapter-meta`、`stat-number`、`ov-*`、`dir-*`/`group-count`、`card-footer`/`card-foot`/`card-desc` 中的题量·卡量、`map-note`/`subtitle`/`tagline`、统计表「卡数」列与合计、mind `idx-meta` |
+| **L2** | 页内结构计数 | **必须** local（或已由 L0 覆盖） | overview `ov-type-count`、场景 `group-count`、方法论 `m-sub-count`/meth-table、mind `chip` 章节·原理·场景 |
+| **L3** | 正文技术数字 | **不打标** | `qa-card` 正文、算法/JDK/HTTP 版本、对比表序号/年份、压测数据、「第 N 章」标题序号 |
+| **LX** | Mermaid 节点 | 节点内**禁止**嵌 span；旁注/caption/`map-note` 挂同值 L0/L1 锚点 | `flowchart` 节点标签里的「N 卡」 |
 
-1. **改数仍只走** `sync_counts.py bump/apply`；`positions[].pattern` 已锚定 `data-kb-pos="Pxx"`，勿手改数字、勿拆标记。
-2. **新增 SSOT 位**：落数字的同时写入 `data-kb-pos`（或 title 属性），再登记 `kb-counts.json`，`render` + `check`。
-3. **新增结构位**：写入 `data-kb-count-local`；`validate_kb.py` 对场景 `group-count`、根 `dir-group` 做抽检。
-4. 打标脚本（可复跑、幂等）：`java-architect-interview/tmp/tag_kb_counts.py`。
-5. `kb-counts.json` 的 `mark_note` 字段与本小节同义；`validate_kb` 第 0b 步校验每个 Pxx 的 `data-kb-pos` 出现次数。
-6. **overview `ov-type`（2026-09-13 补强）**：难度子组内不得把 E/S 混进「篇章」一块；须按 C→E→S 分 `<div class="ov-type">`，`<span class="ov-type-count">` 内数字带 `data-kb-count-local="ov-type"`，且等于该块 `ov-item` 数。`validate_kb` 3b2 门禁。
-7. **Mermaid 节点例外**：流程图节点标签内**禁止**嵌套 `kb-count` span（会破坏渲染）；节点旁用 caption/`map-note` 挂同值锚点，节点内数字保持纯文本并与真源一致。
-8. **方法论统计表**：`chapter-core-methodology.html` 开篇 `compare-table`「卡数」列用 `data-kb-count-local="meth-table"`；表尾合计用 `data-kb-pos`（methodology）；页头「合计 N」同步登记。
+##### 标记写法
+
+| 级别 | 写法 |
+|---|---|
+| L0 | `<span class="kb-count" data-kb-count="{key}" data-kb-pos="Pxx">N</span>`；title 特例：属性打在 `<title class="kb-count" data-kb-pos="Pxx">`（勿嵌套 span，现 P31） |
+| L0 · ov_series | 同上，另加 `data-kb-ov-i="0..10"`（P07，顺序=`ov_stat_order`） |
+| L1/L2 | `<span class="kb-count kb-count-local" data-kb-count-local="{kind}">N</span>`；若该数字已是 L0 键则优先 L0 |
+
+`data-kb-count-local` 常用 kind：`dir-count` / `dir-group` / `group-count` / `ov-subgroup` / `ov-type` / `chap-footer` / `chap-footer-diff` / `chap-footer-meta` / `mind-foot-c|e|s` / `mind-pages` / `meth-table` / `meth-group-count` / `site-meta` / `mind-note-local` 等。
+
+##### 硬约定
+
+1. **新增展示题量/卡量的数字**：先定级 → L0 则加 position + 标记；L1/L2 则至少 local；L3/LX 按上表。
+2. **禁止**在 L1 容器里留下裸「N 题/卡/道/组」。
+3. **改题后**跑 `sync_counts check`（覆盖全部 L0）+ `validate_kb.py`（0b 标记 + **0c L1 容器扫描** + 3b2/3c）。
+4. 全量 L1 审计（只读）：可复用本轮脚本思路；临时报告 `java-architect-interview/tmp/kb_count_full_audit.json`。
+5. overview 类型三级、方法论统计表、Mermaid 旁注：见下补充条。
+
+补充：
+
+- **overview `ov-type`**：每难度子组须拆篇章/核心原理/场景题；`ov-type-count` = 块内题数（`validate_kb` 3b2）。
+- **方法论统计表**：`compare-table`「卡数」列 → `meth-table`；表尾合计 → L0（methodology）。
+- **Mermaid**：节点纯文本；旁注挂锚点。
 
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
-- 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化，如 365+91+24=480）、全站 N 题。
+- 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化）、全站 N 题（均为 L0/L1）。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
-- per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（229）。
+- per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（见 COUNTS）。
 - 方法论目录结构（平级 `dir-group`，禁止嵌套）：序章①~⑤ → **⑥ 生产与领域思维速查（M12，16 卡）** → 一~五主题（M06~M10）→ 附录（M11）。**禁止**把 M12 嵌进「一、高并发」。
 
 ### 5.3 `java-architect-interview/index.html`（章节导航）
@@ -143,17 +159,18 @@
   2. `18` — 思维导图页（mind-01~15 + mind-core + mind-engineering + mind-security）
   3. 方法论卡片数（`methodology`，P08）
   4. 工程化要点卡片数（`engineering`，P26）
-  5. `N+N+N` — Q&A · 原理 · 场景（如 `229+64+72`）
+  5. `N+N+N` — Q&A · 原理 · 场景（取值见 COUNTS / P57–P59）
 - 每张卡片底部 `card-foot` 计数口径（改题后必须同步）：
   - **篇章卡 mind-01~15**：`章节 N` = 对应 `chapter-NN` 的 C 卡数；`原理 N` / `场景 N` = 该 mind 页 `<summary>` 中实际列出的 E / S 卡数（无则省略该 chip）。
   - **方法论卡**：`91 卡 · 12 组`（M01~M12）。
   - **工程化卡**：`24 卡 · 8 组`（G01~G08）。
   - **安全手册卡**：`手册 7 章` + 该 mind 页并入的原理/场景数。
+- `idx-meta` 题量表达式形如 `篇章+原理+场景`（取值见 COUNTS，勿写死旧数）。
 
 ### 5.5 场景 / 核心原理页分组计数
 - 场景页正文 `span.group-count`、根 index 场景区 `dir-group-count`，均须等于该组 `S##.##` 实际题数（当前：5/6/5/6/5/6/7/8/5/5/6/8）。
 - 核心原理页各组实际题数（当前：4/4/8/8/4/6/10/4/6/6/5/8）；根 index 对应 `dir-group-count` 同步。
-- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（**P01–P85**），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
+- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（**P01–P89**），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`，第 0c 步扫描 L1 聚合 UI。
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
@@ -253,6 +270,10 @@
 | P83 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页 Mermaid 旁注卡数 |
 | P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
 | P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
+| P86 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc 篇章题数 |
+| P87 | `java-architect-interview/index.html` | 章节 index 工程化卡 desc 卡数 |
+| P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
+| P89 | `java-architect-interview-mind/mind-01-jvm-memory-classloading.html` | mind-01 尾注核心原理总量 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

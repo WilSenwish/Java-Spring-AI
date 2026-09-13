@@ -7,8 +7,9 @@ java-kb-expand · 全量校验脚本（通用版）
 然后运行：python3 validate_kb.py
 
 校验项：
-  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P85，防页头「本页 N 道」漂移）
+  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P89，防页头「本页 N 道」漂移）
   0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×11）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
+  0c) **L1 聚合 UI**：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等容器内「N题|卡|道|组」不得裸数字（见 conventions §5.1.4）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（11 项：总量/优先级/难度/方法论/类型）
@@ -77,7 +78,7 @@ def all_mind_files():
             if os.path.basename(p) != "index.html"]
 
 def run_sync_counts_check():
-    """散文计数位（P01–P85）与全部 positions 必须与 kb-counts.json 一致。
+    """散文计数位（P01–P89）与全部 positions 必须与 kb-counts.json 一致。
     改数入口：sync_counts.py bump/apply；禁止只改 HTML 散文数字。
     """
     script = os.path.join(os.path.dirname(__file__), "sync_counts.py")
@@ -95,7 +96,7 @@ def run_sync_counts_check():
     # 抽出 FAIL 行；无 FAIL 且 exit 0 则 PASS
     fails = [ln for ln in out.splitlines() if ln.startswith("FAIL ")]
     if r.returncode == 0 and not fails:
-        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P01–P85）")
+        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P01–P89）")
     else:
         for ln in fails[:12]:
             print(ln)
@@ -137,10 +138,80 @@ def run_kb_count_markup_check():
         check(True, f"[kb-count标记] SSOT positions 均含 data-kb-pos（{len(cfg['positions'])} 位）+ 结构抽检通过")
 
 
+def run_l1_container_scan():
+    """L1 聚合 UI 容器内不得出现未标记的「N题|卡|道|组|页|章|张」。
+    口径见 conventions.md §5.1.4；排除「第 N 章」标题序号与 P0/P1 文案。
+    """
+    region_pats = [
+        (r'<div class="card-footer">(.*?)</div>', "card-footer"),
+        (r'<div class="card-foot">(.*?)</div>', "card-foot"),
+        (r'<div class="card-desc">(.*?)</div>', "card-desc"),
+        (r'<p class="chapter-subtitle">(.*?)</p>', "chapter-subtitle"),
+        (r'<div class="chapter-meta">(.*?)</div>', "chapter-meta"),
+        (r'<p class="subtitle">(.*?)</p>', "subtitle"),
+        (r'<p class="map-note"[^>]*>(.*?)</p>', "map-note"),
+        (r'<p class="ov-subtitle">(.*?)</p>', "ov-subtitle"),
+        (r'<span class="tagline">(.*?)</span>', "tagline"),
+        (r'<div class="stat-number[^"]*"[^>]*>(.*?)</div>', "stat-number"),
+        (r'<tfoot>(.*?)</tfoot>', "tfoot"),
+    ]
+    digit_unit = re.compile(r"(\d+)\s*(题|卡|组|道|页|章|张)")
+    targets = [os.path.join(BASE, "index.html")]
+    targets += glob.glob(os.path.join(CHAPTER_DIR, "*.html"))
+    targets += glob.glob(os.path.join(MIND_DIR, "*.html"))
+    misses = []
+
+    def tagged_at(t, pos):
+        w = t[max(0, pos - 180) : pos]
+        if 'data-kb-pos="' in w and w.rfind('data-kb-pos="') > w.rfind("</"):
+            return True
+        if "data-kb-count-local=" in w and w.rfind("data-kb-count-local=") > w.rfind("</"):
+            return True
+        return False
+
+    for path in targets:
+        if not os.path.isfile(path):
+            continue
+        t = read(path)
+        rel = os.path.relpath(path, BASE)
+        for rpat, rname in region_pats:
+            for rm in re.finditer(rpat, t, re.S):
+                region = rm.group(1)
+                if 'class="mermaid"' in region:
+                    continue
+                for dm in digit_unit.finditer(region):
+                    abs_pos = rm.start(1) + dm.start(1)
+                    if tagged_at(t, abs_pos):
+                        continue
+                    # 「第 N 章」或「第 09/04 章」类章节引用
+                    pre = region[max(0, dm.start() - 8) : dm.start()]
+                    if dm.group(2) == "章" and ("第" in pre or "/" in pre):
+                        continue
+                    # 「E12 组」题组名，非「12 组」计数
+                    if dm.group(2) == "组" and re.search(
+                        r"[CEMSG]\d{0,2}$", region[max(0, dm.start() - 4) : dm.start()]
+                    ):
+                        continue
+                    # P0/P1 文案
+                    ctx = region[max(0, dm.start() - 12) : dm.end() + 8]
+                    if re.search(r"P0\s*/\s*P1|P0→P2", ctx):
+                        continue
+                    misses.append(
+                        f"{rel} [{rname}] {dm.group(1)}{dm.group(2)}"
+                    )
+    if misses:
+        for x in misses[:20]:
+            print("FAIL [L1聚合UI]", x)
+        check(False, f"[L1聚合UI] 裸计数 {len(misses)} 处（须 kb-count / data-kb-count-local，见 §5.1.4）")
+    else:
+        check(True, "[L1聚合UI] 页头/footer/desc/meta/note/tagline/stat 无裸「N题|卡|道|组」")
+
+
 def main():
     # 0) 权威计数位（含散文）——必须先于其他统计断言
     run_sync_counts_check()
     run_kb_count_markup_check()
+    run_l1_container_scan()
 
     # 4 聚合页 + 全部章节 + 全部导图（红线校验覆盖全站）
     texts = {k: read(v) for k, v in AGG_FILES.items()}

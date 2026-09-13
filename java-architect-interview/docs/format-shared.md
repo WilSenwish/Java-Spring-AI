@@ -149,4 +149,4 @@ index.html                         # 首页
 - **改文件名后的同步**：凡改名为 `chapter-*` 的文件，需同步更新 `../../index.html`、`../index.html`、`chapter-overview-priority.html` 内的引用 href（曾发生安全手册从 `security/` 移入本目录并更名）。
 - **侧栏分组标题禁止用 div**：`<div class="toc-group-title">` 无法被 `nav.js` 高亮；必须用 `<a class="toc-group-title" href="#…">`，且正文有对应 `id`（方法论 / 工程化曾踩坑）。
 - **顶底导航须同文**：改 `chapter-nav-top` 时同步 `chapter-nav`；箭头与「返回目录」文案见 §4.2。
-- **权威/结构计数点标记**：凡展示题量/卡量的数字（SSOT 位与 `dir-count`/`group-count`/mind `card-foot` 等）须带 `.kb-count` + `data-kb-pos` 或 `data-kb-count-local`；样式在 `assets/design-system.css`；细则见 skills `conventions.md` §5.1.4。禁止留下裸数字权威位。
+- **权威/结构计数点标记**：展示题量/卡量须按 **L0–L3/LX** 定级后打标（`.kb-count` + `data-kb-pos` 或 `data-kb-count-local`）；样式在 `assets/design-system.css`；细则见 skills `conventions.md` **§5.1.4**。禁止在 L1 聚合 UI 留裸数字。
