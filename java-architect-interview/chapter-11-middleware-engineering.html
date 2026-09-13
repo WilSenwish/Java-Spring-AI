@@ -14,7 +14,7 @@
         <h3>本篇目录</h3>
         <ol>
           <li>
-            <a href="#C11.01"><span class="toc-number">C11.01</span>工作流引擎 BPMN 2.0 模型与执行原理</a>
+            <a href="#C11.01"><span class="toc-number">C11.01</span>工作流引擎（Activiti/Flowable/Camunda）</a>
           </li>
           <li>
             <a href="#C11.02"><span class="toc-number">C11.02</span>流程节点批量配置化实现</a>
@@ -158,7 +158,7 @@
         </div>
 
         <!-- ============================================================ -->
-        <!-- C11.01 工作流引擎(Activiti)的 BPMN 2.0 模型与执行原理？ -->
+        <!-- C11.01 工作流引擎（Activiti/Flowable/Camunda）的 BPMN 2.0 模型与选型？ -->
         <!-- ============================================================ -->
         <div class="qa-card" id="C11.01" data-difficulty="senior" data-priority="p2">
           <div class="qa-header">
@@ -195,6 +195,22 @@ flowchart LR
     style Z fill:#fef3c7,stroke:#d97706
                 </div>
                 <div class="chart-caption">图 11.1-1 工作流引擎演进：jBPM → Activiti → Flowable/Camunda → Zeebe 云原生</div>
+
+              <div class="compare-table">
+                <table>
+                  <thead>
+                    <tr><th>选型</th><th>定位</th><th>2026 默认建议</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Activiti 5/6/7</td><td>BPMN 嵌入式遗产栈</td><td>存量维护；新项目不首选</td></tr>
+                    <tr><td>Flowable</td><td>Activiti 分叉，BPMN/DMN/CMMN</td><td>传统内嵌审批首选社区方案</td></tr>
+                    <tr><td>Camunda 7/8</td><td>7 库表引擎；8=Zeebe 事件流</td><td>云原生高并发编排看 Camunda 8</td></tr>
+                    <tr><td>轻量状态机</td><td>Spring Statemachine / 自研</td><td>无人工任务、短生命周期编排</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p><strong>选型矩阵（上表）</strong>：招聘侧高频词是 Camunda / Flowable / 自研编排；Activiti 仅作演进对照与存量迁移语境，表达时先报默认选型再补遗产差异。</p>
+
               </div>
 
               <p><strong>演进驱动力</strong>：① <strong>标准化</strong>——从私有 jPDL 到 OMG 组织的 BPMN 2.0 标准，实现流程定义跨引擎互通；② <strong>解耦</strong>——流程定义与代码解耦，业务流程变更无需发版；③ <strong>云原生</strong>——从数据库轮询到事件流日志（Zeebe），突破数据库瓶颈支撑高并发；④ <strong>三引擎合一</strong>——BPMN（流程）+ DMN（决策表）+ CMMN（案例）覆盖更复杂的业务编排。</p>
@@ -2402,10 +2418,23 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>深挖点：KRaft 与 ZK 模式最本质的差异不在"去掉了什么"，而在<strong>元数据一致性协议的统一</strong>——ZK 模式下元数据用 ZK 的 Zab 协议，数据面用 ISR 拉取，两套一致性机制并存；KRaft 下元数据与数据面同为"Leader 追加日志 + Follower 复制"的日志复制模型，一致性机制归一。回答"Kafka 为什么不用 Raft"（见深度追问）时要补一句：Kafka 确实在 KRaft 元数据层用了 Raft，只是数据面出于吞吐考量保留了 ISR 异步拉取——两种协议各司其职，并不矛盾。</p>
+              
+              <p><strong>Schema Registry / 消息契约治理</strong>：生产者与消费者契约应版本化（Confluent Schema Registry / Apicurio / 自建）。兼容策略显式选择 BACKWARD / FORWARD / FULL；破坏性变更走双写或版本主题，禁止静默改字段语义。落地：① CI 阻断不兼容 schema；② 消费者按版本反序列化并监控失败；③ 与 Outbox/CDC 字段演进同单评审。缺契约治理时多团队并行极易出现线上解析事故。</p>
+</div>
+            </div>
+          </div>
+        
+          <div class="qa-layer" data-layer="production">
+            <div class="qa-layer-title">生产实践</div>
+            <div class="qa-layer-body">
+              <p>上线门禁：积压/lag、幂等与重试、容量与分区模型一致。表达提纲：语义边界→中间件证据→运维剧本。</p>
+              <div class="callout callout-deep">
+                <div class="callout-title">P0 表达提纲</div>
+                <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
               </div>
             </div>
           </div>
-        </div>
+</div>
 
         <!-- C11.12 API 网关的核心设计（限流、熔断、灰度发布）？ -->
         <!-- ============================================================ -->
@@ -3978,7 +4007,20 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
               </ul>
             </div>
           </div>
+          <div class="qa-layer" data-layer="production">
+            <div class="qa-layer-title">生产实践</div>
+            <div class="qa-layer-body">
+              <p><strong>上线门禁</strong>：① 业务主键唯一约束或幂等表已建；② 调度任务有分片清单与补跑入口；③ 执行超时/心跳阈值与锁续期写进 Runbook；④ 多机房场景明确「谁执行、谁待命、切换窗口补跑」。</p>
+              <p><strong>可观测</strong>：任务维度指标（触发次数、成功/失败、耗时 P99、重派次数、补跑次数）；告警绑定责任人。复盘区分「重复触发被幂等挡住」与「空窗漏跑」。</p>
+              <p><strong>容量</strong>：分片数与执行器数、下游连接池同一模型；倾斜分片单独限流。定时任务常是对账/补偿载体，失败必须可审计（对齐 G06.03）。</p>
+              <div class="callout callout-deep">
+                <div class="callout-title">P0 表达提纲</div>
+                <p>先讲「触发可重复、处理必须幂等」→ 幂等三件套 → 分片与故障转移 → 补跑与多机房 → 指标与门禁。避免只报框架名不讲一致性落点。</p>
+              </div>
+            </div>
+          </div>
         </div>
+
 
         <!-- ============================================================ -->
         <!-- C11.24 Kafka Streams 拓扑、状态存储与 EOS -->
@@ -4096,6 +4138,15 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
               </ul>
             </div>
           </div>
+
+          <div class="qa-layer" data-layer="production">
+            <div class="qa-layer-title">生产实践</div>
+            <div class="qa-layer-body">
+              <p><strong>上线门禁</strong>：① <code class="inline-code">processing.guarantee</code> 与 Broker 事务版本对齐（exactly_once_v2）；② changelog / 输出 topic 保留策略与状态大小同模型；③ Standby 副本与 rebalance 超时写进容量计划；④ Interactive Queries 故障切换窗口有业务兜底。</p>
+              <p><strong>与 Flink 对照（运维面）</strong>：Streams 无 JM/TM，扩缩=应用副本；Flink 要管 Checkpoint 存储、托管内存、反压链路。Kafka→Kafka 轻聚合优先 Streams；跨源/CEP/大状态/Savepoint 蓝绿优先 Flink（<a href="#C11.25">C11.25</a>）。</p>
+              <p><strong>可观测</strong>：task 迁移次数、状态恢复耗时、changelog 吞吐、消费 lag；告警区分「rebalance 风暴」与「状态盘打满」。</p>
+            </div>
+          </div>
         </div>
 
         <!-- ============================================================ -->
@@ -4166,9 +4217,45 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
                   </tr>
                 </tbody>
               </table>
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>Kafka（Broker / Streams）</th>
+                    <th>Flink</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>语义落点</td>
+                    <td>分区有序 + 事务/幂等生产者；Streams 读-处理-写同事务</td>
+                    <td>算子状态 Checkpoint + Sink 两阶段提交（如 KafkaTransactionalSink）</td>
+                  </tr>
+                  <tr>
+                    <td>时间模型</td>
+                    <td>Streams 窗口够用；复杂事件时间弱于 Flink</td>
+                    <td>事件时间 + Watermark 一等公民；idle 源必须标记</td>
+                  </tr>
+                  <tr>
+                    <td>状态</td>
+                    <td>本地 RocksDB + changelog topic</td>
+                    <td>Keyed/Operator State；EmbeddedRocksDB + 增量 CP</td>
+                  </tr>
+                  <tr>
+                    <td>背压</td>
+                    <td>消费线程阻塞 / 应用线程池</td>
+                    <td>Credit-based 反压；UI 看忙碌与缓冲</td>
+                  </tr>
+                  <tr>
+                    <td>运维切换</td>
+                    <td>改应用 ID / 重置 changelog 需谨慎</td>
+                    <td>Savepoint 做版本升级与并行度变更</td>
+                  </tr>
+                </tbody>
+              </table>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p>生产默认：RocksDB 状态后端 + 增量 Checkpoint + 事件时间 Watermark + Kafka EOS Sink；反压先治瓶颈算子，再调 Checkpoint 参数。</p>
+                <p>生产默认：RocksDB 状态后端 + 增量 Checkpoint + 事件时间 Watermark + Kafka EOS Sink；反压先治瓶颈算子，再调 Checkpoint 参数。与 Kafka 对照：同生态轻量 → Streams（C11.24）；跨源/CEP/大状态/计划停机 → Flink。</p>
               </div>
             </div>
           </div>
@@ -4210,7 +4297,25 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
                 <li><strong>Watermark 不推进</strong>：某并行度空闲未标 idle、或时间戳解析错误，窗口永久挂起。</li>
                 <li><strong>Checkpoint 超时只调大间隔</strong>：根因常是反压/外部 IO；先消瓶颈，再改 timeout/minPause。</li>
                 <li><strong>状态无限增长</strong>：无 TTL、窗口状态未清理，RocksDB 与 Checkpoint 存储被打满。</li>
+                <li><strong>把 Kafka 事务当成 Flink 状态 EOS</strong>：Broker 侧 EOS（C11.11）只保证消息路径；Flink 还要 Checkpoint 对齐与 Sink 两阶段提交才谈端到端。</li>
               </ul>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="production">
+            <div class="qa-layer-title">生产实践</div>
+            <div class="qa-layer-body">
+              <p><strong>上线门禁</strong>：① Checkpoint 间隔/超时/minPause 与反压演练通过；② State Backend=RocksDB + 增量 CP；③ Kafka Source 与事务 Sink 版本矩阵写清；④ Savepoint 进发布流水线（升级/改并行度必走）。</p>
+              <p><strong>Kafka 对接清单</strong>：分区并行度 ≤ 源分区；消费组与 Flink 作业 UID 稳定；EOS 时事务超时 &gt; Checkpoint 间隔；Schema 演进走 Registry（呼应 C11.11 扩展）。</p>
+              <p><strong>可观测</strong>：checkpoint duration/size、numLateRecords、反压比例、Kafka lag、RocksDB 内存与本地盘；失败恢复 RTO 写进 SLO。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="extension">
+            <div class="qa-layer-title">扩展阅读</div>
+            <div class="qa-layer-body">
+              <p><strong>官方主线</strong>：Apache Flink Docs — Stateful Stream Processing / Checkpointing / Watermarks / Kafka SQL Connector。Barrier 对齐与 Unaligned Checkpoint、Savepoint vs Checkpoint 以官方语义为准。</p>
+              <p><strong>与速查交叉</strong>：选型一句见 <a href="chapter-questions-eight-part.html#E08.04">E08.04</a>；Kafka 内嵌处理见 <a href="#C11.24">C11.24</a>；CEP 风控拼装见 <a href="chapter-questions-scenario.html#S11.03">S11.03</a>。</p>
             </div>
           </div>
         </div>

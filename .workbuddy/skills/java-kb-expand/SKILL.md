@@ -36,11 +36,11 @@ agent_created: true
 - 难度三级：专家级 / 架构级 / 高级开发（求和 = 总量）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **365** = 篇章 229 + 核心原理 64 + 场景 72
-- 优先级 **P0=92 / P1=217 / P2=56**（求和 = 365）
-- 难度 **专家 46 / 架构 178 / 高级开发 141**（求和 = 365）
-- 方法论 **91 卡**（M01~M12），不计入 365
-- 工程化 **24 卡**（G01~G08），不计入 365；全站合计 **480** = 题目 + 方法论 + 工程化
+- 题目总量 **379** = 篇章 234 + 核心原理 73 + 场景 72
+- 优先级 **P0=94 / P1=227 / P2=58**（求和 = 379）
+- 难度 **专家 46 / 架构 187 / 高级开发 146**（求和 = 379）
+- 方法论 **91 卡**（M01~M12），不计入 379
+- 工程化 **24 卡**（G01~G08），不计入 379；全站合计 **494** = 题目 + 方法论 + 工程化
 - 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
@@ -52,7 +52,7 @@ agent_created: true
 | P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
 | P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
-| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
+| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
 | P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
@@ -71,8 +71,24 @@ agent_created: true
 | P22 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 题目总量 |
 | P23 | `index.html` | 根 index 工程化统计卡 |
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
-| P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 |
+| P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 meta 卡数 |
 | P26 | `java-architect-interview-mind/index.html` | mind index idx-meta 工程化要点卡片 |
+| P27 | `java-architect-interview/chapter-questions-scenario.html` | 场景页开篇散文题数（防漂移） |
+| P28 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段篇章题数 |
+| P29 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段场景题数 |
+| P30 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段核心原理数 |
+| P31 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 title 散文题数 |
+| P32 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 h1 题数 |
+| P33 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 meta 题目数 |
+| P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
+| P35 | `index.html` | 根 index 核心原理 dir-count |
+| P36 | `index.html` | 根 index 题目总数 |
+| P37 | `index.html` | 根 index 合计 |
+| P38 | `index.html` | 根 index 核心原理统计 |
+| P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
+| P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
+| P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
+| P42 | `index.html` | 根 index overview 区 tagline |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -119,11 +135,16 @@ agent_created: true
 4. 环境 Python：`/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3`。
 
 ### Step 5 · 全量校验 + 记忆
-1. 跑 `scripts/validate_kb.py`（或等效脚本）核对：三权威源一致、各文件 `data-page-node-id` 全 0、无 `</spa`（缺 n）标签截断、新卡双编码（`data-priority` + 可见徽标）一致、新卡在 overview/根 index/mind 均落位。
-2. **补层轮次也要做"计数体检"（2026-09-03 新增，高收益）**：即使本轮不改计数，也应顺手全量核对 4 份聚合页，因为历史轮次常留下孤儿数字。已实测抓出 3 处遗留错误，务必覆盖三类隐藏位：
-   - **① `stat-number` 全部字段**（不只看"全站 N 题"）。根 index 的「**题目总数**」曾长期停留在 **413**（＝旧合计 339+74 的值被误填），正确值应＝题数 345；而「合计」= 题数 + 方法论卡片 = 420 本身没错。**题目总数 ≠ 合计**，改题数时两个都要动。
-   - **② 散文式数字**（不在任何统计字段里，正则抓 `stat-*` 会漏）。章节 index 方法论卡的 `card-desc`「…15 篇 **219** 道…」与 `card-footer`「5 主题 · 74 方法论卡片 · 28 技术图表 · 15 篇 **218** 道」，两处都应为 220。校验技巧：`re.findall(r'(\d+)\s*道', t)` + 上下文打印，或直接断言页面内不存在 `219`/`218` 等旧值。
-   - **③ mind 页 summary 编号 ↔ 章节页 qa-card id 逐一对齐**。`mind-08` 曾把 **C08.08（过期策略）与 C08.09（布隆过滤器）整对互换**，与章节页相反，且其正文交叉引用（E12.03「与 C08.01/C08.0X 印证」、E12.04「缓存侧印证 C08.0X」）跟着一起错。发现后应按**章节页为准**纠偏 summary + 交叉引用。校验脚本：分别提取两边编号→标题映射后比对。
+1. 跑 `scripts/validate_kb.py`（会**强制**子进程跑 `sync_counts.py check`）：三权威源一致、**散文计数位 P27–P42 与真源一致**、各文件 `data-page-node-id` 全 0、无 `</spa` 截断、新卡双编码与落位。
+2. **散文计数硬约束（2026-09-13 固化，禁止遗漏）**：
+   - 页头/来源段里的「本页 N 道 / 229 道深度问答 / 72 道场景…」属于**散文位**，已登记为 `kb-counts.json` → `positions` 的 **P27–P42**（及后续扩展）。
+   - **改题数必须**走 `sync_counts.py bump …`（或 bump 后 `apply`），禁止只改 HTML 散文数字。
+   - `validate_kb.py` 第 0 步即 `sync_counts check`；任一散文位漂移 → **整次校验 FAIL**。
+   - 新增散文数字时：先在 `kb-counts.json` 加 position（pattern 命中恰好 1 处），再 `render` 更新 SKILL/AGENTS/conventions 的 COUNTS 表，最后 `check`。
+3. **补层轮次也要做"计数体检"**：即使本轮不改计数，也应跑 `validate_kb.py`。另须覆盖：
+   - **① `stat-number` 全部字段**（题目总数 ≠ 合计；合计 = 题数 + 方法论 + 工程化）。
+   - **② 散文式数字**（已由 P27+ 与 sync_counts check 覆盖；章节 index `card-desc`/`card-footer` 等若新增散文数字须同步登记 position）。
+   - **③ mind 页 summary 编号 ↔ 章节页 qa-card id 逐一对齐**。
 2. 刷新 `Java Spring AI/.workbuddy/memory/MEMORY.md` 权威计数（若计数变更）+ 追加 `2026-09-03.md` 等价当日日志（按实际日期）记录入库/补增量。
 3. 按红线交付：仅给绝对路径 + 文字结论，绝不预览。
 

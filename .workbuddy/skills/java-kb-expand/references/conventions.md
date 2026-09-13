@@ -97,15 +97,16 @@
 
 ### 5.5 场景 / 核心原理页分组计数
 - 场景页正文 `span.group-count`、根 index 场景区 `dir-group-count`，均须等于该组 `S##.##` 实际题数（当前：5/6/5/6/5/6/7/8/5/5/6/8）。
-- 核心原理页各组实际题数（当前：4/4/8/8/4/3/10/4/3/3/5/8）；根 index 对应 `dir-group-count` 同步。
+- 核心原理页各组实际题数（当前：4/4/8/8/4/6/10/4/6/6/5/8）；根 index 对应 `dir-group-count` 同步。
+- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题」等必须登记为 `kb-counts.json` positions（含 P27–P42），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`。
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **365** = 篇章 229 + 核心原理 64 + 场景 72
-- 优先级 **P0=92 / P1=217 / P2=56**（求和 = 365）
-- 难度 **专家 46 / 架构 178 / 高级开发 141**（求和 = 365）
-- 方法论 **91 卡**（M01~M12），不计入 365
-- 工程化 **24 卡**（G01~G08），不计入 365；全站合计 **480** = 题目 + 方法论 + 工程化
+- 题目总量 **379** = 篇章 234 + 核心原理 73 + 场景 72
+- 优先级 **P0=94 / P1=227 / P2=58**（求和 = 379）
+- 难度 **专家 46 / 架构 187 / 高级开发 146**（求和 = 379）
+- 方法论 **91 卡**（M01~M12），不计入 379
+- 工程化 **24 卡**（G01~G08），不计入 379；全站合计 **494** = 题目 + 方法论 + 工程化
 - 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
@@ -117,7 +118,7 @@
 | P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
 | P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
-| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头 |
+| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
 | P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
@@ -136,8 +137,24 @@
 | P22 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 题目总量 |
 | P23 | `index.html` | 根 index 工程化统计卡 |
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
-| P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 |
+| P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 meta 卡数 |
 | P26 | `java-architect-interview-mind/index.html` | mind index idx-meta 工程化要点卡片 |
+| P27 | `java-architect-interview/chapter-questions-scenario.html` | 场景页开篇散文题数（防漂移） |
+| P28 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段篇章题数 |
+| P29 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段场景题数 |
+| P30 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段核心原理数 |
+| P31 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 title 散文题数 |
+| P32 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 h1 题数 |
+| P33 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 meta 题目数 |
+| P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
+| P35 | `index.html` | 根 index 核心原理 dir-count |
+| P36 | `index.html` | 根 index 题目总数 |
+| P37 | `index.html` | 根 index 合计 |
+| P38 | `index.html` | 根 index 核心原理统计 |
+| P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
+| P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
+| P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
+| P42 | `index.html` | 根 index overview 区 tagline |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

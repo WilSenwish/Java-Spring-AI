@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>核心原理速查 · 64 道高频核心原理题 — Java 工程能力知识库</title>
+    <title>核心原理速查 · 73 道高频核心原理题 — Java 工程能力知识库</title>
     <link rel="stylesheet" href="assets/design-system.css" />
     <style>
       /* ---------- 核心原理专属样式 ---------- */
@@ -336,6 +336,15 @@
             <li>
               <a href="#E06.03"><span class="toc-number">E06.03</span>Redis 持久化 RDB/AOF</a>
             </li>
+            <li>
+              <a href="#E06.04"><span class="toc-number">E06.04</span>缓存穿透击穿雪崩</a>
+            </li>
+            <li>
+              <a href="#E06.05"><span class="toc-number">E06.05</span>热 key 与大 key</a>
+            </li>
+            <li>
+              <a href="#E06.06"><span class="toc-number">E06.06</span>Pipeline 事务 Lua</a>
+            </li>
           </ol>
         </div>
 
@@ -405,6 +414,15 @@
             <li>
               <a href="#E09.03"><span class="toc-number">E09.03</span>OAuth 2.1 + PKCE</a>
             </li>
+            <li>
+              <a href="#E09.04"><span class="toc-number">E09.04</span>TCP/HTTP2/QUIC</a>
+            </li>
+            <li>
+              <a href="#E09.05"><span class="toc-number">E09.05</span>零拷贝深化</a>
+            </li>
+            <li>
+              <a href="#E09.06"><span class="toc-number">E09.06</span>JWT 安全速查</a>
+            </li>
           </ol>
         </div>
 
@@ -419,6 +437,15 @@
             </li>
             <li>
               <a href="#E10.03"><span class="toc-number">E10.03</span>HNSW vs IVF 向量索引</a>
+            </li>
+            <li>
+              <a href="#E10.04"><span class="toc-number">E10.04</span>ES Mapping 分词</a>
+            </li>
+            <li>
+              <a href="#E10.05"><span class="toc-number">E10.05</span>BM25 相关性</a>
+            </li>
+            <li>
+              <a href="#E10.06"><span class="toc-number">E10.06</span>RAG 向量同步</a>
             </li>
           </ol>
         </div>
@@ -487,10 +514,10 @@
         <!-- 章节头部 -->
         <div class="chapter-header epq-chapter-header">
           <div class="chapter-number">CORE PRINCIPLES / 高频核心原理速查</div>
-          <h1 class="chapter-title">高频核心原理 64 题</h1>
+          <h1 class="chapter-title">高频核心原理 73 题</h1>
           <p class="chapter-subtitle">聚焦 2026 头部大厂仍在深入考察的核心原理，精炼四层结构速查导向</p>
           <div class="chapter-meta">
-            <span>题目数：64</span>
+            <span>题目数：73</span>
             <span class="meta-divider">|</span>
             <span>高级开发 ×35</span>
             <span class="meta-divider">|</span>
@@ -2612,6 +2639,150 @@
           </div>
         </div>
 
+
+        <!-- ============================== -->
+        <!-- E06.04 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E06.04" data-difficulty="architect" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E06.04</div>
+            <div class="epq-question">缓存穿透 / 击穿 / 雪崩：定义边界、防护组合与容量门禁<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>穿透：查询不存在的数据，缓存与 DB 都 miss，恶意/脏流量打穿 DB</li>
+              <li>击穿：热点 key 过期瞬间大量并发回源，单 key 打爆 DB</li>
+              <li>雪崩：大量 key 同时过期或缓存集群故障，回源洪峰</li>
+              <li>防护组合：布隆/空值缓存（穿透）、互斥锁或逻辑过期（击穿）、随机 TTL + 多级缓存/熔断（雪崩）</li>
+              <li>深挖篇章：C08.03 / 场景 S03.04；一致性见 E06.01</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>三类问题常被混称，工程表达须先<strong>划清边界</strong>：穿透是「根本无数据」；击穿是「有数据但热点过期」；雪崩是「大面积失效或缓存不可用」。对策不可互换——布隆挡不住雪崩，随机 TTL 也解决不了穿透。</p>
+            <p><strong>穿透</strong>：布隆/Cuckoo 拦截确定不存在；短 TTL 空值缓存防枚举；网关限流脏 key。</p>
+            <p><strong>击穿</strong>：单飞（mutex）或逻辑过期 + 异步重建；热点可永不过期 + 主动刷新。</p>
+            <p><strong>雪崩</strong>：TTL 加抖动；多级缓存；缓存故障时熔断降级与预案（本地兜底/只读）。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>上线门禁：热点 key 清单、空值策略、TTL 抖动范围、缓存故障演练。指标：回源 QPS、布隆拒绝率、单 key 并发重建次数。与 C08.03 对照答题，避免只背名词。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: 空值缓存会不会撑爆 Redis？</span><span class="a">A: 必须短 TTL + 体积上限；枚举攻击还要布隆/网关。</span></li>
+              <li><span class="q">Q: 逻辑过期和互斥哪个好？</span><span class="a">A: 读多写少可用逻辑过期保可用性；强一致读偏好互斥单飞。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">穿透</span>
+            <span class="epq-tag">击穿</span>
+            <span class="epq-tag">雪崩</span>
+            <span class="epq-tag">Redis</span>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E06.05 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E06.05" data-difficulty="architect" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E06.05</div>
+            <div class="epq-question">热 key / 大 key：识别、拆分、本地缓存与集群倾斜治理<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>热 key：单 key QPS 过高导致 CPU/带宽/槽位倾斜</li>
+              <li>大 key：单 value 过大（大 string/hash/list/zset），阻塞或复制风暴</li>
+              <li>治理：拆 key、本地缓存、读写分离、压缩与分片结构</li>
+              <li>Cluster：热 key 不会因槽迁移自动分散，需业务层 hash-tag/副本读</li>
+              <li>深挖：C08 集群与数据结构篇；监控用 redis-cli / 代理热点统计</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p><strong>热 key</strong>：发现靠代理/客户端打点或 Redis 7+ 监控；治理优先本地缓存（Caffeine）+ 多副本只读，其次拆成 N 个子 key 随机读写。</p>
+            <p><strong>大 key</strong>：string 过大改拆分或外置对象存储；hash/list/zset 控制 field 数与扫描批量；删除用 UNLINK/分批，避免阻塞。</p>
+            <p>Cluster 下大 key 迁移成本高，上线前做 key 体积扫描门禁。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>门禁：单 key 体积与 QPS 阈值；发布前 hot-key 扫描。告警：单槽 CPU、slowlog、网络出带宽。删大 key 走异步与低峰。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: 热 key 加本地缓存如何保证一致？</span><span class="a">A: 短 TTL + 变更总线失效；接受短暂不一致或用版本号。</span></li>
+              <li><span class="q">Q: 为何 CLUSTER 不能自动打散热 key？</span><span class="a">A: 路由由 key 哈希决定，同一 key 永远同一槽。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">热key</span>
+            <span class="epq-tag">大key</span>
+            <span class="epq-tag">Cluster</span>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E06.06 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E06.06" data-difficulty="senior" data-priority="p2">
+          <div class="epq-header">
+            <div class="epq-badge">E06.06</div>
+            <div class="epq-question">Redis Pipeline / 事务 / Lua：批量化、原子性边界与 Cluster 限制<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>Pipeline：打包命令减 RTT，非原子，中间可被插队</li>
+              <li>MULTI/EXEC：单机队列原子执行，无回滚；Cluster 跨槽禁止</li>
+              <li>Lua：服务端脚本原子，可替代轻量事务；注意超时与写扩散</li>
+              <li>与 Redisson 锁脚本：校验 value 再 DEL，防误删</li>
+              <li>深挖：E06.02 锁；生产禁超长 Lua 阻塞事件循环</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p><strong>Pipeline</strong> 优化延迟，不提供隔离；失败需业务幂等。</p>
+            <p><strong>事务</strong> Redis 的 MULTI 不是关系库事务：无回滚，WATCH 做乐观锁。</p>
+            <p><strong>Lua</strong> 适合短临界区（锁释放、限流计数）；Cluster 要求脚本访问的 key 同槽（hash-tag）。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>批量读用 Pipeline；跨槽改并发单命令或业务拆分。Lua 设超时监控，禁止在脚本里做外部 IO。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: Pipeline 能保证全成功吗？</span><span class="a">A: 不能；部分失败要按回复逐条处理。</span></li>
+              <li><span class="q">Q: 为何锁释放用 Lua？</span><span class="a">A: GET+DEL 非原子；脚本内校验 value 再删防误删。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">Pipeline</span>
+            <span class="epq-tag">Lua</span>
+            <span class="epq-tag">事务</span>
+          </div>
+        </div>
+
         <!-- ============================== -->
         <!-- ============================== -->
         <!-- 组导读：七、分布式与微服务 -->
@@ -3386,11 +3557,12 @@
             <p><strong>Watermark</strong>：声明「该时间之前的数据基本到齐」。水位推进太激进丢迟到；太保守窗口关不掉、状态膨胀。</p>
             <p><strong>Exactly-Once 边界</strong>：框架 EOS ≠ 业务幂等。外部副作用（HTTP/邮件）仍要业务键去重。Kafka→Kafka 路径 EOS 最完整。</p>
             <p><strong>背压</strong>：Flink 信用反压；Streams 主要靠消费线程阻塞。生产必看 checkpoint 时长与 state 大小。</p>
+            <p><strong>Kafka Source ↔ Flink 对照速表</strong>：① 分区有序对 Flink keyBy 友好，乱序靠 Watermark；② Broker 事务超时须覆盖 Checkpoint；③ changelog（Streams）≈ Checkpoint 存储（Flink），都要算容量；④ 换并行度：Streams 受分区数约束，Flink 走 Savepoint。</p>
           </div>
 
           <div class="callout callout-tip">
             <div class="callout-title">工程实践</div>
-            <p>状态 TTL 与窗口对齐，防无限增长。Changelog/Checkpoint 存储与 Kafka 同可用区。变更拓扑用版本化应用 ID / Savepoint 兼容策略。指标：消费 lag、checkpoint duration、numLateRecords。</p>
+            <p>状态 TTL 与窗口对齐，防无限增长。Changelog/Checkpoint 存储与 Kafka 同可用区。变更拓扑用版本化应用 ID / Savepoint 兼容策略。指标：消费 lag、checkpoint duration、numLateRecords。对接 Kafka 时固定作业 UID，禁止无评估重置 offset。</p>
           </div>
 
           <div class="epq-section">
@@ -3609,6 +3781,144 @@
           </div>
         </div>
 
+
+        <!-- ============================== -->
+        <!-- E09.04 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E09.04" data-difficulty="architect" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E09.04</div>
+            <div class="epq-question">TCP / HTTP/2 / QUIC：多路复用、队头阻塞与选型边界<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>TCP：可靠字节流；队头阻塞在传输层丢包时拖住整连接</li>
+              <li>HTTP/2：单 TCP 上多路流，应用层多路；仍受 TCP 队头阻塞</li>
+              <li>HTTP/3/QUIC：UDP 上多路 + 按流独立丢失恢复，改善弱网</li>
+              <li>工程：网关/客户端超时、流控窗口、连接复用与证书</li>
+              <li>深挖：C13 网络篇；TLS 见 E09.02</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>选型表达：内网高带宽稳定 → HTTP/1.1/2 足够；移动/弱网长连接 → 评估 HTTP/3。gRPC 默认 HTTP/2，关注流控与连接数。</p>
+            <p>队头阻塞要分层说：HTTP/1.1 是应用层；HTTP/2 缓解应用层但仍受 TCP；QUIC 把丢失恢复下沉到流级。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>网关记录协议版本占比；调 window 与最大并发流；证书与 ALPN 配置进发布检查。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: HTTP/2 是否消灭队头阻塞？</span><span class="a">A: 消灭应用层队头，传输层 TCP 丢包仍阻塞整连接。</span></li>
+              <li><span class="q">Q: 为何 gRPC 爱 HTTP/2？</span><span class="a">A: 多路流 + 二进制帧 + 头部压缩，适合 RPC。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">HTTP/2</span>
+            <span class="epq-tag">QUIC</span>
+            <span class="epq-tag">TCP</span>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E09.05 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E09.05" data-difficulty="senior" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E09.05</div>
+            <div class="epq-question">零拷贝深化：sendfile、mmap、DirectBuffer 与 Netty 落点<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>传统 read/write：多次用户态/内核态拷贝</li>
+              <li>sendfile：文件→socket 路径减少拷贝（FileRegion）</li>
+              <li>mmap：文件映射，适合随机访问，不替代所有发送路径</li>
+              <li>DirectBuffer：堆外，避免堆→直接内存二次拷贝，需防泄漏</li>
+              <li>深挖：E09.01；泄漏检测 io.netty.leakDetectionLevel</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>「零拷贝」是相对术语：DMA/页缓存仍可能拷贝，工程目标是<strong>减少用户态拷贝与系统调用</strong>。静态文件下载优先 sendfile；协议编解码缓冲优先池化 DirectBuffer。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>大文件下载用 FileRegion；开启泄漏检测 staging；生产用 PooledByteBufAllocator。监控直接内存与堆内存分列。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: DirectBuffer 会不会 OOM？</span><span class="a">A: 会；受 MaxDirectMemorySize 约束，泄漏更难查。</span></li>
+              <li><span class="q">Q: mmap 一定更快吗？</span><span class="a">A: 小文件/短连接不一定；要测页错误与回收成本。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">零拷贝</span>
+            <span class="epq-tag">sendfile</span>
+            <span class="epq-tag">DirectBuffer</span>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E09.06 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E09.06" data-difficulty="senior" data-priority="p2">
+          <div class="epq-header">
+            <div class="epq-badge">E09.06</div>
+            <div class="epq-question">JWT 安全速查：签名算法、声明校验、密钥轮换与撤销<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p2">P2</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>结构：Header.Payload.Signature；默认仅签名（JWS），敏感载荷用 JWE</li>
+              <li>必验：iss/aud/exp/nbf、算法白名单（禁 alg=none）</li>
+              <li>密钥：非对称优先（RS/ES）；轮换用 kid；泄露即撤销</li>
+              <li>会话：短 access + 刷新轮换；服务端黑名单/版本号做紧急吊销</li>
+              <li>深挖：E09.03 OAuth；C11 JWT/OAuth 篇章</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>JWT 是令牌格式不是会话方案。无状态带来难撤销：靠短 TTL、Refresh 轮换检测重用、或版本号/黑名单。</p>
+            <p>算法混淆攻击：校验时固定期望算法，不信任 header 自报。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>网关统一验签；密钥进 KMS；kid 轮换演练；监控验签失败率与 refresh 重用事件。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: 为什么不把权限全塞 JWT？</span><span class="a">A: 难撤销且体积大；权限变更延迟。关键权限宜实时查询或短 TTL。</span></li>
+              <li><span class="q">Q: 对称 HS256 何时可用？</span><span class="a">A: 单服务内密传可；多服务分发密钥难，优先非对称。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">JWT</span>
+            <span class="epq-tag">密钥轮换</span>
+            <span class="epq-tag">安全</span>
+          </div>
+        </div>
+
         <!-- ============================== -->
         <!-- ============================== -->
         <!-- 组导读：十、搜索与 AI -->
@@ -3798,6 +4108,143 @@
             <span class="epq-tag">HNSW</span>
             <span class="epq-tag">IVF</span>
             <span class="epq-tag">RAG</span>
+          </div>
+        </div>
+
+
+        <!-- ============================== -->
+        <!-- E10.04 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E10.04" data-difficulty="architect" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E10.04</div>
+            <div class="epq-question">ES Mapping 与动态模板：text/keyword、分词器与字段爆炸治理<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>text 可分词检索；keyword 精确聚合/排序；常双字段</li>
+              <li>动态映射易字段爆炸；生产用严格 mapping + dynamic模板</li>
+              <li>中文分词：IK 等插件；同义词/停用词进版本化配置</li>
+              <li>变更 mapping 多数字段不可就地改类型，需 reindex</li>
+              <li>深挖：E10.01/E10.02；篇章 C11 ES</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>Mapping 是搜索相关性与聚合正确性的合同。未知字段用 <code class="inline-code">dynamic: strict</code> 或模板归到 keyword，避免海量 field 拖垮集群状态。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>索引模板 + ILM；改分词走新索引影子切换；监控 field 数量与 mapping 更新。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: 为何 keyword 不做全文？</span><span class="a">A: 整值单一 token，适合过滤聚合，不适合分词召回。</span></li>
+              <li><span class="q">Q: 能否改已有字段类型？</span><span class="a">A: 多数不行；需新索引 + reindex。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">Mapping</span>
+            <span class="epq-tag">分词</span>
+            <span class="epq-tag">ES</span>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E10.05 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E10.05" data-difficulty="senior" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E10.05</div>
+            <div class="epq-question">BM25 与相关性调优：k1/b、字段加权与业务信号融合<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>BM25：TF 饱和 + IDF + 长度归一；默认 k1≈1.2、b≈0.75</li>
+              <li>调参：长文本字段降 b；标题等高权字段 boost</li>
+              <li>功能分：业务质量分/时效 decay 与 BM25 加权融合</li>
+              <li>评估：NDCG/人工标注；忌只调感观</li>
+              <li>深挖：E10.01；RAG 混合检索见 E10.03/E10.06</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>纯词法相关不够时，用 <code class="inline-code">function_score</code> 或检索后重排。调 k1/b 前先修分词与同义词，否则参数无效。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>离线评测集固化；每次调参 A/B；记录查询形状（短词/长句）分别出报告。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: k1 太大怎样？</span><span class="a">A: 词频影响更线性，易被堆词文档占优。</span></li>
+              <li><span class="q">Q: BM25 能替向量吗？</span><span class="a">A: 不能；关键词精确与向量语义互补，生产常混合。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">BM25</span>
+            <span class="epq-tag">相关性</span>
+            <span class="epq-tag">ES</span>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- E10.06 -->
+        <!-- ============================== -->
+        <div class="qa-card epq-card" id="E10.06" data-difficulty="architect" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E10.06</div>
+            <div class="epq-question">RAG / 向量同步速查：双写一致性、重建切换与评测门禁<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>主存仍是业务 DB；向量库是派生索引，须可重建</li>
+              <li>同步：Outbox/CDC → 嵌入任务；禁止无补偿双写</li>
+              <li>切换：影子索引 + 流量镜像 + 一键回滚</li>
+              <li>门禁：召回率/延迟/幻觉评测；Prompt/模型版本绑定</li>
+              <li>深挖：E10.03；C12 RAG/Agent；G 卡 AI 评测</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>向量滞后窗口要对业务可见（近实时承诺）。删除/更新必须进同步管道，避免「DB 已删检索仍命中」。</p>
+            <p>重建当发布：版本化 collection、双跑对比、达标再切主。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>同步 lag 告警；重建剧本与回滚；评测集随知识库变更回归。禁止只看写入吞吐。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: 为何不把向量库当主库？</span><span class="a">A: 事务/关联/审计弱；应以 DB 为准可重建。</span></li>
+              <li><span class="q">Q: 双写最常见事故？</span><span class="a">A: 一边成功一边失败无补偿，导致长期不一致。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">RAG</span>
+            <span class="epq-tag">向量</span>
+            <span class="epq-tag">一致性</span>
           </div>
         </div>
 

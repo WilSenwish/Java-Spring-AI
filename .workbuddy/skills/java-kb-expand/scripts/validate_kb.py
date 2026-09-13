@@ -7,6 +7,7 @@ java-kb-expand · 全量校验脚本（通用版）
 然后运行：python3 validate_kb.py
 
 校验项：
+  0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P27–P42 等散文位，防页头「本页 N 道」漂移）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（11 项：总量/优先级/难度/方法论/类型）
@@ -40,7 +41,7 @@ ENGINEERING = _cfg["counts"].get("engineering", 0)
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 # 注意：方法论/工程化卡默认不进 overview；含 M/G 时跳过 overview 落位检查
-NEW_IDS = ["M12.01", "G01.01"]  # 例：["C13.13"] 或 ["C10.26", "S04.06"]
+NEW_IDS = ["E06.04","E06.05","E06.06","E09.04","E09.05","E09.06","E10.04","E10.05","E10.06","C11.25"]
 
 # 4 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
 AGG_FILES = {
@@ -71,7 +72,36 @@ def all_mind_files():
     return [p for p in glob.glob(f"{MIND_DIR}/mind-*.html")
             if os.path.basename(p) != "index.html"]
 
+def run_sync_counts_check():
+    """散文计数位（P27–P42 等）与全部 positions 必须与 kb-counts.json 一致。
+    改数入口：sync_counts.py bump/apply；禁止只改 HTML 散文数字。
+    """
+    script = os.path.join(os.path.dirname(__file__), "sync_counts.py")
+    if not os.path.isfile(script):
+        check(False, f"[散文计数] 未找到 sync_counts.py: {script}")
+        return
+    import subprocess
+    r = subprocess.run(
+        [sys.executable, script, "check"],
+        cwd=BASE,
+        capture_output=True,
+        text=True,
+    )
+    out = (r.stdout or "") + (r.stderr or "")
+    # 抽出 FAIL 行；无 FAIL 且 exit 0 则 PASS
+    fails = [ln for ln in out.splitlines() if ln.startswith("FAIL ")]
+    if r.returncode == 0 and not fails:
+        check(True, "[散文计数/SSOT] sync_counts.py check 全部通过（含 P27–P42 散文位）")
+    else:
+        for ln in fails[:12]:
+            print(ln)
+        check(False, f"[散文计数/SSOT] sync_counts.py check 失败 exit={r.returncode} fail行={len(fails)}")
+
+
 def main():
+    # 0) 权威计数位（含散文）——必须先于其他统计断言
+    run_sync_counts_check()
+
     # 4 聚合页 + 全部章节 + 全部导图（红线校验覆盖全站）
     texts = {k: read(v) for k, v in AGG_FILES.items()}
     chap_files = all_chapter_files()
