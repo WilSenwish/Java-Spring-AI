@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>生产踩坑心智地图 — Java 工程能力知识库</title>
+    <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+    <style>
+
+      .map-hero {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 1rem;
+        text-align: center;
+      }
+      .map-hero h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 0.5rem;
+      }
+      .map-hero .subtitle {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 820px;
+        margin: 0 auto 1rem;
+      }
+      .map-legend {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+      .map-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        color: var(--ink);
+      }
+      .map-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .map-body {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem 3rem;
+      }
+      .map-overview {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+        margin: var(--space-lg) 0;
+      }
+      .map-col {
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
+        background: var(--bg2);
+      }
+      .map-col h2 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        color: var(--danger);
+      }
+      .map-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .map-col li {
+        font-size: 0.88rem;
+        padding: 0.35rem 0 0.35rem 1rem;
+        border-bottom: 1px dashed var(--rule);
+        position: relative;
+      }
+      .map-col li:last-child {
+        border-bottom: none;
+      }
+      .map-col li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.85rem;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--danger);
+      }
+      .map-col.col-method li::before {
+        background: var(--warn);
+      }
+      .map-col.col-principle li::before {
+        background: var(--accent2);
+      }
+      details.map-card {
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-md);
+        margin: var(--space-sm) 0;
+        background: #fff;
+        overflow: hidden;
+      }
+      details.map-card summary {
+        cursor: pointer;
+        padding: var(--space-sm) var(--space-md);
+        font-weight: 600;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      details.map-card summary::-webkit-details-marker {
+        display: none;
+      }
+      details.map-card summary::before {
+        content: "▸";
+        color: var(--danger);
+      }
+      details.map-card[open] summary::before {
+        content: "▾";
+      }
+      details.map-card .map-body-text {
+        padding: 0 var(--space-md) var(--space-xs);
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.65;
+      }
+      details.map-card .map-tags {
+        padding: 0 var(--space-md) var(--space-sm);
+      }
+      .map-tag {
+        font-size: 0.72rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid rgba(220, 38, 38, 0.35);
+        color: #b91c1c;
+        text-decoration: none;
+        background: rgba(220, 38, 38, 0.08);
+      }
+      .theme-h {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: var(--space-lg) 0 var(--space-sm);
+        padding-left: 0.5rem;
+        border-left: 4px solid var(--danger);
+      }
+      .qline {
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 400;
+      }
+      .map-note {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-top: var(--space-md);
+        padding-top: var(--space-sm);
+        border-top: 1px solid var(--rule);
+      }
+      @media (max-width: 760px) {
+        .map-overview {
+          grid-template-columns: 1fr;
+        }
+      }
+        </style>
+  </head>
+  <body>
+    <section class="map-hero">
+      <h1>生产踩坑 · 心智地图</h1>
+      <p class="subtitle"><span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P99">8</span> 张 K 卡 · 八组事故域与 G 门禁一一对应。每卡展开含<strong>事故 / 识别 / 止血</strong>；门禁字段见工程化页，本页记翻车怎么认与怎么停。</p>
+      <div class="map-legend">
+        <span><span class="map-dot" style="background: var(--danger)"></span>发布 / 可观测 / 容量</span>
+        <span><span class="map-dot" style="background: var(--warn)"></span>数据 / 缓存 / 调用</span>
+        <span><span class="map-dot" style="background: #b91c1c"></span>AI / 安全</span>
+      </div>
+    </section>
+
+    <div class="map-body">
+      <nav class="chapter-nav-top">
+        <a href="mind-engineering-practices.html" class="nav-prev">← 工程化 导图</a>
+        <span class="nav-center">
+          <a href="../java-architect-interview/index.html" class="nav-mind">全部章节 &#8599;</a>
+          <a href="index.html" class="nav-mind">导图总览 &#8599;</a>
+          <a href="../java-architect-interview/chapter-production-pitfalls.html" class="nav-mind">本导图对应的章节 &#8599;</a>
+        </span>
+        <a href="mind-01-jvm-memory-classloading.html" class="nav-next">第 01 篇导图 →</a>
+      </nav>
+
+      <div class="map-overview">
+        <div class="map-col">
+          <h2>事故主线</h2>
+          <ul>
+            <li>K01 灰度未卡点全量</li>
+            <li>K02 告警不可行动</li>
+            <li>K03 池与 Limit 假可用</li>
+            <li>K04 DDL/修复不可回滚</li>
+          </ul>
+        </div>
+        <div class="map-col col-method">
+          <h2>放大与静默</h2>
+          <ul>
+            <li>K05 穿透击穿雪崩误判</li>
+            <li>K06 超时×重试 / 双写无对账</li>
+            <li>K07 无黄金集质量塌方</li>
+            <li>K08 密钥/CVE 应急踩坑</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mermaid">
+flowchart TB
+    ROOT["生产踩坑 K"]
+    K01["K01 发布"]
+    K02["K02 可观测"]
+    K03["K03 容量"]
+    K04["K04 数据"]
+    K05["K05 缓存"]
+    K06["K06 调用"]
+    K07["K07 AI"]
+    K08["K08 安全"]
+    ROOT --> K01
+    ROOT --> K02
+    ROOT --> K03
+    ROOT --> K04
+    ROOT --> K05
+    ROOT --> K06
+    ROOT --> K07
+    ROOT --> K08
+      </div>
+      <p class="map-note">旁注：踩坑 <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P100">8</span> 卡不计入题目总量；全站合计 <span class="kb-count" data-kb-count="sum_all" data-kb-pos="P101">517</span>。节点内为纯文本（LX）；三层正文以章节页为准。</p>
+
+      <h3 class="theme-h">K01 · 发布变更事故 <span class="qline">· 与 G01 同域</span></h3>
+      <details class="map-card">
+        <summary>K01.01 · 灰度未卡点全量事故：信号与回滚窗 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>变更在观察窗口未结束时被人工扩到全量，错误率在扩量后 3 分钟才被业务投诉发现；回滚镜像可用但配置中心仍是有毒开关。</p><p><strong>识别：</strong>门禁缺一：没有卡点指标就没有否决权；回滚只退镜像不退配置等于假回滚。爆炸半径 = 批大小 × 暴露时长；观察窗口要覆盖依赖传播与缓存刷新。</p><p><strong>止血：</strong>值班顺序：①冻结扩量 ②看卡点看板（成功率/P99/依赖饱和）③三维回滚（镜像+配置+流量）④保留现场 Trace/变更单号 ⑤复盘写清「谁拥有否决权」。互链 G01.01 / M12.02。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <h3 class="theme-h">K02 · 可观测失灵 <span class="qline">· 与 G02 同域</span></h3>
+      <details class="map-card">
+        <summary>K02.01 · 有监控仍找不到人：告警不可行动 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>凌晨告警风暴：CPU/存活探针全绿，但下单成功率已掉到 80%；值班不知先看哪块板、Runbook 链失效、Oncall 路由到已离职账号。</p><p><strong>识别：</strong>指标发现异常、追踪定位路径、日志给上下文；告警必须绑定责任人与 Runbook。业务成功率优先于资源指标放行。</p><p><strong>止血：</strong>值班顺序：①先确认用户可感指标（成功率/关键路径）②用 TraceId 抽一条失败请求 ③对照 Runbook 止血动作 ④告警降噪（合并/静默非行动项）。互链 G02 / M12.01。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <h3 class="theme-h">K03 · 容量假可用 <span class="qline">· 与 G03 同域</span></h3>
+      <details class="map-card">
+        <summary>K03.01 · 池子与 K8s limit 不一致的假可用 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>HPA 加副本后吞吐不升：应用线程池/连接池仍按旧配额，Pod limit 已到顶；探针 Ready 但业务线程全堵在池等待。</p><p><strong>识别：</strong>应用池化与编排配额必须同一容量模型；拒绝路径要可观测（队列长度、拒绝计数、等待时间）。假可用 = Ready 真但工作队列已死。</p><p><strong>止血：</strong>值班顺序：①看池拒绝/等待指标 ②对照 Limit/Request 与池 max ③临时扩池或降流量 ④修齐容量模型再扩副本。互链 G03 / M12.05。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <h3 class="theme-h">K04 · 数据变更翻车 <span class="qline">· 与 G04 同域</span></h3>
+      <details class="map-card">
+        <summary>K04.01 · 在线 DDL / 修复不可回滚 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>高峰锁表改列导致写入堆积；数据修复 SQL 无备份窗口，误删后只能从昨日冷备恢复，RPO 不可接受。</p><p><strong>识别：</strong>DDL/数据修复默认按发布：可回滚或可补偿；在线 DDL 工具与锁等待监控是门禁。不可逆变更必须写补偿方案而非口头「再改回来」。</p><p><strong>止血：</strong>值班顺序：①停变更/杀长事务 ②看锁等待与复制延迟 ③回滚或切只读止血 ④用备份/补偿恢复 ⑤补门禁字段。互链 G04 / M12.10。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <h3 class="theme-h">K05 · 缓存误判 <span class="qline">· 与 G05 同域</span></h3>
+      <details class="map-card">
+        <summary>K05.01 · 穿透击穿雪崩的值班误判 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>把击穿当穿透：热点 key 过期瞬间打爆 DB；或雪崩时关掉缓存「直打 DB」二次放大；大 key 驱逐引发局部抖动被当成全网故障。</p><p><strong>识别：</strong>穿透=无数据乱查；击穿=热点过期；雪崩=大批同时失效。处置不同：空值/布隆、互斥重建/逻辑过期、随机 TTL/预热；失败可降级写进契约。</p><p><strong>止血：</strong>值班顺序：①分型（穿透/击穿/雪崩/大key）②看 DB QPS 与缓存命中 ③开互斥/降级开关 ④禁「关缓存直打」除非配额确认。互链 G05 / M12.11。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <h3 class="theme-h">K06 · 调用放大 <span class="qline">· 与 G06 同域</span></h3>
+      <details class="map-card">
+        <summary>K06.01 · 超时×重试放大；双写无对账 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>下游慢导致超时，客户端重试 3 次 × 扇出 5 = 流量 15 倍；双写库存与消息无对账，出现「库有单、消息无」长时间无人知。</p><p><strong>识别：</strong>同步链路预算入契约；超时与重试必须乘积可算。双写用 Outbox/CDC + 对账任务；无对账的双写是定时炸弹。</p><p><strong>止血：</strong>值班顺序：①算放大倍数并降重试/熔断 ②对齐超时预算 ③双写差异走对账补齐 ④改参数可回滚。互链 G06 / M12.03/04。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <h3 class="theme-h">K07 · AI 静默塌方 <span class="qline">· 与 G07 同域</span></h3>
+      <details class="map-card">
+        <summary>K07.01 · 无黄金集上线的静默质量塌方 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>Prompt/工具/模型小改后线上无报错，但客服工单里「答非所问」翻倍；无黄金集回归，质量塌方靠人工偶然发现。</p><p><strong>识别：</strong>AI 变更与发版同级：制品版本化、黄金集卡点、工具副作用分级。静默失败比抛异常更危险。</p><p><strong>止血：</strong>值班顺序：①冻结扩量/回滚制品版本 ②跑黄金集 diff ③看工具调用副作用审计 ④补评测门禁再放量。互链 G07 / M12.14。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <h3 class="theme-h">K08 · 安全应急踩坑 <span class="qline">· 与 G08 同域</span></h3>
+      <details class="map-card">
+        <summary>K08.01 · 密钥/依赖漏洞应急与轮换踩坑 <span class="qline">→ 正文</span></summary>
+        <div class="map-body-text"><p><strong>事故：</strong>CVE 紧急升级跳过最小回归导致启动失败；密钥轮换无双密钥窗口，全球鉴权失败；依赖漏洞修复后 SBOM 未更新，二次排查找不到版本。</p><p><strong>识别：</strong>密钥必须可轮换（双密钥窗口）；供应链可追溯（SBOM/签名）；CVE 快车道仍要最小回归与可回滚镜像。</p><p><strong>止血：</strong>值班顺序：①定级（泄漏/CVE/证书到期）②双密钥或回滚镜像止血 ③补最小回归再抬升 ④更新 SBOM 与吊销演练记录。互链 G08 / M09。</p></div>
+        <div class="map-tags">
+          <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.01">打开 K 卡</a>
+        </div>
+      </details>
+
+      <nav class="chapter-nav">
+        <a href="mind-engineering-practices.html" class="nav-prev">← 工程化 导图</a>
+        <span class="nav-center">
+          <a href="../java-architect-interview/index.html" class="nav-mind">全部章节 &#8599;</a>
+          <a href="index.html" class="nav-mind">导图总览 &#8599;</a>
+          <a href="../java-architect-interview/chapter-production-pitfalls.html" class="nav-mind">本导图对应的章节 &#8599;</a>
+        </span>
+        <a href="mind-01-jvm-memory-classloading.html" class="nav-next">第 01 篇导图 →</a>
+      </nav>
+    </div>
+    <script src="../java-architect-interview/assets/nav.js"></script>
+    <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.mermaid) mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+      });
+    </script>
+  </body>
+</html>

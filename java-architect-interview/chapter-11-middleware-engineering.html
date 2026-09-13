@@ -88,6 +88,15 @@
           <li>
             <a href="#C11.25"><span class="toc-number">C11.25</span>Flink 有状态流计算</a>
           </li>
+          <li>
+            <a href="#C11.26"><span class="toc-number">C11.26</span>消息消费积压怎么分级处置</a>
+          </li>
+          <li>
+            <a href="#C11.27"><span class="toc-number">C11.27</span>本地消息表落地清单</a>
+          </li>
+          <li>
+            <a href="#C11.28"><span class="toc-number">C11.28</span>死信与延迟消息值班</a>
+          </li>
         </ol>
       </aside>
 
@@ -106,7 +115,7 @@
           <h1 class="chapter-title">中间件与工程化</h1>
           <p class="chapter-subtitle">本篇把中间件当可产品化的工程能力：流程与规则、认证、可观测，再到搜索 / 消息 / 调度。</p>
           <div class="chapter-meta">
-            <span>题目数：25</span>
+            <span>题目数：28</span>
             <span class="meta-divider">|</span>
             <span>高级开发 ×7</span>
             <span class="meta-divider">|</span>
@@ -4320,7 +4329,76 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
           </div>
         </div>
 
-        <!-- ============ 章节间导航 ============ -->
+                <div class="qa-card" id="C11.26" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C11.26</div>
+            <div class="qa-question">消息消费积压怎么分级处置：扩容、跳过、降速还是切备？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>积压不是「多加几个消费者」一句话：要先分型（流量突增 / 消费变慢 / 毒消息卡住 / 位点错误）。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>分级：L1 看积压速率与消费 RT；L2 是否单分区/单队列热点；L3 是否反复失败同一批消息；L4 业务是否允许丢弃/延迟。动作：扩消费者 → 限速生产 → 毒消息进死信 → 必要时只读降级。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>参数：并发消费者、拉取批量、消费超时、最大重试、死信 Topic、位点重置权限（双人）。看板：积压量、消费成功率、死信速率。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：盲目 reset 位点丢数据；无限重试打爆下游；扩容后单分区仍串行。回滚点：恢复原并发与订阅组配置。</p></div>
+          </div>
+        </div>
+
+        <div class="qa-card" id="C11.27" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C11.27</div>
+            <div class="qa-question">本地消息表落地清单：事务消息最小闭环怎么上？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>本地消息表解决「本地事务与发消息」一致性，不是银弹。桥接目标是能按清单落地：表结构、扫描、重试、对账、清理。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>清单：①同库事务写业务+消息行 ②状态机（NEW/SENT/DONE/DEAD）③定时扫描发送 ④消费幂等 ⑤对账任务 ⑥归档清理。上线前演练「发送失败重试」与「重复投递」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>字段建议：biz_key、payload、status、retry_cnt、next_time、updated_at。扫描间隔与批量可配；DEAD 告警可行动。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：消息表与业务不同库；无幂等导致重复扣款；扫描无退避打爆 MQ。关联 G06.03。</p></div>
+          </div>
+        </div>
+
+        <div class="qa-card" id="C11.28" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C11.28</div>
+            <div class="qa-question">死信与延迟消息值班：堆积、重放与顺序怎么处理？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>死信不是垃圾桶：要有分类、重放策略与审计。延迟消息常见坑是「到期瞬间洪峰」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>值班顺序：①死信速率与原因码 ②抽样 payload ③可修则修后重放（限速）④不可修则人工工单 ⑤延迟队列看到期曲线，必要时削峰。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>开关：死信重放速率、最大重放次数、延迟级别表、到期告警阈值。禁止无审计的生产控制台重放。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：死信无限回流原 Topic；延迟到期打满下游；重放打乱业务顺序却无幂等。</p></div>
+          </div>
+        </div>
+
+<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-10-microservice-cloud.html" class="nav-prev">← 第 10 篇 微服务与云原生</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-11-middleware-engineering.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

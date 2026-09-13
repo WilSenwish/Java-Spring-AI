@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>生产踩坑 — Java 工程能力知识库</title>
+    <link rel="stylesheet" href="assets/design-system.css" />
+    <style>
+
+      .qa-layer[data-layer="insight"] .qa-layer-title::before {
+        background: var(--danger);
+      }
+      .qa-layer[data-layer="principle"] .qa-layer-title::before {
+        background: var(--warn);
+      }
+      .qa-layer[data-layer="application"] .qa-layer-title::before {
+        background: var(--accent);
+      }
+      .eng-group {
+        margin: var(--space-lg) 0;
+      }
+      .eng-group-lead {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.65;
+        margin: -0.25rem 0 var(--space-md);
+        padding: var(--space-sm) var(--space-md);
+        background: rgba(220, 38, 38, 0.04);
+        border-left: 3px solid var(--danger);
+        border-radius: 0 8px 8px 0;
+      }
+      .eng-group-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0 0 var(--space-md);
+        padding-bottom: var(--space-xs);
+        border-bottom: 2px solid var(--danger);
+      }
+      .sidebar-toc .toc-group {
+        margin-bottom: var(--space-md);
+      }
+      .sidebar-toc .toc-group-title,
+      .sidebar-toc a.toc-group-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: var(--danger);
+        margin-bottom: 4px;
+        padding-left: 10px;
+        text-decoration: none;
+        display: block;
+      }
+      .sidebar-toc a.toc-group-title:hover {
+        color: #b91c1c;
+        background: rgba(220, 38, 38, 0.06);
+      }
+      .sidebar-toc a.toc-group-title.active {
+        color: var(--danger);
+        background: rgba(220, 38, 38, 0.1);
+      }
+        </style>
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <aside class="sidebar-toc">
+        <h3>本篇目录</h3>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K01">发布变更事故</a>
+          <ol>
+            <li>
+              <a href="#K01.01"><span class="toc-number">K01.01</span>灰度未卡点全量事故：信号与回滚窗</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K02">可观测失灵</a>
+          <ol>
+            <li>
+              <a href="#K02.01"><span class="toc-number">K02.01</span>有监控仍找不到人：告警不可行动</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K03">容量假可用</a>
+          <ol>
+            <li>
+              <a href="#K03.01"><span class="toc-number">K03.01</span>池子与 K8s limit 不一致的假可用</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K04">数据变更翻车</a>
+          <ol>
+            <li>
+              <a href="#K04.01"><span class="toc-number">K04.01</span>在线 DDL / 修复不可回滚</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K05">缓存误判</a>
+          <ol>
+            <li>
+              <a href="#K05.01"><span class="toc-number">K05.01</span>穿透击穿雪崩的值班误判</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K06">调用放大</a>
+          <ol>
+            <li>
+              <a href="#K06.01"><span class="toc-number">K06.01</span>超时×重试放大；双写无对账</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K07">AI 静默塌方</a>
+          <ol>
+            <li>
+              <a href="#K07.01"><span class="toc-number">K07.01</span>无黄金集上线的静默质量塌方</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title" href="#K08">安全应急踩坑</a>
+          <ol>
+            <li>
+              <a href="#K08.01"><span class="toc-number">K08.01</span>密钥/依赖漏洞应急与轮换踩坑</a>
+            </li>
+          </ol>
+        </div>
+      </aside>
+      <main class="content-main">
+        <nav class="chapter-nav-top">
+          <a href="chapter-engineering-practices.html" class="nav-prev">← 工程化要点</a>
+          <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-production-pitfalls.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+          <a href="chapter-overview-priority.html" class="nav-next">优先级总览 →</a>
+        </nav>
+        <div class="chapter-header">
+          <div class="chapter-number">PRODUCTION PITFALLS / 生产踩坑</div>
+          <h1 class="chapter-title">生产踩坑</h1>
+          <p class="chapter-subtitle">与工程化门禁同域的事故翻车专篇：八组共 <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P94">8</span> 卡（K 前缀）。回答「线上真实怎么翻车、如何识别与止血」——不计入题目总量。</p>
+          <div class="chapter-meta">
+            <span><span class="kb-count kb-count-local" data-kb-count-local="eng-groups">8</span> 组 · <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P92">8</span> 卡</span>
+            <span class="meta-divider">|</span>
+            <span>不计入题目总量 <span class="kb-count" data-kb-count="total" data-kb-pos="P98">394</span></span>
+            <span class="meta-divider">|</span>
+            <span>ID 前缀 K</span>
+            <span class="meta-divider">|</span>
+            <span>三层：事故 / 识别 / 止血</span>
+          </div>
+          <div class="chapter-lead">
+            <div class="chapter-lead-block">
+              <div class="chapter-lead-label">定位三角</div>
+              <div class="chapter-lead-chain">
+                <p>与方法论、工程化门禁并列，专记<strong>事故怎么认、怎么停</strong>。门禁在 G，翻车叙事在 K；思维纪律在 M12。</p>
+                <ol>
+                  <li><strong>M12</strong>：为什么要有纪律（思维）。</li>
+                  <li><strong>G</strong>：上线前勾什么（门禁）。</li>
+                  <li><strong>K</strong>：线上真实怎么翻车、如何识别与止血（事故模式）。</li>
+                </ol>
+              </div>
+            </div>
+            <div class="chapter-lead-block">
+              <div class="chapter-lead-label">与工程化对照</div>
+              <ul class="chapter-lead-points">
+                <li>八组与 <a href="chapter-engineering-practices.html">工程化要点</a> G01–G08 一一对应，便于互链。</li>
+                <li>每卡三层：事故叙事 → 识别要点 → 止血与复盘（对齐 G 的洞察 / 原理 / 表达）。</li>
+                <li>导图：<a href="../java-architect-interview-mind/mind-production-pitfalls.html">生产踩坑心智地图</a>。</li>
+              </ul>
+            </div>
+            <div class="chapter-lead-block">
+              <div class="chapter-lead-label">怎么用本篇</div>
+              <ul class="chapter-lead-points">
+                <li>按事故域选组：发布 K01、可观测 K02、容量 K03、数据 K04、缓存 K05、调用 K06、AI K07、安全 K08。</li>
+                <li>先读同行 G 卡门禁，再用本卡核对「若门禁被绕过会怎样」。</li>
+                <li>值班时优先抄「止血与复盘」层的顺序，事后把缺口写回 G 门禁字段。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <p>阅读建议：先扫八组标题建立索引；出事时按组打开对应 K 卡跟值班顺序走。细节门禁与变更单字段以工程化 G 页为准，本页只补事故模式与止血路径。</p>
+        <section class="eng-group" id="K01">
+          <h2 class="eng-group-title">发布变更事故</h2>
+
+          <p class="eng-group-lead">与 G01 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K01.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K01.01</div>
+              <div class="qa-question">灰度未卡点全量事故：信号与回滚窗<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>变更在观察窗口未结束时被人工扩到全量，错误率在扩量后 3 分钟才被业务投诉发现；回滚镜像可用但配置中心仍是有毒开关。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>门禁缺一：没有卡点指标就没有否决权；回滚只退镜像不退配置等于假回滚。爆炸半径 = 批大小 × 暴露时长；观察窗口要覆盖依赖传播与缓存刷新。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①冻结扩量 ②看卡点看板（成功率/P99/依赖饱和）③三维回滚（镜像+配置+流量）④保留现场 Trace/变更单号 ⑤复盘写清「谁拥有否决权」。互链 G01.01 / M12.02。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K02">
+          <h2 class="eng-group-title">可观测失灵</h2>
+
+          <p class="eng-group-lead">与 G02 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K02.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K02.01</div>
+              <div class="qa-question">有监控仍找不到人：告警不可行动<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>凌晨告警风暴：CPU/存活探针全绿，但下单成功率已掉到 80%；值班不知先看哪块板、Runbook 链失效、Oncall 路由到已离职账号。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>指标发现异常、追踪定位路径、日志给上下文；告警必须绑定责任人与 Runbook。业务成功率优先于资源指标放行。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①先确认用户可感指标（成功率/关键路径）②用 TraceId 抽一条失败请求 ③对照 Runbook 止血动作 ④告警降噪（合并/静默非行动项）。互链 G02 / M12.01。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K03">
+          <h2 class="eng-group-title">容量假可用</h2>
+
+          <p class="eng-group-lead">与 G03 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K03.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K03.01</div>
+              <div class="qa-question">池子与 K8s limit 不一致的假可用<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>HPA 加副本后吞吐不升：应用线程池/连接池仍按旧配额，Pod limit 已到顶；探针 Ready 但业务线程全堵在池等待。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>应用池化与编排配额必须同一容量模型；拒绝路径要可观测（队列长度、拒绝计数、等待时间）。假可用 = Ready 真但工作队列已死。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①看池拒绝/等待指标 ②对照 Limit/Request 与池 max ③临时扩池或降流量 ④修齐容量模型再扩副本。互链 G03 / M12.05。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K04">
+          <h2 class="eng-group-title">数据变更翻车</h2>
+
+          <p class="eng-group-lead">与 G04 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K04.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K04.01</div>
+              <div class="qa-question">在线 DDL / 修复不可回滚<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>高峰锁表改列导致写入堆积；数据修复 SQL 无备份窗口，误删后只能从昨日冷备恢复，RPO 不可接受。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>DDL/数据修复默认按发布：可回滚或可补偿；在线 DDL 工具与锁等待监控是门禁。不可逆变更必须写补偿方案而非口头「再改回来」。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①停变更/杀长事务 ②看锁等待与复制延迟 ③回滚或切只读止血 ④用备份/补偿恢复 ⑤补门禁字段。互链 G04 / M12.10。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K05">
+          <h2 class="eng-group-title">缓存误判</h2>
+
+          <p class="eng-group-lead">与 G05 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K05.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K05.01</div>
+              <div class="qa-question">穿透击穿雪崩的值班误判<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>把击穿当穿透：热点 key 过期瞬间打爆 DB；或雪崩时关掉缓存「直打 DB」二次放大；大 key 驱逐引发局部抖动被当成全网故障。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>穿透=无数据乱查；击穿=热点过期；雪崩=大批同时失效。处置不同：空值/布隆、互斥重建/逻辑过期、随机 TTL/预热；失败可降级写进契约。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①分型（穿透/击穿/雪崩/大key）②看 DB QPS 与缓存命中 ③开互斥/降级开关 ④禁「关缓存直打」除非配额确认。互链 G05 / M12.11。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K06">
+          <h2 class="eng-group-title">调用放大</h2>
+
+          <p class="eng-group-lead">与 G06 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K06.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K06.01</div>
+              <div class="qa-question">超时×重试放大；双写无对账<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>下游慢导致超时，客户端重试 3 次 × 扇出 5 = 流量 15 倍；双写库存与消息无对账，出现「库有单、消息无」长时间无人知。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>同步链路预算入契约；超时与重试必须乘积可算。双写用 Outbox/CDC + 对账任务；无对账的双写是定时炸弹。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①算放大倍数并降重试/熔断 ②对齐超时预算 ③双写差异走对账补齐 ④改参数可回滚。互链 G06 / M12.03/04。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K07">
+          <h2 class="eng-group-title">AI 静默塌方</h2>
+
+          <p class="eng-group-lead">与 G07 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K07.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K07.01</div>
+              <div class="qa-question">无黄金集上线的静默质量塌方<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>Prompt/工具/模型小改后线上无报错，但客服工单里「答非所问」翻倍；无黄金集回归，质量塌方靠人工偶然发现。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>AI 变更与发版同级：制品版本化、黄金集卡点、工具副作用分级。静默失败比抛异常更危险。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①冻结扩量/回滚制品版本 ②跑黄金集 diff ③看工具调用副作用审计 ④补评测门禁再放量。互链 G07 / M12.14。</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K08">
+          <h2 class="eng-group-title">安全应急踩坑</h2>
+
+          <p class="eng-group-lead">与 G08 同域：门禁在 G，翻车叙事与值班止血在本卡。</p>
+
+          <div class="qa-card" id="K08.01" data-difficulty="senior">
+            <div class="qa-header">
+              <div class="qa-badge">K08.01</div>
+              <div class="qa-question">密钥/依赖漏洞应急与轮换踩坑<span class="difficulty difficulty-senior">高级开发</span></div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body"><p>CVE 紧急升级跳过最小回归导致启动失败；密钥轮换无双密钥窗口，全球鉴权失败；依赖漏洞修复后 SBOM 未更新，二次排查找不到版本。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body"><p>密钥必须可轮换（双密钥窗口）；供应链可追溯（SBOM/签名）；CVE 快车道仍要最小回归与可回滚镜像。</p></div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body"><p>值班顺序：①定级（泄漏/CVE/证书到期）②双密钥或回滚镜像止血 ③补最小回归再抬升 ④更新 SBOM 与吊销演练记录。互链 G08 / M09。</p></div>
+            </div>
+          </div>
+        </section>
+        <nav class="chapter-nav">
+          <a href="chapter-engineering-practices.html" class="nav-prev">← 工程化要点</a>
+          <span class="nav-center"><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-production-pitfalls.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+          <a href="chapter-overview-priority.html" class="nav-next">优先级总览 →</a>
+        </nav>
+      </main>
+    </div>
+    <script src="assets/nav.js"></script>
+  </body>
+</html>

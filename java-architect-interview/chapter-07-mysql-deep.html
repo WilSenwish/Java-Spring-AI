@@ -58,6 +58,9 @@
           <li>
             <a href="#C07.15"><span class="toc-number">C07.15</span>MyBatis-Plus vs JPA 选型</a>
           </li>
+          <li>
+            <a href="#C07.16"><span class="toc-number">C07.16</span>事务超时与长事务止血</a>
+          </li>
         </ol>
       </aside>
 
@@ -76,7 +79,7 @@
           <h1 class="chapter-title">MySQL 深度原理</h1>
           <p class="chapter-subtitle">本篇按「计划 → 事务锁 → 慢 SQL 闭环 → 扩展」串起单机 MySQL 全栈，扩展前先吃透引擎。</p>
           <div class="chapter-meta">
-            <span>题目数：15</span>
+            <span>题目数：16</span>
             <span class="meta-divider">|</span>
             <span>高级开发 ×10</span>
             <span class="meta-divider">|</span>
@@ -2740,7 +2743,30 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
           </div>
         </div>
 
-        <!-- ============ 章节间导航 ============ -->
+                <div class="qa-card" id="C07.16" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C07.16</div>
+            <div class="qa-question">事务超时与长事务止血：从锁等到回滚的值班路径？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>长事务拖垮并发：锁等待、复制延迟、Undo 膨胀。值班先止血再追代码。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>顺序：①`innodb_trx`/进程列表找长事务 ②评估能否 kill ③限流写入入口 ④看是否缺提交/大事务批处理 ⑤改小事务与超时配置走变更。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>信号：锁等待、history list、复制延迟。参数：`innodb_lock_wait_timeout`、应用事务超时、批大小。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：盲目 kill 回滚更久；在长事务里做远程调用；用更大超时「拖过高峰」。</p></div>
+          </div>
+        </div>
+
+<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-06-spring-boot-modern.html" class="nav-prev">← 第 06 篇 Spring Boot 与现代框架</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-07-mysql-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

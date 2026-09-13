@@ -97,6 +97,12 @@
           <li>
             <a href="#C10.28"><span class="toc-number">C10.28</span>平台工程与内部开发者平台（IDP）</a>
           </li>
+          <li>
+            <a href="#C10.29"><span class="toc-number">C10.29</span>网关超时链路怎么拆</a>
+          </li>
+          <li>
+            <a href="#C10.30"><span class="toc-number">C10.30</span>配置刷新安全回滚值班</a>
+          </li>
         </ol>
       </aside>
 
@@ -115,7 +121,7 @@
           <h1 class="chapter-title">微服务与云原生</h1>
           <p class="chapter-subtitle">本篇从发现与配置走到治理、云原生与平台工程：同步调用有预算，发布用错误预算说话。</p>
           <div class="chapter-meta">
-            <span>题目数：28</span>
+            <span>题目数：30</span>
             <span class="meta-divider">|</span>
             <span>高级开发 ×7</span>
             <span class="meta-divider">|</span>
@@ -5456,7 +5462,53 @@ flowchart TD
           </div>
         </div>
 
-        <!-- ============ 章节间导航 ============ -->
+                <div class="qa-card" id="C10.29" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C10.29</div>
+            <div class="qa-question">网关超时链路怎么拆：从客户端到下游每一跳的超时与排查顺序？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>超时不是单点配置：客户端、网关、服务、下游各有一层；任一层大于上游会导致「上游先断、下游仍占资源」。桥接目标是能画出链路预算并按信号定位卡在哪一跳。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>排查顺序：①确认客户端超时与重试 ②网关全局/路由超时与连接池 ③服务端 Tomcat/WebClient 超时 ④下游依赖超时 ⑤对照 Trace 各 span 耗时。先找「谁先超时」，再找「谁还在重试」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>常用旋钮：Gateway `response-timeout` / Netty 连接超时；Feign/`HttpClient` connect/read；线程池 queue。把「总预算」写进契约：例如客户端 3s = 网关 2.5s = 服务内下游合计 ≤2s。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：只调网关不调客户端；超时后疯狂重试放大；异步回调无超时。回滚点：恢复上一版超时配置（配置当发布）。</p></div>
+          </div>
+        </div>
+
+        <div class="qa-card" id="C10.30" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C10.30</div>
+            <div class="qa-question">配置刷新安全回滚值班：@RefreshScope 之外还要核对什么？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>动态刷新能秒级改行为，也是秒级制造事故的入口。值班要会：识别「配置已推但行为未变 / 行为已变但不可退」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>排查顺序：①变更单与配置版本/MD5 ②实例订阅滞后与快照版本分布 ③刷新后 Bean 是否真重建（对照管理端）④关停开关是否可用 ⑤必要时回滚配置快照而非再推「修复值」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>核对表：生效范围（命名空间/DataId）、灰度实例列表、本地快照兜底、关停开关、双人复核（限流/鉴权/路由）。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：控制台无单改生产；只退镜像不退配置；RefreshScope 代理未覆盖的 Bean 静默不生效。关联 G01.02 / C10.26。</p></div>
+          </div>
+        </div>
+
+<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 分布式系统</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-10-microservice-cloud.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

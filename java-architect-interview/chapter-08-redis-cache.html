@@ -46,6 +46,9 @@
           <li>
             <a href="#C08.11"><span class="toc-number">C08.11</span>Redis Stream 消息队列设计</a>
           </li>
+          <li>
+            <a href="#C08.12"><span class="toc-number">C08.12</span>缓存击穿值班手册</a>
+          </li>
         </ol>
       </aside>
 
@@ -2240,7 +2243,30 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
           </div>
         </div>
 
-        <!-- ============ 章节间导航 ============ -->
+                <div class="qa-card" id="C08.12" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C08.12</div>
+            <div class="qa-question">缓存击穿值班手册：热点过期瞬间如何止血？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>击穿=热点 key 过期瞬间请求打穿到 DB。值班要在分钟级止血，而不是先做架构演讲。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>顺序：①确认热点 key 与 DB QPS 尖刺 ②开互斥重建或逻辑过期开关 ③临时加长 TTL/预热 ④限流该 key ⑤事后加永不过期+异步刷新或本地缓存。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>开关：singleflight/mutex、逻辑过期、热点 key 名单、DB 限流。禁止直接「关缓存」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：当穿透处理乱加空值；关缓存直打；互斥锁变成全局锁。关联 G05 / K05。</p></div>
+          </div>
+        </div>
+
+<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-07-mysql-deep.html" class="nav-prev">← 第 07 篇 MySQL 深度原理</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

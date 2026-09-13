@@ -36,11 +36,12 @@
 分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / mind `card-foot`）须与实际卡片数一致；细则见 `java-architect-interview/docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **379** = 篇章 234 + 核心原理 73 + 场景 72
-- 优先级 **P0=94 / P1=227 / P2=58**（求和 = 379）
-- 难度 **专家 46 / 架构 187 / 高级开发 146**（求和 = 379）
-- 方法论 **91 卡**（M01~M12），不计入 379
-- 工程化 **24 卡**（G01~G08），不计入 379；全站合计 **494** = 题目 + 方法论 + 工程化
+- 题目总量 **394** = 篇章 249 + 核心原理 73 + 场景 72
+- 优先级 **P0=94 / P1=242 / P2=58**（求和 = 394）
+- 难度 **专家 46 / 架构 187 / 高级开发 161**（求和 = 394）
+- 方法论 **91 卡**（M01~M12），不计入 394
+- 工程化 **24 卡**（G01~G08），不计入 394
+- 生产踩坑 **8 卡**（K01~K08），不计入 394；全站合计 **517** = 题目 + 方法论 + 工程化 + 踩坑
 - 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
@@ -136,6 +137,19 @@
 | P87 | `java-architect-interview/index.html` | 章节 index 工程化卡 desc 卡数 |
 | P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
 | P89 | `java-architect-interview-mind/mind-01-jvm-memory-classloading.html` | mind-01 尾注核心原理总量 |
+| P90 | `index.html` | 根 index 踩坑统计卡 |
+| P91 | `java-architect-interview/index.html` | 章节 index 踩坑统计卡 |
+| P92 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
+| P93 | `java-architect-interview-mind/index.html` | mind index idx-meta 踩坑卡片 |
+| P94 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
+| P95 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 卡数 |
+| P96 | `java-architect-interview-mind/index.html` | mind index 踩坑卡 footer 卡数 |
+| P97 | `java-architect-interview-mind/index.html` | mind index 踩坑卡 desc 卡数 |
+| P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 不计入题目总量 |
+| P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
+| P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
+| P101 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注全站合计 |
+| P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

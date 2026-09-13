@@ -109,6 +109,15 @@
           <li>
             <a href="#C12.32"><span class="toc-number">C12.32</span>工具合约：副作用/错误/幂等/版本</a>
           </li>
+          <li>
+            <a href="#C12.33"><span class="toc-number">C12.33</span>RAG 评测集最小闭环</a>
+          </li>
+          <li>
+            <a href="#C12.34"><span class="toc-number">C12.34</span>Prompt/工具变更如何灰度</a>
+          </li>
+          <li>
+            <a href="#C12.35"><span class="toc-number">C12.35</span>模型超时与降级开关</a>
+          </li>
         </ol>
       </aside>
 
@@ -127,7 +136,7 @@
           <h1 class="chapter-title">AI 工程与实践</h1>
           <p class="chapter-subtitle">本篇按「检索先于生成、工具有契约」组织 AI 工程：路由、RAG、Agent/MCP，再到评估与成本。</p>
           <div class="chapter-meta">
-            <span>题目数：32</span>
+            <span>题目数：35</span>
             <span class="meta-divider">|</span>
             <span>高级开发 ×1</span>
             <span class="meta-divider">|</span>
@@ -5634,7 +5643,76 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
           </div>
         </div>
 
-        <!-- ============ 章节间导航 ============ -->
+                <div class="qa-card" id="C12.33" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C12.33</div>
+            <div class="qa-question">RAG 评测集最小闭环：上线前至少跑哪些回归？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>没有黄金集的 RAG 变更等于蒙眼发版。最小闭环：固定问题集 + 期望要点 + 自动/半自动打分 + 卡点阈值。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>闭环：①冻结黄金集版本 ②变更 Prompt/索引/模型 ③跑检索命中率与回答要点覆盖 ④低于阈值阻断 ⑤抽检 Trace（检索文档 ID）。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>最小字段：query、expected_docs/keywords、score、latency、model_version、index_version。阈值示例：要点覆盖 ≥ 基线 −2%。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：只看「能回答」不看「答对依据」；黄金集被生产流量污染；无版本号无法回滚。关联 G07。</p></div>
+          </div>
+        </div>
+
+        <div class="qa-card" id="C12.34" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C12.34</div>
+            <div class="qa-question">Prompt/工具变更如何灰度：流量、影子与回滚点？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>Prompt 与工具副作用等同配置发布：要灰度、卡点、可关停。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>步骤：①制品版本化（prompt_id/tool_schema）②小流量或影子对比 ③卡点看黄金集+业务投诉率 ④一键切回旧版本 ⑤工具写操作分级（只读/可写需确认）。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>开关：prompt 版本路由、工具 enable 标志、最大并行工具调用、超时。变更单必填回滚版本号。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：直接改线上 Prompt 字符串；工具无副作用分级；影子流量写了生产库。</p></div>
+          </div>
+        </div>
+
+        <div class="qa-card" id="C12.35" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C12.35</div>
+            <div class="qa-question">模型超时与降级开关：值班时如何避免雪崩？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>模型慢会占满线程/连接；要用超时、隔离、降级话术与预算，而不是无限等待。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>排查：①模型 RT P99 与队列 ②应用线程/连接是否打满 ③是否重试放大 ④打开降级（缓存回答/规则回复/排队）⑤回滚模型路由。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>参数：read timeout、最大并发、熔断错误率、降级开关、半开探测间隔。预算写入契约。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：超时过长拖垮网关；失败重试打满配额；降级未演练导致空回复。</p></div>
+          </div>
+        </div>
+
+<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-11-middleware-engineering.html" class="nav-prev">← 第 11 篇 中间件与工程化</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-12-ai-engineering.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

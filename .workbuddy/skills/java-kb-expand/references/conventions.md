@@ -55,6 +55,28 @@
 
 ## 5. 4 份聚合统计页字段名
 
+
+### 5.0.1 高级开发「桥接」口径（计入题目总量）
+
+标签：`data-difficulty="senior"`，默认 `data-priority="p1"`。定位在初级高开与架构之间：
+
+| | 偏「初级高开」 | **桥接（目标）** | 偏「架构」 |
+|---|---|---|---|
+| 问题 | 是什么 / API 怎么用 | **怎么落地排查与守边界** | 跨系统取舍 / 多方案权衡 |
+| 答案 | 概念 + 示例 | **步骤、信号、参数、失败模式、回滚点** | 组织级/多域决策 |
+
+一句话：高开能独立排障上线，但不必做平台级选型答辩。禁止空泛「要做好监控」；必须有可抄的排查顺序或参数/开关表。
+
+### 5.0.2 生产踩坑专篇 K（不计入题目总量）
+
+与工程化 G 同级独立计数：
+
+- 前缀 **`K##.##`**；页：`chapter-production-pitfalls.html` / `mind-production-pitfalls.html`
+- 计数键 `pitfalls`；`sum_all = total + methodology + engineering + pitfalls`
+- **不进** overview；不计入 ≤400 题目预算
+- 定位三角：M12=思维，G=门禁，K=事故翻车/识别/止血
+- 卡片结构对齐 G（三层 + 事故叙事），不套 C 六层长文
+
 ### 5.1 `chapter-overview-priority.html`（优先级总览）
 - `ov-stat-num` 顺序（**11 个**，校验权威三源；顺序以 `kb-counts.json` 的 `ov_stat_order` 为准；**方法论紧随总量**，勿遗漏；取值见 §6 COUNTS 块）：
   1. 总量
@@ -89,7 +111,7 @@
 
 #### 5.1.3 全站聚合/分组/页头页尾计数清单（2026-09-13 全站核查固化）
 
-改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P01–P89** + `validate_kb` 3b/3b2/3c）：
+改题数或挪卡后，下列位必须与正文实际卡数一致（`sync_counts` positions **P01–P102** + `validate_kb` 3b/3b2/3c）：
 
 | 层级 | 位置 | 规则 |
 |---|---|---|
@@ -112,7 +134,7 @@
 
 | 级别 | 名称 | 必须打标？ | 典型载体 |
 |---|---|---|---|
-| **L0** | SSOT 权威位 | **必须** `data-kb-pos="Pxx"` | `kb-counts.json` → `positions`（当前 P01–P89）；`bump` 写回这些位 |
+| **L0** | SSOT 权威位 | **必须** `data-kb-pos="Pxx"` | `kb-counts.json` → `positions`（当前 P01–P102）；`bump` 写回这些位 |
 | **L1** | 聚合 UI | **必须** `kb-count` 或 `kb-count-local` | 页头/副标题/`chapter-meta`、`stat-number`、`ov-*`、`dir-*`/`group-count`、`card-footer`/`card-foot`/`card-desc` 中的题量·卡量、`map-note`/`subtitle`/`tagline`、统计表「卡数」列与合计、mind `idx-meta` |
 | **L2** | 页内结构计数 | **必须** local（或已由 L0 覆盖） | overview `ov-type-count`、场景 `group-count`、方法论 `m-sub-count`/meth-table、mind `chip` 章节·原理·场景 |
 | **L3** | 正文技术数字 | **不打标** | `qa-card` 正文、算法/JDK/HTTP 版本、对比表序号/年份、压测数据、「第 N 章」标题序号 |
@@ -143,7 +165,7 @@
 - **Mermaid**：节点纯文本；旁注挂锚点。
 
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
-- 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化）、全站 N 题（均为 L0/L1）。
+- 统计块 `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化各自计数、合计（= 题数 + 方法论 + 工程化 + 踩坑）、全站 N 题（均为 L0/L1）。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
 - per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（见 COUNTS）。
 - 方法论目录结构（平级 `dir-group`，禁止嵌套）：序章①~⑤ → **⑥ 生产与领域思维速查（M12，16 卡）** → 一~五主题（M06~M10）→ 附录（M11）。**禁止**把 M12 嵌进「一、高并发」。
@@ -155,11 +177,12 @@
 
 ### 5.4 `java-architect-interview-mind/index.html`（导图导航）
 - 顶部 `idx-meta` 固定 **5** 格（`.idx-meta` 五列；窄屏两列）：
-  1. `1+1+15+1` — 方法论 + 工程化要点 + 篇章 + 服务端安全手册
-  2. `18` — 思维导图页（mind-01~15 + mind-core + mind-engineering + mind-security）
+  1. `1+1+1+15+1` — 方法论 + 工程化 + 踩坑 + 篇章 + 服务端安全手册
+  2. `19` — 思维导图页（+ mind-production-pitfalls）
   3. 方法论卡片数（`methodology`，P08）
   4. 工程化要点卡片数（`engineering`，P26）
-  5. `N+N+N` — Q&A · 原理 · 场景（取值见 COUNTS / P57–P59）
+  5. 生产踩坑卡片数（`pitfalls`，P93）
+  6. `N+N+N` — Q&A · 原理 · 场景（取值见 COUNTS / P57–P59）
 - 每张卡片底部 `card-foot` 计数口径（改题后必须同步）：
   - **篇章卡 mind-01~15**：`章节 N` = 对应 `chapter-NN` 的 C 卡数；`原理 N` / `场景 N` = 该 mind 页 `<summary>` 中实际列出的 E / S 卡数（无则省略该 chip）。
   - **方法论卡**：`91 卡 · 12 组`（M01~M12）。
@@ -170,15 +193,16 @@
 ### 5.5 场景 / 核心原理页分组计数
 - 场景页正文 `span.group-count`、根 index 场景区 `dir-group-count`，均须等于该组 `S##.##` 实际题数（当前：5/6/5/6/5/6/7/8/5/5/6/8）。
 - 核心原理页各组实际题数（当前：4/4/8/8/4/6/10/4/6/6/5/8）；根 index 对应 `dir-group-count` 同步。
-- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（**P01–P89**），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`，第 0c 步扫描 L1 聚合 UI。
+- **散文计数位**：页头/来源段「本页 N 道 / 高频核心原理 N 题 / overview 全站 N 道…」等必须登记为 `kb-counts.json` positions（**P01–P102**），改数走 `sync_counts.py bump`；`validate_kb.py` 第 0 步强制 `sync_counts check`，第 0c 步扫描 L1 聚合 UI。
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **379** = 篇章 234 + 核心原理 73 + 场景 72
-- 优先级 **P0=94 / P1=227 / P2=58**（求和 = 379）
-- 难度 **专家 46 / 架构 187 / 高级开发 146**（求和 = 379）
-- 方法论 **91 卡**（M01~M12），不计入 379
-- 工程化 **24 卡**（G01~G08），不计入 379；全站合计 **494** = 题目 + 方法论 + 工程化
+- 题目总量 **394** = 篇章 249 + 核心原理 73 + 场景 72
+- 优先级 **P0=94 / P1=242 / P2=58**（求和 = 394）
+- 难度 **专家 46 / 架构 187 / 高级开发 161**（求和 = 394）
+- 方法论 **91 卡**（M01~M12），不计入 394
+- 工程化 **24 卡**（G01~G08），不计入 394
+- 生产踩坑 **8 卡**（K01~K08），不计入 394；全站合计 **517** = 题目 + 方法论 + 工程化 + 踩坑
 - 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
@@ -274,6 +298,19 @@
 | P87 | `java-architect-interview/index.html` | 章节 index 工程化卡 desc 卡数 |
 | P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
 | P89 | `java-architect-interview-mind/mind-01-jvm-memory-classloading.html` | mind-01 尾注核心原理总量 |
+| P90 | `index.html` | 根 index 踩坑统计卡 |
+| P91 | `java-architect-interview/index.html` | 章节 index 踩坑统计卡 |
+| P92 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
+| P93 | `java-architect-interview-mind/index.html` | mind index idx-meta 踩坑卡片 |
+| P94 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
+| P95 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 卡数 |
+| P96 | `java-architect-interview-mind/index.html` | mind index 踩坑卡 footer 卡数 |
+| P97 | `java-architect-interview-mind/index.html` | mind index 踩坑卡 desc 卡数 |
+| P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 不计入题目总量 |
+| P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
+| P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
+| P101 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注全站合计 |
+| P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

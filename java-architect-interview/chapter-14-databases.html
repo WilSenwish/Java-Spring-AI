@@ -49,6 +49,9 @@
           <li>
             <a href="#C14.12"><span class="toc-number">C14.12</span>CDC 端到端数据管道</a>
           </li>
+          <li>
+            <a href="#C14.13"><span class="toc-number">C14.13</span>慢 SQL 值班动作</a>
+          </li>
         </ol>
       </aside>
 
@@ -67,7 +70,7 @@
           <h1 class="chapter-title">数据库与存储深度</h1>
           <p class="chapter-subtitle">本篇用「负载形状选引擎」做多模存储选型：文档/向量、分布式与列存，再到图与时序边界。</p>
           <div class="chapter-meta">
-            <span>题目数：12</span>
+            <span>题目数：13</span>
             <span class="meta-divider">|</span>
             <span>高级开发 ×3</span>
             <span class="meta-divider">|</span>
@@ -2316,7 +2319,30 @@ repo.upsert(pk, event.payload(), event.sourcePos());
           </div>
         </div>
 
-        <!-- ============ 章节间导航 ============ -->
+                <div class="qa-card" id="C14.13" data-difficulty="senior" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C14.13</div>
+            <div class="qa-question">慢 SQL 值班动作：从告警到限流与索引的最短路径？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body"><p>慢 SQL 值班要先止血再优化：定位语句 → 评估锁与复制延迟 → 限流/杀会话 → 再谈索引。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body"><p>顺序：①慢日志/insight 取指纹 ②explain 与行数 ③是否持锁/长事务 ④限流该接口或杀会话 ⑤加索引/改写走变更门禁。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body"><p>表：fingerprint、avg_rt、rows_examined、锁等待、影响接口。禁止生产直接 CREAT INDEX 无变更单。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式</div>
+            <div class="qa-layer-body"><p>失败模式：未止血先改代码；错误索引锁表；忽略复制延迟导致只读副本落后。关联 G04.02。</p></div>
+          </div>
+        </div>
+
+<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-13-network-io.html" class="nav-prev">← 第 13 篇 网络与高性能 IO</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-14-databases.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
