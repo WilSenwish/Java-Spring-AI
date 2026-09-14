@@ -104,7 +104,7 @@ def run_sync_counts_check():
 
 
 def run_kb_count_markup_check():
-    """每个 SSOT position 必须带 data-kb-pos 标记；结构计数建议带 data-kb-count-local。
+    """每个 SSOT position 必须带 data-kb-pos；全站禁止 kb-count-local。
     标记约定见 conventions.md §5.1.4。
     """
     cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
@@ -121,21 +121,28 @@ def run_kb_count_markup_check():
         expect = len(cfg["ov_stat_order"]) if pos.get("kind") == "ov_series" else 1
         if n != expect:
             miss.append(f"{pid} 期望 data-kb-pos×{expect}，实际 {n} @ {pos['file']}")
-    # 结构位点抽检：场景 group-count / 根 dir-group 须有 local 标记
-    scen = read(os.path.join(BASE, "java-architect-interview/chapter-questions-scenario.html"))
-    gc = len(re.findall(r'class="group-count"', scen))
-    gc_m = scen.count('data-kb-count-local="group-count"')
-    if gc and gc_m < gc:
-        miss.append(f"场景 group-count 标记不足：class×{gc} local×{gc_m}")
-    root = read(os.path.join(BASE, "index.html"))
-    if 'class="dir-group-count">' in root and 'data-kb-count-local="dir-group"' not in root:
-        miss.append("根 index 缺少 dir-group local 标记")
+    # 禁止本地计数（一律升格进 kb-counts.json counts|struct）
+    for path in all_chapter_files() + all_mind_files() + [
+        os.path.join(BASE, "index.html"),
+        os.path.join(BASE, "java-architect-interview/index.html"),
+        os.path.join(BASE, "java-architect-interview-mind/index.html"),
+        os.path.join(BASE, "java-architect-interview/nav-overview-priority.html"),
+        os.path.join(BASE, "java-architect-interview/nav-server-security-checkpoint.html"),
+    ]:
+        if not os.path.isfile(path):
+            continue
+        t = read(path)
+        if "kb-count-local" in t or "data-kb-count-local" in t:
+            miss.append(f"禁止本地计数：{os.path.relpath(path, BASE)}")
+        # 禁止口径控制套话（全站 HTML，含 qa-card）
+        if "不计入题目总量" in t:
+            miss.append(f"禁止文案「不计入题目总量」：{os.path.relpath(path, BASE)}")
     if miss:
-        for x in miss[:15]:
+        for x in miss[:20]:
             print("FAIL [kb-count标记]", x)
-        check(False, f"[kb-count标记] {len(miss)} 处缺失/不一致（须 data-kb-pos / data-kb-count-local）")
+        check(False, f"[kb-count标记] {len(miss)} 处缺失/违规（须 data-kb-pos；禁 local /「不计入」文案）")
     else:
-        check(True, f"[kb-count标记] SSOT positions 均含 data-kb-pos（{len(cfg['positions'])} 位）+ 结构抽检通过")
+        check(True, f"[kb-count标记] SSOT positions 均含 data-kb-pos（{len(cfg['positions'])} 位）；无 local/禁语文案")
 
 
 def run_l1_container_scan():
@@ -163,9 +170,8 @@ def run_l1_container_scan():
 
     def tagged_at(t, pos):
         w = t[max(0, pos - 180) : pos]
+        # 仅承认 L0：data-kb-pos（已废除 kb-count-local）
         if 'data-kb-pos="' in w and w.rfind('data-kb-pos="') > w.rfind("</"):
-            return True
-        if "data-kb-count-local=" in w and w.rfind("data-kb-count-local=") > w.rfind("</"):
             return True
         return False
 
@@ -202,7 +208,7 @@ def run_l1_container_scan():
     if misses:
         for x in misses[:20]:
             print("FAIL [L1聚合UI]", x)
-        check(False, f"[L1聚合UI] 裸计数 {len(misses)} 处（须 kb-count / data-kb-count-local，见 §5.1.4）")
+        check(False, f"[L1聚合UI] 裸计数 {len(misses)} 处（须 data-kb-pos + kb-counts.json，见 §5.1.4）")
     else:
         check(True, "[L1聚合UI] 页头/footer/desc/meta/note/tagline/stat 无裸「N题|卡|道|组」")
 

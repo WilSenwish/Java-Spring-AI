@@ -28,7 +28,7 @@
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
 - **难度**：卡片带 `data-difficulty`：架构级 49 / 专家级 23 / 高级开发 3（合计 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P17">91</span>）。
-- **优先级**：**部分卡片（39/91）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 52 卡不带；不计入全站题目优先级口径（92/209/58 = 359）。
+- **优先级**：**部分卡片（39/91）以双编码携带**优先级（`data-priority` + 提问行 `priority-p*` 徽标各 31 处），其余 52 卡不带；不属于全站题目优先级口径（P0/P1/P2 只统计 C+E+S = `total`）。
 - **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题 + `difficulty` 视觉标签）；携带优先级的卡片另加 `priority-p*` 徽标。
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
   - 元思维组 ①～⑥ → `#m-group-01`～`#m-group-06`（正文 `.m-subgroup-title` 带同名 `id`）
@@ -117,7 +117,7 @@
 
 ## <a id="6"></a>6. 工程化要点 chapter-engineering-practices（G 系列）
 
-- **定位**：与方法论并列的工程门禁手册，**24 卡**，ID 前缀 `G`（如 `G01.01`）；**不计入题目总量**（题目口径=篇章+核心原理+场景）；工程化**单独计数**，不设全站合计。
+- **定位**：与方法论并列的工程门禁手册，卡数以 `kb-counts.json` → `engineering` 为准，ID 前缀 `G`（如 `G01.01`）；题目总量口径 = 篇章+核心原理+场景（`total`）；工程化为专篇键，不设全站合计。
 - **卡片**：与方法论相同三层（`insight` / `principle` / `application`）。
 - **分组**：G01～G08 八组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全）；每组正文载体为 `<section class="eng-group" id="G0N">`。
 - **目录**：侧栏分组标题必须为 `<a class="toc-group-title" href="#G0N">`（禁止 `div`），与组 `id` 一一对应。
@@ -143,7 +143,7 @@
   - `tag-cloud` / `trend-section`：知识点标签云与趋势块；**须用 `<details class="… index-fold">` 包裹且默认折叠**（不加 `open`），`<summary>` 内放原 `h2` 标题
 - **难度徽标（`card-tags`）约定**：
   - **统一顺序**：有计数时按 **专家 → 架构 → 高级**；某档为 0 则省略该档（不写 `×0`）。
-  - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心方法论、工程化、核心原理、场景、优先级总览（总览口径 = 篇章+核心原理+场景（= total），M/G/K 不计入）。
+  - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心方法论、工程化、核心原理、场景、优先级总览（总览口径 = 篇章+核心原理+场景 = `total`；M/G/K 为专篇键）。
   - **无法实计的卡**（思维导图站入口、安全 Checkpoint 等无 `data-difficulty` 题卡）：只标档位文案，不写 ×N。
   - 数字须与目标页 `data-difficulty` 实计一致；改题难度后同步本页对应卡徽标。
 - 每张章节卡片须链接到对应目标页；`card-number / card-title` 应与目标页一致；`card-footer` 题数须与目标页实卡数一致。
