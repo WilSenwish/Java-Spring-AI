@@ -71,7 +71,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 13 / NETWORK &amp; IO</div>
           <h1 class="chapter-title">网络与高性能 IO</h1>
-          <p class="chapter-subtitle">本篇从协议与 IO 模型走到 Netty 与应用层通道：先找阻塞点，再谈吞吐与实时性。</p>
+          <p class="chapter-subtitle">本篇从协议与 TLS 走到 NIO/Netty 与零拷贝，再覆盖 WebSocket/DNS、io_uring/系统调用与连接泄漏——先找阻塞与泄漏点，再谈吞吐。</p>
           <div class="chapter-meta">
             <span>题目数：14</span>
             <span class="meta-divider">|</span>
@@ -88,37 +88,38 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>网络 IO 主线是「协议语义 → IO 模型与线程模型 → 应用层通道 → 拷贝路径与调度优化」。</p>
+                <p>网络/IO 主线是「协议栈与安全握手 → 应用 IO 模型（NIO/Reactor）→ Netty 线程与内存 → 零拷贝与实时通道 → 内核异步与泄漏排障」。</p>
                 <ol>
-                  <li><strong>TCP/TLS/HTTP 语义</strong>：状态机、握手、拥塞与证书链决定可用性与延迟底噪。</li>
-                  <li><strong>BIO / NIO / Netty</strong>：EventLoop 上禁止阻塞；编解码与反压在 Pipeline 中显式化。</li>
-                  <li><strong>HTTP 演进与实时通道</strong>：多路复用、SSE/WebSocket 的连接治理与心跳。</li>
-                  <li><strong>零拷贝与智能调度</strong>：sendfile/mmap/DMA 与 DNS/HTTPDNS 调度。</li>
+                  <li><strong>协议分层与可靠传输</strong>：OSI/TCP/IP 封装、TCP 状态机握手挥手、HTTP/1.1·2·3 多路复用与选型（C13.01–03）。</li>
+                  <li><strong>TLS 与证书安全</strong>：1.2/1.3 握手差异、证书链与会话恢复对延迟的影响（C13.04）。</li>
+                  <li><strong>Java NIO 与 Netty</strong>：Reactor、Pipeline 设计、EventLoop 线程模型、ByteBuf 池化与引用计数（C13.05–07）。</li>
+                  <li><strong>零拷贝与实时通道</strong>：sendfile/mmap/DMA；WebSocket 握手心跳重连；DNS 与智能调度（C13.08–10）。</li>
+                  <li><strong>内核异步、IO 选型与泄漏</strong>：io_uring 与 Loom 边界、系统调用代价、跨平台 IO 模型、连接泄漏排查顺序（C13.11–14）。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>网络问题先分层定位：DNS、握手、拥塞、应用线程还是依赖方；分层看板齐全，禁止一上来调超时。</li>
-                <li>连接池/长连接有上限、心跳与泄漏检测；FD 与缓冲纳入限流与容量，泄漏按事故管理。</li>
-                <li>TLS 证书与协议版本有到期治理与轮换演练；握手失败率独立告警，证书到期进日历。</li>
-                <li>压测覆盖握手、重连风暴与慢连接；避免只测「已建立连接的理想路径」。</li>
-                <li>换协议（HTTP/2/3 等）必须带兼容矩阵、中间盒评估与回退方案，不全量赌一把。</li>
-                <li>EventLoop/IO 线程禁止跑阻塞业务；阻塞调用隔离到工作池并有超时与队列水位。</li>
-                <li>粘包拆包与自定义协议有契约测试；升级报文必须向前兼容或双版本共存。</li>
-                <li>零拷贝、批处理等优化有对照实验；优化不得牺牲可观测与背压信号。</li>
+                <li>对外协议与套件（HTTP 版本、TLS、超时、保活）写入服务契约；变更走灰度，证书到期进日历与演练。</li>
+                <li>Netty/直连缓冲：池化与引用计数有泄漏检测与堆外看板；禁止「只看堆内健康」。</li>
+                <li>EventLoop 禁止阻塞调用；业务阻塞必须切到业务线程池，并有队列与拒绝策略。</li>
+                <li>零拷贝与大文件路径单独压测与权限校验；错误路径也要保证资源释放。</li>
+                <li>WebSocket/长连接有心跳、空闲超时与风暴重连退避；网关与后端超时对齐。</li>
+                <li>连接/文件描述符泄漏按标准顺序排查（应用未关 → 池化未还 → 半开连接 → 内核参数）；Runbook 进值班。</li>
+                <li>DNS/调度变更可回滚；解析失败与脏缓存有观测与应急。</li>
+                <li>引入 io_uring/新 IO 路径按平台兼容矩阵验收，回退到 epoll/NIO 路径可一键切换。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>先找阻塞点</strong>：EventLoop/IO 线程上的阻塞是第一嫌疑，先排除再谈协议调优。</li>
-                <li><strong>连接是资源</strong>：FD、缓冲、上游连接数纳入限流与容量，耗尽即故障。</li>
-                <li><strong>协议升级看兼容</strong>：客户端与中间盒矩阵决定能否全量。</li>
-                <li><strong>握手可观测</strong>：TLS/TCP 失败率与 RT 分位数独立看板，不与业务 RT 混谈。</li>
-                <li><strong>慢连接可驱逐</strong>：空闲与异常连接要有回收策略，防止资源耗尽。</li>
-                <li><strong>分层定位</strong>：DNS/TLS/拥塞/应用分不清，优化就是盲打。</li>
+                <li><strong>先协议后框架</strong>：延迟与吞吐问题先分清握手、拥塞、应用阻塞还是内存拷贝。</li>
+                <li><strong>EventLoop 保持非阻塞</strong>：阻塞一次，整条 Pipeline 尾延迟被放大。</li>
+                <li><strong>堆外与引用计数是一等公民</strong>：ByteBuf 泄漏按缺陷管理，不是调大直接内存能掩盖。</li>
+                <li><strong>超时端到端对齐</strong>：客户端、LB、应用、下游任一环更长都会制造幽灵占用。</li>
+                <li><strong>长连接当有状态资源</strong>：心跳、驱逐、重连预算写进设计，而非只演示连通。</li>
+                <li><strong>泄漏可复现</strong>：连接/FD 增长必须能落到未关闭路径，禁止只重启缓解。</li>
               </ul>
             </div>
           </div>

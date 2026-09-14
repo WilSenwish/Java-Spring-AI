@@ -113,7 +113,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 11 / MIDDLEWARE &amp; ENGINEERING</div>
           <h1 class="chapter-title">中间件与工程化</h1>
-          <p class="chapter-subtitle">本篇把中间件当可产品化的工程能力：流程与规则、认证、可观测，再到搜索 / 消息 / 调度。</p>
+          <p class="chapter-subtitle">本篇把中间件当可产品化能力：流程/规则与认证，经 CI/CD·可观测·FinOps，再到搜索/消息/调度与流处理值班闭环。</p>
           <div class="chapter-meta">
             <span>题目数：28</span>
             <span class="meta-divider">|</span>
@@ -130,37 +130,40 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>中间件工程主线是「流程/规则产品化 → 认证授权 → 可观测与韧性 → 搜索/消息/调度」。</p>
+                <p>中间件工程主线是「流程与规则产品化 → 认证授权 → CI/CD 与 Schema 迁移 → 可观测/混沌/FinOps → 搜索·RPC·消息 → 调度与流处理 → 积压/死信值班」。</p>
                 <ol>
-                  <li><strong>工作流与规则引擎</strong>：把易变决策从代码剥离，但仍要版本与审计。</li>
-                  <li><strong>OAuth / JWT 与会话</strong>：授权码+PKCE、双 Token、密钥轮换。</li>
-                  <li><strong>可观测与混沌</strong>：OTel、APM、稳态假设与故障注入。</li>
-                  <li><strong>搜索、消息、调度</strong>：倒排/相关性、投递语义、定时/延时不重不漏。</li>
+                  <li><strong>工作流与规则</strong>：BPMN 状态机+令牌、节点批量配置化、QLExpress/Drools 把易变决策从代码剥离且可审计（C11.01–03）。</li>
+                  <li><strong>OAuth/JWT 与交付链</strong>：授权码+PKCE、双 Token 与吊销；标准化 CI/CD 门禁与 Flyway/Liquibase Schema 版本化同发（C11.04–06/17）。</li>
+                  <li><strong>可观测、混沌与 FinOps</strong>：APM/字节码增强、TraceId 跨边界透传、OTel 三支柱、eBPF 边界、稳态假设故障注入；云成本 Inform→Optimize→Operate（C11.07–10/19/20）。</li>
+                  <li><strong>搜索、RPC、配置与消息选型</strong>：ES 倒排/分片、gRPC+Protobuf、Nacos/Apollo、Kafka EOS 与 Kafka vs RocketMQ 业务特性取舍、网关限流灰度协同（C11.11/12/14–16/18）。</li>
+                  <li><strong>调度与延时</strong>：分片/竞争/故障转移、Quartz/XXL-Job/Elastic-Job 选型、时间轮与 DelayQueue、不重不漏靠幂等+分片+补跑（C11.13/21–23）。</li>
+                  <li><strong>流处理与消息值班</strong>：Kafka Streams 嵌入式有状态、Flink Checkpoint/Watermark；积压分级、本地消息表清单、死信/延迟洪峰处置（C11.24–28）。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>中间件当有 SLA 的内部产品：配置变更可审批、可回滚、可审计，责任人与值班清晰。</li>
-                <li>客户端版本兼容与容量水位纳入治理；强制升级有窗口与兼容矩阵，禁止静默不兼容。</li>
-                <li>认证密钥轮换与证书到期进日历；演练「过期当天」应急，避免真正到期才手忙脚乱。</li>
-                <li>调度/延时任务以幂等、分片、对账为底线；漏跑/重跑可检测，补跑可审计。</li>
-                <li>可观测与混沌是持续能力：新中间件接入必须带红线指标与 Runbook，否则不准接核心链路。</li>
-                <li>搜索/消息等有状态中间件的扩缩容与重平衡纳入发布演练，抖动窗口对业务可感知。</li>
-                <li>ACL、租户隔离与多环境配置分离；生产权限默认最小，变更留痕。</li>
-                <li>容量模型（分区、副本、连接、磁盘）与业务峰值对齐；水位告警可行动。</li>
+                <li>中间件当有 SLA 的内部产品：配置/ACL 变更可审批、可回滚、可审计，责任人与值班清晰。</li>
+                <li>CI/CD 质量门禁与 Schema 迁移同节奏；向前兼容优先，禁止依赖不可逆 DROP 当回滚手段。</li>
+                <li>认证密钥/证书轮换进日历；演练「过期当天」应急，JWT 吊销与双 Token 策略写进安全基线。</li>
+                <li>新中间件接入必须带红线指标、Runbook 与 Trace 关联；无观测不准进核心链路。</li>
+                <li>FinOps：标签归因、单位成本看板、预算告警到人；降本走减用量或降单价，禁止只砍绝对值。</li>
+                <li>调度/延时任务以幂等键、分片、对账补跑为底线；漏跑/重跑可检测、补跑可审计。</li>
+                <li>流处理上线前明确状态后端、Checkpoint 间隔与背压策略；拓扑/算子变更按发布管控并可 Savepoint 回退。</li>
+                <li>消息值班剧本固定：积压分型→扩容/降速/跳过/切备；死信分类重放；本地消息表按清单验收。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>能力产品化</strong>：流程/规则/认证由平台提供，避免业务私建不可治理实现。</li>
-                <li><strong>变更可审计</strong>：配置与 ACL 变更留痕、可回放、可回滚。</li>
-                <li><strong>调度不重不漏</strong>：幂等键 + 分片 + 对账补跑，三者缺一不可。</li>
-                <li><strong>可观测默认接入</strong>：无红线指标的中间件不得接入核心链路。</li>
-                <li><strong>兼容优先</strong>：中间件升级先保证客户端兼容，再追求新特性。</li>
-                <li><strong>有状态变更当发布</strong>：重平衡、扩缩容、索引重建按发布管控并演练。</li>
+                <li><strong>能力产品化</strong>：流程/规则/认证/调度由平台提供，避免业务私建不可治理实现。</li>
+                <li><strong>变更可审计</strong>：配置、ACL、Schema、拓扑变更留痕、可回放、可回滚。</li>
+                <li><strong>调度不重不漏</strong>：幂等 + 分片 + 对账补跑，三者缺一不可。</li>
+                <li><strong>可观测默认接入</strong>：无红线指标与 Runbook 的中间件不得接核心链路。</li>
+                <li><strong>成本是工程问题</strong>：FinOps 看单位成本与责任共担，不是事后砍账单。</li>
+                <li><strong>流批心智分离</strong>：嵌入式 Streams 与集群 Flink 边界清晰，状态与 EOS 契约先于业务 SQL。</li>
+                <li><strong>有状态变更当发布</strong>：重平衡、索引重建、Checkpoint 兼容按发布演练。</li>
               </ul>
             </div>
           </div>

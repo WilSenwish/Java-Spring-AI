@@ -62,7 +62,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 05 / SPRING CORE PRINCIPLES</div>
           <h1 class="chapter-title">Spring 核心原理</h1>
-          <p class="chapter-subtitle">本篇抓住 IoC + AOP 两条主轴：容器生命周期、代理边界与扩展点，而不是背 API 清单。</p>
+          <p class="chapter-subtitle">本篇抓住 IoC + AOP 两条主轴：容器与 Bean 生命周期、三级缓存、代理/事务边界、扩展点与 SpEL/绑定，落到事务后异步时序。</p>
           <div class="chapter-meta">
             <span>题目数：11</span>
             <span class="meta-divider">|</span>
@@ -79,37 +79,40 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>Spring 主线是「容器生命周期 → 依赖与代理边界 → 横切（AOP/事务）→ 可扩展点」。</p>
+                <p>Spring 主线是「容器生命周期与 BeanDefinition → 依赖/循环依赖与代理时机 → 横切（AOP/事务/事件）→ 扩展点与表达式/绑定 → 事务提交后副作用」，用边界解释「注解为何失效」。</p>
                 <ol>
-                  <li><strong>启动与 Bean 生命周期</strong>：实例化、注入、初始化、销毁各阶段决定排障切面。</li>
-                  <li><strong>三级缓存与循环依赖</strong>：早期引用与代理创建时机解释「为何有时能转、有时失败」。</li>
-                  <li><strong>AOP / 事务代理边界</strong>：自调用、访问级别、代理类型直接决定注解是否生效。</li>
-                  <li><strong>扩展点与事件 / SpEL</strong>：用官方扩展点承载定制，避免 fork 框架。</li>
+                  <li><strong>IoC 启动与 Bean 生命周期</strong>：refresh 标准化步骤 + BeanDefinition→实例→初始化→销毁；图纸元数据是排障切面。</li>
+                  <li><strong>三级缓存与循环依赖</strong>：early 暴露与 ObjectFactory 保证「代理只创建一次」；构造器/prototype/Boot 2.6+ 默认收紧解释失败边界。</li>
+                  <li><strong>AOP 代理与事务失效</strong>：JDK/CGLIB 选择、自调用、访问级别、异常类型决定 @Transactional 是否生效；传播与挂起/savepoint 要精确。</li>
+                  <li><strong>事件与设计模式</strong>：发布/监听/广播三角色，事务绑定事件；框架机制映射到工厂、代理、模板、观察者等模式。</li>
+                  <li><strong>扩展点与容器层次</strong>：BFPP 改图纸、BPP 改实例；BeanFactory 与 ApplicationContext 能力差决定企业级默认形态。</li>
+                  <li><strong>绑定、SpEL 与事务后异步</strong>：Converter/Formatter/DataBinder 与 SpEL 求值链；提交后再发 MQ/通知用同步钩子四方案，禁止事务内瞎开线程。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>关键 Bean 与配置变更走集成测试；事务与幂等在服务边界显式设计并有回归用例，覆盖自调用与异常回滚。</li>
-                <li>启动失败快速失败并保留诊断；半初始化服务禁止接入流量（就绪探针未通过不接请求）。</li>
-                <li>禁用生产动态改 Bean 定义、反射乱改单例等黑科技；扩展走官方扩展点并文档化。</li>
-                <li>框架升级对照弃用 API 与默认行为变化，形成回归清单并金丝雀验证，禁止「编译过了就算过」。</li>
-                <li>事务/AOP 失效类问题按代理边界排查清单处理（自调用、private、final、同类调用、异步边界）。</li>
-                <li>循环依赖与启动期副作用在架构评审中明示；能拆边界就不要靠三级缓存「碰巧能转」。</li>
-                <li>条件装配与 Profile 生效条件必须可从日志解释；环境漂移用配置审计，而不是「换环境再试」。</li>
-                <li>监听器、初始化回调与销毁钩子的失败策略写清：失败是否阻断启动、资源是否可回滚释放。</li>
+                <li>关键 Bean 与配置变更走集成测试；事务与幂等在服务边界显式设计，回归覆盖自调用与异常回滚。</li>
+                <li>循环依赖不得靠「碰巧能启动」：能拆则拆；必须保留时书面化依赖方向与代理需求，并对 Boot 默认禁止策略有例外审批。</li>
+                <li>AOP/事务失效清单进代码评审：自调用、非 public、错误异常匹配、同类内调用；静态检查或 ArchUnit 能拦则拦。</li>
+                <li>事件消费与事务边界绑定：需「提交后投递」用 @TransactionalEventListener 或同步钩子，禁止事务未提交就发外部副作用。</li>
+                <li>自定义 BPP/BFPP 变更视为平台级改动：顺序、兼容性与启动耗时进回归；禁止业务仓随意插入全局后置处理器。</li>
+                <li>类型转换与配置绑定失败要有可读错误与校验；@ConfigurationProperties 约束进启动失败快策略。</li>
+                <li>SpEL 用于动态关键路径时做注入与复杂度门禁；缓存 key/安全表达式写进评审关注点。</li>
+                <li>事务提交后异步四方案（同步钩子/事件/事务消息/本地消息表）选型表化，默认禁止事务线程里直接 new Thread。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>代理边界决定事务</strong>：先画调用是否经过代理，再查传播属性与异常回滚规则；边界错了注解全失效。</li>
-                <li><strong>生命周期可观测</strong>：问题落在实例化/注入/初始化/销毁哪一段，就查哪类扩展点与日志。</li>
-                <li><strong>扩展点优于改源码</strong>：PostProcessor / Listener / Advisor 优先于私有 fork；fork 必须进架构债清单。</li>
-                <li><strong>启动失败即失败</strong>：带病启动比快速失败更危险；半开服务是级联故障温床。</li>
-                <li><strong>配置即契约</strong>：条件装配未生效要能从条件与日志解释，禁止「重启碰运气」。</li>
-                <li><strong>副作用可回放</strong>：启动期写库、调远程、占端口等副作用必须可幂等重试或可清理。</li>
+                <li><strong>代理边界决定事务</strong>：先画调用是否经过代理，再查传播与回滚规则；边界错了注解全失效。</li>
+                <li><strong>图纸先于实例</strong>：多数启动问题出在 BeanDefinition/条件装配阶段，而不是业务方法本身。</li>
+                <li><strong>三级缓存服务代理</strong>：理解「为何三级」比背三个 Map 名字更重要——为了提前暴露与单次代理。</li>
+                <li><strong>扩展点按时序</strong>：BFPP 与 BPP 介入时机不同，放错阶段会静默改错对象。</li>
+                <li><strong>事件是解耦不是省略</strong>：异步与事务绑定要显式设计，否则就是丢失的副作用。</li>
+                <li><strong>绑定是基础设施</strong>：MVC 参数、配置属性、SpEL 都走转换体系；类型问题先查绑定再查业务。</li>
+                <li><strong>提交后再副作用</strong>：外部通知/MQ 必须以事务结果为门闩，时序反了必出脏通知。</li>
               </ul>
             </div>
           </div>

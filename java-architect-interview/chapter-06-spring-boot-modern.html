@@ -74,7 +74,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 06 / SPRING BOOT &amp; MODERN FRAMEWORKS</div>
           <h1 class="chapter-title">Spring Boot 与现代框架</h1>
-          <p class="chapter-subtitle">本篇把 Boot 看成「约定装配 + 生产就绪」：自动配置、安全校验，再到 AOT/Native 与运维闭环。</p>
+          <p class="chapter-subtitle">本篇把 Boot 看成「约定装配 + 生产就绪」：自动配置/Starter → 安全与校验 → AOT/Native → Actuator/配置/停机与云原生测试闭环。</p>
           <div class="chapter-meta">
             <span>题目数：15</span>
             <span class="meta-divider">|</span>
@@ -91,12 +91,14 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>Boot 主线是「约定装配 → 安全与校验 → 编译/启动范式 → 生产就绪与云原生协同」。</p>
+                <p>Boot 主线是「约定装配与可覆盖 → 安全过滤器链与校验 → 启动编排与外部化配置 → AOT/Native 与可观测/优雅停机 → 测试与替代栈权衡」，目标是可运维默认值。</p>
                 <ol>
-                  <li><strong>自动配置与条件装配</strong>：懂装配条件才能排「为何没生效 / 为何装了不该装的」。</li>
-                  <li><strong>Security 与校验</strong>：过滤器链、端点暴露、输入校验是上线门禁。</li>
-                  <li><strong>AOT / Native / CDS</strong>：启动与驻留内存优化要与功能回归解耦验收。</li>
-                  <li><strong>可观测、优雅停机、K8s 探针</strong>：健康、指标、排水与编排生命周期对齐。</li>
+                  <li><strong>自动配置 SPI 与 Starter</strong>：EnableAutoConfiguration + Conditional 条件过滤；Starter 用「约定+默认+可覆盖」封装可复用产物。</li>
+                  <li><strong>启动编排与配置优先级</strong>：SpringApplication 事件/Runner/嵌入式容器叠加 refresh；多 PropertySource 叠加冲突用 env 端点定位终值。</li>
+                  <li><strong>Security 与 OAuth2</strong>：FilterChainProxy 双阶段认证授权；Security 6 链式 DSL、JWT/Session 选型与微服务令牌传递。</li>
+                  <li><strong>校验、异常与 Session</strong>：Bean Validation 声明式校验；@ControllerAdvice 统一错误出口；Spring Session 外置会话存储。</li>
+                  <li><strong>AOT/Native 与可观测停机</strong>：构建期冻结反射与条件；Actuator 端点安全暴露；优雅停机与 K8s 探针/摘流时序对齐。</li>
+                  <li><strong>测试策略与栈选型</strong>：Testcontainers/契约/ArchUnit 防漂移；Quarkus/Micronaut 与 Boot 在启动内存与生态间权衡。</li>
                 </ol>
               </div>
             </div>
@@ -104,24 +106,25 @@
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
                 <li>统一 Starter / 基线 BOM；安全补丁与依赖抬升由平台节奏驱动，业务少私自锁版本，例外走审批。</li>
-                <li>强制 actuator 与就绪/存活探针；停机排水超时可测，发布流水线验证排水完成后再摘流量。</li>
-                <li>配置分层（本地/环境/密钥）清晰，密钥不进镜像；配置变更可回滚，敏感项有审计。</li>
-                <li>大版本升级（Boot 3→4）用契约测试 + 金丝雀，对照 Jakarta/弃用清单，禁止「编译过了就算过」。</li>
-                <li>Native/AOT 作为可选加速路径，主路径保留可诊断 JVM 形态并可一键回退；反射配置有清单管理。</li>
-                <li>可观测（日志规范、指标、追踪）随脚手架默认交付，禁止业务上线后补丁式接入。</li>
-                <li>优雅停机与 K8s PreStop/探针窗口同一模型；错误窗口写进发布手册，避免发布抖动被当成故障。</li>
-                <li>生产默认关闭调试端点与宽松 CORS；安全基线随 Boot 升级同步复核。</li>
+                <li>自动配置「未生效/误生效」排障先查条件匹配与排除；自定义 Starter 必须可覆盖默认 Bean 并有示例工程。</li>
+                <li>Security 过滤器链与端点暴露进上线门禁：默认拒绝、最小开放、CSRF/CORS/鉴权路径有集成测。</li>
+                <li>配置优先级写成团队约定表；同名键冲突用 Actuator/env 查来源，禁止靠背口诀上线。</li>
+                <li>全局异常与校验错误响应体标准化：状态码映射、脱敏、埋点一致；禁止堆栈回传客户端。</li>
+                <li>AOT/Native 构建与功能回归解耦验收：反射/资源/代理到达清单维护，失败可回退 JVM 模式。</li>
+                <li>滚动发布验收：readiness 先摘流、排水超时、连接拒绝策略与 K8s preStop 对齐，杜绝更新窗口 5xx。</li>
+                <li>质量门禁含 Testcontainers 真依赖烟测、消费者契约与 ArchUnit 分层规则；纯 mock 集成测不得单独作为放行依据。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
                 <li><strong>约定可覆盖</strong>：默认要快，覆盖路径必须文档化、可测、可审计。</li>
-                <li><strong>启停路径分离</strong>：启动加速与运行时行为、停机排水分开验收，不能用「启动快」掩盖「停不干净」。</li>
-                <li><strong>基线 BOM 治理</strong>：依赖与 CVE 由平台统一抬升，减少「每个服务一个依赖宇宙」。</li>
-                <li><strong>生产默认接入</strong>：健康、指标、追踪、结构化日志是交付物，不是可选项。</li>
-                <li><strong>回退优先</strong>：任何加速技术（AOT/CDS/Native）都必须证明可退回经典 JVM。</li>
-                <li><strong>配置变更当发布</strong>：热更新与配置推送按发布管控：审批、灰度、回滚与错误预算。</li>
+                <li><strong>条件即真相</strong>：装配问题先打印条件评估，而不是先删依赖碰运气。</li>
+                <li><strong>安全尽量早</strong>：过滤器链在业务前；端点与鉴权是生产默认题，不是加分项。</li>
+                <li><strong>配置有终值</strong>：多源叠加下只认运行时终值与来源，不认「我改了 yml」。</li>
+                <li><strong>编译范式要匹配场景</strong>：Native 换启动与内存，付出构建与闭环世界约束；按负载选型。</li>
+                <li><strong>生命周期对齐编排</strong>：应用停机与 K8s 摘流时序不一致，就会在「正常发布」里制造故障。</li>
+                <li><strong>测试防三类腐化</strong>：环境漂移、接口背刺、结构腐化分别用容器、契约、架构规则对付。</li>
               </ul>
             </div>
           </div>

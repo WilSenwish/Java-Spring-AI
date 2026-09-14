@@ -119,7 +119,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 10 / MICROSERVICE &amp; CLOUD NATIVE</div>
           <h1 class="chapter-title">微服务与云原生</h1>
-          <p class="chapter-subtitle">本篇从发现与配置走到治理、云原生与平台工程：同步调用有预算，发布用错误预算说话。</p>
+          <p class="chapter-subtitle">本篇从发现/配置与治理走到 K8s/Mesh、SLO 与平台，再用 Spring Cloud 调用链把生产坑钉死：同步有预算，发布用错误预算说话。</p>
           <div class="chapter-meta">
             <span>题目数：30</span>
             <span class="meta-divider">|</span>
@@ -136,37 +136,40 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>微服务/云原生主线是「发现与配置 → 流量入口与治理 → 运行时（K8s/Mesh）→ 发布、SLO 与平台」。</p>
+                <p>微服务/云原生主线是「发现与配置 → 入口与流量治理 → 运行时（K8s/Mesh）→ 发布/SLO/安全/多租户 → Spring Cloud 调用链深潜 → 平台与值班闭环」。</p>
                 <ol>
-                  <li><strong>注册发现与配置推送</strong>：一致性模型、推送范式、本地快照与兜底。</li>
-                  <li><strong>网关、限流、熔断</strong>：预算化超时重试、自适应保护、热点参数。</li>
-                  <li><strong>K8s / Service Mesh</strong>：探针、资源、边车/ Ambient、流量策略下沉。</li>
-                  <li><strong>灰度、SLO、IDP</strong>：错误预算驱动发布；Golden Path 降认知负荷。</li>
+                  <li><strong>发现、配置与推送范式</strong>：注册中心 CAP 取舍、配置热更新、通知+二次拉取 / Watch / Pull 全景与本地快照兜底（C10.01/08/27/30）。</li>
+                  <li><strong>网关、限流熔断与超时预算</strong>：横切下沉、令牌桶/漏桶、舱壁；客户端→网关→下游超时拆解，防上游先断下游仍占资源（C10.02/03/29）。</li>
+                  <li><strong>云原生运行时与演进</strong>：容器/JVM 感知、探针与资源、Mesh 治理下沉、单体→微服务节奏、高可用与 Serverless 边界（C10.04/05/06/07/10）。</li>
+                  <li><strong>发布、一致、安全与可观测</strong>：灰度/蓝绿/GitOps、跨服务最终一致、零信任、多租户隔离、三支柱、CQRS/ES、错误预算驱动变更（C10.09/11–17）。</li>
+                  <li><strong>Spring Cloud 深度（C10.18–25）</strong>：@LoadBalanced 拦截链路、OpenFeign 动态代理+熔断、Gateway Filter/DirectBuffer、Bootstrap/@RefreshScope、Sleuth→Micrometer Tracing、Commons 抽象换注册中心、七大生产坑、Dubbo vs SC 选型。</li>
+                  <li><strong>热刷新规范、IDP 与值班</strong>：@RefreshScope vs @ConfigurationProperties、Golden Path/自助交付、配置刷新安全回滚（C10.26/28/30）。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>同步链路有深度/超时/重试预算，写进服务契约；防重试风暴与级联超时，预算变更可审批。</li>
-                <li>统一治理：限流、熔断、舱壁与热点参数；配置变更可审批、可回滚，参数有依据。</li>
-                <li>金丝雀与自动熔断联动错误预算；SLO 燃尽则收缩发布，而不是只看功能清单。</li>
-                <li>全链路 Trace/日志/指标默认接入，排障不靠事后补探针；采样策略可解释可回放。</li>
-                <li>K8s 探针、资源与 JVM/应用容量同一模型；配置推送有本地快照兜底，防配置中心抖动。</li>
-                <li>平台 Golden Path（脚手架、流水线、可观测）优先于工单式交付；例外可审批并登记。</li>
-                <li>服务拆分以独立发布与故障隔离为目标；拆错边界的成本写进决策记录，避免为拆而拆。</li>
-                <li>网关/Mesh 策略变更与代码发布同级管控；流量染色与回滚剧本可演练。</li>
+                <li>同步链路深度/超时/重试预算写入服务契约并可审批；网关与下游超时必须端到端可加总，防重试风暴。</li>
+                <li>限流、熔断、舱壁与热点参数统一治理；配置变更可审批、可回滚，参数有依据与值班手册。</li>
+                <li>金丝雀/灰度与自动熔断联动错误预算；SLO 燃尽则收缩发布，而不是只看功能清单。</li>
+                <li>K8s 探针、资源与 JVM/应用容量同一模型；配置中心抖动用本地快照兜底，刷新有「行为未变/不可退」核对清单。</li>
+                <li>Spring Cloud 变更按生产变更管控：LoadBalancer/Feign/Gateway/RefreshScope/Tracing 升级带金丝雀与回滚；常见坑（文件上传、WebClient 冲突、上下文丢失等）进回归用例。</li>
+                <li>全链路 Trace（B3/W3C）、日志、指标默认接入；Boot 2→3 追踪迁移单独验收采样与 MDC 透传。</li>
+                <li>平台 Golden Path（脚手架、流水线、可观测、权限）优先于工单式交付；例外可审批并登记。</li>
+                <li>零信任与多租户隔离写入上线门禁；Mesh/网关策略变更与代码发布同级管控并可演练回滚。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>调用有预算</strong>：深度、超时、重试上限写进契约，防重试风暴与级联放大。</li>
-                <li><strong>错误预算发布</strong>：SLO 燃尽则收缩变更，而不是只看功能清单是否做完。</li>
-                <li><strong>可观测默认</strong>：三支柱与服务同生，是交付标准不是加分项。</li>
-                <li><strong>平台降认知负荷</strong>：Golden Path 优先，例外可审批并登记，避免每个团队私建一套。</li>
-                <li><strong>发布可回滚</strong>：流量、配置、镜像任一维度都要能快速退回。</li>
-                <li><strong>边界大于技术</strong>：拆分先谈数据归属与故障域，再谈框架与中间件。</li>
+                <li><strong>调用有预算</strong>：深度、超时、重试上限写进契约，防级联放大。</li>
+                <li><strong>错误预算发布</strong>：SLO 燃尽则收缩变更，功能完成度不能替代可靠性。</li>
+                <li><strong>面向 Commons 抽象</strong>：业务绑 Discovery/LoadBalancer 接口，注册中心可替换。</li>
+                <li><strong>Gateway 非 Servlet</strong>：EventLoop 上 ThreadLocal 失效，上下文与堆外释放走 Reactor 语义。</li>
+                <li><strong>刷新是双刃剑</strong>：热更新能秒级改行为，也能秒级制造事故；能 rebind 就不要滥用 @RefreshScope。</li>
+                <li><strong>平台降认知负荷</strong>：Golden Path 优先，私建流水线与可观测栈是例外。</li>
+                <li><strong>边界大于框架</strong>：先谈数据归属与故障域，再谈 Spring Cloud 或 Dubbo。</li>
               </ul>
             </div>
           </div>

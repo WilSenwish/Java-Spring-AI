@@ -65,7 +65,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 08 / REDIS &amp; CACHE ARCHITECTURE</div>
           <h1 class="chapter-title">Redis 与缓存架构</h1>
-          <p class="chapter-subtitle">本篇把缓存当加速层而非数据源：编码与持久化、一致性、锁与集群防护一条链看透。</p>
+          <p class="chapter-subtitle">本篇把缓存当加速层而非数据源：结构与持久化 → 一致性与三大故障 → 锁/过期/布隆 → 集群、多级缓存与 Stream/值班。</p>
           <div class="chapter-meta">
             <span>题目数：12</span>
             <span class="meta-divider">|</span>
@@ -82,12 +82,14 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>缓存主线是「结构与持久化能力 → 与 DB 的一致性协议 → 锁/过期正确性 → 集群与故障模式防护」。</p>
+                <p>缓存主线是「结构编码与持久化能力 → 与 DB 的一致性协议 → 穿透/击穿/雪崩分型防护 → 锁与过期正确性 → Cluster/多级缓存与消息化」，故障时先止血再谈架构。</p>
                 <ol>
-                  <li><strong>编码与持久化</strong>：内存效率与 RDB/AOF 恢复 RPO/RTO 取舍。</li>
-                  <li><strong>一致性协议</strong>：Cache Aside、延迟双删、CDC 等各自的窗口与失败补偿。</li>
-                  <li><strong>分布式锁与过期</strong>：互斥、续期、时钟与误删防护；过期策略与业务 TTL。</li>
-                  <li><strong>集群与三大问题</strong>：槽迁移、热 key；穿透/击穿/雪崩分型治理。</li>
+                  <li><strong>数据类型与底层编码</strong>：5 基础 + 4 扩展类型，小对象编码切换省内存；命令接口与 encoding 解耦是选型依据。</li>
+                  <li><strong>RDB/AOF 与恢复目标</strong>：快照与日志在 RPO/RTO、写放大间权衡；混合持久化与 fork/COW 抖动要进容量模型。</li>
+                  <li><strong>三大问题与一致性协议</strong>：穿透/击穿/雪崩分因施策；Cache Aside、延迟双删、CDC 各自窗口与补偿。</li>
+                  <li><strong>分布式锁与过期淘汰</strong>：Redisson 可重入 + WatchDog 续期；TTL 过期与 maxmemory 淘汰是两套机制，不可混谈。</li>
+                  <li><strong>布隆、多级缓存与 Cluster</strong>：概率过滤降穿透；本地+Redis 分层；16384 槽、MOVED、Gossip 与热 key/槽迁移。</li>
+                  <li><strong>高并发优化、Stream 与值班</strong>：大/热 key、pipeline/Lua、连接池；Stream 消费组与 PEL；击穿现场分钟级止血手册。</li>
                 </ol>
               </div>
             </div>
@@ -95,24 +97,25 @@
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
                 <li>权威在 DB（或指定源）；缓存失败必须可降级，用户路径不能「缓存挂了就全站 500」，降级策略写进 Runbook。</li>
-                <li>热点预案（本地缓存/互斥重建）、大 key 治理、持久化与副本切换演练进常态；切换 RTO/RPO 可测。</li>
-                <li>删缓存/更新失败要有补偿与对账；禁止假设「删 key 一定成功」，失败有重试与告警。</li>
-                <li>策略变更对照命中率、回源 QPS、错误率、源库连接池，防止回源打爆；变更可回滚。</li>
-                <li>分布式锁必须处理租约、续期、时钟与误删；锁不是事务，不能替代幂等与状态机。</li>
-                <li>Cluster 槽迁移与热 key 有观测；单 key 热点用拆分/本地缓存/读写分离思路治理并验收。</li>
-                <li>内存、驱逐、阻塞、慢查询、连接数进统一告警；驱逐飙升视为事故前兆，不是「正常清理」。</li>
-                <li>序列化与 key 规范（前缀、版本、TTL）平台统一，禁止各服务自创无法治理的编码。</li>
+                <li>穿透/击穿/雪崩防护组合拳进基线：空值缓存、单飞、过期抖动、隔离与限流；热点 key 有探测与预案。</li>
+                <li>一致性方案按业务容忍窗口选型并文档化；禁止口头「最终一致」而无补偿与对账。</li>
+                <li>分布式锁必须可重入/续期/防误删语义清晰；持锁业务要幂等，超时与时钟风险写进评审。</li>
+                <li>maxmemory 与淘汰策略、持久化策略随实例角色（缓存 vs 存储）分开配置；禁止一套参数打天下。</li>
+                <li>Cluster 扩缩容与跨槽限制进变更手册；大 key/热 key 扫描与拆分有定期任务。</li>
+                <li>多级缓存要有失效广播或短 TTL 策略，防止本地缓存成为幽灵源。</li>
+                <li>击穿与雪崩值班手册分钟级：限流、临时永不过期/互斥回源、扩容只读；恢复后再做复盘，不在现场做架构演讲。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
                 <li><strong>缓存非源</strong>：源故障与缓存故障的体验与降级路径要事先设计；缓存只是加速层。</li>
-                <li><strong>一致性选代价</strong>：按业务容忍窗口选协议，写清失败补偿与最大不一致时间。</li>
-                <li><strong>按故障模式防护</strong>：穿透/击穿/雪崩/热 key 分型，忌永不过期通杀。</li>
-                <li><strong>容量与驱逐可观测</strong>：内存、驱逐、阻塞、慢查询进统一告警，并能关联到业务接口。</li>
-                <li><strong>锁外必幂等</strong>：拿到锁只保证互斥，不保证业务副作用只发生一次。</li>
-                <li><strong>热 key 先分型</strong>：读热点、写热点、大 value 对策不同；先分型再上方案。</li>
+                <li><strong>分型再治理</strong>：穿透/击穿/雪崩失效原因不同，方案不可一套贴膏药。</li>
+                <li><strong>一致性有窗口</strong>：双写无事务；选协议就是选可接受的不一致窗口与补偿。</li>
+                <li><strong>锁是契约</strong>：互斥、续期、释放与业务幂等是一整套；只 setnx 不等于分布式锁。</li>
+                <li><strong>过期≠淘汰</strong>：TTL 删除与内存满驱逐目标不同，混用诊断会走偏。</li>
+                <li><strong>集群有物理边界</strong>：槽、迁移与热点分片决定上限；命令对了也可能打在同一槽上。</li>
+                <li><strong>现场先止血</strong>：击穿值班目标是恢复保护层，架构优化放在事后。</li>
               </ul>
             </div>
           </div>

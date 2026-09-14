@@ -80,7 +80,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 09 / DISTRIBUTED SYSTEMS</div>
           <h1 class="chapter-title">分布式系统</h1>
-          <p class="chapter-subtitle">本篇先选一致与事务模型，再谈消息、时钟、幂等与容灾——分布式问题是取舍题，不是组件题。</p>
+          <p class="chapter-subtitle">本篇先钉一致与事务模型，再走消息、锁/ID、时钟、可观测与多活——分布式是取舍题，不是组件堆砌题。</p>
           <div class="chapter-meta">
             <span>题目数：17</span>
             <span class="meta-divider">|</span>
@@ -97,37 +97,39 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>分布式主线是「一致模型选型 → 事务/消息实现 → 幂等与时钟 → 容灾多活」。</p>
+                <p>分布式主线是「一致/分区取舍 → 事务与消息实现 → 协调原语（锁/ID/时钟）→ 可观测与容灾多活」。</p>
                 <ol>
-                  <li><strong>CAP / PACELC 与事务模型</strong>：强一致、最终一致、Saga/TCC/可靠消息各自代价。</li>
-                  <li><strong>消息可靠与积压治理</strong>：投递语义、堆积、重放与死信。</li>
-                  <li><strong>锁、ID、接口幂等</strong>：互斥边界、号段/雪花、Token+状态机。</li>
-                  <li><strong>容灾与多活</strong>：RPO/RTO、单元化、对账与切流。</li>
+                  <li><strong>CAP/BASE 与事务谱系</strong>：分区下 C/A 权衡决定强一致还是最终一致；2PC/TCC/Seata AT/SAGA/Outbox 各自用阻塞、侵入或补偿换原子性（C09.01/02/16）。</li>
+                  <li><strong>消息可靠、顺序与积压</strong>：Kafka 吞吐/ISR/EOS、通用 MQ 全链路确认与死信、千万级积压的止血—转存—回补（C09.04/05/09）。</li>
+                  <li><strong>锁、ID、哈希与幂等</strong>：Redis/ZK/DB 锁正确性边界与误用分型、号段/雪花与时钟回拨、一致性哈希迁移量、Token+状态机幂等（C09.03/06/07/08/17）。</li>
+                  <li><strong>共识、时钟与会话/缓存</strong>：崩溃 vs 拜占庭、Raft/Paxos 落地；物理钟不可默认排序，Lamport/HLC/TSO；会话集中或消除；Cache-DB 一致等级先定再选路径（C09.10/12/13/14）。</li>
+                  <li><strong>追踪与容灾多活</strong>：Metrics/Log/Trace 以 TraceId 联动；RPO/RTO 驱动单元化、切流、对账与持续演练（C09.11/15）。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>先写失败模型与一致性承诺，再选中间件；架构评审材料必须包含该承诺与最大不一致窗口。</li>
-                <li>上线清单含幂等键/去重表、超时重试预算、死信与人工补偿、对账任务与告警；缺一项不得上线。</li>
-                <li>定期混沌演练（超时、分区、重复投递、时钟回拨）；结果进入错误预算讨论。</li>
-                <li>切勿用分布式事务掩盖领域边界不清；能本地事务 + 消息就不要上重型方案。</li>
-                <li>消息与 DB 双写用 Outbox/CDC 兜底；禁止无补偿的「先发消息再写库」。</li>
-                <li>多活/单元化先划爆炸半径与数据归属，再谈同步与切流；切流开关可演练。</li>
-                <li>超时链路端到端可加总；重试必须有上限、抖动与幂等，防重试风暴写成事故。</li>
-                <li>时钟、ID、锁租约的失效模式写进设计说明；跨机房场景禁止假设时钟完美同步。</li>
+                <li>架构评审先写失败模型与一致性承诺（最大不一致窗口、补偿责任），再选中间件；禁止「先定组件再找理由」。</li>
+                <li>写路径上线清单：幂等键/去重表、超时重试预算、死信与人工补偿、对账任务与告警；缺一项不得上线。</li>
+                <li>消息与 DB 双写默认 Outbox/CDC 或事务消息；禁止无补偿的「先发消息再写库」。</li>
+                <li>分布式锁/租约必须处理续期失败、过期误删与脑裂；误用按分型排查（未持锁并行 / TTL 短于业务 / 解锁他人），禁止当银弹。</li>
+                <li>定期混沌：超时、分区、重复投递、时钟回拨；结果进入错误预算与发布门禁讨论。</li>
+                <li>多活/单元化先划爆炸半径与数据归属，再谈同步；切流开关与对账可演练，「接近 0 RPO」靠自动化与验证，不靠口号。</li>
+                <li>ID/时钟设计写明失效模式；跨机房禁止假设 NTP 完美同步；雪花类方案有回拨预案。</li>
+                <li>链路追踪与结构化日志默认接入跨服务上下文；排障路径固定为「现象 → Trace → 分区/副本/消费位点证据」。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>先选一致模型</strong>：业务承诺决定技术栈，忌先定组件再找理由。</li>
-                <li><strong>副作用幂等</strong>：重试是常态，写路径必须可重入或可去重。</li>
-                <li><strong>故障域隔离</strong>：爆炸半径、降级开关优先于「多机房同构堆积」。</li>
+                <li><strong>先选一致模型</strong>：业务承诺决定技术栈，组件是实现细节。</li>
+                <li><strong>副作用必须幂等</strong>：重试是常态，写路径可重入或可去重。</li>
+                <li><strong>协调原语有租约</strong>：锁/领导选举要处理续期失败与脑裂，不能只演示成功路径。</li>
                 <li><strong>对账兜底</strong>：最终一致系统以对账与补偿为正确性最后一道闸。</li>
-                <li><strong>超时有预算</strong>：重试风暴按事故预防，超时链路要端到端可加总。</li>
-                <li><strong>协调原语有租约</strong>：锁/租约/领导选举必须处理续期失败与脑裂，不能只演示成功路径。</li>
+                <li><strong>超时有端到端预算</strong>：重试风暴按事故预防，链路可加总。</li>
+                <li><strong>故障域隔离</strong>：爆炸半径与降级开关优先于同构多机房堆积。</li>
+                <li><strong>证据驱动排障</strong>：积压/锁不住/不一致先分型再动作，忌盲目扩容或跳位点。</li>
               </ul>
             </div>
           </div>

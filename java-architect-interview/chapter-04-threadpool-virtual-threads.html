@@ -59,7 +59,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 04 / THREAD POOL &amp; VIRTUAL THREADS</div>
           <h1 class="chapter-title">线程池与虚拟线程</h1>
-          <p class="chapter-subtitle">本篇回答「任务如何被承载」：池化治理、异步编排，再到虚拟线程与结构化并发。</p>
+          <p class="chapter-subtitle">本篇回答「任务如何被承载」：池化七参数与状态机 → ThreadLocal 语境 → 虚拟线程/pinning → 异步编排与结构化并发。</p>
           <div class="chapter-meta">
             <span>题目数：10</span>
             <span class="meta-divider">|</span>
@@ -76,12 +76,14 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>任务承载主线是「工作负载分型 → 池化/虚拟线程选型 → 编排与取消 → 上下文传递」。</p>
+                <p>任务承载主线是「工作负载分型 → 池化或虚拟线程选型 → 编排/取消/异常 → 上下文传递（ThreadLocal→ScopedValue）」，并显式处理 pinning 与模型边界。</p>
                 <ol>
-                  <li><strong>池化参数与拒绝策略</strong>：核数、队列、拒绝与业务降级挂钩，忌无限队列伪装缓冲。</li>
-                  <li><strong>Future 与异步编排</strong>：超时、取消、异常传播决定会不会拖垮调用方。</li>
-                  <li><strong>虚拟线程与 pinning</strong>：收益取决于是否长时间 pin 住载体；同步块/JNI 是关键。</li>
-                  <li><strong>结构化并发与上下文</strong>：任务生命周期成组管理；ThreadLocal 在 VT/异步下要显式化。</li>
+                  <li><strong>线程池七参数与拒绝策略</strong>：核心/最大/队列/拒绝是资源约束与背压，不是「开大就快」；饱和必须可观测可降级。</li>
+                  <li><strong>提交流程与状态机</strong>：核心→队列→最大→拒绝的决策链，叠加 RUNNING→TERMINATED 生命周期，决定压力行为与优雅停机。</li>
+                  <li><strong>ThreadLocal 泄漏与上下文演进</strong>：弱 Key 强 Value + 池化复用是泄漏根因；TTL/ScopedValue 回应异步与虚拟线程下的传递需求。</li>
+                  <li><strong>虚拟线程模型与 Spring 落地</strong>：载体挂载/卸载换吞吐；Boot 一键开启背后是容器线程模型切换与连接池/同步块兼容评估。</li>
+                  <li><strong>pinning 排查与治理</strong>：synchronized/JNI 钉住载体；用 tracePinnedThreads/JFR/线程转储定位，热点改 ReentrantLock 或缩短临界区。</li>
+                  <li><strong>异步编排与结构化并发</strong>：CompletableFuture 链与 commonPool 陷阱；WebFlux/Servlet/VT 三模型差异；StructuredTaskScope 绑定父子生命周期。</li>
                 </ol>
               </div>
             </div>
@@ -89,24 +91,25 @@
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
                 <li>线程池按业务隔离：有界队列、饱和指标、拒绝告警与变更审批；禁止无限队列伪装缓冲，拒绝必须可观测。</li>
-                <li>IO 密集评估 VT/异步时，上线前做 pin 检测与平台线程对照压测，并记录诊断工具版本差异（JFR 等）。</li>
-                <li>「加线程扛住」必须附带队列堆积、RT、错误率三联证据，并准备降级/限流开关与回滚方案。</li>
-                <li>拒绝策略必须触发明确降级路径（快速失败、降级读、排队提示），禁止静默丢任务。</li>
-                <li>结构化并发与任务取消语义写进接口契约：超时由谁取消、半成功如何补偿、子任务失败如何汇聚。</li>
-                <li>上下文（TraceId/租户/安全主体）禁止隐式 ThreadLocal 穿透；优先显式传参或 ScopedValue，并有泄漏检测。</li>
-                <li>池参数变更（core/max/queue）走配置中心时可回滚，并有「参数—容量模型」对照表，忌拍脑袋调大。</li>
-                <li>混合负载（CPU + 阻塞 IO）禁止混用同一池；隔离失败按事故复盘，而不是「再加机器」。</li>
+                <li>优雅停机验收 shutdown/shutdownNow 语义：在途任务、超时强杀与资源回收进发布检查清单。</li>
+                <li>ThreadLocal 使用强制 remove 与池化场景回归；链路/租户上下文优先评估 TransmittableThreadLocal 或 ScopedValue。</li>
+                <li>虚拟线程开关前做兼容矩阵：synchronized 热点、连接池大小、ThreadLocal 用量、本地文件/JNI；不通过不得全量。</li>
+                <li>pinning 纳入性能门禁：压测采集钉扎事件，超阈值阻断发布；JDK 版本升级同步更新排查手册。</li>
+                <li>CompletableFuture 禁止默认 commonPool 跑阻塞任务；超时、取消、异常传播写进接口契约与单测。</li>
+                <li>Servlet / WebFlux / 虚拟线程选型书面化：团队范式、库生态、背压与调试成本写进架构决策记录。</li>
+                <li>结构化并发试点范围明确：任务树取消、错误汇聚与 ScopedValue 绑定一起验收，避免「半结构化」逃逸任务。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
                 <li><strong>负载先分型</strong>：CPU 密集、阻塞 IO、混合负载用不同承载，忌一套池打天下。</li>
-                <li><strong>拒绝即可观测</strong>：拒绝要打点并联动降级，不能当「内部实现细节」藏进日志。</li>
-                <li><strong>VT 看 pin 点</strong>：同步块/JNI/长时间监控会吃掉虚拟线程红利；按 JDK 版本选诊断手段。</li>
-                <li><strong>上下文显式化</strong>：异步与 VT 场景下隐式 ThreadLocal 视为泄漏与串号风险。</li>
-                <li><strong>取消是一等公民</strong>：超时与取消必须穿透到下游，避免幽灵任务继续消耗资源。</li>
-                <li><strong>饱和有信号</strong>：队列与线程饱和必须有告警与自动保护，而不是等用户投诉才发现。</li>
+                <li><strong>池是背压装置</strong>：队列与拒绝保护的是系统，不是调用方面子；饱和要有产品级降级。</li>
+                <li><strong>上下文有生命周期</strong>：ThreadLocal 绑定线程，任务换线程就失效或泄漏；作用域模型优先。</li>
+                <li><strong>VT 非银弹</strong>：解决的是大量阻塞等待，不是 CPU 算力；pinning 会打回原形。</li>
+                <li><strong>编排必谈取消</strong>：超时与取消不能只写在注释里；否则下游拖死上游。</li>
+                <li><strong>模型边界清醒</strong>：响应式与虚拟线程解决不同约束；混用要有明确边界而不是口号替换。</li>
+                <li><strong>结构化优于逃逸</strong>：并发任务应成树管理；逃逸任务是生产幽灵负载的来源。</li>
               </ul>
             </div>
           </div>

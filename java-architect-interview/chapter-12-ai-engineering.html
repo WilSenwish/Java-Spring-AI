@@ -134,7 +134,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 12 / AI ENGINEERING</div>
           <h1 class="chapter-title">AI 工程与实践</h1>
-          <p class="chapter-subtitle">本篇按「检索先于生成、工具有契约」组织 AI 工程：路由、RAG、Agent/MCP，再到评估与成本。</p>
+          <p class="chapter-subtitle">本篇按「检索先于生成、工具有契约、变更必回归」组织：Spring AI/RAG/Agent，经 Guardrails 与成本/多租户，到评测灰度与生产开关。</p>
           <div class="chapter-meta">
             <span>题目数：35</span>
             <span class="meta-divider">|</span>
@@ -151,13 +151,14 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>AI 生产主线是「可版本化的制品链」：模型/Prompt → 数据与索引 → 编排与工具 → 评测护栏 → 成本与租户治理。任一环变更都视为一次发布。</p>
+                <p>AI 生产主线是可版本化制品链：模型/Prompt → Embedding/分块/索引 → RAG 召回与重排 → Agent/工具/MCP → 评测·Guardrails·成本·多租户 → 灰度与降级开关。</p>
                 <ol>
-                  <li><strong>模型路由与 Prompt 工程</strong>：多模型策略、结构化输出、提示词与安全策略同仓版本化。</li>
-                  <li><strong>Embedding、分块与向量索引</strong>：切片、元数据过滤、ANN 参数决定召回上限。</li>
-                  <li><strong>RAG 召回、融合与重排</strong>：检索质量优先于换更大生成模型；增量更新要保持向量一致。</li>
-                  <li><strong>Agent / 工具合约 / MCP</strong>：副作用分级、鉴权、超时、幂等与 schema 兼容。</li>
-                  <li><strong>评测集、灰度、护栏与 FinOps</strong>：上线门禁 = 质量回归 + 安全策略 + Token/工具成本。</li>
+                  <li><strong>框架与 Prompt/工具入口</strong>：Spring AI 整合、Prompt 模板与结构化输出、Function Calling；Alibaba Graph / AgentScope / LangChain4j / LangGraph4j 编排选型（C12.01/05/06/11–14）。</li>
+                  <li><strong>RAG 全链路</strong>：Embedding 与相似度、分块策略、召回融合重排、幻觉与召回率治理、增量更新与向量一致性、十亿级向量库与 Embedding 升级重算（C12.02–04/17/21/22/27/33）。</li>
+                  <li><strong>Agent / MCP 与工具合约</strong>：智能体与协议、工具失败/死循环/超预算、副作用分级·错误·幂等·版本；可写工具默认鉴权与 HITL（C12.07/23/32）。</li>
+                  <li><strong>安全 Guardrails</strong>：注入/越狱/泄露防护、输入输出护栏与策略同仓版本化（C12.15/19）。</li>
+                  <li><strong>运行时韧性与体验</strong>：限流熔断降级超时、多模型路由与故障转移、SSE 流式与断连背压、结构化输出兜底（C12.16/18/20/24/25/35）。</li>
+                  <li><strong>评测、成本、租户与发布</strong>：质量评估与评测集 CI 门禁、Token 成本爆炸与 FinOps、多租户隔离/配额/计费、记忆与隐私、模型/Prompt/工具灰度与 A/B（C12.08/09/26/28–31/34）。</li>
                 </ol>
               </div>
             </div>
@@ -165,24 +166,25 @@
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
                 <li>模型、Prompt、知识库快照、工具 schema、编排图全部版本化，可对齐回放与一键回退；版本号进日志与审计。</li>
-                <li>任何改动（温度、切片、重排、工具实现）必须过固定黄金集/测试集回归，无测试集不上线。</li>
+                <li>任何改动（温度、切片、重排、工具实现）必须过固定黄金集/RAG 评测集回归，无测试集不上线。</li>
                 <li>离线指标 + 小流量线上数据双确认后再全量；拒绝仅凭个例体验放量。</li>
-                <li>默认灰度与一键回滚；全链路记录 prompt/检索命中/工具调用/费用与安全审计字段。</li>
                 <li>可写工具默认鉴权、幂等、超时、审计与 HITL；禁止内网裸奔 MCP/Function Calling。</li>
-                <li>Token/工具成本进入租户配额与发布门禁，与质量指标并列，而不是上线后再算账。</li>
-                <li>幻觉、越狱、投毒、死循环有应急剧本；熔断开关与人工接管路径可演练。</li>
-                <li>供应商故障有多模型降级与超时预算；密钥与配额分环境隔离。</li>
+                <li>Guardrails（注入/越狱/泄露）与应急剧本可演练；熔断开关与人工接管路径明确。</li>
+                <li>Token/工具成本进入租户配额与发布门禁，与质量指标并列；超配额即降级或限流。</li>
+                <li>向量索引与 Embedding 升级按双写/重算窗口管理，保证增量更新后向量一致可验证。</li>
+                <li>多模型路由有超时预算与供应商降级；SSE 断连恢复与背压策略写入接口契约。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>生命周期化</strong>：数据→索引→推理→反馈→再评估，每段有 Owner 与 SLO。</li>
-                <li><strong>版本化</strong>：模型/Prompt/索引/工具/护栏全部打版本，事故可回放。</li>
-                <li><strong>变更必回归</strong>：不论改哪一层，上线前必须过同一套测试集。</li>
-                <li><strong>数据说话</strong>：离线指标 + 线上抽样/人工抽检，拒绝感觉驱动放量。</li>
+                <li><strong>检索先于换模</strong>：召回差时先治分块/索引/重排，而不是只堆更大生成模型。</li>
                 <li><strong>工具有契约</strong>：副作用分级、鉴权、幂等与 HITL 是默认，不是可选项。</li>
-                <li><strong>成本与质量并列</strong>：费用与质量共同构成发布门禁；超配额即降级。</li>
+                <li><strong>变更必回归</strong>：Prompt/索引/工具/模型任一变更过同一套评测门禁。</li>
+                <li><strong>护栏与能力同发</strong>：Guardrails 与功能版本绑定，禁止「先上能力后补安全」。</li>
+                <li><strong>成本与质量并列</strong>：费用、配额与质量共同构成发布门禁。</li>
+                <li><strong>租户隔离是一等需求</strong>：数据/配额/密钥/审计按租户切开，共享集群也要可归因。</li>
+                <li><strong>生命周期化</strong>：数据→索引→推理→反馈→再评估，每段有 Owner 与 SLO。</li>
               </ul>
             </div>
           </div>

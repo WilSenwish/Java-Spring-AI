@@ -65,7 +65,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 01 / JVM MEMORY &amp; CLASSLOADING</div>
           <h1 class="chapter-title">JVM 内存与类加载</h1>
-          <p class="chapter-subtitle">本篇用「分区 → 对象 → 加载 → 可见性」一条链，建立 JVM 排障与调优的地基。</p>
+          <p class="chapter-subtitle">本篇按「分区归因 → 对象与引用 → 类加载/JPMS → JMM 可见性 → JIT/启动与升级」串起 JVM 排障与调优地基。</p>
           <div class="chapter-meta">
             <span>题目数：12</span>
             <span class="meta-divider">|</span>
@@ -82,25 +82,27 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>JVM 生产排障的主线不是背区域名，而是「现象 → 落区 → 对象/类生命周期 → 可见性语义」闭环。</p>
+                <p>JVM 生产排障的主线不是背区域名，而是「现象 → 落区 → 对象/类生命周期 → 内存语义 → 执行与启动成本」闭环，再落到容器与升级变更。</p>
                 <ol>
-                  <li><strong>运行时分区与 OOM 归因</strong>：堆 / 元空间 / 直接内存 / 栈 / 线程创建失败各自对应不同监控与上限；容器下还要看 cgroup 与 Native。</li>
-                  <li><strong>对象布局与引用语义</strong>：头、对齐、引用强度决定泄漏形态与 GC 可达性入口。</li>
-                  <li><strong>类加载与 JPMS 边界</strong>：双亲委派、自定义加载器、模块导出决定「同名类不同世界」与热更新边界。</li>
-                  <li><strong>JMM / happens-before</strong>：跨线程读到陈旧值时，先用内存语义解释，再谈锁与 volatile。</li>
+                  <li><strong>运行时分区与 OOM 归因</strong>：堆 / 元空间 / 直接内存 / 栈 / 线程创建失败各自对应不同上限与监控；容器下还要对齐 cgroup、Native 与 OS 虚拟内存/页表行为。</li>
+                  <li><strong>对象布局、引用与泄漏排查</strong>：创建过程、对象头/对齐、强软弱虚引用决定可达性与泄漏形态；OOM 与泄漏要分清「因→果」并用转储工具链闭环。</li>
+                  <li><strong>类加载、双亲委派与 JPMS</strong>：加载生命周期、委派动机与打破场景，叠加模块层强封装，决定同名类隔离、反射边界与热更新能否卸载。</li>
+                  <li><strong>JMM / happens-before</strong>：跨线程陈旧读先用偏序与屏障解释，再谈 volatile / synchronized；可见性语义是并发正确性的入口。</li>
+                  <li><strong>JIT 与启动预热</strong>：C1/C2/分层编译与 CodeCache、Graal 路径解释峰值吞吐；CDS/Leyden/AOT/CRaC 治理反复支付的类加载与预热成本。</li>
+                  <li><strong>JDK LTS 升级迁移</strong>：17/21/25 语言与运行时差异（Records、虚拟线程、紧凑对象头等）按变更管理验收，预览能力不绑核心路径。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>每服务书面化堆 / 元空间 / 直接内存 / 线程栈 / 线程数预算，并与容器 limit、kubelet eviction、告警阈值三联对齐；OOM 与 OOMKilled 分诊 Runbook 进值班手册，含「先看哪类指标、采什么转储」。</li>
-                <li>类加载器泄漏（动态代理、热部署、自定义 ClassLoader、SPI）纳入发布回归与金丝雀观察窗口：必须证明 Metaspace 可回落，禁止只看功能验收。</li>
+                <li>每服务书面化堆 / 元空间 / 直接内存 / 线程栈 / 线程数预算，并与容器 limit、kubelet eviction、告警阈值三联对齐；OOM 与 OOMKilled 分诊 Runbook 含「先看哪类指标、采什么转储」。</li>
+                <li>类加载器泄漏（动态代理、热部署、自定义 ClassLoader、SPI）纳入发布回归：必须证明 Metaspace 可回落，禁止只看功能验收。</li>
                 <li>排障标准动作固定为：业务现象 → 区域归因 → jcmd/jmap/MAT/异步日志证据链；无证据禁止先改 -Xmx 或盲目扩容。</li>
-                <li>JDK 大版本升级单独验收：对象头布局、模块封装、诊断工具、默认 GC 与预览 API 边界；预览能力不得绑核心路径，并准备一键回退基线。</li>
                 <li>Native/DirectBuffer 与堆外分配纳入同一容量模型与看板，防止「堆内健康、堆外打满」；Netty/NIO 缓冲池泄漏有专项检测。</li>
-                <li>热更新与插件化必须有类卸载验收项：加载次数、Metaspace、ClassLoader 实例数；卸载失败按泄漏缺陷管理。</li>
-                <li>字符串常量池、软/弱引用缓存与大对象晋升路径写入容量评审材料，避免把「能跑」当「能扛流量」。</li>
+                <li>引用类型缓存、ThreadLocal、字符串常量池与大对象晋升路径写入容量评审，避免把「能跑」当「能扛流量」。</li>
+                <li>JIT/CodeCache 与启动预热（CDS/AppCDS/Leyden）进弹性扩容验收：冷启动延迟与稳态吞吐分开测，禁止只看稳态。</li>
+                <li>JDK 大版本升级单独验收：对象头布局、模块封装、诊断工具、默认 GC 与预览 API 边界；准备一键回退基线。</li>
                 <li>容器与 JVM 诊断工具链（jcmd 权限、只读根文件系统、sidecar 采集）在上线前打通，避免出事才发现采不到转储。</li>
               </ul>
             </div>
@@ -108,11 +110,12 @@
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
                 <li><strong>分区归因</strong>：先把症状钉到堆 / 元空间 / 直接内存 / 栈 / 线程创建失败，再谈 GC 或业务泄漏；分区错了后续全错。</li>
-                <li><strong>加载器隔离</strong>：同名类冲突与热加载问题优先画 ClassLoader / JPMS 边界图，而不是改业务碰运气或「重启试试」。</li>
-                <li><strong>可见性先于加锁</strong>：跨线程陈旧读先用 happens-before 解释，再选 synchronized / volatile / Lock；加锁不能掩盖语义错误。</li>
+                <li><strong>加载器隔离</strong>：同名类冲突与热加载优先画 ClassLoader / JPMS 边界图，而不是改业务碰运气。</li>
+                <li><strong>可见性先于加锁</strong>：跨线程陈旧读先用 happens-before 解释，再选 synchronized / volatile / Lock。</li>
                 <li><strong>证据优于经验</strong>：无日志/转储/指标对照的调参视为违规变更；「以前这么调过」不能替代本次证据。</li>
-                <li><strong>容量与编排一体</strong>：JVM 预算必须能映射到 cgroup/kubelet 行为，避免「JVM 还有内存、节点已杀进程」。</li>
-                <li><strong>升级当变更管理</strong>：JDK/工具链升级按生产变更管控：对照清单、金丝雀、回滚条件与错误预算写进变更单。</li>
+                <li><strong>容量与编排一体</strong>：JVM 预算必须能映射到 cgroup/kubelet 与页表/swap 行为，避免「JVM 还有内存、节点已杀进程」。</li>
+                <li><strong>预热当成本</strong>：弹性场景把类加载与 JIT 预热算进容量与扩容时延，而不是默认「进程起来就能扛」。</li>
+                <li><strong>升级当变更管理</strong>：JDK/工具链升级按生产变更管控：对照清单、金丝雀、回滚条件写进变更单。</li>
               </ul>
             </div>
           </div>

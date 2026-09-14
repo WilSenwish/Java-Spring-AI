@@ -65,7 +65,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 03 / CONCURRENCY &amp; LOCK MECHANISMS</div>
           <h1 class="chapter-title">并发编程与锁机制</h1>
-          <p class="chapter-subtitle">本篇从 JMM 三性出发，走到 AQS、并发容器与无锁边界，建立并发排障的统一口径。</p>
+          <p class="chapter-subtitle">本篇从 volatile/JMM 边界出发，经锁升级与 AQS，走到并发容器、分治无锁与 OS 调度成本，统一并发排障口径。</p>
           <div class="chapter-meta">
             <span>题目数：12</span>
             <span class="meta-divider">|</span>
@@ -82,12 +82,14 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>并发主线是「正确性语义 → 同步成本 → 数据结构选择 → 与 OS/CPU 的交互」。</p>
+                <p>并发主线是「正确性语义（三性）→ 同步原语成本 → 数据结构/等待通知选型 → 无锁与 OS/CPU 交互」，用同一套口径解释「锁住了仍慢」与「无锁仍错」。</p>
                 <ol>
-                  <li><strong>JMM 三性与屏障</strong>：原子 / 可见 / 有序先分清，再谈指令重排与锁消除。</li>
-                  <li><strong>synchronized 与 AQS</strong>：偏向/轻量/重量升级与队列等待，解释「锁住了仍慢」。</li>
-                  <li><strong>并发容器与等待通知</strong>：CHM、队列、Condition 的迭代与 happens-before 契约。</li>
-                  <li><strong>无锁与 OS 模型</strong>：CAS/ABA、伪共享、线程状态与上下文切换成本。</li>
+                  <li><strong>volatile 与三性边界</strong>：可见性与有序性有、读改写原子性无；这是 Atomic、锁与 AQS 选型的认知入口。</li>
+                  <li><strong>synchronized 锁升级与显式锁</strong>：无锁→轻量→重量（偏向锁已废弃）解释自适应成本；ReentrantLock/StampedLock 按功能与竞争形态选型。</li>
+                  <li><strong>AQS、CAS 与 ABA</strong>：state + CLH 变体队列 + park/unpark 是 JUC 同步器内核；CAS 局限与版本号/引用方案必须会讲。</li>
+                  <li><strong>并发容器与等待通知</strong>：CHM 从分段锁到 CAS+桶锁；CopyOnWrite/BlockingQueue/SkipList 按读写比选型；Condition 与 LockSupport 分层抽象。</li>
+                  <li><strong>分治、计数与无锁队列</strong>：ForkJoin 工作窃取与 commonPool 边界；LongAdder 分段计数；Disruptor RingBuffer 与伪共享治理。</li>
+                  <li><strong>OS 进程线程模型</strong>：内核调度、上下文切换与用户态/内核态成本，决定池大小与虚拟线程收益边界。</li>
                 </ol>
               </div>
             </div>
@@ -95,24 +97,25 @@
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
                 <li>死锁要有线程转储采集规范与锁顺序纪律；多锁场景在代码评审中强制声明获取顺序，违规不得合入。</li>
-                <li>热点锁拆分/分段必须附带争用指标（持锁时间、队列长度、CAS 失败率）验收，无指标的「优化」打回。</li>
-                <li>无锁/并发容器上线前必须有压力下的不变量或线性一致性测试，禁止只跑功能单测。</li>
-                <li>超时与熔断不能掩盖数据竞争：竞态类缺陷按 P0 缺陷管理，而不是「偶现可忽略」。</li>
-                <li>ThreadLocal / 上下文传递在线程池与虚拟线程场景要有泄漏检测与显式清理策略，池化复用必须可证明不串号。</li>
-                <li>并发变更（锁粒度、容器类型、AQS 自定义）纳入性能回归门禁：吞吐、尾延迟、错误率三联对照。</li>
-                <li>中断、取消与锁的可响应性写进接口契约：谁响应中断、半成功如何回滚，禁止吞中断。</li>
-                <li>ABA、伪共享与 false sharing 在热点路径有专项检查；计数类优先评估 LongAdder 等分段方案。</li>
+                <li>共享可变状态默认不可接受：能局限可变性就局限；必须共享时书面化同步策略（锁/并发容器/无锁）与测试证明。</li>
+                <li>ConcurrentHashMap 等容器禁止依赖「非原子复合操作」的错误用法；size/迭代语义与业务一致性分开验收。</li>
+                <li>高竞争计数与统计优先 LongAdder/LongAccumulator，避免 Atomic 在热点上的伪共享与自旋风暴。</li>
+                <li>ForkJoin/parallelStream/CompletableFuture 共用 commonPool 的风险写入规范：阻塞任务必须自带 Executor，禁止污染公共池。</li>
+                <li>无锁/Disruptor 类组件上线前验收伪共享填充、生产者消费者依赖与背压；性能数字必须可复现。</li>
+                <li>Condition/wait 使用强制模板：while 条件、持锁、超时与中断策略；禁止「if + wait」进生产。</li>
+                <li>线程数与锁粒度变更按容量实验管理：对照上下文切换、尾延迟与错误率，避免「加线程治慢」。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
                 <li><strong>先三性后原语</strong>：分清原子/可见/有序，再选 synchronized、Lock、CAS；原语选错比实现慢更危险。</li>
-                <li><strong>排队成本 vs CAS</strong>：高争用看锁膨胀与队列；低争用才评估无锁复杂度与 ABA 风险。</li>
-                <li><strong>锁顺序纪律</strong>：多锁获取顺序写死并可静态检查；死锁当缺陷而非运气。</li>
-                <li><strong>不变量可测</strong>：并发结构变更必须有压力下的正确性与回归用例，覆盖重入与取消路径。</li>
-                <li><strong>争用可观测</strong>：没有持锁/队列/CAS 指标的「优化」不允许进生产。</li>
-                <li><strong>上下文不隐式穿透</strong>：异步与池化场景下 ThreadLocal 默认为风险，优先显式传参或 ScopedValue。</li>
+                <li><strong>成本随竞争变化</strong>：无竞争走轻量路径，高竞争必付队列与调度代价；用升级路径解释现象。</li>
+                <li><strong>数据结构即策略</strong>：读写比、是否阻塞、是否排序决定容器；API 名字不能替代场景分析。</li>
+                <li><strong>无锁非免费</strong>：CAS 重试、ABA、伪共享与单变量边界是固有税；复杂不变式往往更适合锁。</li>
+                <li><strong>池与窃取有边界</strong>：分治适合 CPU 可切分任务；阻塞 IO 进 commonPool 是经典事故源。</li>
+                <li><strong>下沉到 OS</strong>：Java 锁最终映射到调度与缓存一致性；上下文切换与伪共享要用系统视角看。</li>
+                <li><strong>正确性可测</strong>：并发缺陷用压力、JCStress/复现脚本与线程转储证明，不靠「本地跑过」。</li>
               </ul>
             </div>
           </div>

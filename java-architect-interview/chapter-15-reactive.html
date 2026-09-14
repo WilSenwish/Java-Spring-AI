@@ -65,7 +65,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 15 / REACTIVE</div>
           <h1 class="chapter-title">响应式编程与系统设计</h1>
-          <p class="chapter-subtitle">本篇以背压为契约，对照 Reactor/WebFlux 与虚拟线程：非阻塞链路忌掺阻塞，选型看团队心智。</p>
+          <p class="chapter-subtitle">本篇以背压为契约，把 Reactor 操作符、WebFlux/R2DBC 与虚拟线程对照讲清：非阻塞链路忌掺阻塞，选型看团队心智与调用形态。</p>
           <div class="chapter-meta">
             <span>题目数：12</span>
             <span class="meta-divider">|</span>
@@ -82,37 +82,38 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>响应式主线是「背压契约 → Reactor/WebFlux 实现 → 与虚拟线程对比 → 全栈落地代价」。</p>
+                <p>响应式主线是「背压契约 → Mono/Flux 与操作符语义 → WebFlux/R2DBC 落地 → 错误重试与调度边界 → 与虚拟线程对照及全栈取舍」。</p>
                 <ol>
-                  <li><strong>背压语义</strong>：上游快下游慢必须有传播策略，否则换一种 OOM。</li>
-                  <li><strong>Mono/Flux 与操作符</strong>：基数语义、创建/变换/组合/拆分/错误时间/调度（C15.07–C15.11，官方附录口径）。</li>
-                  <li><strong>VT 对比选型</strong>：编程模型复杂度 vs 端到端流式/背压需求。</li>
-                  <li><strong>全栈落地</strong>：R2DBC、客户端、团队心智与调试工具链成本。</li>
+                  <li><strong>背压与核心抽象</strong>：Publisher 下游需求向上传递；背压未传递的症状与开关（C15.01/12）。</li>
+                  <li><strong>操作符语义全家桶</strong>：创建、map/flatMap/concatMap/switchMap、zip/merge/buffer/groupBy、过滤/错误/时间/背压类操作符（C15.07–10）。</li>
+                  <li><strong>Web 与数据访问选型</strong>：WebFlux vs MVC、R2DBC 非阻塞访问边界与连接池语义（C15.02/03）。</li>
+                  <li><strong>错误、重试与调度</strong>：错误处理/重试预算、调度器、Context、cache 与 block 边界（C15.04/11）。</li>
+                  <li><strong>VT 对照与全栈落地</strong>：虚拟线程适合阻塞式编排，响应式适合端到端非阻塞；架构何时上全栈响应式（C15.05/06）。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>严禁「半响应式」：EventLoop 上掺同步 JDBC/远程调用；阻塞调用必须隔离并审计，代码扫描/评审检查。</li>
-                <li>明确哪些服务真需要背压；无背压契约的异步只是延后崩溃，契约写进接口文档。</li>
-                <li>超时与重试有预算与抖动；retryWhen 必须有上限，防重试风暴计入下游容量。</li>
-                <li>具备队列、丢弃、延迟、订阅生命周期等可读指标与调试手段；取消与资源释放可测。</li>
-                <li>团队心智与工具跟不上时，优先 VT + 清晰超时，不强上全栈 Reactive。</li>
-                <li>响应式与阻塞客户端混用边界写进规范；违规引入阻塞按缺陷管理。</li>
-                <li>背压策略（缓冲/丢弃/降采样）对客影响写清；丢弃必须可观测，禁止静默丢。</li>
-                <li>调度器选型（并行/弹性/单线程）与线程亲和写进设计；错误切调度器会导致隐蔽阻塞。</li>
+                <li>响应式链路禁止隐藏 block/JDBC/同步 HTTP；发现即缺陷，门禁扫描或 code review 清单强制。</li>
+                <li>背压策略（BUFFER/DROP/ERROR/LATEST）按接口契约声明，并有溢出指标与告警。</li>
+                <li>flatMap 并发度与超时重试有上限；防止重订阅风暴写成事故。</li>
+                <li>WebFlux 与 MVC 混部时边界清晰：线程模型、超时、MDC/Context 传递分别验收。</li>
+                <li>R2DBC 事务、连接占用与取消传播写入数据访问规范；取消必须释放连接。</li>
+                <li>调度器划分（parallel/boundedElastic）有容量与命名约定；禁止在 EventLoop/parallel 上跑阻塞。</li>
+                <li>与虚拟线程对照写入选型 ADR：调用形态、团队心智、依赖生态成熟度。</li>
+                <li>全栈响应式上线前做尾延迟与取消路径压测；半响应式「外壳非阻塞、内核阻塞」按反模式拒绝。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>背压是契约</strong>：上游快下游慢必须有传播策略，否则换一种 OOM。</li>
-                <li><strong>非阻塞忌掺阻塞</strong>：EventLoop 上禁止同步 IO 与重 CPU；掺了就不是响应式。</li>
-                <li><strong>选型看心智成本</strong>：流式/背压刚需才上 Reactive，否则 VT 往往更稳。</li>
-                <li><strong>错误与重试预算</strong>：重试必须有上限与抖动，并计入下游容量。</li>
-                <li><strong>订阅生命周期</strong>：取消与资源释放要可测，避免泄漏订阅拖垮进程。</li>
-                <li><strong>半响应式零容忍</strong>：一条阻塞调用足以否定整条链路的响应式收益。</li>
+                <li><strong>背压是契约</strong>：没有需求信号的「快」只是在堆延迟与内存。</li>
+                <li><strong>操作符语义先于链式炫技</strong>：flatMap 与 concatMap 的并发/顺序差会改变正确性。</li>
+                <li><strong>非阻塞要端到端</strong>：任意一环 block，整条链退化为假响应式。</li>
+                <li><strong>取消是一等公民</strong>：订阅取消必须释放连接、取消下游与停重试。</li>
+                <li><strong>选型看调用形态</strong>：阻塞依赖多时优先 VT+结构化并发，而非强上 WebFlux。</li>
+                <li><strong>可观测仍要三支柱</strong>：响应式不等于可免 Trace；Context 传递要显式设计。</li>
               </ul>
             </div>
           </div>

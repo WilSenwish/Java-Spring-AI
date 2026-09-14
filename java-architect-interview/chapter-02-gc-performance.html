@@ -65,7 +65,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 02 / GC ALGORITHMS &amp; PERFORMANCE TUNING</div>
           <h1 class="chapter-title">GC 算法与性能调优</h1>
-          <p class="chapter-subtitle">本篇把 GC 看成「目标函数 + 证据」问题：先定延迟/吞吐/足迹，再选收集器与参数。</p>
+          <p class="chapter-subtitle">本篇把 GC 看成「目标函数 + 证据」问题：可达性与算法 → 收集器选型 → 故障诊断工具链 → 指标闭环与分代 ZGC。</p>
           <div class="chapter-meta">
             <span>题目数：12</span>
             <span class="meta-divider">|</span>
@@ -82,12 +82,14 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>GC 工程化主线是「目标函数 → 收集器能力边界 → 证据链诊断 → 变更可回滚」。</p>
+                <p>GC 工程化主线是「目标函数 → 收集器能力边界 → 证据链诊断（日志/Arthas/JFR）→ 变更可回滚 → 监控预防」，而不是单点调参。</p>
                 <ol>
-                  <li><strong>可达性与收集器谱系</strong>：分代 / Region / 并发标记各自擅长的停顿与吞吐形状不同。</li>
-                  <li><strong>延迟·吞吐·足迹三角</strong>：先定 SLO（P99 / 吞吐 / 堆上限），再选 G1/ZGC/Shenandoah 等。</li>
-                  <li><strong>日志与指标诊断</strong>：GC 日志、分配失败、Humongous、到 STW 根因，形成可复现证据。</li>
-                  <li><strong>容器与大堆调参</strong>：CPU share、ActiveProcessorCount、大页与多租户共池下的安全默认值。</li>
+                  <li><strong>可达性与三种基础算法</strong>：GC Roots + 标记-清除 / 复制 / 标记-整理是所有收集器的认知地基；逃逸分析/标量替换从源头减分配压力。</li>
+                  <li><strong>收集器谱系与选型</strong>：CMS/G1/ZGC/Shenandoah 的停顿机制与代价不同；再按堆大小、延迟、吞吐、JDK 版本落到场景配置。</li>
+                  <li><strong>参数规划与容器约束</strong>：整体性 JVM 参数组合对齐应用特征与 cgroup；错配是 FullGC 频发与 OOMKilled 的高频根因。</li>
+                  <li><strong>线上故障证据链</strong>：CPU 100%（top→jstack）与 FullGC 频繁（jstat/GC 日志/jmap/MAT）分型排查，禁止先拍脑袋加堆。</li>
+                  <li><strong>诊断工具与持续分析</strong>：Arthas 解决「看不清/改不了/抓不到」；JFR 与 async-profiler 做低开销持续采样，事件集按版本证据化启用。</li>
+                  <li><strong>调优闭环与分代 ZGC</strong>：监控告警→定位→灰度→全量；Generational ZGC 按 JDK 21/23/24 版本差异评估，指标看板把救火升级为预防。</li>
                 </ol>
               </div>
             </div>
@@ -95,24 +97,25 @@
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
                 <li>GC 调参必须带对照实验：基线 GC 日志 + 业务延迟直方图 + 错误率；禁止拍脑袋加堆或换收集器，实验记录归档可复盘。</li>
-                <li>收集器 / 关键参数变更走灰度与一键回滚，并写入变更单的回滚条件（错误预算、P99、Full GC 频率阈值）。</li>
-                <li>大促前完成分配画像、晋升失败、Humongous 与 Full GC 演练；演练结果进入容量评审，不通过不得扩量。</li>
-                <li>容器场景把 ActiveProcessorCount、CPU share、堆上限写成同一容量模型，避免 STW 被 CPU throttle 放大成「假死」。</li>
-                <li>Humongous / 大对象与 Region 浪费要有专项看板；发现后优先改分配形态与对象寿命，而不是无限扩堆。</li>
-                <li>把可解释的 GC 目标函数（延迟 / 吞吐 / 足迹）写进服务 SLO 附录，调参围绕目标而非感觉。</li>
-                <li>日志与指标默认开启可解析格式（含 pause、allocation rate、heap after），并与 Trace 时间轴可对齐。</li>
-                <li>换收集器视为架构级变更：兼容矩阵（JDK 版本、堆规模、延迟目标）与回退路径必须齐全。</li>
+                <li>收集器与关键参数写入服务基线（含 JDK 版本），变更走灰度与回滚条件；容器环境显式核对 ActiveProcessorCount 与内存 limit。</li>
+                <li>CPU 100% 与 FullGC 各有标准 Runbook：工具顺序、证据产物、升级条件写死，值班不得跳步。</li>
+                <li>Arthas 生产使用规范：权限、审计、只读优先、变更类操作双人确认；禁止无审批 retransform 进核心路径。</li>
+                <li>JFR/async-profiler 按环境分级启用：事件集、采样间隔、保留周期与隐私脱敏事先约定，开销用压测证据而非口头承诺。</li>
+                <li>逃逸分析相关优化（栈上分配/标量替换）不作为容量承诺依据；大对象与分配热点仍用分配剖析验收。</li>
+                <li>Generational ZGC 升级单独立项：对照 JEP 版本默认值、停顿/吞吐/内存足迹与回退收集器方案。</li>
+                <li>GC/JVM 指标进统一看板与告警：次数/停顿、分区用量、分配速率、Humongous；趋势恶化先于故障触发容量评审。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
                 <li><strong>先定目标函数</strong>：延迟敏感、吞吐优先还是足迹受限，目标不清不调参；三角不可同时极致。</li>
-                <li><strong>证据驱动</strong>：用 GC 日志与分配画像决定动作，忌凭经验乱改堆大小或随意开关特性。</li>
-                <li><strong>变更可回滚</strong>：收集器切换与发布流水线同级管控，失败自动或一键退回上一收集器配置。</li>
-                <li><strong>容量与编排一体</strong>：cgroup、CPU、堆三者一起建模，防 OOMKilled 误判为业务故障。</li>
-                <li><strong>先改分配再改 GC</strong>：多数「GC 问题」根因是分配速率与对象寿命，收集器只是放大器。</li>
-                <li><strong>停顿可解释</strong>：每次异常停顿都能落到「谁分配、谁晋升、谁 Humongous」，否则不算排查完成。</li>
+                <li><strong>算法先于收集器名</strong>：先理解存活判定与三种回收代价，再谈 G1/ZGC 工程组合。</li>
+                <li><strong>证据链诊断</strong>：日志、直方图、转储、线程栈对齐同一时间窗，才允许改参或换收集器。</li>
+                <li><strong>工具分层</strong>：救急用 jstack/jmap/Arthas，稳态用 JFR/火焰图；工具选错会误导根因。</li>
+                <li><strong>版本即配置</strong>：同一收集器名在不同 JDK 默认行为不同，分代 ZGC 尤甚。</li>
+                <li><strong>闭环优于单点</strong>：调优必须能回滚、能量化、能进监控；否则只是另一次赌博。</li>
+                <li><strong>源头减负</strong>：分配速率与逃逸失败的大对象，往往比「再调一点停顿」更值得先治。</li>
               </ul>
             </div>
           </div>

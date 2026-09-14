@@ -68,7 +68,7 @@
         <div class="chapter-header">
           <div class="chapter-number">CHAPTER 14 / DATABASES</div>
           <h1 class="chapter-title">数据库与存储深度</h1>
-          <p class="chapter-subtitle">本篇用「负载形状选引擎」做多模存储选型：文档/向量、分布式与列存，再到图与时序边界。</p>
+          <p class="chapter-subtitle">本篇用负载形状选引擎：文档/向量、分布式 SQL 与列存 OLAP，再到图/时序/CDC——引擎边界先于 ORM 习惯。</p>
           <div class="chapter-meta">
             <span>题目数：13</span>
             <span class="meta-divider">|</span>
@@ -85,37 +85,38 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">核心知识链</div>
               <div class="chapter-lead-chain">
-                <p>多模存储主线是「负载形状选型 → 一致与扩展模型 → 引擎特化能力 → 同步与对账成本」。</p>
+                <p>多模存储主线是「文档与向量检索 → HTAP/分布式 SQL 与列存分析 → 图与时序边界 → CDC 管道与慢 SQL 值班」。</p>
                 <ol>
-                  <li><strong>文档 / 向量等模型选型</strong>：点查、ANN、半结构化过滤各自的主场。</li>
-                  <li><strong>分片、副本与事务边界</strong>：正确性窗口先于 QPS 数字。</li>
-                  <li><strong>HTAP / 列存 / 图 / 时序</strong>：分析、关系遍历、时序写入的引擎边界。</li>
-                  <li><strong>CDC、湖仓与多引擎协同</strong>：双写/同步延迟与对账必须进架构账本。</li>
+                  <li><strong>文档模型与事务/分片</strong>：MongoDB 文档建模、分片路由与多文档事务边界（C14.01）。</li>
+                  <li><strong>向量检索族</strong>：Atlas Vector Search、Milvus 十亿级索引、Qdrant 过滤检索——ANN 参数与元数据过滤决定召回（C14.02–04）。</li>
+                  <li><strong>分布式 SQL / HTAP / 列存</strong>：TiDB Raft HTAP、Cockroach/OceanBase 等 NewSQL 选型、ClickHouse 与 Doris/StarRocks OLAP 取舍（C14.05/06/08/11）。</li>
+                  <li><strong>图、时序与 PG 基座</strong>：Neo4j/Cypher 关系遍历、时序建模、PostgreSQL 体系化能力边界（C14.07/09/10）。</li>
+                  <li><strong>CDC 与值班</strong>：端到端变更数据捕获管道；慢 SQL 标准动作与证据链（C14.12/13）。</li>
                 </ol>
               </div>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">工程化要点</div>
               <ul class="chapter-lead-points">
-                <li>先画查询/写入形状与一致要求，再选引擎；忌一库通吃交易与分析，选型 POC 用真实查询形状。</li>
-                <li>多引擎并存时同步链路、延迟 SLO、对账与回放能力一并交付；双写成本进架构评审。</li>
-                <li>向量与文档同库可降同步成本，但要接受规模与极致性能上限，边界写进决策记录。</li>
-                <li>新存储上线带容量模型、备份恢复演练与退化路径（可读旧引擎）；无退化不上核心。</li>
-                <li>分片键与事务模型在选型阶段锁定，二次切分成本写进架构决策记录。</li>
-                <li>HTAP/列存/图/时序按负载主场选用，并用真实查询形状做 POC，而非厂商 demo。</li>
-                <li>备份、恢复、点查与大查询配额有运营闭环；大查询可熔断，避免拖垮集群。</li>
-                <li>索引重建、扩缩容与切流有影子切换与回滚；可见性延迟对业务可感知。</li>
+                <li>选型材料必须写负载形状（点查/检索/HTAP/OLAP/图遍历/时序写入）与一致性/延迟目标，禁止「默认用熟悉的库」。</li>
+                <li>向量索引参数、过滤字段与重建窗口写入变更单；Embedding 维度变更按双写/重算治理。</li>
+                <li>分片键/分区键评审强制；错误分片导致的热点按架构缺陷管理，不靠无限扩容。</li>
+                <li>HTAP/OLAP 引擎的副本、压缩、物化与查询队列有容量看板；大查询可隔离可杀。</li>
+                <li>CDC 管道要有位点、重放、幂等下沉与延迟 SLO；断流告警可行动。</li>
+                <li>跨引擎事务默认最终一致+对账；强一致路径单独论证成本。</li>
+                <li>慢 SQL 值班固定：指纹 → 计划 → 锁/IO → 限流或索引变更；变更可回滚。</li>
+                <li>多模并存时明确「系统 of record」；缓存与派生库不得冒充源。</li>
               </ul>
             </div>
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">本篇思维模式</div>
               <ul class="chapter-lead-mind">
-                <li><strong>负载形状选引擎</strong>：点查、ANN、扫描、多跳、时序各有主场，形状决定选型。</li>
-                <li><strong>双写是隐性成本</strong>：同步、延迟、对账进架构评审，不可事后补。</li>
-                <li><strong>扩展与一致分账</strong>：分片键与事务模型决定正确性，先于谈性能数字。</li>
-                <li><strong>可退化</strong>：新引擎故障时有只读旧路径或降级查询。</li>
-                <li><strong>POC 用真查询</strong>：用生产查询形状验证，拒绝只看写入吞吐 PPT。</li>
-                <li><strong>时效可承诺</strong>：批/流窗口与检索可见性延迟对业务可见、可告警。</li>
+                <li><strong>负载形状选引擎</strong>：先画像再选型，引擎能力边界大于品牌偏好。</li>
+                <li><strong>向量不是万能索引</strong>：过滤、召回率、重建成本与 generational Embedding 一起设计。</li>
+                <li><strong>分片键是架构决策</strong>：选错分片比选错实例规格更伤。</li>
+                <li><strong>OLTP/OLAP 心智分离</strong>：分析型大扫描不得压垮在线事务尾延迟。</li>
+                <li><strong>CDC 是契约</strong>：位点与幂等比「能连通」更重要。</li>
+                <li><strong>证据驱动慢查询</strong>：无执行计划与等待事件对照，禁止盲目加索引。</li>
               </ul>
             </div>
           </div>
