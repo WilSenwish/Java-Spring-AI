@@ -351,7 +351,10 @@
             <li>
               <a href="#S05.05"><span class="toc-number">S05.05</span>全链路压测与容量评估体系</a>
             </li>
-          </ol>
+                      <li>
+              <a href="#S05.06"><span class="toc-number">S05.06</span>自定义线程池：Spring vs 原生 execute</a></a>
+            </li>
+</ol>
         </div>
 
         <div class="toc-group">
@@ -540,7 +543,7 @@
         <div class="chapter-header">
           <div class="chapter-number">SCENARIO QUESTIONS / REAL-WORLD SYSTEM DESIGN</div>
           <h1 class="chapter-title">高频真实场景题</h1>
-          <p class="chapter-subtitle">基于 2026 工程能力要求 · <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P88">72</span> 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
+          <p class="chapter-subtitle">基于 2026 工程能力要求 · <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P88">73</span> 道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题</p>
           <div class="chapter-meta">
             <span>题目数：71</span>
             <span class="meta-divider">|</span>
@@ -557,7 +560,7 @@
         <details class="reading-guide" open>
           <summary>场景题破解之道法术 · 先读这一页</summary>
           <div class="guide-body">
-            <p>本页 <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P27">72</span> 道场景题，表面五花八门（秒杀、分库分表、RAG、容灾…），破解路径却万变不离其宗。把每一题当作一次「<strong>读约束 → 拆难点 → 立主线 → 分层治 → 收兜底</strong>」的工程推演，下面三道题即是对这条路线的完整演示：<span class="guide-tag g-dao">道</span><span class="guide-tag g-fa">法</span><span class="guide-tag g-shu">术</span><span class="guide-tag g-trick">劝说</span></p>
+            <p>本页 <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P27">73</span> 道场景题，表面五花八门（秒杀、分库分表、RAG、容灾…），破解路径却万变不离其宗。把每一题当作一次「<strong>读约束 → 拆难点 → 立主线 → 分层治 → 收兜底</strong>」的工程推演，下面三道题即是对这条路线的完整演示：<span class="guide-tag g-dao">道</span><span class="guide-tag g-fa">法</span><span class="guide-tag g-shu">术</span><span class="guide-tag g-trick">劝说</span></p>
             <p><span class="guide-tag g-dao">道 · 看清楚再动手</span>——先量化再谈方案。每道题都给出硬指标（P99、QPS、成功率、字节上限、SLA），它是约束更是评分锚点：<strong>先复述并量化目标</strong>（如"12 亿行、P99 3.5s、扩到 256 张表"），再指出真正的瓶颈层，避免一上来就背方案。约束决定取舍——同样"缓存"，秒杀要的是抗洪峰，短链要的是省存储，落到同一技术上的考量完全不同。</p>
             <p><span class="guide-tag g-fa">法 · 框架化作答</span>——先亮主线，再填血肉。参考答案无一不是先给一个可演进的<strong>分析框架</strong>（漏斗、六步、止血→诊断→根治→长效、异地多活的标准层），然后按<strong>接入 / 应用 / 数据</strong>（或场景自定义的层）逐层展开，最后用<strong>对比表</strong>列方案权衡、用<strong>演进/量化</strong>说清"为什么够用"。这一层最大的价值是让考官看到你有结构、有判断，而非零散罗列知识点。</p>
             <p><span class="guide-tag g-shu">术 · 收尾不砸场</span>——加分项全在兜底与边界。每个方案都要补三件事：① <strong>风险兜底</strong>（乐观锁防超卖、双写影子、拒答转人工、幂等/对账）② <strong>可观测可回滚</strong>（埋点、告警、灰度、切流）③ <strong>代码落地</strong>（Lua 脚本、ShardingSphere 路由、Rerank 混合检索）——证明你不只会画图，能把方案执行到代码级。这正是"高级开发"与"架构师"的分水岭。</p>
@@ -4140,7 +4143,7 @@ public class BadPool {
           <h2 class="group-title">
             <span class="group-number">五</span>
             <a class="group-title-link" href="#group-5">性能与稳定性</a>
-            <span class="group-count"><span class="kb-count kb-count-local" data-kb-count-local="group-count">5</span> 题</span>
+            <span class="group-count"><span class="kb-count kb-count-local" data-kb-count-local="group-count">6</span> 题</span>
           </h2>
           <div class="group-lead">
             <div class="group-lead-block">
@@ -4995,7 +4998,154 @@ public class BadPool {
             </div>
           </div>
         </div>
-        </section>
+                                      <div class="qa-card" id="S05.06" data-difficulty="architect" data-priority="p1">
+            <div class="qa-header">
+              <div class="qa-badge">S05.06</div>
+              <div class="qa-question">自定义线程池：Spring TaskExecutor vs 原生 execute，及动态调参池×快慢双池<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+            </div>
+            <div class="scenario-tags">
+              <span class="scenario-tag tag-hot">高频</span>
+              <span class="scenario-tag">Spring 线程池</span>
+              <span class="scenario-tag">TaskExecutor</span>
+              <span class="scenario-tag">动态调参池</span>
+              <span class="scenario-tag">双池架构</span>
+              <span class="scenario-tag">execute 侵入</span>
+            </div>
+            <div class="qa-layer" data-layer="scenario">
+              <div class="qa-layer-title">场景背景</div>
+              <div class="qa-layer-body">
+                <p>某电商中台 120+ 微服务，线程池用法三派并存：① 直接 <code class="inline-code">new ThreadPoolExecutor</code> 后业务里 <code class="inline-code">pool.execute(r)</code>（原生侵入）；② Spring <code class="inline-code">ThreadPoolTaskExecutor</code> + <code class="inline-code">@Async("beanName")</code>；③ 上 DynamicTP/外置调参，但仍单池混跑。大促翻车：共享池 HOL 拖死下单；有人 <code class="inline-code">@RefreshScope</code> 重建池泄漏；另有代码绕过 Spring 直接 <code class="inline-code">execute</code>，MDC/TraceId/安全上下文丢失导致排障与权限错乱。平台要求把<strong>Spring 框架池 vs 自定义原生池</strong>、以及<strong>动态调参池 × 快慢双池</strong>一次讲清。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="challenge">
+              <div class="qa-layer-title">核心挑战</div>
+              <div class="qa-layer-body">
+                <p>1）Spring <code class="inline-code">TaskExecutor</code>/<code class="inline-code">ThreadPoolTaskExecutor</code> 与 JDK <code class="inline-code">ThreadPoolExecutor#execute</code> 的能力边界与侵入成本；2）何时必须下沉原生、何时应留在 Spring 抽象；3）动态调参与双池是替代还是互补；4）原地热更新 vs 重建泄漏；5）上下文传递（MDC/Trace/Security）在 <code class="inline-code">execute</code> 路径如何补齐；6）VT 下 Spring 开关与自定义池如何共存。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">分析框架</div>
+              <div class="qa-layer-body">
+                <p>先分清<strong>载体形态</strong>，再谈<strong>治理方案</strong>。</p>
+                <p><strong>对比 A · Spring 框架线程池</strong>（<code class="inline-code">ThreadPoolTaskExecutor</code> / <code class="inline-code">AsyncTaskExecutor</code>、<code class="inline-code">@EnableAsync</code>、<code class="inline-code">TaskDecorator</code>）：Spring 生命周期（initialize/shutdown）、与 <code class="inline-code">@Async</code>/<code class="inline-code">@Scheduled</code> 集成、可用 <code class="inline-code">TaskDecorator</code> 统一包装上下文；底层仍是 <code class="inline-code">ThreadPoolExecutor</code>。默认坑：未定制时 <code class="inline-code">SimpleAsyncTaskExecutor</code> 可能「每任务新线程」；不指定 executor 的 <code class="inline-code">@Async</code> 易落到错误默认池。适合业务异步、要容器托管与低侵入声明式调用。</p>
+                <p><strong>对比 B · 自定义线程池 + 原生 <code class="inline-code">execute</code></strong>：直接持有 <code class="inline-code">ThreadPoolExecutor</code>，参数/拒绝/队列完全可控，易接 DynamicTP 原地 set*。但<strong>侵入高</strong>——调用点散落 <code class="inline-code">execute/submit</code>，难统一装饰器；MDC/Trace/租户需手写 <code class="inline-code">Runnable</code> 包装或 TTL；若不注册为 Spring Bean，优雅停机与指标易漏。适合中间件、回调密集型、要绕过 Spring 代理开销或非 Spring 模块。</p>
+                <p><strong>推荐折中</strong>：平台用原生 TPE（或 DynamicTP）创建快慢池 → <strong>包装成 Spring <code class="inline-code">TaskExecutor</code> Bean</strong> 暴露；业务优先 <code class="inline-code">@Async("fastExecutor")</code> / 注入 <code class="inline-code">TaskExecutor</code>；仅框架内核保留原生 <code class="inline-code">execute</code>，并强制装饰器。</p>
+                <table class="compare-table">
+                  <thead><tr><th>维度</th><th>Spring TaskExecutor</th><th>自定义 TPE + 原生 execute</th></tr></thead>
+                  <tbody>
+                    <tr><td>调用形态</td><td>@Async / execute(Task) 低侵入</td><td>pool.execute(r) 调用点侵入</td></tr>
+                    <tr><td>生命周期</td><td>容器 destroy 可挂钩</td><td>需自管 shutdown，易漏</td></tr>
+                    <tr><td>上下文传递</td><td>TaskDecorator 一处收敛</td><td>每处包装或 TTL，易漏</td></tr>
+                    <tr><td>参数掌控</td><td>够用；深度定制略间接</td><td>队列/拒绝/钩子最直接</td></tr>
+                    <tr><td>动态调参</td><td>拿到底层 TPE 亦可原地 set*</td><td>天生友好（DynamicTP）</td></tr>
+                    <tr><td>典型误用</td><td>默认 SimpleAsync；@Async 未指定池</td><td>满代码 execute；丢 Trace</td></tr>
+                  </tbody>
+                </table>
+                <p><strong>治理两维（与载体正交）</strong>：① <strong>外置动态调参池</strong>——配置中心 + 原地 set* + 审计回滚，解决运营闭环，不消 HOL；② <strong>快慢双池架构</strong>——fast/slow 物理隔离 + 路由，解决队头阻塞。推荐：Spring Bean 暴露的双池 × 每池动态调参。</p>
+                <table class="compare-table">
+                  <thead><tr><th>维度</th><th>外置动态调参池</th><th>快慢双池架构</th></tr></thead>
+                  <tbody>
+                    <tr><td>解决什么</td><td>参数可运营、现场弹性</td><td>HOL、故障域、拒绝语义分离</td></tr>
+                    <tr><td>不解决什么</td><td>单池混跑 P99 崩</td><td>发版才能改参</td></tr>
+                    <tr><td>关键机制</td><td>配置中心 + 原地 set*</td><td>多 Executor + 路由契约</td></tr>
+                  </tbody>
+                </table>
+                <p>共同红线：禁 Executors 快捷工厂与无界队列；命名 ThreadFactory；拒绝可观测；与连接池联合预算（G03.07）。对齐 C04、G03、S02.04、S04.06。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="practice">
+              <div class="qa-layer-title">解决方案</div>
+              <div class="qa-layer-body">
+                <p><strong>A. Spring 路径（业务默认）</strong>：定义 <code class="inline-code">ThreadPoolTaskExecutor</code>（或包装 DynamicTP）Bean 名 <code class="inline-code">fastExecutor</code>/<code class="inline-code">slowExecutor</code>；设 <code class="inline-code">TaskDecorator</code> 传递 MDC/Trace；业务 <code class="inline-code">@Async("fastExecutor")</code> 或注入 <code class="inline-code">AsyncTaskExecutor</code>。CI 禁止无指定执行器的 <code class="inline-code">@Async</code>。</p>
+                <p><strong>B. 原生 execute 路径（受限）</strong>：仅中间件/SDK；统一 <code class="inline-code">PoolFacade.execute(poolId, r)</code> 内做装饰与指标；禁止业务直接持有 TPE 引用四处 <code class="inline-code">execute</code>。</p>
+                <p><strong>C. 动态调参</strong>：监听配置 → 对底层 TPE 原地 setCore/setMax；禁 @RefreshScope 重建；调幅上限 + 审计 + 与下游配额校验。</p>
+                <p><strong>D. 双池</strong>：Fast 小队列拒绝可感；Slow 更大有界队列；压测验收打爆 Slow 时 Fast P99 仍达标。</p>
+                <p><strong>E. VT</strong>：<code class="inline-code">spring.threads.virtual.enabled</code> 管框架默认执行器；自定义快慢池是否切 VT 要单独评估，慢下游仍要信号量/有界池背压。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="practice">
+              <div class="qa-layer-title">关键代码</div>
+              <div class="qa-layer-body">
+                <div class="code-block">
+                  <pre><code><span class="com">// Spring 低侵入：TaskExecutor Bean + TaskDecorator（推荐业务侧）</span>
+<span class="kw">@Bean</span>(<span class="str">"fastExecutor"</span>)
+<span class="type">ThreadPoolTaskExecutor</span> <span class="fn">fastExecutor</span>() {
+    <span class="type">ThreadPoolTaskExecutor</span> e = <span class="kw">new</span> <span class="type">ThreadPoolTaskExecutor</span>();
+    e.<span class="fn">setCorePoolSize</span>(16); e.<span class="fn">setMaxPoolSize</span>(32);
+    e.<span class="fn">setQueueCapacity</span>(128); e.<span class="fn">setThreadNamePrefix</span>(<span class="str">"biz-fast-"</span>);
+    e.<span class="fn">setRejectedExecutionHandler</span>(<span class="kw">new</span> <span class="type">ThreadPoolExecutor</span>.AbortPolicy());
+    e.<span class="fn">setTaskDecorator</span>(runnable -&gt; {
+        <span class="type">Map</span>&lt;<span class="type">String</span>, <span class="type">String</span>&gt; mdc = <span class="type">MDC</span>.<span class="fn">getCopyOfContextMap</span>();
+        <span class="kw">return</span> () -&gt; { <span class="kw">if</span> (mdc != <span class="kw">null</span>) <span class="type">MDC</span>.<span class="fn">setContextMap</span>(mdc); <span class="kw">try</span> { runnable.<span class="fn">run</span>(); } <span class="kw">finally</span> { <span class="type">MDC</span>.<span class="fn">clear</span>(); } };
+    });
+    e.<span class="fn">initialize</span>();
+    <span class="kw">return</span> e;
+}
+<span class="kw">@Async</span>(<span class="str">"fastExecutor"</span>) <span class="kw">public void</span> <span class="fn">onPayCallback</span>(...) { ... }
+
+<span class="com">// 原生 execute：高侵入，必须走门面（中间件侧）</span>
+<span class="kw">public void</span> <span class="fn">execute</span>(<span class="type">String</span> poolId, <span class="type">Runnable</span> task) {
+    registry.get(poolId).<span class="fn">execute</span>(decorate(task));  <span class="com">// 统一装饰 + 指标</span>
+}
+<span class="com">// 动态调参：executor.getThreadPoolExecutor().setCorePoolSize(...)</span></code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="deep">
+              <div class="qa-layer-title">深度追问</div>
+              <div class="qa-layer-body">
+                <ul class="followup-list">
+                  <li>
+                    <div class="followup-q">为什么不推荐业务到处 pool.execute？</div>
+                    <div class="followup-a">调用点侵入、上下文易丢、难以统一拒绝与限流策略，回归成本高。业务用 Spring TaskExecutor/@Async；原生 execute 收口到门面。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">ThreadPoolTaskExecutor 和直接 TPE 性能差在哪？</div>
+                    <div class="followup-a">热点路径包装一层可忽略；差异主要在功能（生命周期、Decorator、与 Spring 集成）。不要为微优化在业务层改回裸 execute。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">只有动态调参、不拆双池，把 queue 调很大行吗？</div>
+                    <div class="followup-a">不行。只推迟拒绝，HOL 仍在。调参不能替代拓扑隔离。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">@EnableAsync 不指定 executor 会怎样？</div>
+                    <div class="followup-a">易落到默认 SimpleAsyncTaskExecutor（新线程模型）或非预期 Bean，容量不可控。必须显式 bean 名并进 CI。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">开启 spring.threads.virtual.enabled 后自定义双池还要吗？</div>
+                    <div class="followup-a">框架默认执行器可能切 VT，但自定义 Bean 不会自动变；慢下游仍要档位限流/双池思想。VT 不取消背压。</div>
+                  </li>
+                  <li>
+                    <div class="followup-q">如何验收？</div>
+                    <div class="followup-a">打爆 Slow 时 Fast P99 达标；断 MDC 传递用例（execute 路径）必须失败于门面单测；调参前后曲线与审计可查。</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="pitfall">
+              <div class="qa-layer-title">常见陷阱</div>
+              <div class="qa-layer-body">
+                <ul class="pitfall-list">
+                  <li><strong>业务满屏 execute</strong>：丢 Trace/权限上下文，排障灾难。</li>
+                  <li><strong>@Async 无指定池 / 默认 SimpleAsync</strong>：线程爆炸或误用公共池。</li>
+                  <li><strong>用动态调参掩盖单池混跑</strong>：旋钮掩盖 HOL。</li>
+                  <li><strong>热更新重建池</strong>：@RefreshScope 泄漏（S04.06）。</li>
+                  <li><strong>双池名、单实例</strong>；Fast 队列过大；Discard 静默丢。</li>
+                  <li><strong>VT 取消限流</strong>：打穿连接池。</li>
+                </ul>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">破题点拨</div>
+              <div class="qa-layer-body">
+                <div class="insight-method"><strong>破题主线：</strong>先比 Spring TaskExecutor（低侵入）vs 原生 execute（高侵入须门面）→ 再亮动态调参×双池两维 → 推荐「TPE/动态池做内核 + Spring Bean 暴露」→ VT 仍要背压。</div>
+                <div class="insight-method"><strong>易错点：</strong>业务裸 execute；默认 @Async；调参代替分池；重建当热更。</div>
+              </div>
+            </div>
+          </div>
+
+
+          </section>
 <section class="scenario-group" id="group-6">
           <h2 class="group-title">
             <span class="group-number">六</span>

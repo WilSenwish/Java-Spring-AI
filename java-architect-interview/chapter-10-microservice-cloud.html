@@ -5462,53 +5462,60 @@ flowchart TD
           </div>
         </div>
 
-                <div class="qa-card" id="C10.29" data-difficulty="senior" data-priority="p1">
+                        <div class="qa-card" id="C10.29" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C10.29</div>
             <div class="qa-question">网关超时链路怎么拆：从客户端到下游每一跳的超时与排查顺序？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>超时不是单点配置：客户端、网关、服务、下游各有一层；任一层大于上游会导致「上游先断、下游仍占资源」。桥接目标是能画出链路预算并按信号定位卡在哪一跳。</p></div>
+            <div class="qa-layer-body"><p>超时不是单点配置：客户端、网关、服务、下游各有一层；任一层大于上游会导致「上游先断、下游仍占资源」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>超时预算应自上而下递减；重试与超时乘积决定放大倍数。Trace 各 span 耗时是定位「谁先超时」的证据，存活探针绿不代表链路健康。</p></div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>排查顺序：①确认客户端超时与重试 ②网关全局/路由超时与连接池 ③服务端 Tomcat/WebClient 超时 ④下游依赖超时 ⑤对照 Trace 各 span 耗时。先找「谁先超时」，再找「谁还在重试」。</p></div>
+            <div class="qa-layer-body"><p>排查顺序：</p><ol><li>确认客户端超时与重试次数。</li><li>网关全局/路由超时与连接池。</li><li>服务端容器/WebClient/Feign 超时。</li><li>下游依赖超时。</li><li>对照 Trace 各 span：谁先超时、谁还在重试。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>常用旋钮：Gateway `response-timeout` / Netty 连接超时；Feign/`HttpClient` connect/read；线程池 queue。把「总预算」写进契约：例如客户端 3s = 网关 2.5s = 服务内下游合计 ≤2s。</p></div>
+            <div class="qa-layer-body"><p>常用旋钮：Gateway <code>response-timeout</code>、Netty 连接超时；Feign/HttpClient connect/read；线程池 queue。契约示例：客户端 3s = 网关 2.5s = 服务内下游合计 ≤2s。把总预算写进接口契约。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：只调网关不调客户端；超时后疯狂重试放大；异步回调无超时。回滚点：恢复上一版超时配置（配置当发布）。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：只调网关不调客户端；超时后疯狂重试放大；异步回调无超时。回滚点：恢复上一版超时配置（配置当发布，对照 G01.02）。</p><p>超时链路要可加总：客户端 &gt; 网关 &gt; 服务 &gt; 下游，且每一跳留余量。排查从最外层超时症状往内对预算表。</p><p>常见坑：网关 1s、服务 3s；或重试把预算打穿。临时止血：降重试、扩超时（有上限）、切降级。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-        <div class="qa-card" id="C10.30" data-difficulty="senior" data-priority="p1">
+                <div class="qa-card" id="C10.30" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C10.30</div>
             <div class="qa-question">配置刷新安全回滚值班：@RefreshScope 之外还要核对什么？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>动态刷新能秒级改行为，也是秒级制造事故的入口。值班要会：识别「配置已推但行为未变 / 行为已变但不可退」。</p></div>
+            <div class="qa-layer-body"><p>动态刷新能秒级改行为，也是秒级制造事故的入口。值班要识别「配置已推但行为未变 / 行为已变但不可退」。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>配置中心是关键依赖：客户端要有本地快照、推送失败降级、订阅隔离。RefreshScope 只覆盖被代理的 Bean；重资源 Bean 更适合 @ConfigurationProperties + rebind。回滚必须含配置维（对照 G01.02 / C10.26）。</p></div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>排查顺序：①变更单与配置版本/MD5 ②实例订阅滞后与快照版本分布 ③刷新后 Bean 是否真重建（对照管理端）④关停开关是否可用 ⑤必要时回滚配置快照而非再推「修复值」。</p></div>
+            <div class="qa-layer-body"><p>排查顺序：</p><ol><li>变更单与配置版本/MD5。</li><li>实例订阅滞后与快照版本分布。</li><li>刷新后 Bean 是否真重建（管理端/日志）。</li><li>关停开关是否可用。</li><li>优先回滚配置快照，而不是再推「修复值」。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>核对表：生效范围（命名空间/DataId）、灰度实例列表、本地快照兜底、关停开关、双人复核（限流/鉴权/路由）。</p></div>
+            <div class="qa-layer-body"><p>核对表：生效范围（命名空间/DataId）、灰度实例列表、本地快照兜底、关停开关、双人复核（限流/鉴权/路由）。15 分钟观察：推送成功率、订阅滞后、客户端版本分布。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：控制台无单改生产；只退镜像不退配置；RefreshScope 代理未覆盖的 Bean 静默不生效。关联 G01.02 / C10.26。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：控制台无单改生产；只退镜像不退配置；RefreshScope 未覆盖的 Bean 静默不生效。回滚点：配置快照 + 必要时缩容到未刷新实例。</p><p>@RefreshScope 只刷新代理 Bean；静态字段、连接池、本地缓存不会自动跟。回滚要核对配置中心版本与实例实际生效值。</p><p>清单：刷新范围、失败实例、是否需滚动重启、回滚后的只读校验。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 分布式系统</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-10-microservice-cloud.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

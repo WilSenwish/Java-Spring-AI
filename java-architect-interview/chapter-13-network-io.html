@@ -2151,7 +2151,7 @@ MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）
             </div>
           </div>
         </div>
-                <div class="qa-card" id="C13.14" data-difficulty="senior" data-priority="p1">
+                        <div class="qa-card" id="C13.14" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C13.14</div>
             <div class="qa-question">连接泄漏排查顺序：从症状到句柄与代码点？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
@@ -2160,21 +2160,24 @@ MappedByteBuffer.map(...)        <span class="com">// 零拷贝: mmap（Linux）
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body"><p>连接泄漏表现：句柄上涨、偶发 ConnectException、池耗尽。要有固定排查路径。</p></div>
           </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>连接必须有明确生命周期（try-with-resources / finally / 超时关闭）。异步回调与过滤器链路是高发泄漏点。</p></div>
+          </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>顺序：①看 FD/连接池活跃与空闲 ②`lsof`/管理端看连接归属 ③对照最近变更（客户端/超时/finally）④临时抬池或重启止血 ⑤修泄漏点（try-with-resources、超时关闭）。</p></div>
+            <div class="qa-layer-body"><p>顺序：</p><ol><li>看 FD/连接池活跃与空闲。</li><li><code>lsof</code>/管理端看连接归属。</li><li>对照最近变更（客户端/超时/finally）。</li><li>临时抬池或重启止血。</li><li>修泄漏点后再把池调回。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>信号：池 waiting、leakDetectionThreshold 日志、CLOSE_WAIT 堆积。开关：临时 max 池、强制超时。</p></div>
+            <div class="qa-layer-body"><p>信号：池 waiting、leakDetection 日志、CLOSE_WAIT 堆积。开关：临时 max 池、强制超时。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：只重启不定位；抬池掩盖泄漏；异步回调未关闭响应。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：只重启不定位；抬池掩盖泄漏；异步回调未关闭响应。回滚点：回退嫌疑变更，恢复池上限。</p><p>连接泄漏症状：池耗尽、大量 CLOSE_WAIT、FD 上升。顺序：指标→堆栈/泄漏检测→代码未关闭点→临时扩池（有上限）。</p><p>修复后要回归「借还平衡」指标；禁止只重启当根治。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-12-ai-engineering.html" class="nav-prev">← 第 12 篇 AI 工程与实践</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-13-network-io.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

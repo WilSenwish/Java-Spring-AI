@@ -23,7 +23,7 @@ os.makedirs(BACKUP, exist_ok=True)
 
 # ===================== TODO 区 =====================
 # 已知真实文件名（避免猜错）：
-#   篇章页 chapter-01~15-*.html / 方法论 chapter-core-methodology.html / 安全卡 chapter-server-security-checkpoint.html
+#   篇章页 chapter-01~15-*.html / 方法论 chapter-core-methodology.html / 安全卡 nav-server-security-checkpoint.html
 #   核心原理页 chapter-questions-eight-part.html / 场景页 chapter-questions-scenario.html
 #   导图页 mind-01~15-*.html / mind-core-methodology.html / mind-server-security-checkpoint.html
 # 场景题 Sxx 的宿主章节页 = 其 group-N 对应的篇章（如 group-4 微服务架构 -> chapter-10-microservice-cloud.html / mind-10）
@@ -45,7 +45,7 @@ OV_BEFORE = [_cfg["counts"][k] for k in OV_KEYS]
 
 FILES = {
     "chapter": CHAPTER_FILE,
-    "overview": f"{BASE}/java-architect-interview/chapter-overview-priority.html",
+    "overview": f"{BASE}/java-architect-interview/nav-overview-priority.html",
     "root": f"{BASE}/index.html",   # 注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
     "chap_idx": f"{BASE}/java-architect-interview/index.html",
     "mind": MIND_FILE,
@@ -97,10 +97,10 @@ def patch_overview(t):
 
 # ---------- Step C: 根 index + 章节 index + mind ----------
 def patch_root(t):
-    # TODO: 类型计数/合计/全站/dir-count +N；新增 q-item li（在对应 ID li 后）
+    # TODO: 类型计数/全站(=total)/dir-count +N（禁跨域合计）；新增 q-item li（在对应 ID li 后）
     return t
 def patch_chap_idx(t):
-    # TODO: stat-number +N；全站 +N；章节 card-footer +N（不枚举单题 ID）
+    # TODO: stat-number +N；全站(=total)+N；章节 card-footer +N（不枚举单题 ID）
     return t
 def patch_mind(t):
     # TODO: 主干范围扩尾；插 map-card（summary/body/tags）；meta +N

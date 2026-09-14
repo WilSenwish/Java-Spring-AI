@@ -131,7 +131,7 @@ index.html                         # 首页
 | `S##.##` | 场景题条目 | `S01.01` | chapter-questions-scenario |
 
 约定：前缀字母 >= 该页内容类型；两位数字为「主题组 . 题序」。首页与大盘、安全手册按章节锚点 `href="#其题号"` 引用。
-锚点入口均以 `#ID` 形式被 `../../index.html`、`chapter-overview-priority.html` 等转发。
+锚点入口均以 `#ID` 形式被 `../../index.html`、`nav-overview-priority.html` 等转发。
 
 ## 7. 通用注意事项（历史踩坑沉淀）
 
@@ -146,7 +146,7 @@ index.html                         # 首页
 - **代码块内尖括号必须转义**：`<pre><code>` 仅保留空白/换行，**不禁用标签解析**——Java 泛型 `Map<T,S>`、lambda `->`、比较符等必须写成 `&lt;` / `&gt;`，否则 `<String` 被当作标签起始导致渲染错乱（chapter-07 曾踩坑）。
 - **命令占位符转义**：`<pid>` 之类占位符必须写 `&lt;pid&gt;`，否则被浏览器当作未知标签、"pid" 文本被吞（mind-02 曾踩坑）。
 - **顶层 div 必须平衡**：`qa-card` 的关闭 `</div>` 缺失会让后续所有卡片嵌套进该卡、并"偷走" `page-wrapper` 的关闭标签（chapter-09 曾踩坑）；改卡后应复核整页 div 深度为 0。
-- **改文件名后的同步**：凡改名为 `chapter-*` 的文件，需同步更新 `../../index.html`、`../index.html`、`chapter-overview-priority.html` 内的引用 href（曾发生安全手册从 `security/` 移入本目录并更名）。
+- **改文件名后的同步**：凡改名为 `chapter-*` 的文件，需同步更新 `../../index.html`、`../index.html`、`nav-overview-priority.html` 内的引用 href（曾发生安全手册从 `security/` 移入本目录并更名）。
 - **侧栏分组标题禁止用 div**：`<div class="toc-group-title">` 无法被 `nav.js` 高亮；必须用 `<a class="toc-group-title" href="#…">`，且正文有对应 `id`（方法论 / 工程化曾踩坑）。
 - **顶底导航须同文**：改 `chapter-nav-top` 时同步 `chapter-nav`；箭头与「返回目录」文案见 §4.2。
 - **权威/结构计数点标记**：展示题量/卡量须按 **L0–L3/LX** 定级后打标（`.kb-count` + `data-kb-pos` 或 `data-kb-count-local`）；样式在 `assets/design-system.css`；细则见 skills `conventions.md` **§5.1.4**。禁止在 L1 聚合 UI 留裸数字。

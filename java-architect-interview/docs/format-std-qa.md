@@ -164,6 +164,6 @@
 1. 新题 → 新增 `qa-card`，同时在侧栏 `sidebar-toc`、`chapter-header` 的 `题目数 / 难度分布` 里同步数字。
 2. 卡片 `id`、`data-difficulty`、`data-priority` 与提问行的视觉标签三者必须一致。
 3. 6 个核心层顺序不可乱；`extension / production` 为可选项。
-4. 更新首页 / 大盘页对该题锚点的引用（`../../index.html`、`chapter-overview-priority.html`）。
+4. 更新首页 / 大盘页对该题锚点的引用（`../../index.html`、`nav-overview-priority.html`）。
 5. 含图卡片才引入 mermaid；数字 / 括号 / 颜色须符合 `format-shared.md` 第 7 节转义铁律。
 6. 若改动顶/底导航：保证 `chapter-nav-top` 与 `chapter-nav` 内侧同文（`format-shared.md` §4.2）。

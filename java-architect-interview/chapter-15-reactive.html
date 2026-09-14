@@ -58,7 +58,7 @@
         <nav class="chapter-nav-top">
           <a href="chapter-14-databases.html" class="nav-prev">← 第 14 篇 数据库与存储深度</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-15-reactive.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
+          <a href="nav-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
         </nav>
 
         <!-- 章节头部 -->
@@ -2203,12 +2203,8 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
         </div>
 
         <!-- ============ 章节导航 ============ -->
-        <nav class="chapter-nav">
-          <a href="chapter-14-databases.html" class="nav-prev">← 第 14 篇 数据库与存储深度</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-15-reactive.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
-        </nav>
-              <div class="qa-card" id="C15.12" data-difficulty="senior" data-priority="p1">
+        
+        <div class="qa-card" id="C15.12" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C15.12</div>
             <div class="qa-question">背压未传递的症状与开关：如何识别与临时止血？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
@@ -2217,21 +2213,29 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body"><p>背压断了会在某段无界缓冲里堆内存或丢请求。要会认症状并找到可关的缓冲点。</p></div>
           </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>Reactive 链要求需求信号向上游传递；无界 buffer、阻塞调用藏在 flatMap 都会切断背压。</p></div>
+          </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>症状：下游慢但上游仍高速进；某 operator 后队列长度狂涨；延迟升高但 CPU 不高。动作：降上游速率、缩小缓冲、启用 drop/latest 策略（需业务允许）、扩下游。</p></div>
+            <div class="qa-layer-body"><p>症状：下游慢但上游仍高速进；某 operator 后队列长度狂涨；延迟升高但 CPU 不高。动作：降上游速率、缩小缓冲、启用 drop/latest（需业务允许）、扩下游。</p></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
             <div class="qa-layer-body"><p>旋钮：prefetch、缓冲容量、onBackpressure* 策略、连接池 max。先临时限流，再修传递链。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：无界 buffer 当「解法」；drop 未告知业务；阻塞调用藏在 flatMap 里。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：无界 buffer 当「解法」；drop 未告知业务；阻塞调用藏在 flatMap。回滚点：恢复旧缓冲策略并限流上游。</p><p>背压未传递常见于：边界用了无界队列、block 在弹性线程、下游超时被吞。症状是内存涨而错误率不高。</p><p>临时止血：降产/限流/切有界队列；长期把背压写成契约并做拒绝可观测。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-</main>
+        <nav class="chapter-nav">
+          <a href="chapter-14-databases.html" class="nav-prev">← 第 14 篇 数据库与存储深度</a>
+          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-15-reactive.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+          <a href="nav-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
+        </nav></main>
     </div>
 
     <footer>

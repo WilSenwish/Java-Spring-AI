@@ -5643,30 +5643,34 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
           </div>
         </div>
 
-                <div class="qa-card" id="C12.33" data-difficulty="senior" data-priority="p1">
+                        <div class="qa-card" id="C12.33" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C12.33</div>
             <div class="qa-question">RAG 评测集最小闭环：上线前至少跑哪些回归？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>没有黄金集的 RAG 变更等于蒙眼发版。最小闭环：固定问题集 + 期望要点 + 自动/半自动打分 + 卡点阈值。</p></div>
+            <div class="qa-layer-body"><p>没有黄金集的 RAG 变更等于蒙眼发版。最小闭环：固定问题集 + 期望要点 + 打分 + 卡点阈值。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>检索质量与生成质量要分开度量；版本化 query 集、索引与模型。静默质量塌方比抛异常更危险（对照 G07 / K07）。</p></div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>闭环：①冻结黄金集版本 ②变更 Prompt/索引/模型 ③跑检索命中率与回答要点覆盖 ④低于阈值阻断 ⑤抽检 Trace（检索文档 ID）。</p></div>
+            <div class="qa-layer-body"><p>闭环：</p><ol><li>冻结黄金集版本。</li><li>变更 Prompt/索引/模型。</li><li>跑检索命中率与回答要点覆盖。</li><li>低于阈值阻断放量。</li><li>抽检 Trace（检索文档 ID）。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
             <div class="qa-layer-body"><p>最小字段：query、expected_docs/keywords、score、latency、model_version、index_version。阈值示例：要点覆盖 ≥ 基线 −2%。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：只看「能回答」不看「答对依据」；黄金集被生产流量污染；无版本号无法回滚。关联 G07。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：只看「能回答」不看依据；黄金集被生产流量污染；无版本号无法回滚。回滚点：切回旧索引/模型/prompt 版本。</p><p>最小回归：正确性集、安全拒答集、延迟/成本冒烟、工具副作用集。无集上线按静默事故定级。</p><p>报告要可贴链接进变更单；阈值失败阻断，禁止「先上再补评测」。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-        <div class="qa-card" id="C12.34" data-difficulty="senior" data-priority="p1">
+                <div class="qa-card" id="C12.34" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C12.34</div>
             <div class="qa-question">Prompt/工具变更如何灰度：流量、影子与回滚点？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
@@ -5675,21 +5679,25 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body"><p>Prompt 与工具副作用等同配置发布：要灰度、卡点、可关停。</p></div>
           </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>制品版本化（prompt_id / tool_schema）；写操作工具必须分级。影子流量不得写生产库。</p></div>
+          </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>步骤：①制品版本化（prompt_id/tool_schema）②小流量或影子对比 ③卡点看黄金集+业务投诉率 ④一键切回旧版本 ⑤工具写操作分级（只读/可写需确认）。</p></div>
+            <div class="qa-layer-body"><p>步骤：</p><ol><li>制品版本化。</li><li>小流量或影子对比。</li><li>卡点看黄金集 + 业务投诉率。</li><li>一键切回旧版本。</li><li>工具写操作分级（只读/可写需确认）。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>开关：prompt 版本路由、工具 enable 标志、最大并行工具调用、超时。变更单必填回滚版本号。</p></div>
+            <div class="qa-layer-body"><p>开关：prompt 版本路由、工具 enable、最大并行工具调用、超时。变更单必填回滚版本号。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：直接改线上 Prompt 字符串；工具无副作用分级；影子流量写了生产库。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：直接改线上 Prompt 字符串；工具无副作用分级；影子写了生产库。回滚点：路由回旧 prompt_id，关闭新工具。</p><p>灰度维度：用户/租户比例、影子流量对比、一键回滚点（Prompt/工具/索引版本）。文案小改也走同一门禁。</p><p>核对：新旧版本并存窗口、评测 diff、线上反馈同向。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-        <div class="qa-card" id="C12.35" data-difficulty="senior" data-priority="p1">
+                <div class="qa-card" id="C12.35" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C12.35</div>
             <div class="qa-question">模型超时与降级开关：值班时如何避免雪崩？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
@@ -5698,21 +5706,24 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body"><p>模型慢会占满线程/连接；要用超时、隔离、降级话术与预算，而不是无限等待。</p></div>
           </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>模型调用是同步依赖：超时、熔断、舱壁隔离与普通下游治理同构。降级要预先演练，避免空回复。</p></div>
+          </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>排查：①模型 RT P99 与队列 ②应用线程/连接是否打满 ③是否重试放大 ④打开降级（缓存回答/规则回复/排队）⑤回滚模型路由。</p></div>
+            <div class="qa-layer-body"><p>排查：</p><ol><li>模型 RT P99 与队列。</li><li>应用线程/连接是否打满。</li><li>是否重试放大。</li><li>打开降级（缓存回答/规则回复/排队）。</li><li>回滚模型路由。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
             <div class="qa-layer-body"><p>参数：read timeout、最大并发、熔断错误率、降级开关、半开探测间隔。预算写入契约。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：超时过长拖垮网关；失败重试打满配额；降级未演练导致空回复。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：超时过长拖垮网关；失败重试打满配额；降级未演练。回滚点：切旧模型路由并打开降级开关。</p><p>模型超时要有舱壁：线程/连接/信号量隔离，避免拖垮主链路。降级开关要用户可感文案，不是空响应。</p><p>值班：先限流/降级，再查上游超时预算与重试是否放大。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-11-middleware-engineering.html" class="nav-prev">← 第 11 篇 中间件与工程化</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-12-ai-engineering.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

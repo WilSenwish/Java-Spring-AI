@@ -2319,30 +2319,33 @@ repo.upsert(pk, event.payload(), event.sourcePos());
           </div>
         </div>
 
-                <div class="qa-card" id="C14.13" data-difficulty="senior" data-priority="p1">
+                        <div class="qa-card" id="C14.13" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C14.13</div>
             <div class="qa-question">慢 SQL 值班动作：从告警到限流与索引的最短路径？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>慢 SQL 值班要先止血再优化：定位语句 → 评估锁与复制延迟 → 限流/杀会话 → 再谈索引。</p></div>
+            <div class="qa-layer-body"><p>慢 SQL 值班先止血再优化：定位语句 → 评估锁与复制延迟 → 限流/杀会话 → 再谈索引。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>优化前先控制爆炸半径。索引变更按数据变更门禁（G04），禁止生产无单 CREAT INDEX。</p></div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>顺序：①慢日志/insight 取指纹 ②explain 与行数 ③是否持锁/长事务 ④限流该接口或杀会话 ⑤加索引/改写走变更门禁。</p></div>
+            <div class="qa-layer-body"><p>顺序：</p><ol><li>慢日志/insight 取指纹。</li><li>explain 与行数。</li><li>是否持锁/长事务。</li><li>限流该接口或杀会话。</li><li>加索引/改写走变更门禁。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>表：fingerprint、avg_rt、rows_examined、锁等待、影响接口。禁止生产直接 CREAT INDEX 无变更单。</p></div>
+            <div class="qa-layer-body"><p>表：fingerprint、avg_rt、rows_examined、锁等待、影响接口。关联 G04.02。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：未止血先改代码；错误索引锁表；忽略复制延迟导致只读副本落后。关联 G04.02。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：未止血先改代码；错误索引锁表；忽略复制延迟。回滚点：撤销错误索引变更或恢复旧 SQL。</p><p>慢 SQL 最短路径：告警→执行计划→是否新发布/新索引缺失→限流/杀会话→补索引或改写→回放。</p><p>禁止只调超时；要有慢查询闭环单与回归用例。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-13-network-io.html" class="nav-prev">← 第 13 篇 网络与高性能 IO</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-14-databases.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

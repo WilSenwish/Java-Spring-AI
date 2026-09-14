@@ -8,11 +8,11 @@ java-kb-expand · 全量校验脚本（通用版）
 
 校验项：
   0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P89，防页头「本页 N 道」漂移）
-  0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×11）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
+  0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×len(ov_stat_order)）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   0c) **L1 聚合 UI**：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等容器内「N题|卡|道|组」不得裸数字（见 conventions §5.1.4）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   2) 无 </spa(?!n>) 标签截断残留
-  3) overview ov-stat-num 三源一致（11 项：总量/优先级/难度/方法论/类型）
+  3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
   3b2) overview 类型三级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题），`ov-type-count`=块内 ov-item 且前缀一致
   3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item；mind card-foot=篇章C/summary E·S
@@ -38,21 +38,19 @@ _cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
 EXPECT = {k: _cfg["counts"][k] for k in
           ("total", "p0", "p1", "p2", "expert", "architect", "senior",
            "methodology", "chapters", "basics", "scenarios")}
-# 根 index 合计 = 题数 + 方法论 + 工程化（若有 engineering 键）
-ROOT_SUM_EXTRA = (_cfg["counts"]["methodology"] + _cfg["counts"].get("engineering", 0)
-                 + _cfg["counts"].get("pitfalls", 0))
-# 全站卡片总数（题目 + 方法论 + 工程化），用于 id 总数校验
-SUM_ALL = _cfg["counts"]["sum_all"]
+# 跨大篇章/聚合口径仅 total=篇章+原理+场景；M/G/K 单独计数，不设全站合计
 ENGINEERING = _cfg["counts"].get("engineering", 0)
 PITFALLS = _cfg["counts"].get("pitfalls", 0)
+# 内部一致性：章节站卡片 id 总数（不对外展示为「全站合计」）
+CARDS_IN_CHAPTERS = EXPECT["total"] + EXPECT["methodology"] + ENGINEERING + PITFALLS
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 # 注意：方法论/工程化卡默认不进 overview；含 M/G 时跳过 overview 落位检查
-NEW_IDS = ["C10.29","C10.30","C11.26","C11.27","C11.28","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","C06.15","C08.12","C09.17","C07.16","K01.01","K02.01","K03.01","K04.01","K05.01","K06.01","K07.01","K08.01"]
+NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.27","C11.28","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","G01.04","G02.04","G03.04","G04.04","G05.04","G06.04","G07.04","G08.04","K01.01","K01.02","K02.01","K02.02","K03.01","K03.02","K04.01","K04.02","K05.01","K05.02","K06.01","K06.02","K07.01","K07.02","K08.01","K08.02"]
 
 # 4 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
 AGG_FILES = {
-    "overview": f"{CHAPTER_DIR}/chapter-overview-priority.html",
+    "overview": f"{CHAPTER_DIR}/nav-overview-priority.html",
     "root":     f"{BASE}/index.html",
     "chap_idx": f"{CHAPTER_DIR}/index.html",
     "mind_idx": f"{MIND_DIR}/index.html",
@@ -70,7 +68,7 @@ def all_chapter_files():
     fs = []
     for p in glob.glob(f"{CHAPTER_DIR}/chapter-*.html"):
         b = os.path.basename(p)
-        if b in ("index.html", "chapter-overview-priority.html"):
+        if b in ("index.html", "nav-overview-priority.html"):
             continue
         fs.append(p)
     return fs
@@ -232,12 +230,13 @@ def main():
         trunc = len(re.findall(r"</spa(?!n>)", t))
         check(trunc == 0, f"[截断] {k}: </spa 残留={trunc} (须 0)")
 
-    # 3) overview ov-stat-num 顺序（11 项，顺序以 kb-counts.json ov_stat_order 为准）
+    # 3) overview ov-stat-num 顺序（项数以 kb-counts.json ov_stat_order 为准；不含方法论）
     # 兼容 kb-count 标记：ov-stat-num"><span …>N</span></div>
     _KB_NUM = r'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
+    _ov_n = len(_cfg["ov_stat_order"])
     ov = [int(x) for x in re.findall(
         rf'ov-stat-num"[^>]*>\s*{_KB_NUM}\s*</div>', texts["overview"]
-    )[:11]]
+    )[:_ov_n]]
     expect_order = [_cfg["counts"][k] for k in _cfg["ov_stat_order"]]
     check(ov == expect_order,
           f"[overview] ov-stat-num={ov} 期望={expect_order}")
@@ -452,11 +451,13 @@ def main():
         return int(m.group(1)) if m else None
     _STAT_N = rf'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
     root_ch = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
-    root_sum = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">合计', texts["root"])
-    root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 避开 tagline 中 "P0→P2" 的数字干扰
+    root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 「全站 N 题」= total（C+E+S），非 M/G/K 加总
     check(root_ch == EXPECT["chapters"], f"[根index] 深度Q&A={root_ch} 期望 {EXPECT['chapters']}")
-    check(root_sum == EXPECT["total"] + ROOT_SUM_EXTRA, f"[根index] 合计={root_sum} 期望 {EXPECT['total']+ROOT_SUM_EXTRA}")
-    check(root_all == EXPECT["total"], f"[根index] 全站={root_all} 期望 {EXPECT['total']}")
+    # 禁止「题目+方法论+工程化+踩坑」式合计 UI
+    root_sum = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">合计', texts["root"])
+    check(root_sum is None, f"[根index] 不应存在跨域「合计」统计卡（实际={root_sum}）")
+    if root_all is not None:
+        check(root_all == EXPECT["total"], f"[根index] 全站题量={root_all} 期望 {EXPECT['total']}（仅 C+E+S）")
     if ENGINEERING:
         root_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
         if root_eng is None:
@@ -518,11 +519,9 @@ def main():
     # 7) 求和自洽
     check(EXPECT["p0"]+EXPECT["p1"]+EXPECT["p2"] == EXPECT["total"], "[自洽] P0+P1+P2=总量")
     check(EXPECT["expert"]+EXPECT["architect"]+EXPECT["senior"] == EXPECT["total"], "[自洽] 难度三级=总量")
-    check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"] == EXPECT["total"], "[自洽] 类型三级=总量")
-    check(EXPECT["total"] + EXPECT["methodology"] + ENGINEERING + PITFALLS == SUM_ALL,
-          "[自洽] total+methodology+engineering+pitfalls=sum_all")
+    check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"] == EXPECT["total"], "[自洽] 类型三级=总量（跨大篇章口径）")
 
-    # 8) 卡片 id 三方一致性：章节正文 ↔ 章节 TOC ↔ 导图引用，且总数 == sum_all
+    # 8) 卡片 id 三方一致性：章节正文 ↔ 章节 TOC ↔ 导图引用；id 总数=各域分计之和（非对外「全站合计」）
     IDPAT = r"((?:M|C|E|S|G|K)\d{2}\.\d{2})"
     body_ids, toc_ids, mind_ids = set(), set(), set()
     for p in chap_files:
@@ -531,8 +530,8 @@ def main():
         toc_ids |= set(re.findall(rf'href="#{IDPAT}"', t))
     for p in mind_files:
         mind_ids |= set(re.findall(IDPAT, read(p)))
-    check(len(body_ids) == SUM_ALL,
-          f"[id总数] 章节页卡片 {len(body_ids)} 期望 {SUM_ALL}（sum_all，含方法论+工程化+踩坑）")
+    check(len(body_ids) == CARDS_IN_CHAPTERS,
+          f"[id总数] 章节页卡片 {len(body_ids)} 期望 {CARDS_IN_CHAPTERS}（total+methodology+engineering+pitfalls，分域加总仅作一致性校验）")
     check(not (body_ids - toc_ids),
           f"[TOC缺失] 正文有但目录无：{sorted(body_ids - toc_ids)[:10]}")
     check(not (toc_ids - body_ids),

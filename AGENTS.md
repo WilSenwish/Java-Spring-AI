@@ -8,11 +8,11 @@
 《Java 专家 · 架构师 · 高级开发 工程能力知识库》——**纯静态 HTML 站点**（GitHub Pages 发布），无后端、无构建步骤。
 
 - `index.html`：站点总目录（聚合统计页，三权威源之一）
-- `java-architect-interview/`：章节站。方法论页 `chapter-core-methodology.html`、工程化要点页 `chapter-engineering-practices.html`、`chapter-01~15-*`、`chapter-questions-eight-part.html`（核心原理）、`chapter-questions-scenario.html`（场景）、`chapter-server-security-checkpoint.html`、`chapter-overview-priority.html`（聚合页）
-- `java-architect-interview-mind/`：导图站，18 个 `mind-*.html`，与章节页一一对应互链
+- `java-architect-interview/`：章节站。方法论页 `chapter-core-methodology.html`、工程化要点页 `chapter-engineering-practices.html`、生产踩坑页 `chapter-production-pitfalls.html`、`chapter-01~15-*`、`chapter-questions-eight-part.html`（核心原理）、`chapter-questions-scenario.html`（场景）、`nav-server-security-checkpoint.html`、`nav-overview-priority.html`（导航聚合页；前缀 nav- 表示非篇章题）
+- `java-architect-interview-mind/`：导图站，19 个 `mind-*.html`，与章节页一一对应互链
 - 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/nav.js`（导图站相对路径引用同套文件）
 
-**卡片编号**：`M##.##`（方法论，M01~M12 共 91 卡）/ `G##.##`（工程化，G01~G08 共 24 卡）/ `C##.##`（篇章 234）/ `E##.##`（核心原理 73）/ `S##.##`（场景 72）。
+**卡片编号**：`M##.##`（方法论，M01~M12 共 91 卡）/ `G##.##`（工程化，G01~G08 共 64 卡）/ `K##.##`（踩坑，K01~K08 共 64 卡）/ `C##.##`（篇章 249）/ `E##.##`（核心原理 73）/ `S##.##`（场景 73）。
 
 ## 2. 硬红线（违反即返工）
 
@@ -30,18 +30,19 @@
 （例：`bump methodology=+1 total=+1`；随后自动写回全部计数位并复核。只读核对用 `check`。）
 **计数点标记**：每个 SSOT 位须带 `data-kb-pos="Pxx"`（正文用 `.kb-count` span；`<title>` 用属性）；结构位用 `data-kb-count-local`。**分级 L0–L3/LX** 见 `conventions.md` §5.1.4；`validate_kb` 含 L1 容器扫描。
 
-统计口径（易错）：题目统计**只算「篇章 + 核心原理 + 场景」三页**；方法论页、工程化要点页、概览页、安全卡页**不计入**。
-全文件扫描得 480（365+91+24）属正常，勿误判。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
+统计口径（易错）：跨大篇章/聚合分组**只算「篇章 + 核心原理 + 场景」**（= `total`）；方法论 / 工程化 / 踩坑**各自单独计数**，**不设全站合计**（已废除 `sum_all`）。概览页、安全卡页亦不计入 `total`。
+全文件扫到 C+E+S+M+G+K 张卡属正常，勿把分域加总当成对外「全站合计」。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
 `<span class="priority priority-p*">P*</span>`，改级两处同步。
 分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / mind `card-foot`）须与实际卡片数一致；细则见 `java-architect-interview/docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **394** = 篇章 249 + 核心原理 73 + 场景 72
-- 优先级 **P0=94 / P1=242 / P2=58**（求和 = 394）
-- 难度 **专家 46 / 架构 187 / 高级开发 161**（求和 = 394）
-- 方法论 **91 卡**（M01~M12），不计入 394
-- 工程化 **24 卡**（G01~G08），不计入 394
-- 生产踩坑 **8 卡**（K01~K08），不计入 394；全站合计 **517** = 题目 + 方法论 + 工程化 + 踩坑
+- 题目总量 **395** = 篇章 249 + 核心原理 73 + 场景 73
+- 优先级 **P0=94 / P1=243 / P2=58**（求和 = 395）
+- 难度 **专家 46 / 架构 188 / 高级开发 161**（求和 = 395）
+- 方法论 **91 卡**（M01~M12），不计入 395
+- 工程化 **64 卡**（G01~G08），单独计数，不计入 395
+- 生产踩坑 **64 卡**（K01~K08），单独计数，不计入 395
+- 口径：跨大篇章/聚合分组仅计「篇章+核心原理+场景」；M/G/K 各自单独计数；**不设全站合计**
 - 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
@@ -54,7 +55,7 @@
 | P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
-| P07 | `java-architect-interview/chapter-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
+| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
 | P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
@@ -66,10 +67,10 @@
 | P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
 | P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
 | P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
-| P19 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 篇章题数 |
-| P20 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 核心原理数 |
-| P21 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 场景题数 |
-| P22 | `java-architect-interview/chapter-overview-priority.html` | overview 页脚 题目总量 |
+| P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章题数 |
+| P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
+| P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
+| P22 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 题目总量 |
 | P23 | `index.html` | 根 index 工程化统计卡 |
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
 | P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 meta 卡数 |
@@ -84,22 +85,21 @@
 | P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
 | P35 | `index.html` | 根 index 核心原理 dir-count |
 | P36 | `index.html` | 根 index 题目总数 |
-| P37 | `index.html` | 根 index 合计 |
 | P38 | `index.html` | 根 index 核心原理统计 |
 | P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
 | P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
 | P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
 | P42 | `index.html` | 根 index overview 区 tagline |
-| P43 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
-| P44 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题篇章数 |
-| P45 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题核心原理数 |
-| P46 | `java-architect-interview/chapter-overview-priority.html` | overview 页头副标题场景题数 |
-| P47 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P0 题数 |
-| P48 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P1 题数 |
-| P49 | `java-architect-interview/chapter-overview-priority.html` | overview 顶栏导航 P2 题数 |
-| P50 | `java-architect-interview/chapter-overview-priority.html` | overview P0 组标题题数 |
-| P51 | `java-architect-interview/chapter-overview-priority.html` | overview P1 组标题题数 |
-| P52 | `java-architect-interview/chapter-overview-priority.html` | overview P2 组标题题数 |
+| P43 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
+| P44 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题篇章数 |
+| P45 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题核心原理数 |
+| P46 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题场景题数 |
+| P47 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P0 题数 |
+| P48 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P1 题数 |
+| P49 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P2 题数 |
+| P50 | `java-architect-interview/nav-overview-priority.html` | overview P0 组标题题数 |
+| P51 | `java-architect-interview/nav-overview-priority.html` | overview P1 组标题题数 |
+| P52 | `java-architect-interview/nav-overview-priority.html` | overview P2 组标题题数 |
 | P53 | `index.html` | 根 index 深度 Q&A 统计 |
 | P54 | `index.html` | 根 index 场景题统计 |
 | P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A 统计 |
@@ -128,7 +128,6 @@
 | P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
 | P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
 | P80 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注方法论卡数 |
-| P81 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注全站合计 |
 | P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 不计入题目总量 |
 | P83 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页 Mermaid 旁注卡数 |
 | P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
@@ -148,7 +147,6 @@
 | P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 不计入题目总量 |
 | P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
 | P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
-| P101 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注全站合计 |
 | P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定

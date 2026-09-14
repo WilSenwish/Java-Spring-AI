@@ -2743,30 +2743,33 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
           </div>
         </div>
 
-                <div class="qa-card" id="C07.16" data-difficulty="senior" data-priority="p1">
+                        <div class="qa-card" id="C07.16" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C07.16</div>
             <div class="qa-question">事务超时与长事务止血：从锁等到回滚的值班路径？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>长事务拖垮并发：锁等待、复制延迟、Undo 膨胀。值班先止血再追代码。</p></div>
+            <div class="qa-layer-body"><p>长事务拖垮并发：锁等待、复制延迟、Undo 膨胀。值班先止血再追代码，禁止一上来改业务逻辑。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>InnoDB 行锁持有到事务结束；长事务拉长锁与 MVCC 历史链。应用层事务边界应短、纯本地；远程调用不得包在 DB 事务里。超时要同时看锁等待超时与业务事务超时。</p></div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>顺序：①`innodb_trx`/进程列表找长事务 ②评估能否 kill ③限流写入入口 ④看是否缺提交/大事务批处理 ⑤改小事务与超时配置走变更。</p></div>
+            <div class="qa-layer-body"><p>值班顺序：</p><ol><li><code>information_schema.innodb_trx</code> / 进程列表找长事务与持锁会话。</li><li>评估能否 kill（权衡回滚更久 vs 继续堵）。</li><li>限流写入入口或切只读止血。</li><li>查是否缺提交、大事务批处理、事务内 RPC。</li><li>改小事务与超时配置走变更门禁（对照 G04）。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>信号：锁等待、history list、复制延迟。参数：`innodb_lock_wait_timeout`、应用事务超时、批大小。</p></div>
+            <div class="qa-layer-body"><p>信号：锁等待、history list length、复制延迟、Rows_examined 飙升。参数：<code>innodb_lock_wait_timeout</code>、应用事务超时、批大小、是否允许 kill。变更单写清：杀谁、影响面、预计回滚时长。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：盲目 kill 回滚更久；在长事务里做远程调用；用更大超时「拖过高峰」。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：盲目 kill 导致更长回滚；在长事务里做远程调用；用更大超时「拖过高峰」。回滚点：恢复旧超时配置；业务用补偿而非无限拉长事务。</p><p>长事务常表现为锁等待雪崩：先看 <code>innodb_lock_wait</code> 与事务持续时间，再判断是业务慢还是索引缺失。超时要能区分「语句超时」与「事务超时」。</p><p>止血顺序：①限流入口 ②杀掉明显空闲长事务 ③临时降隔离/拆批（有评审）④补索引与拆事务后回放。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-06-spring-boot-modern.html" class="nav-prev">← 第 06 篇 Spring Boot 与现代框架</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-07-mysql-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

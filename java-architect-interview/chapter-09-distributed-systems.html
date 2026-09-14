@@ -64,7 +64,7 @@
           <li>
             <a href="#C09.17"><span class="toc-number">C09.17</span>分布式锁误用排查</a>
           </li>
-        </ol>
+</ol>
       </aside>
 
       <!-- ============ 主体内容 ============ -->
@@ -508,7 +508,7 @@ sequenceDiagram
             <div class="qa-layer-title">版本证据</div>
             <div class="qa-layer-body">
               <p>截至 2026-08-30 复核：Apache Seata GitHub release 元数据显示 <code class="inline-code">v2.6.0</code>、发布时间 <code class="inline-code">2026-01-28</code>、<code class="inline-code">prerelease=false</code>；2.x 源码样例 <code class="inline-code">application.raft.example.yml</code> 包含 <code class="inline-code">server.raft</code> 和 <code class="inline-code">store.mode: raft</code>。该证据只说明相关版本线提供 Raft 配置方向，不等同于“成熟默认/GA 推荐”；上线前应核对目标版本 release notes、兼容矩阵、存储与恢复行为，并完成压测和演练。</p>
-            </div>
+            <p><strong>对账与最终一致性值班（并入原 C09.18）</strong>：最终一致系统的值班核心不是「绝对一致」，而是差异可发现、可分级、可补偿。无对账的异步链路等于赌运气。差异分级：短暂延迟、可自动补偿、需人工、资金/库存红线。值班顺序：①对账任务是否跑/是否超窗 ②按金额/笔数分级 ③可自动走补偿，红线冻结写路径 ④核对 Outbox/位点与状态机。指标：差异笔数、补偿成功率、超窗未处理数。失败模式：只投递无对账；补偿不幂等；把延迟当成功。</p></div>
           </div>
         </div>
 
@@ -2843,35 +2843,38 @@ flowchart LR
                   <li><strong>Saga 补偿不幂等</strong>：补偿重试时重复扣款/重复发货，补偿操作必须设计为幂等。</li>
                   <li><strong>TC/存储没有做高可用</strong>：无论 Raft 还是 DB 模式，都要验证注册中心、存储、网络分区和版本升级路径；不能只看协议名。</li>
                 </ul>
-              </div>
+              <p><strong>对账窗口与差异分级：</strong>Outbox/Saga 上线必须绑定对账 SLA；超窗未处理进红线，资金类差异冻结写路径后再补偿。</p></div>
             </div>
           </div>
         </div>
 
-                <div class="qa-card" id="C09.17" data-difficulty="senior" data-priority="p1">
+                        <div class="qa-card" id="C09.17" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C09.17</div>
             <div class="qa-question">分布式锁误用排查：锁不住、锁太久、解锁报错怎么看？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>锁问题常被误判为「Redis 挂了」。先分：未持锁并行、持锁过期被他者删除、业务耗时 > TTL、时钟/租约续期失败。</p></div>
+            <div class="qa-layer-body"><p>锁问题常被误判为「Redis 挂了」。先分型：未持锁并行、过期误删他人锁、TTL 短于业务、续期失败。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>正确的锁至少具备：互斥、持有者标识（owner）、过期、校验 owner 再解锁；高正确性场景还要 fencing token。锁不是事务，不能替代 DB 约束。</p></div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>顺序：①业务是否并行写入 ②锁 key/value（owner）是否匹配 ③TTL 与业务 RT ④续期是否开启 ⑤解锁是否校验 owner。临时止血：扩 TTL 或降并发，再修正确性。</p></div>
+            <div class="qa-layer-body"><p>排查顺序：</p><ol><li>业务是否出现并行写入（对账/日志证据）。</li><li>锁 key/value（owner）是否匹配。</li><li>TTL 与业务 RT 对比。</li><li>续期/watchdog 是否开启且成功。</li><li>解锁是否校验 owner。临时止血：扩 TTL 或降并发，再修正确性。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>核对：lock key 设计、TTL、watchdog、fencing token（若需要）。禁止 unlock 别人的锁。</p></div>
+            <div class="qa-layer-body"><p>核对：lock key 设计、TTL、watchdog、是否需要 fencing。指标：锁获取失败率、持锁时长分布、误删告警。禁止 unlock 别人的锁。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：setnx 无过期；过期后删别人锁；用锁当事务。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：setnx 无过期；过期后删别人锁；用锁当事务。回滚点：恢复旧 TTL/关闭错误解锁逻辑；必要时用 DB 唯一约束兜底。</p><p>解锁报错优先查 owner 不匹配与时钟/TTL；锁太久查续期失败与业务 RT。锁失败率突增时先降并发再改代码。</p><p>正确性底线：DB 唯一约束/版本号兜底；锁只是互斥优化，不是事务替代。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-08-redis-cache.html" class="nav-prev">← 第 08 篇 Redis 与缓存架构</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-09-distributed-systems.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

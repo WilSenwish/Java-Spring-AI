@@ -2243,30 +2243,33 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
           </div>
         </div>
 
-                <div class="qa-card" id="C08.12" data-difficulty="senior" data-priority="p1">
+                        <div class="qa-card" id="C08.12" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C08.12</div>
             <div class="qa-question">缓存击穿值班手册：热点过期瞬间如何止血？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>击穿=热点 key 过期瞬间请求打穿到 DB。值班要在分钟级止血，而不是先做架构演讲。</p></div>
+            <div class="qa-layer-body"><p>击穿=热点 key 过期瞬间请求打穿到 DB。分钟级目标是止血，不是架构演讲。</p></div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body"><p>击穿与穿透、雪崩处置不同：击穿靠互斥重建/逻辑过期；穿透靠空值或布隆；雪崩靠随机 TTL/预热。失败可降级必须写进契约（对照 G05 / K05）。</p></div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>顺序：①确认热点 key 与 DB QPS 尖刺 ②开互斥重建或逻辑过期开关 ③临时加长 TTL/预热 ④限流该 key ⑤事后加永不过期+异步刷新或本地缓存。</p></div>
+            <div class="qa-layer-body"><p>值班顺序：</p><ol><li>确认热点 key 与 DB QPS 尖刺是否同秒对齐。</li><li>打开互斥重建或逻辑过期开关。</li><li>临时加长 TTL / 预热该 key。</li><li>对该 key 或接口限流。</li><li>事后改为「永不过期 + 异步刷新」或本地缓存，走正式变更。</li></ol></div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>开关：singleflight/mutex、逻辑过期、热点 key 名单、DB 限流。禁止直接「关缓存」。</p></div>
+            <div class="qa-layer-body"><p>开关表：singleflight/mutex、逻辑过期、热点 key 名单、DB 限流阈值、降级开关。看板：缓存命中率、该 key QPS、DB 同指纹 QPS。禁止直接「关缓存」。</p></div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式</div>
-            <div class="qa-layer-body"><p>失败模式：当穿透处理乱加空值；关缓存直打；互斥锁变成全局锁。关联 G05 / K05。</p></div>
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body"><p>失败模式：当穿透处理乱加空值；关缓存直打；互斥锁变成全局锁。回滚点：关闭错误开关，恢复旧 TTL/降级策略。</p><p>击穿与穿透不同：击穿是热点过期瞬间并发打穿 DB。临时止血用互斥重建或逻辑过期；长期靠预热与单 key 护栏。</p><p>核对：TTL 是否对齐、是否有单飞锁、降级是否可读旧值。禁止只靠「把 TTL 调很长」掩盖设计问题。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
           </div>
         </div>
 
-<!-- ============ 章节间导航 ============ -->
         <nav class="chapter-nav">
           <a href="chapter-07-mysql-deep.html" class="nav-prev">← 第 07 篇 MySQL 深度原理</a>
           <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>

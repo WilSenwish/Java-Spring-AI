@@ -35,10 +35,10 @@ java-architect-interview/
 ├── chapter-14-databases.html
 ├── chapter-15-reactive.html
 ├── chapter-core-methodology.html           # 特殊章节：核心方法论（M系列）
-├── chapter-overview-priority.html          # 特殊章节：优先级大盘（ov组件）
+├── nav-overview-priority.html          # 特殊章节：优先级大盘（ov组件）
 ├── chapter-questions-eight-part.html       # 特殊章节：核心原理速查（E系列）
 ├── chapter-questions-scenario.html         # 特殊章节：场景题（S系列）
-├── chapter-server-security-checkpoint.html # 特殊章节：安全 Checkpoint 手册
+├── nav-server-security-checkpoint.html # 特殊章节：安全 Checkpoint 手册
 ├── assets/                                 # design-system.css, nav.js
 ├── shared/                                 # fonts, js（echarts/mermaid）
 ├── tmp/                                    # 临时文件/备份（已 gitignore，不进版本库）
@@ -82,7 +82,7 @@ java-architect-interview/
 
 ### 3.2 全站难度 / 优先级分布（按卡片）
 
-- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)。**题目 359**（篇章+核心原理+场景）：专家 46 / 架构 172 / 高级开发 141；**方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P11">91</span> 卡另计**（专家 23 / 架构 49 / 高级开发 3）；全站合计 425（expert 68 / architect 213 / senior 144）。
+- 难度三级：`senior`(高级开发) / `expert`(专家级) / `architect`(架构级)。**题目 359**（篇章+核心原理+场景）：专家 46 / 架构 172 / 高级开发 141；**方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P11">91</span> 卡另计**（专家 23 / 架构 49 / 高级开发 3）。方法论/工程化/踩坑难度各自单独统计，不与题目难度加总。
 - 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 92/209/58 = 359）；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P12">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P13">91</span>）携带；安全手册**不含**优先级。
 
 ## 4. 规则文档索引
