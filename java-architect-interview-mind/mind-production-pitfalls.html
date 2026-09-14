@@ -211,445 +211,544 @@
         </div>
       </div>
 
-      <div class="mermaid">
+      <div class="mermaid-container mermaid-vertical">
+        <div class="mermaid">
 flowchart TB
-    ROOT["生产踩坑 K"]
-    K01["K01 发布"]
-    K02["K02 可观测"]
-    K03["K03 容量"]
-    K04["K04 数据"]
-    K05["K05 缓存"]
-    K06["K06 调用"]
-    K07["K07 AI"]
-    K08["K08 安全"]
-    ROOT --> K01
-    ROOT --> K02
-    ROOT --> K03
-    ROOT --> K04
-    ROOT --> K05
-    ROOT --> K06
-    ROOT --> K07
-    ROOT --> K08
+  root["生产踩坑"]
+  root --> t1["① K01 发布变更事故"]
+  t1 --> n101["灰度未卡点全量事故：信号与回滚窗"]
+  n101 --> n102["回滚演练造假：只演镜像未演配置"]
+  n102 --> n103["金丝雀阈值误配：该回没回 / 不该回乱回"]
+  n103 --> n104["灰度比例表被绕过直推全量"]
+  n104 --> n105["观察指标选错导致误判健康"]
+  n105 --> n106["回滚镜像与配置版本不一致"]
+  n106 --> n107["变更窗口外强行发布"]
+  n107 --> n108["回滚后未做数据补偿"]
+  n108 --> t2["② K02 可观测失灵"]
+  t2 --> n201["有监控仍找不到人：告警不可行动"]
+  n201 --> n202["采样过低导致关键故障无跨度"]
+  n202 --> n203["TraceId 跨 MQ/线程池断裂"]
+  n203 --> n204["告警风暴导致关键告警被淹没"]
+  n204 --> n205["仪表盘存在但无下钻路径"]
+  n205 --> n206["错误日志未带变更单号"]
+  n206 --> n207["生产临时开 Debug 忘记关"]
+  n207 --> n208["Runbook 链接 404"]
+  n208 --> t3["③ K03 容量假可用"]
+  t3 --> n301["池子与 K8s limit 不一致的假可用"]
+  n301 --> n302["HPA 抖动与抖动冷却未设"]
+  n302 --> n303["单副本假高可用上峰值"]
+  n303 --> n304["只扩副本不扩连接池"]
+  n304 --> n305["虚拟线程无限制打穿 DB"]
+  n305 --> n306["依赖单点未标故障域"]
+  n306 --> n307["限流阈值在预发与生产不一致"]
+  n307 --> n308["弹性扩容触发风暴启动"]
+  n308 --> t4["④ K04 数据变更翻车"]
+  t4 --> n401["在线 DDL / 修复不可回滚"]
+  n401 --> n402["回滚脚本未测导致二次损坏"]
+  n402 --> n403["大表变更未分批锁表"]
+  n403 --> n404["控制台手改数据无工单"]
+  n404 --> n405["回滚 SQL 未在类生产验证"]
+  n405 --> n406["主从延迟下切读导致错账"]
+  n406 --> n407["批量更新无限速锁表"]
+  n407 --> n408["备份成功但恢复演练跳过"]
+  n408 --> t5["⑤ K05 缓存误判"]
+  t5 --> n501["穿透击穿雪崩的值班误判"]
+  n501 --> n502["逻辑过期未刷新导致长期脏读"]
+  n502 --> n503["缓存与 DB 双写顺序反了"]
+  n503 --> n504["空值未缓存导致穿透打穿"]
+  n504 --> n505["热点 key 未拆分"]
+  n505 --> n506["缓存与 DB 对账缺失"]
+  n506 --> n507["本地缓存TTL过长"]
+  n507 --> n508["大 key 导致慢查询与阻塞"]
+  n508 --> t6["⑥ K06 调用放大"]
+  t6 --> n601["超时×重试放大；双写无对账"]
+  n601 --> n602["幂等缺失导致重试重复扣款"]
+  n602 --> n603["熔断误开全站降级过久"]
+  n603 --> n604["超时倒挂层层放大"]
+  n604 --> n605["幂等键只用内存"]
+  n605 --> n606["半开探测流量过大"]
+  n606 --> n607["双写无顺序约定"]
+  n607 --> n608["对账任务失败无人值守"]
+  n608 --> t7["⑦ K07 AI 静默塌方"]
+  t7 --> n701["无黄金集上线的静默质量塌方"]
+  n701 --> n702["索引切换未双跑导致召回塌方"]
+  n702 --> n703["评测集过拟合上线仍翻车"]
+  n703 --> n704["线上 Prompt 热改无版本"]
+  n704 --> n705["工具副作用未分级"]
+  n705 --> n706["成本突增无熔断"]
+  n706 --> n707["影子流量对比缺失"]
+  n707 --> n708["评测集被业务刷题"]
+  n708 --> t8["⑧ K08 安全应急踩坑"]
+  t8 --> n801["密钥/依赖漏洞应急与轮换踩坑"]
+  n801 --> n802["证书到期告警未绑定 Runbook"]
+  n802 --> n803["临时豁免过期未收回"]
+  n803 --> n804["共享超级账号登录生产"]
+  n804 --> n805["临时防火墙规则忘记收回"]
+  n805 --> n806["密钥进仓库历史"]
+  n806 --> n807["CVE 豁免无到期自动阻断"]
+  n807 --> n808["证书监控只告警不跑通轮换"]
+        </div>
+        <div class="chart-caption">纵向主干：分组与卡片顺序与下方主题卡一致（自上而下阅读）</div>
       </div>
       <p class="map-note">旁注：踩坑 <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P100">64</span> 卡（专篇）。节点内为纯文本（LX）；三层正文以章节页为准。</p>
-
-      <h3 class="theme-h">K01 · 发布变更事故 <span class="qline">· 与 G01 同域</span></h3>
-      <details class="map-card">
+<h3 class="theme-h">K01 · 发布变更事故 <span class="qline">· 与 G01 同域</span></h3>
+<details class="map-card">
         <summary>K01.01 · 灰度未卡点全量事故：信号与回滚窗 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>变更在观察窗口未结束时被人工扩到全量，错误率在扩量后 3 分钟才被业务投诉发现；回滚镜像可用但配置中心仍是有毒开关。</p><p><strong>识别：</strong>门禁缺一：没有卡点指标就没有否决权；回滚只退镜像不退配置等于假回滚。爆炸半径 = 批大小 × 暴露时长；观察窗口要覆盖依赖传播与缓存刷新。</p><p><strong>止血：</strong>值班顺序：①冻结扩量 ②看卡点看板（成功率/P99/依赖饱和）③三维回滚（镜像+配置+流量）④保留现场 Trace/变更单号 ⑤复盘写清「谁拥有否决权」。互链 G01.01 / M12.02。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K01.02 · 回滚演练造假：只演镜像未演配置 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · 发布变更事故。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K01.03 · 金丝雀阈值误配：该回没回 / 不该回乱回 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>自动回滚阈值阈值写错或信号选错，导致故障继续全量或正常流量被误杀回滚。</p><p><strong>识别：</strong>看：金丝雀错误率与业务成功数是否同向；回滚是否绑定变更单；人工覆盖是否留痕。</p><p><strong>止血：</strong>止血：立刻人工接管比例/回滚；复盘改信号与阈值演练。互链 G01.05。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K01.04 · 灰度比例表被绕过直推全量 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>有人用紧急通道绕过灰度比例直接全量，故障面瞬间扩大。</p><p><strong>识别：</strong>看变更单是否走加急、有无比例与观察窗。</p><p><strong>止血：</strong>止血：立刻切回旧版；复盘封堵绕过路径。互链 G01。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K01.05 · 观察指标选错导致误判健康 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>金丝雀只看 CPU 健康，业务错误率已炸仍放量。</p><p><strong>识别：</strong>看业务成功数/资金类指标是否同向。</p><p><strong>止血：</strong>止血：按业务指标回滚；复盘改信号。互链 G01.05。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K01.06 · 回滚镜像与配置版本不一致 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>回滚了应用镜像却留下新配置，二次故障。</p><p><strong>识别：</strong>看配置中心版本与镜像 digest 是否配对。</p><p><strong>止血：</strong>止血：配对回滚；复盘变更原子性。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K01.07 · 变更窗口外强行发布 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>大促/错误预算红线仍强推功能，放大事故。</p><p><strong>识别：</strong>看预算板与窗口表。</p><p><strong>止血：</strong>止血：冻结变更；复盘问责加急滥用。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K01.08 · 回滚后未做数据补偿 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>代码回了，脏数据/半成功单仍在。</p><p><strong>识别：</strong>看对账与状态机残留。</p><p><strong>止血：</strong>止血：冻结写入并跑补偿；复盘强制修复门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K01.08">打开 K 卡</a></div>
       </details>
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
 <h3 class="theme-h">K02 · 可观测失灵 <span class="qline">· 与 G02 同域</span></h3>
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.01 · 有监控仍找不到人：告警不可行动 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>凌晨告警风暴：CPU/存活探针全绿，但下单成功率已掉到 80%；值班不知先看哪块板、Runbook 链失效、Oncall 路由到已离职账号。</p><p><strong>识别：</strong>指标发现异常、追踪定位路径、日志给上下文；告警必须绑定责任人与 Runbook。业务成功率优先于资源指标放行。</p><p><strong>止血：</strong>值班顺序：①先确认用户可感指标（成功率/关键路径）②用 TraceId 抽一条失败请求 ③对照 Runbook 止血动作 ④告警降噪（合并/静默非行动项）。互链 G02 / M12.01。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.02 · 采样过低导致关键故障无跨度 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · 可观测失灵。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.03 · TraceId 跨 MQ/线程池断裂 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>入口有 Trace，过了 MQ 或线程池后全断，排障只能猜下游。</p><p><strong>识别：</strong>看：生产者/消费者、线程池包装、定时任务是否传递上下文；采样是否只采入口。</p><p><strong>止血：</strong>止血：临时提高采样+按业务键搜日志；复盘修上下文传递。互链 G02.01/G02.05。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.04 · 告警风暴导致关键告警被淹没 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>低价值告警刷屏，真正致命信号无人看。</p><p><strong>识别：</strong>看告警量、抑制与路由。</p><p><strong>止血：</strong>止血：临时抑制噪声；复盘可行动化。互链 G02.03。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.05 · 仪表盘存在但无下钻路径 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>有图不能点到 Trace/日志，排障空转。</p><p><strong>识别：</strong>抽一条请求验证钻取。</p><p><strong>止血：</strong>止血：按业务键搜日志；复盘修联动。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.06 · 错误日志未带变更单号 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>故障期无法关联最近发布。</p><p><strong>识别：</strong>看 baggage/字段字典。</p><p><strong>止血：</strong>止血：人工对照发布时间线；复盘 G02.05。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.07 · 生产临时开 Debug 忘记关 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>磁盘与成本打满，或泄敏感字段。</p><p><strong>识别：</strong>看采样与级别配置。</p><p><strong>止血：</strong>止血：立刻降级日志；复盘门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K02.08 · Runbook 链接 404 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>告警可行动字段指向失效文档。</p><p><strong>识别：</strong>点开告警附属链接。</p><p><strong>止血：</strong>止血：口述止血并修链接；复盘链接巡检。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K02.08">打开 K 卡</a></div>
       </details>
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
 <h3 class="theme-h">K03 · 容量假可用 <span class="qline">· 与 G03 同域</span></h3>
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.01 · 池子与 K8s limit 不一致的假可用 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>HPA 加副本后吞吐不升：应用线程池/连接池仍按旧配额，Pod limit 已到顶；探针 Ready 但业务线程全堵在池等待。</p><p><strong>识别：</strong>应用池化与编排配额必须同一容量模型；拒绝路径要可观测（队列长度、拒绝计数、等待时间）。假可用 = Ready 真但工作队列已死。</p><p><strong>止血：</strong>值班顺序：①看池拒绝/等待指标 ②对照 Limit/Request 与池 max ③临时扩池或降流量 ④修齐容量模型再扩副本。互链 G03 / M12.05。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.02 · HPA 抖动与抖动冷却未设 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · 容量假可用。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.03 · 单副本假高可用上峰值 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>服务声明高可用但关键依赖单副本（DB/Redis/队列），峰值一抖全站不可用。</p><p><strong>识别：</strong>看：依赖拓扑是否单点；HPA 扩的是无状态副本还是带状态单点。</p><p><strong>止血：</strong>止血：降流量/切备；复盘补副本与配额。互链 G03。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.04 · 只扩副本不扩连接池 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>Pod 多了，DB 连接打满集体超时。</p><p><strong>识别：</strong>看连接使用与拒绝。</p><p><strong>止血：</strong>止血：降副本或扩连接并限流；复盘联合预算。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.05 · 虚拟线程无限制打穿 DB <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>VT 海量并发把连接池打空。</p><p><strong>识别：</strong>看活跃连接与 VT 数。</p><p><strong>止血：</strong>止血：信号量限流；复盘 G03.07。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.06 · 依赖单点未标故障域 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>服务多副本，依赖 Redis 单机。</p><p><strong>识别：</strong>看拓扑。</p><p><strong>止血：</strong>止血：切备/降级；复盘标故障域。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.07 · 限流阈值在预发与生产不一致 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>预发宽松生产收紧或相反，误判容量。</p><p><strong>识别：</strong>比对配置。</p><p><strong>止血：</strong>止血：统一阈值；复盘配置同源。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K03.08 · 弹性扩容触发风暴启动 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>冷启动慢+扩容风暴导致更不可用。</p><p><strong>识别：</strong>看启动 SLO 与扩容事件。</p><p><strong>止血：</strong>止血：限扩容速率；复盘启动与冷却。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K03.08">打开 K 卡</a></div>
       </details>
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
 <h3 class="theme-h">K04 · 数据变更翻车 <span class="qline">· 与 G04 同域</span></h3>
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.01 · 在线 DDL / 修复不可回滚 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>高峰锁表改列导致写入堆积；数据修复 SQL 无备份窗口，误删后只能从昨日冷备恢复，RPO 不可接受。</p><p><strong>识别：</strong>DDL/数据修复默认按发布：可回滚或可补偿；在线 DDL 工具与锁等待监控是门禁。不可逆变更必须写补偿方案而非口头「再改回来」。</p><p><strong>止血：</strong>值班顺序：①停变更/杀长事务 ②看锁等待与复制延迟 ③回滚或切只读止血 ④用备份/补偿恢复 ⑤补门禁字段。互链 G04 / M12.10。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.02 · 回滚脚本未测导致二次损坏 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · 数据变更翻车。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.03 · 大表变更未分批锁表 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>在线大表 DDL/数据修复不分批，锁表或长事务拖垮业务。</p><p><strong>识别：</strong>看：变更窗口、锁等待、复制延迟、是否可回滚脚本。</p><p><strong>止血：</strong>止血：杀会话/回滚变更；复盘强制分批与影子表。互链 G04。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.04 · 控制台手改数据无工单 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>紧急手改留下不可追溯状态。</p><p><strong>识别：</strong>看审计。</p><p><strong>止血：</strong>止血：对账修复；复盘禁手改。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.05 · 回滚 SQL 未在类生产验证 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>回滚脚本加错条件二次损坏。</p><p><strong>识别：</strong>看演练。</p><p><strong>止血：</strong>止血：停脚本并恢复备份；复盘强制演练。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.06 · 主从延迟下切读导致错账 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>延迟很大仍读从库做资金判断。</p><p><strong>识别：</strong>看延迟指标。</p><p><strong>止血：</strong>止血：切主读/冻结；复盘延迟门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.07 · 批量更新无限速锁表 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>一条 UPDATE 扫全表。</p><p><strong>识别：</strong>看锁等待。</p><p><strong>止血：</strong>止血：杀会话；复盘分批。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K04.08 · 备份成功但恢复演练跳过 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>真要恢复时发现权限/空间不够。</p><p><strong>识别：</strong>看最近恢复记录。</p><p><strong>止血：</strong>止血：开紧急备份通道；复盘演练门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K04.08">打开 K 卡</a></div>
       </details>
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
 <h3 class="theme-h">K05 · 缓存误判 <span class="qline">· 与 G05 同域</span></h3>
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.01 · 穿透击穿雪崩的值班误判 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>把击穿当穿透：热点 key 过期瞬间打爆 DB；或雪崩时关掉缓存「直打 DB」二次放大；大 key 驱逐引发局部抖动被当成全网故障。</p><p><strong>识别：</strong>穿透=无数据乱查；击穿=热点过期；雪崩=大批同时失效。处置不同：空值/布隆、互斥重建/逻辑过期、随机 TTL/预热；失败可降级写进契约。</p><p><strong>止血：</strong>值班顺序：①分型（穿透/击穿/雪崩/大key）②看 DB QPS 与缓存命中 ③开互斥/降级开关 ④禁「关缓存直打」除非配额确认。互链 G05 / M12.11。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.02 · 逻辑过期未刷新导致长期脏读 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · 缓存误判。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.03 · 缓存与 DB 双写顺序反了 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>先删缓存再写库或相反顺序不统一，并发下长期脏读或击穿。</p><p><strong>识别：</strong>看：写路径顺序是否契约化；逻辑过期是否在刷。</p><p><strong>止血：</strong>止血：缩短 TTL/旁路读库；复盘统一顺序与对账。互链 G05。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.04 · 空值未缓存导致穿透打穿 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>恶意/不存在 key 打爆 DB。</p><p><strong>识别：</strong>看回源 QPS。</p><p><strong>止血：</strong>止血：空值短 TTL/布隆；复盘护栏。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.05 · 热点 key 未拆分 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>单 key 打满分片。</p><p><strong>识别：</strong>看热点榜。</p><p><strong>止血：</strong>止血：本地缓存/拆 key；复盘预热。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.06 · 缓存与 DB 对账缺失 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>长期脏数据无人知。</p><p><strong>识别：</strong>看对账任务。</p><p><strong>止血：</strong>止血：抽检修复；复盘对账 SLA。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.07 · 本地缓存TTL过长 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>发布后节点间看到旧配置/旧价。</p><p><strong>识别：</strong>看版本。</p><p><strong>止血：</strong>止血：广播失效/重启滚动；复盘广播。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K05.08 · 大 key 导致慢查询与阻塞 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>大 value 阻塞 Redis。</p><p><strong>识别：</strong>看 bigkey / 延迟。</p><p><strong>止血：</strong>止血：拆分/异步删；复盘容量评审。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K05.08">打开 K 卡</a></div>
       </details>
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
 <h3 class="theme-h">K06 · 调用放大 <span class="qline">· 与 G06 同域</span></h3>
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.01 · 超时×重试放大；双写无对账 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>下游慢导致超时，客户端重试 3 次 × 扇出 5 = 流量 15 倍；双写库存与消息无对账，出现「库有单、消息无」长时间无人知。</p><p><strong>识别：</strong>同步链路预算入契约；超时与重试必须乘积可算。双写用 Outbox/CDC + 对账任务；无对账的双写是定时炸弹。</p><p><strong>止血：</strong>值班顺序：①算放大倍数并降重试/熔断 ②对齐超时预算 ③双写差异走对账补齐 ④改参数可回滚。互链 G06 / M12.03/04。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.02 · 幂等缺失导致重试重复扣款 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · 调用放大。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.03 · 熔断误开全站降级过久 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>熔断阈值过敏或半开缺失，长时间全站降级，业务静默受损。</p><p><strong>识别：</strong>看：熔断打开时长、半开成功率、降级是否用户可感。</p><p><strong>止血：</strong>止血：调阈值/强制半开观察；复盘 G06.05 观察窗。互链 G06。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.04 · 超时倒挂层层放大 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>上游超时短于下游，重试风暴。</p><p><strong>识别：</strong>看预算表。</p><p><strong>止血：</strong>止血：降重试/对齐超时；复盘预算门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.05 · 幂等键只用内存 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>重启后重复扣款。</p><p><strong>识别：</strong>看存储。</p><p><strong>止血：</strong>止血：冻结并人工对账；复盘落库幂等。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.06 · 半开探测流量过大 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>刚恢复又被打穿。</p><p><strong>识别：</strong>看半开比例。</p><p><strong>止血：</strong>止血：缩半开；复盘观察窗。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.07 · 双写无顺序约定 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>缓存/搜索/DB 顺序各写各的。</p><p><strong>识别：</strong>看契约。</p><p><strong>止血：</strong>止血：停双写切单路径；复盘 Outbox。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K06.08 · 对账任务失败无人值守 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>任务挂了差异累积。</p><p><strong>识别：</strong>看任务成功率。</p><p><strong>止血：</strong>止血：补跑并对账；复盘告警。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K06.08">打开 K 卡</a></div>
       </details>
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
 <h3 class="theme-h">K07 · AI 静默塌方 <span class="qline">· 与 G07 同域</span></h3>
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.01 · 无黄金集上线的静默质量塌方 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>Prompt/工具/模型小改后线上无报错，但客服工单里「答非所问」翻倍；无黄金集回归，质量塌方靠人工偶然发现。</p><p><strong>识别：</strong>AI 变更与发版同级：制品版本化、黄金集卡点、工具副作用分级。静默失败比抛异常更危险。</p><p><strong>止血：</strong>值班顺序：①冻结扩量/回滚制品版本 ②跑黄金集 diff ③看工具调用副作用审计 ④补评测门禁再放量。互链 G07 / M12.14。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.02 · 索引切换未双跑导致召回塌方 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · AI 静默塌方。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.03 · 评测集过拟合上线仍翻车 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>黄金集分数很高，真实流量质量塌方——集与分布脱节或被「刷分」。</p><p><strong>识别：</strong>看：集外抽样、影子流量、线上反馈是否同向。</p><p><strong>止血：</strong>止血：回滚 Prompt/索引；复盘扩集与防刷分。互链 G07.05。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.04 · 线上 Prompt 热改无版本 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>无法回滚到已知好版本。</p><p><strong>识别：</strong>看制品库。</p><p><strong>止血：</strong>止血：切回上一版本；复盘版本化。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.05 · 工具副作用未分级 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>只读工具与下单工具同权。</p><p><strong>识别：</strong>看分级表。</p><p><strong>止血：</strong>止血：关高危工具；复盘分级。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.06 · 成本突增无熔断 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>账单异常后才发现。</p><p><strong>识别：</strong>看配额。</p><p><strong>止血：</strong>止血：降级/限流；复盘配额门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.07 · 影子流量对比缺失 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>灰度无对照，质量问题后知后觉。</p><p><strong>识别：</strong>看影子任务。</p><p><strong>止血：</strong>止血：扩对照；复盘门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K07.08 · 评测集被业务刷题 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>为过门禁改评测而非改模型。</p><p><strong>识别：</strong>看变更。</p><p><strong>止血：</strong>止血：冻结发布；复盘防刷分。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K07.08">打开 K 卡</a></div>
       </details>
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
 <h3 class="theme-h">K08 · 安全应急踩坑 <span class="qline">· 与 G08 同域</span></h3>
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.01 · 密钥/依赖漏洞应急与轮换踩坑 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>CVE 紧急升级跳过最小回归导致启动失败；密钥轮换无双密钥窗口，全球鉴权失败；依赖漏洞修复后 SBOM 未更新，二次排查找不到版本。</p><p><strong>识别：</strong>密钥必须可轮换（双密钥窗口）；供应链可追溯（SBOM/签名）；CVE 快车道仍要最小回归与可回滚镜像。</p><p><strong>止血：</strong>值班顺序：①定级（泄漏/CVE/证书到期）②双密钥或回滚镜像止血 ③补最小回归再抬升 ④更新 SBOM 与吊销演练记录。互链 G08 / M09。</p></div>
         <div class="map-tags">
           <a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.01">打开 K 卡</a>
         </div>
       </details>
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.02 · 证书到期告警未绑定 Runbook <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p>事故扩容卡 · 安全应急踩坑。细节见章节页。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.02">打开 K 卡</a></div>
       </details>
-
-
-      
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.03 · 临时豁免过期未收回 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>CVE/权限临时豁免到期未自动阻断，长期带病运行。</p><p><strong>识别：</strong>看：豁免单截止日、自动阻断是否生效、责任人是否在岗。</p><p><strong>止血：</strong>止血：立刻收回豁免或补丁；复盘到期自动阻断。互链 G08.04。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.03">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.04 · 共享超级账号登录生产 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>事故无法追责到人。</p><p><strong>识别：</strong>看审计。</p><p><strong>止血：</strong>止血：吊销共享号；复盘个人账号。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.04">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.05 · 临时防火墙规则忘记收回 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>攻击面长期扩大。</p><p><strong>识别：</strong>看规则到期。</p><p><strong>止血：</strong>止血：收回；复盘到期自动删。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.05">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.06 · 密钥进仓库历史 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>即便轮换，历史提交仍泄露。</p><p><strong>识别：</strong>扫仓库。</p><p><strong>止血：</strong>止血：轮换+清理历史策略；复盘扫描门禁。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.06">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.07 · CVE 豁免无到期自动阻断 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>带病运行数月。</p><p><strong>识别：</strong>看豁免单。</p><p><strong>止血：</strong>止血：补丁或收回；复盘 G08.04。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.07">打开 K 卡</a></div>
       </details>
-
-      <details class="map-card">
+<details class="map-card">
         <summary>K08.08 · 证书监控只告警不跑通轮换 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text"><p><strong>事故：</strong>临期才会发现流程不通。</p><p><strong>识别：</strong>看演练。</p><p><strong>止血：</strong>止血：紧急双证；复盘演练。</p></div>
         <div class="map-tags"><a class="map-tag t-c" href="../java-architect-interview/chapter-production-pitfalls.html#K08.08">打开 K 卡</a></div>
       </details>
-</div>
-    <script src="../java-architect-interview/assets/nav.js"></script>
-    <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        if (window.mermaid) mermaid.initialize({ startOnLoad: true, theme: "neutral" });
-      });
-    </script>
-        <nav class="chapter-nav">
+
+            <nav class="chapter-nav">
         <a href="mind-engineering-practices.html" class="nav-prev">&#8592; 工程化要点 导图</a>
         <span class="nav-center">
           <a href="../java-architect-interview/index.html" class="nav-mind">全部章节 &#8599;</a>
@@ -658,5 +757,36 @@ flowchart TB
         </span>
         <a href="mind-01-jvm-memory-classloading.html" class="nav-next">第 01 篇 JVM 内存与类加载 导图 &#8594;</a>
       </nav>
+
+
+      
+      
+
+      
+      
+
+      
+
+      
+
+      
+
+      
+
+      
+</div>
+    <script src="../java-architect-interview/assets/nav.js"></script>
+    <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.mermaid) mermaid.initialize({
+          startOnLoad: true,
+          theme: "neutral",
+          securityLevel: "loose",
+          flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis", nodeSpacing: 20, rankSpacing: 28 },
+        });
+      });
+    </script>
+
   </body>
 </html>
