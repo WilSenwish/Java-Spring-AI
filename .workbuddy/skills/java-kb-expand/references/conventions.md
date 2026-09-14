@@ -312,6 +312,11 @@
 | P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
 | P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
 | P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
+| P103 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 架构数 |
+| P104 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 高级数 |
+| P105 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 高级数 |
+| P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
+| P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
