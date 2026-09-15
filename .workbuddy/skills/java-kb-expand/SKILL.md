@@ -29,6 +29,7 @@ agent_created: true
 2. **禁止重复**：先核查覆盖度，不得新增与现有卡片/场景题重复的题。同源重复内容应补入现有卡（不新增计数）或不入库。
 3. **P3 优先级已废除**：`data-priority` 仅 P0/P1/P2 三级。
 4. 共享样式集中在 `assets/design-system.css`，优先改共享 CSS，不逐卡内联。
+5. **手机小屏强制（MOBILE-MANDATORY）**：全站必须适配 ≤768/≤480；细则 `docs/format-shared.md` §8；`validate_kb` 校验 CSS 标记、viewport、根/导图小屏媒体查询。
 
 权威计数口径（以 `ov-stat-num` 与根 index 全量徽标为权威三源，三者须相等）：
 - 总量 = 篇章(深度Q&A) + 核心原理 + 场景

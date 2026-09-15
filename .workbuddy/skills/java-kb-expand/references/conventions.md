@@ -622,6 +622,14 @@
 - 顶部/底部按钮 `padding`/`font-size`/`gap` 须同步一致，避免高度差。
 - 两站共用 `java-architect-interview/assets/design-system.css` 与 `nav.js`，一处修改惠及全部。
 
+## 7.1 手机小屏强制（MOBILE-MANDATORY）
+
+与 `AGENTS.md` 硬红线第 6 条、`docs/format-shared.md` §8 同级：
+
+- 全站页面必须适配 ≤768px（主）与 ≤480px（极小屏）；必须含 viewport。
+- 共享基线在 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段；页面内联桌面布局必须自带 `@media` 覆盖。
+- `validate_kb.py` 检查：CSS 标记、根/导图 index、导图页媒体查询、全站 viewport。
+
 ## 8. 章节站首页（`java-architect-interview/index.html`）
 
 - **卡片顺序人工编排**：勿按文件名自动重排；现序为 导图 → 方法论 → 工程化 → 核心原理 → 场景 → 优先级总览 → ch01～15 → 安全。细则见 `docs/format-special.md` §7。

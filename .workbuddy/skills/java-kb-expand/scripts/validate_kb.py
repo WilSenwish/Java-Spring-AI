@@ -11,6 +11,7 @@ java-kb-expand · 全量校验脚本（通用版）
   0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×len(ov_stat_order)）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   0c) **L1 聚合 UI**：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等容器内「N题|卡|道|组」不得裸数字（见 conventions §5.1.4）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
+  1b) 手机小屏强制：design-system.css / 根·导图 index / 导图页含 MOBILE-MANDATORY；全站 HTML 含 viewport
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -230,6 +231,40 @@ def main():
     for k, t in texts.items():
         c = t.count("data-page-node-id")
         check(c == 0, f"[红线] {k}: data-page-node-id={c} (须 0)")
+
+    # 1b) 手机小屏强制（MOBILE-MANDATORY / format-shared §8）
+    css_path = os.path.join(CHAPTER_DIR, "assets/design-system.css")
+    css_txt = read(css_path) if os.path.isfile(css_path) else ""
+    check("MOBILE-MANDATORY" in css_txt,
+          "[小屏] design-system.css 须含 MOBILE-MANDATORY 段")
+    check("@media (max-width: 768px)" in css_txt and "@media (max-width: 480px)" in css_txt,
+          "[小屏] design-system.css 须含 768/480 断点")
+    _vp = re.compile(r'<meta[^>]+name=["\']viewport["\'][^>]*>', re.I)
+    _site_html = (
+        [AGG_FILES["root"], AGG_FILES["chap_idx"], AGG_FILES["mind_idx"], AGG_FILES["overview"]]
+        + chap_files + mind_files
+        + [os.path.join(CHAPTER_DIR, "nav-server-security-checkpoint.html")]
+    )
+    # nav-overview already in overview; avoid dup noise
+    _seen = set()
+    _vp_miss = []
+    for p in _site_html:
+        if p in _seen or not os.path.isfile(p):
+            continue
+        _seen.add(p)
+        if not _vp.search(read(p)):
+            _vp_miss.append(os.path.relpath(p, BASE))
+    check(not _vp_miss, f"[小屏] 缺 viewport 的页面: {_vp_miss[:8]}")
+    check("MOBILE-MANDATORY" in texts["root"] and "@media (max-width: 768px)" in texts["root"],
+          "[小屏] 根 index 须含 MOBILE-MANDATORY 小屏媒体查询")
+    check("MOBILE-MANDATORY" in texts["mind_idx"] and "@media (max-width: 760px)" in texts["mind_idx"],
+          "[小屏] 导图 index 须含 MOBILE-MANDATORY 小屏媒体查询")
+    _mind_media_miss = []
+    for p in mind_files:
+        mt = read(p)
+        if "MOBILE-MANDATORY" not in mt or "@media (max-width: 760px)" not in mt:
+            _mind_media_miss.append(os.path.basename(p))
+    check(not _mind_media_miss, f"[小屏] 导图页缺 MOBILE-MANDATORY: {_mind_media_miss[:8]}")
 
     # 2) 标签截断
     for k, t in texts.items():
@@ -547,7 +582,7 @@ def main():
 
     print("\n==== 校验结果 ====")
     if check.failed == 0:
-        print("ALL PASS ✅ 三权威源一致，data-page-node-id=0，新卡落位且双编码一致。")
+        print("ALL PASS ✅ 三权威源一致，data-page-node-id=0，小屏规范就位，新卡落位且双编码一致。")
         sys.exit(0)
     else:
         print(f"存在 {check.failed} 项 FAIL ❌，请复查。")

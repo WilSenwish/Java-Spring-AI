@@ -150,3 +150,49 @@ index.html                         # 首页
 - **侧栏分组标题禁止用 div**：`<div class="toc-group-title">` 无法被 `nav.js` 高亮；必须用 `<a class="toc-group-title" href="#…">`，且正文有对应 `id`（方法论 / 工程化曾踩坑）。
 - **顶底导航须同文**：改 `chapter-nav-top` 时同步 `chapter-nav`；箭头与「返回目录」文案见 §4.2。
 - **权威/结构计数点标记**：展示题量/卡量一律 L0（`.kb-count` + `data-kb-pos` + `data-kb-count`，键在 `kb-counts.json` 的 `counts`/`struct`）；样式在 `assets/design-system.css`；细则见 skills `conventions.md` **§5.1.4**。禁止聚合 UI 留裸数字；禁止 `kb-count-local`。
+
+## 8. 手机小屏强制规范（MOBILE-MANDATORY）
+
+> **强制要求**（与 `AGENTS.md` 硬红线第 6 条同级）：全站内容样式必须针对手机小屏优化。新增/改版页面未做小屏适配视为未完成交付。
+
+### 8.1 适用范围
+
+- 根目录 `index.html`
+- 章节站全部页面（`java-architect-interview/**/*.html`，含 index / chapter-* / nav-*）
+- 导图站全部页面（`java-architect-interview-mind/**/*.html`）
+- 共享样式：`assets/design-system.css`（导图站相对路径引用同一文件）
+
+### 8.2 断点约定
+
+| 断点 | 用途 |
+|------|------|
+| ≤900px | 章节顶/底导航分组换行；章节 index 卡片网格改单列 |
+| ≤768px | **手机主断点**：字号/间距/页脚堆叠/统计条网格化/长文断词 |
+| ≤640px | `.compare-table` 纵向卡片化（`nav.js` `initTableCards`） |
+| ≤480px | 极小屏：进一步压缩标题、统计列数、导航按钮 |
+
+所有页面必须含：
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+```
+
+### 8.3 实现归属
+
+1. **共享基线**：写在 `assets/design-system.css`，段注释标记为 `MOBILE-MANDATORY`（禁止删除该标记）。覆盖 `page-wrapper` / `chapter-*` / `qa-*` / `code-block` / `chapter-grid` / `index-hero`，并对导图/根目录常见类（`map-*` / `idx-*` / `dir-*` / `epq-*`）提供小屏兜底。
+2. **页面内联样式**：若在 `<style>` 里写了桌面专用布局（如 `grid-template-columns: repeat(3, 1fr)`、固定 `minmax(320px,…)`、大字号 hero），**同一文件必须**提供对应 `@media (max-width: 768px)`（建议再补 `480px`）覆盖；否则桌面规则会压过共享 CSS（同特异度、页面样式后加载）。
+3. **禁止**：固定宽表格/代码块不横滑；卡片页脚与标签不换行导致横向溢出；仅桌面 `hover` 位移作为唯一可发现性（触控设备须可直接点击）。
+
+### 8.4 验收清单（改样式必过）
+
+- [ ] ≤768px 无整页横向滚动（代码块/表允许组件内横滑）
+- [ ] 标题与长摘要可断词，不撑破卡片
+- [ ] 统计条/元信息为网格或可换行，不挤成单行溢出
+- [ ] 卡片 footer（题量 + 难度徽标）小屏可换行或上下堆叠
+- [ ] 顶/底 `chapter-nav` 可点、可辨（沿用既有 900/768/480 规则）
+- [ ] Mermaid 容器可横滑，不撑破版心
+- [ ] 未用预览服务打开 HTML 做视觉确认（避免 `data-page-node-id` 注入）；交付写清改动文件绝对路径与适配结论
+
+### 8.5 校验
+
+`validate_kb.py` 会检查：全站 HTML 含 viewport；`design-system.css` 含 `MOBILE-MANDATORY`；根 index / 导图 index / 导图页含小屏 `@media`。
