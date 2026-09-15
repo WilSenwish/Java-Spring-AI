@@ -17,6 +17,8 @@ java-kb-expand · 全量校验脚本（通用版）
   1d) Mermaid：每个 class="mermaid" 上一行 prettier-ignore；图源码未塌缩（换行≥2）
   1e) 顶/底导航壳：根/章节 index 无导航；其余页 top 贴 body 首、bottom 在 script 前
   1f) **内部编辑字眼**：卡片正文不得出现「再加厚/补厚/占位段落/待补写」（2026-09-15 补，实测曾残留 15 处）
+  1g) **横向溢出兜底**：design-system.css 含全局 `body{overflow-wrap:anywhere}` + 裸 `pre{overflow-x:auto}`；
+      且全站不得存在未被 .code-block 包裹的裸 <pre>（2026-09-15 补，实测核心原理页 375px 溢出 248px/18 处）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -33,6 +35,7 @@ java-kb-expand · 全量校验脚本（通用版）
   - 文件夹路径如有变动，仅改 BASE 一处即可。
 """
 import re, sys, os, glob, json
+from html.parser import HTMLParser
 
 BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
 CHAPTER_DIR = f"{BASE}/java-architect-interview"
@@ -281,6 +284,50 @@ def run_l1_container_scan():
         check(True, "[L1聚合UI] 页头/footer/desc/meta/note/tagline/stat 无裸「N题|卡|道|组」")
 
 
+_VOID_TAGS = {"br", "img", "meta", "link", "input", "hr", "area", "base",
+              "col", "embed", "source", "track", "wbr"}
+
+
+def scan_bare_pre(html):
+    """扫描 <pre> 是否位于 .code-block 容器内（含 <pre class="code-block"> 自身带类写法）。
+
+    返回 [(字符 offset, inside_code_block: bool)]。
+    用途：裸挂 <pre>（未被 .code-block 包裹）既无深色代码块样式、也无 overflow-x: auto，
+          长代码行会撑破卡片（2026-09-15 实测 chapter-07 溢出 814px）。
+    """
+    class _P(HTMLParser):
+        def __init__(self, text):
+            super().__init__(convert_charrefs=False)
+            self.lines = [0]
+            for i, ch in enumerate(text):
+                if ch == "\n":
+                    self.lines.append(i + 1)
+            self.stack = []
+            self.found = []
+
+        def handle_starttag(self, tag, attrs):
+            d = dict(attrs)
+            self.stack.append((tag, "code-block" in (d.get("class") or "")))
+            if tag == "pre":
+                line, col = self.getpos()
+                self.found.append(
+                    (self.lines[line - 1] + col, any(cb for _, cb in self.stack)))
+            if tag in _VOID_TAGS:
+                self.stack.pop()
+
+        def handle_endtag(self, tag):
+            if tag in _VOID_TAGS:
+                return
+            for i in range(len(self.stack) - 1, -1, -1):
+                if self.stack[i][0] == tag:
+                    del self.stack[i:]
+                    break
+
+    p = _P(html)
+    p.feed(html)
+    return p.found
+
+
 def main():
     # 0) 权威计数位（含散文）——必须先于其他统计断言
     run_sync_counts_check()
@@ -336,6 +383,22 @@ def main():
           "[小屏] 根 index 须含 MOBILE-MANDATORY 小屏媒体查询")
     check("MOBILE-MANDATORY" in texts["mind_idx"] and "@media (max-width: 760px)" in texts["mind_idx"],
           "[小屏] 导图 index 须含 MOBILE-MANDATORY 小屏媒体查询")
+
+    # 1g) 移动端横向溢出兜底（2026-09-15 实测：核心原理页 375px 视口溢出 248px / 18 处越界）
+    #     ① CSS 层：body 全局 overflow-wrap（长英文标识符/路径/签名可断行）
+    #        + 裸 pre 横向滚动；缺任一条长 token 会再度撑破卡片
+    #     ② HTML 层：不得存在未被 .code-block 包裹的裸 <pre>（既无样式也无滚动）
+    check("overflow-wrap: anywhere" in css_txt,
+          "[溢出] design-system.css 须含 body { overflow-wrap: anywhere } 全局换行兜底")
+    check(re.search(r"pre\s*\{[^}]*overflow-x:\s*auto", css_txt),
+          "[溢出] design-system.css 须含裸 pre { overflow-x: auto } 横向滚动兜底")
+    _pre_texts = dict(texts)
+    _ck = os.path.join(CHAPTER_DIR, "nav-server-security-checkpoint.html")
+    if os.path.isfile(_ck):
+        _pre_texts["file:nav-server-security-checkpoint.html"] = read(_ck)
+    _bare_pre = [k for k, t in _pre_texts.items()
+                 if any(not inside for _, inside in scan_bare_pre(t))]
+    check(not _bare_pre, f"[溢出] 存在未被 .code-block 包裹的裸 <pre>: {_bare_pre[:8]}")
     _mind_media_miss = []
     for p in mind_files:
         mt = read(p)

@@ -1372,6 +1372,7 @@ replica_preserve_commit_order = ON</code></pre>
             <div class="qa-layer-body">
               <p><strong>GTID 复制详细配置</strong>：</p>
               <p><strong>主库 GTID 配置</strong>：</p>
+              <div class="code-block">
               <pre><code>[mysqld]
 # 开启 GTID 模式
 gtid_mode=ON
@@ -1384,7 +1385,9 @@ binlog_expire_logs_seconds=259200
 binlog_format=ROW
 # 记录执行的GTID到信息
 log_replica_updates=ON  # 8.0 名称，5.7 及以前为 log_slave_updates</code></pre>
+              </div>
               <p><strong>从库 GTID 复制搭建步骤</strong>（命令按版本分列；<strong>MySQL 8.4 LTS 以 SOURCE/REPLICA 为准</strong>）：</p>
+              <div class="code-block">
               <pre><code>-- 1. 源库创建复制用户
 CREATE USER 'repl'@'%' IDENTIFIED BY 'password';
 GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';      -- 8.0 常见
@@ -1421,6 +1424,7 @@ SHOW REPLICA STATUS\G
 -- 5. 延迟/连接态（performance_schema，跨版本更稳）
 SELECT CHANNEL_NAME, SERVICE_STATE, LAST_ERROR_NUMBER, LAST_ERROR_MESSAGE
 FROM performance_schema.replication_connection_status;</code></pre>
+              </div>
 
               <p><strong>半同步复制详细配置</strong>（插件与变量：master/slave → <strong>source/replica</strong>）：</p>
               <p>
@@ -1433,6 +1437,7 @@ FROM performance_schema.replication_connection_status;</code></pre>
               <p><strong>9.7 社区版可用的新能力</strong>：Hypergraph Optimizer（基于 DPhyp 动态规划，可枚举 Bushy Tree 计划；默认关闭，须 <code class="inline-code">optimizer_switch='hypergraph_optimizer=on'</code> opt-in，开启后不支持 <code class="inline-code">STRAIGHT_JOIN</code> 与 <code class="inline-code">EXPLAIN FORMAT=TRADITIONAL/JSON</code>）、JSON Duality Views 全量 DML、cgroup cpuset 感知（容器 / K8s 场景下语义更准），以及原先仅企业版的多个复制与观测组件下放社区版。Hypergraph 建议先在预发单条 SQL 用 hint 验证，不要生产全局开启。</p>
               <p><strong>必须避免的误判</strong>：<code class="inline-code">VECTOR</code> 类型虽然可用，但 9.7 <strong>社区版不提供 HNSW 向量索引，也不含官方距离函数</strong>（<code class="inline-code">DISTANCE()</code> / <code class="inline-code">VECTOR_DISTANCE()</code> 仅 HeatWave on OCI 与 MySQL AI 提供）——把「MySQL 9.7 支持向量检索」当作社区版可用的 ANN 方案是错的，ANN 检索仍需 HeatWave 或外部向量库（pgvector / Milvus / Qdrant 等）。</p>
               <p><strong>选型建议</strong>：新集群若无强制约束，优先 8.4 LTS（稳定、第三方镜像与备份 / 集群工具跟进充分）；已在 8.0 且需要 Hypergraph / Duality Views / cgroup 能力、并希望一举脱离 EOL 风险，按 8.0 → 8.4 → 9.7 规划。无论哪条路径都需在测试环境跑完整回归；9.0~9.6 属季度 Innovation 版本，不应作为生产唯一基线。</p>
+              <div class="code-block">
               <pre><code># 源端 my.cnf（8.4）
 [mysqld]
 # INSTALL PLUGIN rpl_semi_sync_source SONAME 'semisync_source.so';
@@ -1445,7 +1450,9 @@ rpl_semi_sync_source_wait_no_replica=ON
 [mysqld]
 # INSTALL PLUGIN rpl_semi_sync_replica SONAME 'semisync_replica.so';
 rpl_semi_sync_replica_enabled=ON</code></pre>
+              </div>
               <p><strong>MySQL 8.0.x（历史对照）</strong>：旧插件 <code class="inline-code">semisync_master.so</code> / <code class="inline-code">semisync_slave.so</code>，变量前缀 <code class="inline-code">rpl_semi_sync_master_*</code> / <code class="inline-code">rpl_semi_sync_slave_*</code>。8.4 起已弃用，<strong>MySQL 9.5 起旧插件与旧变量一并移除</strong>（改 <code class="inline-code">semisync_source.so</code> / <code class="inline-code">semisync_replica.so</code> 与 <code class="inline-code">rpl_semi_sync_source_*</code> / <code class="inline-code">rpl_semi_sync_replica_*</code>），生产勿再默认教旧名。</p>
+              <div class="code-block">
               <pre><code>[mysqld]
 # 历史示例（8.0）
 rpl_semi_sync_master_enabled=ON
@@ -1453,7 +1460,9 @@ rpl_semi_sync_master_timeout=10000
 rpl_semi_sync_master_wait_for_slave_count=1
 rpl_semi_sync_master_wait_no_slave=ON
 # 从库：rpl_semi_sync_slave_enabled=ON</code></pre>
+              </div>
               <p><strong>Java 监控半同步复制状态</strong>（示例状态名偏 8.0；8.4 请查 Rpl_semi_sync_source_* / Rpl_semi_sync_replica_*）：</p>
+              <div class="code-block">
               <pre><code>@Service
 public class SemiSyncMonitorService {
     
@@ -1537,9 +1546,11 @@ public class SemiSyncMonitorService {
         }
     }
 }</code></pre>
+              </div>
 
               <p><strong>并行复制最佳实践参数</strong>：</p>
               <p><strong>主库优化参数</strong>：</p>
+              <div class="code-block">
               <pre><code>[mysqld]
 # 事务持久性保证（主库必须为1保证数据安全）
 innodb_flush_log_at_trx_commit=1
@@ -1554,7 +1565,9 @@ innodb_write_io_threads=4
 innodb_commit_concurrency=0
 # 自动清理purge线程
 innodb_purge_threads=1</code></pre>
+              </div>
               <p><strong>从库高并发参数</strong>（并行应用靠 <code class="inline-code">replica_parallel_workers</code>；网上流传的多 IO/SQL 线程参数多为<strong>伪配置</strong>，官方无对应系统变量，照抄会无效或报错）：</p>
+              <div class="code-block">
               <pre><code>[mysqld]
 # 8.4 现行名（8.0 可见 slave_parallel_* 同义；新环境统一 replica_*）
 # 注意：replica_parallel_type 自 8.0.29 废弃、MySQL 9.5 起已移除——LOGICAL_CLOCK 为唯一策略，无需再配
@@ -1563,7 +1576,9 @@ replica_parallel_workers=8
 replica_preserve_commit_order=ON
 innodb_flush_log_at_trx_commit=2
 sync_binlog=0</code></pre>
+              </div>
               <p><strong>Java 监控并行复制性能</strong>（8.4 用 SHOW REPLICA STATUS）：</p>
+              <div class="code-block">
               <pre><code>@Service
 public class ParallelReplicationMonitorService {
     
@@ -1647,6 +1662,7 @@ public class ParallelReplicationMonitorService {
         return stats;
     }
 }</code></pre>
+              </div>
 
               <p><strong>延迟优化组合拳</strong>：① 开启 MTS 并行复制——8.0 主库显式 <code class="inline-code">binlog_transaction_dependency_tracking=WRITESET</code>，<strong>8.4 勿再设该变量</strong>（已内建 WRITESET 依赖跟踪），从库配齐 <code class="inline-code">replica_parallel_workers</code> + <code class="inline-code">LOGICAL_CLOCK</code>；② 拆分大事务（单事务 &lt; 1000 行变更）；③ 所有表必须有主键（ROW 格式应用效率）；④ 从库与主库同规格硬件、从库不跑重统计；⑤ <code class="inline-code">innodb_flush_log_at_trx_commit=2</code>（从库可牺牲部分持久性换吞吐，崩溃从主库重同步）；⑥ <code class="inline-code">sync_binlog=0</code>（从库 binlog 可不立即 fsync）。从库是为读扩展，数据可从主库重建。</p>
               <p><strong>读分离与延迟容忍</strong>：写主库后立即读从库可能读到旧数据。方案：① 关键写后读走主库（同会话或短时间窗口）；② 半同步复制降低延迟；③ 用 <code class="inline-code">gtid_executed</code> 等待从库追上指定 GTID 再读（<code class="inline-code">WAIT_FOR_EXECUTED_GTID_SET</code>）。</p>

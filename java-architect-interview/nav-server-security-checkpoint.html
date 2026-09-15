@@ -829,6 +829,7 @@
         <ul>
           <li><strong>Java 规范实现：AES-GCM 加解密</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -881,6 +882,7 @@ public class AesGcmExample {
         return cipher.doFinal(ciphertext);
     }
 }</code></pre>
+        </div>
         <p>
           关键要点：每次加密生成随机 IV（<code>SecureRandom</code>）；GCM 自动计算并校验认证标签；解密时标签校验失败抛
           <code>AEADBadTagException</code>，调用方必须捕获并拒绝该数据。
@@ -917,6 +919,7 @@ public class AesGcmExample {
         <ul>
           <li><strong>Java 规范实现：RSA-OAEP 加密</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import javax.crypto.Cipher;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -950,9 +953,11 @@ public class RsaOaepExample {
         // // 错误：gen.initialize(1024) — 密钥长度不足
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Java 规范实现：RSA-PSS 签名与验签</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import java.security.Signature;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -986,9 +991,11 @@ public class RsaPssExample {
         return verifier.verify(signature);
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Java 规范实现：ECDSA 签名（确定性 nonce，需 Bouncy Castle）</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.PrivateKey;
 import java.security.Signature;
@@ -1012,6 +1019,7 @@ public class EcdsaExample {
         // // 错误：使用 JDK 默认 provider 的 ECDSA，若随机数 k 可预测则私钥泄露
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>RSA 加密是否使用 OAEP 填充</li>
@@ -1075,6 +1083,7 @@ public class EcdsaExample {
         <ul>
           <li><strong>Java 规范实现：SHA-256 / SHA-3 哈希</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import java.security.MessageDigest;
 
 public class HashExample {
@@ -1093,6 +1102,7 @@ public class HashExample {
         return md.digest(data);
     }
 }</code></pre>
+        </div>
         <p>关键要点：<code>MessageDigest</code> 是线程不安全的，每次调用应新建实例或使用线程局部变量。</p>
         <ul>
           <li><strong>Checkpoint</strong></li>
@@ -1149,6 +1159,7 @@ public class HashExample {
         <ul>
           <li><strong>Java 规范实现：HMAC-SHA-256 与常量时间比较</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import java.security.MessageDigest;
@@ -1169,6 +1180,7 @@ public class HmacExample {
         // // 错误：expected.equals(actual) — 非常量时间
     }
 }</code></pre>
+        </div>
         <p>
           关键要点：<code>MessageDigest.isEqual()</code> 在所有 JDK 版本中均为常量时间实现；<code>Arrays.equals()</code>
           在发现第一个不匹配字节时即返回，泄露前缀信息。
@@ -1240,6 +1252,7 @@ public class HmacExample {
         <ul>
           <li><strong>Java 规范实现：Argon2id 口令哈希（需 Bouncy Castle）</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
 import java.security.MessageDigest;
@@ -1284,9 +1297,11 @@ public class Argon2idExample {
         return MessageDigest.isEqual(expectedHash, actualHash);
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Java 规范实现：PBKDF2-HMAC-SHA-512 密钥派生</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.SecureRandom;
@@ -1307,9 +1322,11 @@ public class Pbkdf2Example {
         // // 错误：使用 PBKDF2WithHmacSHA1 — SHA-1 已弃用
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Java 规范实现：HKDF 密钥派生（用于已共享密钥场景）</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
 import org.bouncycastle.crypto.params.HKDFParameters;
@@ -1329,6 +1346,7 @@ public class HkdfExample {
         return key;
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>是否使用 Argon2id / bcrypt / PBKDF2 而非 MD5 / SHA 直接哈希</li>
@@ -1396,6 +1414,7 @@ public class HkdfExample {
         <ul>
           <li><strong>Java 规范实现：SecureRandom 生成各类安全随机值</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -1426,6 +1445,7 @@ public class SecureRandomExample {
         // // 错误：new Random().nextBytes(iv) — 非密码学随机
     }
 }</code></pre>
+        </div>
         <p>关键要点：<code>SecureRandom</code> 实例可复用（线程安全）；获取实例时优先使用 <code>new SecureRandom()</code> 或 <code>SecureRandom.getInstanceStrong()</code>（后者在 Linux 上可能阻塞等待熵，不推荐用于高频场景）。</p>
         <ul>
           <li><strong>Checkpoint</strong></li>
@@ -1460,6 +1480,7 @@ public class SecureRandomExample {
         <ul>
           <li><strong>Java 规范实现：密钥存储于 KeyStore</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
@@ -1497,9 +1518,11 @@ public class KeyStoreExample {
         return entry.getSecretKey();
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Java 规范实现：内存密钥安全清零</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import java.util.Arrays;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -1517,6 +1540,7 @@ public class KeyCleanupExample {
         // // 错误：String keyStr = new String(keyBytes) — String 不可变，无法清零
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>密钥是否存储于 HSM / KMS / KeyStore 而非配置文件或源码</li>
@@ -1584,6 +1608,7 @@ public class KeyCleanupExample {
         <ul>
           <li><strong>Java 规范实现：TLS 客户端正确证书校验</strong></li>
         </ul>
+        <div class="code-block">
         <pre><code>import javax.net.ssl.SSLContext;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.TrustManagerFactory;
@@ -1622,6 +1647,7 @@ public class TlsClientExample {
         // sslContext.init(null, trustAll, null);  // CWE-295：MITM 风险
     }
 }</code></pre>
+        </div>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>是否仅启用 TLS ≥1.2 且优先 1.3</li>
@@ -1971,6 +1997,7 @@ public class TlsClientExample {
 
         <h4>① OWASP Dependency-Check（Maven 集成）</h4>
         <p>开源 SCA 工具，扫描 Maven/Gradle 依赖，匹配 NVD（National Vulnerability Database）CVE 数据库。</p>
+        <div class="code-block">
         <pre><code>&lt;!-- pom.xml --&gt;
 &lt;plugin&gt;
     &lt;groupId&gt;org.owasp&lt;/groupId&gt;
@@ -1987,10 +2014,12 @@ public class TlsClientExample {
         &lt;/execution&gt;
     &lt;/executions&gt;
 &lt;/plugin&gt;</code></pre>
+        </div>
         <p>执行命令：<code>mvn dependency-check:check</code>，生成报告在 <code>target/dependency-check-report.html</code>。CI/CD 中建议配置 NVD API Key（免费申请）避免限流，首次扫描需下载完整 NVD 数据库（约 500MB）。</p>
 
         <h4>② Trivy（容器镜像 + 文件系统扫描）</h4>
         <p>Aqua Security 开源的多维扫描工具，支持容器镜像、文件系统、Git 仓库、Kubernetes 配置扫描。</p>
+        <div class="code-block">
         <pre><code># 扫描 Docker 镜像
 trivy image --severity HIGH,CRITICAL myapp:latest
 
@@ -2005,10 +2034,12 @@ trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed myapp:latest
 
 # 生成 SBOM（CycloneDX 格式）
 trivy image --format cyclonedx --output sbom.json myapp:latest</code></pre>
+        </div>
         <p>Trivy 的优势：无需联网即可扫描（内置漏洞数据库）、扫描速度快（秒级）、支持多种语言生态。CI/CD Pipeline 中建议在 Build Image 阶段和部署前各执行一次。</p>
 
         <h4>③ Syft + Grype（SBOM 生成 + 漏洞匹配）</h4>
         <p>Anchore 开源的 SBOM 工具链：Syft 生成 SBOM（软件物料清单），Grype 基于 SBOM 匹配已知漏洞。</p>
+        <div class="code-block">
         <pre><code># 生成 SBOM（SPDX 格式）
 syft myapp:latest -o spdx-json > sbom.json
 
@@ -2017,10 +2048,12 @@ grype sbom://sbom.json --fail-on high
 
 # 直接扫描镜像
 grype myapp:latest --only-fixed  # 只显示有修复版本的漏洞</code></pre>
+        </div>
         <p>SBOM 是供应链安全的基石：欧盟网络与信息安全局（ENISA）和美国行政令 14028 均要求软件供应商提供 SBOM。生产环境建议每次构建自动生成 SBOM 并归档，便于漏洞爆发时快速排查影响范围。</p>
 
         <h4>④ Maven Enforcer 插件（依赖治理）</h4>
         <p>在 SCA 之外，Maven Enforcer 插件可在构建期强制依赖规则，防止依赖冲突与安全隐患。</p>
+        <div class="code-block">
         <pre><code>&lt;plugin&gt;
     &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
     &lt;artifactId&gt;maven-enforcer-plugin&lt;/artifactId&gt;
@@ -2045,6 +2078,7 @@ grype myapp:latest --only-fixed  # 只显示有修复版本的漏洞</code></pre
         &lt;/execution&gt;
     &lt;/executions&gt;
 &lt;/plugin&gt;</code></pre>
+        </div>
         <ul>
           <li><strong>Checkpoint（SCA 实操）</strong></li>
           <li>CI/CD Pipeline 是否集成 SCA 扫描（Dependency-Check 或 Trivy）</li>
@@ -2073,6 +2107,7 @@ grype myapp:latest --only-fixed  # 只显示有修复版本的漏洞</code></pre
           <li><strong>查询深度限制</strong>：使用 <code>graphql-depth-limit</code> 中间件，限制最大嵌套深度（如 ≤ 7 层）</li>
           <li>
             <strong>查询复杂度限制</strong>：为每个字段分配复杂度权重，单次查询总复杂度不超过阈值（如 ≤ 1000）
+            <div class="code-block">
             <pre><code>// Node.js 示例（graphql-cost-analysis）
 import costAnalysis from 'graphql-cost-analysis';
 const costAnalyzer = costAnalysis({
@@ -2080,11 +2115,13 @@ const costAnalyzer = costAnalysis({
   defaultCost: 1,
   onComplete: (cost) =&gt; console.log(`Query cost: ${cost}`)
 });</code></pre>
+            </div>
           </li>
           <li><strong>查询持久化（Persisted Queries）</strong>：客户端只发送 query hash，服务端从预注册的白名单中查找对应 query，完全杜绝任意查询</li>
           <li><strong>关闭字段建议</strong>：Apollo Server 设置 <code>formatError</code> 移除 <code>extensions.exception</code> 中的建议信息</li>
           <li>
             <strong>Per-field 授权</strong>：在 Schema Directive 层实现字段级授权，而非仅依赖入口鉴权
+            <div class="code-block">
             <pre><code>// Apollo Directive 授权示例
 const typeDefs = gql`
   directive @auth(requires: String!) on FIELD_DEFINITION
@@ -2094,6 +2131,7 @@ const typeDefs = gql`
     salary: Float @auth(requires: "HR")
   }
 `;</code></pre>
+            </div>
           </li>
           <li><strong>限流策略调整</strong>：GraphQL 限流不能仅按请求数，应按查询复杂度限流（复杂度高的查询消耗更多令牌）</li>
         </ul>
