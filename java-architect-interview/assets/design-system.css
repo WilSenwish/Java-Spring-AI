@@ -978,50 +978,67 @@ code.inline-code {
 /* ---------- 导航首页特有样式 ---------- */
 .index-hero {
   text-align: center;
-  padding: var(--space-xl) var(--space-md);
+  padding: var(--space-xl) max(var(--space-md), env(safe-area-inset-right)) var(--space-lg) max(var(--space-md), env(safe-area-inset-left));
   max-width: 1100px;
   margin: 0 auto;
 }
 .index-hero h1 {
-  font-size: 2.5rem;
+  font-size: clamp(1.35rem, 4.2vw + 0.6rem, 2.5rem);
   font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1.25;
   margin-bottom: var(--space-sm);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .index-hero .subtitle {
-  font-size: 1.15rem;
+  font-size: clamp(0.92rem, 1.5vw + 0.7rem, 1.15rem);
   color: var(--muted);
   margin-bottom: var(--space-md);
+  line-height: 1.55;
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 .index-hero .meta-stats {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-lg);
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+  justify-items: center;
+  align-items: start;
+  max-width: 52rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 .index-hero .stat-item {
   text-align: center;
+  min-width: 0;
+  width: 100%;
 }
 .index-hero .stat-number {
   font-family: var(--font-mono);
   font-size: 2rem;
   font-weight: 700;
   color: var(--accent);
+  line-height: 1.15;
 }
 .index-hero .stat-label {
   font-size: 0.82rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  line-height: 1.3;
+  margin-top: 2px;
 }
 
 .chapter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* min(100%, …) 避免小屏下固定 320px 列宽把页面撑出横向滚动 */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: var(--space-md);
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 var(--space-md) var(--space-lg);
+  padding: 0 max(var(--space-md), env(safe-area-inset-right)) var(--space-lg) max(var(--space-md), env(safe-area-inset-left));
 }
 .chapter-card {
   background: var(--bg2);
@@ -1030,15 +1047,21 @@ code.inline-code {
   text-decoration: none;
   color: inherit;
   border: 1px solid var(--rule);
-  transition: all 0.25s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  min-width: 0; /* 允许网格子项收缩，防止长英文词撑破 */
 }
-.chapter-card:hover {
+@media (hover: hover) and (pointer: fine) {
+  .chapter-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+}
+.chapter-card:active {
   border-color: var(--accent);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
 .chapter-card .card-number {
   font-family: var(--font-mono);
@@ -1050,25 +1073,40 @@ code.inline-code {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--ink);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .chapter-card .card-desc {
   font-size: 0.85rem;
   color: var(--muted);
   line-height: 1.6;
   flex: 1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .chapter-card .card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 0.78rem;
   color: var(--muted);
   padding-top: var(--space-xs);
   border-top: 1px solid var(--rule);
 }
+.chapter-card .card-footer > span {
+  min-width: 0;
+  flex: 1 1 12rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
 .chapter-card .card-tags {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+  flex: 0 1 auto;
+  justify-content: flex-end;
 }
 
 .tag-cloud {
@@ -1251,8 +1289,12 @@ sup a:hover {
   .page-wrapper {
     padding: 0 var(--space-sm);
   }
+  .index-hero .meta-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: 36rem;
+    margin: 0 auto;
+  }
 }
-
 /* ---------- 导航按钮：中等屏提前换行（2026-09-04） ----------
    侧边栏 TOC 隐藏后可用宽度变化不大，但 5 个按钮并排会被挤压后各自换行、
    高度翻倍。故 900px 以下改为分组换行：翻页组一行（各占 50%）、居中组整行。 */
@@ -1294,22 +1336,79 @@ sup a:hover {
   .chapter-nav-top .nav-center a:last-child:nth-child(odd) {
     flex: 1 1 100%;
   }
+  .chapter-grid {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 768px) {
+  .index-hero {
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-md);
+  }
   .index-hero h1 {
-    font-size: 1.8rem;
+    font-size: clamp(1.28rem, 5.5vw, 1.7rem);
+    letter-spacing: -0.02em;
   }
   .index-hero .subtitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
+    margin-bottom: var(--space-sm);
+    padding: 0 2px;
   }
   .index-hero .meta-stats {
-    gap: var(--space-md);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-sm) var(--space-xs);
+    max-width: 100%;
   }
   .index-hero .stat-number {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+  }
+  .index-hero .stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    text-transform: none; /* 中文标签 uppercase 无收益，小屏更易读 */
   }
   .chapter-grid {
     grid-template-columns: 1fr;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-md);
+  }
+  .chapter-card {
+    padding: var(--space-sm) 14px;
+    gap: 6px;
+    border-radius: var(--radius-md);
+  }
+  .chapter-card .card-title {
+    font-size: 1.02rem;
+  }
+  .chapter-card .card-desc {
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+  .chapter-card .card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .chapter-card .card-footer > span {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .chapter-card .card-tags {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .chapter-card .difficulty {
+    padding: 2px 8px;
+    font-size: 0.68rem;
+  }
+  .tag-cloud,
+  .trend-section {
+    padding-left: max(var(--space-sm), env(safe-area-inset-left));
+    padding-right: max(var(--space-sm), env(safe-area-inset-right));
+  }
+  .tag-cloud h2,
+  .trend-section h2 {
+    font-size: 1.15rem;
   }
   .qa-card {
     padding: var(--space-sm);
@@ -1369,6 +1468,33 @@ sup a:hover {
    375~480px 下按钮宽度约 170px，26 字长章节名必然溢出，
    靠 ellipsis 截断保证高度恒定；居中组按钮数为奇数时最后一个独占整行。 */
 @media (max-width: 480px) {
+  .index-hero {
+    padding-top: var(--space-md);
+  }
+  .index-hero h1 {
+    font-size: 1.22rem;
+    line-height: 1.3;
+  }
+  .index-hero .subtitle {
+    font-size: 0.88rem;
+  }
+  .index-hero .meta-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 6px;
+  }
+  .index-hero .stat-number {
+    font-size: 1.25rem;
+  }
+  .index-hero .stat-label {
+    font-size: 0.64rem;
+  }
+  .chapter-grid {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .chapter-card {
+    padding: 12px;
+  }
   .chapter-nav a,
   .chapter-nav-top a {
     padding: 0 8px;
