@@ -272,10 +272,76 @@
     });
   }
 
+  function initScrollJumpButtons() {
+    if (!document.body) return;
+
+    function ensureTop() {
+      if (document.querySelector('.back-to-top')) return null;
+      var btn = document.createElement('button');
+      btn.className = 'back-to-top';
+      btn.type = 'button';
+      btn.innerHTML = '&#8593;';
+      btn.setAttribute('aria-label', '返回顶部');
+      btn.setAttribute('title', '返回顶部');
+      document.body.appendChild(btn);
+      btn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      return btn;
+    }
+
+    function ensureBottom() {
+      if (document.querySelector('.go-to-bottom')) return null;
+      var btn = document.createElement('button');
+      btn.className = 'go-to-bottom';
+      btn.type = 'button';
+      btn.innerHTML = '&#8595;';
+      btn.setAttribute('aria-label', '去到底部');
+      btn.setAttribute('title', '去到底部');
+      document.body.appendChild(btn);
+      btn.addEventListener('click', function () {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth',
+        });
+      });
+      return btn;
+    }
+
+    var topBtn = ensureTop() || document.querySelector('.back-to-top');
+    var bottomBtn = ensureBottom() || document.querySelector('.go-to-bottom');
+    if (!topBtn && !bottomBtn) return;
+
+    function update() {
+      var y = window.scrollY || window.pageYOffset || 0;
+      var remain =
+        document.documentElement.scrollHeight - y - window.innerHeight;
+      if (topBtn) {
+        if (y > 400) topBtn.classList.add('visible');
+        else topBtn.classList.remove('visible');
+      }
+      if (bottomBtn) {
+        if (remain > 400) bottomBtn.classList.add('visible');
+        else bottomBtn.classList.remove('visible');
+      }
+    }
+
+    // 避免与 nav.js 重复绑定：仅当本脚本创建了按钮时绑定；若按钮已存在也绑定一次可见性（用标记防重）
+    if (!window.__kbScrollJumpBound) {
+      window.__kbScrollJumpBound = true;
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+    }
+    update();
+  }
+
   function boot() {
     // 尽早缓存源码（须早于各页 mermaid.initialize startOnLoad）
     snapshotMermaidSources();
-    if (document.body) initThemeToggle();
+    if (document.body) {
+      initThemeToggle();
+      initScrollJumpButtons();
+    }
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

@@ -1,14 +1,16 @@
 /**
  * Java 工程能力知识库 — 导航交互逻辑
- * 功能：TOC 高亮、返回顶部、阅读进度条
+ * 功能：TOC 高亮、返回顶部/去到底部（兜底）、阅读进度条
  */
 (function () {
   'use strict';
 
-  // ---------- 返回顶部 ----------
+  // ---------- 返回顶部（由 theme-init.js 全站注入；此处兜底） ----------
   function initBackToTop() {
+    if (document.querySelector('.back-to-top')) return;
     var btn = document.createElement('button');
     btn.className = 'back-to-top';
+    btn.type = 'button';
     btn.innerHTML = '&#8593;';
     btn.setAttribute('aria-label', '返回顶部');
     document.body.appendChild(btn);
@@ -23,6 +25,37 @@
 
     btn.addEventListener('click', function () {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // ---------- 去到底部（由 theme-init.js 全站注入；此处兜底） ----------
+  function initGoToBottom() {
+    if (document.querySelector('.go-to-bottom')) return;
+    var btn = document.createElement('button');
+    btn.className = 'go-to-bottom';
+    btn.type = 'button';
+    btn.innerHTML = '&#8595;';
+    btn.setAttribute('aria-label', '去到底部');
+    document.body.appendChild(btn);
+
+    function update() {
+      var remain =
+        document.documentElement.scrollHeight - window.scrollY - window.innerHeight;
+      if (remain > 400) {
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+      }
+    }
+    window.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    update();
+
+    btn.addEventListener('click', function () {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth',
+      });
     });
   }
 
@@ -210,6 +243,7 @@
   // ---------- 初始化 ----------
   function init() {
     initBackToTop();
+    initGoToBottom();
     initReadingProgress();
     initThemeToggle();
     initTocHighlight();
