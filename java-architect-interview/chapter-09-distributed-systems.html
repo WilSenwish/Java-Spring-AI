@@ -59,7 +59,7 @@
             <a href="#C09.15"><span class="toc-number">C09.15</span>容灾与多活架构设计</a>
           </li>
           <li>
-            <a href="#C09.16"><span class="toc-number">C09.16</span>分布式事务新演进与 2026 选型</a>
+            <a href="#C09.16"><span class="toc-number">C09.16</span>分布式事务新演进与最新选型</a>
           </li>
           <li>
             <a href="#C09.17"><span class="toc-number">C09.17</span>分布式锁误用排查</a>
@@ -708,7 +708,7 @@ flowchart TD
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p><strong>ActiveMQ（2004，JMS 规范）</strong>：传统消息中间件，支持持久化但基于 Queue 的"推/拉"模型，单机吞吐万级。痛点：Master-Slave 主备切换弱、消息堆积性能下降、路由灵活但复杂。（新项目使用率下降：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar，此处仅作为 MQ 演进历史对比保留）</p>
+              <p><strong>ActiveMQ（2004，JMS 规范）</strong>：传统消息中间件，支持持久化但基于 Queue 的"推/拉"模型，单机吞吐万级。痛点：Master-Slave 主备切换弱、消息堆积性能下降、路由灵活但复杂。（新项目使用率下降：较早期 MQ 方案，当前主流替代为 Kafka / RocketMQ / Pulsar，此处仅作为 MQ 演进历史对比保留）</p>
               <p><strong>RabbitMQ（2007，AMQP）</strong>：Erlang 实现，灵活的 Exchange-Queue-Binding 路由模型，低延迟。痛点：吞吐仍受限（万级~十万级）、消息堆积后性能急剧下降、集群镜像队列开销大。</p>
               <p><strong>Kafka（2010，LinkedIn）</strong>：颠覆性设计——分布式提交日志（Partition+Segment 追加写）、零拷贝、页缓存、消费者 pull 模型、副本 ISR。吞吐百万级，消息堆积不影响性能（顺序读盘）。从"消息队列"重新定义为"分布式流平台"。</p>
               <p><strong>Kafka 版本演进</strong>：① <strong>0.11（2017）</strong>：幂等生产者 + 事务，实现 Kafka 内部 Exactly-Once；② <strong>2.4（2019）</strong>：Incremental Cooperative Rebalance 增量协议，只撤销/分配变化的分区，减少 rebalance 迁移量；③ <strong>2.8（2021）</strong>：KRaft 模式预览（Kafka Raft Metadata Mode），开始"去 ZooKeeper 化"；④ <strong>3.3（2022）</strong>：KRaft 模式生产可用（GA），新集群推荐直接使用 KRaft，ZK 模式进入迁移路径；⑤ <strong>3.5~3.7（2023-2024）</strong>：ZK→KRaft 迁移与分层存储（Tiered Storage，KIP-405）能力逐步落地；3.7 支持动态 KRaft 仲裁增删 Controller 节点；⑥ <strong>3.9</strong>：ZooKeeper 模式的最后支持版本，也是升级 Kafka 4.0 前的迁移中间站；⑦ <strong>4.0（2025-03）</strong>：彻底移除 ZooKeeper 依赖，KRaft 成为唯一元数据管理方案，KIP-848 新消费组协议 GA（大幅缩短 rebalance 停顿），KIP-932 队列语义 Early Access（支持点对点消息模型），Broker 要求 Java 17、Client/Streams Java 11，MirrorMaker 1 移除。<strong>分层存储要点</strong>：本地盘保留热段，冷段迁对象存储以降本；读冷数据有额外延迟，需按保留策略/读放大评估，不是"无限保留无代价"。</p>
@@ -907,7 +907,7 @@ props.<span class="fn">put</span>(ProducerConfig.TRANSACTIONAL_ID_CONFIG, <span 
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p><strong>早期：单队列人工排查</strong>。ActiveMQ（新项目使用率下降：较早期 MQ 方案，2026 主流替代为 Kafka / RocketMQ / Pulsar）/RabbitMQ 时代靠管理台看 Queue 深度，手动重启消费者，处理粗放。</p>
+              <p><strong>早期：单队列人工排查</strong>。ActiveMQ（新项目使用率下降：较早期 MQ 方案，当前主流替代为 Kafka / RocketMQ / Pulsar）/RabbitMQ 时代靠管理台看 Queue 深度，手动重启消费者，处理粗放。</p>
               <p><strong>中期：消费组扩容 + 监控告警</strong>。Kafka Consumer Group 模型成熟后，通过增加消费者实例提升并行度；Prometheus + kafka_exporter 采集 consumer lag 告警。</p>
               <p><strong>现代：临时扩容 + 跳过堆积 + binlog 回溯</strong>。大规模积压时，"扩容受分区数限制"成为瓶颈，催生"跳过堆积到最新 + 异步 binlog/MQ 回溯重建"的紧急方案；Flink/Kafka Streams 流处理引入背压机制从源头限流。</p>
             </div>
@@ -2618,25 +2618,25 @@ flowchart LR
         </div>
 
         <!-- ============================================================ -->
-        <!-- C09.16 分布式事务新演进与 2026 选型 -->
+        <!-- C09.16 分布式事务新演进与最新选型 -->
         <!-- ============================================================ -->
         <div class="qa-card" id="C09.16" data-difficulty="architect" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C09.16</div>
-            <div class="qa-question">分布式事务新演进与 2026 选型？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+            <div class="qa-question">分布式事务新演进与最新选型？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>考察分布式事务的<strong>工程化选型</strong>能力。核心要讲清：① 以具体版本核对 Seata 能力（截至证据日期 Apache Seata v2.6.0 提供 TC Raft 示例配置）；② Saga 工程化的状态机编排与补偿幂等设计；③ <strong>Outbox 模式 vs 本地消息表</strong>的可靠性差异（CDC 订阅 vs 轮询）；④ TCC 与 AT 的取舍（侵入性 vs 性能）；⑤ 按一致性等级、链路形态和运维前提做场景选型。它不是“2026 必选某方案”，而是一次可验证的架构决策。</p>
+              <p>考察分布式事务的<strong>工程化选型</strong>能力。核心要讲清：① 以具体版本核对 Seata 能力（截至证据日期 Apache Seata v2.6.0 提供 TC Raft 示例配置）；② Saga 工程化的状态机编排与补偿幂等设计；③ <strong>Outbox 模式 vs 本地消息表</strong>的可靠性差异（CDC 订阅 vs 轮询）；④ TCC 与 AT 的取舍（侵入性 vs 性能）；⑤ 按一致性等级、链路形态和运维前提做场景选型。它不是“某一年度必选某方案”，而是一次可验证的架构决策。</p>
             </div>
           </div>
 
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p>本题聚焦分布式事务 2026 新演进与选型决策矩阵；TCC/AT/Saga/本地消息表基础详见 <a href="#C09.02" class="internal-link">C09.02</a>。</p>
+              <p>本题聚焦分布式事务最新演进与选型决策矩阵；TCC/AT/Saga/本地消息表基础详见 <a href="#C09.02" class="internal-link">C09.02</a>。</p>
               <p><strong>基础模式回顾（详见 C09.02）</strong>：XA/2PC 提供较强协调语义，但长事务锁和故障恢复成本高，通常不是跨微服务高并发链路的第一选择；TCC Try/Confirm/Cancel 三接口业务侵入大；Seata AT Undo Log+全局锁低侵入但热点行会受全局锁影响；Saga 正向+补偿适合长流程；本地消息表靠轮询投递。以下聚焦较新的演进点。</p>
               <p><strong>增量 1：Outbox 模式 + CDC</strong>。业务写库同时写 outbox 表，Debezium/Canal 等连接器订阅 binlog 并投递 MQ，应用无需自建轮询。与本地消息表相比，CDC 可减少应用侧轮询压力并便于多服务复用采集管道；但端到端延迟取决于数据库产生 binlog、连接器拉取/解析、队列、分区、消费者和重试，不是天然的毫秒级承诺。Outbox 表至少需要业务事件 ID、聚合类型/ID、事件类型、payload、创建时间和状态/版本字段；消费端必须按事件 ID 或业务唯一键幂等。</p>
               <p><strong>增量 2：按版本核对 Seata TC Raft</strong>。Apache Seata 当前证据版本为 v2.6.0（2026-01-28，非预发布），其 2.x 源码样例 <code class="inline-code">application.raft.example.yml</code> 包含 <code class="inline-code">server.raft</code> 与 <code class="inline-code">store.mode: raft</code>。这说明目标版本支持基于 Raft 的 TC 集群配置方向；但是否适合生产，必须核对该版本的 release notes、兼容矩阵、存储/恢复行为、监控和升级路径。与共享 DB 模式相比，Raft 模式可减少一个外部共享存储组件，但引入 Raft 成员管理、快照、网络分区和磁盘持久化运维；DB 模式则把高可用职责交给数据库平台。</p>
@@ -2726,7 +2726,7 @@ flowchart LR
 
               <p><strong>TCC vs AT 取舍</strong>：AT 零侵入但有全局锁，适合<strong>低并发最终一致</strong>（如库存扣减的旁路校验）；TCC 侵入大但无锁并发好，适合<strong>高并发资源预留</strong>（如秒杀库存）。核心差异：AT 回滚靠反向 SQL（可能脏写需校验），TCC 回滚靠业务 Cancel（精确可控）。</p>
 
-              <p><strong>2026 选型决策矩阵（五维度）</strong>：</p>
+              <p><strong>最新选型决策矩阵（五维度）</strong>：</p>
               <table class="compare-table">
                 <thead>
                   <tr>

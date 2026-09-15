@@ -1335,7 +1335,7 @@ management:
               <p><strong>追问 1：K8s liveness 与 readiness 探针如何对接 Actuator？两者区别？</strong></p>
               <p>Spring Boot 2.3+ 自动配置 <code class="inline-code">/actuator/health/liveness</code> 与 <code class="inline-code">/actuator/health/readiness</code>（需 <code class="inline-code">management.endpoint.health.probes.enabled=true</code>）。<strong>liveness</strong>（存活探针）反映应用是否可恢复——DOWN 时 K8s 重启 Pod，只检查应用是否死锁/内存耗尽，不应含外部依赖（避免级联重启）；<strong>readiness</strong>（就绪探针）反映是否可接流量——DOWN 时 K8s 从 Service 摘除 Pod 但不重启，可含 DB/Redis 检查（依赖不可用时摘流量）。关键：<strong>不要把 DB 健康放 liveness</strong>，否则 DB 抖动导致全 Pod 重启雪崩。</p>
               <p><strong>追问 2：Micrometer 与 OpenTelemetry 的关系？Boot 3 如何整合？</strong></p>
-              <p>Micrometer 是<strong>度量门面</strong>（Metrics），Boot 3 引入 <code class="inline-code">Micrometer Observation API</code> 统一 Metrics 与 Tracing，并通过 traceId 自动注入 MDC 实现 Logging 关联（不是直接统一日志格式）。加 <code class="inline-code">micrometer-tracing-bridge-otel</code> 即把 Observation 桥接到 OpenTelemetry，通过 <code class="inline-code">OTelAutoConfiguration</code> 导出到 Jaeger/Tempo。即<strong>业务用 Micrometer API 埋点，底层桥接到 OTel 标准协议</strong>，兼顾 Spring 生态便利与 OTel 标准。这是 2026 年可观测性主流方案。</p>
+              <p>Micrometer 是<strong>度量门面</strong>（Metrics），Boot 3 引入 <code class="inline-code">Micrometer Observation API</code> 统一 Metrics 与 Tracing，并通过 traceId 自动注入 MDC 实现 Logging 关联（不是直接统一日志格式）。加 <code class="inline-code">micrometer-tracing-bridge-otel</code> 即把 Observation 桥接到 OpenTelemetry，通过 <code class="inline-code">OTelAutoConfiguration</code> 导出到 Jaeger/Tempo。即<strong>业务用 Micrometer API 埋点，底层桥接到 OTel 标准协议</strong>，兼顾 Spring 生态便利与 OTel 标准。这是当前可观测性主流方案。</p>
             </div>
           </div>
 

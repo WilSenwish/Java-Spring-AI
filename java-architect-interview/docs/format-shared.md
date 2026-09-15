@@ -150,6 +150,7 @@ index.html                         # 首页
 - **侧栏分组标题禁止用 div**：`<div class="toc-group-title">` 无法被 `nav.js` 高亮；必须用 `<a class="toc-group-title" href="#…">`，且正文有对应 `id`（方法论 / 工程化曾踩坑）。
 - **顶底导航须同文**：改 `chapter-nav-top` 时同步 `chapter-nav`；箭头与「返回目录」文案见 §4.2。
 - **权威/结构计数点标记**：展示题量/卡量一律 L0（`.kb-count` + `data-kb-pos` + `data-kb-count`，键在 `kb-counts.json` 的 `counts`/`struct`）；样式在 `assets/design-system.css`；细则见 skills `conventions.md` **§5.1.4**。禁止聚合 UI 留裸数字；禁止 `kb-count-local`。
+- **禁止写死日历年的营销/考察语气**：用户可见文案（副标题、开篇、卡片摘要、题干、导图注）勿写「2026 工程能力要求 / 2026 技术趋势 / 2026 高频 / 2026 选型」等会随年份过期的表述，改用「最新 / 当前 / 近年」。**例外**：技术演进迭代、产品版本、标准发布日、证据复核日、示例日期、页脚「最后更新」、changelog 日期可保留具体年月日。
 
 ## 8. 手机小屏强制规范（MOBILE-MANDATORY）
 
