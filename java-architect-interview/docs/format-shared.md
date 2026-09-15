@@ -15,7 +15,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>…</title>
-    <link rel="stylesheet" href="assets/design-system.css">   <!-- 首个资源 -->
+    <script src="assets/theme-init.js"></script>              <!-- 须在 CSS 前，防闪白 -->
+    <link rel="stylesheet" href="assets/design-system.css">   <!-- 设计令牌 -->
   </head>
   <body>
     <div class="page-wrapper">   <!-- 或 body 直接承载 -->
@@ -25,7 +26,7 @@
   </body>
   </html>
   ```
-- 任何新页都必须引入 `assets/design-system.css`，不得另起一整套全局样式；页面特有样式以内联 `<style>` 覆盖。
+- 任何新页都必须引入 `assets/theme-init.js`（在 CSS 前）与 `assets/design-system.css`，不得另起一整套全局样式；页面特有样式以内联 `<style>` 覆盖。相对路径：根 `index.html` → `java-architect-interview/assets/…`；章节站 → `assets/…`；导图站 → `../java-architect-interview/assets/…`。
 
 ## 2. 设计系统 · 设计令牌（CSS 变量）
 
@@ -71,11 +72,12 @@
 
 ## 4. 资源按需载入规则
 
+- `assets/theme-init.js`：主题同步初始化 + **全站主题切换器注入**（见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
 - `assets/nav.js`：全站导航交互脚本，**所有页面（含安全手册单页）均引入**；职责含：
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）。
-  2. 返回顶部、阅读进度条。
+  2. 返回顶部、阅读进度条；主题切换器由 `theme-init.js` 负责（本脚本仅兜底）。
   3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
-- `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。
+- `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `theme: (window.kbTheme && window.kbTheme.mermaidTheme()) || "neutral"`，禁止写死 `"neutral"` / `"default"`。
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
 - 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。
 
@@ -197,3 +199,24 @@ index.html                         # 首页
 ### 8.5 校验
 
 `validate_kb.py` 会检查：全站 HTML 含 viewport；`design-system.css` 含 `MOBILE-MANDATORY`；根 index / 导图 index / 导图页含小屏 `@media`。
+
+## 9. 主题 / 暗黑模式
+
+全站浅色 / 深色 / 跟随系统三态，以 CSS 变量换肤为唯一入口。
+
+| 项 | 约定 |
+|---|---|
+| 机制 | `html[data-theme="light\|dark"]` 覆盖 `design-system.css` 令牌；未强制时跟 `prefers-color-scheme` |
+| 默认 | `system` |
+| 持久化 | `localStorage['kb-color-theme']` = `light` \| `dark` \| `system` |
+| 防闪白 | `<head>` 在 CSS **之前**引入 `assets/theme-init.js` |
+| 切换 UI | 由 `theme-init.js` 注入 `.theme-toggle`（浅色 → 深色 → 跟随系统循环）；`nav.js` 仅兜底防漏；页面**不得**手写第二套切换器 |
+| Mermaid | `mermaid.initialize({ theme: (window.kbTheme && window.kbTheme.mermaidTheme()) \|\| "neutral", …})`；切换时派发 `kb-theme-change`，能重绘则重绘 |
+
+硬约束：
+
+1. **令牌只写 CSS 变量**：新增样式优先 `var(--bg)` / `var(--ink)` / `var(--accent)` 等；禁止新增仅适配浅色的裸 hex 作为页面主色（装饰性章节色条、accent 底上的 `#fff` 文字可例外）。
+2. **深色令牌块**：`design-system.css` 须含 `html[data-theme="dark"]` 与 `@media (prefers-color-scheme: dark)` 下 `html:not([data-theme="light"])` 同套令牌。
+3. **不改** `docs/facts/`；不重写 Mermaid 图内数百处 `fill:#dbeafe`（依赖 mermaid `dark` 主题底色即可）。
+
+`validate_kb.py` 会检查：站点 HTML 含 `theme-init.js`；`design-system.css` 含 `data-theme="dark"` 令牌块。

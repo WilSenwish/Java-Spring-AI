@@ -71,6 +71,46 @@
   /* 阴影 */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  color-scheme: light;
+}
+
+/* ---------- 暗黑模式令牌（kb-color-theme / data-theme） ---------- */
+html[data-theme="dark"] {
+  --bg: #0f1419;
+  --bg2: #1a2332;
+  --ink: #e8edf5;
+  --muted: #9aa3b2;
+  --rule: #2d3a4d;
+  --accent: #60a5fa;
+  --accent2: #a78bfa;
+  --code-bg: #0b1220;
+  --code-ink: #e2e8f0;
+  --success: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --bg: #0f1419;
+    --bg2: #1a2332;
+    --ink: #e8edf5;
+    --muted: #9aa3b2;
+    --rule: #2d3a4d;
+    --accent: #60a5fa;
+    --accent2: #a78bfa;
+    --code-bg: #0b1220;
+    --code-ink: #e2e8f0;
+    --success: #34d399;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
 }
 
 /* ---------- Reset ---------- */
@@ -85,6 +125,7 @@ html {
   font-size: var(--body-size);
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  color-scheme: light dark;
 }
 body {
   font-family: var(--font-body);
@@ -696,13 +737,14 @@ code.inline-code {
   background: var(--bg2);
 }
 .compare-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.04);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 /* 包裹写法兜底：<div class="compare-table"><table> 时让内部表与直接写法视觉一致 */
 .compare-table table {
   width: 100%;
   border-collapse: collapse;
   margin: 0;
+  color: inherit;
 }
 
 /* ---------- 内部交叉引用链接 ---------- */
@@ -714,13 +756,13 @@ code.inline-code {
   cursor: pointer;
 }
 .internal-link:hover {
-  color: #1d4ed8;
+  color: var(--accent2);
   text-decoration-thickness: 2px;
 }
 
 /* ---------- Mermaid 图表容器 ---------- */
 .mermaid-container {
-  background: #fff;
+  background: var(--bg);
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   padding: var(--space-md);
@@ -787,7 +829,7 @@ code.inline-code {
   margin-left: auto;
 }
 .chapter-nav .nav-next:hover {
-  background: #1d4ed8;
+  filter: brightness(1.08);
 }
 .chapter-nav .nav-home {
   background: transparent;
@@ -863,7 +905,7 @@ code.inline-code {
   margin-left: auto;
 }
 .chapter-nav-top .nav-next:hover {
-  background: #1d4ed8;
+  filter: brightness(1.08);
 }
 .chapter-nav-top .nav-home {
   background: transparent;
@@ -1275,8 +1317,53 @@ sup a:hover {
   display: flex;
 }
 .back-to-top:hover {
-  background: #1d4ed8;
+  filter: brightness(1.08);
   transform: translateY(-2px);
+}
+
+/* ---------- 主题切换（浅色 / 深色 / 跟随系统） ---------- */
+.theme-toggle {
+  position: fixed;
+  bottom: 84px;
+  right: 30px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  background: var(--bg2);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  line-height: 1;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.theme-toggle .theme-toggle-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+@media (max-width: 480px) {
+  .theme-toggle {
+    right: 16px;
+    bottom: 78px;
+    padding: 0 10px;
+    font-size: 0.68rem;
+  }
+  .back-to-top {
+    right: 16px;
+  }
 }
 
 /* ---------- 进度条 ---------- */
@@ -1288,6 +1375,180 @@ sup a:hover {
   background: var(--accent);
   z-index: 9999;
   transition: width 0.1s ease;
+}
+
+/* ---------- 暗黑模式组件微调 ---------- */
+html[data-theme="dark"] .difficulty-senior {
+  background: rgba(96, 165, 250, 0.14);
+  color: var(--accent);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+html[data-theme="dark"] .difficulty-architect {
+  background: rgba(167, 139, 250, 0.14);
+  color: var(--accent2);
+  border-color: rgba(167, 139, 250, 0.35);
+}
+html[data-theme="dark"] .difficulty-expert {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.14), rgba(167, 139, 250, 0.14));
+  color: var(--accent2);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+html[data-theme="dark"] .priority-p0 {
+  background: rgba(248, 113, 113, 0.14);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+html[data-theme="dark"] .priority-p1 {
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+html[data-theme="dark"] .priority-p2 {
+  background: rgba(96, 165, 250, 0.14);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+html[data-theme="dark"] .mermaid-container {
+  background: var(--bg2);
+}
+html[data-theme="dark"] .qa-card {
+  background: var(--bg2);
+  border: 1px solid var(--rule);
+  box-shadow: none;
+}
+html[data-theme="dark"] .qa-layer-body,
+html[data-theme="dark"] .qa-question {
+  color: var(--ink);
+}
+html[data-theme="dark"] .callout-tip {
+  background: rgba(52, 211, 153, 0.1);
+}
+html[data-theme="dark"] .callout-deep {
+  background: rgba(167, 139, 250, 0.1);
+}
+html[data-theme="dark"] .callout-danger {
+  background: rgba(248, 113, 113, 0.1);
+}
+html[data-theme="dark"] .compare-table,
+html[data-theme="dark"] .compare-table table {
+  color: var(--ink);
+}
+html[data-theme="dark"] .compare-table thead {
+  background: var(--bg2);
+  color: var(--ink);
+}
+html[data-theme="dark"] .compare-table th {
+  background: var(--bg2);
+  color: var(--ink);
+  border-bottom: 2px solid var(--accent);
+}
+html[data-theme="dark"] .compare-table td {
+  color: var(--ink);
+  border-bottom-color: var(--rule);
+}
+html[data-theme="dark"] .compare-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+html[data-theme="dark"] .compare-table tbody tr:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+html[data-theme="dark"] .compare-table.table-cards tr {
+  background: var(--bg2);
+  border-color: var(--rule);
+}
+html[data-theme="dark"] .compare-table.table-cards td::before {
+  color: var(--muted);
+}
+html[data-theme="dark"] .sidebar-toc a {
+  color: var(--muted);
+}
+html[data-theme="dark"] .sidebar-toc a.active,
+html[data-theme="dark"] .sidebar-toc a:hover {
+  color: var(--accent);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .difficulty-senior {
+    background: rgba(96, 165, 250, 0.14);
+    color: var(--accent);
+    border-color: rgba(96, 165, 250, 0.35);
+  }
+  html:not([data-theme="light"]) .difficulty-architect {
+    background: rgba(167, 139, 250, 0.14);
+    color: var(--accent2);
+    border-color: rgba(167, 139, 250, 0.35);
+  }
+  html:not([data-theme="light"]) .difficulty-expert {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.14), rgba(167, 139, 250, 0.14));
+    color: var(--accent2);
+    border-color: rgba(167, 139, 250, 0.4);
+  }
+  html:not([data-theme="light"]) .priority-p0 {
+    background: rgba(248, 113, 113, 0.14);
+    border-color: rgba(248, 113, 113, 0.35);
+  }
+  html:not([data-theme="light"]) .priority-p1 {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: rgba(251, 191, 36, 0.35);
+  }
+  html:not([data-theme="light"]) .priority-p2 {
+    background: rgba(96, 165, 250, 0.14);
+    border-color: rgba(96, 165, 250, 0.35);
+  }
+  html:not([data-theme="light"]) .mermaid-container {
+    background: var(--bg2);
+  }
+  html:not([data-theme="light"]) .qa-card {
+    background: var(--bg2);
+    border: 1px solid var(--rule);
+    box-shadow: none;
+  }
+  html:not([data-theme="light"]) .qa-layer-body,
+  html:not([data-theme="light"]) .qa-question {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .callout-tip {
+    background: rgba(52, 211, 153, 0.1);
+  }
+  html:not([data-theme="light"]) .callout-deep {
+    background: rgba(167, 139, 250, 0.1);
+  }
+  html:not([data-theme="light"]) .callout-danger {
+    background: rgba(248, 113, 113, 0.1);
+  }
+  html:not([data-theme="light"]) .compare-table,
+  html:not([data-theme="light"]) .compare-table table {
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .compare-table thead {
+    background: var(--bg2);
+    color: var(--ink);
+  }
+  html:not([data-theme="light"]) .compare-table th {
+    background: var(--bg2);
+    color: var(--ink);
+    border-bottom: 2px solid var(--accent);
+  }
+  html:not([data-theme="light"]) .compare-table td {
+    color: var(--ink);
+    border-bottom-color: var(--rule);
+  }
+  html:not([data-theme="light"]) .compare-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  html:not([data-theme="light"]) .compare-table tbody tr:hover {
+    background: rgba(96, 165, 250, 0.12);
+  }
+  html:not([data-theme="light"]) .compare-table.table-cards tr {
+    background: var(--bg2);
+    border-color: var(--rule);
+  }
+  html:not([data-theme="light"]) .compare-table.table-cards td::before {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .sidebar-toc a {
+    color: var(--muted);
+  }
+  html:not([data-theme="light"]) .sidebar-toc a.active,
+  html:not([data-theme="light"]) .sidebar-toc a:hover {
+    color: var(--accent);
+  }
 }
 
 /* ---------- 响应式 ---------- */

@@ -12,6 +12,7 @@ java-kb-expand · 全量校验脚本（通用版）
   0c) **L1 聚合 UI**：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等容器内「N题|卡|道|组」不得裸数字（见 conventions §5.1.4）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   1b) 手机小屏强制：design-system.css / 根·导图 index / 导图页含 MOBILE-MANDATORY；全站 HTML 含 viewport
+  1c) 主题 / 暗黑模式：站点 HTML 含 theme-init.js；design-system.css 含 data-theme="dark" 令牌块
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -265,6 +266,23 @@ def main():
         if "MOBILE-MANDATORY" not in mt or "@media (max-width: 760px)" not in mt:
             _mind_media_miss.append(os.path.basename(p))
     check(not _mind_media_miss, f"[小屏] 导图页缺 MOBILE-MANDATORY: {_mind_media_miss[:8]}")
+
+    # 1c) 主题 / 暗黑模式（format-shared §9）
+    check('data-theme="dark"' in css_txt or "data-theme='dark'" in css_txt,
+          '[主题] design-system.css 须含 html[data-theme="dark"] 令牌块')
+    check("prefers-color-scheme: dark" in css_txt,
+          "[主题] design-system.css 须含 prefers-color-scheme: dark 回退")
+    check(os.path.isfile(os.path.join(CHAPTER_DIR, "assets/theme-init.js")),
+          "[主题] 须存在 assets/theme-init.js")
+    _theme_miss = []
+    _seen_theme = set()
+    for p in _site_html:
+        if p in _seen_theme or not os.path.isfile(p):
+            continue
+        _seen_theme.add(p)
+        if "theme-init.js" not in read(p):
+            _theme_miss.append(os.path.relpath(p, BASE))
+    check(not _theme_miss, f"[主题] 缺 theme-init.js 的页面: {_theme_miss[:8]}")
 
     # 2) 标签截断
     for k, t in texts.items():
@@ -582,7 +600,7 @@ def main():
 
     print("\n==== 校验结果 ====")
     if check.failed == 0:
-        print("ALL PASS ✅ 三权威源一致，data-page-node-id=0，小屏规范就位，新卡落位且双编码一致。")
+        print("ALL PASS ✅ 三权威源一致，data-page-node-id=0，小屏/主题规范就位，新卡落位且双编码一致。")
         sys.exit(0)
     else:
         print(f"存在 {check.failed} 项 FAIL ❌，请复查。")

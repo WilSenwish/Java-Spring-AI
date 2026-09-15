@@ -169,10 +169,49 @@
     }
   }
 
+  // ---------- 主题切换（由 theme-init.js 注入；此处仅兜底） ----------
+  function initThemeToggle() {
+    if (document.querySelector('.theme-toggle')) return;
+    if (!window.kbTheme || typeof window.kbTheme.cycle !== 'function') return;
+
+    var LABELS = {
+      light: { icon: '☀', text: '浅色' },
+      dark: { icon: '☾', text: '深色' },
+      system: { icon: '◐', text: '系统' },
+    };
+
+    var btn = document.createElement('button');
+    btn.className = 'theme-toggle';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', '切换颜色主题');
+
+    function paint() {
+      var pref = window.kbTheme.readPref();
+      var meta = LABELS[pref] || LABELS.system;
+      btn.innerHTML =
+        '<span class="theme-toggle-icon" aria-hidden="true">' +
+        meta.icon +
+        '</span><span>' +
+        meta.text +
+        '</span>';
+      btn.setAttribute('title', '主题：' + meta.text + '（点击切换）');
+      btn.setAttribute('data-theme-pref', pref);
+    }
+
+    paint();
+    btn.addEventListener('click', function () {
+      window.kbTheme.cycle();
+      paint();
+    });
+    document.body.appendChild(btn);
+    document.addEventListener('kb-theme-change', paint);
+  }
+
   // ---------- 初始化 ----------
   function init() {
     initBackToTop();
     initReadingProgress();
+    initThemeToggle();
     initTocHighlight();
     initTableCards();
   }

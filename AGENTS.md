@@ -10,7 +10,7 @@
 - `index.html`：站点总目录（聚合统计页，三权威源之一）
 - `java-architect-interview/`：章节站。方法论页 `chapter-core-methodology.html`、工程化要点页 `chapter-engineering-practices.html`、生产踩坑页 `chapter-production-pitfalls.html`、`chapter-01~15-*`、`chapter-questions-eight-part.html`（核心原理）、`chapter-questions-scenario.html`（场景）、`nav-server-security-checkpoint.html`、`nav-overview-priority.html`（导航聚合页；前缀 nav- 表示非篇章题）
 - `java-architect-interview-mind/`：导图站，19 个 `mind-*.html`，与章节页一一对应互链
-- 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/nav.js`（导图站相对路径引用同套文件）
+- 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`（导图站相对路径引用同套文件）
 
 **卡片编号**：`M##.##`（方法论，M01~M12 共 91 卡）/ `G##.##`（工程化，G01~G08 共 64 卡）/ `K##.##`（踩坑，K01~K08 共 64 卡）/ `C##.##`（篇章 249）/ `E##.##`（核心原理 73）/ `S##.##`（场景 73）。
 
@@ -23,6 +23,7 @@
 4. **`java-architect-interview/docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
 5. **同文件多处修改禁止并行编辑**（会静默丢更新）；须串行修改或整文件重写后重新校验。
 6. **全站手机小屏样式强制优化**（违反即返工）：所有对用户可见的页面必须在 ≤768px（及 ≤480px 极小屏）下可读、可点、无横向撑破；共享样式以 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段为准，页面内联桌面规则必须自带对应 `@media` 覆盖。细则见 `java-architect-interview/docs/format-shared.md` §8。交付仍遵守红线 1（禁止预览注入），用绝对路径 + 文字结论说明适配点。
+7. **主题 / 暗黑模式**：新页须在 CSS 前引入 `theme-init.js`；换肤只改 CSS 变量，切换器由 `nav.js` 注入。细则见 `java-architect-interview/docs/format-shared.md` §9。
 
 ## 3. 权威计数（单一真源驱动）
 
