@@ -77,7 +77,7 @@
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）。
   2. 返回顶部、阅读进度条；主题切换器由 `theme-init.js` 负责（本脚本仅兜底）。
   3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
-- `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `theme: (window.kbTheme && window.kbTheme.mermaidTheme()) || "neutral"`，禁止写死 `"neutral"` / `"default"`。
+- `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || {…})`（偏蓝 `base` 主题）；禁止写死 `"neutral"` / `"default"`。换肤重绘由 `theme-init.js` 缓存 `data-kb-mermaid-src` 后 `mermaid.run`，勿在页面重复监听重绘。
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
 - 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。
 
@@ -211,12 +211,12 @@ index.html                         # 首页
 | 持久化 | `localStorage['kb-color-theme']` = `light` \| `dark` \| `system` |
 | 防闪白 | `<head>` 在 CSS **之前**引入 `assets/theme-init.js` |
 | 切换 UI | 由 `theme-init.js` 注入 `.theme-toggle`（浅色 → 深色 → 跟随系统循环）；`nav.js` 仅兜底防漏；页面**不得**手写第二套切换器 |
-| Mermaid | `mermaid.initialize({ theme: (window.kbTheme && window.kbTheme.mermaidTheme()) \|\| "neutral", …})`；切换时派发 `kb-theme-change`，能重绘则重绘 |
+| Mermaid | `mermaid.initialize(kbTheme.mermaidConfig({ startOnLoad: true }))`（偏蓝 `base` + themeVariables）；换肤时 `theme-init.js` 用 `data-kb-mermaid-src` 还原源码再 `mermaid.run` |
 
 硬约束：
 
 1. **令牌只写 CSS 变量**：新增样式优先 `var(--bg)` / `var(--ink)` / `var(--accent)` 等；禁止新增仅适配浅色的裸 hex 作为页面主色（装饰性章节色条、accent 底上的 `#fff` 文字可例外）。
 2. **深色令牌块**：`design-system.css` 须含 `html[data-theme="dark"]` 与 `@media (prefers-color-scheme: dark)` 下 `html:not([data-theme="light"])` 同套令牌。
-3. **不改** `docs/facts/`；不重写 Mermaid 图内数百处 `fill:#dbeafe`（依赖 mermaid `dark` 主题底色即可）。
+3. **不改** `docs/facts/`；不重写 Mermaid 图内数百处 `fill:#dbeafe`（默认偏蓝主题变量已覆盖无内联 fill 的节点）。
 
 `validate_kb.py` 会检查：站点 HTML 含 `theme-init.js`；`design-system.css` 含 `data-theme="dark"` 令牌块。
