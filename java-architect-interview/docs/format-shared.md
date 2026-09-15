@@ -19,13 +19,22 @@
     <link rel="stylesheet" href="assets/design-system.css">   <!-- 设计令牌 -->
   </head>
   <body>
-    <div class="page-wrapper">   <!-- 或 body 直接承载 -->
+    <!-- 有章节导航的页面：顶栏必须是 body 内第一个可见块 -->
+    <div class="site-page-nav site-page-nav--top">
+      <nav class="chapter-nav-top">…</nav>
+    </div>
+    <div class="page-wrapper">   <!-- 或 body 直接承载（导图/总览等） -->
       … 页面内容 …
+    </div>
+    <!-- 底栏在正文/footer 之后、所有 <script> 之前 -->
+    <div class="site-page-nav site-page-nav--bottom">
+      <nav class="chapter-nav">…</nav>
     </div>
     【脚本按需写在 </body> 前】
   </body>
   </html>
   ```
+  例外：根 `index.html`、章节站 `java-architect-interview/index.html` **不**放顶/底章节导航。
 - 任何新页都必须引入 `assets/theme-init.js`（在 CSS 前）与 `assets/design-system.css`，不得另起一整套全局样式；页面特有样式以内联 `<style>` 覆盖。相对路径：根 `index.html` → `java-architect-interview/assets/…`；章节站 → `assets/…`；导图站 → `../java-architect-interview/assets/…`。
 
 ## 2. 设计系统 · 设计令牌（CSS 变量）
@@ -96,14 +105,25 @@
 
 ### 4.2 顶 / 底章节导航（`chapter-nav-top` / `chapter-nav`）
 
+- **放置（硬约束）**：
+  - 顶栏：`body` 内**第一个**子块，外包 `<div class="site-page-nav site-page-nav--top">`。
+  - 底栏：正文与 `<footer>`（若有）之后、**所有** `<script>` 之前，外包 `<div class="site-page-nav site-page-nav--bottom">`。
+  - **无导航页**：仅根 `index.html`、章节站 `java-architect-interview/index.html`；导图 `index.html` 与其余内容页均须有顶底导航。
 - **顶底内容必须一致**：`.chapter-nav-top` 与 `.chapter-nav` 的内侧 HTML（链接集合与文案）须相同，仅外层 class 不同。
-- **箭头**：统一字面量 `←` / `→`（禁止底栏用 `&#8592;` / `&#8594;`、顶栏用字面量的混用）；思维导图外链箭头仍用 `&#8599;`。
-- **回目录文案**：统一「返回目录」（禁止「返回首页」）。
+- **顶底高度与间距对称**：壳层 `.site-page-nav--top` / `--bottom` 使用相同的上下 `padding`；内层导航条相同 `min-height` / `padding`；**内容 ↔ 导航块**的间隔只由壳层承担（正文首屏如 `.map-hero` / `.ov-hero` 勿再叠加大 `padding-top`）。样式以 `assets/design-system.css` 为准，小屏断点亦须对称。
+- **箭头**：统一字面量 `←` / `→`（禁止 `&#8592;` / `&#8594;`）；思维导图外链箭头仍用 `&#8599;`。
+- **回目录文案**：统一「返回目录」（禁止「返回首页」）；导图站首/末用「导图总览」/「返回导图总览」。
 - **结构**（三槽）：
-  - 左：`nav-prev`（上一篇）或首页首篇 / 特殊页用 `nav-home`（`← 返回目录`）
-  - 中：`nav-center` 内 `nav-mind` 链接；篇章页顺序固定为 **核心方法论 → 全部章节 → 本章思维导图**
-  - 右：`nav-next`（下一篇）或末篇 / 收束页用 `nav-home`（`返回目录 →`）
-- **去重**：若左侧 `nav-prev` 已指向某页，中间 `nav-center` **不得再重复**同一目标（方法论 / 工程化互链页尤须注意）。
+  - 左：`nav-prev`（上一篇）或首篇 `nav-home`
+  - 中：`nav-center` 内 `nav-mind` 快捷链（见下）
+  - 右：`nav-next`（下一篇）或末篇 `nav-home`
+- **去重**：若左侧已指向某 URL，中间 `nav-center` **不得再重复**同一目标。
+- **章节站阅读链路**（上一/下一）：  
+  `核心方法论 → 工程化要点 → 生产踩坑 → C01…C15 → 服务端安全 → 核心原理速查 → 高频场景题`  
+  首篇左「返回目录」、末篇右「返回目录」。**`nav-overview-priority.html` 使用标准三槽顶底导航**（左返回目录；中：核心方法论 / 核心原理 / 场景；右进 C01），顶底同文，外包 `.site-page-nav`。
+- **篇章页居中组**（C01–C15 / 安全）：**核心方法论 → 全部章节 → 本章思维导图**；方法论页居中仅「本章思维导图」（左已是返回目录）；工程化/踩坑居中为「全部章节 + 本章思维导图」；核心原理/场景无导图链。
+- **导图站阅读链路**：与章节站同序的 `mind-*`；居中组为 **全部章节 → 导图总览 → 本导图对应的章节**（首篇左已是导图总览时，居中去掉「导图总览」）。
+- **小屏**：≤900px 左右槽各半行、居中整行；≤768px 按钮固定行高 + 省略号，禁止顶底栏因换行导致高度不一致。
 
 ## 5. 通用内容元素
 
