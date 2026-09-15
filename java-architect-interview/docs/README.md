@@ -12,8 +12,9 @@
   - `assets/`：`design-system.css`（全站设计系统 / 设计令牌）、`nav.js`（全站导航交互脚本）。
   - `shared/js/`：`echarts.min.js`、`mermaid.min.js`（按需引入）。
   - `shared/fonts/`：JetBrainsMono、WorkSans。
-- **按需载入原则**：某页面若不含图表则不引入 `mermaid.min.js` / `echarts.min.js`；避免无关资源加载（见 `format-shared.md` 第 4 节）。
+- **按需载入原则**：某页面若不含图表则不引入 `mermaid.min.js` / `echarts.min.js`；避免无关资源加载（见 `format-shared.md` 第 4 节）。每个 Mermaid 节点须带 `<!-- prettier-ignore -->`（§10）。
 - **手机小屏强制**：全站页面必须适配 ≤768px / ≤480px；共享基线见 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段，规范见 `format-shared.md` §8（与 `AGENTS.md` 硬红线同级）。
+- **HTML 格式化**：仓库根 `npm run format:html`（Prettier 3）；配置与 Mermaid 保护见 `format-shared.md` §10。
 
 ## 2. 目录结构与文件清单
 
@@ -90,6 +91,6 @@ java-architect-interview/
 
 | 文档 | 内容 | 适用对象 |
 |------|------|----------|
-| [`format-shared.md`](format-shared.md) | 全站共用格式规则：资源与骨架、设计令牌、标签体系、**侧栏分组标题 / 顶底导航归一**（§4.1–4.2）、**手机小屏强制（§8 MOBILE-MANDATORY）**、命名/ID 规范、通用注意事项 | 所有页面 |
+| [`format-shared.md`](format-shared.md) | 全站共用格式规则：资源与骨架、设计令牌、标签体系、**侧栏分组标题 / 顶底导航归一**（§4.1–4.2）、**手机小屏强制（§8）**、**主题/暗黑（§9）**、**Prettier + Mermaid ignore（§10）**、命名/ID 规范 | 所有页面 |
 | [`format-std-qa.md`](format-std-qa.md) | 标准 QA 章节格式规则：15 个 `C##.##` 章节共用 | chapter-01 ~ 15 |
 | [`format-special.md`](format-special.md) | 特殊章节独享规则（含方法论 / 工程化侧栏分组锚点；**首页卡片顺序与难度徽标 / 折叠块**） | 方法论 / 工程化 / 大盘 / 原理 / 场景 / 安全 / 首页 |

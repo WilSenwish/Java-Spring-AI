@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 14 篇 · 数据库与存储深度 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-13-network-io.html" class="nav-prev">← 第 13 篇 网络与高性能 IO</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-14-databases.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-15-reactive.html" class="nav-next">第 15 篇 响应式编程与系统设计 →</a>
-        </nav>
+        <a href="chapter-13-network-io.html" class="nav-prev">← 第 13 篇 网络与高性能 IO</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-14-databases.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-15-reactive.html" class="nav-next">第 15 篇 响应式编程与系统设计 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -137,7 +136,11 @@
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"MongoDB 如何用文档模型解决 schema 灵活性、用分片解决水平扩展、用副本集解决高可用、用多文档事务解决一致性"</strong> 的体系化认知。核心要回答：BSON 文档模型相比关系表的优势与代价？分片键如何决定数据分布与查询路由？副本集 Primary/Secondary/Arbiter 如何选举（Raft 变体）？4.0+ 多文档事务如何跨分片保证（2PC）？WiredTiger 存储引擎为何同时用 B+ 树与 MVCC？这是 NoSQL 方向最核心的"模型+扩展+一致性"三连问。</p>
+              <p>
+                这道题考察对
+                <strong>"MongoDB 如何用文档模型解决 schema 灵活性、用分片解决水平扩展、用副本集解决高可用、用多文档事务解决一致性"</strong>
+                的体系化认知。核心要回答：BSON 文档模型相比关系表的优势与代价？分片键如何决定数据分布与查询路由？副本集 Primary/Secondary/Arbiter 如何选举（Raft 变体）？4.0+ 多文档事务如何跨分片保证（2PC）？WiredTiger 存储引擎为何同时用 B+ 树与 MVCC？这是 NoSQL 方向最核心的"模型+扩展+一致性"三连问。
+              </p>
             </div>
           </div>
 
@@ -147,6 +150,7 @@
               <p><strong>MongoDB 能力演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["文档型 DB<br/>MongoDB 1.x<br/>（2009）<br/>单机 BSON"] --> B["分片集群<br/>1.6引入/2.2成熟<br/>（2010/2012）<br/>水平扩展"]
@@ -179,6 +183,7 @@ flowchart LR
 
               <p><strong>分片集群架构</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     C["客户端 Client"] --> M["mongos 路由<br/>（无状态,可水平扩展）"]
@@ -207,7 +212,10 @@ flowchart TD
 
               <p><strong>WiredTiger 存储引擎</strong>：默认引擎，核心三点：① <strong>B+ 树索引</strong>——文档按 _id 与二级索引组织成 B+ 树，查询走索引定位；② <strong>MVCC 多版本并发控制</strong>——每个事务看到一致性快照，读写不阻塞，结合 <code class="inline-code">snapshot</code> 隔离级别；③ <strong>文档级锁</strong>——锁粒度到单文档（早期 MMAPv1 是集合级甚至全局锁），并发大幅提升；④ <strong>压缩</strong>——Snappy/Zstd 压缩减少磁盘占用，检查点（checkpoint，默认 60s）刷盘。</p>
 
-              <p><strong>多文档事务（4.0+）</strong>：副本集事务由 Primary 协调，写操作记录到 oplog 同步到 Secondary；跨分片事务（4.2+）采用<strong>两阶段提交（2PC）</strong>——协调者（Primary 所在 Shard）先 prepare 各参与 Shard，全部 prepare 成功后 commit，任一失败则 abort。事务隔离级别为 <strong>snapshot</strong>（快照隔离）。<strong>事务约束</strong>：① 事务超时默认 60s（<code class="inline-code">transactionLifetimeLimitSeconds</code> 可调），超时自动 abort；② 单条 oplog 条目上限 16MB（BSON 文档限制），大事务产生多条 oplog 条目导致复制延迟增大；③ 跨分片事务 2PC 协调阶段持锁时间长，易引发锁竞争与协调者单点压力。因此 MongoDB 事务适合短事务 OLTP 场景，不适合大批量 ETL 或长分析查询。</p>
+              <p>
+                <strong>多文档事务（4.0+）</strong>：副本集事务由 Primary 协调，写操作记录到 oplog 同步到 Secondary；跨分片事务（4.2+）采用<strong>两阶段提交（2PC）</strong>——协调者（Primary 所在 Shard）先 prepare 各参与 Shard，全部 prepare 成功后 commit，任一失败则 abort。事务隔离级别为 <strong>snapshot</strong>（快照隔离）。<strong>事务约束</strong>：① 事务超时默认 60s（<code class="inline-code">transactionLifetimeLimitSeconds</code>
+                可调），超时自动 abort；② 单条 oplog 条目上限 16MB（BSON 文档限制），大事务产生多条 oplog 条目导致复制延迟增大；③ 跨分片事务 2PC 协调阶段持锁时间长，易引发锁竞争与协调者单点压力。因此 MongoDB 事务适合短事务 OLTP 场景，不适合大批量 ETL 或长分析查询。
+              </p>
 
               <table class="compare-table">
                 <thead>
@@ -300,7 +308,10 @@ flowchart TD
               <p><strong>分片键设计要点</strong>：① <strong>高基数</strong>——值域要广，避免少量 Chunk 装满无法分裂；② <strong>低频率</strong>——单个值不应集中大量文档（如 status 只有几个值，做分片键必热点）；③ <strong>非单调递增</strong>——避免 ObjectId/时间戳单独做范围分片键导致写热点，可用"哈希分片"或"前缀+哈希"组合；④ <strong>查询覆盖</strong>——大部分查询应带分片键，否则 mongos 需广播到所有 Shard（scatter-gather）。</p>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>MongoDB 工程四要点：① <strong>文档建模优先反范式</strong>——把频繁一起读的子对象嵌套进父文档，单文档原子更新免去事务；② <strong>分片键选"高基数+查询热点字段"哈希分片</strong>——如 userId 哈希，兼顾分布均匀与查询定位；③ <strong>事务只用于跨文档强一致</strong>——单文档更新天然原子无需事务，大事务会撑爆 oplog；④ <strong>写关注用 w:majority</strong>——防 Primary 故障导致已确认写丢失回滚。</p>
+                <p>
+                  MongoDB 工程四要点：①
+                  <strong>文档建模优先反范式</strong>——把频繁一起读的子对象嵌套进父文档，单文档原子更新免去事务；② <strong>分片键选"高基数+查询热点字段"哈希分片</strong>——如 userId 哈希，兼顾分布均匀与查询定位；③ <strong>事务只用于跨文档强一致</strong>——单文档更新天然原子无需事务，大事务会撑爆 oplog；④ <strong>写关注用 w:majority</strong>——防 Primary 故障导致已确认写丢失回滚。
+                </p>
               </div>
             </div>
           </div>
@@ -345,7 +356,11 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"为什么在文档库上叠加向量检索，以及近似最近邻（ANN）与混合查询的工程取舍"</strong> 的架构判断。核心要回答：既然有专用向量库（Milvus/Qdrant/Pinecone），为何还要用 MongoDB 做向量检索？Atlas Vector Search 的 HNSW 与 $vectorSearch 如何工作？向量与结构化过滤（pre/post-filter）的执行顺序如何影响召回与性能？什么场景下 MongoDB 向量检索是更优解？这是 AI 应用存储选型的关键决策题。</p>
+              <p>
+                这道题考察对
+                <strong>"为什么在文档库上叠加向量检索，以及近似最近邻（ANN）与混合查询的工程取舍"</strong>
+                的架构判断。核心要回答：既然有专用向量库（Milvus/Qdrant/Pinecone），为何还要用 MongoDB 做向量检索？Atlas Vector Search 的 HNSW 与 $vectorSearch 如何工作？向量与结构化过滤（pre/post-filter）的执行顺序如何影响召回与性能？什么场景下 MongoDB 向量检索是更优解？这是 AI 应用存储选型的关键决策题。
+              </p>
             </div>
           </div>
 
@@ -355,6 +370,7 @@ flowchart TD
               <p><strong>向量检索技术演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["精确 KNN<br/>暴力计算<br/>O（N）"] --> B["LSH<br/>局部敏感哈希<br/>（2000s）"]
@@ -544,7 +560,7 @@ vectorStore.add(List.of(doc));
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -555,7 +571,7 @@ vectorStore.add(List.of(doc));
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C14.03 Milvus如何支撑十亿级向量？存算分离与索引权衡？ -->
@@ -569,7 +585,10 @@ vectorStore.add(List.of(doc));
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>本题从数据库视角聚焦 Milvus 内部架构；十亿级 RAG 的向量索引调参与召回率治理详见 C12.21。这道题考察对 <strong>"专用向量库如何从架构层面解决超大规模向量检索"</strong> 的深度理解。核心要回答：Milvus 凭什么支撑十亿级向量而 MongoDB/PgVector 做不到？存算分离（QueryNode/DataNode/Coordinator）的职责划分与代价？IVF、HNSW、DiskANN 三种索引在召回率、内存、延迟上的权衡？Segment 分段如何支撑水平扩展？这是向量库架构的"天花板"题。</p>
+              <p>
+                本题从数据库视角聚焦 Milvus 内部架构；十亿级 RAG 的向量索引调参与召回率治理详见 C12.21。这道题考察对
+                <strong>"专用向量库如何从架构层面解决超大规模向量检索"</strong> 的深度理解。核心要回答：Milvus 凭什么支撑十亿级向量而 MongoDB/PgVector 做不到？存算分离（QueryNode/DataNode/Coordinator）的职责划分与代价？IVF、HNSW、DiskANN 三种索引在召回率、内存、延迟上的权衡？Segment 分段如何支撑水平扩展？这是向量库架构的"天花板"题。
+              </p>
             </div>
           </div>
 
@@ -579,6 +598,7 @@ vectorStore.add(List.of(doc));
               <p><strong>Milvus 架构演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["FAISS<br/>（2017）<br/>单机库<br/>C++算法集"] --> B["Milvus 1.x<br/>（2019）<br/>分布式封装<br/>FAISS+MQ"]
@@ -605,6 +625,7 @@ flowchart LR
             <div class="qa-layer-body">
               <p><strong>存算分离架构</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     CL["客户端 SDK"] --> PROXY["Proxy<br/>接入/鉴权/路由"]
@@ -751,7 +772,10 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
               <p><strong>追问 1：IVF 与 HNSW 如何选？nlist/M 与召回率关系？</strong></p>
               <p>索引参数调优实战经验与 RAG 场景治理详见 C12.21。务必离线评测召回率定参。</p>
               <p><strong>追问 2：存算分离的延迟与成本如何权衡？</strong></p>
-              <p>存算分离把数据放对象存储，QueryNode 按需加载，<strong>好处</strong>是存储便宜（S3 比 SSD 便宜一个数量级）、计算弹性（按 QPS 扩 QueryNode）、故障恢复快（无状态重加载）。<strong>代价</strong>是冷查询需从对象存储读索引，延迟比纯内存高（首查可能秒级）。优化：① <strong>热数据常驻内存</strong>——load 常用 Segment 到 QueryNode 内存；② <strong>DiskANN 混合</strong>——热入口点放内存、向量落 SSD，兼顾成本与延迟；③ <strong>缓存层</strong>——QueryNode 本地缓存热点 Segment。成本上存算分离总拥有成本低于纯内存耦合架构，尤其适合向量数大但 QPS 不极端的场景。</p>
+              <p>
+                存算分离把数据放对象存储，QueryNode 按需加载，<strong>好处</strong>是存储便宜（S3 比 SSD 便宜一个数量级）、计算弹性（按 QPS 扩 QueryNode）、故障恢复快（无状态重加载）。<strong>代价</strong>是冷查询需从对象存储读索引，延迟比纯内存高（首查可能秒级）。优化：①
+                <strong>热数据常驻内存</strong>——load 常用 Segment 到 QueryNode 内存；② <strong>DiskANN 混合</strong>——热入口点放内存、向量落 SSD，兼顾成本与延迟；③ <strong>缓存层</strong>——QueryNode 本地缓存热点 Segment。成本上存算分离总拥有成本低于纯内存耦合架构，尤其适合向量数大但 QPS 不极端的场景。
+              </p>
             </div>
           </div>
 
@@ -795,7 +819,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -806,7 +830,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C14.04 Qdrant为何用Rust？过滤检索与Payload索引如何高效？ -->
@@ -820,7 +844,10 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>本题从数据库视角聚焦 Qdrant 架构与选型；十亿级 RAG 的向量库选型矩阵与调参实战详见 C12.21。这道题考察对 <strong>"向量库实现语言选型与结构化过滤检索的工程优化"</strong> 的理解。核心要回答：Qdrant 为什么选 Rust 而非 C++/Go？Rust 的零成本抽象与内存安全如何转化为向量检索的性能与稳定性优势？Payload（JSON 结构化字段）索引如何加速过滤？pre-filter 与 post-filter 的性能差异与适用场景？Qdrant 与 Milvus 的选型分界？这是向量库"过滤检索"维度的对比题。</p>
+              <p>
+                本题从数据库视角聚焦 Qdrant 架构与选型；十亿级 RAG 的向量库选型矩阵与调参实战详见 C12.21。这道题考察对
+                <strong>"向量库实现语言选型与结构化过滤检索的工程优化"</strong> 的理解。核心要回答：Qdrant 为什么选 Rust 而非 C++/Go？Rust 的零成本抽象与内存安全如何转化为向量检索的性能与稳定性优势？Payload（JSON 结构化字段）索引如何加速过滤？pre-filter 与 post-filter 的性能差异与适用场景？Qdrant 与 Milvus 的选型分界？这是向量库"过滤检索"维度的对比题。
+              </p>
             </div>
           </div>
 
@@ -830,6 +857,7 @@ client.loadCollection(<span class="type">LoadCollectionReq</span>.builder().coll
               <p><strong>向量库实现语言演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["C++<br/>FAISS（2017）<br/>极致性能<br/>内存不安全"] --> B["Go<br/>Weaviate（2019）<br/>并发友好<br/>GC开销"]
@@ -963,7 +991,10 @@ client.upsertAsync(<span class="str">"kb_points"</span>, List.of(point)).get();
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"NewSQL 如何用一套系统同时扛住事务型与分析型负载"</strong> 的深度理解。核心要回答：HTAP（Hybrid Transactional/Analytical Processing）如何避免 OLTP 与 OLAP 互相干扰？TiDB（SQL 层）、TiKV（行存）、TiFlash（列存）三者如何协同？Raft 在 TiKV 中如何做多副本共识与 Leader 选举？Percolator 两阶段提交如何实现跨 Region 分布式事务？Region 分裂与迁移如何支撑弹性扩展？这是分布式数据库的"天花板"题。</p>
+              <p>
+                这道题考察对
+                <strong>"NewSQL 如何用一套系统同时扛住事务型与分析型负载"</strong> 的深度理解。核心要回答：HTAP（Hybrid Transactional/Analytical Processing）如何避免 OLTP 与 OLAP 互相干扰？TiDB（SQL 层）、TiKV（行存）、TiFlash（列存）三者如何协同？Raft 在 TiKV 中如何做多副本共识与 Leader 选举？Percolator 两阶段提交如何实现跨 Region 分布式事务？Region 分裂与迁移如何支撑弹性扩展？这是分布式数据库的"天花板"题。
+              </p>
             </div>
           </div>
 
@@ -973,6 +1004,7 @@ client.upsertAsync(<span class="str">"kb_points"</span>, List.of(point)).get();
               <p><strong>分布式数据库演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["单机 MySQL<br/>强一致<br/>难扩展"] --> B["分库分表<br/>ShardingSphere<br/>应用侵入"]
@@ -1002,6 +1034,7 @@ flowchart LR
             <div class="qa-layer-body">
               <p><strong>TiDB 整体架构</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     APP["应用/JDBC"] --> TDB["TiDB Server<br/>（无状态 SQL 层）<br/>解析/优化/执行"]
@@ -1030,7 +1063,10 @@ flowchart TD
                 <li><strong>Prewrite 阶段</strong>：对涉及的所有 Key 加锁（写 primary lock + secondary locks），写数据为 MVCC 多版本。任一 Key 加锁失败则回滚。</li>
                 <li><strong>Commit 阶段</strong>：先提交 primary lock（原子），再异步清理 secondary locks。primary 提交成功即事务成功，secondary 由后续事务或异步清理。</li>
               </ul>
-              <p>事务隔离用 MVCC + <strong>Snapshot Isolation（快照隔离，SI）</strong>，每个事务读一个一致性快照。冲突检测靠锁与时间戳（TSO，PD 提供全局单调递增时间戳）。</p>
+              <p>
+                事务隔离用 MVCC +
+                <strong>Snapshot Isolation（快照隔离，SI）</strong>，每个事务读一个一致性快照。冲突检测靠锁与时间戳（TSO，PD 提供全局单调递增时间戳）。
+              </p>
 
               <p><strong>在线 DDL</strong>：TiDB DDL 是异步在线的——状态机驱动（DeleteOnly→WriteOnly→WriteReorganization→Public），全程不锁表，大表加索引在后台分批回填，业务无感。这是相比 MySQL（DDL 可能锁表）的显著优势。</p>
 
@@ -1170,7 +1206,11 @@ spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"列存为什么在分析场景碾压行存，以及 ClickHouse 的工程极致"</strong> 的理解。核心要回答：列存相比行存在分析查询上的优势来源（压缩、缓存、向量化）？ClickHouse 为什么快（向量化执行 + SIMD + MergeTree）？MergeTree 的"有序+分区+Part 合并"如何组织数据？物化视图如何预聚合加速？ClickHouse 为什么不适合高频更新与高并发点查？这是 OLAP 引擎的核心原理题。</p>
+              <p>
+                这道题考察对
+                <strong>"列存为什么在分析场景碾压行存，以及 ClickHouse 的工程极致"</strong>
+                的理解。核心要回答：列存相比行存在分析查询上的优势来源（压缩、缓存、向量化）？ClickHouse 为什么快（向量化执行 + SIMD + MergeTree）？MergeTree 的"有序+分区+Part 合并"如何组织数据？物化视图如何预聚合加速？ClickHouse 为什么不适合高频更新与高并发点查？这是 OLAP 引擎的核心原理题。
+              </p>
             </div>
           </div>
 
@@ -1180,6 +1220,7 @@ spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
               <p><strong>分析存储演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["行存 OLTP<br/>MySQL/PG<br/>事务强<br/>分析慢"] --> B["列存 OLAP<br/>列式存储<br/>压缩+向量化"]
@@ -1207,6 +1248,7 @@ flowchart LR
             <div class="qa-layer-body">
               <p><strong>行存 vs 列存对比</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     subgraph ROW["行存（OLTP）"]
@@ -1229,7 +1271,11 @@ flowchart TD
 
               <p><strong>列存压缩</strong>：同列数据类型一致，可用针对性编码：① <strong>字典编码</strong>——低基数列（如 status）存字典+整数索引，极大省空间；② <strong>RLE（Run-Length Encoding）</strong>——连续重复值存(值,长度)，有序数据压缩率极高；③ <strong>Delta 编码</strong>——时间戳/自增列存差值；④ <strong>LZ4/ZSTD</strong>——通用压缩。典型列存压缩比 5-10 倍，PB 级数据省巨额存储与 IO。</p>
 
-              <p><strong>向量化执行（SIMD）</strong>：ClickHouse 把数据按列批量（如 65536 行一批）送入 CPU，用 SIMD 指令（AVX2/AVX-512）一次处理一批。如 <code class="inline-code">SUM(age)</code> 不再逐行循环，而是一条指令算一批。配合编译期代码生成与循环展开，单核吞吐量是逐行执行的数十倍，这是 ClickHouse "快"的核心。</p>
+              <p>
+                <strong>向量化执行（SIMD）</strong>：ClickHouse 把数据按列批量（如 65536 行一批）送入 CPU，用 SIMD 指令（AVX2/AVX-512）一次处理一批。如
+                <code class="inline-code">SUM(age)</code>
+                不再逐行循环，而是一条指令算一批。配合编译期代码生成与循环展开，单核吞吐量是逐行执行的数十倍，这是 ClickHouse "快"的核心。
+              </p>
 
               <p><strong>MergeTree 引擎</strong>——ClickHouse 最常用引擎，核心三要素：</p>
               <ul>
@@ -1406,7 +1452,11 @@ spring.datasource.driver-class-name=com.clickhouse.jdbc.ClickHouseDriver
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"图数据库如何用属性图建模、Cypher 如何用模式匹配免 JOIN 高效遍历、以及何时该用图数据库"</strong> 的理解。核心要回答：属性图模型（节点/关系/属性）相比关系表多表 JOIN 的优势？Cypher 的 MATCH 模式匹配为什么比 SQL 递归 CTE 直观高效？图数据库通过"免 JOIN 邻接遍历"为何在多跳关系查询上碾压关系库？什么业务（推荐/风控/知识图谱）该用图数据库？这是 NoSQL 建模的"关系密集型"题。</p>
+              <p>
+                这道题考察对
+                <strong>"图数据库如何用属性图建模、Cypher 如何用模式匹配免 JOIN 高效遍历、以及何时该用图数据库"</strong>
+                的理解。核心要回答：属性图模型（节点/关系/属性）相比关系表多表 JOIN 的优势？Cypher 的 MATCH 模式匹配为什么比 SQL 递归 CTE 直观高效？图数据库通过"免 JOIN 邻接遍历"为何在多跳关系查询上碾压关系库？什么业务（推荐/风控/知识图谱）该用图数据库？这是 NoSQL 建模的"关系密集型"题。
+              </p>
             </div>
           </div>
 
@@ -1416,6 +1466,7 @@ spring.datasource.driver-class-name=com.clickhouse.jdbc.ClickHouseDriver
               <p><strong>关系密集型数据建模演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["关系型<br/>多表 JOIN<br/>深遍历慢"] --> B["图数据库<br/>Neo4j（2007）<br/>属性图+免JOIN"]
@@ -1443,6 +1494,7 @@ flowchart LR
             <div class="qa-layer-body">
               <p><strong>属性图模型</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A((Alice<br/>Person)) -->|KNOWS<br/>since:2020| B((Bob<br/>Person))
@@ -1471,11 +1523,17 @@ flowchart TD
 <span class="kw">RETURN</span> other.name, <span class="fn">count</span>(p) <span class="kw">AS</span> common
 <span class="kw">ORDER BY</span> common <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="num">5</span></code></pre>
               </div>
-              <p><code class="inline-code">(a)-[:KNOWS]->(b)</code> 直观表达"A 认识 B"，<code class="inline-code">*2..2</code> 表示变长路径 2 跳。Cypher 把图遍历声明式化，引擎自动优化遍历顺序与剪枝。</p>
+              <p>
+                <code class="inline-code">(a)-[:KNOWS]->(b)</code> 直观表达"A 认识 B"，<code class="inline-code">*2..2</code>
+                表示变长路径 2 跳。Cypher 把图遍历声明式化，引擎自动优化遍历顺序与剪枝。
+              </p>
 
               <p><strong>索引与遍历（免 JOIN）</strong>：Neo4j 用<strong>免索引邻接（index-free adjacency）</strong>——每个节点维护指向邻接节点的物理指针，遍历关系时直接跳指针，无需查索引表。这意味着<strong>遍历深度增加，性能几乎不退化</strong>（关系库每多一跳 JOIN 数据量指数膨胀）。节点属性可建索引加速初始定位（如按 name 找起点），但关系遍历靠物理指针。</p>
 
-              <p><strong>ACID 事务</strong>：Neo4j 是<strong>完整 ACID</strong> 的图数据库——事务保证原子性/一致性/隔离性/持久性，这与多数 NoSQL 的最终一致不同。事务以节点/关系为锁粒度，适合需要强一致的图业务（如金融风控关系）。</p>
+              <p>
+                <strong>ACID 事务</strong>：Neo4j 是<strong>完整 ACID</strong>
+                的图数据库——事务保证原子性/一致性/隔离性/持久性，这与多数 NoSQL 的最终一致不同。事务以节点/关系为锁粒度，适合需要强一致的图业务（如金融风控关系）。
+              </p>
 
               <table class="compare-table">
                 <thead>
@@ -1537,7 +1595,10 @@ flowchart TD
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <p><strong>Spring Data Neo4j 示例</strong>：用 <code class="inline-code">@Node</code> 映射节点，<code class="inline-code">@Relationship</code> 映射关系，Repository 自动生成 Cypher。</p>
+              <p>
+                <strong>Spring Data Neo4j 示例</strong>：用 <code class="inline-code">@Node</code> 映射节点，<code class="inline-code">@Relationship</code>
+                映射关系，Repository 自动生成 Cypher。
+              </p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. 节点实体</span>
 <span class="ann">@Node</span>(<span class="str">"Person"</span>)
@@ -1585,9 +1646,15 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：图数据库与关系型的边界在哪？</strong></p>
-              <p>核心看<strong>关系密度与遍历深度</strong>。① <strong>用图数据库</strong>——关系密集（实体间多对多关联多）、需要深遍历（3 跳以上，如朋友的朋友、资金穿透）、关系本身有属性/类型（如 KNOWS/TRANSFER）。典型：社交、推荐、风控、知识图谱。② <strong>用关系库</strong>——关系简单（少量外键）、以事务与精确查询为主、关系不需要深度遍历。典型：订单、账户、库存。③ <strong>混合用</strong>——业务主体数据存关系库（MySQL 保证事务），关系子图同步到 Neo4j 做关系分析（CDC/ETL 同步），各取所长。判断标准：若一个查询在关系库要 4+ 次 JOIN 或递归 CTE，且性能差，就该考虑图数据库。</p>
+              <p>
+                核心看<strong>关系密度与遍历深度</strong>。①
+                <strong>用图数据库</strong>——关系密集（实体间多对多关联多）、需要深遍历（3 跳以上，如朋友的朋友、资金穿透）、关系本身有属性/类型（如 KNOWS/TRANSFER）。典型：社交、推荐、风控、知识图谱。② <strong>用关系库</strong>——关系简单（少量外键）、以事务与精确查询为主、关系不需要深度遍历。典型：订单、账户、库存。③ <strong>混合用</strong>——业务主体数据存关系库（MySQL 保证事务），关系子图同步到 Neo4j 做关系分析（CDC/ETL 同步），各取所长。判断标准：若一个查询在关系库要 4+ 次 JOIN 或递归 CTE，且性能差，就该考虑图数据库。
+              </p>
               <p><strong>追问 2：超大图（亿级节点）如何分片？</strong></p>
-              <p>Neo4j 单机版（Community/Enterprise）是<strong>单机图</strong>——所有节点关系在一台机器，靠免 JOIN 邻接保证遍历性能，但规模受单机内存/磁盘限制（典型亿级节点）。超大规模分片用 <strong>Neo4j Fabric</strong>——把图按子图切分到多个 Neo4j 实例，Fabric 驱动跨实例查询合并。挑战：① <strong>切分策略</strong>——按业务子图（如按地区/租户）切分，减少跨分片遍历；② <strong>跨分片遍历</strong>——跨实例遍历需 Fabric 协调，性能不如单机；③ <strong>分布式事务</strong>——跨分片写事务复杂。替代方案：分布式图库（如 NebulaGraph/JanusGraph）原生支持分片但生态弱于 Neo4j。原则：能单机就单机（免 JOIN 优势最大），必须分片时按业务子图切。</p>
+              <p>
+                Neo4j 单机版（Community/Enterprise）是<strong>单机图</strong>——所有节点关系在一台机器，靠免 JOIN 邻接保证遍历性能，但规模受单机内存/磁盘限制（典型亿级节点）。超大规模分片用
+                <strong>Neo4j Fabric</strong>——把图按子图切分到多个 Neo4j 实例，Fabric 驱动跨实例查询合并。挑战：① <strong>切分策略</strong>——按业务子图（如按地区/租户）切分，减少跨分片遍历；② <strong>跨分片遍历</strong>——跨实例遍历需 Fabric 协调，性能不如单机；③ <strong>分布式事务</strong>——跨分片写事务复杂。替代方案：分布式图库（如 NebulaGraph/JanusGraph）原生支持分片但生态弱于 Neo4j。原则：能单机就单机（免 JOIN 优势最大），必须分片时按业务子图切。
+              </p>
             </div>
           </div>
 
@@ -1603,7 +1670,11 @@ flowchart TD
                   <li><strong>把所有数据塞进图库</strong>：图库不擅长大量属性存储与事务型 CRUD，主体业务数据应留关系库，只把关系子图放图库。</li>
                   <li><strong>忽视 Fabric 跨分片性能</strong>：分片后跨实例遍历性能下降，应按业务子图切分减少跨分片查询。</li>
                   <li><strong>关系建模无方向/属性</strong>：关系不带方向与属性丢失语义，应明确方向（OUTGOING/INCOMING）与关系属性。</li>
-                  <li><strong>不看执行计划就上线 Cypher</strong>：复杂查询应先用 <code class="inline-code">EXPLAIN/PROFILE</code> 验证是否走节点索引（NodeIndexSeek）而非全图扫描（AllNodesScan），深遍历需确认 Planner 的 Expand 策略，避免误以为索引生效实则全图扫描。</li>
+                  <li>
+                    <strong>不看执行计划就上线 Cypher</strong>：复杂查询应先用
+                    <code class="inline-code">EXPLAIN/PROFILE</code>
+                    验证是否走节点索引（NodeIndexSeek）而非全图扫描（AllNodesScan），深遍历需确认 Planner 的 Expand 策略，避免误以为索引生效实则全图扫描。
+                  </li>
                 </ul>
               </div>
             </div>
@@ -1612,7 +1683,9 @@ flowchart TD
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>选用 Neo4j 的核心量化结论：图遍历延迟随跳数指数增长，能否满足业务 RT 取决于图规模、page cache 命中率与遍历深度上限。</strong></p>
+              <p>
+                <strong>选用 Neo4j 的核心量化结论：图遍历延迟随跳数指数增长，能否满足业务 RT 取决于图规模、page cache 命中率与遍历深度上限。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -1646,7 +1719,10 @@ flowchart TD
               </table>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p>压测务必量化 1/2/3/4 跳 RT 与 page cache 命中率；深查询（>3 跳）默认加 <code class="inline-code">*1..3</code> 深度上限与 LIMIT，避免路径爆炸。以上为参考基准，需以自身生产数据替换。</p>
+                <p>
+                  压测务必量化 1/2/3/4 跳 RT 与 page cache 命中率；深查询（>3 跳）默认加
+                  <code class="inline-code">*1..3</code> 深度上限与 LIMIT，避免路径爆炸。以上为参考基准，需以自身生产数据替换。
+                </p>
               </div>
             </div>
           </div>
@@ -1835,7 +1911,10 @@ flowchart TD
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实证：信创与国产库迁移边界</div>
             <div class="qa-layer-body">
-              <p>信创场景常见路径：MySQL/Oracle → <strong>OceanBase / TiDB / openGauss</strong> 等。决策不只看协议兼容，还要看：</p>
+              <p>
+                信创场景常见路径：MySQL/Oracle →
+                <strong>OceanBase / TiDB / openGauss</strong> 等。决策不只看协议兼容，还要看：
+              </p>
               <ul>
                 <li><strong>SQL 方言与工具链</strong>：存储过程、序列、HINT、备份恢复、监控导出是否齐套。</li>
                 <li><strong>一致性与多活</strong>：金融核心偏强一致多副本（OceanBase/Paxos 等）；互联网 HTAP 可看 TiDB+TiFlash。</li>
@@ -1954,7 +2033,9 @@ flowchart TD
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>选用 TSDB 的核心量化结论：写入吞吐与压缩比决定写入瓶颈，连续聚合 + 降采样 + 保留策略将查询加速与存储成本同时压到可控量级。</strong></p>
+              <p>
+                <strong>选用 TSDB 的核心量化结论：写入吞吐与压缩比决定写入瓶颈，连续聚合 + 降采样 + 保留策略将查询加速与存储成本同时压到可控量级。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2171,7 +2252,10 @@ flowchart TD
               </table>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p><strong>日志/行为宽表、极致吞吐</strong> → ClickHouse；<strong>实时数仓、多表 JOIN、高并发明细与 MySQL 协议 BI</strong> → Doris/StarRocks。二者都不是 OLTP 替代品。</p>
+                <p>
+                  <strong>日志/行为宽表、极致吞吐</strong> → ClickHouse；<strong>实时数仓、多表 JOIN、高并发明细与 MySQL 协议 BI</strong>
+                  → Doris/StarRocks。二者都不是 OLTP 替代品。
+                </p>
               </div>
             </div>
           </div>
@@ -2191,7 +2275,10 @@ flowchart TD
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：Doris 与 StarRocks 怎么分？</strong> 同源演进、生态与版本节奏不同；选型看团队存量、云厂商支持与具体版本特性（物化视图、存算分离），用压测与 SQL 兼容矩阵说话。</p>
+              <p>
+                <strong>追问 1：Doris 与 StarRocks 怎么分？</strong>
+                同源演进、生态与版本节奏不同；选型看团队存量、云厂商支持与具体版本特性（物化视图、存算分离），用压测与 SQL 兼容矩阵说话。
+              </p>
               <p><strong>追问 2：为何大 JOIN 仍可能慢？</strong> 数据倾斜、广播/Shuffle 选择失误、统计信息不准；需分桶对齐、Colocate、预聚合。</p>
               <p><strong>追问 3：能否替代 TiDB HTAP？</strong> 不能简单替代：TiDB 强在 TP+轻量分析一体；Doris/SR 是分析面专用，TP 仍在 MySQL/PG/TiDB。</p>
             </div>
@@ -2323,34 +2410,52 @@ repo.upsert(pk, event.payload(), event.sourcePos());
           </div>
         </div>
 
-                        <div class="qa-card" id="C14.13" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C14.13" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C14.13</div>
             <div class="qa-question">慢 SQL 值班动作：从告警到限流与索引的最短路径？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>慢 SQL 值班先止血再优化：定位语句 → 评估锁与复制延迟 → 限流/杀会话 → 再谈索引。</p></div>
+            <div class="qa-layer-body">
+              <p>慢 SQL 值班先止血再优化：定位语句 → 评估锁与复制延迟 → 限流/杀会话 → 再谈索引。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>优化前先控制爆炸半径。索引变更按数据变更门禁（G04），禁止生产无单 CREAT INDEX。</p></div>
+            <div class="qa-layer-body">
+              <p>优化前先控制爆炸半径。索引变更按数据变更门禁（G04），禁止生产无单 CREAT INDEX。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>顺序：</p><ol><li>慢日志/insight 取指纹。</li><li>explain 与行数。</li><li>是否持锁/长事务。</li><li>限流该接口或杀会话。</li><li>加索引/改写走变更门禁。</li></ol></div>
+            <div class="qa-layer-body">
+              <p>顺序：</p>
+              <ol>
+                <li>慢日志/insight 取指纹。</li>
+                <li>explain 与行数。</li>
+                <li>是否持锁/长事务。</li>
+                <li>限流该接口或杀会话。</li>
+                <li>加索引/改写走变更门禁。</li>
+              </ol>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>表：fingerprint、avg_rt、rows_examined、锁等待、影响接口。关联 G04.02。</p></div>
+            <div class="qa-layer-body">
+              <p>表：fingerprint、avg_rt、rows_examined、锁等待、影响接口。关联 G04.02。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：未止血先改代码；错误索引锁表；忽略复制延迟。回滚点：撤销错误索引变更或恢复旧 SQL。</p><p>慢 SQL 最短路径：告警→执行计划→是否新发布/新索引缺失→限流/杀会话→补索引或改写→回放。</p><p>禁止只调超时；要有慢查询闭环单与回归用例。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：未止血先改代码；错误索引锁表；忽略复制延迟。回滚点：撤销错误索引变更或恢复旧 SQL。</p>
+              <p>慢 SQL 最短路径：告警→执行计划→是否新发布/新索引缺失→限流/杀会话→补索引或改写→回放。</p>
+              <p>禁止只调超时；要有慢查询闭环单与回归用例。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
-
-                
       </main>
     </div>
 
@@ -2358,34 +2463,48 @@ repo.upsert(pk, event.payload(), event.sourcePos());
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">MongoDB Documentation. — BSON 文档模型、分片集群与分片键、副本集与选举、WiredTiger 存储引擎、多文档事务、Aggregation Pipeline、Atlas Vector Search 官方文档</span></li>
-          <li><span class="src-title">Milvus Documentation (2.x). — 存算分离架构、IVF/HNSW/DiskANN 索引、Segment 分段、Collection 与 Partition、PQ/Scalar 量化官方文档</span></li>
-          <li><span class="src-title">Qdrant Documentation. — HNSW 索引、Payload 与 Payload 索引、pre/post-filter 过滤检索、Scalar/Binary 量化、Collection 与分片官方文档</span></li>
-          <li><span class="src-title">Pinecone Documentation. — 托管向量数据库架构、Pod/Serverless 索引、混合检索、命名空间与元数据过滤官方文档</span></li>
-          <li><span class="src-title">TiDB Documentation (PingCAP). — TiDB/TiKV/TiFlash 架构、Raft 多副本与 Region 分裂、Percolator 分布式事务、HTAP 行列同步、在线 DDL 官方文档</span></li>
-          <li><span class="src-title">ClickHouse Documentation. — MergeTree 引擎、列存压缩编码、向量化执行、物化视图与 ReplacingMergeTree、分区与排序键官方文档</span></li>
-          <li><span class="src-title">Neo4j Documentation. — 属性图模型、Cypher MATCH 模式匹配、索引与遍历、ACID 事务、Fabric 分片、Spring Data Neo4j 官方文档</span></li>
+          <li>
+            <span class="src-title">MongoDB Documentation. — BSON 文档模型、分片集群与分片键、副本集与选举、WiredTiger 存储引擎、多文档事务、Aggregation Pipeline、Atlas Vector Search 官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">Milvus Documentation (2.x). — 存算分离架构、IVF/HNSW/DiskANN 索引、Segment 分段、Collection 与 Partition、PQ/Scalar 量化官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">Qdrant Documentation. — HNSW 索引、Payload 与 Payload 索引、pre/post-filter 过滤检索、Scalar/Binary 量化、Collection 与分片官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">Pinecone Documentation. — 托管向量数据库架构、Pod/Serverless 索引、混合检索、命名空间与元数据过滤官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">TiDB Documentation (PingCAP). — TiDB/TiKV/TiFlash 架构、Raft 多副本与 Region 分裂、Percolator 分布式事务、HTAP 行列同步、在线 DDL 官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">ClickHouse Documentation. — MergeTree 引擎、列存压缩编码、向量化执行、物化视图与 ReplacingMergeTree、分区与排序键官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">Neo4j Documentation. — 属性图模型、Cypher MATCH 模式匹配、索引与遍历、ACID 事务、Fabric 分片、Spring Data Neo4j 官方文档</span>
+          </li>
         </ol>
-      
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
-              <p>上线门禁：备份恢复 RTO/RPO 演练、连接池与慢查询。表达提纲：存储引擎特征→容量证据→切换预案。</p>
-              <div class="callout callout-deep">
-                <div class="callout-title">P0 表达提纲</div>
-                <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
-              </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产实践</div>
+          <div class="qa-layer-body">
+            <p>上线门禁：备份恢复 RTO/RPO 演练、连接池与慢查询。表达提纲：存储引擎特征→容量证据→切换预案。</p>
+            <div class="callout callout-deep">
+              <div class="callout-title">P0 表达提纲</div>
+              <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
             </div>
           </div>
-</div>
+        </div>
+      </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-13-network-io.html" class="nav-prev">← 第 13 篇 网络与高性能 IO</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-14-databases.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-15-reactive.html" class="nav-next">第 15 篇 响应式编程与系统设计 →</a>
-        </nav>
+        <a href="chapter-13-network-io.html" class="nav-prev">← 第 13 篇 网络与高性能 IO</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-14-databases.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-15-reactive.html" class="nav-next">第 15 篇 响应式编程与系统设计 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2399,5 +2518,5 @@ repo.upsert(pk, event.payload(), event.sourcePos());
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

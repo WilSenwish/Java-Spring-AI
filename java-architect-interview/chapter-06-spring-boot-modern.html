@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 06 篇 · Spring Boot 与现代框架 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-05-spring-core.html" class="nav-prev">← 第 05 篇 Spring 核心原理</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-06-spring-boot-modern.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-07-mysql-deep.html" class="nav-next">第 07 篇 MySQL 深度原理 →</a>
-        </nav>
+        <a href="chapter-05-spring-core.html" class="nav-prev">← 第 05 篇 Spring 核心原理</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-06-spring-boot-modern.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-07-mysql-deep.html" class="nav-next">第 07 篇 MySQL 深度原理 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -153,10 +152,12 @@
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>Spring Boot 1.x（2014）</strong>：确立 <code class="inline-code">spring.factories</code> 作为自动配置的 SPI 声明文件，位于 <code class="inline-code">META-INF/spring.factories</code>，以 <code class="inline-code">org.springframework.boot.autoconfigure.EnableAutoConfiguration</code> 为 key 列出全限定类名。加载器 <code class="inline-code">SpringFactoriesLoader</code> 用 Properties 解析，全量加载、无去重。</p>
-              <p><strong>Spring Boot 2.x（2018）</strong>：沿用 spring.factories，但引入 <code class="inline-code">@AutoConfigureBefore/After/Order</code> 控制配置类顺序；<code class="inline-code">@ConditionalOnBean</code> 等条件注解体系成熟。问题浮现：spring.factories 被滥用——除自动配置外还塞了监听器、初始化器、环境后置处理器等十几种 key，<strong>启动期要加载上百个配置类做条件评估，拖慢启动</strong>。</p>
               <p>
-                <strong>Spring Boot 3.0（2022）</strong>：关键演进——<strong>自动配置从 spring.factories 迁移到 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong
-                >，每行一个类名。spring.factories 中 <code class="inline-code">EnableAutoConfiguration</code> key <strong>不再生效</strong>（Boot 3.0 起写了也不会被加载）。新机制用 <code class="inline-code">ImportCandidates</code> 读取，去重 + 排序更高效，且<strong>为 AOT 处理铺路</strong>——AOT 阶段需要确定的、可静态分析的配置清单，spring.factories 的 Properties 格式不利于工具分析。
+                <strong>Spring Boot 2.x（2018）</strong>：沿用 spring.factories，但引入 <code class="inline-code">@AutoConfigureBefore/After/Order</code> 控制配置类顺序；<code class="inline-code">@ConditionalOnBean</code>
+                等条件注解体系成熟。问题浮现：spring.factories 被滥用——除自动配置外还塞了监听器、初始化器、环境后置处理器等十几种 key，<strong>启动期要加载上百个配置类做条件评估，拖慢启动</strong>。
+              </p>
+              <p>
+                <strong>Spring Boot 3.0（2022）</strong>：关键演进——<strong>自动配置从 spring.factories 迁移到 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong>，每行一个类名。spring.factories 中 <code class="inline-code">EnableAutoConfiguration</code> key <strong>不再生效</strong>（Boot 3.0 起写了也不会被加载）。新机制用 <code class="inline-code">ImportCandidates</code> 读取，去重 + 排序更高效，且<strong>为 AOT 处理铺路</strong>——AOT 阶段需要确定的、可静态分析的配置清单，spring.factories 的 Properties 格式不利于工具分析。
               </p>
               <p><strong>趋势</strong>：自动配置正与 AOT/Native Image 深度融合，条件评估在构建期冻结；未来可能进一步向"声明式配置 + 构建期生成"演进，减少运行期反射与条件判断。</p>
             </div>
@@ -166,11 +167,13 @@
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
               <p>
-                <strong>触发入口：<code class="inline-code">@SpringBootApplication</code> = <code class="inline-code">@EnableAutoConfiguration</code> + <code class="inline-code">@ComponentScan</code> + <code class="inline-code">@SpringBootConfiguration</code></strong
-                >。<code class="inline-code">@EnableAutoConfiguration</code> 通过 <code class="inline-code">@Import(AutoConfigurationImportSelector.class)</code> 导入选择器，这是自动装配的真正引擎。
+                <strong>触发入口：<code class="inline-code">@SpringBootApplication</code> = <code class="inline-code">@EnableAutoConfiguration</code> + <code class="inline-code">@ComponentScan</code> + <code class="inline-code">@SpringBootConfiguration</code></strong>。<code class="inline-code">@EnableAutoConfiguration</code> 通过
+                <code class="inline-code">@Import(AutoConfigurationImportSelector.class)</code>
+                导入选择器，这是自动装配的真正引擎。
               </p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["@SpringBootApplication 启动"] --> B["@EnableAutoConfiguration"]
@@ -246,7 +249,11 @@ com.example.MongoAutoConfiguration</code></pre>
                 </tbody>
               </table>
 
-              <p><strong>为何 @ConditionalOnMissingBean 能实现"用户配置优先"</strong>：Spring 加载顺序保证用户 <code class="inline-code">@Configuration</code> 先于自动配置类被解析（自动配置类通过 <code class="inline-code">@AutoConfigureAfter</code> 排在后）。因此用户定义的 Bean 先注册，自动配置类的 <code class="inline-code">@ConditionalOnMissingBean</code> 检测到已存在则跳过默认实现。这是"<strong>约定优于配置，但配置可覆盖约定</strong>"的底层保证。</p>
+              <p>
+                <strong>为何 @ConditionalOnMissingBean 能实现"用户配置优先"</strong>：Spring 加载顺序保证用户 <code class="inline-code">@Configuration</code> 先于自动配置类被解析（自动配置类通过 <code class="inline-code">@AutoConfigureAfter</code> 排在后）。因此用户定义的 Bean 先注册，自动配置类的
+                <code class="inline-code">@ConditionalOnMissingBean</code>
+                检测到已存在则跳过默认实现。这是"<strong>约定优于配置，但配置可覆盖约定</strong>"的底层保证。
+              </p>
             </div>
           </div>
 
@@ -266,7 +273,10 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
               </div>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>自定义自动配置类务必遵循官方规范：① 放在独立 starter 模块，不暴露给业务；② 用 <code class="inline-code">@AutoConfiguration</code>（3.x）标注而非 <code class="inline-code">@Configuration</code>，表明是自动配置类；③ 用 <code class="inline-code">@ConditionalOnClass</code> 守卫，避免缺依赖时报错；④ 默认 Bean 一律加 <code class="inline-code">@ConditionalOnMissingBean</code>，给用户覆盖空间；⑤ 用 <code class="inline-code">@ConfigurationProperties</code> 而非 <code class="inline-code">@Value</code> 暴露可配置项。</p>
+                <p>
+                  自定义自动配置类务必遵循官方规范：① 放在独立 starter 模块，不暴露给业务；② 用
+                  <code class="inline-code">@AutoConfiguration</code>（3.x）标注而非 <code class="inline-code">@Configuration</code>，表明是自动配置类；③ 用 <code class="inline-code">@ConditionalOnClass</code> 守卫，避免缺依赖时报错；④ 默认 Bean 一律加 <code class="inline-code">@ConditionalOnMissingBean</code>，给用户覆盖空间；⑤ 用 <code class="inline-code">@ConfigurationProperties</code> 而非 <code class="inline-code">@Value</code> 暴露可配置项。
+                </p>
               </div>
             </div>
           </div>
@@ -278,7 +288,8 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
               <p>三个原因：① <strong>性能</strong>——spring.factories 是 Properties 格式，一个 key 可挂多个逗号分隔类名，加载需解析整个文件；imports 文件纯文本每行一类，<code class="inline-code">ImportCandidates</code> 读取更轻量；② <strong>职责单一</strong>——spring.factories 混装了十几种 SPI（监听器、初始化器、环境后置处理器等），自动配置与它们耦合在同一文件，难以独立管理与工具化；③ <strong>AOT 友好</strong>——AOT 处理器需要"确定且可静态分析"的配置清单，imports 文件结构清晰，便于构建期生成 AOT 元数据。注意：仅 <code class="inline-code">EnableAutoConfiguration</code> 这个 key 迁移，其他 SPI（如 <code class="inline-code">EnvironmentPostProcessor</code>）仍在 spring.factories。</p>
               <p><strong>追问 2：自动配置类的加载顺序如何保证？@ConditionalOnBean 会不会因顺序失败？</strong></p>
               <p>
-                顺序通过三层保证：① <code class="inline-code">@AutoConfigureOrder</code> 数值排序；② <code class="inline-code">@AutoConfigureBefore/After</code> 显式声明前后依赖；③ <code class="inline-code">AutoConfigurationSorter</code> 做拓扑排序。<strong>但 <code class="inline-code">@ConditionalOnBean</code> 确实有顺序陷阱</strong>——条件评估在配置类注册阶段，若 A 配置类依赖 B 配置类的 Bean，但 A 排在 B 前面，<code class="inline-code">@ConditionalOnBean</code> 会误判为不存在。解决：用 <code class="inline-code">@AutoConfigureAfter(B.class)</code> 强制顺序，或改用 <code class="inline-code">@ConditionalOnClass</code>（类路径判定不依赖 Bean 注册顺序）。这也是官方<strong>推荐用 <code class="inline-code">@ConditionalOnClass</code>/<code class="inline-code">@ConditionalOnMissingBean</code>，慎用 <code class="inline-code">@ConditionalOnBean</code></strong> 的原因。
+                顺序通过三层保证：① <code class="inline-code">@AutoConfigureOrder</code> 数值排序；② <code class="inline-code">@AutoConfigureBefore/After</code> 显式声明前后依赖；③ <code class="inline-code">AutoConfigurationSorter</code> 做拓扑排序。<strong>但 <code class="inline-code">@ConditionalOnBean</code> 确实有顺序陷阱</strong>——条件评估在配置类注册阶段，若 A 配置类依赖 B 配置类的 Bean，但 A 排在 B 前面，<code class="inline-code">@ConditionalOnBean</code> 会误判为不存在。解决：用 <code class="inline-code">@AutoConfigureAfter(B.class)</code> 强制顺序，或改用 <code class="inline-code">@ConditionalOnClass</code>（类路径判定不依赖 Bean 注册顺序）。这也是官方<strong>推荐用 <code class="inline-code">@ConditionalOnClass</code>/<code class="inline-code">@ConditionalOnMissingBean</code>，慎用 <code class="inline-code">@ConditionalOnBean</code></strong>
+                的原因。
               </p>
             </div>
           </div>
@@ -298,7 +309,7 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -309,7 +320,7 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C06.02 Spring Boot 3.x/4.x 的 AOT 与 GraalVM Native Image 如何工作？ -->
@@ -323,7 +334,10 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 Java 编译范式从 <strong>JIT（即时编译）→ AOT（提前编译）→ GraalVM Native Image（原生镜像）</strong>演进的本质理解。AOT 不是"换个编译器"，而是<strong>把运行期才做的 Bean 定义解析、条件评估、反射调用，前移到构建期冻结为静态代码</strong>；Native Image 更进一步，用闭世界分析把整个应用编译成单一原生可执行文件。这背后是 Java 从"<strong>一次编写到处运行</strong>"向"<strong>一次构建到处运行</strong>"的范式转移——牺牲部分动态性换取极致启动速度与内存占用，适应云原生/Serverless 场景。</p>
+              <p>
+                这道题考察对 Java 编译范式从
+                <strong>JIT（即时编译）→ AOT（提前编译）→ GraalVM Native Image（原生镜像）</strong>演进的本质理解。AOT 不是"换个编译器"，而是<strong>把运行期才做的 Bean 定义解析、条件评估、反射调用，前移到构建期冻结为静态代码</strong>；Native Image 更进一步，用闭世界分析把整个应用编译成单一原生可执行文件。这背后是 Java 从"<strong>一次编写到处运行</strong>"向"<strong>一次构建到处运行</strong>"的范式转移——牺牲部分动态性换取极致启动速度与内存占用，适应云原生/Serverless 场景。
+              </p>
             </div>
           </div>
 
@@ -343,6 +357,7 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
               <p><strong>AOT 处理：构建期冻结 Spring 动态性</strong>。Spring 的核心动态性来自三点：① 运行期反射扫描 <code class="inline-code">@Configuration</code>/<code class="inline-code">@Bean</code> 注册 BeanDefinition；② <code class="inline-code">@Conditional</code> 运行期评估；③ 反射实例化 Bean、CGLIB 生成代理。AOT 把这三点前移：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     subgraph Build [构建期 AOT 处理]
@@ -452,7 +467,11 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
               </ul>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>Native 迁移遵循"三步法"：① 先升级到 Boot 3.x + Java 17，跑通 JVM 模式；② 加 AOT 处理（<code class="inline-code">process-aot</code> goal），在 JVM 下用 AOT 代码启动验证无反射错误；③ 再加 Native 编译，逐步补齐第三方库的 reachability metadata。务必开启 <code class="inline-code">--trace-class-initialization</code> 排查构建期类初始化问题。</p>
+                <p>
+                  Native 迁移遵循"三步法"：① 先升级到 Boot 3.x + Java 17，跑通 JVM 模式；② 加 AOT 处理（<code class="inline-code">process-aot</code>
+                  goal），在 JVM 下用 AOT 代码启动验证无反射错误；③ 再加 Native 编译，逐步补齐第三方库的 reachability metadata。务必开启
+                  <code class="inline-code">--trace-class-initialization</code> 排查构建期类初始化问题。
+                </p>
               </div>
             </div>
           </div>
@@ -484,7 +503,7 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -495,7 +514,7 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C06.03 如何设计一个自定义 Spring Boot Starter？ -->
@@ -517,7 +536,10 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>早期（Boot 1.x）</strong>：Starter 与 autoconfigure 耦合在一个 jar，配置类直接用 <code class="inline-code">@Configuration</code>，声明写在 <code class="inline-code">spring.factories</code>（已废弃：Spring Boot 3.0 起标记废弃，替代：AutoConfiguration.imports）。问题：用户只要功能不要某默认 Bean 时，难以剥离。</p>
-              <p><strong>Boot 2.x 规范成熟</strong>：官方确立"<strong>双模块分离</strong>"——<code class="inline-code">xxx-spring-boot-autoconfigure</code>（含配置类与条件逻辑）+ <code class="inline-code">xxx-spring-boot-starter</code>（空 jar，只依赖 autoconfigure + 必需第三方库）。引入 <code class="inline-code">@ConfigurationProperties</code> + <code class="inline-code">@Validated</code> + Bean Validation（JSR 303/380）做配置校验，<code class="inline-code">@AutoConfigureBefore/After</code> 控制顺序。</p>
+              <p>
+                <strong>Boot 2.x 规范成熟</strong>：官方确立"<strong>双模块分离</strong>"——<code class="inline-code">xxx-spring-boot-autoconfigure</code>（含配置类与条件逻辑）+ <code class="inline-code">xxx-spring-boot-starter</code>（空 jar，只依赖 autoconfigure + 必需第三方库）。引入 <code class="inline-code">@ConfigurationProperties</code> + <code class="inline-code">@Validated</code> + Bean Validation（JSR 303/380）做配置校验，<code class="inline-code">@AutoConfigureBefore/After</code>
+                控制顺序。
+              </p>
               <p><strong>Boot 2.7（2022）</strong>：① 自动配置类用 <code class="inline-code">@AutoConfiguration</code> 替代 <code class="inline-code">@Configuration</code>（语义更明确，且支持 <code class="inline-code">before/after/beforeName/afterName</code> 属性）；② 声明迁移到 <code class="inline-code">AutoConfiguration.imports</code>；③ 必须 AOT 友好——避免运行期反射扫描、动态类加载，保证 Starter 能用于 Native Image。</p>
               <p><strong>趋势</strong>：Starter 设计向"声明式 + 构建期可分析"演进，第三方 Starter 越来越注重提供 Native Image metadata（<code class="inline-code">reflect-config.json</code>、<code class="inline-code">resource-config.json</code>），降低用户迁移成本。</p>
             </div>
@@ -528,6 +550,7 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
             <div class="qa-layer-body">
               <p><strong>官方 Starter 的双模块拆分原则</strong>。以 <code class="inline-code">mylib-spring-boot</code> 为例：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     subgraph Starter ["mylib-spring-boot-starter （空 jar）"]
@@ -552,8 +575,8 @@ flowchart TD
               <p><strong>为何要拆两个模块</strong>：autoconfigure 模块可独立用于不想引入第三方库依赖的场景（如只想要配置类逻辑），starter 模块是"开箱即用"的依赖聚合点。官方所有 starter（如 <code class="inline-code">spring-boot-starter-data-redis</code>）都遵循此模式，第三方应保持一致以降低用户认知成本。</p>
 
               <p>
-                <strong>配置属性绑定：<code class="inline-code">@ConfigurationProperties</code> 而非 <code class="inline-code">@Value</code></strong
-                >。<code class="inline-code">@Value</code> 是松散的属性占位符，<code class="inline-code">@ConfigurationProperties</code> 提供结构化、可校验、可 IDE 提示的属性绑定：
+                <strong>配置属性绑定：<code class="inline-code">@ConfigurationProperties</code> 而非 <code class="inline-code">@Value</code></strong>。<code class="inline-code">@Value</code> 是松散的属性占位符，<code class="inline-code">@ConfigurationProperties</code>
+                提供结构化、可校验、可 IDE 提示的属性绑定：
               </p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. 配置属性类</span>
@@ -591,7 +614,10 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <p>在某平台项目中，把统一响应体 <code class="inline-code">ApiResponse&lt;T&gt;</code>、全局异常处理、统一日志 TraceId 透传等公共能力沉淀为 <code class="inline-code">common-spring-boot-starter</code>，各业务服务只引入一个依赖即获得全部能力，避免重复编码。</p>
+              <p>
+                在某平台项目中，把统一响应体
+                <code class="inline-code">ApiResponse&lt;T&gt;</code>、全局异常处理、统一日志 TraceId 透传等公共能力沉淀为 <code class="inline-code">common-spring-boot-starter</code>，各业务服务只引入一个依赖即获得全部能力，避免重复编码。
+              </p>
               <p><strong>与官方 Starter 差异的关键点</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -632,8 +658,7 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
                 <p>
-                  五个要点：① <strong>双模块拆分</strong>（autoconfigure + starter）；② <strong>所有默认 Bean 加 <code class="inline-code">@ConditionalOnMissingBean</code></strong
-                  >，让用户能替换；③ <strong>用 <code class="inline-code">@ConfigurationProperties</code> 暴露配置 + 配置元数据 JSON</strong>，IDE 友好；④ <strong>用 <code class="inline-code">@ConditionalOnClass</code> 守卫</strong>，缺依赖时不报错只跳过；⑤ <strong>提供 <code class="inline-code">AutoConfiguration.imports</code> 声明</strong>，3.x 不能漏。
+                  五个要点：① <strong>双模块拆分</strong>（autoconfigure + starter）；② <strong>所有默认 Bean 加 <code class="inline-code">@ConditionalOnMissingBean</code></strong>，让用户能替换；③ <strong>用 <code class="inline-code">@ConfigurationProperties</code> 暴露配置 + 配置元数据 JSON</strong>，IDE 友好；④ <strong>用 <code class="inline-code">@ConditionalOnClass</code> 守卫</strong>，缺依赖时不报错只跳过；⑤ <strong>提供 <code class="inline-code">AutoConfiguration.imports</code> 声明</strong>，3.x 不能漏。
                 </p>
               </div>
             </div>
@@ -642,8 +667,15 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：为何官方 starter 命名是 spring-boot-starter-xxx，而第三方是 xxx-spring-boot-starter？</strong></p>
-              <p>这是官方<strong>命名保留约定</strong>：<code class="inline-code">spring-boot-starter-*</code> 前缀保留给官方 starters，避免用户误以为是官方组件而向 Spring 提 issue。第三方必须用 <code class="inline-code">*-spring-boot-starter</code> 后缀。违反此约定虽不影响功能，但会在生态中造成混淆，且部分 IDE 插件会据此判断是否为官方组件提供特殊提示。</p>
+              <p>
+                <strong>追问 1：为何官方 starter 命名是 spring-boot-starter-xxx，而第三方是 xxx-spring-boot-starter？</strong>
+              </p>
+              <p>
+                这是官方<strong>命名保留约定</strong>：<code class="inline-code">spring-boot-starter-*</code>
+                前缀保留给官方 starters，避免用户误以为是官方组件而向 Spring 提 issue。第三方必须用
+                <code class="inline-code">*-spring-boot-starter</code>
+                后缀。违反此约定虽不影响功能，但会在生态中造成混淆，且部分 IDE 插件会据此判断是否为官方组件提供特殊提示。
+              </p>
               <p><strong>追问 2：Starter 如何支持配置热更新与动态生效？</strong></p>
               <p>
                 普通 <code class="inline-code">@ConfigurationProperties</code> Bean 是单例，属性在启动时绑定后不会自动刷新。要支持热更新需配合 <code class="inline-code">@RefreshScope</code>（Spring Cloud）或 <code class="inline-code">ConfigurationPropertiesRebinder</code>（Spring Cloud Context），在配置变更时销毁并重建 Bean。但要注意：<strong>热更新只对 <code class="inline-code">@ConfigurationProperties</code> Bean 生效，对 <code class="inline-code">@Bean</code> 方法直接读属性构造的对象（如 DataSource）无效</strong>，这类需监听 <code class="inline-code">EnvironmentChangeEvent</code> 手动重建。设计 Starter 时应明确文档标注哪些属性支持热更新。
@@ -666,7 +698,7 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -677,7 +709,7 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C06.04 Spring Security 的过滤器链与认证授权流程？ -->
@@ -700,12 +732,14 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p><strong>Spring Security 3.x（XML 时代）</strong>：安全配置全靠 <code class="inline-code">&lt;http&gt;</code>、<code class="inline-code">&lt;authentication-manager&gt;</code> 等 XML 标签，配置冗长且不类型安全。过滤器链由 XML 解析生成，开发者难以直观看到链路。</p>
+              <p>
+                <strong>Spring Security 3.x（XML 时代）</strong>：安全配置全靠 <code class="inline-code">&lt;http&gt;</code>、<code class="inline-code">&lt;authentication-manager&gt;</code>
+                等 XML 标签，配置冗长且不类型安全。过滤器链由 XML 解析生成，开发者难以直观看到链路。
+              </p>
               <p><strong>Spring Security 4.x-5.x（DSL 时代）</strong>：引入 <code class="inline-code">@EnableWebSecurity</code> + <code class="inline-code">WebSecurityConfigurerAdapter</code>（已废弃：Spring Security 6.x 已删除该类，替代：@Bean SecurityFilterChain 链式配置），用 <code class="inline-code">configure(HttpSecurity)</code> 方法链式配置：<code class="inline-code">http.authorizeRequests().antMatchers("/admin").hasRole("ADMIN")</code>（antMatchers 已废弃，替代：requestMatchers）。配置可读性大幅提升，但仍是<strong>匿名内部类 + 方法链</strong>风格，且 <code class="inline-code">WebSecurityConfigurerAdapter</code> 是抽象类需继承，扩展受限。</p>
               <p><strong>Spring Security 5.2+（Lambda DSL）</strong>：DSL 全面支持 Lambda，<code class="inline-code">http.authorizeRequests(req -&gt; req.antMatchers("/admin").hasRole("ADMIN"))</code>，更简洁。同时 <code class="inline-code">antMatchers</code> 标记废弃，逐步用 <code class="inline-code">requestMatchers</code> 替代。</p>
               <p>
-                <strong>Spring Security 6.x / Boot 3.x（2022，无 Adapter 时代）</strong>：关键演进——<strong>废弃 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong
-                >，改为 <code class="inline-code">@Bean</code> 声明 <code class="inline-code">SecurityFilterChain</code>：<code class="inline-code">http.securityMatcher("/api/**").authorizeHttpRequests(auth -&gt; auth.anyRequest().authenticated())</code>。原因：① 函数式配置更利于多链组合（一个应用可有多条 <code class="inline-code">SecurityFilterChain</code>）；② 去继承更符合组合优于继承原则；③ <code class="inline-code">authorizeRequests</code> 也被 <code class="inline-code">authorizeHttpRequests</code> 取代（新授权管理器 <code class="inline-code">AuthorizationManager</code> 替代 <code class="inline-code">AccessDecisionManager</code>，更灵活）。
+                <strong>Spring Security 6.x / Boot 3.x（2022，无 Adapter 时代）</strong>：关键演进——<strong>废弃 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong>，改为 <code class="inline-code">@Bean</code> 声明 <code class="inline-code">SecurityFilterChain</code>：<code class="inline-code">http.securityMatcher("/api/**").authorizeHttpRequests(auth -&gt; auth.anyRequest().authenticated())</code>。原因：① 函数式配置更利于多链组合（一个应用可有多条 <code class="inline-code">SecurityFilterChain</code>）；② 去继承更符合组合优于继承原则；③ <code class="inline-code">authorizeRequests</code> 也被 <code class="inline-code">authorizeHttpRequests</code> 取代（新授权管理器 <code class="inline-code">AuthorizationManager</code> 替代 <code class="inline-code">AccessDecisionManager</code>，更灵活）。
               </p>
               <p><strong>趋势</strong>：向 One-Time Token 登录、Passkey/WebAuthn、OAuth 2.1 标准化靠拢；与 Spring Authorization Server 深度整合；DSL 继续简化。</p>
             </div>
@@ -715,11 +749,11 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
               <p>
-                <strong>过滤器链的入口：<code class="inline-code">DelegatingFilterProxy</code> → <code class="inline-code">FilterChainProxy</code></strong
-                >。Servlet 容器不认识 Spring Bean，<code class="inline-code">DelegatingFilterProxy</code> 是个桥接 Filter，它通过 <code class="inline-code">findWebApplicationContext()</code> 拿到 Spring 容器，再委托给名为 <code class="inline-code">springSecurityFilterChain</code> 的 Bean（即 <code class="inline-code">FilterChainProxy</code>）。<code class="inline-code">FilterChainProxy</code> 内部持有多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">matches(request)</code> 选择第一条匹配的链执行。
+                <strong>过滤器链的入口：<code class="inline-code">DelegatingFilterProxy</code> → <code class="inline-code">FilterChainProxy</code></strong>。Servlet 容器不认识 Spring Bean，<code class="inline-code">DelegatingFilterProxy</code> 是个桥接 Filter，它通过 <code class="inline-code">findWebApplicationContext()</code> 拿到 Spring 容器，再委托给名为 <code class="inline-code">springSecurityFilterChain</code> 的 Bean（即 <code class="inline-code">FilterChainProxy</code>）。<code class="inline-code">FilterChainProxy</code> 内部持有多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">matches(request)</code> 选择第一条匹配的链执行。
               </p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["HTTP 请求"] --> B["Servlet 容器 FilterChain"]
@@ -741,9 +775,17 @@ flowchart TD
                 <div class="chart-caption">图 6.4-1 Spring Security 过滤器链：DelegatingFilterProxy 桥接，FilterChainProxy 按 matches 选链，认证在前授权在后</div>
               </div>
 
-              <p><strong>认证流程（以表单登录为例）</strong>：<code class="inline-code">UsernamePasswordAuthenticationFilter</code> 拦截 POST /login，从请求提取用户名密码构造 <code class="inline-code">UsernamePasswordAuthenticationToken</code>（未认证），交给 <code class="inline-code">AuthenticationManager</code>（默认 <code class="inline-code">ProviderManager</code>）。<code class="inline-code">ProviderManager</code> 遍历 <code class="inline-code">AuthenticationProvider</code> 列表，找到支持的（<code class="inline-code">DaoAuthenticationProvider</code>），后者调用 <code class="inline-code">UserDetailsService.loadUserByUsername()</code> 查用户，用 <code class="inline-code">PasswordEncoder</code> 比对密码。成功则构造已认证 <code class="inline-code">Authentication</code>（含权限），存入 <code class="inline-code">SecurityContext</code>（默认 <code class="inline-code">SecurityContextHolder</code> 持有，基于 ThreadLocal）。</p>
+              <p>
+                <strong>认证流程（以表单登录为例）</strong>：<code class="inline-code">UsernamePasswordAuthenticationFilter</code>
+                拦截 POST /login，从请求提取用户名密码构造
+                <code class="inline-code">UsernamePasswordAuthenticationToken</code>（未认证），交给 <code class="inline-code">AuthenticationManager</code>（默认 <code class="inline-code">ProviderManager</code>）。<code class="inline-code">ProviderManager</code> 遍历 <code class="inline-code">AuthenticationProvider</code> 列表，找到支持的（<code class="inline-code">DaoAuthenticationProvider</code>），后者调用 <code class="inline-code">UserDetailsService.loadUserByUsername()</code> 查用户，用 <code class="inline-code">PasswordEncoder</code> 比对密码。成功则构造已认证 <code class="inline-code">Authentication</code>（含权限），存入 <code class="inline-code">SecurityContext</code>（默认 <code class="inline-code">SecurityContextHolder</code> 持有，基于 ThreadLocal）。
+              </p>
 
-              <p><strong>授权流程（6.x）</strong>：<code class="inline-code">AuthorizationFilter</code> 取代旧的 <code class="inline-code">FilterSecurityInterceptor</code>，在链末尾对每个请求做授权。它从 <code class="inline-code">RequestMatcherDelegatingAuthorizationManager</code> 找到对应 <code class="inline-code">AuthorizationManager</code>，传入 <code class="inline-code">Authentication</code> 与 <code class="inline-code">Request</code> 判定是否放行。<code class="inline-code">AuthorizationManager</code> 替代旧的 <code class="inline-code">AccessDecisionManager</code>（投票器模式），更轻量、支持方法级授权（<code class="inline-code">@PreAuthorize</code>）。</p>
+              <p>
+                <strong>授权流程（6.x）</strong>：<code class="inline-code">AuthorizationFilter</code> 取代旧的 <code class="inline-code">FilterSecurityInterceptor</code>，在链末尾对每个请求做授权。它从 <code class="inline-code">RequestMatcherDelegatingAuthorizationManager</code> 找到对应 <code class="inline-code">AuthorizationManager</code>，传入 <code class="inline-code">Authentication</code> 与 <code class="inline-code">Request</code> 判定是否放行。<code class="inline-code">AuthorizationManager</code>
+                替代旧的
+                <code class="inline-code">AccessDecisionManager</code>（投票器模式），更轻量、支持方法级授权（<code class="inline-code">@PreAuthorize</code>）。
+              </p>
 
               <p><strong>JWT 集成（无状态认证）</strong>：用 <code class="inline-code">OncePerRequestFilter</code> 自定义 <code class="inline-code">JwtAuthenticationFilter</code>，从请求头解析 JWT → 校验签名/过期 → 构造 <code class="inline-code">Authentication</code> 存入 <code class="inline-code">SecurityContext</code>，后续 <code class="inline-code">AuthorizationFilter</code> 即可基于该 Authentication 授权。无需 Session，适合微服务/前后端分离。</p>
             </div>
@@ -791,7 +833,9 @@ flowchart TD
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：6.x 为何废弃 WebSecurityConfigurerAdapter？多 SecurityFilterChain 如何工作？</strong></p>
+              <p>
+                <strong>追问 1：6.x 为何废弃 WebSecurityConfigurerAdapter？多 SecurityFilterChain 如何工作？</strong>
+              </p>
               <p>废弃原因：① <strong>组合优于继承</strong>——Adapter 是抽象类需继承，限制灵活性，<code class="inline-code">@Bean SecurityFilterChain</code> 可定义多个、可条件注入；② <strong>多链支持更自然</strong>——一个应用可有多条链（如 <code class="inline-code">/api/**</code> 走 JWT 无状态、<code class="inline-code">/admin/**</code> 走 Session 有状态），<code class="inline-code">FilterChainProxy</code> 按 <code class="inline-code">securityMatcher</code> 顺序匹配第一条命中的链执行，多 <code class="inline-code">@Bean</code> 声明比继承多个 Adapter 直观得多；③ <strong>AOT 友好</strong>——函数式配置更易构建期分析。</p>
               <p><strong>追问 2：authorizeRequests 与 authorizeHttpRequests 的本质区别？</strong></p>
               <p><code class="inline-code">authorizeRequests</code>（旧）用 <code class="inline-code">AccessDecisionManager</code> + 投票器（<code class="inline-code">AffirmativeBased</code>/<code class="inline-code">ConsensusBased</code>），基于 <code class="inline-code">FilterSecurityInterceptor</code>。<code class="inline-code">authorizeHttpRequests</code>（6.x 新）用 <code class="inline-code">AuthorizationManager</code> 接口，基于 <code class="inline-code">AuthorizationFilter</code>，直接返回 boolean，更简单高效，且支持<strong>基于 Bean 的自定义授权逻辑</strong>（<code class="inline-code">.access((auth, req) -&gt; customCheck())</code>）。旧版已废弃，新项目必须用 <code class="inline-code">authorizeHttpRequests</code>。</p>
@@ -815,7 +859,7 @@ flowchart TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -826,7 +870,7 @@ flowchart TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C06.05 Spring Boot 的启动流程与事件机制是怎样的？ -->
@@ -841,7 +885,9 @@ flowchart TD
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
               <p>
-                这道题考察对 <strong>Spring Boot 如何编排从 <code class="inline-code">main()</code> 到应用就绪的完整生命周期</strong> 的架构认知。<code class="inline-code">SpringApplication.run()</code> 不是简单地调一次 <code class="inline-code">refresh()</code>——它在 IoC 容器刷新之上叠加了<strong>事件驱动启动、自动配置触发、嵌入式容器启停、Runner 回调</strong>四层编排。与 C05.01 讲的 Spring Framework <code class="inline-code">refresh()</code> 13 步（容器内幕）不同，本题聚焦<strong>Boot 层如何驱动容器、在什么时机发布什么事件、各扩展点（Initializer / Listener / Runner）分别在哪个阶段介入</strong>。理解了启动流程，就能回答"自动配置在什么时机生效""嵌入式容器何时启动""如何在 Bean 初始化前修改 Environment""ApplicationRunner 和 CommandLineRunner 区别"等一系列问题。
+                这道题考察对
+                <strong>Spring Boot 如何编排从 <code class="inline-code">main()</code> 到应用就绪的完整生命周期</strong>
+                的架构认知。<code class="inline-code">SpringApplication.run()</code> 不是简单地调一次 <code class="inline-code">refresh()</code>——它在 IoC 容器刷新之上叠加了<strong>事件驱动启动、自动配置触发、嵌入式容器启停、Runner 回调</strong>四层编排。与 C05.01 讲的 Spring Framework <code class="inline-code">refresh()</code> 13 步（容器内幕）不同，本题聚焦<strong>Boot 层如何驱动容器、在什么时机发布什么事件、各扩展点（Initializer / Listener / Runner）分别在哪个阶段介入</strong>。理解了启动流程，就能回答"自动配置在什么时机生效""嵌入式容器何时启动""如何在 Bean 初始化前修改 Environment""ApplicationRunner 和 CommandLineRunner 区别"等一系列问题。
               </p>
             </div>
           </div>
@@ -849,9 +895,20 @@ flowchart TD
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p><strong>Spring XML 时代（2003-2009）</strong>：开发者手动创建 <code class="inline-code">ClassPathXmlApplicationContext</code>，传入 XML 配置文件路径，构造器内部直接调 <code class="inline-code">refresh()</code>。没有"启动流程"概念——容器即应用，<code class="inline-code">refresh()</code> 完就绪。启动过程<strong>无事件、无回调、无自动配置</strong>，一切手动。</p>
-              <p><strong>Spring 注解时代（2010-2013）</strong>：<code class="inline-code">AnnotationConfigApplicationContext</code> 取代 XML，<code class="inline-code">@Configuration</code> + <code class="inline-code">@ComponentScan</code> 成为主流。容器启动仍是一次 <code class="inline-code">refresh()</code>，但引入了 <code class="inline-code">AnnotationConfigApplicationContext.register()</code> 延迟刷新能力。仍无统一的启动编排框架。</p>
-              <p><strong>Spring Boot 1.x（2014）</strong>：<code class="inline-code">SpringApplication.run()</code> 诞生——把"创建容器 → 准备环境 → 刷新容器 → 启动嵌入式服务器 → 执行 Runner"编排成一条流水线，并引入 <strong>7 个生命周期事件</strong>。通过 <code class="inline-code">spring.factories</code> 注册 <code class="inline-code">ApplicationListener</code> 和 <code class="inline-code">ApplicationContextInitializer</code>，实现<strong>零配置扩展</strong>。这是"启动流程"作为独立概念的起点。</p>
+              <p>
+                <strong>Spring XML 时代（2003-2009）</strong>：开发者手动创建 <code class="inline-code">ClassPathXmlApplicationContext</code>，传入 XML 配置文件路径，构造器内部直接调 <code class="inline-code">refresh()</code>。没有"启动流程"概念——容器即应用，<code class="inline-code">refresh()</code>
+                完就绪。启动过程<strong>无事件、无回调、无自动配置</strong>，一切手动。
+              </p>
+              <p>
+                <strong>Spring 注解时代（2010-2013）</strong>：<code class="inline-code">AnnotationConfigApplicationContext</code> 取代 XML，<code class="inline-code">@Configuration</code> + <code class="inline-code">@ComponentScan</code> 成为主流。容器启动仍是一次 <code class="inline-code">refresh()</code>，但引入了
+                <code class="inline-code">AnnotationConfigApplicationContext.register()</code>
+                延迟刷新能力。仍无统一的启动编排框架。
+              </p>
+              <p>
+                <strong>Spring Boot 1.x（2014）</strong>：<code class="inline-code">SpringApplication.run()</code>
+                诞生——把"创建容器 → 准备环境 → 刷新容器 → 启动嵌入式服务器 → 执行 Runner"编排成一条流水线，并引入
+                <strong>7 个生命周期事件</strong>。通过 <code class="inline-code">spring.factories</code> 注册 <code class="inline-code">ApplicationListener</code> 和 <code class="inline-code">ApplicationContextInitializer</code>，实现<strong>零配置扩展</strong>。这是"启动流程"作为独立概念的起点。
+              </p>
               <p><strong>Spring Boot 2.x（2018）</strong>：事件体系完善——新增 <code class="inline-code">ApplicationContextInitializedEvent</code> 和 <code class="inline-code">ApplicationStartedEvent</code>，使事件链从 5 个扩展到 7 个。<code class="inline-code">ApplicationRunner</code>（接收 <code class="inline-code">ApplicationArguments</code>，参数解析更友好）与 <code class="inline-code">CommandLineRunner</code>（接收原始 String[]）并存，均为启动后回调接口。<code class="inline-code">spring.factories</code> 的 <code class="inline-code">EnvironmentPostProcessor</code> 成为修改 Environment 的标准扩展点。</p>
               <p><strong>Spring Boot 3.x（2022）</strong>：<strong>AOT 预处理 + Native Image</strong> 改变启动模型——AOT 在构建期生成 Bean 定义与配置快照，运行期跳过条件评估与类路径扫描，启动从秒级降至毫秒级。事件机制保持不变，但 <code class="inline-code">spring.factories</code> 中自动配置 key 迁移到 <code class="inline-code">AutoConfiguration.imports</code>（见 C06.01）。<code class="inline-code">SpringApplication</code> 新增 <code class="inline-code">setLazyInitialization()</code> 支持全局懒加载。</p>
               <p><strong>趋势</strong>：启动优化从"减少条件评估"走向"构建期冻结一切"——AOT/Native 是终极方向；同时 GraalVM Native Image 下事件链不变，但 Bean 实例化策略大变（无反射、构造器注入为主），架构师需理解 AOT 与 JIT 模式下启动流程的差异。</p>
@@ -861,9 +918,13 @@ flowchart TD
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>启动流程七阶段与七事件</strong>（<code class="inline-code">SpringApplication.run()</code> 核心时序）：</p>
+              <p>
+                <strong>启动流程七阶段与七事件</strong>（<code class="inline-code">SpringApplication.run()</code>
+                核心时序）：
+              </p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["1. SpringApplication 构造<br/>推断 Web 类型 → 读 Initializer/Listener"] --> B["2. prepareEnvironment<br/>加载 application.yml → 绑定"]
@@ -945,7 +1006,13 @@ flowchart TD
               <p><code class="inline-code">ApplicationListener</code>：监听特定事件，在<strong>事件发布时</strong>执行。最灵活——可以监听 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code>（容器都没创建时修改配置），也可以监听 <code class="inline-code">ApplicationReadyEvent</code>（应用就绪后开流量）。注册方式：<code class="inline-code">spring.factories</code>、<code class="inline-code">@Component</code>（仅容器创建后的事件）、<code class="inline-code">addListener()</code>。</p>
               <p><code class="inline-code">ApplicationRunner</code> / <code class="inline-code">CommandLineRunner</code>：在<strong>refresh 完成、所有 Bean 就绪后</strong>执行（第 6 阶段），能用 <code class="inline-code">@Autowired</code> 注入任意 Bean。区别：<code class="inline-code">CommandLineRunner</code> 接收原始 <code class="inline-code">String[]</code> 参数，<code class="inline-code">ApplicationRunner</code> 接收解析后的 <code class="inline-code">ApplicationArguments</code>（支持 <code class="inline-code">--key=value</code> 解析）。二者执行顺序可用 <code class="inline-code">@Order</code> 控制。</p>
 
-              <p><strong>自动配置何时生效</strong>：<code class="inline-code">@SpringBootApplication</code> 包含 <code class="inline-code">@EnableAutoConfiguration</code>，后者通过 <code class="inline-code">@Import(AutoConfigurationImportSelector.class)</code> 在<strong>refresh 的第 5 步（invokeBeanFactoryPostProcessors）</strong>触发——<code class="inline-code">ConfigurationClassPostProcessor</code> 解析主配置类时发现 <code class="inline-code">@Import</code>，调用 <code class="inline-code">AutoConfigurationImportSelector.selectImports()</code> 加载候选类、条件过滤、注册 BeanDefinition。自动配置发生在 <code class="inline-code">ApplicationPreparedEvent</code> 之后、<code class="inline-code">ApplicationStartedEvent</code> 之前的 refresh 过程中（C05.01 详解了 refresh 13 步内幕）。</p>
+              <p>
+                <strong>自动配置何时生效</strong>：<code class="inline-code">@SpringBootApplication</code> 包含 <code class="inline-code">@EnableAutoConfiguration</code>，后者通过 <code class="inline-code">@Import(AutoConfigurationImportSelector.class)</code> 在<strong>refresh 的第 5 步（invokeBeanFactoryPostProcessors）</strong>触发——<code class="inline-code">ConfigurationClassPostProcessor</code> 解析主配置类时发现 <code class="inline-code">@Import</code>，调用
+                <code class="inline-code">AutoConfigurationImportSelector.selectImports()</code>
+                加载候选类、条件过滤、注册 BeanDefinition。自动配置发生在
+                <code class="inline-code">ApplicationPreparedEvent</code> 之后、<code class="inline-code">ApplicationStartedEvent</code>
+                之前的 refresh 过程中（C05.01 详解了 refresh 13 步内幕）。
+              </p>
 
               <p><strong>嵌入式容器何时启动</strong>：Web 应用在 refresh 的 <code class="inline-code">onRefresh()</code> 阶段（第 9 步）启动嵌入式容器——<code class="inline-code">ServletWebServerApplicationContext.onRefresh()</code> 调用 <code class="inline-code">createWebServer()</code>，创建 Tomcat/Undertow/Jetty 实例并绑定端口。此时 Bean 已实例化但<strong>Runner 尚未执行</strong>，容器在 <code class="inline-code">finishRefresh()</code>（第 12 步）发布 <code class="inline-code">ContextRefreshedEvent</code> 后完全就绪。</p>
             </div>
@@ -1004,7 +1071,10 @@ flowchart TD
               </div>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>启动流程扩展四原则：① <strong>修改 Environment 用 EnvironmentPostProcessor</strong>——此时容器未创建，改配置最安全；② <strong>定制容器用 Initializer</strong>——比 Listener 早，能注册 BeanFactoryPostProcessor；③ <strong>初始化数据用 ApplicationRunner</strong>——Bean 全就绪，可注入任意依赖，重活异步化不阻塞启动；④ <strong>开流量用 ApplicationReadyEvent</strong>——确保 Runner 全部完成后才对外提供服务，避免"半就绪"状态接请求。</p>
+                <p>
+                  启动流程扩展四原则：①
+                  <strong>修改 Environment 用 EnvironmentPostProcessor</strong>——此时容器未创建，改配置最安全；② <strong>定制容器用 Initializer</strong>——比 Listener 早，能注册 BeanFactoryPostProcessor；③ <strong>初始化数据用 ApplicationRunner</strong>——Bean 全就绪，可注入任意依赖，重活异步化不阻塞启动；④ <strong>开流量用 ApplicationReadyEvent</strong>——确保 Runner 全部完成后才对外提供服务，避免"半就绪"状态接请求。
+                </p>
               </div>
             </div>
           </div>
@@ -1013,9 +1083,17 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：SpringApplicationRunListener 是什么？和 ApplicationListener 什么关系？</strong></p>
-              <p><code class="inline-code">SpringApplicationRunListener</code> 是<strong>启动流程的内部编排者</strong>——<code class="inline-code">SpringApplication.run()</code> 不直接发布事件，而是委托 <code class="inline-code">SpringApplicationRunListener</code> 在每个阶段调用 <code class="inline-code">starting()</code>/<code class="inline-code">environmentPrepared()</code>/<code class="inline-code">contextPrepared()</code> 等方法，由它内部用 <code class="inline-code">ApplicationEventMulticaster</code> 广播事件给所有 <code class="inline-code">ApplicationListener</code>。默认实现 <code class="inline-code">EventPublishingRunListener</code> 通过 <code class="inline-code">spring.factories</code> 加载。关系：<code class="inline-code">RunListener</code> 是<strong>事件的发布方</strong>（SPI，框架内部），<code class="inline-code">ApplicationListener</code> 是<strong>事件的消费方</strong>（Bean 或 <code class="inline-code">spring.factories</code> 注册）。开发者通常只写 Listener，不写 RunListener——除非需要在事件发布前后插入框架级逻辑（如 Spring Cloud 的 <code class="inline-code">BootstrapApplicationListener</code>）。</p>
+              <p>
+                <code class="inline-code">SpringApplicationRunListener</code>
+                是<strong>启动流程的内部编排者</strong>——<code class="inline-code">SpringApplication.run()</code> 不直接发布事件，而是委托 <code class="inline-code">SpringApplicationRunListener</code> 在每个阶段调用 <code class="inline-code">starting()</code>/<code class="inline-code">environmentPrepared()</code>/<code class="inline-code">contextPrepared()</code> 等方法，由它内部用 <code class="inline-code">ApplicationEventMulticaster</code> 广播事件给所有 <code class="inline-code">ApplicationListener</code>。默认实现 <code class="inline-code">EventPublishingRunListener</code> 通过 <code class="inline-code">spring.factories</code> 加载。关系：<code class="inline-code">RunListener</code> 是<strong>事件的发布方</strong>（SPI，框架内部），<code class="inline-code">ApplicationListener</code>
+                是<strong>事件的消费方</strong>（Bean 或
+                <code class="inline-code">spring.factories</code> 注册）。开发者通常只写 Listener，不写 RunListener——除非需要在事件发布前后插入框架级逻辑（如 Spring Cloud 的 <code class="inline-code">BootstrapApplicationListener</code>）。
+              </p>
               <p><strong>追问 2：AOT 模式下启动流程有什么不同？事件链变了吗？</strong></p>
-              <p>AOT（Ahead-of-Time）在<strong>构建期</strong>执行 <code class="inline-code">SpringApplication.run()</code> 的"模拟运行"——AOT 处理器创建 <code class="inline-code">SpringApplication</code> 实例并走到 <code class="inline-code">ApplicationPreparedEvent</code>，捕获所有 BeanDefinition、条件评估结果、<code class="inline-code">@Configuration</code> 解析结果，生成 <code class="inline-code">ApplicationContextAOTGenerator</code> 代码。运行期 <code class="inline-code">run()</code> 跳过类路径扫描和条件评估，直接用 AOT 生成的 BeanDefinition 注册。事件链<strong>不变</strong>——7 个事件照常发布，但 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code> 到 <code class="inline-code">ApplicationPreparedEvent</code> 之间的耗时从数百毫秒降至接近 0（因为条件判断已冻结）。这就是 Native Image 启动从秒级降到毫秒级的核心原因。</p>
+              <p>
+                AOT（Ahead-of-Time）在<strong>构建期</strong>执行
+                <code class="inline-code">SpringApplication.run()</code> 的"模拟运行"——AOT 处理器创建 <code class="inline-code">SpringApplication</code> 实例并走到 <code class="inline-code">ApplicationPreparedEvent</code>，捕获所有 BeanDefinition、条件评估结果、<code class="inline-code">@Configuration</code> 解析结果，生成 <code class="inline-code">ApplicationContextAOTGenerator</code> 代码。运行期 <code class="inline-code">run()</code> 跳过类路径扫描和条件评估，直接用 AOT 生成的 BeanDefinition 注册。事件链<strong>不变</strong>——7 个事件照常发布，但 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code> 到 <code class="inline-code">ApplicationPreparedEvent</code> 之间的耗时从数百毫秒降至接近 0（因为条件判断已冻结）。这就是 Native Image 启动从秒级降到毫秒级的核心原因。
+              </p>
             </div>
           </div>
 
@@ -1049,7 +1127,8 @@ flowchart TD
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
               <p>
-                这道题考察对<strong>分布式 Session 方案</strong>的底层理解。Spring Session 的本质是<strong>用 Filter 拦截 <code class="inline-code">HttpServletRequest.getSession()</code>，把 Session 的存储与过期管理从 Servlet 容器（内存）解耦到外部存储（Redis/JDBC）</strong>——业务代码用 <code class="inline-code">HttpSession</code> API 无感知，但底层已变成分布式共享。理解它要回答三个问题：① 它如何"骗过"Servlet 容器（<code class="inline-code">SessionRepositoryFilter</code> 包装 Request/Response）；② Session 如何在 Redis 存储与过期（Hash 结构 + TTL 续期）；③ 与 JWT/OAuth 的关系与选型。
+                这道题考察对<strong>分布式 Session 方案</strong>的底层理解。Spring Session 的本质是<strong>用 Filter 拦截 <code class="inline-code">HttpServletRequest.getSession()</code>，把 Session 的存储与过期管理从 Servlet 容器（内存）解耦到外部存储（Redis/JDBC）</strong>——业务代码用 <code class="inline-code">HttpSession</code> API 无感知，但底层已变成分布式共享。理解它要回答三个问题：① 它如何"骗过"Servlet 容器（<code class="inline-code">SessionRepositoryFilter</code>
+                包装 Request/Response）；② Session 如何在 Redis 存储与过期（Hash 结构 + TTL 续期）；③ 与 JWT/OAuth 的关系与选型。
               </p>
             </div>
           </div>
@@ -1073,6 +1152,7 @@ flowchart TD
               </p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant Browser
@@ -1167,7 +1247,10 @@ sequenceDiagram
               </table>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>Spring Session + OAuth 整合：用 Spring Session 管理网关登录态，OAuth2 资源服务器校验 JWT。注意三点：① <strong>Session 数据最小化</strong>——只存 userId，不存大对象，避免 Redis 压力；② <strong>开启 Keyspace Notifications</strong> 才能收到过期事件；③ <strong>跨域用 Spring Session Cookie 传 sessionId</strong>，移动端建议改 JWT。</p>
+                <p>
+                  Spring Session + OAuth 整合：用 Spring Session 管理网关登录态，OAuth2 资源服务器校验 JWT。注意三点：①
+                  <strong>Session 数据最小化</strong>——只存 userId，不存大对象，避免 Redis 压力；② <strong>开启 Keyspace Notifications</strong> 才能收到过期事件；③ <strong>跨域用 Spring Session Cookie 传 sessionId</strong>，移动端建议改 JWT。
+                </p>
               </div>
             </div>
           </div>
@@ -1178,7 +1261,10 @@ sequenceDiagram
               <p><strong>追问 1：Spring Session 如何实现"滑动过期"？与 Redis 自带 TTL 有何关系？</strong></p>
               <p>Spring Session 的滑动过期靠两点：① 每次 <code class="inline-code">getSession()</code>（访问）会触发 <code class="inline-code">SessionRepository.save()</code>，重新 <code class="inline-code">EXPIRE</code> 该 Key 为 <code class="inline-code">maxInactiveInterval</code>，重置 TTL；② 若整个 <code class="inline-code">maxInactiveInterval</code> 内无访问，Redis TTL 到期自动删除，Session 失效。即"有访问就续期，无访问到点过期"。注意：Spring Session 默认 <strong>不每次访问都 save</strong>（性能考虑），而是通过 <code class="inline-code">commitSession</code> 在响应阶段判断 Session 是否变更（dirty），仅变更或接近过期时才续期。可通过 <code class="inline-code">@EnableRedisHttpSession(saveMode=ALWAYS)</code> 强制每次续期。</p>
               <p><strong>追问 2：Session 事件在多实例下如何避免重复消费？</strong></p>
-              <p>Redis Keyspace Notifications 是<strong>发布订阅模式</strong>——所有订阅的实例都会收到同一个过期事件，若都处理会导致重复（如重复踢下线）。解决：① <strong>事件处理幂等</strong>——清理操作设计为幂等；② <strong>用分布式锁/Redis Set 去重</strong>——处理前 <code class="inline-code">SETNX</code> 标记已处理；③ <strong>只让一个实例订阅</strong>——但单点风险。生产环境推荐幂等 + 去重组合。</p>
+              <p>
+                Redis Keyspace Notifications 是<strong>发布订阅模式</strong>——所有订阅的实例都会收到同一个过期事件，若都处理会导致重复（如重复踢下线）。解决：①
+                <strong>事件处理幂等</strong>——清理操作设计为幂等；② <strong>用分布式锁/Redis Set 去重</strong>——处理前 <code class="inline-code">SETNX</code> 标记已处理；③ <strong>只让一个实例订阅</strong>——但单点风险。生产环境推荐幂等 + 去重组合。
+              </p>
             </div>
           </div>
 
@@ -1190,7 +1276,10 @@ sequenceDiagram
                 <ul>
                   <li><strong>误以为加依赖就生效</strong>：需 <code class="inline-code">@EnableRedisHttpSession</code> 或 Boot 自动配置，且 Redis 连通，否则仍用容器内存 Session。</li>
                   <li><strong>Session 存大对象</strong>：存 List/大 JSON 进 Session，每次访问全量读写 Redis，性能差，应只存 userId。</li>
-                  <li><strong>未开启 Keyspace Notifications</strong>：过期事件不触发，<code class="inline-code">SessionExpiredEvent</code> 收不到。</li>
+                  <li>
+                    <strong>未开启 Keyspace Notifications</strong>：过期事件不触发，<code class="inline-code">SessionExpiredEvent</code>
+                    收不到。
+                  </li>
                   <li><strong>JWT 误当 Session 用</strong>：JWT 难主动吊销，退出登录后 Token 仍有效，需黑名单或短 Access Token。</li>
                   <li><strong>跨域 Cookie 丢失</strong>：前后端分离跨域时 Cookie 不携带，需配置 <code class="inline-code">sameSite</code>/<code class="inline-code">withCredentials</code> 或改 Token 方案。</li>
                 </ul>
@@ -1230,7 +1319,10 @@ sequenceDiagram
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>端点体系</strong>。每个端点是一个 <code class="inline-code">@Endpoint</code> Bean，通过 <code class="inline-code">@ReadOperation</code>/<code class="inline-code">@WriteOperation</code>/<code class="inline-code">@DeleteOperation</code> 暴露 HTTP/JMX 操作：</p>
+              <p>
+                <strong>端点体系</strong>。每个端点是一个 <code class="inline-code">@Endpoint</code> Bean，通过 <code class="inline-code">@ReadOperation</code>/<code class="inline-code">@WriteOperation</code>/<code class="inline-code">@DeleteOperation</code>
+                暴露 HTTP/JMX 操作：
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -1327,7 +1419,10 @@ management:
               </div>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>生产 Actuator 五要点：① <strong>最小开放</strong>——只开 health/info/metrics/prometheus，禁 env/heapdump；② <strong>health 走 SecurityFilterChain</strong>——<code class="inline-code">show-details=when-authorized</code>，K8s 探针用独立 health group 免鉴权；③ <strong>对接 Prometheus</strong>——加 micrometer-registry-prometheus + Grafana 仪表盘；④ <strong>自定义业务指标</strong>——用 <code class="inline-code">Counter</code>/<code class="inline-code">Timer</code> 埋点订单量/接口耗时；⑤ <strong>端点独立端口</strong>——<code class="inline-code">management.server.port</code> 隔离管理与业务流量。</p>
+                <p>
+                  生产 Actuator 五要点：① <strong>最小开放</strong>——只开 health/info/metrics/prometheus，禁 env/heapdump；② <strong>health 走 SecurityFilterChain</strong>——<code class="inline-code">show-details=when-authorized</code>，K8s 探针用独立 health group 免鉴权；③ <strong>对接 Prometheus</strong>——加 micrometer-registry-prometheus + Grafana 仪表盘；④ <strong>自定义业务指标</strong>——用 <code class="inline-code">Counter</code>/<code class="inline-code">Timer</code> 埋点订单量/接口耗时；⑤ <strong>端点独立端口</strong>——<code class="inline-code">management.server.port</code>
+                  隔离管理与业务流量。
+                </p>
               </div>
             </div>
           </div>
@@ -1338,7 +1433,10 @@ management:
               <p><strong>追问 1：K8s liveness 与 readiness 探针如何对接 Actuator？两者区别？</strong></p>
               <p>Spring Boot 2.3+ 自动配置 <code class="inline-code">/actuator/health/liveness</code> 与 <code class="inline-code">/actuator/health/readiness</code>（需 <code class="inline-code">management.endpoint.health.probes.enabled=true</code>）。<strong>liveness</strong>（存活探针）反映应用是否可恢复——DOWN 时 K8s 重启 Pod，只检查应用是否死锁/内存耗尽，不应含外部依赖（避免级联重启）；<strong>readiness</strong>（就绪探针）反映是否可接流量——DOWN 时 K8s 从 Service 摘除 Pod 但不重启，可含 DB/Redis 检查（依赖不可用时摘流量）。关键：<strong>不要把 DB 健康放 liveness</strong>，否则 DB 抖动导致全 Pod 重启雪崩。</p>
               <p><strong>追问 2：Micrometer 与 OpenTelemetry 的关系？Boot 3 如何整合？</strong></p>
-              <p>Micrometer 是<strong>度量门面</strong>（Metrics），Boot 3 引入 <code class="inline-code">Micrometer Observation API</code> 统一 Metrics 与 Tracing，并通过 traceId 自动注入 MDC 实现 Logging 关联（不是直接统一日志格式）。加 <code class="inline-code">micrometer-tracing-bridge-otel</code> 即把 Observation 桥接到 OpenTelemetry，通过 <code class="inline-code">OTelAutoConfiguration</code> 导出到 Jaeger/Tempo。即<strong>业务用 Micrometer API 埋点，底层桥接到 OTel 标准协议</strong>，兼顾 Spring 生态便利与 OTel 标准。这是当前可观测性主流方案。</p>
+              <p>
+                Micrometer 是<strong>度量门面</strong>（Metrics），Boot 3 引入
+                <code class="inline-code">Micrometer Observation API</code> 统一 Metrics 与 Tracing，并通过 traceId 自动注入 MDC 实现 Logging 关联（不是直接统一日志格式）。加 <code class="inline-code">micrometer-tracing-bridge-otel</code> 即把 Observation 桥接到 OpenTelemetry，通过 <code class="inline-code">OTelAutoConfiguration</code> 导出到 Jaeger/Tempo。即<strong>业务用 Micrometer API 埋点，底层桥接到 OTel 标准协议</strong>，兼顾 Spring 生态便利与 OTel 标准。这是当前可观测性主流方案。
+              </p>
             </div>
           </div>
 
@@ -1371,7 +1469,11 @@ management:
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 Spring Boot <strong>外部化配置（Externalized Configuration）</strong>体系的整体把握。配置加载的本质是<strong>多 PropertySource 按优先级叠加，高优先级覆盖低优先级</strong>——Spring 把命令行参数、环境变量、yml、properties、随机值等抽象为有序的 <code class="inline-code">PropertySource</code> 列表，<code class="inline-code">Environment</code> 按<strong>从高到低</strong>顺序查找属性。理解优先级就能回答"为什么 yml 没生效""profile 如何覆盖""配置中心为何能覆盖本地"等一切配置问题。架构师还需掌握配置加密、敏感信息管理、多环境策略。</p>
+              <p>
+                这道题考察对 Spring Boot
+                <strong>外部化配置（Externalized Configuration）</strong>体系的整体把握。配置加载的本质是<strong>多 PropertySource 按优先级叠加，高优先级覆盖低优先级</strong>——Spring 把命令行参数、环境变量、yml、properties、随机值等抽象为有序的 <code class="inline-code">PropertySource</code> 列表，<code class="inline-code">Environment</code>
+                按<strong>从高到低</strong>顺序查找属性。理解优先级就能回答"为什么 yml 没生效""profile 如何覆盖""配置中心为何能覆盖本地"等一切配置问题。架构师还需掌握配置加密、敏感信息管理、多环境策略。
+              </p>
             </div>
           </div>
 
@@ -1382,7 +1484,10 @@ management:
               <p><strong>Spring Boot 1.x</strong>：引入 <code class="inline-code">application.properties</code> + profile（<code class="inline-code">application-{profile}.properties</code>）+ 命令行参数 <code class="inline-code">--spring.profiles.active</code>。配置源扩展到命令行、环境变量、JNDI。</p>
               <p><strong>Spring Boot 2.x</strong>：全面支持 YAML（<code class="inline-code">application.yml</code>），引入 <code class="inline-code">@ConfigurationProperties</code> 结构化绑定。配置源进一步丰富：random、JNDI、OS env、System properties、application.yml、application.properties、<code class="inline-code">@PropertySource</code>。</p>
               <p><strong>Spring Boot 2.4+（配置导入）</strong>：引入 <code class="inline-code">spring.config.import</code>，支持导入配置中心（Nacos/Consul/Kubernetes ConfigMap）与额外文件，且 <strong>文档化配置加载顺序</strong>（ConfigData API 重构）。<code class="inline-code">spring.config.location</code> 与 <code class="inline-code">spring.config.additional-location</code> 调整语义。</p>
-              <p><strong>趋势</strong>：配置中心（Nacos/Apollo）成为标配，<code class="inline-code">spring.config.import</code> 统一本地与远程配置加载；配置加密（Jasypt/Vault）集成；K8s ConfigMap/Secret 作为原生配置源。</p>
+              <p>
+                <strong>趋势</strong>：配置中心（Nacos/Apollo）成为标配，<code class="inline-code">spring.config.import</code>
+                统一本地与远程配置加载；配置加密（Jasypt/Vault）集成；K8s ConfigMap/Secret 作为原生配置源。
+              </p>
             </div>
           </div>
 
@@ -1462,7 +1567,10 @@ management:
                 </tbody>
               </table>
 
-              <p><strong>Profile 机制</strong>：<code class="inline-code">spring.profiles.active=prod</code> 激活 prod profile，<code class="inline-code">application-prod.yml</code> 覆盖 <code class="inline-code">application.yml</code>。可用 <code class="inline-code">spring.profiles.group</code>（2.4+）组合多个 profile。<code class="inline-code">@Profile("prod")</code> 注解控制 Bean 按 profile 装配。</p>
+              <p>
+                <strong>Profile 机制</strong>：<code class="inline-code">spring.profiles.active=prod</code> 激活 prod profile，<code class="inline-code">application-prod.yml</code> 覆盖 <code class="inline-code">application.yml</code>。可用 <code class="inline-code">spring.profiles.group</code>（2.4+）组合多个 profile。<code class="inline-code">@Profile("prod")</code>
+                注解控制 Bean 按 profile 装配。
+              </p>
 
               <p><strong>松散绑定（Relaxed Binding）</strong>：<code class="inline-code">server.port</code>、<code class="inline-code">SERVER_PORT</code>、<code class="inline-code">server.port</code>（env）、<code class="inline-code">serverPort</code>（系统属性）都能绑定到 <code class="inline-code">server.port</code> 属性。规则：kebab-case（推荐）→ camelCase → snake_case → UPPER_CASE 都支持。</p>
 
@@ -1506,11 +1614,22 @@ spring:
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：为什么命令行参数优先级最高？这样设计有何好处？</strong></p>
-              <p>设计动机：<strong>运维可临时覆盖，无需改包</strong>。生产故障时（如端口冲突、日志级别调优），运维用 <code class="inline-code">--logging.level.root=DEBUG</code> 临时启动排查，无需重新打包发布。命令行最高优先级保证"临时干预"一定生效，且不污染配置文件。这也符合"<strong>外部化、可覆盖</strong>"原则——越靠近运行时、越易变更的源优先级越高。</p>
+              <p>
+                设计动机：<strong>运维可临时覆盖，无需改包</strong>。生产故障时（如端口冲突、日志级别调优），运维用
+                <code class="inline-code">--logging.level.root=DEBUG</code>
+                临时启动排查，无需重新打包发布。命令行最高优先级保证"临时干预"一定生效，且不污染配置文件。这也符合"<strong>外部化、可覆盖</strong>"原则——越靠近运行时、越易变更的源优先级越高。
+              </p>
               <p><strong>追问 2：2.4 的 spring.config.import 与旧的 spring.config.location 有何区别？</strong></p>
-              <p><code class="inline-code">spring.config.location</code> 是<strong>替换</strong>——指定后默认 application.yml 不再加载（除非显式加 <code class="inline-code">optional:classpath:/application.yml</code>），易导致默认值丢失。<code class="inline-code">spring.config.import</code> 是<strong>追加导入</strong>——在默认加载基础上额外导入，保留默认值，且支持 <code class="inline-code">optional:</code> 前缀（缺失不报错）、配置中心 URI（<code class="inline-code">nacos:</code>）。2.4+ 推荐用 import，location 仅兼容保留。</p>
+              <p>
+                <code class="inline-code">spring.config.location</code> 是<strong>替换</strong>——指定后默认 application.yml 不再加载（除非显式加 <code class="inline-code">optional:classpath:/application.yml</code>），易导致默认值丢失。<code class="inline-code">spring.config.import</code>
+                是<strong>追加导入</strong>——在默认加载基础上额外导入，保留默认值，且支持
+                <code class="inline-code">optional:</code> 前缀（缺失不报错）、配置中心 URI（<code class="inline-code">nacos:</code>）。2.4+ 推荐用 import，location 仅兼容保留。
+              </p>
               <p><strong>追问 3：配置热更新如何实现？哪些能热更新哪些不能？</strong></p>
-              <p>配置中心（Nacos/Apollo）变更后通过<strong>长轮询/监听</strong>感知，发布 <code class="inline-code">RefreshEvent</code>。<code class="inline-code">@RefreshScope</code> Bean 在下次访问时重建（销毁旧实例懒加载新的），实现热更新。<strong>能热更新</strong>：普通 <code class="inline-code">@ConfigurationProperties</code> Bean、<code class="inline-code">@Value</code>（需 <code class="inline-code">@RefreshScope</code>）。<strong>不能热更新</strong>：启动期一次性初始化的 Bean（DataSource/线程池/Redis 连接池），这类需监听 <code class="inline-code">RefreshScopeRefreshedEvent</code> 手动重建，或用 <code class="inline-code">ConfigurationPropertiesRebinder</code>。架构设计时应明确标注哪些配置支持热更新。</p>
+              <p>
+                配置中心（Nacos/Apollo）变更后通过<strong>长轮询/监听</strong>感知，发布
+                <code class="inline-code">RefreshEvent</code>。<code class="inline-code">@RefreshScope</code> Bean 在下次访问时重建（销毁旧实例懒加载新的），实现热更新。<strong>能热更新</strong>：普通 <code class="inline-code">@ConfigurationProperties</code> Bean、<code class="inline-code">@Value</code>（需 <code class="inline-code">@RefreshScope</code>）。<strong>不能热更新</strong>：启动期一次性初始化的 Bean（DataSource/线程池/Redis 连接池），这类需监听 <code class="inline-code">RefreshScopeRefreshedEvent</code> 手动重建，或用 <code class="inline-code">ConfigurationPropertiesRebinder</code>。架构设计时应明确标注哪些配置支持热更新。
+              </p>
             </div>
           </div>
 
@@ -1532,7 +1651,9 @@ spring:
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>配置中心热更新的"快"与"容量"必须有量化支撑——长轮询推送延迟与单节点长轮询客户端上限，是架构选型与集群规模规划的依据。</strong></p>
+              <p>
+                <strong>配置中心热更新的"快"与"容量"必须有量化支撑——长轮询推送延迟与单节点长轮询客户端上限，是架构选型与集群规模规划的依据。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -1602,8 +1723,12 @@ spring:
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>Spring MVC 异常处理链：三个 Resolver 按顺序尝试</strong>。Controller 抛出异常后，<code class="inline-code">DispatcherServlet</code> 依次调用三个 Resolver，第一个成功处理的生效：</p>
+              <p>
+                <strong>Spring MVC 异常处理链：三个 Resolver 按顺序尝试</strong>。Controller 抛出异常后，<code class="inline-code">DispatcherServlet</code>
+                依次调用三个 Resolver，第一个成功处理的生效：
+              </p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     E["Controller 抛出异常"] --> R1["1、ExceptionHandlerExceptionResolver<br/>处理 @ExceptionHandler（最高优先级）"]
@@ -1704,7 +1829,10 @@ flowchart TD
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
-                  <li><strong>异常类型匹配过宽</strong>：<code class="inline-code">@ExceptionHandler(Exception.class)</code> 放在最前，把 BizException 也吞了，应按子类到父类顺序声明。</li>
+                  <li>
+                    <strong>异常类型匹配过宽</strong>：<code class="inline-code">@ExceptionHandler(Exception.class)</code>
+                    放在最前，把 BizException 也吞了，应按子类到父类顺序声明。
+                  </li>
                   <li><strong>业务异常打全堆栈</strong>：预期业务异常用 error 打堆栈，刷爆日志，应 warn 仅记关键信息。</li>
                   <li><strong>兜底异常泄露堆栈</strong>：把 e.getMessage() 直接返回前端，泄露 SQL/内部结构，应返回通用提示。</li>
                   <li><strong>异常处理吞掉异常致事务不回滚</strong>：catch 后不重抛，事务已回滚但前端收到成功，数据不一致。</li>
@@ -1727,7 +1855,10 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对<strong>声明式数据校验</strong>体系的理解。Spring Validation 的本质是<strong>把校验逻辑从业务代码中解耦，用注解声明规则，由框架在方法调用/请求绑定阶段自动执行</strong>。底层是 Bean Validation（JSR-303/380）标准 + Hibernate Validator 实现，Spring 用 <code class="inline-code">MethodValidationPostProcessor</code>（校验 Service 方法参数）和 <code class="inline-code">RequestResponseBodyMethodProcessor</code>（校验 <code class="inline-code">@RequestBody</code>）两个切入点集成。理解它要回答：① <code class="inline-code">@Valid</code> 与 <code class="inline-code">@Validated</code> 区别；② 校验失败异常如何被全局处理；③ 分组校验、自定义校验器、级联校验。</p>
+              <p>
+                这道题考察对<strong>声明式数据校验</strong>体系的理解。Spring Validation 的本质是<strong>把校验逻辑从业务代码中解耦，用注解声明规则，由框架在方法调用/请求绑定阶段自动执行</strong>。底层是 Bean Validation（JSR-303/380）标准 + Hibernate Validator 实现，Spring 用
+                <code class="inline-code">MethodValidationPostProcessor</code>（校验 Service 方法参数）和 <code class="inline-code">RequestResponseBodyMethodProcessor</code>（校验 <code class="inline-code">@RequestBody</code>）两个切入点集成。理解它要回答：① <code class="inline-code">@Valid</code> 与 <code class="inline-code">@Validated</code> 区别；② 校验失败异常如何被全局处理；③ 分组校验、自定义校验器、级联校验。
+              </p>
             </div>
           </div>
 
@@ -1750,7 +1881,9 @@ flowchart TD
                 <strong>1. 请求体校验（<code class="inline-code">@Valid</code>）</strong>：在 Controller 方法参数 <code class="inline-code">@RequestBody @Valid UserDTO dto</code> 上加 <code class="inline-code">@Valid</code>，<code class="inline-code">RequestResponseBodyMethodProcessor</code> 在反序列化后调用 <code class="inline-code">Validator.validate()</code>，失败抛 <code class="inline-code">MethodArgumentNotValidException</code>。
               </p>
               <p>
-                <strong>2. 方法级校验（<code class="inline-code">@Validated</code>）</strong>：类上加 <code class="inline-code">@Validated</code>，方法参数加 <code class="inline-code">@NotNull</code> 等，<code class="inline-code">MethodValidationPostProcessor</code> 用 CGLIB 创建代理拦截方法调用，参数校验失败抛 <code class="inline-code">ConstraintViolationException</code>。<strong>注意两种异常类型不同</strong>，全局处理要分别处理。
+                <strong>2. 方法级校验（<code class="inline-code">@Validated</code>）</strong>：类上加 <code class="inline-code">@Validated</code>，方法参数加 <code class="inline-code">@NotNull</code> 等，<code class="inline-code">MethodValidationPostProcessor</code>
+                用 CGLIB 创建代理拦截方法调用，参数校验失败抛
+                <code class="inline-code">ConstraintViolationException</code>。<strong>注意两种异常类型不同</strong>，全局处理要分别处理。
               </p>
 
               <p><strong>@Valid vs @Validated 区别</strong>：</p>
@@ -1791,7 +1924,11 @@ flowchart TD
                 </tbody>
               </table>
 
-              <p><strong>校验执行原理</strong>：Hibernate Validator 用<strong>注解解析 + 反射</strong>。启动时 <code class="inline-code">AnnotationConfiguration</code> 解析 Bean 上的校验注解，构建 <code class="inline-code">BeanDescriptor</code>（含每个字段的 <code class="inline-code">ConstraintDescriptor</code>）。<code class="inline-code">validate()</code> 时反射读取字段值，对每个约束调用 <code class="inline-code">ConstraintValidator.isValid()</code>，失败收集为 <code class="inline-code">ConstraintViolation</code>。</p>
+              <p>
+                <strong>校验执行原理</strong>：Hibernate Validator 用<strong>注解解析 + 反射</strong>。启动时 <code class="inline-code">AnnotationConfiguration</code> 解析 Bean 上的校验注解，构建 <code class="inline-code">BeanDescriptor</code>（含每个字段的 <code class="inline-code">ConstraintDescriptor</code>）。<code class="inline-code">validate()</code>
+                时反射读取字段值，对每个约束调用
+                <code class="inline-code">ConstraintValidator.isValid()</code>，失败收集为 <code class="inline-code">ConstraintViolation</code>。
+              </p>
             </div>
           </div>
 
@@ -1916,11 +2053,13 @@ flowchart TD
               <p><strong>Spring Security 4（2014）</strong>：XML 配置为主，<code class="inline-code">&lt;http&gt;</code> 命名空间声明式配置，<code class="inline-code">WebSecurityConfigurerAdapter</code> 引入 Java Config 但仍需继承重写。功能完整但配置繁琐、扩展性差。</p>
               <p><strong>Spring Security 5（2017）</strong>：<code class="inline-code">WebSecurityConfigurerAdapter</code> 成为主流，<code class="inline-code">configure(HttpSecurity)</code> 重写成为标准姿势。5.0 引入 OAuth2 客户端支持（<code class="inline-code">spring-security-oauth2</code>，后废弃），5.2+ 重写为 <code class="inline-code">spring-security-oauth2-client</code>/<code class="inline-code">-resource-server</code>，引入 <code class="inline-code">oauth2Login()</code>。</p>
               <p>
-                <strong>Spring Security 6 / Spring Boot 3（2022）</strong>：<strong>强制移除 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong
-                >，全面改为 <strong>Lambda DSL</strong>（<code class="inline-code">http.csrf(c -&gt; c.disable())</code>）；<code class="inline-code">SecurityFilterChain</code> 声明为 Bean；<code class="inline-code">WebSecurityCustomizer</code> 取代 <code class="inline-code">web.ignoring()</code>；包名 <code class="inline-code">javax.servlet</code> → <code class="inline-code">jakarta.servlet</code>。
+                <strong>Spring Security 6 / Spring Boot 3（2022）</strong>：<strong>强制移除 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong>，全面改为 <strong>Lambda DSL</strong>（<code class="inline-code">http.csrf(c -&gt; c.disable())</code>）；<code class="inline-code">SecurityFilterChain</code> 声明为 Bean；<code class="inline-code">WebSecurityCustomizer</code> 取代 <code class="inline-code">web.ignoring()</code>；包名 <code class="inline-code">javax.servlet</code> → <code class="inline-code">jakarta.servlet</code>。
               </p>
               <p><strong>OAuth2 Authorization Server（Spring 官方）</strong>：原 <code class="inline-code">spring-security-oauth</code>（社区版）停止维护，Spring 官方推出 <code class="inline-code">spring-authorization-server</code>（1.0 于 2022 GA），支持 Authorization Code/Client Credentials/Device Code/Refresh Token，PKCE 内置。</p>
-              <p><strong>Spring Boot 3.2+（2023）</strong>：OAuth2 客户端/资源服务器 Starter 自动配置进一步简化，<code class="inline-code">spring.security.oauth2.resourceserver.jwt</code> 一行配置接入 JWT 资源服务器；One-Time Token Login、Passkey 等新特性加入。</p>
+              <p>
+                <strong>Spring Boot 3.2+（2023）</strong>：OAuth2 客户端/资源服务器 Starter 自动配置进一步简化，<code class="inline-code">spring.security.oauth2.resourceserver.jwt</code>
+                一行配置接入 JWT 资源服务器；One-Time Token Login、Passkey 等新特性加入。
+              </p>
             </div>
           </div>
 
@@ -1930,7 +2069,11 @@ flowchart TD
               <p><strong>1. SecurityFilterChain 过滤器链</strong>：Spring Security 的核心是一条由 <code class="inline-code">Filter</code> 组成的链。<code class="inline-code">DelegatingFilterProxy</code>（Servlet 容器注册）→ <code class="inline-code">FilterChainProxy</code>（Spring Bean）→ 匹配到的 <code class="inline-code">SecurityFilterChain</code> → 依次执行 <code class="inline-code">SecurityContextHolderFilter</code>、<code class="inline-code">UsernamePasswordAuthenticationFilter</code>、<code class="inline-code">AuthorizationFilter</code> 等约 15 个过滤器。6.x 中 <code class="inline-code">FilterSecurityInterceptor</code> 被 <code class="inline-code">AuthorizationFilter</code> 取代，授权逻辑前置。可声明多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">securityMatcher</code> 顺序匹配，<strong>顺序决定优先级</strong>。</p>
               <p><strong>2. 认证核心组件</strong>：<code class="inline-code">AuthenticationManager</code>（认证入口，委托给 <code class="inline-code">ProviderManager</code> → <code class="inline-code">AuthenticationProvider</code>）→ <code class="inline-code">UserDetailsService</code>/<code class="inline-code">UserDetails</code>（加载用户）→ <code class="inline-code">PasswordEncoder</code>（BCrypt 校验）→ <code class="inline-code">SecurityContext</code>（存入 <code class="inline-code">SecurityContextHolder</code>，6.x 默认 <code class="inline-code">DeferredSecurityContext</code> 异步优化）。</p>
               <p><strong>3. OAuth2 授权码模式 + PKCE</strong>：用户访问客户端 → 重定向到授权服务器登录 → 授权服务器返回 <code class="inline-code">code</code>（带 <code class="inline-code">redirect_uri</code>）→ 客户端用 <code class="inline-code">code</code> + <code class="inline-code">client_secret</code>（机密客户端）换 <code class="inline-code">access_token</code> → 用 token 访问资源服务器。<strong>PKCE</strong>（Proof Key for Code Exchange）为公开客户端（SPA/移动端）增加一层：客户端先生成 <code class="inline-code">code_verifier</code>（随机串）→ 算 <code class="inline-code">code_challenge</code>（S256 哈希）随授权请求发出 → 换 token 时带 <code class="inline-code">code_verifier</code>，授权服务器校验哈希匹配，防止授权码被截获后冒用。</p>
-              <p><strong>4. JWT 无状态认证</strong>：资源服务器用 <code class="inline-code">NimbusJwtDecoder</code>（<code class="inline-code">JwtDecoder</code> 实现）验签（RSA/EC 公钥或 JWK Set URI），验签通过后 <code class="inline-code">JwtAuthenticationConverter</code> 将 claims 转为 <code class="inline-code">Authentication</code>。<code class="inline-code">JwtEncoder</code> 用私钥签发。<strong>JWT 是签名（防篡改）非加密（claims 明文）</strong>。</p>
+              <p>
+                <strong>4. JWT 无状态认证</strong>：资源服务器用 <code class="inline-code">NimbusJwtDecoder</code>（<code class="inline-code">JwtDecoder</code>
+                实现）验签（RSA/EC 公钥或 JWK Set URI），验签通过后
+                <code class="inline-code">JwtAuthenticationConverter</code> 将 claims 转为 <code class="inline-code">Authentication</code>。<code class="inline-code">JwtEncoder</code> 用私钥签发。<strong>JWT 是签名（防篡改）非加密（claims 明文）</strong>。
+              </p>
               <p><strong>5. 方法级安全</strong>：<code class="inline-code">@EnableMethodSecurity</code>（6.x 取代 <code class="inline-code">@EnableGlobalMethodSecurity</code>）开启，<code class="inline-code">@PreAuthorize</code>/<code class="inline-code">@PostAuthorize</code> 用 SpEL 做权限判断，底层 AOP 代理拦截。</p>
 
               <p><strong>SecurityFilterChain 配置示例（6.x Lambda DSL + JWT 资源服务器）</strong>：</p>
@@ -1986,7 +2129,10 @@ flowchart TD
               <p><strong>高级开发</strong>：① <strong>SecurityFilterChain 配置</strong>——按 Lambda DSL 声明 Bean，区分公开/认证/角色接口；② <strong>OAuth2 Login 集成</strong>——<code class="inline-code">oauth2Login()</code> 接入 GitHub/Google，自动处理授权码交换与用户信息拉取；③ <strong>JWT 签发与验证</strong>——授权服务器用 <code class="inline-code">JWKSource</code> 签发，资源服务器用 <code class="inline-code">NimbusJwtDecoder</code> 验签，自定义 <code class="inline-code">JwtAuthenticationConverter</code> 映射权限。</p>
               <p><strong>架构师</strong>：</p>
               <p>① <strong>无状态 vs 有状态认证选型</strong>：单体/管理后台用 Session（CSRF 防护天然、踢人即时）；微服务/API 网关用 JWT（无状态、易水平扩展）。混合方案：网关 Session + 内部服务 JWT。</p>
-              <p>② <strong>微服务 Token 传递与网关统一鉴权</strong>：网关（Spring Cloud Gateway）统一验签，下游服务通过 <code class="inline-code">X-User-Id</code>/<code class="inline-code">X-User-Roles</code> 头接收已认证身份（<strong>网关到服务网络隔离</strong>，防止绕过）。或令牌透传，各服务自行验签（去中心化但重复）。</p>
+              <p>
+                ② <strong>微服务 Token 传递与网关统一鉴权</strong>：网关（Spring Cloud Gateway）统一验签，下游服务通过 <code class="inline-code">X-User-Id</code>/<code class="inline-code">X-User-Roles</code>
+                头接收已认证身份（<strong>网关到服务网络隔离</strong>，防止绕过）。或令牌透传，各服务自行验签（去中心化但重复）。
+              </p>
               <p>③ <strong>OAuth2 Authorization Server 搭建</strong>：用 <code class="inline-code">spring-authorization-server</code>，配置 <code class="inline-code">RegisteredClientRepository</code>（客户端注册）、<code class="inline-code">JWKSource</code>（RSA 密钥对）、<code class="inline-code">AuthorizationServerSettings</code>。生产环境密钥用 KMS/Vault 管理，支持密钥轮转。</p>
               <p>④ <strong>Token 刷新与吊销策略</strong>：access_token 短期（15~30 分钟）+ refresh_token 长期（7~30 天）；吊销用<strong>黑名单/版本号</strong>（Redis 记录 jti），或<strong>短 TTL + 宽限期</strong>容忍；refresh_token 一次性使用（rotation）防重放。</p>
               <div class="callout callout-tip">
@@ -2000,7 +2146,10 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：JWT 为什么不能主动吊销？如何实现？</strong></p>
-              <p>JWT 设计为<strong>无状态自包含</strong>，签发后服务端不存副本，到期前一直有效——这是无状态的代价。实现吊销的方案：① <strong>黑名单</strong>：Redis 存被吊销的 <code class="inline-code">jti</code>（JWT ID），资源服务器验签后多查一次 Redis（破坏纯无状态，但 TTL 内有效）；② <strong>短 TTL + Refresh Token</strong>：access_token 设 15 分钟，吊销时让 refresh_token 失效，最迟 15 分钟后失效；③ <strong>Token 版本号</strong>：用户/会话维度维护版本，JWT 中带 <code class="inline-code">ver</code> claim，改密码/踢人时版本+1，旧 token 失效；④ <strong>introspection（RFC 7662）</strong>：资源服务器每次请求问授权服务器 token 是否有效（参考令牌，完全有状态）。生产推荐"短 TTL + 黑名单关键场景（登出/改密）"组合。</p>
+              <p>
+                JWT 设计为<strong>无状态自包含</strong>，签发后服务端不存副本，到期前一直有效——这是无状态的代价。实现吊销的方案：①
+                <strong>黑名单</strong>：Redis 存被吊销的 <code class="inline-code">jti</code>（JWT ID），资源服务器验签后多查一次 Redis（破坏纯无状态，但 TTL 内有效）；② <strong>短 TTL + Refresh Token</strong>：access_token 设 15 分钟，吊销时让 refresh_token 失效，最迟 15 分钟后失效；③ <strong>Token 版本号</strong>：用户/会话维度维护版本，JWT 中带 <code class="inline-code">ver</code> claim，改密码/踢人时版本+1，旧 token 失效；④ <strong>introspection（RFC 7662）</strong>：资源服务器每次请求问授权服务器 token 是否有效（参考令牌，完全有状态）。生产推荐"短 TTL + 黑名单关键场景（登出/改密）"组合。
+              </p>
               <p><strong>追问 2：PKCE 解决了什么问题？</strong></p>
               <p>PKCE 解决<strong>公开客户端（无法安全保存 client_secret 的 SPA/移动 App）授权码被截获</strong>的问题。传统授权码模式靠 <code class="inline-code">client_secret</code> 防止 code 被截获后冒用，但 SPA/原生 App 无法安全存储 secret（反编译/前端可见）。PKCE 流程：客户端生成随机 <code class="inline-code">code_verifier</code>，算 <code class="inline-code">code_challenge = BASE64URL(SHA256(verifier))</code>，授权请求带 challenge → 换 token 时带 verifier → 授权服务器校验 <code class="inline-code">SHA256(verifier) == challenge</code>。攻击者截获 code 也拿不到 verifier，无法换 token。<strong>OAuth 2.1 强制所有客户端使用 PKCE</strong>，Spring Authorization Server 默认开启。</p>
               <p><strong>追问 3：Spring Security 6 为什么废弃 WebSecurityConfigurerAdapter？</strong></p>
@@ -2023,7 +2172,7 @@ flowchart TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -2034,7 +2183,7 @@ flowchart TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C06.12 Spring Boot 优雅停机与 K8s 滚动发布协同 -->
@@ -2088,7 +2237,10 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>追问 1：readiness 与 liveness 用同一个探针会怎样？</strong> 若合一，应用假死（依赖故障）会被 K8s 不断重启而非摘流，雪上加霜；二者必须分离——readiness 反映"能否接流量"，liveness 反映"进程是否该重启"。</p>
               <p><strong>追问 2：长任务（如文件导出）优雅停机如何处理？</strong> graceful 超时内完不成的，应转异步/任务队列，停机前把任务状态持久化，由新实例续跑，而非阻塞退出。</p>
-              <p><strong>追问 3：滚动更新 vs 蓝绿如何选？</strong> 滚动更新资源省但流量逐步切换、风险点分散；蓝绿双环境瞬时切换、易回滚，但资源翻倍。核心系统建议蓝绿 + 优雅停机双保险。</p>
+              <p>
+                <strong>追问 3：滚动更新 vs 蓝绿如何选？</strong>
+                滚动更新资源省但流量逐步切换、风险点分散；蓝绿双环境瞬时切换、易回滚，但资源翻倍。核心系统建议蓝绿 + 优雅停机双保险。
+              </p>
             </div>
           </div>
 
@@ -2107,7 +2259,7 @@ flowchart TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -2118,7 +2270,7 @@ flowchart TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C06.13 云原生 Java 新选择：Quarkus/Micronaut vs Spring Boot -->
@@ -2351,34 +2503,59 @@ void domain_should_not_depend_on_adapters() {
           </div>
         </div>
 
-                        <div class="qa-card" id="C06.15" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C06.15" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C06.15</div>
             <div class="qa-question">Boot 配置优先级实战：同名键冲突时怎么查最终生效值？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>多 PropertySource 叠加时，同名键冲突是高频翻车点。桥接目标：能用 Actuator/env 定位<strong>最终值与来源</strong>，并写成团队约定表，而不是背诵优先级口诀。</p></div>
+            <div class="qa-layer-body">
+              <p>多 PropertySource 叠加时，同名键冲突是高频翻车点。桥接目标：能用 Actuator/env 定位<strong>最终值与来源</strong>，并写成团队约定表，而不是背诵优先级口诀。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>Spring Environment 按 PropertySource 顺序覆盖；命令行 / 系统属性 / 环境变量 / 外部配置 / application-{{profile}} / application 是常见骨架，配置中心桥接插入位置以实际实现为准。@ConfigurationProperties 绑定的是最终 Environment，不是某一个 yml 文件。</p></div>
+            <div class="qa-layer-body">
+              <p>Spring Environment 按 PropertySource 顺序覆盖；命令行 / 系统属性 / 环境变量 / 外部配置 / application-{{profile}} / application 是常见骨架，配置中心桥接插入位置以实际实现为准。@ConfigurationProperties 绑定的是最终 Environment，不是某一个 yml 文件。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>排查顺序：</p><ol><li>列出怀疑键（含 relaxed binding 变体：foo.bar / FOO_BAR / foo-bar）。</li><li>打开 <code>/actuator/env</code>（或 configprops）看该键的 property source 列表与胜出值。</li><li>核对当前 active profiles、命令行、容器 env、配置中心 DataId。</li><li>改完后再次核对「来源」是否变成预期源，而不是只看业务行为。</li><li>把高频冲突键写入团队约定表（谁有权覆盖、灰度怎么推）。</li></ol></div>
+            <div class="qa-layer-body">
+              <p>排查顺序：</p>
+              <ol>
+                <li>列出怀疑键（含 relaxed binding 变体：foo.bar / FOO_BAR / foo-bar）。</li>
+                <li>打开 <code>/actuator/env</code>（或 configprops）看该键的 property source 列表与胜出值。</li>
+                <li>核对当前 active profiles、命令行、容器 env、配置中心 DataId。</li>
+                <li>改完后再次核对「来源」是否变成预期源，而不是只看业务行为。</li>
+                <li>把高频冲突键写入团队约定表（谁有权覆盖、灰度怎么推）。</li>
+              </ol>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>核对表：</p><ul><li>键名三种写法是否被误当成两个键。</li><li>profile 专属文件是否意外未激活。</li><li>配置中心推送滞后 / 本地快照是否仍是旧值。</li><li>RefreshScope / rebind 是否覆盖到目标 Bean。</li></ul><p>常用口诀仅作起点：命令行 &gt; 系统属性 &gt; 环境变量 &gt; 外部配置 &gt; profile 文件 &gt; 默认 application；以 env 面板为准。</p></div>
+            <div class="qa-layer-body">
+              <p>核对表：</p>
+              <ul>
+                <li>键名三种写法是否被误当成两个键。</li>
+                <li>profile 专属文件是否意外未激活。</li>
+                <li>配置中心推送滞后 / 本地快照是否仍是旧值。</li>
+                <li>RefreshScope / rebind 是否覆盖到目标 Bean。</li>
+              </ul>
+              <p>常用口诀仅作起点：命令行 &gt; 系统属性 &gt; 环境变量 &gt; 外部配置 &gt; profile 文件 &gt; 默认 application；以 env 面板为准。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：以为 yml 胜出实际被环境变量覆盖；本地与生产 profile 不一致；刷新后仍读缓存旧值。回滚点：恢复上一版配置快照并确认 env 来源回到已知好版本。</p><p>同名键冲突时优先查「来源优先级表」而非猜：命令行 &gt; 环境变量 &gt; 外部配置 &gt; application-{profile} &gt; application。多文档合并后用 <code>Environment</code> 或 actuator/env（受权）核对最终值。</p><p>值班最短路径：①复现同名键 ②列出所有 PropertySource ③确认 profile 与外部配置中心是否覆盖 ④改完做一次只读校验再放量。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：以为 yml 胜出实际被环境变量覆盖；本地与生产 profile 不一致；刷新后仍读缓存旧值。回滚点：恢复上一版配置快照并确认 env 来源回到已知好版本。</p>
+              <p>同名键冲突时优先查「来源优先级表」而非猜：命令行 &gt; 环境变量 &gt; 外部配置 &gt; application-{profile} &gt; application。多文档合并后用 <code>Environment</code> 或 actuator/env（受权）核对最终值。</p>
+              <p>值班最短路径：①复现同名键 ②列出所有 PropertySource ③确认 profile 与外部配置中心是否覆盖 ④改完做一次只读校验再放量。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
-
-                
       </main>
     </div>
 
@@ -2386,24 +2563,40 @@ void domain_should_not_depend_on_adapters() {
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">Phil Webb 等. Spring Boot Reference Documentation 2.x / 3.x. — 自动配置、Starter 设计、Actuator、配置加载、外部化配置官方文档</span></li>
-          <li><span class="src-title">Spring Boot 3.0 Release Notes. — AutoConfiguration.imports 取代 spring.factories、AOT 处理、GraalVM Native Image 原生支持、 Jakarta EE 9 迁移</span></li>
-          <li><span class="src-title">GraalVM Project. Reference Documentation. — SubstrateVM 闭世界分析、Reachability Metadata、Native Image 构建原理</span></li>
-          <li><span class="src-title">Spring Security Reference 5.x / 6.x. — FilterChainProxy、SecurityFilterChain、Lambda DSL、OAuth2 Resource Server、JWT 集成</span></li>
-          <li><span class="src-title">Spring Boot Core Source Code (SpringApplication / SpringApplicationRunListener). — run() 七阶段时序、EventPublishingRunListener、ApplicationContextInitializer、ApplicationRunner/CommandLineRunner 扩展点</span></li>
-          <li><span class="src-title">Spring Session Reference. — @EnableRedisHttpSession、SessionRepositoryFilter、Session 事件、与 OAuth2 整合</span></li>
-          <li><span class="src-title">Spring Boot Actuator + Micrometer + Prometheus. — 端点安全演进、HealthIndicator、Metrics、Prometheus 集成</span></li>
-          <li><span class="src-title">Bean Validation 2.0/3.0 (JSR-380) &amp; Hibernate Validator. — 校验注解、@Valid/@Validated、自定义约束、分组校验</span></li>
+          <li>
+            <span class="src-title">Phil Webb 等. Spring Boot Reference Documentation 2.x / 3.x. — 自动配置、Starter 设计、Actuator、配置加载、外部化配置官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Boot 3.0 Release Notes. — AutoConfiguration.imports 取代 spring.factories、AOT 处理、GraalVM Native Image 原生支持、 Jakarta EE 9 迁移</span>
+          </li>
+          <li>
+            <span class="src-title">GraalVM Project. Reference Documentation. — SubstrateVM 闭世界分析、Reachability Metadata、Native Image 构建原理</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Security Reference 5.x / 6.x. — FilterChainProxy、SecurityFilterChain、Lambda DSL、OAuth2 Resource Server、JWT 集成</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Boot Core Source Code (SpringApplication / SpringApplicationRunListener). — run() 七阶段时序、EventPublishingRunListener、ApplicationContextInitializer、ApplicationRunner/CommandLineRunner 扩展点</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Session Reference. — @EnableRedisHttpSession、SessionRepositoryFilter、Session 事件、与 OAuth2 整合</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Boot Actuator + Micrometer + Prometheus. — 端点安全演进、HealthIndicator、Metrics、Prometheus 集成</span>
+          </li>
+          <li>
+            <span class="src-title">Bean Validation 2.0/3.0 (JSR-380) &amp; Hibernate Validator. — 校验注解、@Valid/@Validated、自定义约束、分组校验</span>
+          </li>
         </ol>
       </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-05-spring-core.html" class="nav-prev">← 第 05 篇 Spring 核心原理</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-06-spring-boot-modern.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-07-mysql-deep.html" class="nav-next">第 07 篇 MySQL 深度原理 →</a>
-        </nav>
+        <a href="chapter-05-spring-core.html" class="nav-prev">← 第 05 篇 Spring 核心原理</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-06-spring-boot-modern.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-07-mysql-deep.html" class="nav-next">第 07 篇 MySQL 深度原理 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2417,5 +2610,5 @@ void domain_should_not_depend_on_adapters() {
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

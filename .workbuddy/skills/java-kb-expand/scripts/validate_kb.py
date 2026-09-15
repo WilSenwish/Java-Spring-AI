@@ -13,6 +13,8 @@ java-kb-expand · 全量校验脚本（通用版）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   1b) 手机小屏强制：design-system.css / 根·导图 index / 导图页含 MOBILE-MANDATORY；全站 HTML 含 viewport
   1c) 主题 / 暗黑模式：站点 HTML 含 theme-init.js；design-system.css 含 data-theme="dark" 令牌块
+  1d) Mermaid：每个 class="mermaid" 上一行 prettier-ignore；图源码未塌缩（换行≥2）
+  1e) 顶/底导航壳：根/章节 index 无导航；其余页 top 贴 body 首、bottom 在 script 前
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -284,6 +286,60 @@ def main():
             _theme_miss.append(os.path.relpath(p, BASE))
     check(not _theme_miss, f"[主题] 缺 theme-init.js 的页面: {_theme_miss[:8]}")
 
+    # 1d) Mermaid：prettier-ignore + 未塌缩（format-shared §10）
+    _mm_miss = []
+    _mm_flat = []
+    for p in _site_html:
+        if not os.path.isfile(p):
+            continue
+        raw = read(p)
+        if 'class="mermaid"' not in raw:
+            continue
+        lines = raw.splitlines()
+        for i, line in enumerate(lines):
+            if re.match(r'^\s*<div class="mermaid">', line):
+                prev = lines[i - 1] if i > 0 else ""
+                if "prettier-ignore" not in prev:
+                    _mm_miss.append(f"{os.path.basename(p)}:{i + 1}")
+        for inner in re.findall(r'<div class="mermaid">(.*?)</div>', raw, re.S):
+            if inner.count("\n") < 2:
+                _mm_flat.append(os.path.basename(p))
+                break
+    check(not _mm_miss, f"[Mermaid] 缺 prettier-ignore: {_mm_miss[:8]}")
+    check(not _mm_flat, f"[Mermaid] 图源码疑似被格式化塌缩: {_mm_flat[:8]}")
+
+    # 1e) 顶/底导航壳位置（format-shared §4.2）：枢纽 index 无导航；其余有壳的页顶栏须贴 body 首
+    _hubs = {
+        os.path.normpath(AGG_FILES["root"]),
+        os.path.normpath(AGG_FILES["chap_idx"]),
+    }
+    _nav_bad = []
+    for p in _site_html:
+        if not os.path.isfile(p):
+            continue
+        pn = os.path.normpath(p)
+        raw = read(p)
+        if pn in _hubs:
+            if "site-page-nav" in raw or re.search(r'class="chapter-nav', raw):
+                _nav_bad.append(f"{os.path.relpath(p, BASE)}:hub-has-nav")
+            continue
+        if "site-page-nav--top" not in raw:
+            continue
+        bm = re.search(r"<body[^>]*>([\s\S]*)</body>", raw, re.I)
+        if not bm:
+            _nav_bad.append(f"{os.path.basename(p)}:no-body")
+            continue
+        body = bm.group(1)
+        if not re.match(r'\s*<div class="site-page-nav site-page-nav--top">', body):
+            _nav_bad.append(f"{os.path.basename(p)}:top-not-first")
+        if body.count("site-page-nav--bottom") != 1:
+            _nav_bad.append(f"{os.path.basename(p)}:bottom-count")
+        else:
+            bi = body.find("site-page-nav--bottom")
+            if re.search(r"<script\b", body[:bi], re.I):
+                _nav_bad.append(f"{os.path.basename(p)}:script-before-bottom")
+    check(not _nav_bad, f"[导航壳] {_nav_bad[:8]}")
+
     # 2) 标签截断
     for k, t in texts.items():
         trunc = len(re.findall(r"</spa(?!n>)", t))
@@ -379,8 +435,8 @@ def main():
             for _tb in _type_blocks:
                 _tbody = _tb.group(1)
                 _thm = re.search(
-                    rf'<h4 class="ov-type-title">(篇章|核心原理|场景题)'
-                    rf'<span class="ov-type-count">\s*{_KB_NUM}\s*题</span></h4>',
+                    rf'<h4 class="ov-type-title">\s*(篇章|核心原理|场景题)'
+                    rf'<span class="ov-type-count">\s*{_KB_NUM}\s*题</span>\s*</h4>',
                     _tbody,
                 )
                 if not _thm:
@@ -509,35 +565,35 @@ def main():
         m = re.search(pat, t)
         return int(m.group(1)) if m else None
     _STAT_N = rf'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
-    root_ch = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
+    root_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
     root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 「全站 N 题」= total（C+E+S），非 M/G/K 加总
     check(root_ch == EXPECT["chapters"], f"[根index] 深度Q&A={root_ch} 期望 {EXPECT['chapters']}")
     # 禁止「题目+方法论+工程化+踩坑」式合计 UI
-    root_sum = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">合计', texts["root"])
+    root_sum = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">合计', texts["root"])
     check(root_sum is None, f"[根index] 不应存在跨域「合计」统计卡（实际={root_sum}）")
     if root_all is not None:
         check(root_all == EXPECT["total"], f"[根index] 全站题量={root_all} 期望 {EXPECT['total']}（仅 C+E+S）")
     if ENGINEERING:
-        root_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
+        root_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
         if root_eng is None:
-            root_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化</div>', texts["root"])
+            root_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化</div>', texts["root"])
         check(root_eng == ENGINEERING, f"[根index] 工程化={root_eng} 期望 {ENGINEERING}")
 
     # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站 N 道
-    chap_ch = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
+    chap_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
     chap_all = stat(rf'全站\s*{_STAT_N}\s*道', texts["chap_idx"])
     check(chap_ch == EXPECT["chapters"], f"[章节index] 深度Q&A={chap_ch} 期望 {EXPECT['chapters']}")
     check(chap_all == EXPECT["total"], f"[章节index] 全站={chap_all} 期望 {EXPECT['total']}")
     if ENGINEERING:
-        chap_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化要点</div>', texts["chap_idx"])
+        chap_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化要点</div>', texts["chap_idx"])
         if chap_eng is None:
-            chap_eng = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">工程化</div>', texts["chap_idx"])
+            chap_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化</div>', texts["chap_idx"])
         check(chap_eng == ENGINEERING, f"[章节index] 工程化={chap_eng} 期望 {ENGINEERING}")
 
     # root methodology label may be 核心方法论
-    root_m = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">核心方法论</div>', texts["root"])
+    root_m = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">核心方法论</div>', texts["root"])
     if root_m is None:
-        root_m = stat(rf'{_STAT_N}</div>\s*<div class="stat-label">方法论</div>', texts["root"])
+        root_m = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">方法论</div>', texts["root"])
     if ENGINEERING is not None and EXPECT.get("methodology") is not None and root_m is not None:
         check(root_m == EXPECT["methodology"], f"[根index] 方法论={root_m} 期望 {EXPECT['methodology']}")
 
@@ -600,7 +656,7 @@ def main():
 
     print("\n==== 校验结果 ====")
     if check.failed == 0:
-        print("ALL PASS ✅ 三权威源一致，data-page-node-id=0，小屏/主题规范就位，新卡落位且双编码一致。")
+        print("ALL PASS ✅ 三权威源一致，data-page-node-id=0，小屏/主题/导航壳/Mermaid-ignore 就位，新卡落位且双编码一致。")
         sys.exit(0)
     else:
         print(f"存在 {check.failed} 项 FAIL ❌，请复查。")

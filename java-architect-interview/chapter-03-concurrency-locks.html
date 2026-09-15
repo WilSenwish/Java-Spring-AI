@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 03 篇 · 并发编程与锁机制 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-02-gc-performance.html" class="nav-prev">← 第 02 篇 GC 算法与性能调优</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-04-threadpool-virtual-threads.html" class="nav-next">第 04 篇 线程池与虚拟线程 →</a>
-        </nav>
+        <a href="chapter-02-gc-performance.html" class="nav-prev">← 第 02 篇 GC 算法与性能调优</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-04-threadpool-virtual-threads.html" class="nav-next">第 04 篇 线程池与虚拟线程 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -145,7 +144,11 @@
             <div class="qa-layer-body">
               <p><strong>早期 Java 内存模型（JDK 1.4 之前）</strong>：volatile 语义较弱，只在 32 位读写上保证可见性，对 64 位 long/double 的读写甚至不保证原子性（允许拆成两次 32 位操作）。这导致跨线程读取 long 可能读到"半值"，是早期多线程程序的隐患。</p>
               <p><strong>JSR-133 语义增强（JDK 5，2004）</strong>：Doug Lea 等人主导重写 JMM，明确 volatile 的 happens-before 语义——volatile 写 happens-before 后续的 volatile 读。这一改动让 volatile 成为真正可用的轻量同步原语，DCL（双重检查锁定）单例才得以正确工作。</p>
-              <p><strong>JDK 9 VarHandle（2017）</strong>：引入 <code class="inline-code">VarHandle</code> 提供更细粒度的内存访问模式（PLAIN/OPAQUE/RELEASE/ACQUIRE/VOLATILE），允许开发者精确控制内存屏障的强度，比 volatile 更灵活。这是 Java 向"显式内存模型"演进的一步，对标 C++ 的 std::atomic。</p>
+              <p>
+                <strong>JDK 9 VarHandle（2017）</strong>：引入
+                <code class="inline-code">VarHandle</code>
+                提供更细粒度的内存访问模式（PLAIN/OPAQUE/RELEASE/ACQUIRE/VOLATILE），允许开发者精确控制内存屏障的强度，比 volatile 更灵活。这是 Java 向"显式内存模型"演进的一步，对标 C++ 的 std::atomic。
+              </p>
               <p><strong>未来趋势</strong>：随着 Virtual Threads（JDK 21）让并发规模从千级跃升到百万级，volatile 的轻量可见性保证仍是不可替代的；但在更高维度上，结构化并发与响应式模型正在减少"手动 volatile + CAS"的直接使用，开发者更倾向于用高层抽象（Flow、CompletableFuture）而非裸内存语义。</p>
             </div>
           </div>
@@ -156,6 +159,7 @@
               <p><strong>可见性的底层机制：内存屏障 + MESI 协议</strong>。JVM 在 volatile 写之后插入 <code class="inline-code">StoreLoad</code> 屏障，在 volatile 读之前插入 <code class="inline-code">LoadLoad</code>/<code class="inline-code">LoadStore</code> 屏障。这些屏障在 x86 上对应 <code class="inline-code">lock</code> 前缀指令或 <code class="inline-code">mfence</code>，强制 CPU 将 Store Buffer 刷新到 L1 Cache，并通过 <strong>MESI 缓存一致性协议</strong>让其他 CPU 核上持有该缓存行的状态从 M（Modified）/S（Shared）降级为 I（Invalid），下次读取时强制从主内存或拥有最新值的缓存行重新加载。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant T1 as 线程1 (CPU0)
@@ -234,7 +238,10 @@ sequenceDiagram
 <span class="kw">public synchronized void</span> <span class="fn">increment</span>() { <span class="var">count</span>++; }</code></pre>
               </div>
 
-              <p><strong>DCL 单例为何需要 volatile</strong>：<code class="inline-code">instance = new Singleton()</code> 在字节码层是三步——① 分配内存、② 初始化对象、③ 将引用指向内存地址。若无 volatile，JIT 可能将②③重排为"先指向再初始化"，此时另一线程在第一次 null 检查时拿到未初始化完成的对象，引发 NPE。volatile 的 StoreStore + StoreLoad 屏障禁止了这种重排。</p>
+              <p>
+                <strong>DCL 单例为何需要 volatile</strong>：<code class="inline-code">instance = new Singleton()</code>
+                在字节码层是三步——① 分配内存、② 初始化对象、③ 将引用指向内存地址。若无 volatile，JIT 可能将②③重排为"先指向再初始化"，此时另一线程在第一次 null 检查时拿到未初始化完成的对象，引发 NPE。volatile 的 StoreStore + StoreLoad 屏障禁止了这种重排。
+              </p>
             </div>
           </div>
 
@@ -298,7 +305,10 @@ sequenceDiagram
                 <div class="callout-title">易错点</div>
                 <ul>
                   <li><strong>误用 volatile 做计数器</strong>：volatile int count + count++ 不是线程安全的，这是最常见的易错点。记住"复合操作 volatile 不保证原子性"。</li>
-                  <li><strong>volatile 数组的元素可见性</strong>：<code class="inline-code">volatile int[] arr</code> 只保证 arr 引用可见，arr[0] 的修改不保证可见。需用 AtomicIntegerArray。</li>
+                  <li>
+                    <strong>volatile 数组的元素可见性</strong>：<code class="inline-code">volatile int[] arr</code>
+                    只保证 arr 引用可见，arr[0] 的修改不保证可见。需用 AtomicIntegerArray。
+                  </li>
                   <li><strong>以为 volatile 比 synchronized 快就不用锁</strong>：volatile 无锁但能力有限，用它替代锁会引入正确性问题。</li>
                   <li><strong>忽略 happens-before 的传递性</strong>：A happens-before B，B happens-before C，则 A happens-before C。volatile 写后的所有操作对后续 volatile 读的线程可见，这是利用 volatile 做安全发布的理论依据。</li>
                 </ul>
@@ -330,7 +340,7 @@ sequenceDiagram
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -341,7 +351,7 @@ sequenceDiagram
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C03.02 synchronized 的锁升级过程是怎样的？ -->
@@ -411,6 +421,7 @@ sequenceDiagram
               </table>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     A[新建对象<br/>无锁 01] -->|加锁 CAS| D[轻量级锁<br/>Lock Record 00]
@@ -451,7 +462,10 @@ graph TD
 
               <p><strong>额外优化：锁消除与锁粗化</strong>。锁消除基于逃逸分析——若 JIT 判定 StringBuffer 只在方法内使用（无逃逸），会消除其 synchronized。锁粗化则是把相邻的多次对同一对象的加锁合并为一次，减少加锁次数。</p>
 
-              <p>JDK 25+（JEP 519）引入紧凑对象头（可选启用 <code class="inline-code">-XX:+UseCompactObjectHeaders</code>，默认关闭），将对象头压缩至 64 位（传统默认 96 位、未压缩场景 128 位），Mark Word 位布局有调整；传统对象头仍为默认，使用 JOL 观察时需注意是否启用该特性。</p>
+              <p>
+                JDK 25+（JEP 519）引入紧凑对象头（可选启用
+                <code class="inline-code">-XX:+UseCompactObjectHeaders</code>，默认关闭），将对象头压缩至 64 位（传统默认 96 位、未压缩场景 128 位），Mark Word 位布局有调整；传统对象头仍为默认，使用 JOL 观察时需注意是否启用该特性。
+              </p>
             </div>
           </div>
 
@@ -461,7 +475,10 @@ graph TD
               <p><strong>高级开发 · synchronized 使用要点</strong>：</p>
               <ul>
                 <li><strong>减小锁粒度</strong>：synchronized(this) 会让整个对象成为锁，优先用 synchronized 锁独立的小对象或独立方法，避免无关方法相互阻塞。</li>
-                <li><strong>避免锁字符串/Integer 缓存</strong>：<code class="inline-code">synchronized("constant")</code> 会因为字符串常量池导致跨类持同一把锁；<code class="inline-code">synchronized(Integer.valueOf(1))</code> 会因 Integer 缓存（-128~127）撞锁。</li>
+                <li>
+                  <strong>避免锁字符串/Integer 缓存</strong>：<code class="inline-code">synchronized("constant")</code> 会因为字符串常量池导致跨类持同一把锁；<code class="inline-code">synchronized(Integer.valueOf(1))</code>
+                  会因 Integer 缓存（-128~127）撞锁。
+                </li>
                 <li><strong>JDK15+ 不要依赖偏向锁</strong>：若代码逻辑强依赖偏向锁的"零开销同线程重入"，迁移到 JDK15+ 后需重新评估性能。</li>
                 <li><strong>观察锁状态</strong>：用 JOL 或 <code class="inline-code">jcmd PID Thread.print</code> 观察线程在 monitor 上的阻塞情况，定位"轻量级锁升级"热点。</li>
               </ul>
@@ -501,7 +518,7 @@ graph TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -512,7 +529,7 @@ graph TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C03.03 AQS 的 CLH 队列与 CAS 如何实现同步？ -->
@@ -526,7 +543,10 @@ graph TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>AQS（AbstractQueuedSynchronizer）是 Doug Lea 设计的 <strong>JUC 同步器框架</strong>，ReentrantLock/Semaphore/CountDownLatch/ReentrantReadWriteLock 全部基于它构建。这道题考察对"state + CLH 变体队列 + CAS + park/unpark"四要素如何协作实现阻塞同步的深度理解，是 Java 并发编程的"内功心法"。</p>
+              <p>
+                AQS（AbstractQueuedSynchronizer）是 Doug Lea 设计的
+                <strong>JUC 同步器框架</strong>，ReentrantLock/Semaphore/CountDownLatch/ReentrantReadWriteLock 全部基于它构建。这道题考察对"state + CLH 变体队列 + CAS + park/unpark"四要素如何协作实现阻塞同步的深度理解，是 Java 并发编程的"内功心法"。
+              </p>
             </div>
           </div>
 
@@ -552,6 +572,7 @@ graph TD
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph LR
     subgraph AQS 内部结构
@@ -606,7 +627,11 @@ graph LR
 
               <p><strong>CLH 变体与原始 CLH 的关键差异</strong>：原始 CLH 队列每个节点只看前驱节点的状态自旋等待（busy-wait），开销大且无法 park。AQS 改造为<strong>双向链表</strong>，并在前驱节点状态为 SIGNAL（表示前驱释放时会唤醒后继）后调用 <code class="inline-code">LockSupport.park</code> 阻塞，避免自旋空耗 CPU。这种"自旋入队 + park 阻塞"的混合策略兼顾了入队阶段的低延迟与等待阶段的低 CPU 占用。</p>
 
-              <p><strong>公平 vs 非公平</strong>：非公平锁的 tryAcquire 上来就 CAS 抢，无视队列中有无等待者；公平锁会先调用 <code class="inline-code">hasQueuedPredecessors()</code> 检查队列前是否有等待者。非公平锁吞吐更高（减少线程切换），但可能导致队列线程"饥饿"。</p>
+              <p>
+                <strong>公平 vs 非公平</strong>：非公平锁的 tryAcquire 上来就 CAS 抢，无视队列中有无等待者；公平锁会先调用
+                <code class="inline-code">hasQueuedPredecessors()</code>
+                检查队列前是否有等待者。非公平锁吞吐更高（减少线程切换），但可能导致队列线程"饥饿"。
+              </p>
 
               <p><strong>共享模式</strong>：Semaphore/CountDownLatch 用共享模式，tryAcquireShared 返回值 ≥0 表示成功且可向后传播唤醒（<code class="inline-code">doReleaseShared</code> 传播唤醒后续共享节点），这是 CountDownLatch"最后一个 countDown 唤醒所有 await"的实现机制。</p>
               <p><strong>共享模式 vs 独占模式的核心差异</strong>：独占模式（ReentrantLock）的 tryAcquire 返回 true/false 且传播性有限；共享模式（Semaphore）的 tryAcquireShared 返回 int ≥0（剩余许可数）并支持传播唤醒，允许多个线程同时持有锁资源。</p>
@@ -730,7 +755,10 @@ graph LR
                 </tbody>
               </table>
               <ul>
-                <li><strong>易踩的坑</strong>：CountDownLatch 的 <code class="inline-code">countDown()</code> 不放在 finally 中，一旦业务代码抛异常计数永远到不了 0，<code class="inline-code">await()</code> 永久阻塞；CyclicBarrier 的 barrier action 由最后到达的线程执行，不应放耗时逻辑。</li>
+                <li>
+                  <strong>易踩的坑</strong>：CountDownLatch 的 <code class="inline-code">countDown()</code> 不放在 finally 中，一旦业务代码抛异常计数永远到不了 0，<code class="inline-code">await()</code>
+                  永久阻塞；CyclicBarrier 的 barrier action 由最后到达的线程执行，不应放耗时逻辑。
+                </li>
               </ul>
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
@@ -761,7 +789,10 @@ graph LR
             <div class="qa-layer-body">
               <p><strong>硬件原语（1980s）</strong>：CAS 最早是 IBM 370 架构的 Compare-and-Swap 指令，后 x86 提供 <code class="inline-code">CMPXCHG</code>（多核需 LOCK 前缀保证原子性），ARM 提供 LDREX/STREX 对（后来 LL/SC 模式）。</p>
               <p><strong>Java 1.5 Unsafe（2004）</strong>：通过 <code class="inline-code">sun.misc.Unsafe.compareAndSwapXxx</code> 暴露 CAS 能力，但 Unsafe 是内部 API，非公开。AtomicInteger 等原子类封装了它。</p>
-              <p><strong>Java 9 VarHandle（2017）</strong>：<code class="inline-code">java.lang.invoke.VarHandle</code> 成为标准化的内存访问 API，替代 Unsafe 的 CAS 调用，支持更丰富的内存顺序（RELEASE/ACQUIRE/OPAQUE）。</p>
+              <p>
+                <strong>Java 9 VarHandle（2017）</strong>：<code class="inline-code">java.lang.invoke.VarHandle</code>
+                成为标准化的内存访问 API，替代 Unsafe 的 CAS 调用，支持更丰富的内存顺序（RELEASE/ACQUIRE/OPAQUE）。
+              </p>
               <p><strong>未来趋势</strong>：硬件层面，Transactional Memory（事务内存）曾被视为 CAS 的继任者，但至今未普及；软件层面，CAS 仍是主流无锁原语，但在高竞争下退化为自旋浪费，LongAdder 的"分段 CAS"是工程上的优雅妥协。</p>
             </div>
           </div>
@@ -788,6 +819,7 @@ graph LR
               <p><strong>ABA 问题</strong>：线程 1 读到值 A，准备 CAS(A→C)；此时线程 2 把 A 改成 B 又改回 A；线程 1 的 CAS 仍成功（值还是 A），但中间的 B 状态被"无视"了。在多数计数场景（如 increment）ABA 无害，但在<strong>涉及对象复用/状态机</strong>的场景（如无锁栈中节点弹出后又被压回）会导致逻辑错误。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant T1 as 线程1
@@ -997,7 +1029,11 @@ sequenceDiagram
                 </tbody>
               </table>
 
-              <p><strong>StampedLock 的乐观读原理</strong>：写锁和读锁通过一个 long stamp（含锁状态位 + 版本号）管理。<code class="inline-code">tryOptimisticRead()</code> 返回当前 stamp（无任何 CAS，零开销），读完后 <code class="inline-code">validate(stamp)</code> 校验期间是否发生过写操作。若未发生写，读结果有效；若发生过写，降级为悲观读锁重新读。这避免了 ReentrantReadWriteLock"读锁也要 CAS"的开销。</p>
+              <p>
+                <strong>StampedLock 的乐观读原理</strong>：写锁和读锁通过一个 long stamp（含锁状态位 + 版本号）管理。<code class="inline-code">tryOptimisticRead()</code> 返回当前 stamp（无任何 CAS，零开销），读完后
+                <code class="inline-code">validate(stamp)</code>
+                校验期间是否发生过写操作。若未发生写，读结果有效；若发生过写，降级为悲观读锁重新读。这避免了 ReentrantReadWriteLock"读锁也要 CAS"的开销。
+              </p>
               <div class="code-block">
                 <pre><code><span class="com">// StampedLock 乐观读模板（官方推荐写法）</span>
 <span class="kw">private final</span> <span class="type">StampedLock</span> <span class="var">sl</span> = <span class="kw">new</span> <span class="type">StampedLock</span>();
@@ -1097,7 +1133,10 @@ sequenceDiagram
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>ConcurrentHashMap 是 Java 并发工程的经典案例，它的演进浓缩了"全表锁 → 分段锁 → CAS + 单桶锁"的锁优化思想。这道题考察 <strong>JDK7 分段锁到 JDK8 CAS+synchronized 的演进动机</strong>，以及高并发哈希表的设计权衡——在"并发度"与"实现复杂度"间寻找最优点。</p>
+              <p>
+                ConcurrentHashMap 是 Java 并发工程的经典案例，它的演进浓缩了"全表锁 → 分段锁 → CAS + 单桶锁"的锁优化思想。这道题考察
+                <strong>JDK7 分段锁到 JDK8 CAS+synchronized 的演进动机</strong>，以及高并发哈希表的设计权衡——在"并发度"与"实现复杂度"间寻找最优点。
+              </p>
             </div>
           </div>
 
@@ -1111,6 +1150,7 @@ sequenceDiagram
               <p><strong>JDK8 ConcurrentHashMap（CAS + synchronized + 红黑树）</strong>：废弃 Segment，退回 Node[] 数组，对单个桶头节点 synchronized + CAS。并发度 = 桶数（默认 16，随扩容增长）。引入红黑树解决哈希冲突下的链表过长问题。这是"锁粒度从段细化到桶"的演进。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TB
     subgraph JDK7 分段锁
@@ -1193,7 +1233,10 @@ graph TB
 
               <div class="callout callout-danger">
                 <div class="callout-title">生产事故点</div>
-                <p><strong>不要在 mapping/compute 函数中阻塞或递归修改同一个 map</strong>：<code class="inline-code">computeIfAbsent</code> 的回调在原子复合操作内执行；修改同一个 map、回调中调用远程/数据库/锁等待，或递归触发同一键计算，都可能长时间占用内部同步、阻塞同桶操作，甚至形成死锁、活锁或抛出异常。具体失败形态与 JDK 实现和数据冲突路径有关，不能概括为“必然死锁”。应把回调限制为纯计算，复杂初始化、IO 和外部锁移到回调外，并用显式状态机或构建器管理。</p>
+                <p>
+                  <strong>不要在 mapping/compute 函数中阻塞或递归修改同一个 map</strong>：<code class="inline-code">computeIfAbsent</code>
+                  的回调在原子复合操作内执行；修改同一个 map、回调中调用远程/数据库/锁等待，或递归触发同一键计算，都可能长时间占用内部同步、阻塞同桶操作，甚至形成死锁、活锁或抛出异常。具体失败形态与 JDK 实现和数据冲突路径有关，不能概括为“必然死锁”。应把回调限制为纯计算，复杂初始化、IO 和外部锁移到回调外，并用显式状态机或构建器管理。
+                </p>
               </div>
             </div>
           </div>
@@ -1205,7 +1248,10 @@ graph TB
               <p>① synchronized 在 JDK6 优化后无竞争场景开销极小（轻量级锁；偏向锁 JDK 15 已废弃 JEP 374），而 ReentrantLock 即使无竞争也有方法调用与 AQS 入队开销；② synchronized 是 JVM 内置，JIT 可做锁消除/粗化等深度优化；③ ReentrantLock 需要额外内存（AQS 队列），每个桶一个 ReentrantLock 内存开销大；④ synchronized 自动释放，不会因异常泄漏锁。综合权衡，单桶锁 synchronized 是更优选择。</p>
 
               <p><strong>追问 2：扩容时多线程如何协作？</strong></p>
-              <p>扩容时通过 sizeCtl 的低 16 位记录参与扩容的线程数。每个线程通过 <code class="inline-code">transferIndex</code> 原子认领一段桶（stride，默认 16），从后往前迁移。迁移完的桶放置 ForwardingNode（hash=MOVED），put 遇到 ForwardingNode 会调用 helpTransfer 协助扩容，get 遇到则转发到新表。这种"边扩容边服务请求"的设计让扩容不阻塞读写。</p>
+              <p>
+                扩容时通过 sizeCtl 的低 16 位记录参与扩容的线程数。每个线程通过
+                <code class="inline-code">transferIndex</code> 原子认领一段桶（stride，默认 16），从后往前迁移。迁移完的桶放置 ForwardingNode（hash=MOVED），put 遇到 ForwardingNode 会调用 helpTransfer 协助扩容，get 遇到则转发到新表。这种"边扩容边服务请求"的设计让扩容不阻塞读写。
+              </p>
 
               <p><strong>追问 3：CounterCell 为什么用 @Contended 注解？</strong></p>
               <p>@Contended 让 JVM 在对象前后填充缓存行（默认 128 字节），避免多个 CounterCell 落在同一缓存行导致"伪共享"（false sharing）——否则一个 CPU 核修改 Cell0 会让其他核的 Cell1 缓存行失效，CAS 性能急剧下降。这是高并发计数器性能优化的关键细节，与 LongAdder 的 Cell 设计一致。</p>
@@ -1219,7 +1265,10 @@ graph TB
                 <div class="callout-title">易错点</div>
                 <ul>
                   <li><strong>误以为 size() 精确</strong>：高并发下 size 是近似值，不能用于精确判断。</li>
-                  <li><strong>get 后 put 非原子</strong>：<code class="inline-code">if(!map.containsKey(k)) map.put(k,v)</code> 有竞态，用 computeIfAbsent。</li>
+                  <li>
+                    <strong>get 后 put 非原子</strong>：<code class="inline-code">if(!map.containsKey(k)) map.put(k,v)</code>
+                    有竞态，用 computeIfAbsent。
+                  </li>
                   <li><strong>compute/computeIfAbsent 内部阻塞或递归改同一 map</strong>：可能死锁、活锁或抛异常；回调应保持短小且无副作用。</li>
                   <li><strong>误以为迭代是快照</strong>：ConcurrentHashMap 的迭代器是弱一致的，反映创建时的状态，但迭代期间可能看到新数据。</li>
                 </ul>
@@ -1260,6 +1309,7 @@ graph TB
               <p><strong>三层关系</strong>：Condition.await 会借助 LockSupport.park 阻塞，HotSpot Object.wait 也进入 ObjectMonitor 等待机制。LockSupport 是常用的线程阻塞原语，但不同等待机制的持锁、队列和唤醒契约不同，不能混成一个模型。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     A[Object.wait/notify] -->|JVM ObjectMonitor| P[LockSupport.park/unpark]
@@ -1587,6 +1637,7 @@ graph TD
               <p><strong>分治任务模型</strong>：ForkJoinTask 有两个核心子类——RecursiveTask（有返回值）和 RecursiveAction（无返回值）。任务通过 fork() 拆分子任务异步执行，join() 等待结果。典型用法：递归把大任务拆成两个小任务，直到小于阈值直接计算。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TB
     subgraph Worker0 双端队列
@@ -1643,7 +1694,13 @@ graph TB
 <span class="kw">long</span> <span class="var">result</span> = <span class="var">pool</span>.<span class="fn">invoke</span>(<span class="kw">new</span> <span class="type">SumTask</span>(<span class="num">1</span>, <span class="num">100_000_000L</span>));</code></pre>
               </div>
 
-              <p><strong>commonPool 的并行度</strong>：parallelStream 默认使用 <code class="inline-code">ForkJoinPool.commonPool()</code>。常见 JDK 的默认并行度按 <code class="inline-code">Runtime.availableProcessors() - 1</code> 计算，但容器配额、可用处理器语义和目标 JDK 版本都会影响结果；单核场景下任务通常由调用线程执行。可用系统属性 <code class="inline-code">java.util.concurrent.ForkJoinPool.common.parallelism=N</code> 调整，并打印或监控实际池状态验证。</p>
+              <p>
+                <strong>commonPool 的并行度</strong>：parallelStream 默认使用 <code class="inline-code">ForkJoinPool.commonPool()</code>。常见 JDK 的默认并行度按
+                <code class="inline-code">Runtime.availableProcessors() - 1</code>
+                计算，但容器配额、可用处理器语义和目标 JDK 版本都会影响结果；单核场景下任务通常由调用线程执行。可用系统属性
+                <code class="inline-code">java.util.concurrent.ForkJoinPool.common.parallelism=N</code>
+                调整，并打印或监控实际池状态验证。
+              </p>
             </div>
           </div>
 
@@ -1697,7 +1754,10 @@ graph TB
               <p>Worker 处理自己的任务从头部取（LIFO），若窃取也从头部，会与 Worker 自己的取操作竞争同一端。从尾部窃取（FIFO），窃取者与被窃取者操作 Deque 的不同端，竞争最小。且尾部是"最早入队的老任务"，通常是较大的子任务，窃取它能更平衡负载。</p>
 
               <p><strong>追问 2：ForkJoinTask 的异常传播边界是什么？</strong></p>
-              <p><code class="inline-code">RecursiveTask.compute()</code> 不声明检查异常，所以检查异常要在任务内捕获并按业务约定转换。<code class="inline-code">join()</code>/<code class="inline-code">getException()</code> 走未检查语义，失败通常表现为 <code class="inline-code">CompletionException</code>（取消对应 <code class="inline-code">CancellationException</code>）；<code class="inline-code">get()</code>/<code class="inline-code">get(timeout)</code> 是 <code class="inline-code">Future</code> 风格，声明检查异常并把任务失败包装为 <code class="inline-code">ExecutionException</code>。不要把两者的调用点混在一起照抄。</p>
+              <p>
+                <code class="inline-code">RecursiveTask.compute()</code>
+                不声明检查异常，所以检查异常要在任务内捕获并按业务约定转换。<code class="inline-code">join()</code>/<code class="inline-code">getException()</code> 走未检查语义，失败通常表现为 <code class="inline-code">CompletionException</code>（取消对应 <code class="inline-code">CancellationException</code>）；<code class="inline-code">get()</code>/<code class="inline-code">get(timeout)</code> 是 <code class="inline-code">Future</code> 风格，声明检查异常并把任务失败包装为 <code class="inline-code">ExecutionException</code>。不要把两者的调用点混在一起照抄。
+              </p>
 
               <p><strong>追问 3：Virtual Threads 如何使用 ForkJoinPool？</strong></p>
               <p>虚拟线程的调度器（VirtualThread 调度器）将虚拟线程"挂载"到载体线程（carrier thread）上执行，载体线程池就是一个 ForkJoinPool（默认并行度 = 核数）。虚拟线程在 park/unmount 时从载体线程卸载，载体线程可执行其他虚拟线程——这与 ForkJoinTask 的 fork/join 调度共用工作窃取机制。所以 ForkJoinPool 从"并行计算池"演进为"虚拟线程载体池"。</p>
@@ -1745,6 +1805,7 @@ graph TB
               <p><strong>演进动机的本质</strong>：从"单点 CAS"到"分散 CAS 热点"，是并发量级从几十到几千的必然选择。这与其他系统的演进同构——ConcurrentHashMap 的 Segment 到单桶、数据库的行锁代替表锁，都是"细化锁/CAS 粒度以提升并发度"。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph LR
     A["synchronized++<br/>全串行<br/>低并发可用"] --> B["AtomicLong<br/>单点 CAS 自旋<br/>中并发最优"]
@@ -1788,6 +1849,7 @@ graph LR
               <p><strong>LongAdder 的分段 CAS 原理</strong>：内部维护一个 base（基础值）和 Cell[] 数组（每个 Cell 用 @Contended 避免伪共享）。increment 时：① 先尝试 CAS base，成功则返回；② 失败说明有竞争，根据线程的 probe（哈希值）定位一个 Cell，CAS 该 Cell 的 value；③ Cell 的 CAS 也失败，则重新 hash 探测其他 Cell。最终 sum() = base + 所有 Cell.value 之和。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TB
     subgraph LongAdder 内部
@@ -1896,7 +1958,11 @@ graph TB
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>1. RingBuffer（环形数组）</strong>：固定大小的数组（大小必须为 2 的幂，<code class="inline-code">2^n</code>），预分配所有 Event 槽位。生产者写 <code class="inline-code">sequence &amp; (size - 1)</code> 处的槽位（位运算代替取模，O(1)），消费者读对应槽位。<strong>关键</strong>：数组预分配后 Event 对象常驻，生产者只更新字段不 new 对象，<strong>零运行时分配、零 GC 压力</strong>。</p>
+              <p>
+                <strong>1. RingBuffer（环形数组）</strong>：固定大小的数组（大小必须为 2 的幂，<code class="inline-code">2^n</code>），预分配所有 Event 槽位。生产者写
+                <code class="inline-code">sequence &amp; (size - 1)</code>
+                处的槽位（位运算代替取模，O(1)），消费者读对应槽位。<strong>关键</strong>：数组预分配后 Event 对象常驻，生产者只更新字段不 new 对象，<strong>零运行时分配、零 GC 压力</strong>。
+              </p>
 
               <p><strong>2. Sequence（序列号）</strong>：Disruptor 的核心协调原语，本质是一个 <code class="inline-code">volatile long</code> 加缓存行填充。生产者/消费者各持一个 Sequence，<strong>单调递增</strong>。位置计算 <code class="inline-code">index = sequence &amp; (size - 1)</code>。单生产者场景下生产者 Sequence 无竞争，直接用普通 long + StoreStore 屏障即可；多生产者场景用 CAS 争用槽位。</p>
 
@@ -1905,12 +1971,23 @@ graph TB
               <p><strong>4. 单生产者 vs 多生产者</strong>：</p>
               <ul>
                 <li><strong>单生产者（SingleProducerSequencer）</strong>：无任何 CAS，生产者独占写 cursor，仅用 <code class="inline-code">volatile</code> + putOrderedLong（松散写）发布，吞吐最高。</li>
-                <li><strong>多生产者（MultiProducerSequencer）</strong>：每个生产者用 CAS 抢占 sequence 槽位，写入数据后再用 <code class="inline-code">setAvailable</code> 标记该槽位可用（基于可用标志位数组），消费者只读已标记可用的槽位，保证可见性。</li>
+                <li>
+                  <strong>多生产者（MultiProducerSequencer）</strong>：每个生产者用 CAS 抢占 sequence 槽位，写入数据后再用
+                  <code class="inline-code">setAvailable</code>
+                  标记该槽位可用（基于可用标志位数组），消费者只读已标记可用的槽位，保证可见性。
+                </li>
               </ul>
 
-              <p><strong>5. Sequence Barrier（序列屏障）协调消费者依赖</strong>：每个消费者通过 Sequence Barrier 感知其上游（依赖的消费者 + 生产者）的进度。消费者只能消费 <code class="inline-code">min(上游 sequence)</code> 之前的数据，从而实现<strong>菱形依赖无锁编排</strong>——例如"消费者 A → 消费者 B 串行"、"A/B 并行 → C 汇聚"，全部通过 Sequence 比较完成，无锁。</p>
+              <p>
+                <strong>5. Sequence Barrier（序列屏障）协调消费者依赖</strong>：每个消费者通过 Sequence Barrier 感知其上游（依赖的消费者 + 生产者）的进度。消费者只能消费
+                <code class="inline-code">min(上游 sequence)</code>
+                之前的数据，从而实现<strong>菱形依赖无锁编排</strong>——例如"消费者 A → 消费者 B 串行"、"A/B 并行 → C 汇聚"，全部通过 Sequence 比较完成，无锁。
+              </p>
 
-              <p><strong>6. BatchEventProcessor 批处理与 WaitStrategy</strong>：DSL 创建的消费者通常由 <code class="inline-code">BatchEventProcessor</code> 驱动，一次处理从 <code class="inline-code">sequence+1</code> 到可用上限的所有事件（批量）。<strong>WaitStrategy</strong> 决定消费者等待新事件时的策略：</p>
+              <p>
+                <strong>6. BatchEventProcessor 批处理与 WaitStrategy</strong>：DSL 创建的消费者通常由 <code class="inline-code">BatchEventProcessor</code> 驱动，一次处理从 <code class="inline-code">sequence+1</code> 到可用上限的所有事件（批量）。<strong>WaitStrategy</strong>
+                决定消费者等待新事件时的策略：
+              </p>
               <ul>
                 <li><strong>BlockingWaitStrategy</strong>：基于 Lock + Condition，CPU 友好，唤醒延迟和吞吐由负载与平台决定。</li>
                 <li><strong>SleepingWaitStrategy</strong>：自旋 → Thread.yield → LockSupport.parkNanos 渐进，平衡 CPU 与延迟。</li>
@@ -1977,7 +2054,10 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
             <div class="qa-layer-body">
               <p><strong>高级开发层</strong>：</p>
               <ul>
-                <li><strong>Disruptor DSL API 使用</strong>：通过 <code class="inline-code">Disruptor</code> 构造器指定 EventFactory、RingBuffer 大小（2^n）、ProducerType（SINGLE/MULTI）、WaitStrategy，用 <code class="inline-code">handleEventsWith</code>/<code class="inline-code">then</code> 编排消费者依赖。</li>
+                <li>
+                  <strong>Disruptor DSL API 使用</strong>：通过 <code class="inline-code">Disruptor</code> 构造器指定 EventFactory、RingBuffer 大小（2^n）、ProducerType（SINGLE/MULTI）、WaitStrategy，用 <code class="inline-code">handleEventsWith</code>/<code class="inline-code">then</code>
+                  编排消费者依赖。
+                </li>
                 <li><strong>EventHandler 实现</strong>：实现 <code class="inline-code">EventHandler&lt;T&gt;</code> 的 <code class="inline-code">onEvent</code>，注意事件对象是复用的，处理完不要持有引用（下次会被生产者覆盖）。</li>
                 <li><strong>生产者-消费者模式</strong>：优先用 DSL 的 <code class="inline-code">publishEvent</code>；若直接操作 <code class="inline-code">RingBuffer</code>，按 <code class="inline-code">next()</code> 申请序号 → <code class="inline-code">get(seq)</code> 填充 → <code class="inline-code">publish(seq)</code> 发布，并用 finally 保证发布。</li>
                 <li><strong>WaitStrategy 选型</strong>：低延迟用 BusySpin/Yielding（绑核），通用用 Sleeping，省 CPU 用 Blocking。</li>
@@ -2003,7 +2083,10 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
               <p>多生产者下<strong>整体有序无法保证</strong>（多个生产者并发抢序号，谁先抢到谁先写），但能保证<strong>单条消息的生产-消费顺序</strong>与<strong>按 sequence 单调递增的消费可见性</strong>。机制：多生产者用 CAS 抢占 sequence 后写入数据，但消费者只读 <code class="inline-code">setAvailable</code> 标记过的槽位。若 sequence=5 的槽位先写完但 sequence=4 未标记 available，消费者会停在 4 不前进，避免读到未完成的数据。若业务要求全局有序，必须<strong>单生产者</strong>（上游加锁/单线程分发），Disruptor 的多生产者模式本身不保证生产顺序。</p>
 
               <p><strong>追问 3：Disruptor 在日志框架（Log4j2 AsyncLogger）中的应用？</strong></p>
-              <p>Log4j2 的 AsyncLogger 用 Disruptor 作为底层队列，应用线程将日志事件投入 RingBuffer 后通常很快返回，后台线程消费并写磁盘/Appender；配置 <code class="inline-code">AsyncLoggerContextSelector</code> 可启用。要按目标 Log4j2 版本核对队列大小、丢弃策略、溢出行为和磁盘反压。不要把固定线程数下的固定倍数收益当成通用结论。</p>
+              <p>
+                Log4j2 的 AsyncLogger 用 Disruptor 作为底层队列，应用线程将日志事件投入 RingBuffer 后通常很快返回，后台线程消费并写磁盘/Appender；配置
+                <code class="inline-code">AsyncLoggerContextSelector</code> 可启用。要按目标 Log4j2 版本核对队列大小、丢弃策略、溢出行为和磁盘反压。不要把固定线程数下的固定倍数收益当成通用结论。
+              </p>
             </div>
           </div>
 
@@ -2013,10 +2096,17 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
-                  <li><strong>误以为 Disruptor 完全无锁</strong>：单生产者模式确实无锁无 CAS，但<strong>多生产者模式仍需 CAS</strong> 争用序号。不要想当然认为所有场景都"零争用"。</li>
+                  <li>
+                    <strong>误以为 Disruptor 完全无锁</strong>：单生产者模式确实无锁无 CAS，但<strong>多生产者模式仍需 CAS</strong>
+                    争用序号。不要想当然认为所有场景都"零争用"。
+                  </li>
                   <li><strong>忽略 RingBuffer 大小必须是 2^n</strong>：Disruptor 强制要求 size 为 2 的幂（位运算 <code class="inline-code">seq &amp; (size-1)</code> 寻址）。传入非 2^n 会抛异常，且大小需根据峰值积压预估，过小导致生产者被消费者拖慢阻塞。</li>
                   <li><strong>混淆 BatchEventProcessor 和 WorkProcessor</strong>：BatchEventProcessor 是"每个消费者独立 Sequence，可并行处理同一批事件"（发布订阅）；WorkProcessor 是"多个 Worker 共享一个 Sequence 池，每个事件只被一个 Worker 处理"（工作分发）。选错会导致事件被重复处理或漏处理。</li>
-                  <li><strong>误用 WaitStrategy 导致 CPU 空转</strong>：<code class="inline-code">BusySpinWaitStrategy</code> 在没有事件时持续占满 CPU，非隔离核场景会挤占业务；通用场景优先评估 <code class="inline-code">SleepingWaitStrategy</code> 或 <code class="inline-code">BlockingWaitStrategy</code>。</li>
+                  <li>
+                    <strong>误用 WaitStrategy 导致 CPU 空转</strong>：<code class="inline-code">BusySpinWaitStrategy</code>
+                    在没有事件时持续占满 CPU，非隔离核场景会挤占业务；通用场景优先评估
+                    <code class="inline-code">SleepingWaitStrategy</code> 或 <code class="inline-code">BlockingWaitStrategy</code>。
+                  </li>
                   <li><strong>持有 Event 引用</strong>：Event 对象是复用的，onEvent 处理后不能将其存入集合或异步引用，否则会被生产者下次覆盖，导致数据错乱。</li>
                 </ul>
               </div>
@@ -2036,7 +2126,10 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对<strong>并发底层载体的系统级认识</strong>：线程并非凭空存在，而是由 OS 内核调度的执行单元。能否说清 <strong>进程与线程的区别、内核态/用户态切换、上下文切换的开销构成</strong>，直接决定你对"线程池该开多大、协程/虚拟线程为何省资源、为什么并发量大要降低线程数"的判断力。它把 Java 并发 API 与真实硬件/内核行为连在了一起。</p>
+              <p>
+                这道题考察对<strong>并发底层载体的系统级认识</strong>：线程并非凭空存在，而是由 OS 内核调度的执行单元。能否说清
+                <strong>进程与线程的区别、内核态/用户态切换、上下文切换的开销构成</strong>，直接决定你对"线程池该开多大、协程/虚拟线程为何省资源、为什么并发量大要降低线程数"的判断力。它把 Java 并发 API 与真实硬件/内核行为连在了一起。
+              </p>
             </div>
           </div>
 
@@ -2054,7 +2147,11 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
               <p><strong>上下文切换开销构成</strong>：保存/恢复 CPU 寄存器、换页表（进程级切换）、可能刷新或失效 TLB、切换内核栈和调度器记账。常见量级是微秒级，但具体时间随 CPU、内核、缓存状态和负载变化，应作为“高频切换会累积”的机制理解，不写成固定 1~2µs。</p>
-              <p><strong>内核态/用户态切换</strong>：系统调用要从用户态陷入内核态；主流 JDK 创建平台线程涉及 <code class="inline-code">clone</code> 类内核机制。阻塞和调度还伴随睡眠/唤醒、锁队列和缓存局部性损失，不能只看寄存器保存。</p>
+              <p>
+                <strong>内核态/用户态切换</strong>：系统调用要从用户态陷入内核态；主流 JDK 创建平台线程涉及
+                <code class="inline-code">clone</code>
+                类内核机制。阻塞和调度还伴随睡眠/唤醒、锁队列和缓存局部性损失，不能只看寄存器保存。
+              </p>
               <p><strong>CPU 密集 vs 线程数</strong>：纯计算型，最优线程数 ≈ CPU 核数；含 IO/阻塞时，利用"阻塞占比较高"提高并发度（公式：<code class="inline-code">线程数 ≈ 核数 × (1 + 等待时间/计算时间)</code>），本质是<strong>用线程并行掩盖 IO 等待</strong>。</p>
               <div class="code-block">
                 <pre><code><span class="com">// 直观观察线程/进程开销（Linux）</span>
@@ -2105,7 +2202,6 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
             </div>
           </div>
         </div>
-
       </main>
     </div>
 
@@ -2113,25 +2209,39 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">Brian Goetz 等. Java Concurrency in Practice（Java 并发编程实战）. Addison-Wesley, 2006. — JMM、volatile、锁、AQS 的权威著作</span></li>
-          <li><span class="src-title">Doug Lea. The java.util.concurrent Synchronizer Framework（AQS 论文）. JCP JSR-166, 2004. — AQS 的 CLH 变体队列设计</span></li>
-          <li><span class="src-title">周志明. 减轻 Java 并发编程的锁机制负担 — JMM、volatile 内存屏障、happens-before 规则</span></li>
+          <li>
+            <span class="src-title">Brian Goetz 等. Java Concurrency in Practice（Java 并发编程实战）. Addison-Wesley, 2006. — JMM、volatile、锁、AQS 的权威著作</span>
+          </li>
+          <li>
+            <span class="src-title">Doug Lea. The java.util.concurrent Synchronizer Framework（AQS 论文）. JCP JSR-166, 2004. — AQS 的 CLH 变体队列设计</span>
+          </li>
+          <li>
+            <span class="src-title">周志明. 减轻 Java 并发编程的锁机制负担 — JMM、volatile 内存屏障、happens-before 规则</span>
+          </li>
           <li><span class="src-title">JEP 374: Disable and Deprecate Biased Locking (JDK 15) — 偏向锁废弃</span></li>
           <li><span class="src-title">JEP 444: Virtual Threads (JDK 21) — 虚拟线程与 ForkJoinPool 调度器</span></li>
-          <li><span class="src-title">JEP 193: Variable Handles (JDK 9) — VarHandle 替代 Unsafe 的标准化内存访问 API</span></li>
-          <li><span class="src-title">Doug Lea. Striped64 / LongAdder 源码注释 — 分段 CAS 与 @Contended 伪共享优化</span></li>
-          <li><span class="src-title">OpenJDK. java.util.concurrent 源码（AbstractQueuedSynchronizer / ConcurrentHashMap / ForkJoinPool）JDK 8~21</span></li>
-          <li><span class="src-title">Aleksandar Prokopec. Learning Concurrent Programming in Scala/Java — Michael-Scott 无锁队列与 CAS 局限性</span></li>
+          <li>
+            <span class="src-title">JEP 193: Variable Handles (JDK 9) — VarHandle 替代 Unsafe 的标准化内存访问 API</span>
+          </li>
+          <li>
+            <span class="src-title">Doug Lea. Striped64 / LongAdder 源码注释 — 分段 CAS 与 @Contended 伪共享优化</span>
+          </li>
+          <li>
+            <span class="src-title">OpenJDK. java.util.concurrent 源码（AbstractQueuedSynchronizer / ConcurrentHashMap / ForkJoinPool）JDK 8~21</span>
+          </li>
+          <li>
+            <span class="src-title">Aleksandar Prokopec. Learning Concurrent Programming in Scala/Java — Michael-Scott 无锁队列与 CAS 局限性</span>
+          </li>
         </ol>
       </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-02-gc-performance.html" class="nav-prev">← 第 02 篇 GC 算法与性能调优</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-04-threadpool-virtual-threads.html" class="nav-next">第 04 篇 线程池与虚拟线程 →</a>
-        </nav>
+        <a href="chapter-02-gc-performance.html" class="nav-prev">← 第 02 篇 GC 算法与性能调优</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-03-concurrency-locks.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-04-threadpool-virtual-threads.html" class="nav-next">第 04 篇 线程池与虚拟线程 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2145,5 +2255,5 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

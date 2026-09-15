@@ -86,7 +86,7 @@
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）。
   2. 阅读进度条；主题切换 / 回顶 / 去底由 `theme-init.js` 负责（本脚本仅兜底防漏）。
   3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
-- `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || {…})`（偏蓝 `base` 主题）；禁止写死 `"neutral"` / `"default"`。换肤重绘由 `theme-init.js` 缓存 `data-kb-mermaid-src` 后 `mermaid.run`，勿在页面重复监听重绘。
+- `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || {…})`（偏蓝 `base` 主题）；禁止写死 `"neutral"` / `"default"`。换肤重绘由 `theme-init.js` 缓存 `data-kb-mermaid-src` 后 `mermaid.run`，勿在页面重复监听重绘。**每个** `<div class="mermaid">` 的上一行必须是 `<!-- prettier-ignore -->`（防止 HTML 格式化把图源码压成一行）；见 §10。
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
 - 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。
 
@@ -240,3 +240,33 @@ index.html                         # 首页
 3. **不改** `docs/facts/`；不重写 Mermaid 图内数百处 `fill:#dbeafe`（默认偏蓝主题变量已覆盖无内联 fill 的节点）。
 
 `validate_kb.py` 会检查：站点 HTML 含 `theme-init.js`；`design-system.css` 含 `data-theme="dark"` 令牌块。
+
+## 10. HTML 格式化（Prettier）与 Mermaid 保护
+
+站点无构建步骤，但仍用 **Prettier 3** 统一 44 个用户可见 HTML 的缩进与标签换行（根 `index.html` + 章节站 `*.html` + 导图站 `*.html`）。`docs/facts/`、备份目录、压缩资源不在格式化范围。
+
+| 项 | 约定 |
+|---|---|
+| 配置 | 仓库根 `.prettierrc.json` / `.prettierignore` / `package.json`（仅 `prettier` devDependency） |
+| 命令 | `npm run format:html`（Prettier 写入 + 闭合标签归一） / `npm run format:html:check`（稳态检查） |
+| 关键选项 | `printWidth: 10000`（避免 `</span>` 被拆行破坏计数锚点）、`htmlWhitespaceSensitivity: "css"`、`embeddedLanguageFormatting: "off"`、`endOfLine: "lf"` |
+| 后处理 | `scripts/normalize_html_closers.py`：把 Prettier 偶发产出的 `</tag\\n>` 压回 `</tag>`（kb-count / `validate_kb` 依赖同行闭合） |
+| Mermaid | 每个 `<div class="mermaid">` **正上方**一行 `<!-- prettier-ignore -->`；忽略该节点整棵子树，图源码保持多行 |
+| 新增图 | 插入 mermaid 容器时同步加 ignore（或跑 `ensure_mermaid_prettier_ignore.py`）；再 `format:html` → `validate_kb.py` |
+| 语法 | Prettier 遇非法 HTML（未闭合 / 嵌套错误的 `p`/`a` 等）会失败——先修标签再格式化 |
+
+标准写法：
+
+```html
+<div class="mermaid-container">
+  <!-- prettier-ignore -->
+  <div class="mermaid">
+graph TD
+    A --> B
+  </div>
+</div>
+```
+
+历史坑：无 ignore 时格式化曾把图压成单行，需用 `docs/fix_mermaid.py` 一类脚本从 git 旧版还原；**现行流程以 ignore + Prettier 为准，禁止再裸跑会改写 mermaid 文本节点的格式化器**。
+
+`validate_kb.py` 会检查：凡含 `class="mermaid"` 的站点 HTML，每个图节点上一行均为 `prettier-ignore`；图内换行数 ≥ 2（未塌缩）。

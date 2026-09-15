@@ -612,15 +612,20 @@
 
 ## 7. 双站导航约定（简述）
 
+- **放置（硬约束，与 `docs/format-shared.md` §4.2 一致）**：
+  - 有导航页：`body` 首子块 = `<div class="site-page-nav site-page-nav--top">` → `<nav class="chapter-nav-top">`；正文与 `<footer>`（若有）之后、**所有** `<script>` 之前 = `site-page-nav--bottom` → `chapter-nav`。
+  - **无导航页**：仅根 `index.html`、章节站 `java-architect-interview/index.html`；导图 `index.html` 与其余内容页均须有顶底导航。
+  - 壳层 `.site-page-nav--top/--bottom` 上下 `padding` 对称；首屏 hero（`.map-hero` / `.ov-hero`）勿再叠加大 `padding-top`。
 - 章节页 `.chapter-nav-top`（顶部）+ `.chapter-nav`（底部），**顶底内侧 HTML 必须一致**。三槽结构：
   - 左：翻页 `nav-prev`（← 上一篇）或 `nav-home`（← 返回目录）
   - 中：`nav-center` 内 `nav-mind`（篇章页固定顺序：核心方法论 → 全部章节 → 本章思维导图）
   - 右：`nav-next`（下一篇 →）或收束用 `nav-home`（返回目录 →）
+- **章节站阅读链路**：`核心方法论 → 工程化要点 → 生产踩坑 → C01…C15 → 服务端安全 → 核心原理速查 → 高频场景题`；导图站同序 `mind-*`。
 - 箭头统一字面量 `←` / `→`；回目录文案统一「返回目录」（禁止「返回首页」）；左右已链过的目标勿在 `nav-center` 重复。
 - **侧栏分组标题**：凡带 `toc-group` 的页面，`toc-group-title` 必须是 `<a href="#…">`（禁止 `div`）；`nav.js` 会在条目高亮时同步给同组 `a.toc-group-title` 加 `.active`。锚点约定见 `docs/format-shared.md` §4.1。
-- 导图页五按钮：翻页组（前一篇导图 `nav-prev` / 后一篇导图 `nav-next`，带 ←/→ 与具体篇章名）+ 居中组（全部章节/导图总览/本导图对应章节，`nav-mind`）。
+- 导图页居中组：全部章节 / 导图总览 / 本导图对应章节（`nav-mind`）；首篇左已是导图总览时，居中去掉「导图总览」。
 - 顶部/底部按钮 `padding`/`font-size`/`gap` 须同步一致，避免高度差。
-- 两站共用 `java-architect-interview/assets/design-system.css` 与 `nav.js`，一处修改惠及全部。
+- 两站共用 `java-architect-interview/assets/design-system.css`、`theme-init.js` 与 `nav.js`，一处修改惠及全部。
 
 ## 7.1 手机小屏强制（MOBILE-MANDATORY）
 
@@ -629,6 +634,16 @@
 - 全站页面必须适配 ≤768px（主）与 ≤480px（极小屏）；必须含 viewport。
 - 共享基线在 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段；页面内联桌面布局必须自带 `@media` 覆盖。
 - `validate_kb.py` 检查：CSS 标记、根/导图 index、导图页媒体查询、全站 viewport。
+
+## 7.2 HTML 格式化与 Mermaid（Prettier）
+
+与 `docs/format-shared.md` §10 同级：
+
+- 44 个用户可见 HTML 用仓库根 `npm run format:html`（Prettier 3 + `normalize_html_closers.py`）统一格式；配置见 `.prettierrc.json`（`printWidth: 10000`）。
+- **每个** `<div class="mermaid">` 上一行必须 `<!-- prettier-ignore -->`，禁止格式化塌缩图源码；缺省可跑 `ensure_mermaid_prettier_ignore.py`。
+- 新增/改图后：加 ignore → `npm run format:html` → `npm run format:html:check` → `validate_kb.py`（含 ignore / 换行 / 导航壳检查）。
+- 主题切换器与回顶/去底由 `theme-init.js` 注入（非手写第二套）。
+- 顶底导航壳 / 阅读链路见 §7；小屏见 §7.1。
 
 ## 8. 章节站首页（`java-architect-interview/index.html`）
 

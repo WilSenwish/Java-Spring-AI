@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 15 篇 · 响应式编程与系统设计 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-14-databases.html" class="nav-prev">← 第 14 篇 数据库与存储深度</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-15-reactive.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="nav-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
-        </nav>
+        <a href="chapter-14-databases.html" class="nav-prev">← 第 14 篇 数据库与存储深度</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-15-reactive.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="nav-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -41,21 +40,21 @@
           <li>
             <a href="#C15.06"><span class="toc-number">C15.06</span>响应式系统架构设计与全栈落地</a>
           </li>
-            <li>
-              <a href="#C15.07"><span class="toc-number">C15.07</span>Mono/Flux 语义与创建操作符</a>
-            </li>
-            <li>
-              <a href="#C15.08"><span class="toc-number">C15.08</span>map/flatMap/concatMap/switchMap 对比</a>
-            </li>
-            <li>
-              <a href="#C15.09"><span class="toc-number">C15.09</span>zip/merge/buffer/groupBy 组合拆分</a>
-            </li>
-            <li>
-              <a href="#C15.10"><span class="toc-number">C15.10</span>过滤/错误/时间/背压操作符</a>
-            </li>
-            <li>
-              <a href="#C15.11"><span class="toc-number">C15.11</span>调度·Context·cache 与 block 边界</a>
-            </li>
+          <li>
+            <a href="#C15.07"><span class="toc-number">C15.07</span>Mono/Flux 语义与创建操作符</a>
+          </li>
+          <li>
+            <a href="#C15.08"><span class="toc-number">C15.08</span>map/flatMap/concatMap/switchMap 对比</a>
+          </li>
+          <li>
+            <a href="#C15.09"><span class="toc-number">C15.09</span>zip/merge/buffer/groupBy 组合拆分</a>
+          </li>
+          <li>
+            <a href="#C15.10"><span class="toc-number">C15.10</span>过滤/错误/时间/背压操作符</a>
+          </li>
+          <li>
+            <a href="#C15.11"><span class="toc-number">C15.11</span>调度·Context·cache 与 block 边界</a>
+          </li>
           <li>
             <a href="#C15.12"><span class="toc-number">C15.12</span>背压未传递的症状与开关</a>
           </li>
@@ -134,7 +133,11 @@
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"响应式编程如何用异步数据流抽象统一同步与异步、并解决生产消费速率不匹配"</strong> 的底层认知。核心不在罗列操作符，而在回答：Mono/Flux 如何把异步事件抽象为可组合的数据流？当生产者速度远超消费者时，背压（Backpressure）如何用"拉模式"避免 OOM？Reactive Streams 规范（JDK 9 Flow / JVM 1.0.4）的四接口契约为何能成为跨厂商互操作标准？Reactor 3.x 在此规范之上提供了哪些工程增强？</p>
+              <p>
+                这道题考察对
+                <strong>"响应式编程如何用异步数据流抽象统一同步与异步、并解决生产消费速率不匹配"</strong>
+                的底层认知。核心不在罗列操作符，而在回答：Mono/Flux 如何把异步事件抽象为可组合的数据流？当生产者速度远超消费者时，背压（Backpressure）如何用"拉模式"避免 OOM？Reactive Streams 规范（JDK 9 Flow / JVM 1.0.4）的四接口契约为何能成为跨厂商互操作标准？Reactor 3.x 在此规范之上提供了哪些工程增强？
+              </p>
             </div>
           </div>
 
@@ -144,6 +147,7 @@
               <p><strong>Java 异步编程的五代演进</strong>，每一代都在解决上一代的"组合困难"与"回调污染"：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["回调地狱<br/>（Callback Hell）<br/>嵌套难以组合"] --> B["Future<br/>（JDK 5）<br/>单向、阻塞 get"]
@@ -162,7 +166,11 @@ flowchart LR
 
               <p><strong>回调地狱（早期）</strong>：异步操作用嵌套 Callback 实现，多层嵌套导致代码可读性极差、错误处理散落、难以组合。这是响应式编程要消灭的头号敌人。</p>
               <p><strong>Future（JDK 5）</strong>：提供异步结果占位符，但只能 <code class="inline-code">get()</code> 阻塞获取，无法链式编排多个异步任务，无法注册回调。</p>
-              <p><strong>CompletableFuture（JDK 8）</strong>：支持 <code class="inline-code">thenApply/thenCompose/exceptionally</code> 链式组合，解决回调地狱。但仍缺背压机制——无法表达"数据流"的速率控制，且仍是 Push 模型（生产者主动推）。</p>
+              <p>
+                <strong>CompletableFuture（JDK 8）</strong>：支持
+                <code class="inline-code">thenApply/thenCompose/exceptionally</code>
+                链式组合，解决回调地狱。但仍缺背压机制——无法表达"数据流"的速率控制，且仍是 Push 模型（生产者主动推）。
+              </p>
               <p><strong>Reactive Streams 规范（2015，JVM 1.0.4，JDK 9 通过 java.util.concurrent.Flow 采纳）</strong>：定义 <code class="inline-code">Publisher/Subscriber/Subscription/Processor</code> 四接口，确立<strong>异步流处理 + 非阻塞背压</strong>的标准契约。Netflix/RxJava/Pivotal/TypeSafe/Oracle 联合制定，成为跨厂商互操作基础。</p>
               <p><strong>Reactor 3.x（Pivotal，Spring 默认）</strong>：Reactive Streams 规范的工程级实现，提供 <code class="inline-code">Mono</code>（0/1 元素）/ <code class="inline-code">Flux</code>（N 元素）两种发布者、数百个操作符、丰富的 <code class="inline-code">Scheduler</code> 线程模型。Spring WebFlux 从 5.0 起将其作为响应式基石。</p>
               <p><strong>演进驱动力</strong>：① <strong>组合性</strong>——异步操作需要像同步流水线一样可组合、可变换；② <strong>资源效率</strong>——Thread-per-request 模型下线程昂贵（MB 级栈），响应式用少量线程高并发；③ <strong>背压</strong>——生产快于消费时，Push 模型必然 OOM，需 Pull 模式速率控制。</p>
@@ -219,6 +227,7 @@ flowchart LR
               </table>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["① Subscriber 调用<br/>subscription.request(n)<br/>主动拉取 n 个"] --> B["② Subscription 记录<br/>累计请求额度"]
@@ -362,7 +371,10 @@ flowchart LR
               <p><strong>追问 1：Cold Publisher 与 Hot Publisher 的本质区别是什么？如何转换？</strong></p>
               <p>本质区别在于<strong>数据生产与订阅的关系</strong>：Cold 是"每个订阅者独立触发一次数据生产"（类似 HTTP 请求——调用一次执行一次，各订阅者拿到独立结果），Hot 是"数据生产与订阅无关，先有流后有订阅者"（类似广播电台——迟到的听众听不到之前的内容）。Cold 转 Hot 的方式：<code class="inline-code">connect()</code>（手动控制开始时机）、<code class="inline-code">publish().autoConnect(n)</code>（n 个订阅者到达后自动开始）、<code class="inline-code">cache()</code>（缓存生产结果供后续订阅者，相当于 replay 到无限）、<code class="inline-code">replay(n)</code>（缓存最近 n 个元素供新订阅者）、<code class="inline-code">Sinks.many()</code>（手动 push 数据，最灵活的热源）。实战中 SSE 推送、WebSocket 消息用 Hot 流，HTTP 请求/数据库查询用 Cold 流。</p>
               <p><strong>追问 2：flatMap、concatMap、merge 的并发差异是什么？</strong></p>
-              <p>三者都把上游元素映射为内部 Publisher 再合并，但<strong>并发与顺序</strong>不同：<code class="inline-code">flatMap</code> <strong>并发订阅</strong>所有内部流，结果按到达顺序到达（<strong>不保证顺序</strong>），可通过第二参数限制并发度（如 <code class="inline-code">flatMap(fn, 16)</code>）；<code class="inline-code">concatMap</code> <strong>串行订阅</strong>——等前一个内部流完成再订阅下一个，<strong>严格保证顺序</strong>但吞吐低；<code class="inline-code">merge</code> 是 <code class="inline-code">flatMap</code> 的无并发限制版（并发度无限）。选型：无顺序要求且需高吞吐用 <code class="inline-code">flatMap</code>；要求顺序（如分页有序遍历）用 <code class="inline-code">concatMap</code>；<code class="inline-code">zip</code> 则是等所有源都发射后再组合，适合并行调用多个服务后合并结果。</p>
+              <p>
+                三者都把上游元素映射为内部 Publisher 再合并，但<strong>并发与顺序</strong>不同：<code class="inline-code">flatMap</code> <strong>并发订阅</strong>所有内部流，结果按到达顺序到达（<strong>不保证顺序</strong>），可通过第二参数限制并发度（如 <code class="inline-code">flatMap(fn, 16)</code>）；<code class="inline-code">concatMap</code> <strong>串行订阅</strong>——等前一个内部流完成再订阅下一个，<strong>严格保证顺序</strong>但吞吐低；<code class="inline-code">merge</code> 是 <code class="inline-code">flatMap</code> 的无并发限制版（并发度无限）。选型：无顺序要求且需高吞吐用 <code class="inline-code">flatMap</code>；要求顺序（如分页有序遍历）用 <code class="inline-code">concatMap</code>；<code class="inline-code">zip</code>
+                则是等所有源都发射后再组合，适合并行调用多个服务后合并结果。
+              </p>
             </div>
           </div>
 
@@ -375,8 +387,17 @@ flowchart LR
                   <li><strong>链中混用阻塞调用</strong>：在 Reactor 链中直接调用 JDBC、<code class="inline-code">Thread.sleep()</code>、同步 HttpClient，会阻塞 EventLoop 线程导致整个服务吞吐崩塌，必须用 <code class="inline-code">subscribeOn(Schedulers.boundedElastic())</code> 隔离或换 R2DBC/WebClient。</li>
                   <li><strong>无背压导致 OOM</strong>：对无限流（如 <code class="inline-code">Flux.interval()</code>）不设背压策略，生产快于消费时无界缓冲堆积，最终 OOM，必须指定 <code class="inline-code">onBackpressureDrop/Latest</code>。</li>
                   <li><strong>订阅多次导致重复执行</strong>：Cold Publisher 每次 <code class="inline-code">subscribe()</code> 都重新执行数据生产逻辑，把同一个 Mono 传给多个消费者会触发多次 HTTP 请求/数据库查询，需用 <code class="inline-code">cache()</code> 或 <code class="inline-code">.share()</code> 转热流共享。</li>
-                  <li><strong>误用 elastic() 调度器</strong>：<code class="inline-code">Schedulers.elastic()</code> 是无界线程池，已被弃用，高并发下会创建大量线程，应改用 <code class="inline-code">boundedElastic()</code>。</li>
-                  <li><strong>忽略操作符的线程切换语义</strong>：误以为 <code class="inline-code">subscribeOn</code> 影响整个链——它只影响<strong>源</strong>的订阅线程，<code class="inline-code">publishOn</code> 才影响<strong>下游</strong>执行线程，二者位置不同效果不同。</li>
+                  <li>
+                    <strong>误用 elastic() 调度器</strong>：<code class="inline-code">Schedulers.elastic()</code>
+                    是无界线程池，已被弃用，高并发下会创建大量线程，应改用
+                    <code class="inline-code">boundedElastic()</code>。
+                  </li>
+                  <li>
+                    <strong>忽略操作符的线程切换语义</strong>：误以为
+                    <code class="inline-code">subscribeOn</code>
+                    影响整个链——它只影响<strong>源</strong>的订阅线程，<code class="inline-code">publishOn</code>
+                    才影响<strong>下游</strong>执行线程，二者位置不同效果不同。
+                  </li>
                 </ul>
               </div>
             </div>
@@ -388,7 +409,10 @@ flowchart LR
               <p>核心原理之外，响应式落地最常见的工程痛点是"上下文丢失"——<code class="inline-code">ThreadLocal</code>（MDC、安全上下文、事务上下文）在线程切换后失效，需要用 Reactor Context 解决，这也是高频追问点。</p>
               <ul>
                 <li><strong>ContextView 与 ThreadLocal 的本质区别</strong>：ThreadLocal 绑定线程，Reactor 线程切换（<code class="inline-code">publishOn/subscribeOn</code>、EventLoop）后即丢失；Context 是响应式流的一部分，随数据流传递，不绑定线程。</li>
-                <li><strong>写入与读取</strong>：写入用 <code class="inline-code">Mono.deferContextual(ctx -&gt; ...).contextWrite(Context.of("traceId", traceId))</code>，读取用 <code class="inline-code">Mono.deferContextual(ctx -&gt; ctx.get("traceId"))</code>。注意 <code class="inline-code">contextWrite</code> 影响上游操作符、<code class="inline-code">deferContextual</code> 读取下游传入的 Context，位置放错会读到空值。</li>
+                <li>
+                  <strong>写入与读取</strong>：写入用 <code class="inline-code">Mono.deferContextual(ctx -&gt; ...).contextWrite(Context.of("traceId", traceId))</code>，读取用 <code class="inline-code">Mono.deferContextual(ctx -&gt; ctx.get("traceId"))</code>。注意 <code class="inline-code">contextWrite</code> 影响上游操作符、<code class="inline-code">deferContextual</code>
+                  读取下游传入的 Context，位置放错会读到空值。
+                </li>
                 <li><strong>不可变语义</strong>：Context 不可变，<code class="inline-code">contextWrite</code> 返回新 Context；多次写入时最靠近读取点的写入生效，遵循"最近写入者生效"。</li>
               </ul>
               <p><strong>MDC 适配</strong>：</p>
@@ -412,11 +436,15 @@ flowchart LR
               </ul>
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
-                <p>Context 的可见范围由订阅关系决定而非线程：订阅建立时 Context 自下而上传递（<code class="inline-code">contextWrite</code> 影响其上游），数据发射时自上而下传播（<code class="inline-code">deferContextual</code> 读到的是下游写入的值）。"写入影响上游、读取见下游"是排错 Context 丢失的关键；若在 WebFilter 外层写 Context、Service 层却读不到，优先检查 <code class="inline-code">contextWrite</code> 是否位于读取操作符的下游。</p>
+                <p>
+                  Context 的可见范围由订阅关系决定而非线程：订阅建立时 Context 自下而上传递（<code class="inline-code">contextWrite</code> 影响其上游），数据发射时自上而下传播（<code class="inline-code">deferContextual</code>
+                  读到的是下游写入的值）。"写入影响上游、读取见下游"是排错 Context 丢失的关键；若在 WebFilter 外层写 Context、Service 层却读不到，优先检查
+                  <code class="inline-code">contextWrite</code> 是否位于读取操作符的下游。
+                </p>
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -427,7 +455,7 @@ flowchart LR
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C15.02 Spring WebFlux vs Spring Web MVC 如何选型？ -->
@@ -441,7 +469,11 @@ flowchart LR
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"非阻塞 Web 框架为何能提升吞吐、以及它的代价与适用边界"</strong> 的架构判断力。核心不在背诵差异表，而在回答：WebFlux 用少量 EventLoop 线程为何能比 Thread-per-request 的 WebMVC 承载更多并发？什么场景下该选 WebFlux 而非 WebMVC？WebFlux 的代价（调试难、生态约束、编程心智）是什么？当 Virtual Threads 出现后，WebFlux 的价值是否被削弱？</p>
+              <p>
+                这道题考察对
+                <strong>"非阻塞 Web 框架为何能提升吞吐、以及它的代价与适用边界"</strong>
+                的架构判断力。核心不在背诵差异表，而在回答：WebFlux 用少量 EventLoop 线程为何能比 Thread-per-request 的 WebMVC 承载更多并发？什么场景下该选 WebFlux 而非 WebMVC？WebFlux 的代价（调试难、生态约束、编程心智）是什么？当 Virtual Threads 出现后，WebFlux 的价值是否被削弱？
+              </p>
             </div>
           </div>
 
@@ -451,6 +483,7 @@ flowchart LR
               <p><strong>Java Web 并发模型的三代演进</strong>，核心是"如何用更少的线程承载更多并发"：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["Servlet/WebMVC<br/>Thread-per-Request<br/>阻塞 IO, 1 请求 1 线程"] --> B["WebFlux<br/>EventLoop + Reactor<br/>非阻塞 IO, 少量线程"]
@@ -678,7 +711,10 @@ flowchart TD
               <p><strong>追问 1：WebFlux 吞吐高，但为何单请求延迟不一定比 WebMVC 低？</strong></p>
               <p>吞吐与延迟是两个维度。<strong>吞吐高</strong>是因为少量 EventLoop 线程不阻塞，能同时处理更多并发请求（资源利用率高）；<strong>单请求延迟不一定低</strong>甚至略高，原因：① Reactor 链有操作符调度、回调编排开销，比同步直接调用多一层间接性；② 线程切换（<code class="inline-code">publishOn/subscribeOn</code>）有上下文切换成本；③ 非阻塞 IO 在低并发时无法摊销多路复用优势。WebFlux 的优势在<strong>高并发场景下的尾部延迟稳定性和吞吐上限</strong>——WebMVC 线程耗尽时请求排队延迟飙升，WebFlux 少量线程持续处理，尾部延迟更平稳。<strong>低并发场景 WebMVC 延迟反而更低</strong>。</p>
               <p><strong>追问 2：WebFlux 与 Spring WebMVC 能否在同一个应用混用？</strong></p>
-              <p>技术上<strong>不建议混用</strong>。Spring Boot 的 <code class="inline-code">spring-boot-starter-web</code>（WebMVC）和 <code class="inline-code">spring-boot-starter-webflux</code>（WebFlux）同时引入时，Spring Boot 会优先按 WebMVC 启动（WebMVC 的自动配置优先级更高），WebFlux 的异步特性被降级为 Servlet 3.1 异步处理，<strong>失去了 Netty EventLoop 的性能优势</strong>。若确实需要混合（如渐进式迁移），正确做法是：用 WebFlux 但在 Handler 中通过 <code class="inline-code">Schedulers.boundedElastic()</code> 调用阻塞的 WebMVC 代码（如遗留 JDBC），而非两个 Starter 共存。Spring 官方建议<strong>新项目二选一</strong>，不要混用。</p>
+              <p>
+                技术上<strong>不建议混用</strong>。Spring Boot 的
+                <code class="inline-code">spring-boot-starter-web</code>（WebMVC）和 <code class="inline-code">spring-boot-starter-webflux</code>（WebFlux）同时引入时，Spring Boot 会优先按 WebMVC 启动（WebMVC 的自动配置优先级更高），WebFlux 的异步特性被降级为 Servlet 3.1 异步处理，<strong>失去了 Netty EventLoop 的性能优势</strong>。若确实需要混合（如渐进式迁移），正确做法是：用 WebFlux 但在 Handler 中通过 <code class="inline-code">Schedulers.boundedElastic()</code> 调用阻塞的 WebMVC 代码（如遗留 JDBC），而非两个 Starter 共存。Spring 官方建议<strong>新项目二选一</strong>，不要混用。
+              </p>
             </div>
           </div>
 
@@ -711,7 +747,11 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"为什么 JDBC 的阻塞模型无法适配响应式架构、R2DBC 如何用非阻塞 SPI 重新定义关系数据库访问"</strong> 的理解。核心不在 API 差异，而在回答：JDBC 的同步阻塞为何会破坏 WebFlux 全链路非阻塞？R2DBC 如何基于 Reactive Streams 实现非阻塞数据库访问？Spring Data R2DBC 在 R2DBC SPI 之上提供了哪些 Repository 抽象？响应式事务与 JDBC 事务有何不同？</p>
+              <p>
+                这道题考察对
+                <strong>"为什么 JDBC 的阻塞模型无法适配响应式架构、R2DBC 如何用非阻塞 SPI 重新定义关系数据库访问"</strong>
+                的理解。核心不在 API 差异，而在回答：JDBC 的同步阻塞为何会破坏 WebFlux 全链路非阻塞？R2DBC 如何基于 Reactive Streams 实现非阻塞数据库访问？Spring Data R2DBC 在 R2DBC SPI 之上提供了哪些 Repository 抽象？响应式事务与 JDBC 事务有何不同？
+              </p>
             </div>
           </div>
 
@@ -721,6 +761,7 @@ flowchart TD
               <p><strong>Java 关系数据库访问的响应式演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["JDBC<br/>（1997, JDK 1.1）<br/>同步阻塞 SPI"] --> B["Reactive JDBC 封装<br/>（rxjava2-jdbc 等）<br/>线程池包装阻塞"]
@@ -735,7 +776,10 @@ flowchart LR
                 <div class="chart-caption">图 15.3-1 数据访问演进：JDBC（阻塞）→ 线程池包装 → R2DBC（原生非阻塞）→ Spring Data R2DBC</div>
               </div>
 
-              <p><strong>JDBC（1997，JDK 1.1）</strong>：Java 数据库访问的标准 SPI，<code class="inline-code">Connection/Statement/ResultSet</code> 全部同步阻塞——执行 SQL 时线程挂起等待数据库返回。在 Thread-per-Request 的 WebMVC 下没问题（线程反正要等），但在 WebFlux 的 EventLoop 下会<strong>阻塞少量共享线程</strong>，是响应式架构的头号敌人。</p>
+              <p>
+                <strong>JDBC（1997，JDK 1.1）</strong>：Java 数据库访问的标准 SPI，<code class="inline-code">Connection/Statement/ResultSet</code>
+                全部同步阻塞——执行 SQL 时线程挂起等待数据库返回。在 Thread-per-Request 的 WebMVC 下没问题（线程反正要等），但在 WebFlux 的 EventLoop 下会<strong>阻塞少量共享线程</strong>，是响应式架构的头号敌人。
+              </p>
               <p><strong>Reactive JDBC 封装（rxjava2-jdbc 等）</strong>：早期过渡方案——用线程池包装 JDBC 阻塞调用，把同步结果转为 <code class="inline-code">Flowable/Mono</code>。本质是"假响应式"：底层仍阻塞，只是换了线程执行，<strong>没有真正解决资源浪费</strong>，线程池配置不当仍是瓶颈。</p>
               <p><strong>R2DBC（Reactive Relational Database Connectivity，2019 起）</strong>：从零设计的<strong>原生非阻塞</strong>数据库访问 SPI，基于 Reactive Streams 规范。<code class="inline-code">Connection/Statement/Result</code> 全部返回 <code class="inline-code">Publisher</code>，数据库 IO 等待时不占线程。PostgreSQL/MySQL/MariaDB/H2/MSSQL/Oracle 均有驱动实现。</p>
               <p><strong>R2DBC 技术分层</strong>（明确各层职责，避免与 JDBC 混淆）：<strong>① API 规范</strong>——R2DBC SPI 定义 <code class="inline-code">ConnectionFactory/Connection/Statement/Result</code> 接口，基于 Reactive Streams 规范（Publisher/Subscriber/Subscription）；<strong>② 驱动</strong>——各数据库厂商实现 R2DBC SPI（如 r2dbc-postgresql、r2dbc-mysql），负责协议握手、SQL 执行、结果流式返回，是非阻塞网络驱动，与 JDBC 驱动（阻塞 socket）完全不同；<strong>③ 框架</strong>——Spring Data R2DBC 在 SPI 之上提供 Repository 抽象、实体映射、响应式事务；<strong>④ 执行模型</strong>——全链路非阻塞，连接等待时不占线程，与 JDBC 的"线程阻塞等待 DB 响应"模型本质不同。注意：<strong>HikariCP 是 JDBC 连接池，不适用于 R2DBC</strong>；R2DBC 使用独立的 <code class="inline-code">r2dbc-pool</code> 连接池。</p>
@@ -890,9 +934,15 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：R2DBC 的成熟度与 JDBC 差距多大？生产可用吗？</strong></p>
-              <p>R2DBC 1.0 于 2022 年 GA，主流数据库（PostgreSQL/MySQL/MariaDB/H2/MSSQL/Oracle）均有驱动，核心 CRUD 和事务<strong>生产可用</strong>。但与 JDBC 25 年生态相比仍有差距：① <strong>高级特性缺失</strong>——部分数据库特有功能（如 MySQL 的批量写入优化、Oracle 的 PL/SQL 存储过程）支持不全；② <strong>ORM 能力弱</strong>——Spring Data R2DBC 无 JPA 的级联/懒加载/二级缓存，复杂对象图映射需手写；③ <strong>运维工具少</strong>——连接池监控、慢查询分析工具不如 HikariCP 成熟；④ <strong>驱动 Bug</strong>——部分边缘场景（如大事务、批量操作）仍有稳定性问题。<strong>选型建议</strong>：新项目 IO 密集 + WebFlux 可用 R2DBC；复杂 ORM 需求或遗留系统优先 JDBC + WebMVC/Virtual Threads。</p>
+              <p>
+                R2DBC 1.0 于 2022 年 GA，主流数据库（PostgreSQL/MySQL/MariaDB/H2/MSSQL/Oracle）均有驱动，核心 CRUD 和事务<strong>生产可用</strong>。但与 JDBC 25 年生态相比仍有差距：①
+                <strong>高级特性缺失</strong>——部分数据库特有功能（如 MySQL 的批量写入优化、Oracle 的 PL/SQL 存储过程）支持不全；② <strong>ORM 能力弱</strong>——Spring Data R2DBC 无 JPA 的级联/懒加载/二级缓存，复杂对象图映射需手写；③ <strong>运维工具少</strong>——连接池监控、慢查询分析工具不如 HikariCP 成熟；④ <strong>驱动 Bug</strong>——部分边缘场景（如大事务、批量操作）仍有稳定性问题。<strong>选型建议</strong>：新项目 IO 密集 + WebFlux 可用 R2DBC；复杂 ORM 需求或遗留系统优先 JDBC + WebMVC/Virtual Threads。
+              </p>
               <p><strong>追问 2：响应式事务与传统 JDBC 事务有何本质差异？</strong></p>
-              <p>核心差异在<strong>事务上下文传递方式</strong>：JDBC 事务用 <code class="inline-code">@Transactional</code> + <code class="inline-code">TransactionSynchronizationManager</code>，通过 <strong>ThreadLocal</strong> 把 Connection 绑定到当前线程，同一线程内所有 DAO 自动复用该连接——但这要求事务内<strong>不切换线程</strong>。响应式事务（<code class="inline-code">ReactiveTransactionManager</code> + <code class="inline-code">TransactionalOperator</code>）通过 <strong>Reactor Context</strong>（随数据流传播的上下文）传递事务，<strong>线程切换不影响事务</strong>——无论链中 <code class="inline-code">publishOn/subscribeOn</code> 切到哪个线程，Context 跟着流走，事务始终一致。代价是：不能再用 <code class="inline-code">@Transactional</code> 注解（除非配合 <code class="inline-code">ReactiveTransactionManager</code> 的 AOP 适配），且事务边界要显式用 <code class="inline-code">as(txOperator::transactional)</code> 包裹。</p>
+              <p>
+                核心差异在<strong>事务上下文传递方式</strong>：JDBC 事务用
+                <code class="inline-code">@Transactional</code> + <code class="inline-code">TransactionSynchronizationManager</code>，通过 <strong>ThreadLocal</strong> 把 Connection 绑定到当前线程，同一线程内所有 DAO 自动复用该连接——但这要求事务内<strong>不切换线程</strong>。响应式事务（<code class="inline-code">ReactiveTransactionManager</code> + <code class="inline-code">TransactionalOperator</code>）通过 <strong>Reactor Context</strong>（随数据流传播的上下文）传递事务，<strong>线程切换不影响事务</strong>——无论链中 <code class="inline-code">publishOn/subscribeOn</code> 切到哪个线程，Context 跟着流走，事务始终一致。代价是：不能再用 <code class="inline-code">@Transactional</code> 注解（除非配合 <code class="inline-code">ReactiveTransactionManager</code> 的 AOP 适配），且事务边界要显式用 <code class="inline-code">as(txOperator::transactional)</code> 包裹。
+              </p>
             </div>
           </div>
 
@@ -904,7 +954,10 @@ flowchart LR
                 <ul>
                   <li><strong>驱动不支持背压</strong>：部分 R2DBC 驱动实现不完整，大结果集仍一次性加载到内存（未真正按 request(n) 分批），需测试验证或限制结果集大小。</li>
                   <li><strong>混用 JdbcTemplate 导致阻塞</strong>：WebFlux 应用中图省事用 JdbcTemplate 执行复杂 SQL，阻塞 EventLoop，应统一用 <code class="inline-code">DatabaseClient</code> 或 <code class="inline-code">@Query</code>。</li>
-                  <li><strong>连接池配置不当</strong>：<code class="inline-code">maxSize</code> 过大打挂数据库连接数，过小导致 <code class="inline-code">acquireTimeout</code> 失败；<code class="inline-code">acquireTimeout</code> 不设则连接耗尽时无限等待。</li>
+                  <li>
+                    <strong>连接池配置不当</strong>：<code class="inline-code">maxSize</code> 过大打挂数据库连接数，过小导致 <code class="inline-code">acquireTimeout</code> 失败；<code class="inline-code">acquireTimeout</code>
+                    不设则连接耗尽时无限等待。
+                  </li>
                   <li><strong>用 @Transactional 事务失效</strong>：在 WebFlux 中用 <code class="inline-code">@Transactional</code> 注解，ThreadLocal 绑定因线程切换失效，事务不生效且无报错，必须用 <code class="inline-code">TransactionalOperator</code>。</li>
                   <li><strong>collectList() 加载大结果集 OOM</strong>：把大表查询 <code class="inline-code">Flux.collectList()</code> 转为 List 一次性加载，应保持 Flux 流式处理或分页。</li>
                 </ul>
@@ -915,7 +968,9 @@ flowchart LR
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>选用 R2DBC 的核心量化结论：少量连接（数十级）即可支撑高并发落库，连接数上限与资源占用远低于 JDBC 每请求一连接的线程模型，容量取决于事件循环与背压而非线程数。</strong></p>
+              <p>
+                <strong>选用 R2DBC 的核心量化结论：少量连接（数十级）即可支撑高并发落库，连接数上限与资源占用远低于 JDBC 每请求一连接的线程模型，容量取决于事件循环与背压而非线程数。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -949,7 +1004,11 @@ flowchart LR
               </table>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p>压测对比同 DB 下 R2DBC 与 JDBC 的「连接数-并发-QPS」曲线；<code class="inline-code">maxSize</code> 按数据库承载（如 MySQL 默认 151）设上限，配合 <code class="inline-code">acquireTimeout</code>。以上为参考基准，需以自身生产数据替换。</p>
+                <p>
+                  压测对比同 DB 下 R2DBC 与 JDBC 的「连接数-并发-QPS」曲线；<code class="inline-code">maxSize</code>
+                  按数据库承载（如 MySQL 默认 151）设上限，配合
+                  <code class="inline-code">acquireTimeout</code>。以上为参考基准，需以自身生产数据替换。
+                </p>
               </div>
             </div>
           </div>
@@ -967,7 +1026,12 @@ flowchart LR
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"响应式链中错误如何传播、如何设计健壮的重试与降级机制"</strong> 的工程能力。核心不在罗列操作符，而在回答：响应式链中 <code class="inline-code">onError</code> 信号如何传播（与 try-catch 的区别）？重试策略有哪些（固定/退避/抖动/断路器），各自适用什么场景？如何区分可重试错误（网络抖动）与不可重试错误（参数校验）？错误边界如何设计避免局部故障雪崩？</p>
+              <p>
+                这道题考察对
+                <strong>"响应式链中错误如何传播、如何设计健壮的重试与降级机制"</strong>
+                的工程能力。核心不在罗列操作符，而在回答：响应式链中
+                <code class="inline-code">onError</code> 信号如何传播（与 try-catch 的区别）？重试策略有哪些（固定/退避/抖动/断路器），各自适用什么场景？如何区分可重试错误（网络抖动）与不可重试错误（参数校验）？错误边界如何设计避免局部故障雪崩？
+              </p>
             </div>
           </div>
 
@@ -977,6 +1041,7 @@ flowchart LR
               <p><strong>错误处理策略的演进</strong>，从简单到健壮：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["try-catch<br/>同步异常捕获"] --> B["onError 信号<br/>响应式错误传播"]
@@ -992,7 +1057,11 @@ flowchart LR
               </div>
 
               <p><strong>try-catch（同步时代）</strong>：命令式代码用 try-catch-finally 捕获异常，栈展开机制保证异常沿调用链向上传播。但在响应式链中，异常发生在异步回调里，try-catch 包不住——<strong>异步错误无法用 try-catch 捕获</strong>。</p>
-              <p><strong>onError 信号（Reactive Streams）</strong>：响应式链用 <code class="inline-code">onError</code> 信号传播错误，它是<strong>终止信号</strong>——一旦发出，流终止，不再发射数据。错误作为终止信号沿操作符链<strong>向下游（朝 Subscriber 方向）</strong>传播（注意：这与 try-catch 的栈展开"向上调用栈"方向相反，响应式是沿数据流"向下游"），直到被下游的 <code class="inline-code">onErrorResume/onErrorReturn/doOnError</code> 拦截，否则最终到达 Subscriber 的 <code class="inline-code">onError</code> 回调；未处理则抛到全局（<code class="inline-code">Hooks.onErrorDropped</code>）。</p>
+              <p>
+                <strong>onError 信号（Reactive Streams）</strong>：响应式链用
+                <code class="inline-code">onError</code>
+                信号传播错误，它是<strong>终止信号</strong>——一旦发出，流终止，不再发射数据。错误作为终止信号沿操作符链<strong>向下游（朝 Subscriber 方向）</strong>传播（注意：这与 try-catch 的栈展开"向上调用栈"方向相反，响应式是沿数据流"向下游"），直到被下游的 <code class="inline-code">onErrorResume/onErrorReturn/doOnError</code> 拦截，否则最终到达 Subscriber 的 <code class="inline-code">onError</code> 回调；未处理则抛到全局（<code class="inline-code">Hooks.onErrorDropped</code>）。
+              </p>
               <p><strong>retry(n) 固定重试</strong>：出错后立即重试 n 次，简单但粗暴——不退避、不区分错误类型，对瞬时故障有效但对持续故障会快速耗尽重试次数，且无退避可能压垮下游。</p>
               <p><strong>retryWhen + 指数退避（Exponential Backoff）</strong>：出错后按指数递增间隔重试（1s→2s→4s→8s），加抖动（Jitter）避免重试风暴。Reactor 3.x 用 <code class="inline-code">Retry.backoff(maxAttempts, minDuration)</code> 流式配置，支持过滤可重试异常。</p>
               <p><strong>断路器 + 降级（Resilience4j）</strong>：当错误率超阈值时断路器熔断，直接走降级逻辑不再调用下游，保护系统不被故障服务拖垮。Spring Cloud Circuit Breaker + Resilience4j 提供响应式断路器（<code class="inline-code">CircuitBreakerOperator</code>）。</p>
@@ -1003,7 +1072,11 @@ flowchart LR
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>onError 信号传播规则</strong>：在 Reactor 链中，<code class="inline-code">onError</code> 是<strong>终止信号</strong>——发出后流立即终止，后续 <code class="inline-code">onNext</code> 不再发射。错误沿链向下游传播，直到被错误处理操作符捕获：<code class="inline-code">onErrorResume(fn)</code>（切换到降级流）、<code class="inline-code">onErrorReturn(val)</code>（返回默认值）、<code class="inline-code">doOnError(fn)</code>（副作用，如日志，不消费错误）、<code class="inline-code">onErrorMap(fn)</code>（异常转换）。若链中无任何错误处理，错误传到 <code class="inline-code">subscribe()</code> 的 <code class="inline-code">onError</code> 回调，<strong>未处理的错误会抛到全局异常处理器</strong>（<code class="inline-code">Hooks.onErrorDropped</code>）。</p>
+              <p>
+                <strong>onError 信号传播规则</strong>：在 Reactor 链中，<code class="inline-code">onError</code>
+                是<strong>终止信号</strong>——发出后流立即终止，后续
+                <code class="inline-code">onNext</code> 不再发射。错误沿链向下游传播，直到被错误处理操作符捕获：<code class="inline-code">onErrorResume(fn)</code>（切换到降级流）、<code class="inline-code">onErrorReturn(val)</code>（返回默认值）、<code class="inline-code">doOnError(fn)</code>（副作用，如日志，不消费错误）、<code class="inline-code">onErrorMap(fn)</code>（异常转换）。若链中无任何错误处理，错误传到 <code class="inline-code">subscribe()</code> 的 <code class="inline-code">onError</code> 回调，<strong>未处理的错误会抛到全局异常处理器</strong>（<code class="inline-code">Hooks.onErrorDropped</code>）。
+              </p>
 
               <p><strong>重试策略对比</strong>：</p>
               <table class="compare-table">
@@ -1050,6 +1123,7 @@ flowchart LR
               </table>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     SRC["上游错误源<br/>操作符/数据源抛异常"] --> ERR["onError(t) 终止信号<br/>沿数据流向下游传播"]
@@ -1065,7 +1139,14 @@ flowchart TD
                 <div class="chart-caption">图 15.4-2 onError 信号传播：向下游传播（非向上游），错误处理操作符按位置就近拦截；retry 在前、onErrorResume 在后构成"先重试后降级"</div>
               </div>
 
-              <p><strong>retryWhen 指数退避原理</strong>：Reactor 的 <code class="inline-code">retryWhen(Retry)</code> 基于 <code class="inline-code">RetrySignal</code> 流实现——每次出错发射一个信号到内部重试流，重试流决定是否重订阅上游。<code class="inline-code">Retry.backoff(3, Duration.ofSeconds(1))</code> 表示最多重试 3 次，初始间隔 1 秒，按指数递增（1s→2s→4s），可加 <code class="inline-code">.maxBackoff(Duration.ofSeconds(10))</code> 封顶、<code class="inline-code">.jitter(0.5)</code> 加 50% 抖动。关键：<code class="inline-code">.filter(ex -&gt; ex instanceof IOException)</code> 只对可重试异常重试。</p>
+              <p>
+                <strong>retryWhen 指数退避原理</strong>：Reactor 的 <code class="inline-code">retryWhen(Retry)</code> 基于
+                <code class="inline-code">RetrySignal</code>
+                流实现——每次出错发射一个信号到内部重试流，重试流决定是否重订阅上游。<code class="inline-code">Retry.backoff(3, Duration.ofSeconds(1))</code>
+                表示最多重试 3 次，初始间隔 1 秒，按指数递增（1s→2s→4s），可加
+                <code class="inline-code">.maxBackoff(Duration.ofSeconds(10))</code> 封顶、<code class="inline-code">.jitter(0.5)</code> 加 50% 抖动。关键：<code class="inline-code">.filter(ex -&gt; ex instanceof IOException)</code>
+                只对可重试异常重试。
+              </p>
 
               <p><strong>错误分类原则</strong>：这是健壮重试的核心——<strong>不是所有错误都该重试</strong>。可重试错误（瞬时）：网络超时、连接拒绝、5xx 服务端错误、限流 429；不可重试错误（永久）：4xx 客户端错误（参数错误 400/404/401）、业务校验失败、NPE 等编程错误。重试不可重试错误不仅无效还会浪费资源。</p>
             </div>
@@ -1120,7 +1201,12 @@ flowchart TD
               </div>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
-                <p>响应式错误处理五原则：① <strong>错误分类先行</strong>——用 <code class="inline-code">.filter(ex -&gt; ...)</code> 区分可重试（5xx/超时/网络）与不可重试（4xx/业务异常），只重试可恢复错误；② <strong>退避必加抖动</strong>——<code class="inline-code">Retry.backoff().jitter()</code> 避免多实例同步重试形成重试风暴；③ <strong>重试有上限</strong>——禁止无限重试，设 <code class="inline-code">maxAttempts</code> 防雪崩；④ <strong>降级保可用</strong>——<code class="inline-code">onErrorResume</code> 切到缓存/默认值，比让用户等超时好；⑤ <strong>错误不静默</strong>——用 <code class="inline-code">doOnError</code> 记日志和监控指标，吞掉错误无日志是排查噩梦。</p>
+                <p>
+                  响应式错误处理五原则：① <strong>错误分类先行</strong>——用
+                  <code class="inline-code">.filter(ex -&gt; ...)</code>
+                  区分可重试（5xx/超时/网络）与不可重试（4xx/业务异常），只重试可恢复错误；②
+                  <strong>退避必加抖动</strong>——<code class="inline-code">Retry.backoff().jitter()</code> 避免多实例同步重试形成重试风暴；③ <strong>重试有上限</strong>——禁止无限重试，设 <code class="inline-code">maxAttempts</code> 防雪崩；④ <strong>降级保可用</strong>——<code class="inline-code">onErrorResume</code> 切到缓存/默认值，比让用户等超时好；⑤ <strong>错误不静默</strong>——用 <code class="inline-code">doOnError</code> 记日志和监控指标，吞掉错误无日志是排查噩梦。
+                </p>
               </div>
             </div>
           </div>
@@ -1141,9 +1227,18 @@ flowchart TD
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
-                  <li><strong>无限重试雪崩</strong>：不设 <code class="inline-code">maxAttempts</code> 或用 <code class="inline-code">repeat()</code> 无限重试，下游持续故障时重试请求堆积压垮整个调用链，必须设上限。</li>
+                  <li>
+                    <strong>无限重试雪崩</strong>：不设 <code class="inline-code">maxAttempts</code> 或用
+                    <code class="inline-code">repeat()</code>
+                    无限重试，下游持续故障时重试请求堆积压垮整个调用链，必须设上限。
+                  </li>
                   <li><strong>重试不设退避</strong>：用 <code class="inline-code">retry(3)</code> 立即重试无间隔，高并发下瞬间放大 N 倍流量冲击下游，应用 <code class="inline-code">retryWhen(backoff())</code> 退避。</li>
-                  <li><strong>错误吞掉无日志</strong>：用 <code class="inline-code">onErrorResume</code> 降级但不在其中记日志，故障被静默掩盖，排查时毫无线索，必须 <code class="inline-code">doOnError</code> 或降级时 log.error。</li>
+                  <li>
+                    <strong>错误吞掉无日志</strong>：用
+                    <code class="inline-code">onErrorResume</code>
+                    降级但不在其中记日志，故障被静默掩盖，排查时毫无线索，必须
+                    <code class="inline-code">doOnError</code> 或降级时 log.error。
+                  </li>
                   <li><strong>重试不可重试错误</strong>：对 4xx 客户端错误也重试，浪费资源且必然失败，应用 <code class="inline-code">.filter()</code> 只重试可恢复异常。</li>
                   <li><strong>重试非幂等接口</strong>：对 POST 创建接口无幂等保护就重试，产生重复数据，必须先实现幂等键或唯一约束。</li>
                 </ul>
@@ -1159,7 +1254,11 @@ flowchart TD
                 <li><strong>Hooks.onOperatorDebug()</strong>：全局开启后所有操作符记录装配栈（assembly trace），异常时打印完整操作符链调用栈而非只有异常发生处。性能开销大，仅排错时临时开启，生产禁止常开。</li>
                 <li><strong>checkpoint("name")</strong>：在关键操作符后加标记，异常时输出该标记点。只记录标记不记录完整栈，性能影响小，生产可用——建议在关键业务路径上添加。</li>
                 <li><strong>BlockHound</strong>：运行时检测响应式流中的阻塞调用（<code class="inline-code">Thread.sleep</code>、同步 IO），检测到即抛 <code class="inline-code">BlockingOperationException</code> 并附带调用栈。</li>
-                <li><strong>BlockHound 集成（开发/测试期检测，非生产熔断）</strong>：标准做法在应用启动早期调用 <code class="inline-code">BlockHound.install()</code>（常配合 <code class="inline-code">@Profile("!prod")</code> 仅开发/测试启用，避免生产性能开销）；误报用 <code class="inline-code">BlockHound.builder().allowBlockingCallsInside(MyClass.class, "myMethod")</code> 白名单豁免。注意区分：BlockHound 是<strong>开发期阻塞调用检测器</strong>，生产环境的过载保护应交给 Resilience4j 断路器（<code class="inline-code">CircuitBreakerOperator</code>），二者职责不同、不可混用。</li>
+                <li>
+                  <strong>BlockHound 集成（开发/测试期检测，非生产熔断）</strong>：标准做法在应用启动早期调用 <code class="inline-code">BlockHound.install()</code>（常配合 <code class="inline-code">@Profile("!prod")</code> 仅开发/测试启用，避免生产性能开销）；误报用
+                  <code class="inline-code">BlockHound.builder().allowBlockingCallsInside(MyClass.class, "myMethod")</code>
+                  白名单豁免。注意区分：BlockHound 是<strong>开发期阻塞调用检测器</strong>，生产环境的过载保护应交给 Resilience4j 断路器（<code class="inline-code">CircuitBreakerOperator</code>），二者职责不同、不可混用。
+                </li>
               </ul>
               <p><strong>常见排错场景</strong>：</p>
               <ul>
@@ -1169,7 +1268,12 @@ flowchart TD
               </ul>
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
-                <p><code class="inline-code">onOperatorDebug</code> 与 <code class="inline-code">checkpoint</code> 的取舍：前者记录每个操作符的完整装配栈，信息全但开销大；后者只记一个命名标记，开销小。生产环境应"埋点式"使用 <code class="inline-code">checkpoint</code> 给链路贴标签，排障窗口期再临时全局开 <code class="inline-code">onOperatorDebug</code> 抓现场。BlockHound 的价值在于把"阻塞调用混入响应式链"这种运行时才暴露的问题提前到测试阶段发现。</p>
+                <p>
+                  <code class="inline-code">onOperatorDebug</code> 与
+                  <code class="inline-code">checkpoint</code>
+                  的取舍：前者记录每个操作符的完整装配栈，信息全但开销大；后者只记一个命名标记，开销小。生产环境应"埋点式"使用
+                  <code class="inline-code">checkpoint</code> 给链路贴标签，排障窗口期再临时全局开 <code class="inline-code">onOperatorDebug</code> 抓现场。BlockHound 的价值在于把"阻塞调用混入响应式链"这种运行时才暴露的问题提前到测试阶段发现。
+                </p>
               </div>
             </div>
           </div>
@@ -1187,7 +1291,11 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"Virtual Threads 是否终结响应式编程、两种并发模型的本质差异与选型决策"</strong> 的前瞻判断力。核心不在捧一贬一，而在回答：Virtual Threads（JEP 444，JDK 21）用同步代码风格获得响应式级别吞吐，是否意味着 Reactive 被淘汰？两种模型在调度机制、资源占用、调试体验、生态兼容上的本质差异是什么？IO 密集 + CPU 密集混合场景如何取舍？未来架构如何组合二者？这是架构师必须能讲清的"并发范式抉择"问题。</p>
+              <p>
+                这道题考察对
+                <strong>"Virtual Threads 是否终结响应式编程、两种并发模型的本质差异与选型决策"</strong>
+                的前瞻判断力。核心不在捧一贬一，而在回答：Virtual Threads（JEP 444，JDK 21）用同步代码风格获得响应式级别吞吐，是否意味着 Reactive 被淘汰？两种模型在调度机制、资源占用、调试体验、生态兼容上的本质差异是什么？IO 密集 + CPU 密集混合场景如何取舍？未来架构如何组合二者？这是架构师必须能讲清的"并发范式抉择"问题。
+              </p>
             </div>
           </div>
 
@@ -1197,6 +1305,7 @@ flowchart TD
               <p><strong>Java 并发模型的三代演进</strong>，核心是"如何用更轻量的并发单元承载更多并发"：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["线程池<br/>（JDK 5）<br/>OS 线程, 1-2MB 栈"] --> B["Reactive<br/>（Reactor 3.x）<br/>少量线程 + 异步回调"]
@@ -1221,11 +1330,15 @@ flowchart TD
               <p><strong>Virtual Threads 调度机制</strong>：虚拟线程由 JVM 调度器（<code class="inline-code">ForkJoinPool</code> 共享池，载体线程数=CPU 核数）管理。当虚拟线程执行<strong>阻塞操作</strong>（IO/<code class="inline-code">BlockingQueue.take()</code>）时，JVM 把它的栈帧从载体线程 unmount（卸载），载体线程立即运行下一个虚拟线程；阻塞就绪后 JVM 把栈帧 mount（装载）回某载体线程恢复执行。<strong>关键：阻塞调用不占 OS 线程</strong>，这就是"同步代码、异步效率"的原理。</p>
 
               <p>
-                <strong>Pinning（载体线程固定）问题</strong>：这是 Virtual Threads 的核心陷阱。当虚拟线程在 <code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时，<strong>无法 unmount</strong>，载体线程被固定（pinned），退化为传统阻塞——此时虚拟线程与 OS 线程 1:1 绑定，失去并发优势。JDK 21 中 <code class="inline-code">synchronized</code> 导致的 pinning 仍未完全解决（JDK 24 由 JEP 491 修复，并继承到 JDK 25 LTS；完整对照见 <a href="chapter-04-threadpool-virtual-threads.html#C04.09"><strong>C04.09</strong></a
-                >）。<strong>解决方案</strong>：在 JDK 21–23 用 <code class="inline-code">ReentrantLock</code> 替代 <code class="inline-code">synchronized</code>，<code class="inline-code">ReentrantLock.lock()</code> 阻塞时虚拟线程可正常 unmount；JDK 24+ 可直接用 synchronized。检测方法：JDK 21–23 可用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>；JDK 24+ 该属性已移除，改用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code>（见 C04.09）。
+                <strong>Pinning（载体线程固定）问题</strong>：这是 Virtual Threads 的核心陷阱。当虚拟线程在 <code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时，<strong>无法 unmount</strong>，载体线程被固定（pinned），退化为传统阻塞——此时虚拟线程与 OS 线程 1:1 绑定，失去并发优势。JDK 21 中 <code class="inline-code">synchronized</code> 导致的 pinning 仍未完全解决（JDK 24 由 JEP 491 修复，并继承到 JDK 25 LTS；完整对照见 <a href="chapter-04-threadpool-virtual-threads.html#C04.09"><strong>C04.09</strong></a>）。<strong>解决方案</strong>：在 JDK 21–23 用 <code class="inline-code">ReentrantLock</code> 替代 <code class="inline-code">synchronized</code>，<code class="inline-code">ReentrantLock.lock()</code>
+                阻塞时虚拟线程可正常 unmount；JDK 24+ 可直接用 synchronized。检测方法：JDK 21–23 可用
+                <code class="inline-code">-Djdk.tracePinnedThreads=full</code>；JDK 24+ 该属性已移除，改用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code>（见 C04.09）。
               </p>
 
-              <p><strong>结构化并发（Structured Concurrency，JEP 453 起多次预览，最新 JEP 499/505）</strong>：<code class="inline-code">StructuredTaskScope</code> 让并发任务的父子关系显式化——父任务等待所有子任务完成，子任务异常可取消兄弟任务，避免任务泄漏。这是配合 Virtual Threads 的并发编排 API，让并发代码更安全可维护。</p>
+              <p>
+                <strong>结构化并发（Structured Concurrency，JEP 453 起多次预览，最新 JEP 499/505）</strong>：<code class="inline-code">StructuredTaskScope</code>
+                让并发任务的父子关系显式化——父任务等待所有子任务完成，子任务异常可取消兄弟任务，避免任务泄漏。这是配合 Virtual Threads 的并发编排 API，让并发代码更安全可维护。
+              </p>
 
               <p><strong>三种并发模型全维度对比</strong>：</p>
               <table class="compare-table">
@@ -1435,7 +1548,10 @@ spring:
               <p><strong>追问 1：Virtual Threads 能否完全替代 Reactive？</strong></p>
               <p><strong>不能完全替代</strong>，二者有不可重叠的优势区。Virtual Threads 替代了 Reactive 的<strong>大部分 IO 密集场景</strong>——同步代码 + JDBC + 阻塞 HTTP 在虚拟线程下吞吐接近 Reactive，且调试简单、生态兼容，<strong>传统 CRUD/微服务调用用 Virtual Threads 更优</strong>。但 Reactive 在以下场景仍不可替代：① <strong>流式背压</strong>——SSE 推送、大文件流式传输、数据库大结果集分批拉取，Reactive 的 <code class="inline-code">request(n)</code> 背压机制能精确控速，Virtual Threads 是 Push 模型无背压；② <strong>极高并发连接</strong>——百万级 WebSocket 长连接，虚拟线程虽轻但每个仍占几 KB 栈 + 调度开销，Reactive 回调无栈更省内存；③ <strong>操作符组合</strong>——Reactor 的 <code class="inline-code">flatMap/zip/merge/combineLatest</code> 复杂流编排，用同步代码 + Virtual Threads 实现会很啰嗦；④ <strong>已有 Reactive 代码资产</strong>——迁移成本高，不必为迁移而迁移。<strong>结论</strong>：新项目 IO 密集 + 无流式背压需求优先 Virtual Threads，流式/背压/超高并发长连接保留 Reactive。</p>
               <p><strong>追问 2：IO 密集 + CPU 密集混合场景如何选型？</strong></p>
-              <p>混合场景应<strong>分层调度</strong>：IO 密集部分用 Virtual Threads（阻塞 IO 不占载体线程），CPU 密集部分用固定线程池或 Reactive <code class="inline-code">parallel()</code> 调度器（CPU 核数个线程）。原因：Virtual Threads 是<strong>协作式调度不抢占</strong>，CPU 密集任务跑在虚拟线程上会长时间占住载体线程，饿死同一载体线程上的其他虚拟线程，导致 IO 任务延迟飙升。实践模式：① <strong>WebMVC + Virtual Threads</strong> 处理请求和 IO 调用，CPU 密集计算（如加密/压缩/大数据处理）提交到 <code class="inline-code">ForkJoinPool</code> 或专用 <code class="inline-code">ExecutorService</code>（<code class="inline-code">CompletableFuture.supplyAsync(task, cpuPool)</code>）；② <strong>WebFlux + Reactor</strong> 用 <code class="inline-code">subscribeOn(Schedulers.boundedElastic())</code> 跑 IO，<code class="inline-code">publishOn(Schedulers.parallel())</code> 跑 CPU 密集；③ <strong>混合架构</strong>——Web 层用 Virtual Threads（同步简洁），数据流处理层用 Reactive（背压控速），通过 <code class="inline-code">Mono.fromFuture</code>/<code class="inline-code">block()</code> 边界桥接。核心原则：<strong>按任务类型分调度器，不要一种并发模型打天下</strong>。</p>
+              <p>
+                混合场景应<strong>分层调度</strong>：IO 密集部分用 Virtual Threads（阻塞 IO 不占载体线程），CPU 密集部分用固定线程池或 Reactive <code class="inline-code">parallel()</code> 调度器（CPU 核数个线程）。原因：Virtual Threads 是<strong>协作式调度不抢占</strong>，CPU 密集任务跑在虚拟线程上会长时间占住载体线程，饿死同一载体线程上的其他虚拟线程，导致 IO 任务延迟飙升。实践模式：① <strong>WebMVC + Virtual Threads</strong> 处理请求和 IO 调用，CPU 密集计算（如加密/压缩/大数据处理）提交到 <code class="inline-code">ForkJoinPool</code> 或专用 <code class="inline-code">ExecutorService</code>（<code class="inline-code">CompletableFuture.supplyAsync(task, cpuPool)</code>）；② <strong>WebFlux + Reactor</strong> 用 <code class="inline-code">subscribeOn(Schedulers.boundedElastic())</code> 跑 IO，<code class="inline-code">publishOn(Schedulers.parallel())</code> 跑 CPU 密集；③ <strong>混合架构</strong>——Web 层用 Virtual Threads（同步简洁），数据流处理层用 Reactive（背压控速），通过 <code class="inline-code">Mono.fromFuture</code>/<code class="inline-code">block()</code>
+                边界桥接。核心原则：<strong>按任务类型分调度器，不要一种并发模型打天下</strong>。
+              </p>
             </div>
           </div>
 
@@ -1467,12 +1583,19 @@ spring:
               <p><strong>桥接方案</strong>：</p>
               <ul>
                 <li><strong>Reactor 调 VT</strong>：<code class="inline-code">Mono.fromCallable(() -&gt; blockingCall()).subscribeOn(Schedulers.fromExecutor(Executors.newVirtualThreadPerTaskExecutor()))</code>——把阻塞调用放到虚拟线程调度器上，避免污染 EventLoop。</li>
-                <li><strong>VT 调 Reactor</strong>：<code class="inline-code">mono.block()</code> 在虚拟线程中安全——虚拟线程可以阻塞等待而不占用载体线程，是"合法阻塞点"。</li>
+                <li>
+                  <strong>VT 调 Reactor</strong>：<code class="inline-code">mono.block()</code>
+                  在虚拟线程中安全——虚拟线程可以阻塞等待而不占用载体线程，是"合法阻塞点"。
+                </li>
               </ul>
               <p><strong>混合编程风险</strong>：</p>
               <ul>
                 <li>在 Reactor 非阻塞链中调用 <code class="inline-code">block()</code> 会抛 <code class="inline-code">blockAllowed() == false</code> 异常（<code class="inline-code">IllegalStateException</code>），这是框架对非阻塞线程调 block 的保护。</li>
-                <li>VT 中 <code class="inline-code">block()</code> 不影响载体线程，但每次阻塞都经历挂起/恢复调度，存在开销，不应滥用。</li>
+                <li>
+                  VT 中
+                  <code class="inline-code">block()</code>
+                  不影响载体线程，但每次阻塞都经历挂起/恢复调度，存在开销，不应滥用。
+                </li>
                 <li><strong>最佳实践</strong>：IO 密集用 VT、背压/流式用 Reactor，两者通过 <code class="inline-code">fromCallable</code> / <code class="inline-code">block</code> 在边界收敛，禁止在 Reactor 链内裸调阻塞方法。</li>
               </ul>
               <div class="callout callout-deep">
@@ -1495,7 +1618,11 @@ spring:
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>"Reactive Manifesto 四大原则如何从理论落地为全栈响应式架构"</strong> 的系统设计能力。核心不在背诵原则，而在回答：响应式系统的四大原则（Responsive 响应/Resilient 弹性/Elastic 弹性伸缩/Message Driven 消息驱动）如何在技术栈中具体落地？什么是全栈响应式——从 Web 到数据访问到缓存到服务间调用全部非阻塞？全链路背压如何从客户端一路传导到数据库？在 Virtual Threads 时代，响应式系统架构该如何演进？这是架构师整合前 5 题知识点的综合设计题。</p>
+              <p>
+                这道题考察对
+                <strong>"Reactive Manifesto 四大原则如何从理论落地为全栈响应式架构"</strong>
+                的系统设计能力。核心不在背诵原则，而在回答：响应式系统的四大原则（Responsive 响应/Resilient 弹性/Elastic 弹性伸缩/Message Driven 消息驱动）如何在技术栈中具体落地？什么是全栈响应式——从 Web 到数据访问到缓存到服务间调用全部非阻塞？全链路背压如何从客户端一路传导到数据库？在 Virtual Threads 时代，响应式系统架构该如何演进？这是架构师整合前 5 题知识点的综合设计题。
+              </p>
             </div>
           </div>
 
@@ -1505,6 +1632,7 @@ spring:
               <p><strong>系统架构的响应式演进</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["单体架构<br/>同步阻塞<br/>Thread-per-Request"] --> B["微服务<br/>同步 RPC<br/>线程池调用"]
@@ -1531,7 +1659,10 @@ flowchart LR
             <div class="qa-layer-body">
               <p><strong>Reactive Manifesto 四大原则落地</strong>：</p>
               <p><strong>1. Responsive（响应性）</strong>：系统在任何情况下都快速响应。落地：非阻塞全栈（WebFlux/R2DBC/WebClient）保证 IO 等待不占线程；超时控制（<code class="inline-code">timeout()</code>）快速失败；降级（<code class="inline-code">onErrorResume</code>）保可用。</p>
-              <p><strong>2. Resilient（弹性/容错）</strong>：部分故障不蔓延。落地：隔离舱（Bulkhead）——不同业务用独立线程池/连接池隔离，避免互相拖垮；熔断器（Circuit Breaker）——Resilience4j <code class="inline-code">CircuitBreakerOperator</code>，错误率超阈值熔断走降级；重试退避——<code class="inline-code">retryWhen(backoff())</code> 瞬时故障自愈。</p>
+              <p>
+                <strong>2. Resilient（弹性/容错）</strong>：部分故障不蔓延。落地：隔离舱（Bulkhead）——不同业务用独立线程池/连接池隔离，避免互相拖垮；熔断器（Circuit Breaker）——Resilience4j <code class="inline-code">CircuitBreakerOperator</code>，错误率超阈值熔断走降级；重试退避——<code class="inline-code">retryWhen(backoff())</code>
+                瞬时故障自愈。
+              </p>
               <p><strong>3. Elastic（弹性伸缩）</strong>：随负载自动扩缩。落地：响应式应用内存占用低、启动快，适合 K8s HPA（Horizontal Pod Autoscaler）按 CPU/内存/自定义指标扩缩；无状态设计 + 响应式 Redis 共享会话。</p>
               <p><strong>4. Message Driven（消息驱动）</strong>：组件间异步消息通信。落地：服务内用 Reactor 的 Mono/Flux 消息流；服务间用 Kafka/Pulsar 事件流异步解耦；全链路背压——慢消费者 <code class="inline-code">request(n)</code> 反压上游，消息队列作为缓冲削峰。</p>
 
@@ -1683,9 +1814,15 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：全栈响应式的落地难点是什么？</strong></p>
-              <p>五大难点：① <strong>生态约束</strong>——全栈要求每个组件都有响应式驱动，但部分中间件（如旧版 Elasticsearch 客户端、部分云服务 SDK）只有阻塞客户端，强行用 <code class="inline-code">boundedElastic</code> 包装是"假响应式"；② <strong>调试与排障</strong>——Reactor 操作符栈不反映业务代码行，异常难定位，需大量 <code class="inline-code">checkpoint()</code> + <code class="inline-code">Hooks.onOperatorDebug()</code>，团队需重新学习排障方法论；③ <strong>事务与上下文</strong>——<code class="inline-code">@Transactional</code> 和 ThreadLocal 失效，需用 <code class="inline-code">TransactionalOperator</code> 和 Reactor Context 重写所有横切逻辑；④ <strong>团队心智成本</strong>——响应式编程范式与命令式差异大，团队需系统培训，误用（阻塞调用、多次订阅、无背压）导致难以排查的生产事故；⑤ <strong>混合架构边界</strong>——与遗留同步系统对接时，<code class="inline-code">block()</code>/<code class="inline-code">fromFuture</code> 边界设计不当会引入阻塞或性能损耗。<strong>建议</strong>：非必要不全栈响应式，评估 Virtual Threads + WebMVC 能否满足吞吐需求，流式背压场景才上全栈响应式。</p>
+              <p>
+                五大难点：① <strong>生态约束</strong>——全栈要求每个组件都有响应式驱动，但部分中间件（如旧版 Elasticsearch 客户端、部分云服务 SDK）只有阻塞客户端，强行用 <code class="inline-code">boundedElastic</code> 包装是"假响应式"；② <strong>调试与排障</strong>——Reactor 操作符栈不反映业务代码行，异常难定位，需大量 <code class="inline-code">checkpoint()</code> + <code class="inline-code">Hooks.onOperatorDebug()</code>，团队需重新学习排障方法论；③ <strong>事务与上下文</strong>——<code class="inline-code">@Transactional</code> 和 ThreadLocal 失效，需用 <code class="inline-code">TransactionalOperator</code> 和 Reactor Context 重写所有横切逻辑；④ <strong>团队心智成本</strong>——响应式编程范式与命令式差异大，团队需系统培训，误用（阻塞调用、多次订阅、无背压）导致难以排查的生产事故；⑤ <strong>混合架构边界</strong>——与遗留同步系统对接时，<code class="inline-code">block()</code>/<code class="inline-code">fromFuture</code>
+                边界设计不当会引入阻塞或性能损耗。<strong>建议</strong>：非必要不全栈响应式，评估 Virtual Threads + WebMVC 能否满足吞吐需求，流式背压场景才上全栈响应式。
+              </p>
               <p><strong>追问 2：响应式与 Virtual Threads 混合架构如何设计？</strong></p>
-              <p>混合架构是当前的务实选择——<strong>取二者所长</strong>。设计原则：① <strong>Web 层用 Virtual Threads</strong>——WebMVC + <code class="inline-code">spring.threads.virtual.enabled=true</code>，请求处理和同步 IO（JDBC/阻塞 HTTP）跑虚拟线程，简单高效；② <strong>流式/背压层用 Reactive</strong>——SSE 推送、大文件流式传输、实时数据流用 WebFlux + Flux，利用背压控速；③ <strong>边界桥接</strong>——Virtual Threads 侧调 Reactive 侧用 <code class="inline-code">mono.block()</code>（虚拟线程阻塞安全），Reactive 侧调 Virtual Threads 侧用 <code class="inline-code">Mono.fromCallable(() -&gt; syncCall()).subscribeOn(boundedElastic())</code> 或 <code class="inline-code">Schedulers.fromExecutor(virtualThreadExecutor)</code>；④ <strong>消息层统一</strong>——Kafka/Redis Stream 作为两侧的异步通信枢纽，生产侧和消费侧各自用同步或响应式，解耦编程模型；⑤ <strong>可观测性统一</strong>——Micrometer 同时支持同步和响应式埋点，用 OpenTelemetry 统一 Trace 串联两种模型的调用链。<strong>核心</strong>：不要强迫统一编程模型，按场景选最优——IO 密集 CRUD 用 Virtual Threads，流式背压用 Reactive，二者通过消息总线和边界桥接协作。</p>
+              <p>
+                混合架构是当前的务实选择——<strong>取二者所长</strong>。设计原则：①
+                <strong>Web 层用 Virtual Threads</strong>——WebMVC + <code class="inline-code">spring.threads.virtual.enabled=true</code>，请求处理和同步 IO（JDBC/阻塞 HTTP）跑虚拟线程，简单高效；② <strong>流式/背压层用 Reactive</strong>——SSE 推送、大文件流式传输、实时数据流用 WebFlux + Flux，利用背压控速；③ <strong>边界桥接</strong>——Virtual Threads 侧调 Reactive 侧用 <code class="inline-code">mono.block()</code>（虚拟线程阻塞安全），Reactive 侧调 Virtual Threads 侧用 <code class="inline-code">Mono.fromCallable(() -&gt; syncCall()).subscribeOn(boundedElastic())</code> 或 <code class="inline-code">Schedulers.fromExecutor(virtualThreadExecutor)</code>；④ <strong>消息层统一</strong>——Kafka/Redis Stream 作为两侧的异步通信枢纽，生产侧和消费侧各自用同步或响应式，解耦编程模型；⑤ <strong>可观测性统一</strong>——Micrometer 同时支持同步和响应式埋点，用 OpenTelemetry 统一 Trace 串联两种模型的调用链。<strong>核心</strong>：不要强迫统一编程模型，按场景选最优——IO 密集 CRUD 用 Virtual Threads，流式背压用 Reactive，二者通过消息总线和边界桥接协作。
+              </p>
             </div>
           </div>
 
@@ -1711,10 +1848,16 @@ flowchart LR
               <p>架构落地离不开质量保障——响应式链无法用传统 JUnit 直接验证，StepVerifier 是 Reactor 官方测试框架，也是必须掌握的工具。</p>
               <ul>
                 <li><strong>基本用法</strong>：<code class="inline-code">StepVerifier.create(Flux.just(1, 2, 3)).expectNext(1, 2, 3).verifyComplete()</code>——创建 → 断言元素 → 断言完成信号，测试才会真正触发订阅。</li>
-                <li><strong>虚拟时间（Virtual Time）</strong>：<code class="inline-code">StepVerifier.withVirtualTime(() -&gt; Flux.interval(Duration.ofSeconds(1)).take(3))</code>——虚拟时钟立即推进，无需真实等待；<code class="inline-code">thenAwait(Duration.ofSeconds(10))</code> 虚拟推进 10 秒，适合测试延迟、定时器。</li>
+                <li>
+                  <strong>虚拟时间（Virtual Time）</strong>：<code class="inline-code">StepVerifier.withVirtualTime(() -&gt; Flux.interval(Duration.ofSeconds(1)).take(3))</code>——虚拟时钟立即推进，无需真实等待；<code class="inline-code">thenAwait(Duration.ofSeconds(10))</code>
+                  虚拟推进 10 秒，适合测试延迟、定时器。
+                </li>
                 <li><strong>测试背压</strong>：<code class="inline-code">create(source, 0)</code> 初始 request 0，<code class="inline-code">thenRequest(n)</code> 分步拉取，<code class="inline-code">thenCancel()</code> 模拟下游取消订阅——用于验证背压传导是否正确。</li>
                 <li><strong>测试异常</strong>：<code class="inline-code">expectError(RuntimeException.class)</code> 验证异常类型，<code class="inline-code">expectErrorMessage("msg")</code> 验证异常消息。</li>
-                <li><strong>时序断言</strong>：<code class="inline-code">expectNoEvent(Duration.ofMillis(100))</code> 验证指定窗口内无事件，用于超时、限流等场景。</li>
+                <li>
+                  <strong>时序断言</strong>：<code class="inline-code">expectNoEvent(Duration.ofMillis(100))</code>
+                  验证指定窗口内无事件，用于超时、限流等场景。
+                </li>
               </ul>
               <div class="code-block">
                 <pre><code><span class="com">// 虚拟时间 + 时序断言 + 取消 综合示例</span>
@@ -1734,11 +1877,15 @@ flowchart LR
               </ul>
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
-                <p><code class="inline-code">withVirtualTime</code> 的原理：StepVerifier 用 <code class="inline-code">TestScheduler</code> 替换默认 Scheduler，时间相关操作符在虚拟时钟上执行，测试瞬时完成。关键约束：<code class="inline-code">withVirtualTime</code> 必须传 Supplier（延迟构建 Publisher），若直接传已构建的 <code class="inline-code">Flux.interval()</code>，调度在虚拟时钟安装前已发生，虚拟时间失效。另外 <code class="inline-code">create(source, initialRequest)</code> 的第二个参数控制初始请求量，默认 <code class="inline-code">Long.MAX_VALUE</code>——测试背压必须显式传入 0 或小值。</p>
+                <p>
+                  <code class="inline-code">withVirtualTime</code> 的原理：StepVerifier 用 <code class="inline-code">TestScheduler</code> 替换默认 Scheduler，时间相关操作符在虚拟时钟上执行，测试瞬时完成。关键约束：<code class="inline-code">withVirtualTime</code>
+                  必须传 Supplier（延迟构建 Publisher），若直接传已构建的
+                  <code class="inline-code">Flux.interval()</code>，调度在虚拟时钟安装前已发生，虚拟时间失效。另外 <code class="inline-code">create(source, initialRequest)</code> 的第二个参数控制初始请求量，默认 <code class="inline-code">Long.MAX_VALUE</code>——测试背压必须显式传入 0 或小值。
+                </p>
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -1749,7 +1896,7 @@ flowchart LR
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- C15.07 Mono vs Flux 语义与创建操作符 -->
         <div class="qa-card" id="C15.07" data-difficulty="architect" data-priority="p0">
@@ -1761,42 +1908,104 @@ flowchart LR
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
               <p>按 Reactor Core Reference：<code class="inline-code">Flux&lt;T&gt;</code> 表示异步序列 <strong>0..N</strong> 元素；<code class="inline-code">Mono&lt;T&gt;</code> 表示异步结果 <strong>0..1</strong>（单值或空）。类型携带<strong>基数语义</strong>——HTTP 单次响应应是 Mono，SSE/列表流应是 Flux；改变最大基数的操作符会切换类型（如 <code class="inline-code">Flux#count</code> → <code class="inline-code">Mono&lt;Long&gt;</code>）。</p>
-              <p>本题要答清：① 为何不能「一律 Flux」；② 创建序列时 <code class="inline-code">just</code>/<code class="inline-code">defer</code>/<code class="inline-code">from*</code>/<code class="inline-code">create</code>/<code class="inline-code">generate</code> 的官方选择表；③ Cold 订阅语义与「已有值却用 just 捕获过早」的坑。</p>
+              <p>
+                本题要答清：① 为何不能「一律 Flux」；② 创建序列时 <code class="inline-code">just</code>/<code class="inline-code">defer</code>/<code class="inline-code">from*</code>/<code class="inline-code">create</code>/<code class="inline-code">generate</code>
+                的官方选择表；③ Cold 订阅语义与「已有值却用 just 捕获过早」的坑。
+              </p>
             </div>
           </div>
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p>Reactive Streams 只规定 <code class="inline-code">Publisher</code>；Reactor 用 Mono/Flux 双类型把「基数」编码进 API，减少误用（对 Mono 做无意义的 <code class="inline-code">buffer</code> 等）。官方附录 <em>Which operator do I need?</em> 把创建、变换、过滤、错误、时间、拆分、回同步世界、多播分成九类决策树——工程表达应以该附录为索引，而不是背零散 API 名。</p>
+              <p>
+                Reactive Streams 只规定 <code class="inline-code">Publisher</code>；Reactor 用 Mono/Flux 双类型把「基数」编码进 API，减少误用（对 Mono 做无意义的 <code class="inline-code">buffer</code> 等）。官方附录
+                <em>Which operator do I need?</em>
+                把创建、变换、过滤、错误、时间、拆分、回同步世界、多播分成九类决策树——工程表达应以该附录为索引，而不是背零散 API 名。
+              </p>
             </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">底层原理</div>
             <div class="qa-layer-body">
-              <p><strong>Mono 信号约束</strong>（官方）：成功路径是至多一次 <code class="inline-code">onNext</code> 后 <code class="inline-code">onComplete</code>，或仅 <code class="inline-code">onError</code>；禁止 <code class="inline-code">onNext</code>+<code class="inline-code">onError</code> 组合。<code class="inline-code">Mono.never()</code> 是例外（无信号，多用于测试）。</p>
+              <p>
+                <strong>Mono 信号约束</strong>（官方）：成功路径是至多一次 <code class="inline-code">onNext</code> 后 <code class="inline-code">onComplete</code>，或仅 <code class="inline-code">onError</code>；禁止 <code class="inline-code">onNext</code>+<code class="inline-code">onError</code> 组合。<code class="inline-code">Mono.never()</code>
+                是例外（无信号，多用于测试）。
+              </p>
               <div class="compare-table">
                 <table>
-                  <thead><tr><th>诉求</th><th>官方推荐</th><th>注意</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>诉求</th>
+                      <th>官方推荐</th>
+                      <th>注意</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td>已有 T</td><td><code class="inline-code">just</code>（Flux|Mono）</td><td>立即捕获；懒捕获用 <code class="inline-code">defer</code> / <code class="inline-code">Mono.fromSupplier</code></td></tr>
-                    <tr><td>Optional / 可能 null</td><td><code class="inline-code">Mono.justOrEmpty</code></td><td>null → 空 Mono，勿 <code class="inline-code">just(null)</code></td></tr>
-                    <tr><td>数组 / Iterable / 区间</td><td><code class="inline-code">Flux.fromArray</code> / <code class="inline-code">fromIterable</code> / <code class="inline-code">range</code></td><td>Cold：每订阅重放</td></tr>
-                    <tr><td>Callable / Future / Supplier</td><td><code class="inline-code">Mono.fromCallable</code> / <code class="inline-code">fromFuture</code> / <code class="inline-code">fromSupplier</code></td><td>阻塞 Callable 须配合 Scheduler</td></tr>
-                    <tr><td>空 / 错 / 永不</td><td><code class="inline-code">empty</code> / <code class="inline-code">error</code> / <code class="inline-code">never</code></td><td>懒错误用 <code class="inline-code">error(Supplier)</code></td></tr>
-                    <tr><td>订阅时才决定</td><td><code class="inline-code">defer</code></td><td>配置/请求上下文相关源的标配</td></tr>
-                    <tr><td>依赖可释放资源</td><td><code class="inline-code">using</code></td><td>类 try-with-resources</td></tr>
-                    <tr><td>同步逐个生成</td><td><code class="inline-code">Flux.generate</code></td><td>一次一点，状态机友好</td></tr>
-                    <tr><td>多发射/桥接回调</td><td><code class="inline-code">Flux.create</code>（Mono 亦有 create）</td><td>可异步多发；注意溢出策略</td></tr>
+                    <tr>
+                      <td>已有 T</td>
+                      <td><code class="inline-code">just</code>（Flux|Mono）</td>
+                      <td>
+                        立即捕获；懒捕获用 <code class="inline-code">defer</code> /
+                        <code class="inline-code">Mono.fromSupplier</code>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Optional / 可能 null</td>
+                      <td><code class="inline-code">Mono.justOrEmpty</code></td>
+                      <td>null → 空 Mono，勿 <code class="inline-code">just(null)</code></td>
+                    </tr>
+                    <tr>
+                      <td>数组 / Iterable / 区间</td>
+                      <td><code class="inline-code">Flux.fromArray</code> / <code class="inline-code">fromIterable</code> / <code class="inline-code">range</code></td>
+                      <td>Cold：每订阅重放</td>
+                    </tr>
+                    <tr>
+                      <td>Callable / Future / Supplier</td>
+                      <td><code class="inline-code">Mono.fromCallable</code> / <code class="inline-code">fromFuture</code> / <code class="inline-code">fromSupplier</code></td>
+                      <td>阻塞 Callable 须配合 Scheduler</td>
+                    </tr>
+                    <tr>
+                      <td>空 / 错 / 永不</td>
+                      <td>
+                        <code class="inline-code">empty</code> / <code class="inline-code">error</code> /
+                        <code class="inline-code">never</code>
+                      </td>
+                      <td>懒错误用 <code class="inline-code">error(Supplier)</code></td>
+                    </tr>
+                    <tr>
+                      <td>订阅时才决定</td>
+                      <td><code class="inline-code">defer</code></td>
+                      <td>配置/请求上下文相关源的标配</td>
+                    </tr>
+                    <tr>
+                      <td>依赖可释放资源</td>
+                      <td><code class="inline-code">using</code></td>
+                      <td>类 try-with-resources</td>
+                    </tr>
+                    <tr>
+                      <td>同步逐个生成</td>
+                      <td><code class="inline-code">Flux.generate</code></td>
+                      <td>一次一点，状态机友好</td>
+                    </tr>
+                    <tr>
+                      <td>多发射/桥接回调</td>
+                      <td><code class="inline-code">Flux.create</code>（Mono 亦有 create）</td>
+                      <td>可异步多发；注意溢出策略</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
-              <p>基数切换示例：Mono 上 <code class="inline-code">flatMapMany</code> → Flux；Flux 上 <code class="inline-code">next</code>/<code class="inline-code">single</code>/<code class="inline-code">collectList</code> → Mono。</p>
+              <p>
+                基数切换示例：Mono 上 <code class="inline-code">flatMapMany</code> → Flux；Flux 上 <code class="inline-code">next</code>/<code class="inline-code">single</code>/<code class="inline-code">collectList</code>
+                → Mono。
+              </p>
             </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <div class="code-block"><pre><code><span class="com">// 懒捕获：每次订阅读最新配置（官方：just 会立即捕获）</span>
+              <div class="code-block">
+                <pre><code><span class="com">// 懒捕获：每次订阅读最新配置（官方：just 会立即捕获）</span>
 <span class="type">Mono</span>&lt;<span class="type">Cfg</span>&gt; cfg = <span class="type">Mono</span>.defer(() -&gt; <span class="type">Mono</span>.just(loadCfg()));
 
 <span class="com">// Optional / null 安全</span>
@@ -1813,8 +2022,12 @@ flowchart LR
 <span class="type">Mono</span>&lt;<span class="type">Order</span>&gt; one(<span class="kw">@PathVariable</span> <span class="type">String</span> id) { <span class="kw">return</span> service.find(id); }
 
 <span class="kw">@GetMapping</span>(<span class="kw">value</span>=<span class="str">"/events"</span>, <span class="kw">produces</span>=MediaType.TEXT_EVENT_STREAM_VALUE)
-<span class="type">Flux</span>&lt;<span class="type">Event</span>&gt; stream() { <span class="kw">return</span> hub.stream(); }</code></pre></div>
-              <p>评审清单：返回类型基数是否与契约一致；有副作用的源是否 <code class="inline-code">defer</code>；文件/连接是否 <code class="inline-code">using</code>。</p>
+<span class="type">Flux</span>&lt;<span class="type">Event</span>&gt; stream() { <span class="kw">return</span> hub.stream(); }</code></pre>
+              </div>
+              <p>
+                评审清单：返回类型基数是否与契约一致；有副作用的源是否
+                <code class="inline-code">defer</code>；文件/连接是否 <code class="inline-code">using</code>。
+              </p>
             </div>
           </div>
           <div class="qa-layer" data-layer="deep">
@@ -1845,7 +2058,10 @@ flowchart LR
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
-              <p>对外 API 契约写明 Mono/Flux；OpenAPI/文档与实际返回类型不一致是联调事故源。可观测：对 Cold 源多次订阅会放大下游 QPS——入口做 <code class="inline-code">cache</code>/<code class="inline-code">share</code> 要有意识（见 C15.11）。</p>
+              <p>
+                对外 API 契约写明 Mono/Flux；OpenAPI/文档与实际返回类型不一致是联调事故源。可观测：对 Cold 源多次订阅会放大下游 QPS——入口做 <code class="inline-code">cache</code>/<code class="inline-code">share</code>
+                要有意识（见 C15.11）。
+              </p>
               <p>参考：<a href="https://projectreactor.io/docs/core/release/reference/coreFeatures.html" target="_blank" rel="noopener">Reactor Core Features</a>；<a href="https://projectreactor.io/docs/core/release/reference/apdx-operatorChoice.html" target="_blank" rel="noopener">Which operator do I need?</a>§1 Creating。</p>
             </div>
           </div>
@@ -1874,25 +2090,79 @@ flowchart LR
             <div class="qa-layer-body">
               <div class="compare-table">
                 <table>
-                  <thead><tr><th>操作符</th><th>官方用途</th><th>并发</th><th>顺序</th><th>取消语义</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>操作符</th>
+                      <th>官方用途</th>
+                      <th>并发</th>
+                      <th>顺序</th>
+                      <th>取消语义</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><code class="inline-code">map</code></td><td>同步 1→1 变换；亦可用 <code class="inline-code">cast</code></td><td>无</td><td>保序</td><td>—</td></tr>
-                    <tr><td><code class="inline-code">handle</code></td><td>带状态的同步 0/1 发射可编程出口</td><td>无</td><td>保序</td><td>—</td></tr>
-                    <tr><td><code class="inline-code">flatMap</code></td><td>每元素映射为 Publisher 并合并</td><td>默认可并发（可限 concurrency）</td><td><strong>不保序</strong></td><td>内层独立</td></tr>
-                    <tr><td><code class="inline-code">concatMap</code></td><td>映射后<strong>串行</strong>订阅内层</td><td>1</td><td><strong>严格保序</strong></td><td>等前完成</td></tr>
-                    <tr><td><code class="inline-code">flatMapSequential</code></td><td>立刻触发异步，但按源顺序重排结果</td><td>可并发</td><td>输出保序</td><td>类似 flatMap</td></tr>
-                    <tr><td><code class="inline-code">switchMap</code></td><td>新元素到来则切换到新 Publisher</td><td>当前 1</td><td>最新胜出</td><td><strong>取消</strong>上一个内层</td></tr>
-                    <tr><td><code class="inline-code">Mono.flatMapMany</code></td><td>Mono 源展开为多值 Flux</td><td>视内层</td><td>视内层</td><td>—</td></tr>
+                    <tr>
+                      <td><code class="inline-code">map</code></td>
+                      <td>同步 1→1 变换；亦可用 <code class="inline-code">cast</code></td>
+                      <td>无</td>
+                      <td>保序</td>
+                      <td>—</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">handle</code></td>
+                      <td>带状态的同步 0/1 发射可编程出口</td>
+                      <td>无</td>
+                      <td>保序</td>
+                      <td>—</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">flatMap</code></td>
+                      <td>每元素映射为 Publisher 并合并</td>
+                      <td>默认可并发（可限 concurrency）</td>
+                      <td><strong>不保序</strong></td>
+                      <td>内层独立</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">concatMap</code></td>
+                      <td>映射后<strong>串行</strong>订阅内层</td>
+                      <td>1</td>
+                      <td><strong>严格保序</strong></td>
+                      <td>等前完成</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">flatMapSequential</code></td>
+                      <td>立刻触发异步，但按源顺序重排结果</td>
+                      <td>可并发</td>
+                      <td>输出保序</td>
+                      <td>类似 flatMap</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">switchMap</code></td>
+                      <td>新元素到来则切换到新 Publisher</td>
+                      <td>当前 1</td>
+                      <td>最新胜出</td>
+                      <td><strong>取消</strong>上一个内层</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">Mono.flatMapMany</code></td>
+                      <td>Mono 源展开为多值 Flux</td>
+                      <td>视内层</td>
+                      <td>视内层</td>
+                      <td>—</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
-              <p>空内层：flatMap 中返回 <code class="inline-code">Mono.empty()</code> 可「忽略某些数据」（官方原文）。聚合到单值用 <code class="inline-code">collectList</code>/<code class="inline-code">reduce</code>/<code class="inline-code">count</code>（结果为 Mono）。</p>
+              <p>
+                空内层：flatMap 中返回
+                <code class="inline-code">Mono.empty()</code> 可「忽略某些数据」（官方原文）。聚合到单值用 <code class="inline-code">collectList</code>/<code class="inline-code">reduce</code>/<code class="inline-code">count</code>（结果为 Mono）。
+              </p>
             </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <div class="code-block"><pre><code><span class="com">// 并发拉取详情，限制并发度 16（官方 flatMap 第二参数）</span>
+              <div class="code-block">
+                <pre><code><span class="com">// 并发拉取详情，限制并发度 16（官方 flatMap 第二参数）</span>
 <span class="type">Flux</span>&lt;<span class="type">Detail</span>&gt; details = ids.flatMap(id -&gt; client.get(id), <span class="num">16</span>);
 
 <span class="com">// 必须按 ID 顺序写库</span>
@@ -1905,7 +2175,8 @@ flowchart LR
 <span class="type">Flux</span>&lt;<span class="type">T</span>&gt; ordered = src.flatMapSequential(this::asyncCall, <span class="num">8</span>);
 
 <span class="com">// Mono → 多行</span>
-<span class="type">Flux</span>&lt;<span class="type">Item</span>&gt; items = orderMono.flatMapMany(o -&gt; <span class="type">Flux</span>.fromIterable(o.getItems()));</code></pre></div>
+<span class="type">Flux</span>&lt;<span class="type">Item</span>&gt; items = orderMono.flatMapMany(o -&gt; <span class="type">Flux</span>.fromIterable(o.getItems()));</code></pre>
+              </div>
               <p>选型口诀：同步纯函数 → map；IO 且可乱序 → flatMap+并发度；IO 且保序 → concatMap 或 flatMapSequential；UI/搜索最新值 → switchMap。</p>
             </div>
           </div>
@@ -1965,17 +2236,65 @@ flowchart LR
             <div class="qa-layer-body">
               <div class="compare-table">
                 <table>
-                  <thead><tr><th>操作符</th><th>官方语义</th><th>典型实战</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>操作符</th>
+                      <th>官方语义</th>
+                      <th>典型实战</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><code class="inline-code">concat</code> / <code class="inline-code">concatWith</code></td><td>顺序订阅，前完后订；<code class="inline-code">concatDelayError</code> 推迟错误</td><td>分步工作流</td></tr>
-                    <tr><td><code class="inline-code">merge</code> / <code class="inline-code">mergeWith</code></td><td>按发射到达交错；<code class="inline-code">mergeSequential</code> 急切订阅但保序输出</td><td>多源事件汇聚</td></tr>
-                    <tr><td><code class="inline-code">zip</code> / <code class="inline-code">zipWith</code></td><td>各方都有元素才成对；长度受最短源限制</td><td>并行调多个依赖后组装 DTO</td></tr>
-                    <tr><td><code class="inline-code">combineLatest</code></td><td>任一侧新值即与各侧最新值组合</td><td>配置流 × 指标流</td></tr>
-                    <tr><td><code class="inline-code">Mono.zip</code> / <code class="inline-code">when</code> / <code class="inline-code">and</code></td><td>等完成/有值；偏「汇合点」</td><td>多个 Mono 聚合</td></tr>
-                    <tr><td><code class="inline-code">firstWithValue</code> / <code class="inline-code">firstWithSignal</code></td><td>竞速：先有值 / 先有信号</td><td>多副本择优</td></tr>
-                    <tr><td><code class="inline-code">buffer*</code></td><td>按数量/时间/谓词收成 List</td><td>批量写、微批</td></tr>
-                    <tr><td><code class="inline-code">window*</code></td><td>按边界切成内层 Flux</td><td>需再流式处理每窗</td></tr>
-                    <tr><td><code class="inline-code">groupBy</code></td><td><code class="inline-code">Flux&lt;GroupedFlux&lt;K,T&gt;&gt;</code>，同 key 同组</td><td>按租户/分片处理；防组数爆炸</td></tr>
+                    <tr>
+                      <td><code class="inline-code">concat</code> / <code class="inline-code">concatWith</code></td>
+                      <td>顺序订阅，前完后订；<code class="inline-code">concatDelayError</code> 推迟错误</td>
+                      <td>分步工作流</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">merge</code> / <code class="inline-code">mergeWith</code></td>
+                      <td>按发射到达交错；<code class="inline-code">mergeSequential</code> 急切订阅但保序输出</td>
+                      <td>多源事件汇聚</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">zip</code> / <code class="inline-code">zipWith</code></td>
+                      <td>各方都有元素才成对；长度受最短源限制</td>
+                      <td>并行调多个依赖后组装 DTO</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">combineLatest</code></td>
+                      <td>任一侧新值即与各侧最新值组合</td>
+                      <td>配置流 × 指标流</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <code class="inline-code">Mono.zip</code> / <code class="inline-code">when</code> /
+                        <code class="inline-code">and</code>
+                      </td>
+                      <td>等完成/有值；偏「汇合点」</td>
+                      <td>多个 Mono 聚合</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <code class="inline-code">firstWithValue</code> /
+                        <code class="inline-code">firstWithSignal</code>
+                      </td>
+                      <td>竞速：先有值 / 先有信号</td>
+                      <td>多副本择优</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">buffer*</code></td>
+                      <td>按数量/时间/谓词收成 List</td>
+                      <td>批量写、微批</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">window*</code></td>
+                      <td>按边界切成内层 Flux</td>
+                      <td>需再流式处理每窗</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">groupBy</code></td>
+                      <td><code class="inline-code">Flux&lt;GroupedFlux&lt;K,T&gt;&gt;</code>，同 key 同组</td>
+                      <td>按租户/分片处理；防组数爆炸</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -1985,7 +2304,8 @@ flowchart LR
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <div class="code-block"><pre><code><span class="com">// 并行依赖组装（最短完成数限制）</span>
+              <div class="code-block">
+                <pre><code><span class="com">// 并行依赖组装（最短完成数限制）</span>
 <span class="type">Mono</span>&lt;<span class="type">Page</span>&gt; page = <span class="type">Mono</span>.zip(userMono, orderMono, (u, o) -&gt; <span class="kw">new</span> <span class="type">Page</span>(u, o));
 
 <span class="com">// 微批写库：最多 100 条或 200ms</span>
@@ -1997,7 +2317,8 @@ flux.groupBy(<span class="type">Event</span>::userId)
     .flatMap(g -&gt; g.concatMap(this::handle), <span class="num">32</span>);
 
 <span class="com">// 空则走缓存 Publisher</span>
-db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
+db.find(id).switchIfEmpty(cache.find(id));</code></pre>
+              </div>
             </div>
           </div>
           <div class="qa-layer" data-layer="deep">
@@ -2056,14 +2377,44 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
             <div class="qa-layer-body">
               <div class="compare-table">
                 <table>
-                  <thead><tr><th>类别</th><th>关键 API</th><th>官方要点</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>类别</th>
+                      <th>关键 API</th>
+                      <th>官方要点</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td>过滤</td><td><code class="inline-code">filter</code>/<code class="inline-code">filterWhen</code>/<code class="inline-code">ofType</code>/<code class="inline-code">distinct*</code></td><td>异步谓词用 filterWhen</td></tr>
-                    <tr><td>截取</td><td><code class="inline-code">take</code>/<code class="inline-code">takeUntil</code>/<code class="inline-code">next</code>/<code class="inline-code">single</code></td><td>single：多于 1 个元素则错误</td></tr>
-                    <tr><td>错误回退</td><td><code class="inline-code">onErrorReturn</code>/<code class="inline-code">onErrorResume</code>/<code class="inline-code">onErrorComplete</code>/<code class="inline-code">onErrorMap</code></td><td>等价 try/catch/finally（finally≈doFinally）</td></tr>
-                    <tr><td>重试</td><td><code class="inline-code">retry</code>/<code class="inline-code">retryWhen(Retry.backoff)</code></td><td>写路径必须幂等</td></tr>
-                    <tr><td>时间</td><td><code class="inline-code">timeout</code>/<code class="inline-code">delayElements</code>/<code class="inline-code">interval</code>/<code class="inline-code">timed</code></td><td>timeout 超时即错误信号</td></tr>
-                    <tr><td>背压溢出</td><td><code class="inline-code">onBackpressureBuffer/Drop/Latest/Error</code></td><td>下游 request 不足时的策略</td></tr>
+                    <tr>
+                      <td>过滤</td>
+                      <td><code class="inline-code">filter</code>/<code class="inline-code">filterWhen</code>/<code class="inline-code">ofType</code>/<code class="inline-code">distinct*</code></td>
+                      <td>异步谓词用 filterWhen</td>
+                    </tr>
+                    <tr>
+                      <td>截取</td>
+                      <td><code class="inline-code">take</code>/<code class="inline-code">takeUntil</code>/<code class="inline-code">next</code>/<code class="inline-code">single</code></td>
+                      <td>single：多于 1 个元素则错误</td>
+                    </tr>
+                    <tr>
+                      <td>错误回退</td>
+                      <td><code class="inline-code">onErrorReturn</code>/<code class="inline-code">onErrorResume</code>/<code class="inline-code">onErrorComplete</code>/<code class="inline-code">onErrorMap</code></td>
+                      <td>等价 try/catch/finally（finally≈doFinally）</td>
+                    </tr>
+                    <tr>
+                      <td>重试</td>
+                      <td><code class="inline-code">retry</code>/<code class="inline-code">retryWhen(Retry.backoff)</code></td>
+                      <td>写路径必须幂等</td>
+                    </tr>
+                    <tr>
+                      <td>时间</td>
+                      <td><code class="inline-code">timeout</code>/<code class="inline-code">delayElements</code>/<code class="inline-code">interval</code>/<code class="inline-code">timed</code></td>
+                      <td>timeout 超时即错误信号</td>
+                    </tr>
+                    <tr>
+                      <td>背压溢出</td>
+                      <td><code class="inline-code">onBackpressureBuffer/Drop/Latest/Error</code></td>
+                      <td>下游 request 不足时的策略</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -2072,7 +2423,8 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <div class="code-block"><pre><code>client.get(id)
+              <div class="code-block">
+                <pre><code>client.get(id)
   .timeout(<span class="type">Duration</span>.ofSeconds(<span class="num">2</span>))
   .retryWhen(<span class="type">Retry</span>.backoff(<span class="num">3</span>, <span class="type">Duration</span>.ofMillis(<span class="num">100</span>))
       .filter(ex -&gt; ex <span class="kw">instanceof</span> <span class="type">TimeoutException</span>))
@@ -2080,7 +2432,8 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
 
 <span class="type">Flux</span>.interval(<span class="type">Duration</span>.ofMillis(<span class="num">10</span>))
   .onBackpressureDrop(i -&gt; metrics.dropped())
-  .concatMap(this::handle);</code></pre></div>
+  .concatMap(this::handle);</code></pre>
+              </div>
               <p>与 G06.01 超时预算对齐：链式 timeout 可加总；重试次数计入总预算。</p>
             </div>
           </div>
@@ -2140,14 +2493,44 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
             <div class="qa-layer-body">
               <div class="compare-table">
                 <table>
-                  <thead><tr><th>机制</th><th>官方要点</th><th>实战</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>机制</th>
+                      <th>官方要点</th>
+                      <th>实战</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td><code class="inline-code">subscribeOn</code></td><td>影响上游订阅发生的线程</td><td>阻塞源隔离到 boundedElastic</td></tr>
-                    <tr><td><code class="inline-code">publishOn</code></td><td>切换其后下游的执行线程</td><td>CPU 段切 parallel()</td></tr>
-                    <tr><td><code class="inline-code">share</code></td><td>多订阅者共享，迟到者只看后续</td><td>热事件总线</td></tr>
-                    <tr><td><code class="inline-code">cache</code></td><td>缓存并重放给后到订阅者（可 TTL）</td><td>昂贵 Cold 源防重复执行</td></tr>
-                    <tr><td><code class="inline-code">publish().refCount</code></td><td>订阅数阈值自动连/断</td><td>按需热源</td></tr>
-                    <tr><td><code class="inline-code">block*</code></td><td>回同步；禁用于 non-blocking Scheduler</td><td>仅测试/命令式边界/VT 桥接</td></tr>
+                    <tr>
+                      <td><code class="inline-code">subscribeOn</code></td>
+                      <td>影响上游订阅发生的线程</td>
+                      <td>阻塞源隔离到 boundedElastic</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">publishOn</code></td>
+                      <td>切换其后下游的执行线程</td>
+                      <td>CPU 段切 parallel()</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">share</code></td>
+                      <td>多订阅者共享，迟到者只看后续</td>
+                      <td>热事件总线</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">cache</code></td>
+                      <td>缓存并重放给后到订阅者（可 TTL）</td>
+                      <td>昂贵 Cold 源防重复执行</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">publish().refCount</code></td>
+                      <td>订阅数阈值自动连/断</td>
+                      <td>按需热源</td>
+                    </tr>
+                    <tr>
+                      <td><code class="inline-code">block*</code></td>
+                      <td>回同步；禁用于 non-blocking Scheduler</td>
+                      <td>仅测试/命令式边界/VT 桥接</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -2157,7 +2540,8 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <div class="code-block"><pre><code><span class="com">// 阻塞仓库隔离</span>
+              <div class="code-block">
+                <pre><code><span class="com">// 阻塞仓库隔离</span>
 <span class="type">Mono</span>&lt;<span class="type">Row</span>&gt; row = <span class="type">Mono</span>.fromCallable(() -&gt; jdbc.find(id))
     .subscribeOn(<span class="type">Schedulers</span>.boundedElastic());
 
@@ -2169,7 +2553,8 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
 
 <span class="com">// 命令式边界（WebMVC 调 WebClient）</span>
 <span class="type">Profile</span> p = client.get().retrieve().bodyToMono(<span class="type">Profile</span>.<span class="kw">class</span>)
-    .block(<span class="type">Duration</span>.ofSeconds(<span class="num">3</span>));</code></pre></div>
+    .block(<span class="type">Duration</span>.ofSeconds(<span class="num">3</span>));</code></pre>
+              </div>
             </div>
           </div>
           <div class="qa-layer" data-layer="deep">
@@ -2206,7 +2591,7 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
         </div>
 
         <!-- ============ 章节导航 ============ -->
-        
+
         <div class="qa-card" id="C15.12" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C15.12</div>
@@ -2214,38 +2599,60 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>背压断了会在某段无界缓冲里堆内存或丢请求。要会认症状并找到可关的缓冲点。</p></div>
+            <div class="qa-layer-body">
+              <p>背压断了会在某段无界缓冲里堆内存或丢请求。要会认症状并找到可关的缓冲点。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>Reactive 链要求需求信号向上游传递；无界 buffer、阻塞调用藏在 flatMap 都会切断背压。</p></div>
+            <div class="qa-layer-body">
+              <p>Reactive 链要求需求信号向上游传递；无界 buffer、阻塞调用藏在 flatMap 都会切断背压。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>症状：下游慢但上游仍高速进；某 operator 后队列长度狂涨；延迟升高但 CPU 不高。动作：降上游速率、缩小缓冲、启用 drop/latest（需业务允许）、扩下游。</p></div>
+            <div class="qa-layer-body">
+              <p>症状：下游慢但上游仍高速进；某 operator 后队列长度狂涨；延迟升高但 CPU 不高。动作：降上游速率、缩小缓冲、启用 drop/latest（需业务允许）、扩下游。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>旋钮：prefetch、缓冲容量、onBackpressure* 策略、连接池 max。先临时限流，再修传递链。</p></div>
+            <div class="qa-layer-body">
+              <p>旋钮：prefetch、缓冲容量、onBackpressure* 策略、连接池 max。先临时限流，再修传递链。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：无界 buffer 当「解法」；drop 未告知业务；阻塞调用藏在 flatMap。回滚点：恢复旧缓冲策略并限流上游。</p><p>背压未传递常见于：边界用了无界队列、block 在弹性线程、下游超时被吞。症状是内存涨而错误率不高。</p><p>临时止血：降产/限流/切有界队列；长期把背压写成契约并做拒绝可观测。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：无界 buffer 当「解法」；drop 未告知业务；阻塞调用藏在 flatMap。回滚点：恢复旧缓冲策略并限流上游。</p>
+              <p>背压未传递常见于：边界用了无界队列、block 在弹性线程、下游超时被吞。症状是内存涨而错误率不高。</p>
+              <p>临时止血：降产/限流/切有界队列；长期把背压写成契约并做拒绝可观测。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
-
-                </main>
+      </main>
     </div>
 
     <footer>
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">Project Reactor Reference Guide (release). — Core Features Mono/Flux；Appendix「Which operator do I need?」创建/变换/过滤/错误/时间/拆分/多播</span></li>
-          <li><span class="src-title">Spring WebFlux Documentation. — WebFlux 架构、RouterFunction、WebClient、与WebMVC对比</span></li>
-          <li><span class="src-title">R2DBC Specification (1.0). — Reactive Relational Database Connectivity SPI、连接池</span></li>
-          <li><span class="src-title">Reactive Streams Specification (JVM 1.0.4). — Publisher/Subscriber/Subscription 四接口、背压协议</span></li>
-          <li><span class="src-title">JEP 444 Virtual Threads (JDK 21). — 虚拟线程原理、carrier thread、pinning、结构化并发</span></li>
+          <li>
+            <span class="src-title">Project Reactor Reference Guide (release). — Core Features Mono/Flux；Appendix「Which operator do I need?」创建/变换/过滤/错误/时间/拆分/多播</span>
+          </li>
+          <li>
+            <span class="src-title">Spring WebFlux Documentation. — WebFlux 架构、RouterFunction、WebClient、与WebMVC对比</span>
+          </li>
+          <li>
+            <span class="src-title">R2DBC Specification (1.0). — Reactive Relational Database Connectivity SPI、连接池</span>
+          </li>
+          <li>
+            <span class="src-title">Reactive Streams Specification (JVM 1.0.4). — Publisher/Subscriber/Subscription 四接口、背压协议</span>
+          </li>
+          <li>
+            <span class="src-title">JEP 444 Virtual Threads (JDK 21). — 虚拟线程原理、carrier thread、pinning、结构化并发</span>
+          </li>
           <li><span class="src-title">Reactive Manifesto (2014). — 响应/弹性/弹性伸缩/消息驱动四原则</span></li>
         </ol>
       </div>
@@ -2253,10 +2660,10 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-14-databases.html" class="nav-prev">← 第 14 篇 数据库与存储深度</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-15-reactive.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="nav-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
-        </nav>
+        <a href="chapter-14-databases.html" class="nav-prev">← 第 14 篇 数据库与存储深度</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-15-reactive.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="nav-server-security-checkpoint.html" class="nav-next">服务端安全 Checkpoint →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2270,5 +2677,5 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre></div>
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>服务端开发安全 Checkpoint 手册</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
     <style>
       /* 安全手册专属样式 — 布局复用 page-wrapper / sidebar-toc / content-main
@@ -161,10 +161,10 @@
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-15-reactive.html" class="nav-prev">← 第 15 篇 响应式编程与系统设计</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-questions-eight-part.html" class="nav-next">核心原理速查 →</a>
-        </nav>
+        <a href="chapter-15-reactive.html" class="nav-prev">← 第 15 篇 响应式编程与系统设计</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-questions-eight-part.html" class="nav-next">核心原理速查 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
@@ -211,8 +211,6 @@
       </aside>
 
       <main class="content-main">
-                
-
         <h1 id="服务端开发安全-checkpoint-手册">服务端开发安全 Checkpoint 手册</h1>
 
         <blockquote>
@@ -223,7 +221,10 @@
         </blockquote>
         <h2 id="第-0-章-文档导论">第 0 章 文档导论</h2>
         <h3 id="01-文档目的与使用方式">0.1 文档目的与使用方式</h3>
-        <p>本文档面向 Java 服务端开发与架构评审场景，提供系统性的安全自检参考。每节采用统一的三段式结构：<strong>关键要点</strong>阐述核心原则与选型依据，<strong>Checkpoint</strong> 列出代码评审与架构评审中需逐项确认的检查点，<strong>雷区清单</strong>以「禁止…」句式列出高风险反模式。第 4 章密码学为核心重点，额外补充基于 JCA（Java Cryptography Architecture）与 Bouncy Castle 的规范实现代码范例。</p>
+        <p>
+          本文档面向 Java 服务端开发与架构评审场景，提供系统性的安全自检参考。每节采用统一的三段式结构：<strong>关键要点</strong>阐述核心原则与选型依据，<strong>Checkpoint</strong>
+          列出代码评审与架构评审中需逐项确认的检查点，<strong>雷区清单</strong>以「禁止…」句式列出高风险反模式。第 4 章密码学为核心重点，额外补充基于 JCA（Java Cryptography Architecture）与 Bouncy Castle 的规范实现代码范例。
+        </p>
         <p>文档可作为代码评审 checklist、架构评审 checkpoint 与安全培训材料使用。附录 C 提供可勾选版自检清单，便于上线评审时直接使用。</p>
         <h3 id="02-标准依据与版本声明">0.2 标准依据与版本声明</h3>
         <table class="compare-table">
@@ -552,7 +553,10 @@
           <li>禁止仅依赖 Referer 校验（可被缺失或伪造）</li>
         </ul>
         <h3 id="25-分布式会话与-redis-会话安全">2.5 分布式会话与 Redis 会话安全</h3>
-        <p>Redis 存储会话需设置 TTL，敏感会话数据应加密或仅存储会话 ID。Redis 实例需配置密码、网络隔离、禁用危险命令（如 <code>FLUSHALL</code>、<code>CONFIG</code>）。</p>
+        <p>
+          Redis 存储会话需设置 TTL，敏感会话数据应加密或仅存储会话 ID。Redis 实例需配置密码、网络隔离、禁用危险命令（如
+          <code>FLUSHALL</code>、<code>CONFIG</code>）。
+        </p>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>Redis 是否配置 requirepass 与网络隔离</li>
@@ -877,7 +881,10 @@ public class AesGcmExample {
         return cipher.doFinal(ciphertext);
     }
 }</code></pre>
-        <p>关键要点：每次加密生成随机 IV（<code>SecureRandom</code>）；GCM 自动计算并校验认证标签；解密时标签校验失败抛 <code>AEADBadTagException</code>，调用方必须捕获并拒绝该数据。</p>
+        <p>
+          关键要点：每次加密生成随机 IV（<code>SecureRandom</code>）；GCM 自动计算并校验认证标签；解密时标签校验失败抛
+          <code>AEADBadTagException</code>，调用方必须捕获并拒绝该数据。
+        </p>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>是否使用 GCM 或 ChaCha20-Poly1305 等 AEAD 模式</li>
@@ -1162,7 +1169,10 @@ public class HmacExample {
         // // 错误：expected.equals(actual) — 非常量时间
     }
 }</code></pre>
-        <p>关键要点：<code>MessageDigest.isEqual()</code> 在所有 JDK 版本中均为常量时间实现；<code>Arrays.equals()</code> 在发现第一个不匹配字节时即返回，泄露前缀信息。</p>
+        <p>
+          关键要点：<code>MessageDigest.isEqual()</code> 在所有 JDK 版本中均为常量时间实现；<code>Arrays.equals()</code>
+          在发现第一个不匹配字节时即返回，泄露前缀信息。
+        </p>
         <ul>
           <li><strong>Checkpoint</strong></li>
           <li>是否使用 HMAC 校验数据完整性</li>
@@ -1338,7 +1348,10 @@ public class HkdfExample {
         </ul>
         <hr />
         <h3 id="47-随机数与熵源">4.7 随机数与熵源</h3>
-        <p>密码学场景的随机数必须使用 CSPRNG（密码学安全随机数生成器）。Java 中对应 <code>java.security.SecureRandom</code>。</p>
+        <p>
+          密码学场景的随机数必须使用 CSPRNG（密码学安全随机数生成器）。Java 中对应
+          <code>java.security.SecureRandom</code>。
+        </p>
         <p><code>SecureRandom</code> 默认自动播种，从操作系统熵源获取种子（<code>/dev/urandom</code>），无需手动调用 <code>setSeed</code>。手动调用 <code>setSeed</code> 可能降低熵——若传入可预测值（如时间戳），则输出可预测。</p>
         <ul>
           <li><strong>不同场景的随机数需求</strong>：</li>
@@ -2719,11 +2732,15 @@ const typeDefs = gql`
             </tr>
             <tr>
               <td>OWASP ASVS v5.0</td>
-              <td><a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">https://owasp.org/www-project-application-security-verification-standard/</a></td>
+              <td>
+                <a href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener">https://owasp.org/www-project-application-security-verification-standard/</a>
+              </td>
             </tr>
             <tr>
               <td>OWASP Cheat Sheet Series</td>
-              <td><a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/</a></td>
+              <td>
+                <a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener">https://cheatsheetseries.owasp.org/</a>
+              </td>
             </tr>
             <tr>
               <td>NIST SP 800-131A Rev2</td>
@@ -2768,18 +2785,17 @@ const typeDefs = gql`
           </tbody>
         </table>
         <div class="footer-note">服务端开发安全 Checkpoint 手册 · 基于 OWASP Top 10:2025 / NIST / ASVS v5.0</div>
-                
       </main>
     </div>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-15-reactive.html" class="nav-prev">← 第 15 篇 响应式编程与系统设计</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-questions-eight-part.html" class="nav-next">核心原理速查 →</a>
-        </nav>
+        <a href="chapter-15-reactive.html" class="nav-prev">← 第 15 篇 响应式编程与系统设计</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-server-security-checkpoint.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-questions-eight-part.html" class="nav-next">核心原理速查 →</a>
+      </nav>
     </div>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

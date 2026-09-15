@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 02 篇 · GC 算法与性能调优 — 思维导图 | Java 架构师心智地图</title>
-<script src="../java-architect-interview/assets/theme-init.js"></script>
+    <script src="../java-architect-interview/assets/theme-init.js"></script>
     <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
     <style>
       .map-hero {
@@ -219,7 +219,6 @@
         .idx-hero h1 { font-size: 1.2rem; }
         .idx-meta { grid-template-columns: 1fr 1fr; }
       }
-
     </style>
   </head>
   <body>
@@ -242,8 +241,7 @@
     </section>
 
     <div class="map-body">
-            
-<section class="map-overview" aria-label="三层对照总览">
+      <section class="map-overview" aria-label="三层对照总览">
         <div class="map-col col-think">
           <h2 style="color: var(--accent)">① 回收本质与收集器演进</h2>
           <ul>
@@ -274,6 +272,7 @@
       </section>
 
       <div class="mermaid-container">
+        <!-- prettier-ignore -->
         <div class="mermaid">
 flowchart LR
   root["第 02 篇 · GC 算法与性能调优"]
@@ -304,134 +303,97 @@ flowchart LR
       <h2 id="detail" style="font-size: 1.3rem; margin-top: var(--space-xl); color: var(--accent)">主题卡详情</h2>
 
       <h3 class="theme-h">① 回收本质与收集器演进 <span class="qline">· 章节题 + 原理</span></h3>
-<details class="map-card" open>
+      <details class="map-card" open>
         <summary>C02.01 GC Roots 与三种 GC 算法的本质权衡</summary>
         <div class="map-body-text">GC Roots（栈变量、静态字段、常量、JNI、活跃线程）出发的可达性决定回收与否。三算法=标记-清除（快但碎片）、标记-整理（无碎片但移动）、复制（无碎片高效但有内存占用，适合新生代）。权衡本质是"吞吐 vs 延迟 vs 内存 vs 碎片"，没有银弹。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">GC Roots</span><span class="map-tag t-c">三算法</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.02 CMS/G1/ZGC/Shenandoah 差异与选型</summary>
         <div class="map-body-text">CMS 并发标记清除、老年代关注延迟但有碎片与并发失败；G1 Region 化+可预期停顿、默认当代；ZGC 染色指针+读屏障，亚 10ms 大堆；Shenandoah 并发整理（G1 派生）。选型口诀：吞吐优先 Parallel、延迟敏感中小堆 G1、超大堆 ZGC、特殊低延迟 Shenandoah。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">收集器选型</span><span class="map-tag t-c">ZGC</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.03 JVM 参数如何设置</summary>
         <div class="map-body-text">先定停顿与堆目标再选收集器：-Xms/-Xmx 相等免扩容振荡；新生代比例、-XX:MaxGCPauseMillis 设置停顿目标；-XX:+UseZGC 等选收集器；避免堆设过大吞本地内存或过小频繁 FullGC。参数是"目标驱动的约束"，非背数值。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">JVM 参数</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.04 线上 CPU 100% 快速定位</summary>
         <div class="map-body-text">`top -Hp` 找 CPU 最高线程 → `jstack &lt;pid&gt;线程ID转十六进制` 看堆栈 → 对应代码定位死循环/GC 线程/锁自旋。GC 型 100% 转查 GC 日志与内存；业务型看是否热点计算、无限循环、空转轮询。用 Arthas `thread -n 3` 一键抓最热线程。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">CPU100%</span><span class="map-tag t-c">jstack</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.05 线上 FullGC 频繁排查</summary>
         <div class="map-body-text">看 GC 日志确认 FullGC 频率与耗时 → 判断是晋升过大（结合 CPU/内存确认）还是元空间、大对象/并发修改、缓存无上限。手段：堆转储 MAT 找大对象与 GC Roots、检查弱引用集合/ThreadLocal、JStat 观察各区。原则用数据驱动治本而非加大堆掩盖。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">FullGC</span><span class="map-tag t-c">堆转储</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.06 各场景 GC 收集器推荐配置</summary>
         <div class="map-body-text">高吞吐批处理：Parallel + 大新生代；在线低延迟：G1 + 合理 pause target；超大堆延迟敏感：ZGC/Shenandoah；压测对比吞吐与 P99 后定。给"场景→收集器→关键参数"的组合，体现工程判断。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">推荐配置</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.07 Arthas 核心命令与诊断</summary>
         <div class="map-body-text">`dashboard` 总览线程/内存/GC；`thread` 线程栈与阻塞；`trace/top -n` 定位高频方法；`jad/decompile` 反编译、`watch` 观测方法出入参、`heapdump`、`ognl` 动态执行。线上零侵入、即插即得的排查利器，配合承载的文件动态加载。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Arthas</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.08 JFR 与异步 profiling</summary>
         <div class="map-body-text">JFR 低开销采样（GC/分配/锁/方法样本）无需 `-XX:+UnlockCommercialFeatures`，`jcmd &lt;pid&gt; JFR.start/stop/dump`；异步 profiler 生成火焰图定位 CPU 热点与分配热点。对比线程 dump 是"瞬时快照 vs 持续画像"。适合压测与长期驻留排查。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">JFR</span><span class="map-tag t-c">火焰图</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.09 JVM 线上调优全流程</summary>
         <div class="map-body-text">确立目标（吞吐/延迟/稳定）→ 基线压测拿数据 → 分析瓶颈（GC/内存/锁/IO 分层归因）→ 针对调参/改码 → 复测验证 → 固化配置与监控告警。全程"测量→定位→优化→验证"循环，拒绝拍脑袋改 -Xmx。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">调优流程</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.10 逃逸分析与标量替换</summary>
         <div class="map-body-text">方法内对象若未逃逸，JIT 可做栈上分配、锁消除、标量替换（对象拆成字段寄存器态）。受益于 C2，减少堆分配与 GC 压力。答点：逃逸分析是"编译器把不可见对象变本地"，也是衡量 JIT 深度优化的门面。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">逃逸分析</span><span class="map-tag t-c">标量替换</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.11 Generational ZGC 生产调优</summary>
         <div class="map-body-text">分代 ZGC（JDK21）年轻代用标记-复制、老年代并发整理，吞吐较单代提升 10–20%、停顿仍亚 10ms。调优：`-XX:+ZGenerational`、关注 `ZGC Cycles` 与分配速率、避免把堆设到让年轻代长期满导致高晋升量。适合超大堆 + 低延迟 + 中高吞吐兼备。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Generational ZGC</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C02.12 GC/JVM 指标监控闭环</summary>
         <div class="map-body-text">Micrometer 暴露 `jvm.gc.*`/内存/线程指标 → Prometheus 抓取 → Grafana 展示 → 阈值告警驱动调优。建设"GC 耗时/FullGC 次数/堆水位"核心大盘，把调优从救火变常态化。这是可观测性落地到 JVM 层的范本。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">可观测</span><span class="map-tag t-c">Prometheus</span></div>
       </details>
 
-      
-
-      
-
-      
-
-      
-
-      
-
-      
-
-      
-
-      
-
-      
-
-      
-
-      
-
-      
-
       <h3 class="theme-h">② GC 原理速记 · 核心原理</h3>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E02.01 GC 算法演进：Serial→Parallel→CMS→G1→ZGC</summary>
         <div class="map-body-text">一条脉络看演进驱动力（吞吐→延迟→低延迟大堆），与 C02.02 深度一致，答题按"为什么换"讲人话。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">演进</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E02.03 JVM 调优与 OOM 排查</summary>
         <div class="map-body-text">参数、GC 日志分析、内存 Dump、线上应急四件套；OOM 分类归因（堆/元空间/栈/直接内存）。与 C01.05/C02.05/09 贯通。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">OOM</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E02.04 ZGC 染色指针与读屏障</summary>
         <div class="map-body-text">64 位指针借用高位做状态位（Finalizable/Remapped/Marked），读屏障感知转移未完成自愈；多视图映射与分代 ZGC 是其内在实现，解答时可联 C02.11 双写互证。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">染色指针</span></div>
       </details>
 
-      
-
-      
-
-      
-
       <h3 class="theme-h">③ 线上排障实战 · 场景题</h3>
-<details class="map-card">
+      <details class="map-card">
         <summary>场景 S05.01 线上 OOM 排查：百万级订单服务内存泄漏定位</summary>
         <div class="map-body-text">保留现场 → 堆转储 → MAT 支配树找泄漏（订单上下文/静态缓存/ThreadLocal），治本（清引用/定容量）+ 兜底（告警与自动重启）。</div>
         <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">OOM 定位</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>场景 S05.02 CPU 100%：支付服务线程死循环定位</summary>
         <div class="map-body-text">行为路径=top 定位线程 → jstack/Arthas 数栈 → 还原死循环条件（不变量/脱敏循环）；根因是并发下 token 复用或条件漏更新，验收以压测回归。</div>
         <div class="map-tags"><span class="map-tag t-s">场景</span><span class="map-tag t-s">死循环</span></div>
       </details>
 
-      
-
-      
-
       <p class="map-note">注：本页为 chapter-02-gc-performance.html 的思维导图式总览，并入原理 E02.01/03/04 与场景题 S05.01/02。调优判定锚点取 P99 停顿与吞吐，审查用 GC 报告而非参数背默。</p>
-    
-                        
-  
     </div>
 
     <div class="site-page-nav site-page-nav--bottom">
@@ -449,5 +411,5 @@ flowchart LR
         mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || { startOnLoad: true, theme: "base", securityLevel: "loose", flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" }, sequence: { useMaxWidth: true, mirrorActors: false } });
       });
     </script>
-</body>
+  </body>
 </html>

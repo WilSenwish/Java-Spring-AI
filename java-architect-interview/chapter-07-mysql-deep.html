@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 07 篇 · MySQL 深度原理 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-06-spring-boot-modern.html" class="nav-prev">← 第 06 篇 Spring Boot 与现代框架</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-07-mysql-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-08-redis-cache.html" class="nav-next">第 08 篇 Redis 与缓存架构 →</a>
-        </nav>
+        <a href="chapter-06-spring-boot-modern.html" class="nav-prev">← 第 06 篇 Spring Boot 与现代框架</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-07-mysql-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-08-redis-cache.html" class="nav-next">第 08 篇 Redis 与缓存架构 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -215,6 +214,7 @@
               </table>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     subgraph BTree["B树：数据散布各层"]
@@ -245,7 +245,10 @@ flowchart TD
               <p><strong>聚簇索引 vs 二级索引</strong>：InnoDB 的聚簇索引（Clustered Index）叶子节点存<strong>完整行数据</strong>，按主键组织——一张表只有一个。二级索引（Secondary Index）叶子节点存索引列值 + 主键值，查询需要的列不在二级索引时需<strong>回表</strong>（用主键再查一次聚簇索引）。这与 MyISAM 不同——MyISAM 索引与数据分离，所有索引都指向行的物理地址。</p>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p>B+树更适合数据库的两个决定性理由：① <strong>非叶子节点不存数据 → 扇出极大 → 树高极低 → 磁盘 I/O 次数少</strong>；② <strong>叶子节点有序双向链表 → 范围查询退化为顺序 I/O</strong>。数据库 80% 以上是范围与排序场景，这两点共同决定了 B+树的统治地位。</p>
+                <p>
+                  B+树更适合数据库的两个决定性理由：①
+                  <strong>非叶子节点不存数据 → 扇出极大 → 树高极低 → 磁盘 I/O 次数少</strong>；② <strong>叶子节点有序双向链表 → 范围查询退化为顺序 I/O</strong>。数据库 80% 以上是范围与排序场景，这两点共同决定了 B+树的统治地位。
+                </p>
               </div>
             </div>
           </div>
@@ -298,7 +301,10 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 InnoDB <strong>多版本并发控制（Multi-Version Concurrency Control）</strong>底层实现的深度理解：如何在不加读锁的情况下实现读写并发、又如何仅通过"ReadView 生成时机"的差异切换 RC（读已提交）与 RR（可重复读）。本质是<strong>用 undo log 版本链 + ReadView 可见性算法，让每个事务看到数据的一个一致性快照</strong>，读写互不阻塞。掌握版本链结构、ReadView 组成、可见性判断四步算法，就能解释一切 MVCC 现象。</p>
+              <p>
+                这道题考察对 InnoDB
+                <strong>多版本并发控制（Multi-Version Concurrency Control）</strong>底层实现的深度理解：如何在不加读锁的情况下实现读写并发、又如何仅通过"ReadView 生成时机"的差异切换 RC（读已提交）与 RR（可重复读）。本质是<strong>用 undo log 版本链 + ReadView 可见性算法，让每个事务看到数据的一个一致性快照</strong>，读写互不阻塞。掌握版本链结构、ReadView 组成、可见性判断四步算法，就能解释一切 MVCC 现象。
+              </p>
             </div>
           </div>
 
@@ -319,6 +325,7 @@ flowchart TD
               <p>每行数据有两个隐藏字段：<code class="inline-code">DB_TRX_ID</code>（6 字节，最后修改该行的事务 ID）、<code class="inline-code">DB_ROLL_PTR</code>（7 字节，回滚指针，指向 undo log 中该行的上一版本）。每次 UPDATE 不是原地改，而是<strong>把旧版本写入 undo log，新版本写回数据页，roll_ptr 串联成版本链</strong>。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     subgraph Current["数据页当前版本"]
@@ -395,7 +402,10 @@ flowchart LR
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <p><strong>长事务是 MVCC 的头号敌人</strong>：长事务的 ReadView 长期存在，导致其生成时活跃事务产生的 undo 版本<strong>无法被 purge 线程回收</strong>，undo 表空间膨胀、history list 增长，影响所有事务性能。线上应监控 <code class="inline-code">information_schema.innodb_trx</code> 事务时长、<code class="inline-code">SHOW ENGINE INNODB STATUS</code> 的 history list length。</p>
+              <p>
+                <strong>长事务是 MVCC 的头号敌人</strong>：长事务的 ReadView 长期存在，导致其生成时活跃事务产生的 undo 版本<strong>无法被 purge 线程回收</strong>，undo 表空间膨胀、history list 增长，影响所有事务性能。线上应监控 <code class="inline-code">information_schema.innodb_trx</code> 事务时长、<code class="inline-code">SHOW ENGINE INNODB STATUS</code>
+                的 history list length。
+              </p>
               <p><strong>RC 还是 RR</strong>：阿里、美团等大厂很多业务<strong>默认用 RC</strong>而非 MySQL 默认的 RR——RC 下间隙锁更少（无 Next-Key Lock 的间隙锁部分）、死锁概率低、并发更好，且业务层用乐观锁/唯一索引保证一致性即可。RR 主要价值在 binlog statement 格式下的主从一致性，但 row 格式已无此约束。<strong>选 RC 需确保业务不依赖 RR 的防幻读</strong>。</p>
               <p><strong>快照读 vs 当前读混用陷阱</strong>：RR 下 <code class="inline-code">SELECT</code> 是快照读（看旧值），但 <code class="inline-code">UPDATE</code> 是当前读（看最新值）。先 SELECT 判断再 UPDATE 的逻辑在 RR 下可能基于过期快照决策，需用 <code class="inline-code">SELECT ... FOR UPDATE</code> 当前读加锁。</p>
             </div>
@@ -405,7 +415,10 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：RR 下 MVCC 完全解决幻读了吗？</strong></p>
-              <p>没有完全解决。<strong>快照读</strong>由 MVCC 解决幻读（同一事务多次范围快照读结果一致）；但<strong>当前读</strong>（FOR UPDATE/UPDATE/DELETE）若不加间隙锁会读到新插入的行产生幻读。InnoDB 在 RR 下对当前读用 <strong>Next-Key Lock（临键锁 = 记录锁 + 间隙锁）</strong>锁住查询范围及间隙，阻止其他事务在间隙内插入，从而解决当前读幻读。但若事务中先快照读后当前读，仍可能"突然看到"新行——这是 MVCC 与锁边界处的已知行为。</p>
+              <p>
+                没有完全解决。<strong>快照读</strong>由 MVCC 解决幻读（同一事务多次范围快照读结果一致）；但<strong>当前读</strong>（FOR UPDATE/UPDATE/DELETE）若不加间隙锁会读到新插入的行产生幻读。InnoDB 在 RR 下对当前读用
+                <strong>Next-Key Lock（临键锁 = 记录锁 + 间隙锁）</strong>锁住查询范围及间隙，阻止其他事务在间隙内插入，从而解决当前读幻读。但若事务中先快照读后当前读，仍可能"突然看到"新行——这是 MVCC 与锁边界处的已知行为。
+              </p>
               <p><strong>追问 2：MVCC 的 undo 版本链何时清理？</strong></p>
               <p>InnoDB 后台 <strong>purge 线程</strong>负责清理。清理条件：某 undo 版本<strong>对所有活跃事务的 ReadView 都不可见</strong>（即没有任何活跃事务可能再读到它）。因此长事务会阻止 purge——长事务持有的 ReadView 越老，越多 undo 版本无法回收。8.0 起 undo tablespace 可独立 truncate 回收物理空间。</p>
             </div>
@@ -439,7 +452,10 @@ flowchart LR
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察 InnoDB <strong>锁体系</strong>的精确理解：记录锁、间隙锁、临键锁三种行锁算法的加锁范围与作用，以及它们在不同隔离级别下的行为差异。本质是<strong>如何用最小粒度的锁保证事务隔离性，同时最大化并发</strong>。InnoDB 行锁锁的是<strong>索引</strong>而非数据行本身——这是理解所有锁行为的关键前提。掌握加锁规则就能预测任意 SQL 的加锁范围、定位死锁。</p>
+              <p>
+                这道题考察 InnoDB
+                <strong>锁体系</strong>的精确理解：记录锁、间隙锁、临键锁三种行锁算法的加锁范围与作用，以及它们在不同隔离级别下的行为差异。本质是<strong>如何用最小粒度的锁保证事务隔离性，同时最大化并发</strong>。InnoDB 行锁锁的是<strong>索引</strong>而非数据行本身——这是理解所有锁行为的关键前提。掌握加锁规则就能预测任意 SQL 的加锁范围、定位死锁。
+              </p>
             </div>
           </div>
 
@@ -493,6 +509,7 @@ flowchart LR
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["事务A: SELECT * FROM t<br/>WHERE id=10 FOR UPDATE<br/>id 唯一索引，命中"] --> A1["加 Record Lock on id=10<br/>仅锁该记录"]
@@ -531,7 +548,10 @@ flowchart TD
               <p><strong>追问 1：为什么 InnoDB 行锁锁的是索引而非数据行？</strong></p>
               <p>InnoDB 数据按聚簇索引组织，行数据就在聚簇索引叶子节点；二级索引查询需回表聚簇索引。<strong>加锁本质是给索引项加锁</strong>——若无索引，InnoDB 必须扫描聚簇索引每一行并加锁，等效全表锁。因此"走索引"不只是性能问题，更是<strong>锁粒度问题</strong>——无索引的 UPDATE/DELETE 会锁全表。</p>
               <p><strong>追问 2：高并发下死锁检测的 CPU 开销如何处理？</strong></p>
-              <p>8.0 默认 <code class="inline-code">innodb_deadlock_detect=ON</code>，每次锁等待都触发检测，高并发热点行更新下检测本身成为 CPU 瓶颈。方案：① 关闭死锁检测 + 业务层控制访问顺序避免死锁；② 拆分热点行（如将一行库存拆多行）；③ 用队列串行化热点更新（Redis 预扣减 + 异步落库）；④ <code class="inline-code">innodb_lock_wait_timeout</code> 调短快速失败。</p>
+              <p>
+                8.0 默认
+                <code class="inline-code">innodb_deadlock_detect=ON</code>，每次锁等待都触发检测，高并发热点行更新下检测本身成为 CPU 瓶颈。方案：① 关闭死锁检测 + 业务层控制访问顺序避免死锁；② 拆分热点行（如将一行库存拆多行）；③ 用队列串行化热点更新（Redis 预扣减 + 异步落库）；④ <code class="inline-code">innodb_lock_wait_timeout</code> 调短快速失败。
+              </p>
               <p><strong>追问 3：除了行锁，还有哪些"隐形锁"在影响并发？自增锁会锁全表吗？</strong></p>
               <p><strong>自增锁（AUTO-INC Lock）</strong>：为 INSERT 分配自增 ID 的表级锁。历史上是<strong>在语句结束才释放</strong>（<code class="inline-code">innodb_autoinc_lock_mode=0/1</code>），一次批量 INSERT 会阻塞其他插入——批量插入下表现为"锁表"。<strong>8.0 默认 mode=2</strong>，仅在分配瞬间取锁立即释放（interleaved），批量插入不再持锁，但要求 binlog 为 <strong>row 格式</strong>才能保证主从自增值一致。若用 statement 格式批量插入，主从可能生成不同自增 ID。</p>
               <p><strong>元数据锁（MDL）</strong>：DDL 与 DML 之间的并发热点——<code class="inline-code">ALTER TABLE</code> 需 MDL 写锁，会等待所有正在执行的 DML 释放 MDL 读锁，长查询会卡住 DDL；反之 DDL 排队也会阻塞后续一切读。线上 <code class="inline-code">Show processlist</code> 常见 <code class="inline-code">waiting for table metadata lock</code> 即此链。排查要 <code class="inline-code">performance_schema.metadata_locks</code> 定位阻塞源。</p>
@@ -545,7 +565,10 @@ flowchart TD
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
-                  <li><strong>无索引 UPDATE 锁全表</strong>：<code class="inline-code">UPDATE t SET ... WHERE non_index_col=x</code> 会对所有行加 Next-Key Lock，等同锁表。</li>
+                  <li>
+                    <strong>无索引 UPDATE 锁全表</strong>：<code class="inline-code">UPDATE t SET ... WHERE non_index_col=x</code>
+                    会对所有行加 Next-Key Lock，等同锁表。
+                  </li>
                   <li><strong>误以为 RC 完全无间隙锁</strong>：RC 在外键约束检查、唯一索引冲突检查时仍会短暂加 Gap Lock。</li>
                   <li><strong>Gap Lock 彼此不冲突</strong>：两个事务可同时持有同一间隙的 Gap Lock——它只阻止 INSERT 不阻止其他 Gap Lock，因此"两个事务都锁了间隙又都想插入"会死锁。</li>
                   <li><strong>唯一索引等值未命中仍加间隙锁</strong>：RR 下 <code class="inline-code">WHERE id=15</code>（不存在）会锁 (10,20) 间隙，导致无法插入 11~19。</li>
@@ -554,7 +577,7 @@ flowchart TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -565,7 +588,7 @@ flowchart TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C07.04 Redo Log、Undo Log 与 Binlog 如何协同保证 ACID？ -->
@@ -650,6 +673,7 @@ flowchart TD
 
               <p><strong>两阶段提交（2PC）保证 Redo 与 Binlog 一致</strong>。这是协同的核心：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant T as 事务
@@ -750,6 +774,7 @@ sequenceDiagram
             <div class="qa-layer-body">
               <p><strong>排查五步法</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["1、发现<br/>慢日志/APM/告警"] --> B["2、EXPLAIN<br/>看执行计划"]
@@ -859,9 +884,16 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：EXPLAIN 的 rows 不准怎么办？</strong></p>
-              <p>rows 是优化器基于<strong>统计信息</strong>（索引基数 cardinality）估算的。统计信息过期会导致估算偏差，优化器可能选错索引。<strong>处理</strong>：执行 <code class="inline-code">ANALYZE TABLE t</code> 更新统计信息；8.0 默认持久化统计信息（<code class="inline-code">innodb_stats_persistent=ON</code>），也可 <code class="inline-code">ANALYZE TABLE t UPDATE HISTOGRAM ON col</code>（8.0 直方图）对非索引列提供分布信息辅助优化器。最终用 EXPLAIN ANALYZE 看真实行数。</p>
+              <p>
+                rows 是优化器基于<strong>统计信息</strong>（索引基数 cardinality）估算的。统计信息过期会导致估算偏差，优化器可能选错索引。<strong>处理</strong>：执行
+                <code class="inline-code">ANALYZE TABLE t</code> 更新统计信息；8.0 默认持久化统计信息（<code class="inline-code">innodb_stats_persistent=ON</code>），也可 <code class="inline-code">ANALYZE TABLE t UPDATE HISTOGRAM ON col</code>（8.0 直方图）对非索引列提供分布信息辅助优化器。最终用 EXPLAIN ANALYZE 看真实行数。
+              </p>
               <p><strong>追问 2：为什么优化器有时选了"差"的索引？</strong></p>
-              <p>优化器是<strong>基于成本</strong>（CPU + I/O）选择执行计划，成本估算依赖统计信息与启发式规则。可能误判的场景：① 统计信息过期；② 直方图缺失，对数据倾斜列估算偏差；③ 查询条件复杂无法准确估算。可用 <code class="inline-code">FORCE INDEX(idx)</code> 强制指定，或 <code class="inline-code">optimizer_search_depth</code>、<code class="inline-code">optimizer_switch</code> 调优。根因用 optimizer trace 分析。</p>
+              <p>
+                优化器是<strong>基于成本</strong>（CPU + I/O）选择执行计划，成本估算依赖统计信息与启发式规则。可能误判的场景：① 统计信息过期；② 直方图缺失，对数据倾斜列估算偏差；③ 查询条件复杂无法准确估算。可用
+                <code class="inline-code">FORCE INDEX(idx)</code> 强制指定，或 <code class="inline-code">optimizer_search_depth</code>、<code class="inline-code">optimizer_switch</code>
+                调优。根因用 optimizer trace 分析。
+              </p>
             </div>
           </div>
 
@@ -894,7 +926,7 @@ flowchart LR
               </ol>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -905,7 +937,7 @@ flowchart LR
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C07.06 索引设计原则与优化策略？ -->
@@ -969,7 +1001,10 @@ flowchart LR
                   <tr>
                     <td>函数索引（8.0+）</td>
                     <td>对函数结果建索引</td>
-                    <td><code class="inline-code">WHERE LOWER(name)=?</code>，建 <code class="inline-code">(LOWER(name))</code></td>
+                    <td>
+                      <code class="inline-code">WHERE LOWER(name)=?</code>，建
+                      <code class="inline-code">(LOWER(name))</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>不可见索引（8.0+）</td>
@@ -979,7 +1014,10 @@ flowchart LR
                 </tbody>
               </table>
 
-              <p><strong>选择率（Cardinality）</strong>：索引列不同值的比例。选择率高的列（如用户 ID）建索引效果好；选择率低的列（如性别，仅 2 值）建索引意义不大，优化器可能放弃索引。<code class="inline-code">SHOW INDEX FROM t</code> 的 Cardinality 字段反映。</p>
+              <p>
+                <strong>选择率（Cardinality）</strong>：索引列不同值的比例。选择率高的列（如用户 ID）建索引效果好；选择率低的列（如性别，仅 2 值）建索引意义不大，优化器可能放弃索引。<code class="inline-code">SHOW INDEX FROM t</code>
+                的 Cardinality 字段反映。
+              </p>
             </div>
           </div>
 
@@ -990,7 +1028,10 @@ flowchart LR
               <p><strong>避免冗余与无用索引</strong>：联合索引 (a,b) 已覆盖 (a) 单列索引，后者冗余；主键索引已含 id，二级索引自动含 id 无需显式加。定期用 <code class="inline-code">sys.schema_unused_indexes</code> 清理长期未使用的索引。</p>
               <div class="callout callout-tip">
                 <div class="callout-title">线上索引变更最佳实践</div>
-                <p>大表加索引会锁表/耗时（5.6+ 在线 DDL <code class="inline-code">ALGORITHM=INPLACE, LOCK=NONE</code> 可减少影响但仍消耗资源）。推荐：① 低峰期执行；② <code class="inline-code">pt-online-schema-change</code> 或 <code class="inline-code">gh-ost</code> 在线改表工具；③ 8.0 用 <code class="inline-code">ALGORITHM=INPLACE</code> 加索引不阻塞 DML；④ 先 INVISIBLE 验证再 VISIBLE。删索引同理先 INVISIBLE。</p>
+                <p>
+                  大表加索引会锁表/耗时（5.6+ 在线 DDL
+                  <code class="inline-code">ALGORITHM=INPLACE, LOCK=NONE</code> 可减少影响但仍消耗资源）。推荐：① 低峰期执行；② <code class="inline-code">pt-online-schema-change</code> 或 <code class="inline-code">gh-ost</code> 在线改表工具；③ 8.0 用 <code class="inline-code">ALGORITHM=INPLACE</code> 加索引不阻塞 DML；④ 先 INVISIBLE 验证再 VISIBLE。删索引同理先 INVISIBLE。
+                </p>
               </div>
             </div>
           </div>
@@ -1116,6 +1157,7 @@ flowchart LR
               </table>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     APP["业务应用"] --> MW["分片中间件<br/>ShardingSphere"]
@@ -1138,7 +1180,11 @@ flowchart TD
               <p><strong>跨库难题与对策</strong>：</p>
               <ul>
                 <li><strong>跨库 Join</strong>：避免——通过冗余字段、应用层组装、宽表反范式；或用 ES 宽表检索。</li>
-                <li><strong>跨库分页</strong>：全局分页需各分片取 <code class="inline-code">(offset + page)</code> 条，再统一归并排序后取目标页，深分页不可行。改游标分页或限制分页深度。</li>
+                <li>
+                  <strong>跨库分页</strong>：全局分页需各分片取
+                  <code class="inline-code">(offset + page)</code>
+                  条，再统一归并排序后取目标页，深分页不可行。改游标分页或限制分页深度。
+                </li>
                 <li><strong>跨库事务</strong>：用分布式事务（Seata AT/TCC）或最终一致性（本地消息表 + MQ）。尽量保证核心事务在单分片内。</li>
                 <li><strong>全局唯一 ID</strong>：雪花算法（Snowflake）、号段模式（Leaf-segment）、Redis INCR。</li>
                 <li><strong>跨库聚合统计</strong>：卸载到 ClickHouse/ES 或汇总表。</li>
@@ -1160,7 +1206,10 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：分库分表后如何做全局二级索引？</strong></p>
-              <p>单分片内的索引天然局限——按 user_id 分片后，按 phone 查询需广播。方案：① <strong>冗余异构索引</strong>——把 phone→user_id 映射单独存一张按 phone 分片的表，先查映射再查主表（两次查询但都单分片）；② <strong>ES 宽表</strong>——将数据同步到 ES 建二级索引，按非分片键查询走 ES；③ NewSQL（TiDB）自动维护全局二级索引，对业务透明。</p>
+              <p>
+                单分片内的索引天然局限——按 user_id 分片后，按 phone 查询需广播。方案：①
+                <strong>冗余异构索引</strong>——把 phone→user_id 映射单独存一张按 phone 分片的表，先查映射再查主表（两次查询但都单分片）；② <strong>ES 宽表</strong>——将数据同步到 ES 建二级索引，按非分片键查询走 ES；③ NewSQL（TiDB）自动维护全局二级索引，对业务透明。
+              </p>
               <p><strong>追问 2：分库分表 vs NewSQL（TiDB），如何选？</strong></p>
               <p>分库分表优势：成熟、可控、复用 MySQL 运维体系、单分片性能极致。劣势：业务侵入、跨库难题、扩容复杂。NewSQL 优势：透明分片、自动均衡、强一致分布式事务、SQL 兼容。劣势：复杂查询/超低延迟点查略逊单机 MySQL、运维门槛、成本。选型：新业务、预期快速增长、需强一致 → NewSQL；存量 MySQL 系统、特定瓶颈单表 → 分库分表；混合用——核心交易库单机 MySQL + 分析/搜索用 ES/ClickHouse。</p>
             </div>
@@ -1184,7 +1233,9 @@ flowchart TD
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>分库分表落地最该用量化证据支撑的选型结论是：迁移可不停机、热点可量化、翻倍扩容低成本。</strong></p>
+              <p>
+                <strong>分库分表落地最该用量化证据支撑的选型结论是：迁移可不停机、热点可量化、翻倍扩容低成本。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -1245,7 +1296,12 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>异步复制（默认）</strong>：主库提交事务后不等从库即返回，binlog 由 dump 线程异步推送。性能最高但主库崩溃可能丢未同步事务。</p>
               <p><strong>半同步复制（5.5+）</strong>：主库提交后等待至少一个从库 ACK（收到 binlog）才返回客户端。AFTER_SYNC（5.7+，lossless，ACK 在 binlog 落盘后）vs AFTER_COMMIT（5.5，ACK 在提交后）。兼顾性能与数据安全，是金融场景标配。</p>
-              <p><strong>并行复制（MTS，Multi-Threaded Slave）</strong>：5.6 引入按库并行（粒度粗）；5.7 引入 <code class="inline-code">slave_parallel_type=LOGICAL_CLOCK</code> 基于组提交的并行（同组事务可并发应用）；8.0 引入 WRITESET 依赖跟踪（无冲突事务可并发，突破组提交限制）——8.0 可通过 <code class="inline-code">binlog_transaction_dependency_tracking=WRITESET</code> 开启（该变量在 8.0.35/8.2 起废弃）。<strong>MySQL 8.4 LTS 起该变量已移除</strong>：主库在多线程从库场景下<strong>固定按 WRITESET 生成 binlog 依赖信息</strong>（效果等同于旧版 WRITESET），再配置会直接报错。这是降低从库延迟的关键。</p>
+              <p>
+                <strong>并行复制（MTS，Multi-Threaded Slave）</strong>：5.6 引入按库并行（粒度粗）；5.7 引入
+                <code class="inline-code">slave_parallel_type=LOGICAL_CLOCK</code>
+                基于组提交的并行（同组事务可并发应用）；8.0 引入 WRITESET 依赖跟踪（无冲突事务可并发，突破组提交限制）——8.0 可通过
+                <code class="inline-code">binlog_transaction_dependency_tracking=WRITESET</code> 开启（该变量在 8.0.35/8.2 起废弃）。<strong>MySQL 8.4 LTS 起该变量已移除</strong>：主库在多线程从库场景下<strong>固定按 WRITESET 生成 binlog 依赖信息</strong>（效果等同于旧版 WRITESET），再配置会直接报错。这是降低从库延迟的关键。
+              </p>
               <p><strong>MGR（Group Replication，5.7.17 GA，8.0 增强）</strong>：基于 Paxos 变种（XCom）的强一致复制，多数节点写成功才提交。详见 C07.09。</p>
               <p><strong>趋势</strong>：从异步到半同步到 MGR，一致性逐步增强；并行复制从库并行度持续提升；CDC 订阅 binlog（Canal/Debezium）成为数据同步主流，复制不再仅限 MySQL 间。</p>
             </div>
@@ -1256,6 +1312,7 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>复制三线程模型</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant M as 主库 Master
@@ -1367,7 +1424,11 @@ SELECT CHANNEL_NAME, SERVICE_STATE, LAST_ERROR_NUMBER, LAST_ERROR_MESSAGE
 FROM performance_schema.replication_connection_status;</code></pre>
 
               <p><strong>半同步复制详细配置</strong>（插件与变量：master/slave → <strong>source/replica</strong>）：</p>
-              <p><strong>MySQL 8.4 LTS（生产主线）</strong>：源端 <code class="inline-code">semisync_source.so</code>，副本 <code class="inline-code">semisync_replica.so</code>。启用后若副本接收线程已在跑，需 <code class="inline-code">STOP REPLICA IO_THREAD; START REPLICA IO_THREAD;</code> 才会以半同步身份重连。8.4 LTS 官方支持窗口长（至约 2032），仍是多数企业默认基线。</p>
+              <p>
+                <strong>MySQL 8.4 LTS（生产主线）</strong>：源端 <code class="inline-code">semisync_source.so</code>，副本 <code class="inline-code">semisync_replica.so</code>。启用后若副本接收线程已在跑，需
+                <code class="inline-code">STOP REPLICA IO_THREAD; START REPLICA IO_THREAD;</code>
+                才会以半同步身份重连。8.4 LTS 官方支持窗口长（至约 2032），仍是多数企业默认基线。
+              </p>
               <p><strong>MySQL 9.x / 9.7 LTS（2026）</strong>：可作为演进目标跟踪；升级须单独评估兼容性与工具链。新集群若无强制约束，优先 8.4 LTS；跟进 9.x 时对照官方 LTS 说明，勿把创新版默认当生产唯一基线。</p>
               <pre><code># 源端 my.cnf（8.4）
 [mysqld]
@@ -1594,7 +1655,10 @@ public class ParallelReplicationMonitorService {
               <p><strong>追问 1：半同步复制降级如何处理？</strong></p>
               <p>当副本在超时（8.4：<code class="inline-code">rpl_semi_sync_source_timeout</code>；8.0 旧名 <code class="inline-code">rpl_semi_sync_master_timeout</code>，默认 10000ms）内未 ACK，主库自动<strong>降级为异步</strong>以保证可用性（不阻塞写）。风险：降级期间主库崩溃丢数据。处理：① 监控半同步状态（8.4 source / 8.0 master 状态名），降级即告警；② 设置较大 timeout（如 30s）减少误降级；③ 配置多个副本（8.4：<code class="inline-code">rpl_semi_sync_source_wait_for_replica_count</code>）降低单点影响；④ 严格场景用 MGR 替代半同步。</p>
               <p><strong>追问 2：GTID 复制相比传统 binlog 位点复制有何优势？</strong></p>
-              <p>GTID（Global Transaction Identifier）= server_uuid:transaction_id，全局唯一标识每个事务。优势：① <strong>自动定位复制位点</strong>——故障切换时从库自动从正确 GTID 继续，无需手动找 binlog file/position；② <strong>防重复执行</strong>——从库已执行的 GTID 不会重复；③ <strong>简化切换</strong>——8.0：<code class="inline-code">CHANGE MASTER TO MASTER_AUTO_POSITION=1</code>；8.4：<code class="inline-code">CHANGE REPLICATION SOURCE TO SOURCE_AUTO_POSITION=1</code>。生产推荐开启 GTID。</p>
+              <p>
+                GTID（Global Transaction Identifier）= server_uuid:transaction_id，全局唯一标识每个事务。优势：①
+                <strong>自动定位复制位点</strong>——故障切换时从库自动从正确 GTID 继续，无需手动找 binlog file/position；② <strong>防重复执行</strong>——从库已执行的 GTID 不会重复；③ <strong>简化切换</strong>——8.0：<code class="inline-code">CHANGE MASTER TO MASTER_AUTO_POSITION=1</code>；8.4：<code class="inline-code">CHANGE REPLICATION SOURCE TO SOURCE_AUTO_POSITION=1</code>。生产推荐开启 GTID。
+              </p>
             </div>
           </div>
 
@@ -1613,7 +1677,7 @@ public class ParallelReplicationMonitorService {
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -1624,7 +1688,7 @@ public class ParallelReplicationMonitorService {
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C07.09 MySQL 高可用方案如何选型？ -->
@@ -1733,6 +1797,7 @@ public class ParallelReplicationMonitorService {
               <p><strong>MGR 核心原理</strong>：3-9 个节点组成复制组，事务通过 Paxos 变种（XCom）在组内<strong>多数派认证</strong>后才提交。写流程：事务在发起节点本地执行 → 提交时广播到组 → 多数节点认证（冲突检测：不同节点并发改同一行则后到者回滚）→ 多数认证通过则提交并复制到所有节点。<strong>多数节点存活即可服务</strong>，自动选主（单主模式），脑裂时少数派分区自动只读。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     subgraph MGR["MGR 复制组（3节点，多数派=2）"]
@@ -1815,7 +1880,10 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>EXPLAIN（传统）</strong>：输出预估执行计划，不实际执行 SQL，快速但 rows 是估算值。</p>
               <p><strong>EXPLAIN FORMAT=JSON（5.6+）</strong>：结构化输出，含更详细的成本信息（cost_info）、使用的索引详情。</p>
-              <p><strong>EXPLAIN ANALYZE（8.0.18+）</strong>：<strong>实际执行 SQL</strong> 并返回每个算子的真实行数、循环次数、耗时（首次/累计）。能发现"估算与实际偏差"——这是诊断优化器选错索引的关键。</p>
+              <p>
+                <strong>EXPLAIN ANALYZE（8.0.18+）</strong>：<strong>实际执行 SQL</strong>
+                并返回每个算子的真实行数、循环次数、耗时（首次/累计）。能发现"估算与实际偏差"——这是诊断优化器选错索引的关键。
+              </p>
               <p><strong>optimizer trace（5.6+）</strong>：完整记录优化器决策过程（考虑了哪些执行计划、各自成本、为何选最终方案），是终极诊断工具。</p>
               <p><strong>趋势</strong>：从"估算计划"到"实际执行统计"到"决策过程透明"，可观测性持续增强。EXPLAIN ANALYZE + optimizer trace 组合能解决几乎所有"优化器为何这样选"的疑问。</p>
             </div>
@@ -1941,7 +2009,10 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
               <p><strong>解读四步法</strong>：① 看 <strong>type</strong> 是否走索引、级别够不够；② 看 <strong>key/key_len</strong> 是否走对索引、联合索引用了几列；③ 看 <strong>rows</strong> 扫描量是否可控；④ 看 <strong>Extra</strong> 有无 filesort/temporary。四步定位 90% 的 SQL 性能问题。</p>
-              <p><strong>多表 JOIN 解读</strong>：注意 id 顺序（id 大先执行）、驱动表与被驱动表关系（rows 小的应做驱动表）、被驱动表 JOIN 字段是否有索引（type 应为 ref/eq_ref）。<code class="inline-code">Using join buffer</code> 表示无索引用 BNL，必须加索引。</p>
+              <p>
+                <strong>多表 JOIN 解读</strong>：注意 id 顺序（id 大先执行）、驱动表与被驱动表关系（rows 小的应做驱动表）、被驱动表 JOIN 字段是否有索引（type 应为 ref/eq_ref）。<code class="inline-code">Using join buffer</code>
+                表示无索引用 BNL，必须加索引。
+              </p>
               <p><strong>optimizer trace 定位选错索引</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="kw">SET</span> optimizer_trace = <span class="str">'enabled=on'</span>;
@@ -1989,8 +2060,14 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
           <div class="qa-layer" data-layer="extension">
             <div class="qa-layer-title">扩展：窗口函数与 CTE（MySQL 8.0+ 高频）</div>
             <div class="qa-layer-body">
-              <p><strong>窗口函数</strong>：<code class="inline-code">ROW_NUMBER/RANK/DENSE_RANK</code>、<code class="inline-code">SUM() OVER (PARTITION BY … ORDER BY …)</code> 等，在结果集上开窗而不折叠行，适合排行榜、去重留最新、会话连续区间。对比：GROUP BY 会折叠行；窗口保留明细并附聚合列。</p>
-              <p><strong>CTE</strong>：<code class="inline-code">WITH … AS (…)</code> 提升可读性；<code class="inline-code">WITH RECURSIVE</code> 做树/图有界遍历（组织树、账单层级）。约束：递归终止条件必须明确，防止无限递归；深树优先物化路径/闭包表。</p>
+              <p>
+                <strong>窗口函数</strong>：<code class="inline-code">ROW_NUMBER/RANK/DENSE_RANK</code>、<code class="inline-code">SUM() OVER (PARTITION BY … ORDER BY …)</code>
+                等，在结果集上开窗而不折叠行，适合排行榜、去重留最新、会话连续区间。对比：GROUP BY 会折叠行；窗口保留明细并附聚合列。
+              </p>
+              <p>
+                <strong>CTE</strong>：<code class="inline-code">WITH … AS (…)</code> 提升可读性；<code class="inline-code">WITH RECURSIVE</code>
+                做树/图有界遍历（组织树、账单层级）。约束：递归终止条件必须明确，防止无限递归；深树优先物化路径/闭包表。
+              </p>
               <div class="code-block">
                 <pre><code><span class="com">-- 每用户保留最新一条订单</span>
 <span class="kw">WITH</span> ranked <span class="kw">AS</span> (
@@ -2002,7 +2079,7 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
               <p>工程注意：窗口/CTE 不能替代索引设计；大分区窗口易临时表/文件排序，仍要看 EXPLAIN。</p>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -2013,7 +2090,7 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- C07.11 MySQL 的死锁检测原理与排查实战？ -->
         <!-- ============================================================ -->
@@ -2034,7 +2111,10 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>阶段 1：应用层超时回滚</strong>。早期数据库无死锁检测，靠应用设置锁等待超时（<code class="inline-code">innodb_lock_wait_timeout</code>），超时后报错由应用重试。简单粗暴但延迟高、无法定位根因。</p>
-              <p><strong>阶段 2：InnoDB 死锁检测（MySQL 默认）</strong>。InnoDB 维护事务等待图，后台线程检测环路，发现死锁立即回滚一个事务（<code class="inline-code">ER_LOCK_DEADLOCK</code> 1213），另一个事务继续。响应快但检测本身有 CPU 开销。</p>
+              <p>
+                <strong>阶段 2：InnoDB 死锁检测（MySQL 默认）</strong>。InnoDB 维护事务等待图，后台线程检测环路，发现死锁立即回滚一个事务（<code class="inline-code">ER_LOCK_DEADLOCK</code>
+                1213），另一个事务继续。响应快但检测本身有 CPU 开销。
+              </p>
               <p><strong>阶段 3：死锁监控与可视化（MySQL 8.0）</strong>。8.0 引入 <code class="inline-code">performance_schema.data_locks / data_lock_waits</code>，可实时查询锁持有与等待关系，配合 sys 视图定位高频死锁 SQL。</p>
               <p><strong>阶段 4：乐观锁/无锁化规避</strong>。业务层用版本号乐观锁（CAS）、幂等设计、消息队列串行化，从根本上减少死锁概率。这是架构层面的演进方向。</p>
             </div>
@@ -2055,7 +2135,11 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
               <ul>
                 <li><strong>等待图（Wait-for Graph）</strong>：每个事务是节点，等待关系是有向边（T1 -> T2 表示 T1 等 T2 释放锁）。检测线程定期遍历图，发现环即死锁。</li>
                 <li><strong>受害者选择策略</strong>：回滚<strong>Undo Log 量最小</strong>的事务（即修改最少/最年轻的事务），减少回滚成本。</li>
-                <li><strong>检测开销</strong>：高并发大量锁等待时，遍历等待图的复杂度为 O(N^2)，可能成为性能瓶颈。MySQL 8.0.29+ 引入 <code class="inline-code">innodb_deadlock_detect=OFF</code> 关闭检测，靠超时解决（不推荐，除非极端场景）。</li>
+                <li>
+                  <strong>检测开销</strong>：高并发大量锁等待时，遍历等待图的复杂度为 O(N^2)，可能成为性能瓶颈。MySQL 8.0.29+ 引入
+                  <code class="inline-code">innodb_deadlock_detect=OFF</code>
+                  关闭检测，靠超时解决（不推荐，除非极端场景）。
+                </li>
               </ul>
 
               <p><strong>常见死锁场景</strong>：</p>
@@ -2118,7 +2202,10 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
               </ul>
 
               <p>③ <strong>定位业务代码</strong>：根据死锁日志中的 SQL 语句，定位到具体代码位置，分析两个事务的加锁顺序差异。</p>
-              <p>④ <strong>修复验证</strong>：统一加锁顺序、缩小事务范围、降级隔离级别、或改为乐观锁。修复后在测试环境用并发压测验证。</p>
+              <p>
+                ④
+                <strong>修复验证</strong>：统一加锁顺序、缩小事务范围、降级隔离级别、或改为乐观锁。修复后在测试环境用并发压测验证。
+              </p>
 
               <p><strong>监控与预防</strong>：</p>
               <div class="code-block">
@@ -2136,7 +2223,10 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：为什么死锁检测在高并发下会成为性能瓶颈？</strong></p>
-              <p>死锁检测需要遍历等待图，复杂度约为 O(N^2)（N 为等待锁的事务数）。当并发极高（如秒杀场景数万事务同时等待），检测线程消耗大量 CPU 遍历图，反而拖慢整体性能。MySQL 8.0 提供 <code class="inline-code">innodb_deadlock_detect=OFF</code> 关闭检测，靠 <code class="inline-code">innodb_lock_wait_timeout</code> 超时回滚。但关闭检测后，死锁事务会 hang 住直到超时，延迟更高。折中方案：<strong>热点行拆分</strong>（如库存拆 100 个桶），减少单点锁竞争，从根本上降低死锁概率。</p>
+              <p>
+                死锁检测需要遍历等待图，复杂度约为 O(N^2)（N 为等待锁的事务数）。当并发极高（如秒杀场景数万事务同时等待），检测线程消耗大量 CPU 遍历图，反而拖慢整体性能。MySQL 8.0 提供
+                <code class="inline-code">innodb_deadlock_detect=OFF</code> 关闭检测，靠 <code class="inline-code">innodb_lock_wait_timeout</code> 超时回滚。但关闭检测后，死锁事务会 hang 住直到超时，延迟更高。折中方案：<strong>热点行拆分</strong>（如库存拆 100 个桶），减少单点锁竞争，从根本上降低死锁概率。
+              </p>
               <p><strong>追问 2：RC 隔离级别下为什么死锁更少？</strong></p>
               <p>RC（Read Committed）下<strong>无间隙锁（Gap Lock）</strong>，只有记录锁。而 RR（Repeatable Read）下范围查询会加 Next-Key Lock（记录锁+间隙锁），间隙锁与插入意向锁（Insert Intention Lock）不兼容，极易引发死锁。因此如果业务可接受幻读（或应用层幂等），将隔离级别降为 RC 能显著减少死锁。</p>
             </div>
@@ -2192,6 +2282,7 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
               <p><strong>影子表三件套</strong>：pt-osc/gh-ost 本质都是"创建影子表 → 全量拷贝 + 增量同步 → 原子 rename"。差异在<strong>增量同步机制</strong>。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     subgraph PTOSC["pt-osc：触发器同步"]
@@ -2322,7 +2413,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>gh-ost 在线 DDL 最该用量化证据支撑的选型结论是：限速参数可控、迁移速率与耗时可预估、主从延迟与线上 RT 影响可控。</strong></p>
+              <p>
+                <strong>gh-ost 在线 DDL 最该用量化证据支撑的选型结论是：限速参数可控、迁移速率与耗时可预估、主从延迟与线上 RT 影响可控。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2387,7 +2480,11 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>显式转换时代</strong>：SQL 标准鼓励用 <code class="inline-code">CAST()</code> / <code class="inline-code">CONVERT()</code> 显式声明类型，转换点清晰但写法冗长、易遗漏。</p>
-              <p><strong>隐式转换（MySQL 默认行为）</strong>：为易用性引入——操作符两侧类型不同，MySQL 按 <strong>Type Conversion Rules</strong> 自动归一，优先把一切都往<strong>数值</strong>或<strong>字符串</strong>靠。代价是转换点不可见，索引可能在你不知情时失效。</p>
+              <p>
+                <strong>隐式转换（MySQL 默认行为）</strong>：为易用性引入——操作符两侧类型不同，MySQL 按
+                <strong>Type Conversion Rules</strong>
+                自动归一，优先把一切都往<strong>数值</strong>或<strong>字符串</strong>靠。代价是转换点不可见，索引可能在你不知情时失效。
+              </p>
               <p><strong>与 Oracle/PostgreSQL 的差异</strong>：Oracle 按上下文做字符↔数值转换；PostgreSQL 对类型不匹配往往<strong>直接报错</strong>，问题在开发期暴露。MySQL 的"静默转换 + 全表扫描"最危险——不报错、只是慢。</p>
             </div>
           </div>
@@ -2461,7 +2558,10 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
                 <div class="callout-title">易错点</div>
                 <ul>
                   <li><strong>"类型不同就一定失效"</strong>：错。失效取决于列是否被转换；数字列 vs 字符串常量走索引，字符串列 vs 数字常量才失效。</li>
-                  <li><strong>MyBatis 参数类型想当然</strong>：phone 是 varchar，Java 却用 Long 接、<code class="inline-code">#{phone}</code> 生成数字常量 → 静默失效。参数类型必须与列一致。</li>
+                  <li>
+                    <strong>MyBatis 参数类型想当然</strong>：phone 是 varchar，Java 却用 Long 接、<code class="inline-code">#{phone}</code>
+                    生成数字常量 → 静默失效。参数类型必须与列一致。
+                  </li>
                   <li><strong>只对齐字段类型忽略 collation</strong>：类型相同但排序规则不同仍会隐式转换废索引。</li>
                   <li><strong>凭直觉不 EXPLAIN</strong>：隐式转换不报错只变慢，必须 EXPLAIN + SHOW WARNINGS 看真实改写。</li>
                   <li><strong>混淆主键空洞成因</strong>：把"索引失效"与"自增主键空洞"混为一谈，二者无因果关系。</li>
@@ -2483,7 +2583,11 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
 <span class="kw">SELECT</span> * <span class="kw">FROM</span> t <span class="kw">WHERE</span> uid <span class="kw">IN</span> (<span class="str">'1001'</span>,<span class="str">'1002'</span>);</code></pre>
               </div>
 
-              <p><strong>显式转换函数清单（CAST / CONVERT）</strong>：需要主动转换时优先转<strong>常量</strong>，绝不对 WHERE/JOIN ON 的索引列套函数。<code class="inline-code">CAST(expr AS type)</code> 与 <code class="inline-code">CONVERT(expr, type)</code> 等价，支持类型：<code class="inline-code">CHAR(N)</code> / <code class="inline-code">SIGNED</code> / <code class="inline-code">UNSIGNED</code> / <code class="inline-code">DECIMAL(p,s)</code> / <code class="inline-code">DATE</code> / <code class="inline-code">DATETIME</code> / <code class="inline-code">TIME</code>。<code class="inline-code">CONVERT(expr USING charset)</code> 专做<strong>字符集转码</strong>（如 <code class="inline-code">CONVERT('abc' USING gbk)</code>）。注意：<code class="inline-code">CAST('123abc' AS SIGNED)</code> 得 123、<code class="inline-code">CAST('abc' AS SIGNED)</code> 得 0，与隐式转换截断语义一致。</p>
+              <p>
+                <strong>显式转换函数清单（CAST / CONVERT）</strong>：需要主动转换时优先转<strong>常量</strong>，绝不对 WHERE/JOIN ON 的索引列套函数。<code class="inline-code">CAST(expr AS type)</code> 与 <code class="inline-code">CONVERT(expr, type)</code> 等价，支持类型：<code class="inline-code">CHAR(N)</code> / <code class="inline-code">SIGNED</code> / <code class="inline-code">UNSIGNED</code> / <code class="inline-code">DECIMAL(p,s)</code> / <code class="inline-code">DATE</code> / <code class="inline-code">DATETIME</code> / <code class="inline-code">TIME</code>。<code class="inline-code">CONVERT(expr USING charset)</code>
+                专做<strong>字符集转码</strong>（如
+                <code class="inline-code">CONVERT('abc' USING gbk)</code>）。注意：<code class="inline-code">CAST('123abc' AS SIGNED)</code> 得 123、<code class="inline-code">CAST('abc' AS SIGNED)</code> 得 0，与隐式转换截断语义一致。
+              </p>
 
               <table class="compare-table">
                 <thead>
@@ -2579,7 +2683,10 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
               </div>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p><code class="inline-code">#{}</code> 走预编译占位符，参数永远作为"值"；<code class="inline-code">${}</code> 走文本拼接，参数成为"SQL 片段"。用户输入一律用 <code class="inline-code">#{}</code>，<code class="inline-code">${}</code> 只接受来自可信枚举的列名/表名/排序方向。</p>
+                <p>
+                  <code class="inline-code">#{}</code> 走预编译占位符，参数永远作为"值"；<code class="inline-code">${}</code> 走文本拼接，参数成为"SQL 片段"。用户输入一律用 <code class="inline-code">#{}</code>，<code class="inline-code">${}</code>
+                  只接受来自可信枚举的列名/表名/排序方向。
+                </p>
               </div>
             </div>
           </div>
@@ -2613,7 +2720,11 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：为什么 Spring 事务内一级缓存有时能命中？</strong> Spring 把 SqlSession 绑定到事务上下文，同一事务内多次 Mapper 调用复用同一 SqlSession，一级缓存生效；事务结束即释放。</p>
-              <p><strong>追问 2：多个插件执行顺序如何？</strong> 按配置顺序从外到内嵌套代理，调用时从第一个插件进入，<code class="inline-code">proceed()</code> 依次向内，返回时逆序。顺序影响改写结果（如分页插件应在脱敏之前先改写 SQL）。</p>
+              <p>
+                <strong>追问 2：多个插件执行顺序如何？</strong>
+                按配置顺序从外到内嵌套代理，调用时从第一个插件进入，<code class="inline-code">proceed()</code>
+                依次向内，返回时逆序。顺序影响改写结果（如分页插件应在脱敏之前先改写 SQL）。
+              </p>
               <p><strong>追问 3：MyBatis-Plus 的分页插件与 PageHelper 能共存吗？</strong> 不建议。两者都拦截 Executor.query 且都依赖 ThreadLocal 存储分页参数，并存会导致分页条件错乱、count 语句异常。</p>
             </div>
           </div>
@@ -2749,34 +2860,56 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
           </div>
         </div>
 
-                        <div class="qa-card" id="C07.16" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C07.16" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C07.16</div>
             <div class="qa-question">事务超时与长事务止血：从锁等到回滚的值班路径？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>长事务拖垮并发：锁等待、复制延迟、Undo 膨胀。值班先止血再追代码，禁止一上来改业务逻辑。</p></div>
+            <div class="qa-layer-body">
+              <p>长事务拖垮并发：锁等待、复制延迟、Undo 膨胀。值班先止血再追代码，禁止一上来改业务逻辑。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>InnoDB 行锁持有到事务结束；长事务拉长锁与 MVCC 历史链。应用层事务边界应短、纯本地；远程调用不得包在 DB 事务里。超时要同时看锁等待超时与业务事务超时。</p></div>
+            <div class="qa-layer-body">
+              <p>InnoDB 行锁持有到事务结束；长事务拉长锁与 MVCC 历史链。应用层事务边界应短、纯本地；远程调用不得包在 DB 事务里。超时要同时看锁等待超时与业务事务超时。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>值班顺序：</p><ol><li><code>information_schema.innodb_trx</code> / 进程列表找长事务与持锁会话。</li><li>评估能否 kill（权衡回滚更久 vs 继续堵）。</li><li>限流写入入口或切只读止血。</li><li>查是否缺提交、大事务批处理、事务内 RPC。</li><li>改小事务与超时配置走变更门禁（对照 G04）。</li></ol></div>
+            <div class="qa-layer-body">
+              <p>值班顺序：</p>
+              <ol>
+                <li><code>information_schema.innodb_trx</code> / 进程列表找长事务与持锁会话。</li>
+                <li>评估能否 kill（权衡回滚更久 vs 继续堵）。</li>
+                <li>限流写入入口或切只读止血。</li>
+                <li>查是否缺提交、大事务批处理、事务内 RPC。</li>
+                <li>改小事务与超时配置走变更门禁（对照 G04）。</li>
+              </ol>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>信号：锁等待、history list length、复制延迟、Rows_examined 飙升。参数：<code>innodb_lock_wait_timeout</code>、应用事务超时、批大小、是否允许 kill。变更单写清：杀谁、影响面、预计回滚时长。</p></div>
+            <div class="qa-layer-body">
+              <p>信号：锁等待、history list length、复制延迟、Rows_examined 飙升。参数：<code>innodb_lock_wait_timeout</code>、应用事务超时、批大小、是否允许 kill。变更单写清：杀谁、影响面、预计回滚时长。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：盲目 kill 导致更长回滚；在长事务里做远程调用；用更大超时「拖过高峰」。回滚点：恢复旧超时配置；业务用补偿而非无限拉长事务。</p><p>长事务常表现为锁等待雪崩：先看 <code>innodb_lock_wait</code> 与事务持续时间，再判断是业务慢还是索引缺失。超时要能区分「语句超时」与「事务超时」。</p><p>止血顺序：①限流入口 ②杀掉明显空闲长事务 ③临时降隔离/拆批（有评审）④补索引与拆事务后回放。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：盲目 kill 导致更长回滚；在长事务里做远程调用；用更大超时「拖过高峰」。回滚点：恢复旧超时配置；业务用补偿而非无限拉长事务。</p>
+              <p>
+                长事务常表现为锁等待雪崩：先看
+                <code>innodb_lock_wait</code>
+                与事务持续时间，再判断是业务慢还是索引缺失。超时要能区分「语句超时」与「事务超时」。
+              </p>
+              <p>止血顺序：①限流入口 ②杀掉明显空闲长事务 ③临时降隔离/拆批（有评审）④补索引与拆事务后回放。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
-
-                
       </main>
     </div>
 
@@ -2784,25 +2917,43 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">MySQL 8.0 Reference Manual — InnoDB Storage Engine. — B+树聚簇索引与二级索引、MVCC 与 ReadView、Record/Gap/Next-Key Lock、Redo/Undo/Binlog 两阶段提交、组提交、并行复制、MGR</span></li>
-          <li><span class="src-title">Bayer R., McCreight E. Organization and Maintenance of Large Ordered Indices (1970). — B树原始论文</span></li>
-          <li><span class="src-title">O'Neil P. et al. The Log-Structured Merge-Tree (1996). — LSM树原始论文，写优化存储结构基础</span></li>
-          <li><span class="src-title">Mohan C. et al. ARIES: A Transaction Recovery Method (1992). — WAL 与崩溃恢复算法基础，Redo/Undo 日志理论</span></li>
-          <li><span class="src-title">《高性能 MySQL》第 4 版 (Vadim Tkachenko 等). — 索引设计、查询优化、EXPLAIN 解读、分库分表、复制与高可用</span></li>
-          <li><span class="src-title">《MySQL 实战 45 讲》(林晓斌). — MVCC 版本链、隔离级别、锁机制、两阶段提交、主从复制实践案例</span></li>
-          <li><span class="src-title">ShardingSphere 官方文档. — 分库分表分片策略、跨库事务、读写分离、平滑迁移方案</span></li>
-          <li><span class="src-title">MySQL Group Replication &amp; InnoDB Cluster 官方文档. — MGR Paxos 复制、多数派认证、MySQL Router、故障切换</span></li>
-          <li><span class="src-title">TiDB / OceanBase 架构白皮书. — NewSQL 分布式存储、自动分片、Raft 强一致、与分库分表对比</span></li>
+          <li>
+            <span class="src-title">MySQL 8.0 Reference Manual — InnoDB Storage Engine. — B+树聚簇索引与二级索引、MVCC 与 ReadView、Record/Gap/Next-Key Lock、Redo/Undo/Binlog 两阶段提交、组提交、并行复制、MGR</span>
+          </li>
+          <li>
+            <span class="src-title">Bayer R., McCreight E. Organization and Maintenance of Large Ordered Indices (1970). — B树原始论文</span>
+          </li>
+          <li>
+            <span class="src-title">O'Neil P. et al. The Log-Structured Merge-Tree (1996). — LSM树原始论文，写优化存储结构基础</span>
+          </li>
+          <li>
+            <span class="src-title">Mohan C. et al. ARIES: A Transaction Recovery Method (1992). — WAL 与崩溃恢复算法基础，Redo/Undo 日志理论</span>
+          </li>
+          <li>
+            <span class="src-title">《高性能 MySQL》第 4 版 (Vadim Tkachenko 等). — 索引设计、查询优化、EXPLAIN 解读、分库分表、复制与高可用</span>
+          </li>
+          <li>
+            <span class="src-title">《MySQL 实战 45 讲》(林晓斌). — MVCC 版本链、隔离级别、锁机制、两阶段提交、主从复制实践案例</span>
+          </li>
+          <li>
+            <span class="src-title">ShardingSphere 官方文档. — 分库分表分片策略、跨库事务、读写分离、平滑迁移方案</span>
+          </li>
+          <li>
+            <span class="src-title">MySQL Group Replication &amp; InnoDB Cluster 官方文档. — MGR Paxos 复制、多数派认证、MySQL Router、故障切换</span>
+          </li>
+          <li>
+            <span class="src-title">TiDB / OceanBase 架构白皮书. — NewSQL 分布式存储、自动分片、Raft 强一致、与分库分表对比</span>
+          </li>
         </ol>
       </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-06-spring-boot-modern.html" class="nav-prev">← 第 06 篇 Spring Boot 与现代框架</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-07-mysql-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-08-redis-cache.html" class="nav-next">第 08 篇 Redis 与缓存架构 →</a>
-        </nav>
+        <a href="chapter-06-spring-boot-modern.html" class="nav-prev">← 第 06 篇 Spring Boot 与现代框架</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-07-mysql-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-08-redis-cache.html" class="nav-next">第 08 篇 Redis 与缓存架构 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2816,5 +2967,5 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

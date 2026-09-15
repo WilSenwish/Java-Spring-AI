@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 10 篇 · 微服务与云原生 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 分布式系统</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-10-microservice-cloud.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-11-middleware-engineering.html" class="nav-next">第 11 篇 中间件与工程化 →</a>
-        </nav>
+        <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 分布式系统</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-10-microservice-cloud.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-11-middleware-engineering.html" class="nav-next">第 11 篇 中间件与工程化 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -190,7 +189,10 @@
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对服务治理"<strong>地址发现</strong>"机制的 <strong>CAP 取舍</strong>理解，以及注册中心与配置中心"<strong>为何常合二为一又各有侧重</strong>"的工程逻辑。核心不是罗列组件，而是回答：注册中心为何优先选 AP 而非 CP？配置中心的推送机制如何权衡实时性与压力？选型时如何匹配团队技术栈与规模。</p>
+              <p>
+                这道题考察对服务治理"<strong>地址发现</strong>"机制的
+                <strong>CAP 取舍</strong>理解，以及注册中心与配置中心"<strong>为何常合二为一又各有侧重</strong>"的工程逻辑。核心不是罗列组件，而是回答：注册中心为何优先选 AP 而非 CP？配置中心的推送机制如何权衡实时性与压力？选型时如何匹配团队技术栈与规模。
+              </p>
             </div>
           </div>
 
@@ -264,6 +266,7 @@
               </table>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     P["Provider 服务提供者"] -->|"1、注册/心跳"| RC["注册中心集群"]
@@ -350,7 +353,7 @@ spring:
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -361,7 +364,7 @@ spring:
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C10.02 API 网关在微服务中的核心职责？ -->
@@ -410,6 +413,7 @@ spring:
               <p><strong>Spring Cloud Gateway 原理</strong>：Route = Predicate（匹配条件）+ Filter（处理逻辑）。请求进入后由 RoutePredicateHandlerMapping 评估 Predicate 并选中 Route；选中的 Route 内置 GatewayFilter 与全局 GlobalFilter 会按 order 合并成一个链。order 小的 Filter 在前置阶段先执行，响应阶段通常按相反方向回流；真正发起下游转发的是 <code class="inline-code">NettyRoutingFilter</code>（全局 Filter，位于链最末端、order = Ordered.LOWEST_PRECEDENCE）。它是 Reactor 异步非阻塞模型，但并非“无线程数瓶颈”，EventLoop、连接池和下游能力仍需压测规划。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     Client["客户端"] -->|"HTTP/HTTPS"| GW["API 网关"]
@@ -431,7 +435,11 @@ flowchart LR
 
               <p><strong>同步阻塞 vs 异步非阻塞</strong>：Zuul 1.x（已停更）每请求占用一个 Servlet 线程，后端慢则线程堆积；Gateway/APISIX 用少量 EventLoop 线程处理连接，慢后端通常表现为连接/订阅等待而不是立刻占满工作线程。但吞吐取决于 CPU、连接数、请求体、序列化、下游 RT 和限流策略，必须按目标版本压测，不能给出固定倍数。</p>
 
-              <p><strong>动态路由</strong>：Spring Cloud Gateway 的官方扩展点是 <code class="inline-code">RouteDefinitionWriter</code>（保存/删除路由定义）与 <code class="inline-code">RouteDefinitionLocator</code>（提供路由定义）；Spring Boot 提供 <code class="inline-code">InMemoryRouteDefinitionRepository</code>，也可自定义 <code class="inline-code">RouteDefinitionRepository</code> 接配置中心。配置中心推送后需要保存路由定义，并按所选组件的官方机制刷新缓存/发布刷新事件；路由和连接配置要可回滚。APISIX 等网关原生把控制面配置持久化到 etcd 并向数据面下发。动态路由是<strong>运维动机</strong>。</p>
+              <p>
+                <strong>动态路由</strong>：Spring Cloud Gateway 的官方扩展点是 <code class="inline-code">RouteDefinitionWriter</code>（保存/删除路由定义）与 <code class="inline-code">RouteDefinitionLocator</code>（提供路由定义）；Spring Boot 提供 <code class="inline-code">InMemoryRouteDefinitionRepository</code>，也可自定义
+                <code class="inline-code">RouteDefinitionRepository</code>
+                接配置中心。配置中心推送后需要保存路由定义，并按所选组件的官方机制刷新缓存/发布刷新事件；路由和连接配置要可回滚。APISIX 等网关原生把控制面配置持久化到 etcd 并向数据面下发。动态路由是<strong>运维动机</strong>。
+              </p>
 
               <table class="compare-table">
                 <thead>
@@ -632,6 +640,7 @@ flowchart LR
 
               <p><strong>熔断器状态机</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     Closed["Closed 闭合<br/>正常放行<br/>统计错误率/慢调用率"] -->|"错误率超阈值"| Open["Open 断开<br/>快速失败 fallback"]
@@ -752,8 +761,16 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
               <p><strong>追问 3：令牌桶如何做预热/冷启动？大促开闸瞬时打满怎么办？</strong></p>
               <p><strong>问题本质</strong>：令牌桶允许短时突发，但<strong>系统能力并不会瞬时拉满</strong>——缓存冷、连接池重建、Compaction 等都是后知后觉。若大促 0 点直接放满令牌，请求瞬时打满打穿系统。解法是<strong>让吞吐按"系统能力爬升曲线"平滑逼近目标</strong>：</p>
               <ul>
-                <li><strong>Guava RateLimiter 两种实现</strong>：<code class="inline-code">SmoothBursty</code>（平滑突发）与 <code class="inline-code">SmoothWarmUp</code>（平滑预热）。核心是 <code class="inline-code">storedPermits</code> + <code class="inline-code">nextFreeTicketMicros</code> 微积分模型——SmoothWarmUp 把令牌桶的"冷却区"映射为一条斜率为 <code class="inline-code">warmupPeriodMicros / (maxPermits · (1 - coldFactor))</code> 的爬升线，冷启动期放行速率从 <code class="inline-code">QPS / coldFactor</code>（默认 1/3）缓慢增长到满速，超过 1/2 容量才按满速放行；SmoothBursty 则提前把空闲期累积的令牌一次性放行（"欠账"预支，阅后即爆）。</li>
-                <li><strong>Sentinel WarmUp 限流</strong>：规则里配 <code class="inline-code">warmUpPeriodSec</code> + 冷启动因子，流量突增前 <code class="inline-code">storedPermits</code> 少，放行率低，随窗口滑动逐步提升至阈值；配套<strong>系统保护</strong>（基于 Load1/CPU/RT 自适应阈值）进一步防止"放行了但机器打不动"。</li>
+                <li>
+                  <strong>Guava RateLimiter 两种实现</strong>：<code class="inline-code">SmoothBursty</code>（平滑突发）与 <code class="inline-code">SmoothWarmUp</code>（平滑预热）。核心是 <code class="inline-code">storedPermits</code> + <code class="inline-code">nextFreeTicketMicros</code> 微积分模型——SmoothWarmUp 把令牌桶的"冷却区"映射为一条斜率为
+                  <code class="inline-code">warmupPeriodMicros / (maxPermits · (1 - coldFactor))</code>
+                  的爬升线，冷启动期放行速率从 <code class="inline-code">QPS / coldFactor</code>（默认 1/3）缓慢增长到满速，超过 1/2 容量才按满速放行；SmoothBursty 则提前把空闲期累积的令牌一次性放行（"欠账"预支，阅后即爆）。
+                </li>
+                <li>
+                  <strong>Sentinel WarmUp 限流</strong>：规则里配 <code class="inline-code">warmUpPeriodSec</code> + 冷启动因子，流量突增前
+                  <code class="inline-code">storedPermits</code>
+                  少，放行率低，随窗口滑动逐步提升至阈值；配套<strong>系统保护</strong>（基于 Load1/CPU/RT 自适应阈值）进一步防止"放行了但机器打不动"。
+                </li>
                 <li><strong>场景</strong>：秒杀开闸、缓存预热中的发布了、K8s 优雅上线的 <code class="inline-code">readinessProbe.pass + startPeriod</code> 配合预热——都比直接满配放行更稳。</li>
               </ul>
               <p><strong>追问 4：削峰填谷 vs 直接拒绝？分布式限流的精度与代价怎么权衡？</strong></p>
@@ -949,6 +966,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
               <p><strong>K8s 控制平面</strong>：API Server（唯一入口）+ etcd（状态存储，Raft）+ Scheduler（调度 Pod 到节点）+ Controller Manager（副本/节点/端点等控制循环）+ Kubelet（节点代理）+ Kube-proxy（Service 转发，早期 userspace 模式已移除；iptables/IPVS/nftables 等实现按集群版本和节点能力选择并压测）。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     subgraph CP["控制平面 Control Plane"]
@@ -1202,6 +1220,7 @@ spec:
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     M["单体<br/>进程内调用"] --> SOA["SOA<br/>ESB 集中编排"]
@@ -1231,6 +1250,7 @@ flowchart LR
               <p><strong>xDS 协议</strong>：Envoy 的动态配置 API——EDS（端点发现）、CDS（集群发现）、RDS（路由发现）、LDS（监听发现）。Istiod 推送配置，Envoy 热更新无需重启，实现<strong>动态路由与流量治理</strong>。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     subgraph CP["控制面 Istiod（现行一体；Pilot/Citadel/Galley 为历史拆分叙事）"]
@@ -1388,7 +1408,10 @@ spec:
               <p>在掌握 Istio 基础流量治理（金丝雀路由、熔断、mTLS）后，补齐三大高频实战考点：<strong>流量镜像、故障注入、限流协同</strong>，并厘清 Istio 与 Spring Cloud Gateway 的治理边界。</p>
               <ul>
                 <li><strong>流量镜像（Mirroring）</strong>：在 VirtualService 中配置 <code class="inline-code">mirror</code> 字段（如 <code class="inline-code">mirror: { host: order-service, subset: v2 }</code>），把线上真实流量实时复制一份发给新版本，新版本<strong>只接收、不响应</strong>。用途：灰度发布前的真实流量验证——新版拿真实请求验证处理能力，且不改变用户体验。注意：镜像流量是<strong>异步</strong>的，不阻塞主流量，镜像目标异常也不影响主链路；需用 <code class="inline-code">mirrorPercentage</code> 控制镜像比例，避免瞬间打垮新版本。</li>
-                <li><strong>故障注入（Fault Injection）</strong>：<code class="inline-code">HTTPAbort</code> 模拟 HTTP 错误码（如 503），用于验证熔断降级逻辑是否生效；<code class="inline-code">HTTPDelay</code> 注入延迟（如 5s），用于验证超时与重试配置。本质区别：故障注入是<strong>主动注入错误来测试系统韧性</strong>（发布前演练 / 混沌测试），限流是<strong>被动防御</strong>（常态保护），两者目的不同、不可混为一谈。</li>
+                <li>
+                  <strong>故障注入（Fault Injection）</strong>：<code class="inline-code">HTTPAbort</code> 模拟 HTTP 错误码（如 503），用于验证熔断降级逻辑是否生效；<code class="inline-code">HTTPDelay</code>
+                  注入延迟（如 5s），用于验证超时与重试配置。本质区别：故障注入是<strong>主动注入错误来测试系统韧性</strong>（发布前演练 / 混沌测试），限流是<strong>被动防御</strong>（常态保护），两者目的不同、不可混为一谈。
+                </li>
                 <li><strong>限流协同（Envoy Rate Limit Service）</strong>：Istio 限流走 Envoy，支持<strong>本地限流</strong>（token bucket，<code class="inline-code">local_rate_limit</code> Filter）与<strong>全局限流</strong>（独立的 rate-limit 服务 + Redis 后端）。与 Spring Cloud Gateway 对比：Istio 在 <strong>Sidecar 层</strong>限流，对应用<strong>透明</strong>，无需业务改造；Gateway 在<strong>网关入口</strong>限流，需业务感知与路由配置。生产最佳实践是<strong>联合使用</strong>：Istio 做全局限流（按服务 / 命名空间设 QPS 上限，保护基础设施），应用内再做细粒度限流（按用户维度，保护业务逻辑）。</li>
               </ul>
 
@@ -1481,6 +1504,7 @@ spec:
               </ol>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     subgraph S1["阶段1: 单体"]
@@ -1569,7 +1593,10 @@ flowchart LR
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>高可用 = <strong>冗余 + 故障隔离 + 故障转移 + 降级预案</strong>，考察"<strong>为失败而设计</strong>"（Design for Failure）的思维。核心回答：如何消除单点、如何隔离故障防扩散、如何自动转移、如何验证韧性（混沌工程），以及异地多活的单元化设计。</p>
+              <p>
+                高可用 =
+                <strong>冗余 + 故障隔离 + 故障转移 + 降级预案</strong>，考察"<strong>为失败而设计</strong>"（Design for Failure）的思维。核心回答：如何消除单点、如何隔离故障防扩散、如何自动转移、如何验证韧性（混沌工程），以及异地多活的单元化设计。
+              </p>
             </div>
           </div>
 
@@ -1601,6 +1628,7 @@ flowchart LR
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     Goal["高可用目标: SLA 99.99%+<br/>（年宕机 < 52.6 分钟）"]
@@ -1732,7 +1760,10 @@ blade destroy &lt;experiment-id&gt;</code></pre>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>配置中心 = <strong>集中配置存储 + 变更推送 + 版本管理 + 灰度发布</strong>，考察配置治理的工程能力。核心回答：配置中心的核心能力矩阵、推送机制的权衡、配置热更新原理，以及 Nacos/Apollo/Spring Cloud Config 的选型差异。</p>
+              <p>
+                配置中心 =
+                <strong>集中配置存储 + 变更推送 + 版本管理 + 灰度发布</strong>，考察配置治理的工程能力。核心回答：配置中心的核心能力矩阵、推送机制的权衡、配置热更新原理，以及 Nacos/Apollo/Spring Cloud Config 的选型差异。
+              </p>
             </div>
           </div>
 
@@ -1768,6 +1799,7 @@ blade destroy &lt;experiment-id&gt;</code></pre>
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     subgraph CC["配置中心集群"]
@@ -1886,7 +1918,10 @@ spring:
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：配置中心自身高可用如何保证？</strong></p>
-              <p>① 配置中心集群部署（Nacos 3+ 节点 AP，Apollo ConfigService 多实例）；② 配置存 MySQL/etcd 高可用；③ <strong>客户端本地快照兜底</strong>——配置中心全宕机时，客户端用上次拉取的本地快照继续启动与运行（Nacos/Apollo 均支持），保证配置中心故障不阻断业务；④ 推送链路降级。</p>
+              <p>
+                ① 配置中心集群部署（Nacos 3+ 节点 AP，Apollo ConfigService 多实例）；② 配置存 MySQL/etcd 高可用；③
+                <strong>客户端本地快照兜底</strong>——配置中心全宕机时，客户端用上次拉取的本地快照继续启动与运行（Nacos/Apollo 均支持），保证配置中心故障不阻断业务；④ 推送链路降级。
+              </p>
               <p><strong>追问 2：频繁热更新配置会触发什么问题？</strong></p>
               <p>@RefreshScope 频繁销毁重建 Bean 有开销，且重建期间请求可能拿到不一致状态。连接池类配置（如 maxPoolSize）热更新不会真正生效（连接池不会自动重建）。建议：① 区分静态配置（启动时读，需重启）与动态配置（运行时可变）；② 控制热更新频率；③ 重资源用专门的 reload 机制而非 RefreshScope。</p>
             </div>
@@ -2057,6 +2092,7 @@ spring:
               <p><strong>全链路灰度</strong>：微服务下，一次请求经过多个服务，灰度标签必须在<strong>全链路透传</strong>——入口/网关染色（加 Header 如 X-Gray-Tag=v2）→ 服务 A 识别标签路由到 A 的 v2 → A 调 B 时透传标签 → B 路由到 B 的 v2 → 跨 MQ 也要透传。实现前提按平台分层确认：Spring Cloud 用注册中心元数据 + LoadBalancer 过滤；Dubbo 用 TagRouter/标签附件；Ingress/API Gateway 需要路由规则支持 Header/权重；Service Mesh 由 Sidecar 执行路由；MQ 要求生产者和消费者都携带并处理版本标签。此外，金丝雀/灰度若要求同一用户稳定命中同一版本，需要路由层支持会话亲和（sticky session）或基于用户标识的一致性哈希；这类能力取决于 Ingress/Service Mesh/LB 的具体实现，并非所有平台默认可用，规划时需先确认平台能力边界。缺少任一环，标签只是“可见”，不能保证“可路由”。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     Client["客户端"] --> GW["API 网关"]
@@ -2142,7 +2178,10 @@ flowchart LR
               <p><strong>生产数据库隔离三模式</strong>：① <strong>物理共享·逻辑共用（最常见）</strong>——蓝绿连同一库，隔离的是流量非数据，DB 是单点风险，Schema 变更须严格向后兼容；② <strong>物理两份·逻辑同步（最安全）</strong>——绿库为蓝库实时从库（CDC/主从），权威源唯一（切前蓝、切后绿），另一份只是热备；③ <strong>逻辑隔离·物理共享（影子表）</strong>——同实例不同表（order_blue/order_green），仅用于压测，违背业务数据唯一性，生产慎用。与 C10.09 的"共享库 pitfall"呼应：方案①下 Schema 变更两环境都受影响，失去隔离意义。</p>
               <div class="callout callout-pitfall">
                 <div class="callout-title">割接（Cutover）四步 + 脑裂风险</div>
-                <p>写权转移必须<strong>瞬间全量完成，绝不可按百分比切</strong>。标准步骤：① <strong>停写</strong>：蓝环境先拒绝写（或短暂挂起）使蓝库数据静止；② <strong>数据追平</strong>：等待最后几毫秒同步数据完全复制到绿库，两库一致；③ <strong>一键全切</strong>：网关把 100% 流量瞬间蓝→绿；④ <strong>提升绿库</strong>：切断蓝→绿复制链路，绿库提升为新独立主库。若让"部分流量写绿、另一部分写蓝"，两库产生<strong>脑裂（split-brain）</strong>，数据分裂成两份冲突主数据，双向同步极复杂且易丢数据，生产绝不允许。<strong>结论：写只能全切，读可按部分流量引入绿环境验证，但主库只有一个。</strong></p>
+                <p>
+                  写权转移必须<strong>瞬间全量完成，绝不可按百分比切</strong>。标准步骤：①
+                  <strong>停写</strong>：蓝环境先拒绝写（或短暂挂起）使蓝库数据静止；② <strong>数据追平</strong>：等待最后几毫秒同步数据完全复制到绿库，两库一致；③ <strong>一键全切</strong>：网关把 100% 流量瞬间蓝→绿；④ <strong>提升绿库</strong>：切断蓝→绿复制链路，绿库提升为新独立主库。若让"部分流量写绿、另一部分写蓝"，两库产生<strong>脑裂（split-brain）</strong>，数据分裂成两份冲突主数据，双向同步极复杂且易丢数据，生产绝不允许。<strong>结论：写只能全切，读可按部分流量引入绿环境验证，但主库只有一个。</strong>
+                </p>
               </div>
               <p><strong>金丝雀 vs 灰度：包含关系与目的差异</strong>：<strong>金丝雀是灰度的子集</strong>（具体战术 vs 通用策略），金丝雀终点必全量，灰度不一定。① <strong>金丝雀</strong>——核心目的<strong>系统稳定性探雷</strong>（关注 CPU/错误率），1% 跑完没问题就全上，回滚直接切走 1% 流量或杀 Pod，简单粗暴；② <strong>灰度（广义）</strong>——核心目的<strong>业务策略与用户分流</strong>（关注点击率/转化率），按地域/设备/用户等级/Header 分流，可能永远停在 <strong>50% 做 A/B 测试</strong>（如新路开放 30% 对比老路，不打算全量）。<strong>回滚一致性</strong>：基于"用户 ID 哈希/地域"分流的灰度回滚须考虑"用户一致性"——如广东用户已在新页面下单，突然回滚其购物车新优惠券可能失效致客诉，需带数据迁移/补偿逻辑，比金丝雀复杂得多。终极定义：金丝雀="先少量试吃，没问题就全上"（版本发布的运维策略）；灰度="把用户分组，各组走不同的路"（用户流量的路由策略）。</p>
             </div>
@@ -2171,6 +2210,7 @@ flowchart LR
               <p><strong>云计算演进</strong>：物理机（自建机房）→ <strong>IaaS</strong>（虚拟机，AWS EC2，管 OS 以下）→ <strong>PaaS</strong>（应用托管，Heroku/云引擎，管运行时以下）→ <strong>CaaS</strong>（容器即服务，K8s/容器服务）→ <strong>FaaS</strong>（函数即服务，只管代码）→ <strong>Serverless</strong>（FaaS + BaaS，全托管）。本质是<strong>运维边界不断上移，开发者只关注业务代码</strong>。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     PM["物理机<br/>全自管"] --> IAAS["IaaS<br/>虚拟机<br/>管OS以上"]
@@ -2397,7 +2437,10 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：Seata AT 的脏读问题如何解决？</strong></p>
-              <p>Seata AT 一阶段已提交本地事务，其他事务可能读到未全局提交的数据（若全局回滚则读到脏数据）。解法：① <strong>全局锁</strong>：Seata 代理数据源时加行级全局锁，阻塞其他事务对同一数据行的写操作（防脏写）；② <strong>@GlobalLock + SELECT FOR UPDATE</strong>：强制走 Seata 代理；③ 业务层容忍短暂不一致，或查询走快照/副本。</p>
+              <p>
+                Seata AT 一阶段已提交本地事务，其他事务可能读到未全局提交的数据（若全局回滚则读到脏数据）。解法：①
+                <strong>全局锁</strong>：Seata 代理数据源时加行级全局锁，阻塞其他事务对同一数据行的写操作（防脏写）；② <strong>@GlobalLock + SELECT FOR UPDATE</strong>：强制走 Seata 代理；③ 业务层容忍短暂不一致，或查询走快照/副本。
+              </p>
               <p><strong>追问 2：SAGA 的补偿失败了怎么办？</strong></p>
               <p>补偿操作也可能失败（如网络超时、服务宕机）。解法：① <strong>补偿必须幂等</strong>，允许重试；② 补偿失败进入<strong>人工干预队列</strong>，告警通知运维；③ 设计<strong>可回退的业务状态</strong>，避免补偿逻辑过于复杂；④ 预留<strong>对账修复</strong>机制，日终自动校验并修复不一致。</p>
             </div>
@@ -2421,7 +2464,9 @@ flowchart LR
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>选型结论：绝大多数场景用"最终一致 + 补偿/对账"即可，必须高性能强一致再上 TCC，严禁把 Seata AT 用于高频场景（全局锁会拖垮吞吐）。</strong></p>
+              <p>
+                <strong>选型结论：绝大多数场景用"最终一致 + 补偿/对账"即可，必须高性能强一致再上 TCC，严禁把 Seata AT 用于高频场景（全局锁会拖垮吞吐）。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2567,7 +2612,10 @@ flowchart LR
               <p><strong>追问 1：GitOps 下 Secret 如何管理？</strong></p>
               <p>Git 存明文 Secret 不安全。方案：① <strong>Sealed Secrets</strong>：用集群公钥加密 Secret，仅集群内可解密，密文可存 Git；② <strong>External Secrets Operator</strong>：Git 只存引用，实际 Secret 从 Vault/AWS Secret Manager 动态拉取；③ <strong>SOPS + Mozilla/OpenPGP</strong>：加密 YAML 中的敏感字段。核心原则：Git 可存密文引用，不存明文凭证。</p>
               <p><strong>追问 2：ArgoCD 自动同步的风险？</strong></p>
-              <p>自动同步（Auto-Sync）在 Git 被恶意修改时会直接应用到生产。缓解：① <strong>分支保护 + Code Review</strong>：master/main 禁止直接推送；② <strong>预同步钩子（PreSync）</strong>：执行合规检查；③ <strong>生产环境手动同步</strong>：ArgoCD 只自动同步 dev/test，prod 需人工点击；④ <strong>OPA/Gatekeeper</strong>：拦截不合规的部署（如 privileged 容器）。</p>
+              <p>
+                自动同步（Auto-Sync）在 Git 被恶意修改时会直接应用到生产。缓解：①
+                <strong>分支保护 + Code Review</strong>：master/main 禁止直接推送；② <strong>预同步钩子（PreSync）</strong>：执行合规检查；③ <strong>生产环境手动同步</strong>：ArgoCD 只自动同步 dev/test，prod 需人工点击；④ <strong>OPA/Gatekeeper</strong>：拦截不合规的部署（如 privileged 容器）。
+              </p>
             </div>
           </div>
 
@@ -2841,7 +2889,9 @@ flowchart LR
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>选型结论：隔离强度与成本成正比——中小租户走共享库 + tenant_id 控成本，大租户独立实例保隔离，并用租户级限流防止"吵闹邻居"拖垮全局。</strong></p>
+              <p>
+                <strong>选型结论：隔离强度与成本成正比——中小租户走共享库 + tenant_id 控成本，大租户独立实例保隔离，并用租户级限流防止"吵闹邻居"拖垮全局。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -3110,7 +3160,10 @@ flowchart LR
             <div class="qa-layer-body">
               <p><strong>高级开发</strong>：① <strong>Axon Framework + Spring Boot 集成</strong>——<code class="inline-code">@Aggregate</code>/<code class="inline-code">@CommandHandler</code>/<code class="inline-code">@EventHandler</code> 注解驱动，<code class="inline-code">axon-spring-boot-starter</code> 自动装配 CommandBus/EventBus/EventStore；② <strong>Command/Event/Query 三分离</strong>——命令侧聚合根保业务规则，事件不可变，查询侧物化视图独立演进；③ <strong>事件存储选型</strong>——开发用 Axon Server/JPA EventStorageEngine，生产用 EventStoreDB 或 Kafka。</p>
               <p><strong>架构师决策——何时用 CQRS+ES</strong>：</p>
-              <p>① <strong>适用：复杂领域</strong>（金融交易、保险理赔，业务规则多、状态机复杂）；<strong>强审计需求</strong>（合规要求保留所有变更轨迹）；<strong>时间旅行调试</strong>（回放事件复现任意历史时刻）；<strong>读写负载差异大</strong>（写少读多、查询维度多变，物化视图灵活扩展）。</p>
+              <p>
+                ①
+                <strong>适用：复杂领域</strong>（金融交易、保险理赔，业务规则多、状态机复杂）；<strong>强审计需求</strong>（合规要求保留所有变更轨迹）；<strong>时间旅行调试</strong>（回放事件复现任意历史时刻）；<strong>读写负载差异大</strong>（写少读多、查询维度多变，物化视图灵活扩展）。
+              </p>
               <p>② <strong>不适用：简单 CRUD</strong>（管理系统增删改查，引入 CQRS 是过度设计）；<strong>强一致性需求</strong>（读必须立即可见，无法容忍最终一致延迟）；<strong>团队不熟 DDD</strong>（CQRS+ES 强依赖 DDD 聚合/领域事件建模，建模错误代价极高）。</p>
               <p>③ <strong>事件版本兼容（Upcasting）</strong>：事件 schema 演进时，旧版本事件需"升级"为新版本。Upcaster 在事件反序列化阶段转换（<code class="inline-code">v1 OrderCreatedEvent</code> → <code class="inline-code">v2</code> 加字段），<strong>不可修改已存事件</strong>。Axon 提供 <code class="inline-code">EventUpcaster</code> 链式处理，EventStoreDB 支持 metadata 版本标记。规划时<strong>事件 schema 一旦发布即契约</strong>，新增字段用可选/默认值，破坏性变更用新事件类型。</p>
               <p>④ <strong>读模型重建</strong>：读模型损坏/schema 变更需重建——清空读存储 + 重放全部事件。事件量大时需<strong>并行重建</strong>（按聚合分片）+ <strong>追平后切换</strong>（rebuild 期间旧视图继续服务，重建完成原子切换）。</p>
@@ -3127,9 +3180,17 @@ flowchart LR
               <p><strong>追问 1：CQRS 一定会引入最终一致性吗？</strong></p>
               <p>不一定。<strong>CQRS 本身只规定读写模型分离，不规定同步方式</strong>。① <strong>异步同步（最终一致）</strong>：写侧提交事件后，读侧通过消息异步更新，有延迟——这是常见形态，换来了读写独立扩展与解耦；② <strong>同步同步（强一致）</strong>：写侧在同一事务内更新读模型（如同一数据库事务写聚合 + 写读视图），读立即可见，但牺牲了独立扩展性，且读模型更新失败会回滚写操作；③ <strong>同库不同表 + 事务</strong>：折中方案，读模型与写模型同库，本地事务保证一致，但仍耦合扩展。<strong>实践中多数 CQRS 选最终一致</strong>，因为强一致场景往往不需要 CQRS（读写同库即可）。最终一致需在 UI 层处理"写成功读未更新"，常用做法是命令返回后前端轮询或服务端推送读模型版本号。</p>
               <p><strong>追问 2：Event Sourcing 如何处理事件模式（schema）变更？</strong></p>
-              <p>核心原则：<strong>已存事件不可修改</strong>（immutable 是 ES 基石），变更通过<strong>读时转换</strong>解决。① <strong>Upcasting（向上转换）</strong>：在事件反序列化阶段，用 Upcaster 把旧版本事件转成新版本结构（如 <code class="inline-code">v1{amount}</code> → <code class="inline-code">v2{amount, currency:"CNY"}</code> 加默认值）。Axon 的 <code class="inline-code">EventUpcaster</code> 链式处理，对业务代码透明；② <strong>新增可选字段</strong>：向前兼容，旧消费者忽略新字段；③ <strong>破坏性变更</strong>：发布新事件类型（如 <code class="inline-code">OrderCreatedEventV2</code>），聚合同时处理新旧事件，或做<strong>事件迁移</strong>（读旧流生成新流，切换后归档旧流，成本高慎用）；④ <strong>版本标记</strong>：事件 metadata 带 schema 版本号，反序列化时按版本路由 Upcaster。<strong>关键：事件 schema 设计要面向未来</strong>，字段语义明确、避免重载，新增用可选字段，重大变更用新事件类型而非改旧事件。</p>
+              <p>
+                核心原则：<strong>已存事件不可修改</strong>（immutable 是 ES 基石），变更通过<strong>读时转换</strong>解决。①
+                <strong>Upcasting（向上转换）</strong>：在事件反序列化阶段，用 Upcaster 把旧版本事件转成新版本结构（如 <code class="inline-code">v1{amount}</code> → <code class="inline-code">v2{amount, currency:"CNY"}</code> 加默认值）。Axon 的 <code class="inline-code">EventUpcaster</code> 链式处理，对业务代码透明；② <strong>新增可选字段</strong>：向前兼容，旧消费者忽略新字段；③ <strong>破坏性变更</strong>：发布新事件类型（如 <code class="inline-code">OrderCreatedEventV2</code>），聚合同时处理新旧事件，或做<strong>事件迁移</strong>（读旧流生成新流，切换后归档旧流，成本高慎用）；④ <strong>版本标记</strong>：事件 metadata 带 schema 版本号，反序列化时按版本路由 Upcaster。<strong>关键：事件 schema 设计要面向未来</strong>，字段语义明确、避免重载，新增用可选字段，重大变更用新事件类型而非改旧事件。
+              </p>
               <p><strong>追问 3：CQRS+ES vs CDC（Canal/Debezium）有什么区别？</strong></p>
-              <p>两者都能构建读模型/数据同步，但<strong>层次与语义不同</strong>。① <strong>CQRS+ES 是应用层模式</strong>：事件由领域模型显式产生（<code class="inline-code">OrderCreatedEvent</code> 是业务语义事件），聚合根是真相之源，事件是<strong>业务事实</strong>，可重建任意状态；② <strong>CDC 是基础设施层数据捕获</strong>：监听数据库 binlog/WAL，产生的是<strong>数据变更事件</strong>（<code class="inline-code">UPDATE orders SET status='PAID'</code>），反映"状态变了"而非"发生了什么业务事件"，是状态变化的<strong>副作用投影</strong>。区别要点：CQRS+ES 事件含业务意图、可重建聚合、强 DDD 建模；CDC 事件是技术层面行级变更、无需改应用、对存量系统侵入小。<strong>选型</strong>：新系统且领域复杂用 CQRS+ES；存量系统改造/数据同步/读模型构建用 CDC（更轻量、无侵入）。两者可结合——应用层用 CQRS+ES，跨服务数据同步用 CDC。</p>
+              <p>
+                两者都能构建读模型/数据同步，但<strong>层次与语义不同</strong>。①
+                <strong>CQRS+ES 是应用层模式</strong>：事件由领域模型显式产生（<code class="inline-code">OrderCreatedEvent</code>
+                是业务语义事件），聚合根是真相之源，事件是<strong>业务事实</strong>，可重建任意状态；②
+                <strong>CDC 是基础设施层数据捕获</strong>：监听数据库 binlog/WAL，产生的是<strong>数据变更事件</strong>（<code class="inline-code">UPDATE orders SET status='PAID'</code>），反映"状态变了"而非"发生了什么业务事件"，是状态变化的<strong>副作用投影</strong>。区别要点：CQRS+ES 事件含业务意图、可重建聚合、强 DDD 建模；CDC 事件是技术层面行级变更、无需改应用、对存量系统侵入小。<strong>选型</strong>：新系统且领域复杂用 CQRS+ES；存量系统改造/数据同步/读模型构建用 CDC（更轻量、无侵入）。两者可结合——应用层用 CQRS+ES，跨服务数据同步用 CDC。
+              </p>
             </div>
           </div>
 
@@ -3239,7 +3300,10 @@ flowchart LR
               <p>④ <strong>SLO 与容量规划结合</strong>：按 SLO 反推所需资源冗余——如可用性 99.95% 意味着单实例 MTTR 内需有备用容量接管流量，据此规划多活/弹性伸缩策略；SLO 退化趋势提前触发扩容或架构改造（如读模型分离、缓存前置）。</p>
               <div class="callout callout-tip">
                 <div class="callout-title">架构决策红线</div>
-                <p>SLO 的本质是<strong>用数据代替直觉做可靠性决策</strong>。落地时把握三个原则：① <strong>SLI 必须从用户旅程定义</strong>，而非"CPU 使用率 &lt; 80%"这种与体验脱节的指标；② <strong>SLO 必须有 Error Budget 并真正用于决策</strong>，否则只是挂在墙上的数字；③ <strong>SLO 要持续校准</strong>——过松（长期 100% 达标）说明设得太宽浪费资源，过严（长期违约）说明脱离实际，需每季度基于真实数据调整。没有 Error Budget 决策闭环的 SLO 都是"装饰性 SLO"。</p>
+                <p>
+                  SLO 的本质是<strong>用数据代替直觉做可靠性决策</strong>。落地时把握三个原则：①
+                  <strong>SLI 必须从用户旅程定义</strong>，而非"CPU 使用率 &lt; 80%"这种与体验脱节的指标；② <strong>SLO 必须有 Error Budget 并真正用于决策</strong>，否则只是挂在墙上的数字；③ <strong>SLO 要持续校准</strong>——过松（长期 100% 达标）说明设得太宽浪费资源，过严（长期违约）说明脱离实际，需每季度基于真实数据调整。没有 Error Budget 决策闭环的 SLO 都是"装饰性 SLO"。
+                </p>
               </div>
             </div>
           </div>
@@ -3250,7 +3314,10 @@ flowchart LR
               <p><strong>追问 1：SLO 和 SLA 有什么区别？</strong></p>
               <p>两者层次与用途不同。<strong>SLA（Service Level Agreement，服务等级协议）</strong>是<strong>业务/法律契约</strong>：服务方与客户签订的承诺，违约需赔偿（如云厂商承诺 99.95% 可用性，不达标退还部分费用），是<strong>事后条款</strong>，定义偏粗、留有安全余量。<strong>SLO（Service Level Objective）</strong>是<strong>内部工程目标</strong>：团队自己设定的可靠性目标，用于驱动日常运维与发布决策，是<strong>事前目标</strong>，定义精确（明确 SLI 算法）、周期更短（通常按月/周）。关键关系：<strong>SLO 应严于 SLA</strong>——如 SLA 承诺 99.9%，内部 SLO 设 99.95%，留出缓冲层吸收波动，确保即便 SLO 偶尔违约也不触发 SLA 赔付。SLI 是两者的共同度量基础。</p>
               <p><strong>追问 2：Error Budget 用完后应该怎么做？</strong></p>
-              <p>核心原则：<strong>预算耗尽则停止冒进，转向稳定性修复</strong>。① <strong>冻结非必要发布</strong>——只允许修复类变更（bugfix/热修），冻结新功能发布，直到预算恢复（下个 SLO 周期或故障消除后预算回充）；② <strong>优先投入稳定性建设</strong>——团队精力从"交付新功能"切换到"修根因"，做故障复盘、消除 Top N 不稳定因素、补充自动化预案；③ <strong>与产品方对齐预期</strong>——把预算消耗可视化给产品方，共同决定是降低 SLO 目标（接受更低可靠性换迭代速度）还是投入更多稳定性资源。极端情况（连续违约）需<strong>上调 SLO 优先级</strong>，暂停新需求。<strong>切忌</strong>：预算耗尽仍强行发布，等于在透支用户信任，最终触发 SLA 违约。</p>
+              <p>
+                核心原则：<strong>预算耗尽则停止冒进，转向稳定性修复</strong>。①
+                <strong>冻结非必要发布</strong>——只允许修复类变更（bugfix/热修），冻结新功能发布，直到预算恢复（下个 SLO 周期或故障消除后预算回充）；② <strong>优先投入稳定性建设</strong>——团队精力从"交付新功能"切换到"修根因"，做故障复盘、消除 Top N 不稳定因素、补充自动化预案；③ <strong>与产品方对齐预期</strong>——把预算消耗可视化给产品方，共同决定是降低 SLO 目标（接受更低可靠性换迭代速度）还是投入更多稳定性资源。极端情况（连续违约）需<strong>上调 SLO 优先级</strong>，暂停新需求。<strong>切忌</strong>：预算耗尽仍强行发布，等于在透支用户信任，最终触发 SLA 违约。
+              </p>
               <p><strong>追问 3：如何避免 SLO 过于宽松或过于严格？</strong></p>
               <p>靠<strong>数据驱动 + 持续校准</strong>。① <strong>初始设定基于历史数据</strong>：取过去 3-6 个月实际表现，取 P95 性能作为初始 SLO（略严于现状，留改进空间），而非凭直觉拍数；② <strong>定期校准（季度 Review）</strong>：若 SLO 连续 3 个月 100% 达成且预算大量剩余→<strong>过松</strong>，应收紧 SLO（如 99.9%→99.95%）释放可靠性资源或提升用户体验；若连续违约→<strong>过严</strong>，需分析是 SLO 脱离实际还是系统真不稳定，前者下调 SLO，后者投入稳定性建设；③ <strong>分层 SLO 区分核心与非核心</strong>：核心用户旅程设严 SLO（99.95%），非核心功能设宽 SLO（99%），避免一刀切导致资源浪费或核心链路被拖累。校准需业务与技术共同参与，SLO 是<strong>动态承诺</strong>而非一成不变。</p>
             </div>
@@ -3304,6 +3371,7 @@ flowchart LR
               <p><strong>2. 拦截器完整执行链路</strong>：<code class="inline-code">ClientHttpRequestInterceptor#intercept</code> 被触发 → 从原始 URL 提取 serviceId（如 <code class="inline-code">http://order-service/api</code> → serviceId=<code class="inline-code">order-service</code>）→ 调用 <code class="inline-code">LoadBalancerClient.choose(serviceId)</code> → 从 <code class="inline-code">ServiceInstance</code> 列表按策略（RoundRobin/Random/Weighted）选一个实例 → 将 URL 的 serviceId 替换为 <code class="inline-code">host:port</code>（如 <code class="inline-code">10.0.1.5:8080</code>）→ delegate 给底层 HTTP Client 执行真正请求。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["@LoadBalanced RestTemplate<br/>getForObject('http://order-service/api')"] --> B["LoadBalancerInterceptor<br/>ClientHttpRequestInterceptor"]
@@ -3437,10 +3505,15 @@ flowchart TD
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：@LoadBalanced 的 Qualifier 机制——Spring 怎么知道给哪些 RestTemplate 注拦截器？</strong></p>
+              <p>
+                <strong>追问 1：@LoadBalanced 的 Qualifier 机制——Spring 怎么知道给哪些 RestTemplate 注拦截器？</strong>
+              </p>
               <p>关键在于 <code class="inline-code">@LoadBalanced</code> 元注解上标了 <code class="inline-code">@Qualifier</code>。Spring 的自动配置 <code class="inline-code">LoadBalancerAutoConfiguration</code> 中有一个字段：<code class="inline-code">@LoadBalanced @Autowired(required=false) private List&lt;RestTemplate&gt; restTemplates = Collections.emptyList();</code>。Spring 会把<strong>所有同时满足 @Autowired + @LoadBalanced 限定符</strong>的 RestTemplate Bean 注入到这个 List，然后通过 <code class="inline-code">SmartInitializingSingleton</code> 回调逐个给它们 add <code class="inline-code">LoadBalancerInterceptor</code>。不带 <code class="inline-code">@LoadBalanced</code> 的 RestTemplate 根本不会出现在这个 List 里——这就是精准筛选的本质。</p>
               <p><strong>追问 2：Ribbon 时代的 zone/availability 过滤策略，在 LoadBalancer 时代如何实现？</strong></p>
-              <p>Spring Cloud LoadBalancer 通过自定义 <code class="inline-code">ServiceInstanceListSupplier</code> 装饰器实现。① <strong>Zone 偏好</strong>：用 <code class="inline-code">ZonePreferenceServiceInstanceListSupplier</code>（Spring Cloud LoadBalancer 内置），优先选同 zone 的实例；② <strong>可用性过滤</strong>：自定义 <code class="inline-code">HealthCheckServiceInstanceListSupplier</code>（内置）定期 ping 实例健康端点，过滤掉不健康的；③ <strong>自定义组合</strong>：用 <code class="inline-code">DelegatingServiceInstanceListSupplier</code> 链式装饰——先 zone 过滤 → 再健康过滤 → 再权重挑选。</p>
+              <p>
+                Spring Cloud LoadBalancer 通过自定义
+                <code class="inline-code">ServiceInstanceListSupplier</code> 装饰器实现。① <strong>Zone 偏好</strong>：用 <code class="inline-code">ZonePreferenceServiceInstanceListSupplier</code>（Spring Cloud LoadBalancer 内置），优先选同 zone 的实例；② <strong>可用性过滤</strong>：自定义 <code class="inline-code">HealthCheckServiceInstanceListSupplier</code>（内置）定期 ping 实例健康端点，过滤掉不健康的；③ <strong>自定义组合</strong>：用 <code class="inline-code">DelegatingServiceInstanceListSupplier</code> 链式装饰——先 zone 过滤 → 再健康过滤 → 再权重挑选。
+              </p>
               <p><strong>追问 3：调用链里一个 ServiceInstance 全失败时的重试与 failover 如何配置？</strong></p>
               <p>用 <strong>Spring Retry + LoadBalancedRetryFactory</strong> 组合。① 引入 <code class="inline-code">spring-retry</code> 依赖；② 配置 <code class="inline-code">spring.cloud.loadbalancer.retry.enabled=true</code>；③ 自定义 <code class="inline-code">LoadBalancedRetryFactory</code> Bean，指定 <code class="inline-code">RetryTemplate</code>（最大重试次数 3、重试间隔指数退避、哪些异常触发重试：<code class="inline-code">IOException</code>/<code class="inline-code">ConnectException</code>/<code class="inline-code">SocketTimeoutException</code>）；④ 重试时 <code class="inline-code">RetryableLoadBalancer</code> 会在每次重试前重新 <code class="inline-code">choose</code> 实例（默认换实例），实现 failover。注意：重试总耗时必须小于上层熔断超时，否则熔断先开会吞掉重试机会。</p>
             </div>
@@ -3455,12 +3528,15 @@ flowchart TD
                   <li><strong>WebFlux 项目里用同步 RestTemplate 引发虚拟线程 pinning 或阻塞 Netty EventLoop</strong>：WebFlux 默认 Netty EventLoop 线程极少（CPU 核数 × 2），用同步 RestTemplate 会把 EventLoop 阻塞住，导致整个网关/服务不可用。WebFlux 项目必须用 <code class="inline-code">WebClient</code> 或 <code class="inline-code">RestClient</code>（异步模式）。</li>
                   <li><strong>多 RestTemplate Bean 漏加 @LoadBalanced 或全部加导致直连失败</strong>：一个项目里常既有"跨服务调用（要负载均衡）"又有"调第三方外网 API（要直连）"。必须分开两个 Bean：一个打 <code class="inline-code">@LoadBalanced</code> + <code class="inline-code">@Qualifier("lbRestTemplate")</code>，另一个不加 + <code class="inline-code">@Qualifier("directRestTemplate")</code>，注入时按 Qualifier 区分。全部加 <code class="inline-code">@LoadBalanced</code> 会导致调外网时把域名当 serviceId 去注册中心查，报 <code class="inline-code">No instances available</code>。</li>
                   <li><strong>HTTP 客户端连接池参数未配置，默认单路由 5 连接导致高并发瓶颈</strong>：RestTemplate 默认用 JDK <code class="inline-code">URLConnection</code>，单路由 5 连接、总连接数有限，QPS 一上来大量线程卡在 <code class="inline-code">getConnection</code> 上，RT 飙升。生产必须切换到 Apache HC5 或 OkHttp 并配 <code class="inline-code">maxTotal=200+</code>、<code class="inline-code">defaultMaxPerRoute=50+</code>。</li>
-                  <li><strong>自定义 LoadBalancer 策略 Bean 漏标 @Configuration(proxyBeanMethods=false)</strong>：Spring Cloud LoadBalancer 每个服务名对应一个独立的 ApplicationContext（子上下文），如果 <code class="inline-code">proxyBeanMethods=true</code>（默认），子上下文会尝试代理父上下文的 Bean，导致启动慢甚至 Bean 循环依赖。<code class="inline-code">@Configuration(proxyBeanMethods=false)</code> 是官方推荐写法。</li>
+                  <li>
+                    <strong>自定义 LoadBalancer 策略 Bean 漏标 @Configuration(proxyBeanMethods=false)</strong>：Spring Cloud LoadBalancer 每个服务名对应一个独立的 ApplicationContext（子上下文），如果 <code class="inline-code">proxyBeanMethods=true</code>（默认），子上下文会尝试代理父上下文的 Bean，导致启动慢甚至 Bean 循环依赖。<code class="inline-code">@Configuration(proxyBeanMethods=false)</code>
+                    是官方推荐写法。
+                  </li>
                 </ul>
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -3471,7 +3547,7 @@ flowchart TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- C10.19 OpenFeign 深度：动态代理 + RequestInterceptor + 超时/重试/FallbackFactory + 多参数坑 -->
         <!-- ============================================================================================== -->
@@ -3503,7 +3579,10 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>调用链完整路径（逐跳拆解）</strong>：</p>
               <ol>
-                <li><strong>业务代码</strong> 调用 <code class="inline-code">userClient.getUser(123)</code>，<code class="inline-code">userClient</code> 本质是 JDK Dynamic Proxy 实例。</li>
+                <li>
+                  <strong>业务代码</strong> 调用 <code class="inline-code">userClient.getUser(123)</code>，<code class="inline-code">userClient</code>
+                  本质是 JDK Dynamic Proxy 实例。
+                </li>
                 <li><strong>JDK InvocationHandler</strong>（<code class="inline-code">FeignInvocationHandler</code>）按方法路由到对应的 <code class="inline-code">MethodHandler</code>（每个接口方法对应一个，缓存到 ConcurrentHashMap 里避免重复解析）。</li>
                 <li><strong>Contract 解析</strong>（<code class="inline-code">SpringMvcContract</code>）：解析方法上的 Spring MVC 注解——<code class="inline-code">@GetMapping("/users/{id}")</code> 提取 HTTP 方法 + URL 模板，<code class="inline-code">@PathVariable("id")</code> 绑定参数到 URL 占位符，<code class="inline-code">@RequestHeader("X-UserId")</code> 绑定到请求头，<code class="inline-code">@RequestBody</code> 绑定到 Body。</li>
                 <li>生成 <strong>RequestTemplate</strong>：包含 URL、Method、Headers、Body、QueryParams。</li>
@@ -3514,6 +3593,7 @@ flowchart TD
               </ol>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     U["业务调用 userClient.getUser(123)"] --> P["JDK Dynamic Proxy<br/>FeignInvocationHandler"]
@@ -3654,7 +3734,11 @@ flowchart TD
                 反例：如果 Sentinel timeout 设 2s 而 readTimeout 设 5s，那么接口耗时 3s 时还没等 HTTP 超时返回，Sentinel 先熔断了，接口正常返回也被算失败，导致误熔断雪崩。
               </p>
               <p><strong>追问 2：Fallback 与 FallbackFactory 的区别，为何推荐 FallbackFactory？</strong></p>
-              <p><code class="inline-code">fallback</code> 只能指定一个"降级实现类"，拿不到异常对象，只能做"不管什么错都返回同一个兜底值"的粗粒度降级；<code class="inline-code">fallbackFactory</code> 是工厂接口，<code class="inline-code">create(Throwable cause)</code> 能拿到真正的异常对象，可以判断是 <code class="inline-code">CircuitBreakerOpenException</code>/<code class="inline-code">SocketTimeoutException</code>/<code class="inline-code">DecodeException</code>/<code class="inline-code">FeignException$NotFound(404)</code> 等不同异常做差异化降级——404 直接抛业务异常、超时读缓存兜底、熔断提示"稍后重试"。生产环境必须用 FallbackFactory，否则降级逻辑等于"蒙着眼睛兜底"，排查问题时也拿不到降级触发的根因。</p>
+              <p>
+                <code class="inline-code">fallback</code>
+                只能指定一个"降级实现类"，拿不到异常对象，只能做"不管什么错都返回同一个兜底值"的粗粒度降级；<code class="inline-code">fallbackFactory</code> 是工厂接口，<code class="inline-code">create(Throwable cause)</code> 能拿到真正的异常对象，可以判断是 <code class="inline-code">CircuitBreakerOpenException</code>/<code class="inline-code">SocketTimeoutException</code>/<code class="inline-code">DecodeException</code>/<code class="inline-code">FeignException$NotFound(404)</code>
+                等不同异常做差异化降级——404 直接抛业务异常、超时读缓存兜底、熔断提示"稍后重试"。生产环境必须用 FallbackFactory，否则降级逻辑等于"蒙着眼睛兜底"，排查问题时也拿不到降级触发的根因。
+              </p>
               <p><strong>追问 3：继承方式多参数坑——父接口 @RequestParam 为什么必须显式写 value？</strong></p>
               <p>Java 编译时默认会把方法参数名擦除（除非开 <code class="inline-code">-parameters</code> 编译参数），所以 Spring 在运行时通过反射拿不到参数名"id"，只能拿到 <code class="inline-code">arg0</code>、<code class="inline-code">arg1</code>。<code class="inline-code">@RequestParam</code> 如果不显式写 <code class="inline-code">value = "id"</code>，Spring MVC Contract 在父接口里解析时，会尝试用参数名做 key，但拿到的是 <code class="inline-code">arg0</code> 而不是真实参数名，导致运行时报：<code class="inline-code">Query parameter 'id' was not found among request parameters</code>（编译不报错，运行才炸）。解决方案有两个：① 所有 <code class="inline-code">@RequestParam/@PathVariable</code> 都显式写 <code class="inline-code">value</code> 属性（最稳妥，兼容所有编译环境）；② 开 <code class="inline-code">-parameters</code> 编译参数 + Spring Boot 3.x 原生支持参数名保留（但要确保公共 API 模块和消费端都开了，任何一端没开都会炸）。</p>
             </div>
@@ -3666,7 +3750,12 @@ flowchart TD
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
-                  <li><strong>继承接口多参数漏写 @RequestParam value，报 Query parameter not found</strong>：生产级踩坑率极高。父接口写 <code class="inline-code">search(@RequestParam String name, @RequestParam Integer age)</code> 看着对，运行时就报找不到参数。务必显式写 <code class="inline-code">@RequestParam("name")</code>，不要省 value。</li>
+                  <li>
+                    <strong>继承接口多参数漏写 @RequestParam value，报 Query parameter not found</strong>：生产级踩坑率极高。父接口写
+                    <code class="inline-code">search(@RequestParam String name, @RequestParam Integer age)</code>
+                    看着对，运行时就报找不到参数。务必显式写
+                    <code class="inline-code">@RequestParam("name")</code>，不要省 value。
+                  </li>
                   <li><strong>Fallback/FallbackFactory 忘记加 @Component 或未在 @FeignClient 指定</strong>：两种典型错——① 降级类写了但没加 <code class="inline-code">@Component</code>，Spring 找不到 Bean 启动报 <code class="inline-code">NoSuchBeanDefinitionException</code>；② <code class="inline-code">@FeignClient</code> 上漏写 <code class="inline-code">fallbackFactory = XxxFallbackFactory.class</code>，等于降级根本没生效，异常直接抛出到前端。</li>
                   <li><strong>默认 URLConnection 无连接池，高并发 Socket exhausted</strong>：默认 <code class="inline-code">Client.Default</code> 用 JDK URLConnection，每个请求建一个 Socket 不池化。QPS 几百时出现大量 <code class="inline-code">Cannot assign requested address</code>（本地端口耗尽）或 <code class="inline-code">Too many open files</code>。生产必须切 <code class="inline-code">feign.hc5.enabled=true</code> 或 <code class="inline-code">feign.okhttp.enabled=true</code> 并配连接池。</li>
                   <li><strong>ReadTimeout 设太长 + Fallback 不抛异常，调用方线程堆积锁死 Tomcat</strong>：ReadTimeout 设 30s，后端真卡死时 Feign 线程占 30s 才返回，期间 Tomcat 200 线程全被 Feign 调用占满，新请求排队，整个服务雪崩。Fallback 必须要么快速抛异常（让上游感知失败），要么返回兜底缓存值（毫秒级返回），绝不能让 Fallback 也慢。</li>
@@ -3742,11 +3831,11 @@ flowchart TD
                 </tbody>
               </table>
               <p>
-                核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong
-                >（即 &lt; LOWEST_PRECEDENCE = 2147483647），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 位于链最末端，与 <code class="inline-code">ForwardRoutingFilter</code> 同处最低优先级区间（均 = LOWEST_PRECEDENCE）、前者负责外部转发、后者负责本地 forward，二者通过 <code class="inline-code">isAlreadyRouted</code> 标记避免重复转发；鉴权/限流等必须在它之前（order 更小）完成。它（NettyRoutingFilter）位于出站的最末端——前面的 Filter 改完请求、鉴权通过、限流通过，最后一步才由它真正转发。
+                核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong>（即 &lt; LOWEST_PRECEDENCE = 2147483647），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 位于链最末端，与 <code class="inline-code">ForwardRoutingFilter</code> 同处最低优先级区间（均 = LOWEST_PRECEDENCE）、前者负责外部转发、后者负责本地 forward，二者通过 <code class="inline-code">isAlreadyRouted</code> 标记避免重复转发；鉴权/限流等必须在它之前（order 更小）完成。它（NettyRoutingFilter）位于出站的最末端——前面的 Filter 改完请求、鉴权通过、限流通过，最后一步才由它真正转发。
               </p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     IN["请求进入<br/>Netty EventLoop"] --> A["AdaptCachedBodyGlobalFilter<br/>(-2147482648) 缓存Body"]
@@ -3779,7 +3868,12 @@ flowchart LR
                 <li><code class="inline-code">ReadTimeoutHandler</code>：建立连接后读超时，~30s。</li>
               </ul>
 
-              <p><strong>4. 响应上下文透传（TraceId / UserId 在 Reactor 中不丢）</strong>：MDC 用的是 ThreadLocal，Netty EventLoop 会在异步操作后把同一个请求换到另一个线程执行，ThreadLocal 直接空。正确做法——① 用 Micrometer Tracing（Spring Boot 3 内置 Observation）自动跨 Reactor Context 传递；② 手动模式：<code class="inline-code">ContextSnapshot.captureAll().updateContext(contextWrite)</code> 在入口把 MDC 塞进 Reactor Context，出口 <code class="inline-code">handle((signalType, contextView) -> { MDC.setContextMap(contextView.get(...)) })</code> 取出来写到响应头。</p>
+              <p>
+                <strong>4. 响应上下文透传（TraceId / UserId 在 Reactor 中不丢）</strong>：MDC 用的是 ThreadLocal，Netty EventLoop 会在异步操作后把同一个请求换到另一个线程执行，ThreadLocal 直接空。正确做法——① 用 Micrometer Tracing（Spring Boot 3 内置 Observation）自动跨 Reactor Context 传递；② 手动模式：<code class="inline-code">ContextSnapshot.captureAll().updateContext(contextWrite)</code>
+                在入口把 MDC 塞进 Reactor Context，出口
+                <code class="inline-code">handle((signalType, contextView) -> { MDC.setContextMap(contextView.get(...)) })</code>
+                取出来写到响应头。
+              </p>
             </div>
           </div>
 
@@ -3877,18 +3971,28 @@ flowchart LR
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：NettyRoutingFilter 为什么 order 是 LOWEST_PRECEDENCE（最大）而不是最小？你写的鉴权 GlobalFilter 应该放在哪个 order 值之前？</strong></p>
               <p>
-                Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 的 order = <code class="inline-code">Ordered.LOWEST_PRECEDENCE</code>（Integer.MAX_VALUE = 2147483647），与 <code class="inline-code">ForwardRoutingFilter</code> 同处最低优先级，位于<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong
-                >，即 &lt; LOWEST_PRECEDENCE（&lt; 2147483647），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。
+                <strong>追问 1：NettyRoutingFilter 为什么 order 是 LOWEST_PRECEDENCE（最大）而不是最小？你写的鉴权 GlobalFilter 应该放在哪个 order 值之前？</strong>
+              </p>
+              <p>
+                Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 的 order = <code class="inline-code">Ordered.LOWEST_PRECEDENCE</code>（Integer.MAX_VALUE = 2147483647），与
+                <code class="inline-code">ForwardRoutingFilter</code>
+                同处最低优先级，位于<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong>，即 &lt; LOWEST_PRECEDENCE（&lt; 2147483647），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。
               </p>
               <p><strong>追问 2：堆外内存 OOM 与堆内 OOM 的现象与排查路径差异？</strong></p>
               <p>
                 <strong>堆内 OOM（Java heap space）</strong>：现象——GC 次数频繁且耗时很长（G1 Young GC 从 50ms 变 2s+）、Old Gen 占用接近 -Xmx、<code class="inline-code">jmap -histo:live</code> 能看到某类业务对象（如 HashMap/byte[]）数量爆炸。排查：<code class="inline-code">jmap -dump:live,format=b</code> 堆转储 + Eclipse MAT 看泄漏嫌疑报告。<br />
                 <strong>堆外 OOM（OutOfDirectMemoryError / Native memory）</strong>：现象——堆使用正常（老年代 < 60%）、但进程 RSS 持续飙升远超 -Xmx、<code class="inline-code">jcmd VM.native_memory summary</code> 中 Internal 类别占几 GB、dmesg 或 hs_err_pid 日志报 Direct Memory。排查：开 <code class="inline-code">-Dio.netty.leakDetection.level=paranoid</code> 复现看堆栈、用 <code class="inline-code">pmap</code> 看匿名内存段大小、Heap dump 搜 <code class="inline-code">PooledByteBuf</code> 反向找持有引用的类、用 perf/async-profiler 搜 <code class="inline-code">allocateDirect</code> 调用栈。根本差异：堆内 OOM 靠 GC 回收，堆外 OOM 靠显式 <code class="inline-code">release()</code> 回收，GC 管不到。
               </p>
-              <p><strong>追问 3：在 GlobalFilter 中用 WebSession.getAttribute("user") 为什么总是 null，如何让 Spring Session Redis 在 WebFlux Gateway 中生效？</strong></p>
-              <p>两个核心原因。① <strong>WebSession 在 Gateway 中默认是内存 Session（不会跨 Gateway 实例共享）</strong>，且 Reactor 异步线程切换时 WebSession 的 Mono 订阅链没正确传递；② <strong>Spring Session Data Redis 对 WebFlux 支持需要显式配置响应式 Session Repository</strong>，光加 <code class="inline-code">spring-session-data-redis</code> 依赖没用。修复方案：① 引入 <code class="inline-code">org.springframework.session:spring-session-data-redis</code> + <code class="inline-code">spring-boot-starter-data-redis-reactive</code>（必须是 reactive 版，不是 Jedis/Lettuce 同步版）；② 配置 <code class="inline-code">spring.session.store-type=redis</code> + <code class="inline-code">spring.redis.*</code> 连接；③ 在自定义 GlobalFilter 中先 <code class="inline-code">exchange.getSession()</code> 拿到 Mono&lt;WebSession&gt;，在它的 <code class="inline-code">flatMap(session -> { ... session.getAttribute("user") ... })</code> 回调中用属性，不能在 filter 方法里直接拿（Session 是懒加载的 Mono，没订阅就是空）。</p>
+              <p>
+                <strong>追问 3：在 GlobalFilter 中用 WebSession.getAttribute("user") 为什么总是 null，如何让 Spring Session Redis 在 WebFlux Gateway 中生效？</strong>
+              </p>
+              <p>
+                两个核心原因。①
+                <strong>WebSession 在 Gateway 中默认是内存 Session（不会跨 Gateway 实例共享）</strong>，且 Reactor 异步线程切换时 WebSession 的 Mono 订阅链没正确传递；② <strong>Spring Session Data Redis 对 WebFlux 支持需要显式配置响应式 Session Repository</strong>，光加 <code class="inline-code">spring-session-data-redis</code> 依赖没用。修复方案：① 引入 <code class="inline-code">org.springframework.session:spring-session-data-redis</code> + <code class="inline-code">spring-boot-starter-data-redis-reactive</code>（必须是 reactive 版，不是 Jedis/Lettuce 同步版）；② 配置 <code class="inline-code">spring.session.store-type=redis</code> + <code class="inline-code">spring.redis.*</code> 连接；③ 在自定义 GlobalFilter 中先 <code class="inline-code">exchange.getSession()</code> 拿到 Mono&lt;WebSession&gt;，在它的
+                <code class="inline-code">flatMap(session -> { ... session.getAttribute("user") ... })</code>
+                回调中用属性，不能在 filter 方法里直接拿（Session 是懒加载的 Mono，没订阅就是空）。
+              </p>
             </div>
           </div>
 
@@ -3901,7 +4005,12 @@ flowchart LR
                   <li><strong>GlobalFilter order 设错（0 或正数太大），鉴权被 NettyRoutingFilter 跳过</strong>：很多人写 <code class="inline-code">@Order(0)</code> 就觉得"很靠前"，但如果中间有自定义的其他 Filter 用了 order=10 做路由改写，实际效果可能是"先路由后鉴权"。推荐 order=-100 起步，显式写 <code class="inline-code">implements Ordered</code> 而不是只写 <code class="inline-code">@Order</code>，并写单测打印实际 Filter 链顺序。</li>
                   <li><strong>压测环境只给 -Xmx 没给 -Dio.netty.maxDirectMemory，Netty 默认用堆 25% 的 Direct 内存导致 swap</strong>：<code class="inline-code">io.netty.maxDirectMemory</code> 不设时，Netty 默认取 <code class="inline-code">JVM 最大堆内存的 25%</code> 作为上限，且跟 JDK 的 <code class="inline-code">MaxDirectMemorySize</code> 可能不一致，导致 RSS 持续涨触发系统 swap，性能暴跌 10 倍。生产必须显式设两个参数一致：<code class="inline-code">-Dio.netty.maxDirectMemory=512M -XX:MaxDirectMemorySize=512M</code>。</li>
                   <li><strong>透传上下文用 ThreadLocal 而不是 Reactor Context，异步线程 traceId 丢了</strong>：Servlet 时代养成的 MDC+ThreadLocal 习惯在 Gateway（WebFlux+Netty）里 100% 失效——同一个请求可能被 3-4 个 EventLoop 线程接力处理，中间线程一切换 ThreadLocal 就空。必须用 <code class="inline-code">contextWrite()</code> 写入 Reactor Context，或者直接上 Spring Boot 3 Micrometer Tracing（自动搞定）。</li>
-                  <li><strong>调用 DataBufferUtils.join(Flux&lt;DataBuffer&gt;) 读取 body 后忘记 release，导致 ByteBuf 引用计数 +1 泄漏</strong>：这是 Gateway 自定义 Filter 最常见的 OOM 根因。<code class="inline-code">DataBufferUtils.join()</code> 合并多个缓冲区时会把每个 buffer <code class="inline-code">retain()</code>，返回的合并后 buffer 引用计数 = 参与合并的 buffer 数。用完必须在 <code class="inline-code">doFinally(signal -> DataBufferUtils.release(bodyBuffer))</code> 里释放，哪怕抛出异常也要释放。用 try-with-resources 模式或 <code class="inline-code">Flux.usingWhen</code> 模式能从代码层面避免漏释放。</li>
+                  <li>
+                    <strong>调用 DataBufferUtils.join(Flux&lt;DataBuffer&gt;) 读取 body 后忘记 release，导致 ByteBuf 引用计数 +1 泄漏</strong>：这是 Gateway 自定义 Filter 最常见的 OOM 根因。<code class="inline-code">DataBufferUtils.join()</code> 合并多个缓冲区时会把每个 buffer <code class="inline-code">retain()</code>，返回的合并后 buffer 引用计数 = 参与合并的 buffer 数。用完必须在
+                    <code class="inline-code">doFinally(signal -> DataBufferUtils.release(bodyBuffer))</code>
+                    里释放，哪怕抛出异常也要释放。用 try-with-resources 模式或
+                    <code class="inline-code">Flux.usingWhen</code> 模式能从代码层面避免漏释放。
+                  </li>
                 </ul>
               </div>
             </div>
@@ -3920,7 +4029,9 @@ flowchart LR
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
               <p>
-                为什么一定要写 <code class="inline-code">bootstrap.yml</code> 才能让配置中心生效？<code class="inline-code">@RefreshScope</code> 打了之后配置就真的会自动刷新？本质是 <strong>Spring Cloud 在 Boot 2.x/3.x 之前引入的 Bootstrap 上下文（父上下文）加载注册/配置 Bean</strong>，以及 <strong><code class="inline-code">@RefreshScope</code> 是一个 Bean Scope 代理对象换 target 的机制</strong>。重点不是"能配置"，而是你能解释清楚：配置中心的 Bean 凭什么在主应用 Bean 创建之前就连上远程拉配置？为什么 @Value 的字段改了配置中心要重新建 Bean 才能拿到新值？这两个问题不搞懂，Boot 2.x 升 3.x 时必然遇到"配置全失效"的事故。
+                为什么一定要写 <code class="inline-code">bootstrap.yml</code> 才能让配置中心生效？<code class="inline-code">@RefreshScope</code>
+                打了之后配置就真的会自动刷新？本质是
+                <strong>Spring Cloud 在 Boot 2.x/3.x 之前引入的 Bootstrap 上下文（父上下文）加载注册/配置 Bean</strong>，以及 <strong><code class="inline-code">@RefreshScope</code> 是一个 Bean Scope 代理对象换 target 的机制</strong>。重点不是"能配置"，而是你能解释清楚：配置中心的 Bean 凭什么在主应用 Bean 创建之前就连上远程拉配置？为什么 @Value 的字段改了配置中心要重新建 Bean 才能拿到新值？这两个问题不搞懂，Boot 2.x 升 3.x 时必然遇到"配置全失效"的事故。
               </p>
             </div>
           </div>
@@ -3954,9 +4065,14 @@ flowchart LR
         <span class="kw">namespace:</span> <span class="str">dev</span></code></pre>
               </div>
 
-              <p><strong>③ @RefreshScope 动态刷新原理</strong>：<code class="inline-code">RefreshScope</code> 是一个自定义 Scope（默认 singleton/prototype/request/session 之外），<code class="inline-code">@RefreshScope</code> 标注的 Bean 实际被 Spring 包装成 <code class="inline-code">ScopedProxyFactoryBean</code> 的代理对象。代理里持有一个 ObjectFactory，第一次调用 <code class="inline-code">getObject</code> 时创建 target 并缓存；当 <code class="inline-code">ContextRefresher.refresh()</code> 或 <code class="inline-code">/actuator/refresh</code> 端点被触发时：<code class="inline-code">RefreshScope</code> 会调用 <code class="inline-code">cache.clear()</code> 销毁所有被代理的 target，下次调用代理 <code class="inline-code">getObject</code> 时重新创建 target，新 target 拿到的 Environment 就是刷新过的。</p>
+              <p>
+                <strong>③ @RefreshScope 动态刷新原理</strong>：<code class="inline-code">RefreshScope</code> 是一个自定义 Scope（默认 singleton/prototype/request/session 之外），<code class="inline-code">@RefreshScope</code>
+                标注的 Bean 实际被 Spring 包装成
+                <code class="inline-code">ScopedProxyFactoryBean</code> 的代理对象。代理里持有一个 ObjectFactory，第一次调用 <code class="inline-code">getObject</code> 时创建 target 并缓存；当 <code class="inline-code">ContextRefresher.refresh()</code> 或 <code class="inline-code">/actuator/refresh</code> 端点被触发时：<code class="inline-code">RefreshScope</code> 会调用 <code class="inline-code">cache.clear()</code> 销毁所有被代理的 target，下次调用代理 <code class="inline-code">getObject</code> 时重新创建 target，新 target 拿到的 Environment 就是刷新过的。
+              </p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["@RefreshScope Bean 定义"] --> B["ScopedProxyFactoryBean(CGLIB 代理)"]
@@ -3972,7 +4088,11 @@ flowchart TD
                 <div class="chart-caption">图 10.21-1 @RefreshScope 代理 + cache.clear() 重建 target 流程图</div>
               </div>
 
-              <p><strong>④ @ConfigurationProperties 不需要 @RefreshScope</strong>：因为它的 Bean 是 <code class="inline-code">ConfigurationPropertiesBindingPostProcessor</code> 在绑定时每次重建，<code class="inline-code">ConfigurationPropertiesRebinder</code> 会在 Environment 刷新后重新绑定，所以注解 <code class="inline-code">@ConfigurationProperties</code> 的配置类自动刷新，无需额外打 <code class="inline-code">@RefreshScope</code>。</p>
+              <p>
+                <strong>④ @ConfigurationProperties 不需要 @RefreshScope</strong>：因为它的 Bean 是 <code class="inline-code">ConfigurationPropertiesBindingPostProcessor</code> 在绑定时每次重建，<code class="inline-code">ConfigurationPropertiesRebinder</code>
+                会在 Environment 刷新后重新绑定，所以注解
+                <code class="inline-code">@ConfigurationProperties</code> 的配置类自动刷新，无需额外打 <code class="inline-code">@RefreshScope</code>。
+              </p>
             </div>
           </div>
 
@@ -4075,7 +4195,11 @@ flowchart TD
               <p>两种方式。① <strong>Nacos shared-configs + spring.config.import 组合</strong>：共享配置仍放 Nacos 的 <code class="inline-code">shared-configs</code> 里，每个服务 <code class="inline-code">spring.config.import=nacos:common-datasource.yml,nacos:common-redis.yml</code>，Spring Cloud LoadBalancer 先加载公共 import 再加载自身配置，覆盖顺序符合预期。② <strong>Spring Cloud Config Server + Git 共享文件</strong>：老架构可保留 Config Server，application.yml 里 <code class="inline-code">spring.config.import=configserver:http://config-server:8888</code>，Config Server 从 Git 拉公共 <code class="inline-code">application-*.yml</code> 与服务自己的 <code class="inline-code">{service-name}-*.yml</code> 合并返回。两者共同点：都不再需要 bootstrap.yml。</p>
 
               <p><strong>追问 3：Nacos Config 长轮询推送触发 refresh 但前端读值没变，常见原因？</strong></p>
-              <p>三大根因。① <strong>漏打 @RefreshScope</strong>：<code class="inline-code">@Value</code> 字段所在的类（Controller/Service）必须加 <code class="inline-code">@RefreshScope</code>，否则还是 singleton 旧对象，Environment 刷新了但字段没重新注入。② <strong>用 static 字段保存旧值</strong>：有人把 <code class="inline-code">@Value</code> 注入的值存到 static 静态字段里，RefreshScope 重建实例也不会动 static 字段，永远读到旧值。③ <strong>本地快照缓存优先级高于远程</strong>：Nacos 客户端 <code class="inline-code">${user.home}/nacos/config</code> 有本地快照，配置中心临时宕机恢复后快照被覆盖逻辑有 Bug（老版本 1.x），需手动删快照或升级 Nacos Client 2.2.3+。</p>
+              <p>
+                三大根因。① <strong>漏打 @RefreshScope</strong>：<code class="inline-code">@Value</code> 字段所在的类（Controller/Service）必须加 <code class="inline-code">@RefreshScope</code>，否则还是 singleton 旧对象，Environment 刷新了但字段没重新注入。② <strong>用 static 字段保存旧值</strong>：有人把 <code class="inline-code">@Value</code> 注入的值存到 static 静态字段里，RefreshScope 重建实例也不会动 static 字段，永远读到旧值。③ <strong>本地快照缓存优先级高于远程</strong>：Nacos 客户端
+                <code class="inline-code">${user.home}/nacos/config</code>
+                有本地快照，配置中心临时宕机恢复后快照被覆盖逻辑有 Bug（老版本 1.x），需手动删快照或升级 Nacos Client 2.2.3+。
+              </p>
             </div>
           </div>
 
@@ -4107,7 +4231,10 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>Spring Cloud Sleuth 为什么在 Boot 3.0 突然"消失"，而变成 Micrometer Tracing？本质是 <strong>Spring 社区在 2022 年把链路追踪 API 从 Spring Cloud 子项目下沉到 Spring Framework 级别的 Micrometer 观测抽象（Micrometer Metrics / Tracing / Logging 三合一）</strong>，与 OpenTelemetry API 对齐。这里考察的是：你是否知道"为什么要做这次下沉"？是否亲自做过 Boot 2→3 的链路追踪升级？能否区分 Brave vs OTel 两套桥接的取舍？W3C TraceContext 跟 B3 到底谁是未来？生产 10k QPS 下 traceId 怎么保证异步线程不丢、采集量怎么不压爆 OTel Collector？这些都是"用过 APM"和"做过 APM 生产落地"的分水岭。</p>
+              <p>
+                Spring Cloud Sleuth 为什么在 Boot 3.0 突然"消失"，而变成 Micrometer Tracing？本质是
+                <strong>Spring 社区在 2022 年把链路追踪 API 从 Spring Cloud 子项目下沉到 Spring Framework 级别的 Micrometer 观测抽象（Micrometer Metrics / Tracing / Logging 三合一）</strong>，与 OpenTelemetry API 对齐。这里考察的是：你是否知道"为什么要做这次下沉"？是否亲自做过 Boot 2→3 的链路追踪升级？能否区分 Brave vs OTel 两套桥接的取舍？W3C TraceContext 跟 B3 到底谁是未来？生产 10k QPS 下 traceId 怎么保证异步线程不丢、采集量怎么不压爆 OTel Collector？这些都是"用过 APM"和"做过 APM 生产落地"的分水岭。
+              </p>
             </div>
           </div>
 
@@ -4121,6 +4248,7 @@ flowchart TD
               <p><strong>2024~2025 Micrometer Tracing 1.2/1.3+（配套 OTel Java SDK 同期演进）</strong>：W3C TraceContext 为默认传播格式（自 Micrometer Tracing 1.0 / Boot 3.0 起），B3 仍可通过配置切换用于老系统兼容。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["Spring Cloud Sleuth 1.x\n(Brave 4.x + B3 + Zipkin)"] --> B["Sleuth 2.x\n(Brave 5.x + 试验性 OTel Bridge)"]
@@ -4196,7 +4324,10 @@ flowchart LR
                   </tr>
                   <tr>
                     <td><strong>B3 多头</strong>（Zipkin 老格式）</td>
-                    <td><code class="inline-code">X-B3-TraceId</code> / <code class="inline-code">X-B3-SpanId</code> / <code class="inline-code">X-B3-Sampled</code></td>
+                    <td>
+                      <code class="inline-code">X-B3-TraceId</code> / <code class="inline-code">X-B3-SpanId</code> /
+                      <code class="inline-code">X-B3-Sampled</code>
+                    </td>
                     <td>❌ 旧系统兼容</td>
                     <td>Spring Boot 2.x Sleuth 默认，老系统对接常见。</td>
                   </tr>
@@ -4317,8 +4448,13 @@ flowchart LR
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：跨线程池（ScheduledExecutorService / Kafka 消费线程 / Reactor Schedulers）时 traceId 如何传递？</strong></p>
-              <p>Micrometer Tracing 提供了统一的 <code class="inline-code">Observation.registerThreadLocalAccessor()</code> 机制 + <code class="inline-code">Micrometer Context Accessor</code>。具体分场景：① <strong>ScheduledExecutorService / 自定义线程池</strong>：用 <code class="inline-code">ContextSnapshot.captureAll()</code> 在提交任务前 capture，任务 Runnable 第一行 <code class="inline-code">contextSnapshot.setThreadLocals()</code> restore，finally 里 <code class="inline-code">contextSnapshot.restoreThreadLocals()</code> 复原；② <strong>Kafka 消费线程</strong>：给 <code class="inline-code">ConcurrentKafkaListenerContainerFactory</code> 配 <code class="inline-code">ContainerProperties.setObservationEnabled(true)</code>，Spring Kafka 6.x 自动用 Micrometer Observation 包装 onMessage；③ <strong>Reactor Schedulers</strong>：<code class="inline-code">Hooks.enableAutomaticContextPropagation()</code>（Boot 3.2+ / Micrometer 1.12+ 一行搞定），不用手动 wrap。原则：优先用框架自带的 Observation 支持，其次才是手动 capture/restore。</p>
+              <p>
+                <strong>追问 1：跨线程池（ScheduledExecutorService / Kafka 消费线程 / Reactor Schedulers）时 traceId 如何传递？</strong>
+              </p>
+              <p>
+                Micrometer Tracing 提供了统一的
+                <code class="inline-code">Observation.registerThreadLocalAccessor()</code> 机制 + <code class="inline-code">Micrometer Context Accessor</code>。具体分场景：① <strong>ScheduledExecutorService / 自定义线程池</strong>：用 <code class="inline-code">ContextSnapshot.captureAll()</code> 在提交任务前 capture，任务 Runnable 第一行 <code class="inline-code">contextSnapshot.setThreadLocals()</code> restore，finally 里 <code class="inline-code">contextSnapshot.restoreThreadLocals()</code> 复原；② <strong>Kafka 消费线程</strong>：给 <code class="inline-code">ConcurrentKafkaListenerContainerFactory</code> 配 <code class="inline-code">ContainerProperties.setObservationEnabled(true)</code>，Spring Kafka 6.x 自动用 Micrometer Observation 包装 onMessage；③ <strong>Reactor Schedulers</strong>：<code class="inline-code">Hooks.enableAutomaticContextPropagation()</code>（Boot 3.2+ / Micrometer 1.12+ 一行搞定），不用手动 wrap。原则：优先用框架自带的 Observation 支持，其次才是手动 capture/restore。
+              </p>
 
               <p><strong>追问 2：生产 10k QPS 全量采集压爆 OTel Collector，如何降本？</strong></p>
               <p>四层降本策略。① <strong>Agent 端采样</strong>：<code class="inline-code">probability=0.01</code> 只采 1%，量立刻降 100 倍；② <strong>Batch + 压缩</strong>：OTLP Exporter 默认已开 Batch（512 span / 5s flush / 10MB 内存上限）+ gzip 压缩，确认没被手动关掉；③ <strong>Collector 层尾部采样（Tail-based）</strong>：Collector Pipeline 里加 <code class="inline-code">tailsamplingprocessor</code>，把 status_code=ERROR / latency>2s / http.status>=500 的 Span <strong>100% 补捞</strong>，其余正常只保留 1%，保证线上有问题的链路一定查得到；④ <strong>降 Tag 维度</strong>：自定义 tag 不要带 user_id、order_id 这种高基数字段（一天就几百万元素），放到 Span Event 或 baggage 里，少用 tag。OTel Collector 侧用 <code class="inline-code">attributesprocessor</code> 的 <code class="inline-code">actions: delete</code> 直接把不需要的高基数 key 在 Collector 端删掉。</p>
@@ -4385,6 +4521,7 @@ flowchart LR
               <p><strong>核心抽象 4 件套 + Spring Factories / AutoConfiguration.imports 机制</strong>：业务代码 → Commons 抽象层 → AutoConfiguration 条件装配 → 具体实现（Nacos/Eureka/Consul/Zookeeper）。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["业务代码层\n@LoadBalanced RestTemplate\nDiscoveryClient.getInstances()\nLoadBalancer.choose()"] --> B["Spring Cloud Commons 抽象层\n【4 件套】\n① DiscoveryClient\n② ServiceInstance\n③ ReactorLoadBalancer\n④ @LoadBalanced + LoadBalancerInterceptor"]
@@ -4408,7 +4545,9 @@ flowchart TD
               </p>
 
               <p>
-                <strong>② ServiceInstance（服务实例信息）</strong>：接口方法 <code class="inline-code">getServiceId()</code> / <code class="inline-code">getHost()</code> / <code class="inline-code">getPort()</code> / <code class="inline-code">isSecure()</code>（https?）/ <code class="inline-code">getUri()</code> / <code class="inline-code">getMetadata()</code>。其中 <strong><code class="inline-code">getMetadata()</code> 返回的 <code class="inline-code">Map&lt;String, String&gt;</code></strong> 是灵魂——常用来存灰度标签（<code class="inline-code">version=gray</code>）、版本号（<code class="inline-code">app-version=1.3.5</code>）、权重（<code class="inline-code">weight=100</code>）、机房（<code class="inline-code">zone=cn-hangzhou-a</code>），是做灰度路由、权重负载、同机房优先的基础。
+                <strong>② ServiceInstance（服务实例信息）</strong>：接口方法 <code class="inline-code">getServiceId()</code> / <code class="inline-code">getHost()</code> / <code class="inline-code">getPort()</code> / <code class="inline-code">isSecure()</code>（https?）/ <code class="inline-code">getUri()</code> / <code class="inline-code">getMetadata()</code>。其中
+                <strong><code class="inline-code">getMetadata()</code> 返回的 <code class="inline-code">Map&lt;String, String&gt;</code></strong>
+                是灵魂——常用来存灰度标签（<code class="inline-code">version=gray</code>）、版本号（<code class="inline-code">app-version=1.3.5</code>）、权重（<code class="inline-code">weight=100</code>）、机房（<code class="inline-code">zone=cn-hangzhou-a</code>），是做灰度路由、权重负载、同机房优先的基础。
               </p>
 
               <p>
@@ -4423,7 +4562,9 @@ flowchart TD
               <p>
                 <strong>④ Spring Factories vs AutoConfiguration.imports 机制</strong>：<br />
                 · <strong>Boot 2.x 时代</strong>：<code class="inline-code">META-INF/spring.factories</code> 里写 <code class="inline-code">org.springframework.boot.autoconfigure.EnableAutoConfiguration=xxx.NacosDiscoveryAutoConfiguration</code>。<br />
-                · <strong>Boot 3.x 时代</strong>：改为 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code> 文件，每一行一个配置类全限定名。<br />
+                · <strong>Boot 3.x 时代</strong>：改为
+                <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code>
+                文件，每一行一个配置类全限定名。<br />
                 Nacos Discovery 的入口：<code class="inline-code">NacosDiscoveryAutoConfiguration</code> → 条件 <code class="inline-code">@ConditionalOnNacosDiscoveryEnabled</code>（即 <code class="inline-code">spring.cloud.nacos.discovery.enabled=true</code>，默认 true）→ 注册 <code class="inline-code">NacosDiscoveryClient</code> Bean。<br />
                 · 关键机制：<strong>当 pom 里同时有 Eureka + Nacos 两个 discovery starter，两者的 AutoConfiguration 都会尝试注册 DiscoveryClient Bean</strong>，此时 <code class="inline-code">DiscoveryClient</code> 注入点会发现多个候选，Spring 按 <code class="inline-code">@Primary</code> + <code class="inline-code">@Order</code> 取第一个（如果没 @Primary，启动报错 expected single matching bean but found 2）。
               </p>
@@ -4450,7 +4591,9 @@ flowchart TD
                   </tr>
                   <tr>
                     <td>application.yml</td>
-                    <td><code class="inline-code">eureka.client.serviceUrl.defaultZone=http://eureka:8761/eureka/</code></td>
+                    <td>
+                      <code class="inline-code">eureka.client.serviceUrl.defaultZone=http://eureka:8761/eureka/</code>
+                    </td>
                     <td><code class="inline-code">spring.cloud.nacos.discovery.server-addr=nacos:8848</code></td>
                   </tr>
                   <tr>
@@ -4530,14 +4673,26 @@ flowchart TD
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：CompositeDiscoveryClient 如何聚合 Nacos + K8s Discovery，让一部分服务从 K8s Endpoints 拉，另一部分从 Nacos 拉？</strong></p>
-              <p>Spring Cloud Kubernetes 提供了 <code class="inline-code">KubernetesDiscoveryClient</code>，它实现了 <code class="inline-code">DiscoveryClient</code> 接口，从 K8s API Server 读 <code class="inline-code">Endpoints / EndpointSlice</code> 资源拿 Pod IP。把 Nacos starter 和 Spring Cloud Kubernetes starter 同时加到 pom，两个 <code class="inline-code">DiscoveryClient</code> Bean 都会注册，Spring Cloud Commons 的 <code class="inline-code">CompositeDiscoveryClient</code> 会自动把两者按 <code class="inline-code">@Order</code> 包装起来——查询某个 serviceId 时，按 order 从小到大依次问每个子 DiscoveryClient，第一个返回非空列表的直接作为结果。具体做法：① 给 <code class="inline-code">NacosDiscoveryClient</code> 配 <code class="inline-code">@Order(0)</code> 优先查 Nacos（已注册的业务服务走 Nacos）；② <code class="inline-code">KubernetesDiscoveryClient</code> 配 <code class="inline-code">@Order(100)</code> 次级查 K8s（中间件 MySQL/Redis 的 Service 通过 K8s Endpoints 拿 ClusterIP 或 Pod IP）；③ 用 <code class="inline-code">spring.cloud.kubernetes.discovery.all-namespaces=true</code> 跨命名空间。不想让 Nacos 先查到也可以：自定义一个 DiscoveryPredicate，按 serviceId 前缀分发（<code class="inline-code">infra-*</code> 走 K8s，其他走 Nacos）。</p>
+              <p>
+                <strong>追问 1：CompositeDiscoveryClient 如何聚合 Nacos + K8s Discovery，让一部分服务从 K8s Endpoints 拉，另一部分从 Nacos 拉？</strong>
+              </p>
+              <p>
+                Spring Cloud Kubernetes 提供了 <code class="inline-code">KubernetesDiscoveryClient</code>，它实现了 <code class="inline-code">DiscoveryClient</code> 接口，从 K8s API Server 读 <code class="inline-code">Endpoints / EndpointSlice</code> 资源拿 Pod IP。把 Nacos starter 和 Spring Cloud Kubernetes starter 同时加到 pom，两个 <code class="inline-code">DiscoveryClient</code> Bean 都会注册，Spring Cloud Commons 的 <code class="inline-code">CompositeDiscoveryClient</code> 会自动把两者按 <code class="inline-code">@Order</code> 包装起来——查询某个 serviceId 时，按 order 从小到大依次问每个子 DiscoveryClient，第一个返回非空列表的直接作为结果。具体做法：① 给 <code class="inline-code">NacosDiscoveryClient</code> 配 <code class="inline-code">@Order(0)</code> 优先查 Nacos（已注册的业务服务走 Nacos）；② <code class="inline-code">KubernetesDiscoveryClient</code> 配 <code class="inline-code">@Order(100)</code> 次级查 K8s（中间件 MySQL/Redis 的 Service 通过 K8s Endpoints 拿 ClusterIP 或 Pod IP）；③ 用
+                <code class="inline-code">spring.cloud.kubernetes.discovery.all-namespaces=true</code>
+                跨命名空间。不想让 Nacos 先查到也可以：自定义一个 DiscoveryPredicate，按 serviceId 前缀分发（<code class="inline-code">infra-*</code>
+                走 K8s，其他走 Nacos）。
+              </p>
 
               <p><strong>追问 2：Nacos 的 ServiceInstance metadata 权重值如何在自定义 LoadBalancer 中生效？</strong></p>
               <p>Nacos 控制台注册实例时可以设置 <code class="inline-code">weight=0~10000</code>，这个值自动出现在 <code class="inline-code">ServiceInstance.getMetadata().get("weight")</code> 里。自定义权重 LB 实现 WeightedResponseTimeRule 风格：① 从所有健康实例中拿各自的 weight（转 int，默认值 100）；② 计算总权重 <code class="inline-code">sumWeight</code>；③ 取 <code class="inline-code">random = [0, sumWeight)</code> 的随机整数；④ 遍历实例累加 weight，直到"累计权重 > random"，命中该实例（实例 A weight=20，B weight=80，命中 B 的概率是 80%）。生产建议再加"兜底保护"：如果某实例连续 3 次 5xx，临时把它的权重降到 1（保留少量流量验证是否恢复），不要直接摘除，避免误判全挂。</p>
 
               <p><strong>追问 3：ServiceInstanceListSupplier 的缓存刷新与注册中心推送变更如何做防抖？</strong></p>
-              <p>Nacos 注册中心在发布变更、实例上下线时可能会连续推送 3~5 次（Nacos 1.x Distro 协议节点间同步延迟），如果每次推送都刷新缓存 + 重建 LB，容易抖动。防抖做法三层：① <strong>CachingServiceInstanceListSupplier 默认 TTL 35s</strong> 已经覆盖大部分场景，TTL 没到之前即使 Nacos 推送也不真正刷新缓存；② 自定义一个 <code class="inline-code">DebouncedServiceInstanceListSupplier</code> 装饰器，持有一个 <code class="inline-code">AtomicLong lastRefreshNanos</code>，两次刷新之间强制至少间隔 5s（用 <code class="inline-code">System.nanoTime()</code> 比较），小于则直接返回上次缓存结果；③ 如果是 Nacos 推送的订阅回调，回调里不直接刷新缓存，而是把刷新任务丢到一个 <code class="inline-code">singleThreadScheduledExecutor.schedule(task, 3s, SECONDS)</code> 延迟队列里，3s 内多次推送只有最后一次会执行（典型 debounce 模式）。</p>
+              <p>
+                Nacos 注册中心在发布变更、实例上下线时可能会连续推送 3~5 次（Nacos 1.x Distro 协议节点间同步延迟），如果每次推送都刷新缓存 + 重建 LB，容易抖动。防抖做法三层：①
+                <strong>CachingServiceInstanceListSupplier 默认 TTL 35s</strong> 已经覆盖大部分场景，TTL 没到之前即使 Nacos 推送也不真正刷新缓存；② 自定义一个 <code class="inline-code">DebouncedServiceInstanceListSupplier</code> 装饰器，持有一个 <code class="inline-code">AtomicLong lastRefreshNanos</code>，两次刷新之间强制至少间隔 5s（用 <code class="inline-code">System.nanoTime()</code> 比较），小于则直接返回上次缓存结果；③ 如果是 Nacos 推送的订阅回调，回调里不直接刷新缓存，而是把刷新任务丢到一个
+                <code class="inline-code">singleThreadScheduledExecutor.schedule(task, 3s, SECONDS)</code>
+                延迟队列里，3s 内多次推送只有最后一次会执行（典型 debounce 模式）。
+              </p>
             </div>
           </div>
 
@@ -4550,7 +4705,11 @@ flowchart TD
                   <li><strong>pom 同时加了 Eureka 和 Nacos，都注册了 DiscoveryClient Bean（按 order 排序取第一个，可能不是你想要的）</strong>：启动时如果 <code class="inline-code">DiscoveryClient</code> 注入点发现多个候选但都没 @Primary，会直接报错 NoUniqueBeanDefinitionException。排查：pom 排掉不用的 starter；或给要优先用的 DiscoveryClient 的 AutoConfiguration 类用 <code class="inline-code">@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE)</code> 指定顺序，或者给 <code class="inline-code">DiscoveryClient</code> 注入点加 <code class="inline-code">@Qualifier("nacosDiscoveryClient")</code>。</li>
                   <li><strong>自定义 LoadBalancer 忘了 @LoadBalancerClient(name="user-service", configuration=MyLBConfig.class) 指定生效服务，导致全局生效污染</strong>：<code class="inline-code">@LoadBalancerClient</code> 的 configuration 类不能被主 <code class="inline-code">@ComponentScan</code> 扫描到（否则就变成全局共享配置），必须放到 <code class="inline-code">@SpringBootApplication</code> scanBasePackages 之外的独立包路径，或加 <code class="inline-code">@ComponentScan(excludeFilters = @ComponentScan.Filter(type=ASSIGNABLE_TYPE, classes=MyLBConfig.class))</code>。踩坑症状：原本只想给 user-service 做灰度路由，结果 order-service / pay-service 的调用全都被自定义 LB 接管，瞬间全报 No servers available。</li>
                   <li><strong>ServiceInstance metadata 用中文或特殊字符引发 HTTP URL 编码异常</strong>：Nacos 的 metadata 其实是 Map&lt;String,String&gt;，会被拼接进注册请求的 Body / 查询参数，若包含中文或 &amp;、?、= 等字符，不同注册中心实现的 URL 编码不一致，有的会报 500，有的会被截断导致 version/weight 读出来是乱码。metadata 的 value 应限定：ASCII 英文字母数字 + 点 + 下划线 + 中划线，禁止中文和特殊字符。</li>
-                  <li><strong>CachingServiceInstanceListSupplier 缓存 TTL 过长（默认 35s）+ Nacos 推送延迟叠加，实例下线后 40s 还被调用</strong>：生产如果 Nacos 推送偶发延迟（注册中心集群跨机房同步慢），LB 里的缓存要等 35s TTL 过期才刷新，这时已下线实例还会被流量打到。解决方案：① <code class="inline-code">spring.cloud.loadbalancer.cache.ttl=5s</code> 把 TTL 调低（或按服务维度通过 <code class="inline-code">LoadBalancerClients</code> 为关键服务单独配 TTL）；② 打开 <code class="inline-code">HealthCheckServiceInstanceListSupplier</code> 主动探活，即使缓存里有，探活失败的实例也会被实时过滤。</li>
+                  <li>
+                    <strong>CachingServiceInstanceListSupplier 缓存 TTL 过长（默认 35s）+ Nacos 推送延迟叠加，实例下线后 40s 还被调用</strong>：生产如果 Nacos 推送偶发延迟（注册中心集群跨机房同步慢），LB 里的缓存要等 35s TTL 过期才刷新，这时已下线实例还会被流量打到。解决方案：① <code class="inline-code">spring.cloud.loadbalancer.cache.ttl=5s</code> 把 TTL 调低（或按服务维度通过 <code class="inline-code">LoadBalancerClients</code> 为关键服务单独配 TTL）；② 打开
+                    <code class="inline-code">HealthCheckServiceInstanceListSupplier</code>
+                    主动探活，即使缓存里有，探活失败的实例也会被实时过滤。
+                  </li>
                 </ul>
               </div>
             </div>
@@ -4568,7 +4727,11 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这 7 个坑是 <strong>Spring Cloud 社区 GitHub issue 星标最高的 7 个真实生产事故集合</strong>，覆盖 Feign / Gateway / RefreshScope / Sentinel 四大组件。能否讲清"踩坑经验"，是区分"<strong>用过 Spring Cloud</strong>"和"<strong>用 Spring Cloud 做过生产</strong>"的分水岭。核心不是背"怎么改"，而是每坑能说出 <strong>根因 → 触发条件 → 最小复现代码 → 修复代码 → 如何预防下一次</strong> 五步完整链路。如果能在每一个坑上补充自己团队的真实事故编号、发生时间、影响面、事后复盘改进项，就足以证明真正的生产级掌控力。</p>
+              <p>
+                这 7 个坑是 <strong>Spring Cloud 社区 GitHub issue 星标最高的 7 个真实生产事故集合</strong>，覆盖 Feign / Gateway / RefreshScope / Sentinel 四大组件。能否讲清"踩坑经验"，是区分"<strong>用过 Spring Cloud</strong>"和"<strong>用 Spring Cloud 做过生产</strong>"的分水岭。核心不是背"怎么改"，而是每坑能说出
+                <strong>根因 → 触发条件 → 最小复现代码 → 修复代码 → 如何预防下一次</strong>
+                五步完整链路。如果能在每一个坑上补充自己团队的真实事故编号、发生时间、影响面、事后复盘改进项，就足以证明真正的生产级掌控力。
+              </p>
             </div>
           </div>
 
@@ -4592,8 +4755,7 @@ flowchart TD
             <div class="qa-layer-title">第一性原理 + 7 坑详解（根因 + 修复代码）</div>
             <div class="qa-layer-body">
               <p>
-                <strong>坑 1：Feign 传 File / InputStream 报 <code class="inline-code">is not a type supported by this encoder</code></strong
-                ><br />
+                <strong>坑 1：Feign 传 File / InputStream 报 <code class="inline-code">is not a type supported by this encoder</code></strong><br />
                 <strong>根因</strong>：Feign 默认的 <code class="inline-code">SpringEncoder</code>（基于 Jackson）只处理 JSON / POJO，不处理 <code class="inline-code">MultipartFile</code> / <code class="inline-code">File</code> / <code class="inline-code">InputStream</code>。要传文件必须用 Feign 官方的 <code class="inline-code">feign-form</code> 扩展，它实现了 <code class="inline-code">multipart/form-data</code> 编码。<br />
                 <strong>修复代码</strong>：下面实践部分给出完整版。
               </p>
@@ -4612,13 +4774,18 @@ flowchart TD
 
               <p>
                 <strong>坑 4：Gateway Predicate 多路由匹配优先级陷阱：多个路由同时匹配但 Path 前缀重叠，选了错的</strong><br />
-                <strong>根因</strong>：Gateway <code class="inline-code">RouteDefinitionRouteLocator</code> 加载 route 时，默认按 <code class="inline-code">routes</code> 列表在配置文件中的<strong>从上到下顺序</strong>取第一个匹配的。如果 order-service 的 Path=<code class="inline-code">/api/order/**</code>，pay-service 的 Path=<code class="inline-code">/api/order/pay/**</code>，且 pay-service <strong>写在后面</strong>，那么 <code class="inline-code">/api/order/pay/create</code> 会优先命中前面的 <code class="inline-code">/api/order/**</code> → 流量被打到错误的 order-service，404 或 500。<br />
+                <strong>根因</strong>：Gateway <code class="inline-code">RouteDefinitionRouteLocator</code> 加载 route 时，默认按
+                <code class="inline-code">routes</code>
+                列表在配置文件中的<strong>从上到下顺序</strong>取第一个匹配的。如果 order-service 的 Path=<code class="inline-code">/api/order/**</code>，pay-service 的 Path=<code class="inline-code">/api/order/pay/**</code>，且 pay-service <strong>写在后面</strong>，那么 <code class="inline-code">/api/order/pay/create</code> 会优先命中前面的 <code class="inline-code">/api/order/**</code> → 流量被打到错误的 order-service，404 或 500。<br />
                 <strong>修复</strong>：给每个 route 显式加 <code class="inline-code">order: 数字</code>（越小越优先）。
               </p>
 
               <p>
                 <strong>坑 5：Gateway GlobalFilter 中从 <code class="inline-code">exchange.getAttribute("userId")</code> 总是 null（Reactor 上下文透传失败）</strong><br />
-                <strong>根因</strong>：很多人把 Servlet 的经验带到了 Reactor Gateway，在某处 Filter 用 <code class="inline-code">Mono.subscriberContext(Context.of("userId", uid))</code> 写入上下文，然后在另一个 Filter 里想当然用 <code class="inline-code">Mono.subscriberContext().get("userId")</code> 读。但 Gateway Filter 链的每一步都是一个独立的 <code class="inline-code">Mono&lt;Void&gt;</code> 订阅，<strong>Reactor Context 只在当前 Flux/Mono 链上传递，跨独立 Mono 就丢</strong>。<br />
+                <strong>根因</strong>：很多人把 Servlet 的经验带到了 Reactor Gateway，在某处 Filter 用
+                <code class="inline-code">Mono.subscriberContext(Context.of("userId", uid))</code>
+                写入上下文，然后在另一个 Filter 里想当然用
+                <code class="inline-code">Mono.subscriberContext().get("userId")</code> 读。但 Gateway Filter 链的每一步都是一个独立的 <code class="inline-code">Mono&lt;Void&gt;</code> 订阅，<strong>Reactor Context 只在当前 Flux/Mono 链上传递，跨独立 Mono 就丢</strong>。<br />
                 <strong>正确做法</strong>：跨 Filter 用 <code class="inline-code">exchange.getAttributes()</code>（它跟 <code class="inline-code">ServerWebExchange</code> 请求对象绑定，整个请求-响应生命周期内不丢）。
               </p>
 
@@ -4629,7 +4796,9 @@ flowchart TD
 
               <p>
                 <strong>坑 7：Sentinel Feign FallbackFactory 吞业务异常导致无法触发告警</strong><br />
-                <strong>根因</strong>：FallbackFactory 的接口是 <code class="inline-code">T create(Throwable cause)</code>，很多人写 fallback 时对所有异常（限流、熔断、业务 500、超时）都返回 <strong>空列表 / null / 默认值</strong>，然后上游 <code class="inline-code">@RestControllerAdvice</code> 全局异常处理拿不到真正的异常——该告警的没告警，该追查的被静默，线上出了问题排查时根本不知道 500 什么时候发生的。<br />
+                <strong>根因</strong>：FallbackFactory 的接口是 <code class="inline-code">T create(Throwable cause)</code>，很多人写 fallback 时对所有异常（限流、熔断、业务 500、超时）都返回 <strong>空列表 / null / 默认值</strong>，然后上游
+                <code class="inline-code">@RestControllerAdvice</code>
+                全局异常处理拿不到真正的异常——该告警的没告警，该追查的被静默，线上出了问题排查时根本不知道 500 什么时候发生的。<br />
                 <strong>修复</strong>：Fallback 里把真正的异常"传出来"，让全局异常处理能抓到。
               </p>
             </div>
@@ -4897,14 +5066,30 @@ flowchart TD
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：坑 5 中用了 exchange.getAttributes()，但在 Gateway 的 NettyRoutingFilter 中异步转发后，响应链路上一个 Post GlobalFilter 还能读到吗？</strong></p>
-              <p>能。<code class="inline-code">ServerWebExchange</code> 的生命周期是从"请求进入 Gateway"一直到"响应完全写回客户端"的<strong>整个请求-响应过程</strong>。NettyRoutingFilter 异步转发后，响应沿着 Filter 链按 order 从大到小反向执行（post 阶段），每一步 GlobalFilter 拿到的 exchange 对象是<strong>同一个实例</strong>（不是拷贝）。所以只要你在前置 Filter（order=-99）往 <code class="inline-code">exchange.getAttributes().put("userId", uid)</code> 里写进去，后面所有 Filter（无论前置还是后置），包括 NettyRoutingFilter 转发完毕后的 Post GlobalFilter，甚至 <code class="inline-code">exchange.getResponse().beforeCommit()</code> 回调里都能读到同一个值。这就是为什么 <strong>跨 Filter 用 exchange.getAttributes() 是最佳实践</strong>——语义清晰、生命周期明确、不依赖 Reactor Context 订阅链。</p>
+              <p>
+                <strong>追问 1：坑 5 中用了 exchange.getAttributes()，但在 Gateway 的 NettyRoutingFilter 中异步转发后，响应链路上一个 Post GlobalFilter 还能读到吗？</strong>
+              </p>
+              <p>
+                能。<code class="inline-code">ServerWebExchange</code> 的生命周期是从"请求进入 Gateway"一直到"响应完全写回客户端"的<strong>整个请求-响应过程</strong>。NettyRoutingFilter 异步转发后，响应沿着 Filter 链按 order 从大到小反向执行（post 阶段），每一步 GlobalFilter 拿到的 exchange 对象是<strong>同一个实例</strong>（不是拷贝）。所以只要你在前置 Filter（order=-99）往 <code class="inline-code">exchange.getAttributes().put("userId", uid)</code> 里写进去，后面所有 Filter（无论前置还是后置），包括 NettyRoutingFilter 转发完毕后的 Post GlobalFilter，甚至
+                <code class="inline-code">exchange.getResponse().beforeCommit()</code>
+                回调里都能读到同一个值。这就是为什么
+                <strong>跨 Filter 用 exchange.getAttributes() 是最佳实践</strong>——语义清晰、生命周期明确、不依赖 Reactor Context 订阅链。
+              </p>
 
-              <p><strong>追问 2：坑 3 中 @RefreshScope + @Async 线程池引用失效的根因（与 @Scheduled 类似）？</strong></p>
+              <p>
+                <strong>追问 2：坑 3 中 @RefreshScope + @Async 线程池引用失效的根因（与 @Scheduled 类似）？</strong>
+              </p>
               <p>根因和 @Scheduled 类似。<code class="inline-code">@Async</code> 是由 <code class="inline-code">AsyncAnnotationBeanPostProcessor</code> 在初始化期扫描 <code class="inline-code">@Async</code> 方法，<strong>把 target Bean 的方法句柄 + 实例引用</strong>包装成 AsyncExecutionInterceptor 的 MethodInterceptor，交给 <code class="inline-code">TaskExecutor</code> 异步调度。RefreshScope 销毁旧 target、建新 target 时，AsyncExecutionInterceptor 里持有的实例引用仍然是旧的——后续每次 @Async 调用都是在旧 target 上执行，自然拿到旧配置值。修复思路一致：① 把 @Async 方法放到非 RefreshScope Bean，配置改用 @ConfigurationProperties；② 或者在 <code class="inline-code">RefreshScopeRefreshedEvent</code> 监听器里手动销毁并重新注册 AsyncAdvisor（更重，不推荐）。推荐方案永远是：<strong>业务单例 Bean 保持 singleton，配置抽 @ConfigurationProperties（它是 rebind 机制，不需要销毁重建 Bean）</strong>，@RefreshScope 只用于 Controller / Feign 客户端这种轻量对象。</p>
 
-              <p><strong>追问 3：坑 7 如果是 CircuitBreakerOpenException 与业务 FallbackException 同时触发如何区分？</strong></p>
-              <p>用异常类型的 <code class="inline-code">instanceof</code> 精确判断，判断顺序必须<strong>从具体子类到宽泛父类</strong>。FallbackFactory.create(Throwable cause) 的 cause 真实类型在 Sentinel + Resilience4j 组合场景下有 6 种常见：① <code class="inline-code">BlockException</code>（Sentinel 限流）→ 子类 FlowException / DegradeException / ParamFlowException；② <code class="inline-code">CircuitBreakerOpenException</code>（Resilience4j 熔断打开）；③ <code class="inline-code">TimeoutException</code>（Feign readTimeout）；④ <code class="inline-code">ConnectException</code>（连接失败）；⑤ <code class="inline-code">RetryableException</code>（重试耗尽）；⑥ 真正的业务 <code class="inline-code">FeignException$InternalServerError</code>（HTTP 500，服务端抛业务异常）。判断顺序建议：先判断 BlockException 及其子类 → 再 CircuitBreakerOpenException → TimeoutException/ConnectException → FeignException（看 status()）→ 最后兜底 RuntimeException。每一种分别走不同的告警策略：限流降级、熔断、超时、服务端 5xx，分别对应 Prometheus 的 counter name 不同。</p>
+              <p>
+                <strong>追问 3：坑 7 如果是 CircuitBreakerOpenException 与业务 FallbackException 同时触发如何区分？</strong>
+              </p>
+              <p>
+                用异常类型的
+                <code class="inline-code">instanceof</code>
+                精确判断，判断顺序必须<strong>从具体子类到宽泛父类</strong>。FallbackFactory.create(Throwable cause) 的 cause 真实类型在 Sentinel + Resilience4j 组合场景下有 6 种常见：①
+                <code class="inline-code">BlockException</code>（Sentinel 限流）→ 子类 FlowException / DegradeException / ParamFlowException；② <code class="inline-code">CircuitBreakerOpenException</code>（Resilience4j 熔断打开）；③ <code class="inline-code">TimeoutException</code>（Feign readTimeout）；④ <code class="inline-code">ConnectException</code>（连接失败）；⑤ <code class="inline-code">RetryableException</code>（重试耗尽）；⑥ 真正的业务 <code class="inline-code">FeignException$InternalServerError</code>（HTTP 500，服务端抛业务异常）。判断顺序建议：先判断 BlockException 及其子类 → 再 CircuitBreakerOpenException → TimeoutException/ConnectException → FeignException（看 status()）→ 最后兜底 RuntimeException。每一种分别走不同的告警策略：限流降级、熔断、超时、服务端 5xx，分别对应 Prometheus 的 counter name 不同。
+              </p>
             </div>
           </div>
 
@@ -5014,8 +5199,14 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：Dubbo 3 应用级服务发现解决了什么？</strong> 旧 2.x 接口级发现为每个接口生成一条 URL，大规模下注册中心 URL 数量爆炸（"URL 爆炸"）。应用级发现按"应用"粒度注册，接口映射下沉到 metadata，URL 数量降一到两个数量级。</p>
-              <p><strong>追问 2：为什么大厂（阿里/字节/美团）偏好 Dubbo 系？</strong> 内部服务调用量大、对延迟与吞吐敏感、强类型契约利于大规模协作与治理，RPC 的性能和精细治理优势显著。</p>
-              <p><strong>追问 3：Service Mesh 趋势下框架会变薄吗？</strong> 是的。Sidecar（Envoy）接管服务发现、负载均衡、熔断、mTLS，应用框架只关心业务逻辑，Dubbo/SC 的治理职责逐步上移，但 RPC 高性能内核仍有价值。</p>
+              <p>
+                <strong>追问 2：为什么大厂（阿里/字节/美团）偏好 Dubbo 系？</strong>
+                内部服务调用量大、对延迟与吞吐敏感、强类型契约利于大规模协作与治理，RPC 的性能和精细治理优势显著。
+              </p>
+              <p>
+                <strong>追问 3：Service Mesh 趋势下框架会变薄吗？</strong>
+                是的。Sidecar（Envoy）接管服务发现、负载均衡、熔断、mTLS，应用框架只关心业务逻辑，Dubbo/SC 的治理职责逐步上移，但 RPC 高性能内核仍有价值。
+              </p>
             </div>
           </div>
 
@@ -5046,7 +5237,11 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p><code class="inline-code">@RefreshScope</code> 是 Spring Cloud 配置热刷新的"双刃剑"：它本质是一个自定义 Scope，把 Bean 包成代理、刷新时 <code class="inline-code">cache.clear()</code> 重建 target。很多团队把它当"加上就能热更新"的银弹，结果线上出现双实例、内存泄漏、定时任务重复执行、事务/AOP 失效等隐性生产事故。重点是：你能讲清 @RefreshScope 的 9 大坑与避坑准则，并能给出 @ConfigurationProperties 业务侧"优雅使用 + 安全热更新"的工程规范——尤其是 <strong>Nacos 下 @ConfigurationProperties 自动 rebind 无需 @RefreshScope，而 @Value 才需要；Spring Cloud Config 下 @ConfigurationProperties 仍需 @RefreshScope</strong> 这一反直觉差异。</p>
+              <p>
+                <code class="inline-code">@RefreshScope</code> 是 Spring Cloud 配置热刷新的"双刃剑"：它本质是一个自定义 Scope，把 Bean 包成代理、刷新时 <code class="inline-code">cache.clear()</code> 重建 target。很多团队把它当"加上就能热更新"的银弹，结果线上出现双实例、内存泄漏、定时任务重复执行、事务/AOP 失效等隐性生产事故。重点是：你能讲清 @RefreshScope 的 9 大坑与避坑准则，并能给出 @ConfigurationProperties 业务侧"优雅使用 + 安全热更新"的工程规范——尤其是
+                <strong>Nacos 下 @ConfigurationProperties 自动 rebind 无需 @RefreshScope，而 @Value 才需要；Spring Cloud Config 下 @ConfigurationProperties 仍需 @RefreshScope</strong>
+                这一反直觉差异。
+              </p>
             </div>
           </div>
 
@@ -5249,11 +5444,17 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>① 线上已出事怎么定位（5 步 SOP）</strong>：@RefreshScope 的坑多为隐性、偶现、难复现，按以下顺序排查：</p>
               <ol>
-                <li>查业务 Service / Mapper / Feign / 定时任务类是否误打 <code class="inline-code">@RefreshScope</code>（最高发事故源）。</li>
+                <li>
+                  查业务 Service / Mapper / Feign / 定时任务类是否误打
+                  <code class="inline-code">@RefreshScope</code>（最高发事故源）。
+                </li>
                 <li>查 RefreshScope Bean 是否被普通单例 Bean 的<strong>成员变量</strong>注入持有——强引用导致旧实例永不回收，双实例共存。</li>
                 <li>线程堆栈看是否存在<strong>两份同名业务线程</strong>（如两个同名定时任务线程池），据此判断新旧 Bean 共存。</li>
                 <li>关闭 Nacos 自动刷新（<code class="inline-code">refresh-enabled=false</code>），手动调 <code class="inline-code">/actuator/refresh</code> 复现，排除"无限刷新"干扰。</li>
-                <li>查是否用静态变量 / <code class="inline-code">@PostConstruct</code> 快照接收配置——这两类永远读不到刷新后的值。</li>
+                <li>
+                  查是否用静态变量 /
+                  <code class="inline-code">@PostConstruct</code> 快照接收配置——这两类永远读不到刷新后的值。
+                </li>
               </ol>
               <p><strong>② 两种热刷新方案对比选型</strong>：</p>
               <table class="compare-table">
@@ -5452,7 +5653,10 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：平台工程和 SRE 什么关系？</strong> SRE 偏可靠性与错误预算；平台工程偏开发者生产力与路径标准化。二者重叠在可观测/发布，但 KPI 不同（MTTR vs TTFV）。</p>
-              <p><strong>追问 2：强制 Golden Path 会不会扼杀创新？</strong> 默认强制、例外可审批；创新在沙箱集群验证后回流成新路径版本。</p>
+              <p>
+                <strong>追问 2：强制 Golden Path 会不会扼杀创新？</strong>
+                默认强制、例外可审批；创新在沙箱集群验证后回流成新路径版本。
+              </p>
             </div>
           </div>
 
@@ -5468,61 +5672,99 @@ flowchart TD
           </div>
         </div>
 
-                        <div class="qa-card" id="C10.29" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C10.29" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C10.29</div>
             <div class="qa-question">网关超时链路怎么拆：从客户端到下游每一跳的超时与排查顺序？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>超时不是单点配置：客户端、网关、服务、下游各有一层；任一层大于上游会导致「上游先断、下游仍占资源」。</p></div>
+            <div class="qa-layer-body">
+              <p>超时不是单点配置：客户端、网关、服务、下游各有一层；任一层大于上游会导致「上游先断、下游仍占资源」。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>超时预算应自上而下递减；重试与超时乘积决定放大倍数。Trace 各 span 耗时是定位「谁先超时」的证据，存活探针绿不代表链路健康。</p></div>
+            <div class="qa-layer-body">
+              <p>超时预算应自上而下递减；重试与超时乘积决定放大倍数。Trace 各 span 耗时是定位「谁先超时」的证据，存活探针绿不代表链路健康。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>排查顺序：</p><ol><li>确认客户端超时与重试次数。</li><li>网关全局/路由超时与连接池。</li><li>服务端容器/WebClient/Feign 超时。</li><li>下游依赖超时。</li><li>对照 Trace 各 span：谁先超时、谁还在重试。</li></ol></div>
+            <div class="qa-layer-body">
+              <p>排查顺序：</p>
+              <ol>
+                <li>确认客户端超时与重试次数。</li>
+                <li>网关全局/路由超时与连接池。</li>
+                <li>服务端容器/WebClient/Feign 超时。</li>
+                <li>下游依赖超时。</li>
+                <li>对照 Trace 各 span：谁先超时、谁还在重试。</li>
+              </ol>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>常用旋钮：Gateway <code>response-timeout</code>、Netty 连接超时；Feign/HttpClient connect/read；线程池 queue。契约示例：客户端 3s = 网关 2.5s = 服务内下游合计 ≤2s。把总预算写进接口契约。</p></div>
+            <div class="qa-layer-body">
+              <p>常用旋钮：Gateway <code>response-timeout</code>、Netty 连接超时；Feign/HttpClient connect/read；线程池 queue。契约示例：客户端 3s = 网关 2.5s = 服务内下游合计 ≤2s。把总预算写进接口契约。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：只调网关不调客户端；超时后疯狂重试放大；异步回调无超时。回滚点：恢复上一版超时配置（配置当发布，对照 G01.02）。</p><p>超时链路要可加总：客户端 &gt; 网关 &gt; 服务 &gt; 下游，且每一跳留余量。排查从最外层超时症状往内对预算表。</p><p>常见坑：网关 1s、服务 3s；或重试把预算打穿。临时止血：降重试、扩超时（有上限）、切降级。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：只调网关不调客户端；超时后疯狂重试放大；异步回调无超时。回滚点：恢复上一版超时配置（配置当发布，对照 G01.02）。</p>
+              <p>超时链路要可加总：客户端 &gt; 网关 &gt; 服务 &gt; 下游，且每一跳留余量。排查从最外层超时症状往内对预算表。</p>
+              <p>常见坑：网关 1s、服务 3s；或重试把预算打穿。临时止血：降重试、扩超时（有上限）、切降级。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
 
-                <div class="qa-card" id="C10.30" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C10.30" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C10.30</div>
             <div class="qa-question">配置刷新安全回滚值班：@RefreshScope 之外还要核对什么？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>动态刷新能秒级改行为，也是秒级制造事故的入口。值班要识别「配置已推但行为未变 / 行为已变但不可退」。</p></div>
+            <div class="qa-layer-body">
+              <p>动态刷新能秒级改行为，也是秒级制造事故的入口。值班要识别「配置已推但行为未变 / 行为已变但不可退」。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>配置中心是关键依赖：客户端要有本地快照、推送失败降级、订阅隔离。RefreshScope 只覆盖被代理的 Bean；重资源 Bean 更适合 @ConfigurationProperties + rebind。回滚必须含配置维（对照 G01.02 / C10.26）。</p></div>
+            <div class="qa-layer-body">
+              <p>配置中心是关键依赖：客户端要有本地快照、推送失败降级、订阅隔离。RefreshScope 只覆盖被代理的 Bean；重资源 Bean 更适合 @ConfigurationProperties + rebind。回滚必须含配置维（对照 G01.02 / C10.26）。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>排查顺序：</p><ol><li>变更单与配置版本/MD5。</li><li>实例订阅滞后与快照版本分布。</li><li>刷新后 Bean 是否真重建（管理端/日志）。</li><li>关停开关是否可用。</li><li>优先回滚配置快照，而不是再推「修复值」。</li></ol></div>
+            <div class="qa-layer-body">
+              <p>排查顺序：</p>
+              <ol>
+                <li>变更单与配置版本/MD5。</li>
+                <li>实例订阅滞后与快照版本分布。</li>
+                <li>刷新后 Bean 是否真重建（管理端/日志）。</li>
+                <li>关停开关是否可用。</li>
+                <li>优先回滚配置快照，而不是再推「修复值」。</li>
+              </ol>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>核对表：生效范围（命名空间/DataId）、灰度实例列表、本地快照兜底、关停开关、双人复核（限流/鉴权/路由）。15 分钟观察：推送成功率、订阅滞后、客户端版本分布。</p></div>
+            <div class="qa-layer-body">
+              <p>核对表：生效范围（命名空间/DataId）、灰度实例列表、本地快照兜底、关停开关、双人复核（限流/鉴权/路由）。15 分钟观察：推送成功率、订阅滞后、客户端版本分布。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：控制台无单改生产；只退镜像不退配置；RefreshScope 未覆盖的 Bean 静默不生效。回滚点：配置快照 + 必要时缩容到未刷新实例。</p><p>@RefreshScope 只刷新代理 Bean；静态字段、连接池、本地缓存不会自动跟。回滚要核对配置中心版本与实例实际生效值。</p><p>清单：刷新范围、失败实例、是否需滚动重启、回滚后的只读校验。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：控制台无单改生产；只退镜像不退配置；RefreshScope 未覆盖的 Bean 静默不生效。回滚点：配置快照 + 必要时缩容到未刷新实例。</p>
+              <p>@RefreshScope 只刷新代理 Bean；静态字段、连接池、本地缓存不会自动跟。回滚要核对配置中心版本与实例实际生效值。</p>
+              <p>清单：刷新范围、失败实例、是否需滚动重启、回滚后的只读校验。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
-
-                
       </main>
     </div>
 
@@ -5530,30 +5772,56 @@ flowchart TD
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">Brewer E. CAP Twelve Years Later (2012) / Gilbert &amp; Lynch. CAP 证明 (2002). — CAP 取舍：注册中心为何选 AP</span></li>
-          <li><span class="src-title">Netflix Technology Blog. Eureka: How Netflix Does Load Balancing (2013). — Eureka AP 设计、自我保护模式</span></li>
-          <li><span class="src-title">Alibaba Nacos Official Documentation. — AP(Distro)/CP(Raft) 切换、长轮询配置推送</span></li>
-          <li><span class="src-title">Spring Cloud Gateway Reference. — WebFlux + Netty 异步非阻塞、Predicate + Filter 模型</span></li>
+          <li>
+            <span class="src-title">Brewer E. CAP Twelve Years Later (2012) / Gilbert &amp; Lynch. CAP 证明 (2002). — CAP 取舍：注册中心为何选 AP</span>
+          </li>
+          <li>
+            <span class="src-title">Netflix Technology Blog. Eureka: How Netflix Does Load Balancing (2013). — Eureka AP 设计、自我保护模式</span>
+          </li>
+          <li>
+            <span class="src-title">Alibaba Nacos Official Documentation. — AP(Distro)/CP(Raft) 切换、长轮询配置推送</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Cloud Gateway Reference. — WebFlux + Netty 异步非阻塞、Predicate + Filter 模型</span>
+          </li>
           <li><span class="src-title">Apache APISIX Documentation. — 动态路由、etcd 配置存储、插件生态</span></li>
-          <li><span class="src-title">Netflix Hystrix Wiki / Resilience4j Documentation / Alibaba Sentinel Documentation. — 熔断框架演进：状态机、限流算法、滑动窗口</span></li>
-          <li><span class="src-title">Kubernetes Documentation. — Pod/Deployment/Service/Ingress/Probe、声明式 API 与控制循环</span></li>
-          <li><span class="src-title">JEP 309: Class-Data Sharing / JEP 381: Constant Dynamic / JDK 10+ Container Awareness. — JVM 容器感知演进</span></li>
-          <li><span class="src-title">Istio Official Documentation. — Sidecar、xDS、VirtualService、Ambient Mesh、mTLS</span></li>
-          <li><span class="src-title">Fowler M. StranglerFigApplication / Microservices / Modular Monolith. — 绞杀者模式、微服务溢价、模块化单体</span></li>
-          <li><span class="src-title">Evans E. Domain-Driven Design (2003) / Newman S. Building Microservices. — DDD 限界上下文、服务拆分粒度</span></li>
-          <li><span class="src-title">Netflix Chaos Monkey / ChaosBlade Documentation / CNCF Litmus. — 混沌工程与故障注入</span></li>
-          <li><span class="src-title">Apollo / Nacos Configuration Center Documentation. — 长轮询推送、配置热更新、灰度发布、本地快照容灾</span></li>
-          <li><span class="src-title">AWS Lambda Documentation / GraalVM Native Image / CRaC (JEP 451). — FaaS 计费模型、冷启动、Java 启动优化</span></li>
+          <li>
+            <span class="src-title">Netflix Hystrix Wiki / Resilience4j Documentation / Alibaba Sentinel Documentation. — 熔断框架演进：状态机、限流算法、滑动窗口</span>
+          </li>
+          <li>
+            <span class="src-title">Kubernetes Documentation. — Pod/Deployment/Service/Ingress/Probe、声明式 API 与控制循环</span>
+          </li>
+          <li>
+            <span class="src-title">JEP 309: Class-Data Sharing / JEP 381: Constant Dynamic / JDK 10+ Container Awareness. — JVM 容器感知演进</span>
+          </li>
+          <li>
+            <span class="src-title">Istio Official Documentation. — Sidecar、xDS、VirtualService、Ambient Mesh、mTLS</span>
+          </li>
+          <li>
+            <span class="src-title">Fowler M. StranglerFigApplication / Microservices / Modular Monolith. — 绞杀者模式、微服务溢价、模块化单体</span>
+          </li>
+          <li>
+            <span class="src-title">Evans E. Domain-Driven Design (2003) / Newman S. Building Microservices. — DDD 限界上下文、服务拆分粒度</span>
+          </li>
+          <li>
+            <span class="src-title">Netflix Chaos Monkey / ChaosBlade Documentation / CNCF Litmus. — 混沌工程与故障注入</span>
+          </li>
+          <li>
+            <span class="src-title">Apollo / Nacos Configuration Center Documentation. — 长轮询推送、配置热更新、灰度发布、本地快照容灾</span>
+          </li>
+          <li>
+            <span class="src-title">AWS Lambda Documentation / GraalVM Native Image / CRaC (JEP 451). — FaaS 计费模型、冷启动、Java 启动优化</span>
+          </li>
         </ol>
       </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 分布式系统</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-10-microservice-cloud.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-11-middleware-engineering.html" class="nav-next">第 11 篇 中间件与工程化 →</a>
-        </nav>
+        <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 分布式系统</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-10-microservice-cloud.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-11-middleware-engineering.html" class="nav-next">第 11 篇 中间件与工程化 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -5567,5 +5835,5 @@ flowchart TD
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

@@ -30,7 +30,9 @@ agent_created: true
 3. **P3 优先级已废除**：`data-priority` 仅 P0/P1/P2 三级。
 4. 共享样式集中在 `assets/design-system.css`，优先改共享 CSS，不逐卡内联。
 5. **手机小屏强制（MOBILE-MANDATORY）**：全站必须适配 ≤768/≤480；细则 `docs/format-shared.md` §8；`validate_kb` 校验 CSS 标记、viewport、根/导图小屏媒体查询。
-6. **主题 / 暗黑模式**：用户页须在 CSS 前引入 `theme-init.js`；令牌换肤见 `docs/format-shared.md` §9。
+6. **主题 / 暗黑模式**：用户页须在 CSS 前引入 `theme-init.js`；令牌换肤见 `docs/format-shared.md` §9；切换器与回顶/去底由 `theme-init.js` 注入。
+7. **顶/底章节导航**：仅根 / 章节 `index.html` 无导航；其余页顶栏贴 `body` 首、底栏在脚本前；壳层 `.site-page-nav`；细则 `docs/format-shared.md` §4.2。
+8. **HTML Prettier + Mermaid**：改 HTML 后 `npm run format:html`；每个 `<div class="mermaid">` 上一行 `<!-- prettier-ignore -->`；见 `docs/format-shared.md` §10。
 
 权威计数口径（以 `ov-stat-num` 与根 index 全量徽标为权威三源，三者须相等）：
 - 总量 = 篇章(深度Q&A) + 核心原理 + 场景
@@ -554,10 +556,16 @@ agent_created: true
 - **路径双层**：`Java Spring AI/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
 - **Bash 内置 `grep` 受 `_zshz` 干扰**：交叉验证用 `Grep` 工具或 `git grep`。
 - **校验提取正则必须覆盖新编号空间（2026-09-04 实测）**：升层重编号后若用旧模式（如 `M0[1-7]\.\d{2}`）提取 after 集合做多重集断言，会"看不见" M08+ 的新号而误报不一致（替换其实已成功）；after 一律用宽模式 `M\d{2}\.\d{2}`。
+- **Mermaid 被格式化压成一行（2026-09-15）**：每个 `<div class="mermaid">` 必须带上一行 `<!-- prettier-ignore -->`；统一用 `npm run format:html`。缺 ignore 时 Prettier 会塌缩图源码，`validate_kb` 会拦。
+- **顶底导航位置（2026-09-15）**：顶栏必须是 `body` 第一个壳；底栏在 footer 后、script 前；根/章节 index 无导航。勿再把导航塞进 `content-main` 中部。
 
 ## Resources
 
-- `references/conventions.md` — 完整结构约定：题号前缀、卡片 HTML 模板（`.qa-card`/`.qa-layer` 七层/场景七层）、导图节点模板、4 份聚合页字段名与 `ov-stat-num` 顺序、权威计数示例。
-- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、overview 排序/类型、三权威源、红线。
+- `references/conventions.md` — 完整结构约定：题号前缀、卡片 HTML 模板（`.qa-card`/`.qa-layer` 七层/场景七层）、导图节点模板、4 份聚合页字段名与 `ov-stat-num` 顺序、权威计数示例、导航/小屏/Prettier（§7–§7.2）。
+- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、overview 排序/类型、三权威源、红线、**Mermaid prettier-ignore**、主题/小屏。
+- `scripts/ensure_mermaid_prettier_ignore.py` — 批量为缺失的 mermaid 节点补 `<!-- prettier-ignore -->`（格式化前可先跑）。
+- `scripts/normalize_html_closers.py` — Prettier 后把 `</tag\\n>` 压回同行（保护 kb-count 锚点）。
+- `scripts/check_html_format.py` — `npm run format:html:check` 稳态检查。
 - `scripts/audit_l1_counts.py` — 只跑 L1 裸计数扫描（改聚合文案后可先跑这支）。
 - `scripts/sync_new_card.py` — 新增卡片的 7 文件同步脚本骨架（参数化），含备份、断言、`data-page-node-id` 守卫；按需填充卡片 HTML 与计数增量。
+- 仓库根：`npm run format:html` / `format:html:check`；规范正文见 `java-architect-interview/docs/format-shared.md` §4.2 / §10。

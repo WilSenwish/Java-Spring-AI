@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 02 篇 · GC 算法与性能调优 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-01-jvm-memory-classloading.html" class="nav-prev">← 第 01 篇 JVM 内存与类加载</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-03-concurrency-locks.html" class="nav-next">第 03 篇 并发编程与锁机制 →</a>
-        </nav>
+        <a href="chapter-01-jvm-memory-classloading.html" class="nav-prev">← 第 01 篇 JVM 内存与类加载</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-03-concurrency-locks.html" class="nav-next">第 03 篇 并发编程与锁机制 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -166,6 +165,7 @@
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     ROOT[GC Roots] --> R1[虚拟机栈局部变量]
@@ -253,7 +253,10 @@ graph TD
               <p><strong>高级开发 · 编码实战</strong>：</p>
               <ul>
                 <li>避免显式 <code class="inline-code">System.gc()</code>：默认触发 Full GC，可在启动参数加 <code class="inline-code">-XX:+DisableExplicitGC</code> 屏蔽，防止业务代码误触发全堆整理。</li>
-                <li>大对象直接进老年代：<code class="inline-code">-XX:PretenureSizeThreshold</code> 控制超阈值的对象直接在老年代分配，避免新生代复制开销（仅 Serial/ParNew 生效，G1 走 Humongous Region）。</li>
+                <li>
+                  大对象直接进老年代：<code class="inline-code">-XX:PretenureSizeThreshold</code>
+                  控制超阈值的对象直接在老年代分配，避免新生代复制开销（仅 Serial/ParNew 生效，G1 走 Humongous Region）。
+                </li>
                 <li>对象年龄动态判定：<code class="inline-code">-XX:MaxTenuringThreshold=15</code> 是上限，但 Survivor 区中相同年龄对象大小总和超过 Survivor 一半时，该年龄及以上对象直接晋升，无需等到 15 岁。</li>
               </ul>
 
@@ -293,7 +296,7 @@ graph TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -304,7 +307,7 @@ graph TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C02.02 CMS/G1/ZGC/Shenandoah 四个收集器的核心差异与选型？ -->
@@ -334,6 +337,7 @@ graph TD
               <p><strong>JDK 25（JEP 521，2025）：Generational Shenandoah 转正</strong>——引入分代，年轻代/老年代独立并发回收，对标 Generational ZGC，进一步降低分配压力下的 GC 频率。至此两大低延迟收集器（ZGC、Shenandoah）均完成分代化演进。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 timeline
     title GC 收集器演进时间线
@@ -442,6 +446,7 @@ timeline
 
               <p><strong>G1 的 Region 布局与回收逻辑</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     subgraph G1 堆 Region 布局
@@ -521,7 +526,7 @@ graph TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -532,7 +537,7 @@ graph TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C02.03 JVM 参数如何设置？年轻代/老年代/GC 如何选？ -->
@@ -647,6 +652,7 @@ graph TD
 
               <p><strong>GC 选型决策树</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     START([JVM 参数规划]) --> V{JDK 版本?}
@@ -725,7 +731,11 @@ graph TD
               <p>若 -Xms &lt; -Xmx，堆从初始值向最大值扩张时需要申请内存并可能触发 FullGC 来重新划分分代。生产环境流量波动大，扩张时的 FullGC 不可控。相等则堆固定，分代边界稳定，GC 行为可预测。</p>
 
               <p><strong>追问 2：ParallelGCThreads 在容器内为什么不能默认？</strong></p>
-              <p>JDK 10+ 默认开启 <code class="inline-code">UseContainerSupport</code>，有 CPU quota 时 JVM 按 cgroup 的 <code class="inline-code">ActiveProcessorCount</code> 推导 GC 线程数；<strong>未设 CPU limit / 旧 JDK</strong> 才可能看到宿主机核数，从而开出远超配额的 GC 线程，STW 时过度抢占。生产仍建议显式设 <code class="inline-code">-XX:ParallelGCThreads</code> 与 <code class="inline-code">-XX:ConcGCThreads</code>。注意：默认公式里的「核数×5/8」是 <code class="inline-code">ParallelGCThreads</code> 的启发式，不是「把 limit 再乘 5/8」。</p>
+              <p>
+                JDK 10+ 默认开启 <code class="inline-code">UseContainerSupport</code>，有 CPU quota 时 JVM 按 cgroup 的 <code class="inline-code">ActiveProcessorCount</code> 推导 GC 线程数；<strong>未设 CPU limit / 旧 JDK</strong>
+                才可能看到宿主机核数，从而开出远超配额的 GC 线程，STW 时过度抢占。生产仍建议显式设
+                <code class="inline-code">-XX:ParallelGCThreads</code> 与 <code class="inline-code">-XX:ConcGCThreads</code>。注意：默认公式里的「核数×5/8」是 <code class="inline-code">ParallelGCThreads</code> 的启发式，不是「把 limit 再乘 5/8」。
+              </p>
 
               <p><strong>追问 3：MaxGCPauseMillis 设成 10ms 会怎样？</strong></p>
               <p>G1 会尝试缩小 CSet（每次回收更少 Region）来满足 10ms，导致回收速度跟不上分配速度，堆占用上升，最终触发 FullGC（退化为 Serial Old 单线程整理）。停顿目标要与吞吐权衡，一般 100-200ms 是甜点区。</p>
@@ -747,7 +757,7 @@ graph TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -758,7 +768,7 @@ graph TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C02.04 线上 CPU 100% 如何快速定位与解决？ -->
@@ -781,8 +791,14 @@ graph TD
             <div class="qa-layer-body">
               <p><strong>jstack 时代（JDK 1.4+）</strong>：原始手段，手动 <code class="inline-code">top -Hp</code> 找高 CPU 线程 → 十进制转十六进制 → <code class="inline-code">jstack</code> 抓栈 → grep 定位。流程繁琐、需多次手动转换、且 jstack 本身有 STW 副作用（force 时）。</p>
               <p><strong>BTrace 时代（2008+）</strong>：字节码增强，可在不重启应用时动态埋点打印方法耗时。但语法晦涩、风险高（可能搞挂 JVM），逐渐被 Arthas 取代。</p>
-              <p><strong>Arthas 时代（2018，阿里开源）</strong>：一站式诊断工具，<code class="inline-code">dashboard</code> 实时看 CPU/线程/GC，<code class="inline-code">thread -n 3</code> 一键找最忙线程，<code class="inline-code">trace</code> 方法调用链耗时。成为线上排查事实标准。</p>
-              <p><strong>JFR 时代（JDK 11+ 开源）</strong>：JVM 内建低开销持续采集，<code class="inline-code">jcmd JFR.start</code> 录制，JMC 可视化分析。适合事后复盘而非实时定位。</p>
+              <p>
+                <strong>Arthas 时代（2018，阿里开源）</strong>：一站式诊断工具，<code class="inline-code">dashboard</code> 实时看 CPU/线程/GC，<code class="inline-code">thread -n 3</code> 一键找最忙线程，<code class="inline-code">trace</code>
+                方法调用链耗时。成为线上排查事实标准。
+              </p>
+              <p>
+                <strong>JFR 时代（JDK 11+ 开源）</strong>：JVM 内建低开销持续采集，<code class="inline-code">jcmd JFR.start</code>
+                录制，JMC 可视化分析。适合事后复盘而非实时定位。
+              </p>
               <p><strong>async-profiler 时代</strong>：基于 <code class="inline-code">asyncGetCallTrace</code> 的异步采样，生成火焰图，开销 &lt;1%，是 CPU 性能分析的金标准。</p>
               <p><strong>eBPF 时代（内核级无侵入）</strong>：在内核态采集 syscall/CPU 调度，无需 JVM Agent，跨语言通用。bpftrace、Parca、Pixie 等工具兴起，是云原生可观测性的未来。</p>
             </div>
@@ -799,6 +815,7 @@ graph TD
 
               <p><strong>经典排查五步法</strong>（jstack 原生流程）：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     A["1、top 找高 CPU 的 Java 进程 PID"] --> B["2、top -Hp PID 找高 CPU 线程 TID"]
@@ -863,7 +880,10 @@ graph TD
 
               <p><strong>常见 CPU 100% 场景与解法</strong>：</p>
               <ul>
-                <li><strong>死循环</strong>：<code class="inline-code">while(true)</code> 缺少退出条件，栈顶是业务方法。修代码。</li>
+                <li>
+                  <strong>死循环</strong>：<code class="inline-code">while(true)</code>
+                  缺少退出条件，栈顶是业务方法。修代码。
+                </li>
                 <li><strong>正则灾难</strong>：恶意输入触发正则回溯（如 <code class="inline-code">(a+)+</code> 匹配 <code class="inline-code">aaaaaaaaaaaaaaaaaab</code>），CPU 飙到 100%。栈顶在 <code class="inline-code">java.util.regex.Pattern</code>。解法：限制正则复杂度、设超时、用 RE2J 替代。</li>
                 <li><strong>频繁 FullGC</strong>：栈顶是 <code class="inline-code">VM Thread</code> 或 <code class="inline-code">GC Thread</code>，jstat 看 GC 频率。走 C02.05 排查。</li>
                 <li><strong>序列化大对象</strong>：Jackson/Fastjson 序列化深层嵌套对象，栈顶在序列化库。解法：DTO 裁剪、流式序列化。</li>
@@ -884,10 +904,17 @@ graph TD
               <p>jstack 默认走 <code class="inline-code">SignalDispatcher</code>，向 JVM 发 SIGQUIT 信号触发全线程 dump，本身<strong>会触发一次安全点</strong>，对低延迟应用有几十毫秒影响。Arthas 的 <code class="inline-code">thread</code> 命令用 <code class="inline-code">AsyncGetCallTrace</code> 异步采样，开销更小。频繁 dump 建议用 async-profiler 持续采样而非反复 jstack。</p>
 
               <p><strong>追问 2：CPU 100% 但 jstack 显示所有线程都 BLOCKED，怎么解？</strong></p>
-              <p>这是<strong>死锁或锁竞争</strong>。用 <code class="inline-code">jstack -l PID</code>（加 -l 显示锁信息），末尾会自动检测 "Found one Java-level deadlock"。Arthas <code class="inline-code">thread -b</code> 一键找阻塞源头线程。解法：修复死锁、缩小锁粒度、用并发集合替代 synchronized 块。</p>
+              <p>
+                这是<strong>死锁或锁竞争</strong>。用 <code class="inline-code">jstack -l PID</code>（加 -l 显示锁信息），末尾会自动检测 "Found one Java-level deadlock"。Arthas
+                <code class="inline-code">thread -b</code>
+                一键找阻塞源头线程。解法：修复死锁、缩小锁粒度、用并发集合替代 synchronized 块。
+              </p>
 
               <p><strong>追问 3：为什么 async-profiler 比 jstack 更准？</strong></p>
-              <p>jstack 是<strong>瞬时快照</strong>，只抓一次栈，若高 CPU 线程此刻不在线程池热路径上会漏掉。async-profiler 是<strong>持续采样</strong>（默认每 10ms 一次），用 <code class="inline-code">AsyncGetCallTrace</code> 在安全点外异步采集，开销 &lt;1%，能统计出"一段时间内各方法累计 CPU 占比"，更接近真实热点。火焰图是其可视化形式。</p>
+              <p>
+                jstack 是<strong>瞬时快照</strong>，只抓一次栈，若高 CPU 线程此刻不在线程池热路径上会漏掉。async-profiler 是<strong>持续采样</strong>（默认每 10ms 一次），用
+                <code class="inline-code">AsyncGetCallTrace</code> 在安全点外异步采集，开销 &lt;1%，能统计出"一段时间内各方法累计 CPU 占比"，更接近真实热点。火焰图是其可视化形式。
+              </p>
             </div>
           </div>
 
@@ -897,7 +924,10 @@ graph TD
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
-                  <li><strong>漏掉 -H 参数</strong>：<code class="inline-code">top -Hp</code> 显示线程，<code class="inline-code">top -p</code> 只显示进程，不加 -H 看不到线程级 CPU。</li>
+                  <li>
+                    <strong>漏掉 -H 参数</strong>：<code class="inline-code">top -Hp</code> 显示线程，<code class="inline-code">top -p</code>
+                    只显示进程，不加 -H 看不到线程级 CPU。
+                  </li>
                   <li><strong>十进制转十六进制忘转</strong>：top -Hp 的 TID 是十进制，jstack 的 nid 是十六进制，必须 <code class="inline-code">printf "%x"</code> 转换，否则 grep 不到。</li>
                   <li><strong>误判 GC 线程为业务问题</strong>：高 CPU 线程若是 <code class="inline-code">"GC task thread"</code> 或 <code class="inline-code">"VM Thread"</code>，是 GC 问题不是业务死循环，排查路径完全不同。</li>
                   <li><strong>只抓一次 jstack</strong>：单次快照可能恰好抓到空闲时刻，应连续抓 3 次间隔 1-2 秒，或直接用 async-profiler 采样。</li>
@@ -906,7 +936,7 @@ graph TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -917,7 +947,7 @@ graph TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C02.05 线上 FullGC 频繁如何排查与调优？ -->
@@ -959,6 +989,7 @@ graph TD
 
               <p><strong>排查流程图</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     A[FullGC 频繁告警] --> B[jstat -gc 1s 持续观察各代占用]
@@ -1046,7 +1077,10 @@ graph TD
 
               <div class="callout callout-tip">
                 <div class="callout-title">GC 日志分析工具</div>
-                <p>线上 GC 日志必开：<code class="inline-code">-Xlog:gc*=info:file=/data/logs/gc.log:time,level,tags:filecount=10,filesize=50m</code>。用 <a href="https://gceasy.io">GCEasy</a> 在线上传分析，看吞吐率、停顿分布、FullGC 原因（<code class="inline-code">Cause</code> 字段：Allocation Failure / Metadata GC Threshold / System.gc / G1 Humongous Allocation）。</p>
+                <p>
+                  线上 GC 日志必开：<code class="inline-code">-Xlog:gc*=info:file=/data/logs/gc.log:time,level,tags:filecount=10,filesize=50m</code>。用 <a href="https://gceasy.io">GCEasy</a> 在线上传分析，看吞吐率、停顿分布、FullGC 原因（<code class="inline-code">Cause</code>
+                  字段：Allocation Failure / Metadata GC Threshold / System.gc / G1 Humongous Allocation）。
+                </p>
               </div>
             </div>
           </div>
@@ -1058,7 +1092,10 @@ graph TD
               <p><code class="inline-code">:live</code> 会先触发一次 Full GC 再统计存活对象，能过滤掉即将回收的垃圾，看到的是"真正占住内存的对象"。但代价是<strong>会触发一次 FullGC</strong>，线上慎用。无 :live 的 <code class="inline-code">jmap -histo</code> 不触发 GC，但数据包含死亡对象，干扰判断。生产建议直接 Arthas <code class="inline-code">heapdump --live</code>（同样会 GC）或在低峰期操作。</p>
 
               <p><strong>追问 2：G1 下还有 FullGC 吗？</strong></p>
-              <p>有，但应极罕见。G1 的设计目标是<strong>用 Mixed GC 替代 FullGC</strong>，但当 Evacuation Failure（转移时无空间）或元空间不足时仍会退化为 Single-Thread Full GC（JDK 10 前）或 Parallel Full GC（JDK 10+）。G1 频繁 FullGC 通常是 IHOP 过高、Humongous 过多、或堆过小，调 <code class="inline-code">InitiatingHeapOccupancyPercent</code> 下调、<code class="inline-code">G1HeapRegionSize</code> 调大。</p>
+              <p>
+                有，但应极罕见。G1 的设计目标是<strong>用 Mixed GC 替代 FullGC</strong>，但当 Evacuation Failure（转移时无空间）或元空间不足时仍会退化为 Single-Thread Full GC（JDK 10 前）或 Parallel Full GC（JDK 10+）。G1 频繁 FullGC 通常是 IHOP 过高、Humongous 过多、或堆过小，调 <code class="inline-code">InitiatingHeapOccupancyPercent</code> 下调、<code class="inline-code">G1HeapRegionSize</code>
+                调大。
+              </p>
 
               <p><strong>追问 3：如何区分"内存泄漏"与"内存不足"？</strong></p>
               <p>关键看<strong>FullGC 后老年代占用是否回落</strong>。若 FullGC 后老年代降到 30% 以下 → 内存不足（堆小或瞬时大对象），加堆或优化分配即可；若 FullGC 后老年代仍 80%+ → 内存泄漏，必须 dump + MAT 找引用链修复代码。jstat 连续观察 FG 前后的 O 列变化是判断依据。</p>
@@ -1095,11 +1132,14 @@ graph TD
               </ul>
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
-                <p>生产案例：某服务周期性出现数百毫秒 Full GC 停顿，吞吐下降。分析 GC 日志发现 Cause 固定为 <code class="inline-code">System.gc()</code>，排查确认是依赖库中手动调用了 System.gc()；加 <code class="inline-code">-XX:+DisableExplicitGC</code> 后 Full GC 完全消失。这体现了"日志驱动排查"的方法论——先看 Cause 定位触发源，再看 Pause 分布评估影响，最后看 Regions/Heap 变化判断回收效率，避免盲目调参。</p>
+                <p>
+                  生产案例：某服务周期性出现数百毫秒 Full GC 停顿，吞吐下降。分析 GC 日志发现 Cause 固定为
+                  <code class="inline-code">System.gc()</code>，排查确认是依赖库中手动调用了 System.gc()；加 <code class="inline-code">-XX:+DisableExplicitGC</code> 后 Full GC 完全消失。这体现了"日志驱动排查"的方法论——先看 Cause 定位触发源，再看 Pause 分布评估影响，最后看 Regions/Heap 变化判断回收效率，避免盲目调参。
+                </p>
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -1110,7 +1150,7 @@ graph TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C02.06 如何选择 GC 收集器？各场景的推荐配置？ -->
@@ -1263,10 +1303,16 @@ graph TD
               <p>ZGC 的染色指针 + 读屏障有<strong>固定开销</strong>（读屏障每次字段访问都插入检查代码），小堆下这个固定开销占比大，而 G1 的 STW 在小堆下本就短（&lt;50ms），ZGC 的低延迟优势发挥不出来，反而吞吐受损。经验阈值是<strong>堆 &gt;8GB 才考虑 ZGC</strong>。</p>
 
               <p><strong>追问 2：GCTimeRatio 是什么？</strong></p>
-              <p>Parallel GC 的吞吐参数，表示"GC 时间占 1/(1+GCTimeRatio)"。<code class="inline-code">-XX:GCTimeRatio=99</code> 意味着 GC 时间不超过 1%，是吞吐优先配置。默认 99（即 1% GC 时间）。它通过调整分代大小让 GC 频率降低，代价是单次 GC 停顿可能更长。</p>
+              <p>
+                Parallel GC 的吞吐参数，表示"GC 时间占 1/(1+GCTimeRatio)"。<code class="inline-code">-XX:GCTimeRatio=99</code>
+                意味着 GC 时间不超过 1%，是吞吐优先配置。默认 99（即 1% GC 时间）。它通过调整分代大小让 GC 频率降低，代价是单次 GC 停顿可能更长。
+              </p>
 
               <p><strong>追问 3：ZGC 的 SoftMaxHeapSize 与 -Xmx 区别？</strong></p>
-              <p><code class="inline-code">-Xmx</code> 是硬上限（超过抛 OOM），<code class="inline-code">-XX:SoftMaxHeapSize</code> 是软目标——ZGC 会尽量把堆占用控制在软目标以下，鼓励更积极地回收，但在内存压力下可临时超过软目标直到硬上限。用于"想给堆留余量但不希望 GC 太激进"的场景。</p>
+              <p>
+                <code class="inline-code">-Xmx</code> 是硬上限（超过抛 OOM），<code class="inline-code">-XX:SoftMaxHeapSize</code>
+                是软目标——ZGC 会尽量把堆占用控制在软目标以下，鼓励更积极地回收，但在内存压力下可临时超过软目标直到硬上限。用于"想给堆留余量但不希望 GC 太激进"的场景。
+              </p>
             </div>
           </div>
 
@@ -1319,6 +1365,7 @@ graph TD
               <p><strong>Arthas 底层原理</strong>：基于 Java Agent + Instrumentation API。通过 <code class="inline-code">VirtualMachine.attach</code> attach 到目标 JVM，加载 Agent，优先利用 <code class="inline-code">Instrumentation.retransformClasses</code> 在运行时注入埋点代码；retransform 受"不能新增字段/方法"等 Instrumentation 约束。命令交互通过 Telnet/WebSocket 连接到 Agent 内嵌的 Server。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph LR
     A[Arthas CLI] -- attach --> B[目标 JVM]
@@ -1473,6 +1520,7 @@ graph LR
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     A[JVM 运行时] --> B[JFR 事件总线]
@@ -1519,7 +1567,10 @@ graph TD
 
               <div class="callout callout-deep">
                 <div class="callout-title">公开能力边界</div>
-                <p>面向应用的公开入口是 <code class="inline-code">jcmd</code>、<code class="inline-code">jfr</code> 工具、JFR 事件类型和 JDK 14+ 的 <code class="inline-code">jdk.jfr.consumer.EventStream</code>；<code class="inline-code">AsyncGetCallTrace</code> 是 HotSpot 内部接口，不是稳定的 Java API。不要把某个 JFR 事件名说成所有 JDK/厂商版本都一致的公共采样 API。</p>
+                <p>
+                  面向应用的公开入口是 <code class="inline-code">jcmd</code>、<code class="inline-code">jfr</code> 工具、JFR 事件类型和 JDK 14+ 的 <code class="inline-code">jdk.jfr.consumer.EventStream</code>；<code class="inline-code">AsyncGetCallTrace</code>
+                  是 HotSpot 内部接口，不是稳定的 Java API。不要把某个 JFR 事件名说成所有 JDK/厂商版本都一致的公共采样 API。
+                </p>
               </div>
             </div>
           </div>
@@ -1538,7 +1589,10 @@ graph TD
 
               <div class="callout callout-tip">
                 <div class="callout-title">生产建议</div>
-                <p>JDK 11+ 可用启动参数开启 JFR，例如 <code class="inline-code">-XX:StartFlightRecording=dumponexit=true,filename=/data/jfr/app.jfr,maxsize=500m,maxage=24h</code>（参数可用性以目标 JDK 文档为准）。这是显式开启的"黑匣子"，不是默认自动录制；async-profiler 更适合临时深挖，二者保留版本和压测基线。</p>
+                <p>
+                  JDK 11+ 可用启动参数开启 JFR，例如
+                  <code class="inline-code">-XX:StartFlightRecording=dumponexit=true,filename=/data/jfr/app.jfr,maxsize=500m,maxage=24h</code>（参数可用性以目标 JDK 文档为准）。这是显式开启的"黑匣子"，不是默认自动录制；async-profiler 更适合临时深挖，二者保留版本和压测基线。
+                </p>
               </div>
             </div>
           </div>
@@ -1686,7 +1740,11 @@ jfr view gc recording.jfr                            <span class="com"># GC 专�
               <ul>
                 <li><strong>显式录制</strong>：JDK 11+ 需要 <code class="inline-code">-XX:StartFlightRecording</code> 或 <code class="inline-code">jcmd &lt;pid&gt; JFR.start</code>；这不是默认自动开启的能力。滚动窗口、留存时长和开销要一起评审。</li>
                 <li><strong>事件阈值</strong>：JFR 事件有 <code class="inline-code">threshold</code>（如只记录 &gt;10ms 的锁等待），避免事件过多。默认阈值合理，深度排查时可调低（<code class="inline-code">-XX:StartFlightRecording=threshold=0s</code>）。</li>
-                <li><strong>自定义事件</strong>：在支持标准 <code class="inline-code">jdk.jfr</code> API 的目标 JDK 中，用 <code class="inline-code">@Name</code> / <code class="inline-code">@Category</code> 等注解定义业务事件；字段要控制数量和基数，避免把高价值事件变成存储压力。</li>
+                <li>
+                  <strong>自定义事件</strong>：在支持标准 <code class="inline-code">jdk.jfr</code> API 的目标 JDK 中，用 <code class="inline-code">@Name</code> /
+                  <code class="inline-code">@Category</code>
+                  等注解定义业务事件；字段要控制数量和基数，避免把高价值事件变成存储压力。
+                </li>
               </ul>
 
               <div class="code-block">
@@ -1740,6 +1798,7 @@ event.commit();  <span class="com">// 提交到 JFR 事件流</span></code></pre
             <div class="qa-layer-body">
               <p><strong>JVM 调优全流程</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     A["1、监控告警<br/>APM + JVM 指标 + GC 日志"] --> B{指标是否达标?}
@@ -1901,6 +1960,7 @@ graph TD
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 graph TD
     A[JIT 编译: 对象创建] --> B[逃逸分析]
@@ -1922,7 +1982,10 @@ graph TD
               <ul>
                 <li><strong>栈上分配（Stack Allocation）</strong>：理论上是未逃逸对象随栈帧分配并在返回时释放；HotSpot 不把它作为对 Java 程序的通用承诺，常见实现路径更多体现为标量替换。</li>
                 <li><strong>标量替换（Scalar Replacement）</strong>：将对象拆解为基本类型字段（标量），分散存储在寄存器或栈帧，<strong>根本不创建该完整对象</strong>。这是 HotSpot 上最应强调的常见表现。</li>
-                <li><strong>同步消除（Lock Elision）</strong>：若对象未逃逸（即不可能被其他线程访问），其 synchronized 锁无意义，JIT 直接消除。<code class="inline-code">StringBuffer.append</code> 在单线程下锁被消除就是这个原理。</li>
+                <li>
+                  <strong>同步消除（Lock Elision）</strong>：若对象未逃逸（即不可能被其他线程访问），其 synchronized 锁无意义，JIT 直接消除。<code class="inline-code">StringBuffer.append</code>
+                  在单线程下锁被消除就是这个原理。
+                </li>
               </ul>
 
               <div class="code-block">
@@ -1957,7 +2020,12 @@ graph TD
 
               <div class="callout callout-deep">
                 <div class="callout-title">验证逃逸分析</div>
-                <p>诊断输出和日志选择器随 JDK 变化，例如部分版本提供 <code class="inline-code">PrintEscapeAnalysis</code>、编译图日志或 unified logging；先用目标版本确认开关是否需要 unlock diagnostic。<code class="inline-code">jol</code> 适合观察对象布局，不能直接证明“对象未被创建”。关闭 <code class="inline-code">DoEscapeAnalysis</code> 对比分配/GC 时要控制其他变量。</p>
+                <p>
+                  诊断输出和日志选择器随 JDK 变化，例如部分版本提供
+                  <code class="inline-code">PrintEscapeAnalysis</code>、编译图日志或 unified logging；先用目标版本确认开关是否需要 unlock diagnostic。<code class="inline-code">jol</code>
+                  适合观察对象布局，不能直接证明“对象未被创建”。关闭
+                  <code class="inline-code">DoEscapeAnalysis</code> 对比分配/GC 时要控制其他变量。
+                </p>
               </div>
             </div>
           </div>
@@ -1975,8 +2043,14 @@ graph TD
 
               <p><strong>架构师 · 验证与调优</strong>：</p>
               <ul>
-                <li>确认目标 JDK 的逃逸分析状态：<code class="inline-code">-XX:+PrintFlagsFinal -version | grep -i EscapeAnalysis</code> 这类命令只用于当前 JVM/厂商版本，生产不建议仅凭经验关闭或打开。</li>
-                <li>热点方法预热：JIT 编译阈值由分层编译、方法/循环计数、编译队列和策略共同决定，不同 JDK 和 <code class="inline-code">-XX:+TieredCompilation</code> 状态没有固定“10000 次”门槛。冷启动优化可评估 AppCDS/AOT 缓存。</li>
+                <li>
+                  确认目标 JDK 的逃逸分析状态：<code class="inline-code">-XX:+PrintFlagsFinal -version | grep -i EscapeAnalysis</code>
+                  这类命令只用于当前 JVM/厂商版本，生产不建议仅凭经验关闭或打开。
+                </li>
+                <li>
+                  热点方法预热：JIT 编译阈值由分层编译、方法/循环计数、编译队列和策略共同决定，不同 JDK 和
+                  <code class="inline-code">-XX:+TieredCompilation</code> 状态没有固定“10000 次”门槛。冷启动优化可评估 AppCDS/AOT 缓存。
+                </li>
                 <li>监控 GC 频率与分配速率：若分配速率异常高但 GC 频繁，可能是热点方法未编译或逃逸分析失效，用 JFR 分配火焰图定位。</li>
               </ul>
             </div>
@@ -2045,6 +2119,7 @@ graph TD
               <p><strong>记忆集的作用</strong>：分代回收必须知道哪些老年代位置可能引用年轻代，否则 Young GC 要扫描老年代。Generational ZGC 使用记忆集配合屏障维护这些候选引用；实现粒度、占用量和更新方式属于 JDK 版本细节。讲清目标即可：缩小回收集合、避免全堆扫描，同时接受维护成本。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["分配新对象 → Young 区"] --> B{"Young GC 触发?"}
@@ -2166,7 +2241,7 @@ flowchart TD
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -2177,7 +2252,7 @@ flowchart TD
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C02.12 GC/JVM 指标监控闭环：Micrometer+Prometheus+Grafana -->
@@ -2221,12 +2296,20 @@ flowchart TD
                   <tr>
                     <td>GC</td>
                     <td><code class="inline-code">jvm.gc.pause</code>、<code class="inline-code">jvm.gc.concurrent.phase.time</code>、<code class="inline-code">jvm.gc.memory.allocated</code>、<code class="inline-code">jvm.gc.memory.promoted</code></td>
-                    <td>按 <code class="inline-code">gc/action/cause</code> 分组看停顿分布、并发阶段、分配与晋升趋势；停顿目标来自业务 SLA 和基线</td>
+                    <td>
+                      按
+                      <code class="inline-code">gc/action/cause</code>
+                      分组看停顿分布、并发阶段、分配与晋升趋势；停顿目标来自业务 SLA 和基线
+                    </td>
                   </tr>
                   <tr>
                     <td>内存</td>
                     <td><code class="inline-code">jvm.memory.used</code>、<code class="inline-code">jvm.memory.max</code></td>
-                    <td>按 <code class="inline-code">area/id</code> 下钻内存池；对比同峰谷基线和增长斜率，不设全局默认百分比阈值</td>
+                    <td>
+                      按
+                      <code class="inline-code">area/id</code>
+                      下钻内存池；对比同峰谷基线和增长斜率，不设全局默认百分比阈值
+                    </td>
                   </tr>
                   <tr>
                     <td>线程</td>
@@ -2270,7 +2353,10 @@ scrape_configs:
               </div>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p>指标用于<strong>趋势与告警</strong>，GC 日志用于<strong>根因定位</strong>。以目标 Micrometer/Prometheus 版本的 <code class="inline-code">/actuator/prometheus</code> 输出为准确认指标名；告警先建立业务 SLA、部署形态和同峰谷基线，再看斜率、持续时间和分布，不套用固定使用率阈值。</p>
+                <p>
+                  指标用于<strong>趋势与告警</strong>，GC 日志用于<strong>根因定位</strong>。以目标 Micrometer/Prometheus 版本的
+                  <code class="inline-code">/actuator/prometheus</code> 输出为准确认指标名；告警先建立业务 SLA、部署形态和同峰谷基线，再看斜率、持续时间和分布，不套用固定使用率阈值。
+                </p>
               </div>
             </div>
           </div>
@@ -2280,7 +2366,10 @@ scrape_configs:
             <div class="qa-layer-body">
               <p><strong>1. 接入</strong>：Spring Boot Actuator + <code class="inline-code">micrometer-registry-prometheus</code>，暴露 <code class="inline-code">/actuator/prometheus</code>；保留 <code class="inline-code">-Xlog:gc*:time:file=gc.log</code> 日志作根因分析。</p>
               <p><strong>2. Grafana 看板</strong>：直接用官方 "JVM (Micrometer)" dashboard，重点看 GC 暂停分布、各代用量、Prometheus 抓取心跳。</p>
-              <p><strong>3. 告警规则</strong>：以完整集合名和原因标签识别 Full GC 并结合 SLA 判级；对老年代增长建立同峰谷基线、斜率与预计耗尽时间；对抓取失败、<code class="inline-code">up=0</code> 或样本断流单独告警。阈值应随负载、堆型和版本回归调整。</p>
+              <p>
+                <strong>3. 告警规则</strong>：以完整集合名和原因标签识别 Full GC 并结合 SLA 判级；对老年代增长建立同峰谷基线、斜率与预计耗尽时间；对抓取失败、<code class="inline-code">up=0</code>
+                或样本断流单独告警。阈值应随负载、堆型和版本回归调整。
+              </p>
               <p><strong>4. 闭环调优</strong>：指标预警 → 结合 GC 日志定位（如晋升失败、大对象）→ 调参（堆大小/区域、ZGC 软上限等，见 C02.11）→ 观察指标回归。</p>
               <p><strong>5. 容器环境</strong>：核对目标 JDK/发行版的容器感知能力和默认状态；同时确认 cgroup 版本、CPU/内存 limit、MaxRAMPercentage 和实际 RSS。不要把 <code class="inline-code">UseContainerSupport</code> 的可用性与默认值固定到所有 JDK。</p>
             </div>
@@ -2311,7 +2400,6 @@ scrape_configs:
             </div>
           </div>
         </div>
-
       </main>
     </div>
 
@@ -2319,14 +2407,22 @@ scrape_configs:
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">周志明. 深入理解 Java 虚拟机（第 3 版）. 机械工业出版社, 2019. — 第 3 章 垃圾收集器与内存分配策略</span></li>
-          <li><span class="src-title">JEP 377: ZGC: A Scalable Low-Latency Garbage Collector (JDK 15 Production)</span></li>
+          <li>
+            <span class="src-title">周志明. 深入理解 Java 虚拟机（第 3 版）. 机械工业出版社, 2019. — 第 3 章 垃圾收集器与内存分配策略</span>
+          </li>
+          <li>
+            <span class="src-title">JEP 377: ZGC: A Scalable Low-Latency Garbage Collector (JDK 15 Production)</span>
+          </li>
           <li><span class="src-title">JEP 439: Generational ZGC (JDK 21) — 分代染色指针</span></li>
           <li><span class="src-title">JEP 328: Flight Recorder (JDK 11 开源)</span></li>
           <li><span class="src-title">JEP 379: Shenandoah GC (JDK 15 生产可用)</span></li>
           <li><span class="src-title">Oracle — Java Garbage Collection Basics &amp; G1 GC Tuning Guide</span></li>
-          <li><span class="src-title">Arthas 官方文档 — Alibaba Arthas User Manual (dashboard/thread/trace/watch/redefine)</span></li>
-          <li><span class="src-title">async-profiler — https://github.com/async-profiler/async-profiler (火焰图与 AsyncGetCallTrace)</span></li>
+          <li>
+            <span class="src-title">Arthas 官方文档 — Alibaba Arthas User Manual (dashboard/thread/trace/watch/redefine)</span>
+          </li>
+          <li>
+            <span class="src-title">async-profiler — https://github.com/async-profiler/async-profiler (火焰图与 AsyncGetCallTrace)</span>
+          </li>
           <li><span class="src-title">OpenJDK Wiki — G1 IHOP Tuning &amp; Region Sizing</span></li>
           <li><span class="src-title">JEP 421: Deprecate Finalization for Removal (JDK 18+, finalize 废弃)</span></li>
         </ol>
@@ -2335,10 +2431,10 @@ scrape_configs:
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-01-jvm-memory-classloading.html" class="nav-prev">← 第 01 篇 JVM 内存与类加载</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-03-concurrency-locks.html" class="nav-next">第 03 篇 并发编程与锁机制 →</a>
-        </nav>
+        <a href="chapter-01-jvm-memory-classloading.html" class="nav-prev">← 第 01 篇 JVM 内存与类加载</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-02-gc-performance.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-03-concurrency-locks.html" class="nav-next">第 03 篇 并发编程与锁机制 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2352,5 +2448,5 @@ scrape_configs:
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

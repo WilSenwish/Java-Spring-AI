@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 01 篇 · JVM 内存与类加载 — 思维导图 | Java 架构师心智地图</title>
-<script src="../java-architect-interview/assets/theme-init.js"></script>
+    <script src="../java-architect-interview/assets/theme-init.js"></script>
     <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
     <style>
       /* ===== 思维导图页通用样式（取自「mind-core-methodology」） ===== */
@@ -215,7 +215,6 @@
         .idx-hero h1 { font-size: 1.2rem; }
         .idx-meta { grid-template-columns: 1fr 1fr; }
       }
-
     </style>
   </head>
   <body>
@@ -229,7 +228,11 @@
 
     <section class="map-hero">
       <h1>第 01 篇 · JVM 内存与类加载</h1>
-      <p class="subtitle">把「内存从哪来、对象长什么样、类怎么被加载、并发怎么看得见」串成一张图。深层题 C01.01–C01.12 为主干，并入核心原理速记（类加载、JMM、Java 21 特性）与语言基础 / 算法地基 <span class="kb-count" data-kb-count="struct.mind.mind-01-jvm-memory-classloading.mind-note-local_1" data-kb-pos="P349">8</span> 题，一页盖全 JVM 内存侧核心考点。</p>
+      <p class="subtitle">
+        把「内存从哪来、对象长什么样、类怎么被加载、并发怎么看得见」串成一张图。深层题 C01.01–C01.12 为主干，并入核心原理速记（类加载、JMM、Java 21 特性）与语言基础 / 算法地基
+        <span class="kb-count" data-kb-count="struct.mind.mind-01-jvm-memory-classloading.mind-note-local_1" data-kb-pos="P349">8</span>
+        题，一页盖全 JVM 内存侧核心考点。
+      </p>
       <div class="map-legend">
         <span><span class="map-dot" style="background: var(--accent)"></span>章节 · 深度 Q&amp;A</span>
         <span><span class="map-dot" style="background: var(--success)"></span>核心原理 · 并入</span>
@@ -238,8 +241,7 @@
     </section>
 
     <div class="map-body">
-            
-<section class="map-overview" aria-label="三层对照总览">
+      <section class="map-overview" aria-label="三层对照总览">
         <div class="map-col col-think">
           <h2 style="color: var(--accent)">① 内存区域与对象模型</h2>
           <ul>
@@ -272,6 +274,7 @@
       </section>
 
       <div class="mermaid-container">
+        <!-- prettier-ignore -->
         <div class="mermaid">
 flowchart LR
   root["第 01 篇 · JVM 内存与类加载"]
@@ -305,125 +308,117 @@ flowchart LR
       <h2 id="detail" style="font-size: 1.3rem; margin-top: var(--space-xl); color: var(--accent)">主题卡详情</h2>
 
       <h3 class="theme-h">① 内存区域与对象模型 <span class="qline">· 章节题</span></h3>
-<details class="map-card" open>
+      <details class="map-card" open>
         <summary>C01.01 运行时数据区划分与 OOM 场景</summary>
         <div class="map-body-text">堆（存对象、OOM 主战场）→ 线程共享区；虚拟机栈（方法栈帧 + 局部变量表，递归过深 StackOverflow）、本地方法栈 → 线程私有；方法区 JDK8 后迁入元空间，存类元数据/常量池，受本地内存限制；程序计数器不 OOM。答 OOM 要按区域归因：堆慢、方法区/元空间类过多、栈深、直接内存不足。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">运行时数据区</span><span class="map-tag t-c">OOM 归因</span><span class="map-tag t-c">架构</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.02 对象创建过程与内存布局</summary>
         <div class="map-body-text">流程：类加载检查 → 给对象分配内存（指针碰撞 / 空闲列表，TLAB 线程私有加速）→ 内存零值初始化 → 设置对象头（Mark Word + 类型指针 + 数组长度）→ 构造方法。布局：对象头 / 实例数据 / 对齐填充。理解布局是分析锁升级、synchronized、偏向锁的基础。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">对象头 Mark Word</span><span class="map-tag t-c">TLAB</span><span class="map-tag t-c">高级</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.05 OOM 与内存泄漏的区别与排查</summary>
         <div class="map-body-text">泄漏＝对象无法回收但不再使用，最终诱发 OOM。排查：保留现场 `jmap -dump` / `jcmd` 堆转储，用 MAT/JProfiler 分析支配树与 Leak Suspects，找 GC Roots 强引用路径；关注静态集合、ThreadLocal（弱引用+强引用残留）、缓存无过期、连接未关闭。回答要落到"工具 → 出图 → 定位到具体类"三步。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">OOM</span><span class="map-tag t-c">MAT 支配树</span><span class="map-tag t-c">GC Roots</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.06 直接内存与 NIO</summary>
         <div class="map-body-text">DirectBuffer（堆外）由 NIO 的 ByteBuffer.allocateDirect 分配，减少一次从 JVM 堆到 OS 的拷贝，利于高性能 IO/零拷贝，由 Cleaner 关联的 DirectByteBuffer 回收（显式 <code>System.gc()</code> 或 Cleaner）。风险：堆外内存不纳入 GC 压力，配置 -XX:MaxDirectMemorySize；排查用 NMT（Native Memory Tracking）。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">堆外内存</span><span class="map-tag t-c">NMT</span><span class="map-tag t-c">专家</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.07 引用类型与 GC 回收</summary>
         <div class="map-body-text">强引用不回收；软引用（内存不足前回收，适合缓存）；弱引用（下次 GC 即回收，WeakHashMap/ThreadLocalMap）；虚引用（仅跟踪回收，配合 ReferenceQueue 做堆外回收通知）。引用类型是缓存与堆外内存管理的基石，结合 GC Roots 判断可达性。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">引用类型</span><span class="map-tag t-c">ReferenceQueue</span></div>
       </details>
 
-<h3 class="theme-h">② 类加载与并发可见性 <span class="qline">· 核心原理速记</span></h3>
-<details class="map-card">
+      <h3 class="theme-h">② 类加载与并发可见性 <span class="qline">· 核心原理速记</span></h3>
+      <details class="map-card">
         <summary>C01.03 类加载机制与双亲委派</summary>
         <div class="map-body-text">加载→验证→准备→解析→初始化五阶段。双亲委派：类加载请求先交给父加载器，父失败才自加载，保证核心类一致与安全。打破场景：Tomcat（Web 隔离自加载）、SPI（线程上下文类加载器）、OSGi 热部署。作用范围：加载一个类需要"全限定名 + 类加载器实例"二元组。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">双亲委派</span><span class="map-tag t-c">打破委派</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.04 JMM happens-before 规则</summary>
         <div class="map-body-text">Java 内存模型定义 volatile/synchronized/lock/final/线程启动与终止等 8 条 happens-before 规则，解决并发可见性、有序性，同时给编译器/CPU 重排留空间（不改变单线程语义即可重排）。volatile 保证可见与禁止重排，但不保证原子性。答可见性必谈"工作内存主内存 + 内存屏障"。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">JMM</span><span class="map-tag t-c">happens-before</span><span class="map-tag t-c">可见性</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.08 JPMS 模块系统对类加载的影响</summary>
         <div class="map-body-text">JDK9 模块系统将 JDK 拆成 java.base 等模块，类加载改为"平台类加载器 / 应用类加载器，绑定模块图与模块路径"，引入强封装（java.* 可显式 opens）。影响：反射跨模块需 --add-opens；破坏"类路径平铺可见"假设；对类加载器委派仍是双亲委派为主。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">JPMS</span><span class="map-tag t-c">模块封装</span><span class="map-tag t-c">专家</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.09 JIT C1/C2/GraalVM C2 调优</summary>
         <div class="map-body-text">C1（客户端编译器，快启动低优化）与 C2（服务端，慢启动深度优化）分层编译，配合解释执行与热点探测（-XX:CompileThreshold）。Graal JIT 作为可选编译器。调优点：方法内联、逃逸分析、锁消除、循环展开；用 -XX:+PrintCompilation / -XX:TieredStopAtLevel 诊断。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">分层编译</span><span class="map-tag t-c">JIT</span><span class="map-tag t-c">专家</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.10 JDK 17/21 新特性与升级迁移</summary>
         <div class="map-body-text">Records（不可变数据载体）、Sealed（受控继承）、Pattern Matching/switch（类型解构）、Virtual Threads（轻量线程）、SequencedCollections（首尾操作）。迁移要点：移除如 -XX:+UseConcMarkSweepGC 等旧参数、Java 9+ 模块/反射封装、依赖第三方字节码兼容。注意区分语言特性与 JVM 实现。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">Java21</span><span class="map-tag t-c">迁移</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.11 OS 内存管理：虚拟内存、页表与 TLB</summary>
         <div class="map-body-text">虚拟内存经分页映射到物理内存，页表记录映射、缺页中断触发装载；TLB 缓存页表加速寻址，因此 JVM 堆大并不等于常驻内存。分段/分页差异、多级页表压缩空间。答"堆为何是页表视图"体现操作系统→JVM 的纵向打通。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">虚拟内存</span><span class="map-tag t-c">页表 TLB</span><span class="map-tag t-c">专家</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>C01.12 Leyden / CDS / 启动优化</summary>
         <div class="map-body-text">AppCDS 降类加载；Leyden 训练/约束；与 AOT Native、CRaC 选型边界。</div>
         <div class="map-tags"><span class="map-tag t-c">章节</span><span class="map-tag t-c">CDS</span><span class="map-tag t-c">Leyden</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E01.01 Java 21：Virtual Threads / Pattern Matching / ZGC / Sequenced</summary>
         <div class="map-body-text">VT 由 JVM 调度、阻塞自动卸载、pinning 需排查；Pattern 深度模式匹配；ZGC 分代吞吐提升 10–20%；SequencedCollection 统一首尾操作。跨 01/02/04 三章交叉。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">Java21</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E02.02 类加载器：双亲委派与打破</summary>
         <div class="map-body-text">加载器层次（启动/平台/应用）+ 双亲委派模型保证核心类安全；打破手法：Tomcat 自研 Web 加载器、SPI 线程上下文加载器、OSGi。与 C01.03 互证。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">双亲委派</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E03.02 JMM：volatile/synchronized/final 内存语义</summary>
         <div class="map-body-text">聚焦 H-B 保证的落地：volatile 写-读屏障、锁的获取-释放、final 构造中的冻结语义，辨析"可见性 vs 原子性"。与 C01.04 同主题互为印证。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">可见性</span></div>
       </details>
 
-<h3 class="theme-h">③ 语言生态与算法地基 <span class="qline">· 核心原理速记</span></h3>
-<details class="map-card">
+      <h3 class="theme-h">③ 语言生态与算法地基 <span class="qline">· 核心原理速记</span></h3>
+      <details class="map-card">
         <summary>原理 E12.01 常用数据结构选型与复杂度</summary>
         <div class="map-body-text">数组/链表/栈/队列/HashMap 底层与增删查复杂度抉择：随机访问选数组、频繁增删选链表、查重缓存选哈希；选定依据是读/写/内存三个维度。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">数据结构</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E12.05 排序算法复杂度与稳定性</summary>
         <div class="map-body-text">快排（不稳,O(nlogn) 平均）、归并（稳,递归数组）、堆排（不稳,原地）；Java Arrays.sort 基础类型用双轴快排、对象用 TimSort 稳定归并。答按 O(nlogn)+稳定性分档。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">排序</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E12.06 链表/数组高频算法：反转、环形、合并</summary>
         <div class="map-body-text">单链表反转（迭代/递归）、快慢指针判环入口、合并两个/多个有序序列（归并降维）。写对边界与走查三连是得分关键。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">链表</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E12.07 二分、双指针、滑动窗口模板</summary>
         <div class="map-body-text">二分闭区间模板防死循环；双指针（相向/快慢）解决有序与环形；滑动窗口定长/变长维护窗口合法。核心是"窗口状态 + 收缩条件"。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">模板</span></div>
       </details>
-<details class="map-card">
+      <details class="map-card">
         <summary>原理 E12.08 图 / 树遍历、DP 与贪心边界</summary>
         <div class="map-body-text">DFS/BFS 适用可达性与层次；DP 三要素（状态/转移/边界），贪心仅适合"局部最优=全局最优"（区间、调度）不能套壳硬解；区分最优子结构。</div>
         <div class="map-tags"><span class="map-tag t-e">原理</span><span class="map-tag t-e">DP 贪心</span></div>
       </details>
 
-      
-
-      
-
-      
-
-      
-
-      
-
-      <p class="map-note">注：本页为 chapter-01-jvm-memory-classloading.html 的思维导图式总览，并入 <span class="kb-count" data-kb-count="basics" data-kb-pos="P89">73</span> 题核心原理中与"内存 / 类加载 / Java 语言基础 / 算法地基"相关的 <span class="kb-count" data-kb-count="struct.mind.mind-01-jvm-memory-classloading.mind-note-local_2" data-kb-pos="P350">8</span> 题（E02.02、E03.02、E01.01 及算法 E12 组）。本页承接语言基础与算法原理，属跨篇交叉归并。</p>
-    
-                        
-  
+      <p class="map-note">
+        注：本页为 chapter-01-jvm-memory-classloading.html 的思维导图式总览，并入
+        <span class="kb-count" data-kb-count="basics" data-kb-pos="P89">73</span> 题核心原理中与"内存 / 类加载 / Java 语言基础 / 算法地基"相关的
+        <span class="kb-count" data-kb-count="struct.mind.mind-01-jvm-memory-classloading.mind-note-local_2" data-kb-pos="P350">8</span>
+        题（E02.02、E03.02、E01.01 及算法 E12 组）。本页承接语言基础与算法原理，属跨篇交叉归并。
+      </p>
     </div>
 
     <div class="site-page-nav site-page-nav--bottom">
@@ -441,5 +436,5 @@ flowchart LR
         mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || { startOnLoad: true, theme: "base", securityLevel: "loose", flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" }, sequence: { useMaxWidth: true, mirrorActors: false } });
       });
     </script>
-</body>
+  </body>
 </html>

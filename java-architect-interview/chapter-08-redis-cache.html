@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 08 篇 · Redis 与缓存架构 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-07-mysql-deep.html" class="nav-prev">← 第 07 篇 MySQL 深度原理</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-09-distributed-systems.html" class="nav-next">第 09 篇 分布式系统 →</a>
-        </nav>
+        <a href="chapter-07-mysql-deep.html" class="nav-prev">← 第 07 篇 MySQL 深度原理</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-09-distributed-systems.html" class="nav-next">第 09 篇 分布式系统 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -136,7 +135,10 @@
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 Redis <strong>对外数据类型与底层编码（redisObject + encoding）解耦设计</strong>的理解：为什么同一种类型（如 List）在不同数据量下会切换不同底层结构（quicklist/ziplist/listpack）？本质是 Redis 用<strong>"统一命令接口 + 多种可切换编码"的设计，让小数据省内存、大数据保性能</strong>。掌握 5 种基础类型（String/List/Hash/Set/Zset）+ 4 种扩展类型（Stream/Bitmap/HyperLogLog/Vector Set）的命令语义、底层编码演进、典型场景，是 Redis 选型与性能优化的地基。</p>
+              <p>
+                这道题考察对 Redis
+                <strong>对外数据类型与底层编码（redisObject + encoding）解耦设计</strong>的理解：为什么同一种类型（如 List）在不同数据量下会切换不同底层结构（quicklist/ziplist/listpack）？本质是 Redis 用<strong>"统一命令接口 + 多种可切换编码"的设计，让小数据省内存、大数据保性能</strong>。掌握 5 种基础类型（String/List/Hash/Set/Zset）+ 4 种扩展类型（Stream/Bitmap/HyperLogLog/Vector Set）的命令语义、底层编码演进、典型场景，是 Redis 选型与性能优化的地基。
+              </p>
             </div>
           </div>
 
@@ -153,7 +155,10 @@
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型，共 9 种：5 基础（String/List/Hash/Set/Zset）+ 4 扩展（Stream/Bitmap/HyperLogLog/Vector Set），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code> 等）自动切换编码，对用户透明。</p>
+              <p>
+                <strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型，共 9 种：5 基础（String/List/Hash/Set/Zset）+ 4 扩展（Stream/Bitmap/HyperLogLog/Vector Set），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code>
+                等）自动切换编码，对用户透明。
+              </p>
 
               <table class="compare-table">
                 <thead>
@@ -240,7 +245,10 @@
             <div class="qa-layer-body">
               <p><strong>编码阈值调优</strong>：默认 <code class="inline-code">hash-max-listpack-entries=128, hash-max-listpack-value=64</code>。若 Hash 字段多但单值小（如商品属性），可适当调大 entries 阈值保持 listpack 编码省内存；反之若字段大且频繁改单字段，应主动超出阈值切 hashtable（避免 listpack 频繁 realloc）。用 <code class="inline-code">OBJECT ENCODING key</code> 查看实际编码。</p>
               <p><strong>排行榜典型实现</strong>：Zset 存 <code class="inline-code">member=userId, score=积分</code>。<code class="inline-code">ZADD</code> 更新积分、<code class="inline-code">ZREVRANGE 0 9</code> 取 Top10、<code class="inline-code">ZREVRANK</code> 取个人排名。注意 <code class="inline-code">ZREVRANGE</code> 是 O(logN+M)，避免一次性取大范围；百万级排行榜用 Zset 性能仍优秀。</p>
-              <p><strong>延迟队列实现</strong>：Zset 存 <code class="inline-code">member=任务ID, score=执行时间戳</code>。消费端轮询 <code class="inline-code">ZRANGEBYSCORE 0 now LIMIT 0 100</code> 取到期任务，<code class="inline-code">ZREM</code> 成功则执行。注意 ZRANGEBYSCORE+ZREM 非原子，多消费者需用 Lua 保证不重复消费，或用 ZPOPMIN（原子但破坏按时间顺序）。</p>
+              <p>
+                <strong>延迟队列实现</strong>：Zset 存 <code class="inline-code">member=任务ID, score=执行时间戳</code>。消费端轮询 <code class="inline-code">ZRANGEBYSCORE 0 now LIMIT 0 100</code> 取到期任务，<code class="inline-code">ZREM</code>
+                成功则执行。注意 ZRANGEBYSCORE+ZREM 非原子，多消费者需用 Lua 保证不重复消费，或用 ZPOPMIN（原子但破坏按时间顺序）。
+              </p>
             </div>
           </div>
 
@@ -418,17 +426,30 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
                 </tbody>
               </table>
 
-              <p><strong>Vector Set 核心机制</strong>：Redis 8.0 新增的原生数据结构（Beta），由 antirez 从零重新实现 HNSW 索引。关键差异：① <strong>真实删除</strong>——<code class="inline-code">VREM</code> 立即解除节点链接并重连邻居（非 tombstone），内存即时回收；② <strong>链接双向强制</strong>——保证删除后图连通性不退化；③ <strong>谓词过滤扫描</strong>——图遍历时支持 JSON 属性过滤。默认使用 int8 量化（FP32 的 25% 内存，召回率几乎无损）。<code class="inline-code">VSIM</code> 采用多线程处理（antirez 认为向量操作天然慢，值得打破单线程约束）。核心命令：<code class="inline-code">VADD</code>/<code class="inline-code">VREM</code>/<code class="inline-code">VSIM</code>/<code class="inline-code">VRANDMEMBER</code>/<code class="inline-code">VGETATTR</code>/<code class="inline-code">VSETATTR</code>。antirez 实测 300 万向量 × 300 维，单机 VSIM（Top-10）可达 5~6 万 QPS。</p>
+              <p>
+                <strong>Vector Set 核心机制</strong>：Redis 8.0 新增的原生数据结构（Beta），由 antirez 从零重新实现 HNSW 索引。关键差异：① <strong>真实删除</strong>——<code class="inline-code">VREM</code>
+                立即解除节点链接并重连邻居（非 tombstone），内存即时回收；②
+                <strong>链接双向强制</strong>——保证删除后图连通性不退化；③ <strong>谓词过滤扫描</strong>——图遍历时支持 JSON 属性过滤。默认使用 int8 量化（FP32 的 25% 内存，召回率几乎无损）。<code class="inline-code">VSIM</code> 采用多线程处理（antirez 认为向量操作天然慢，值得打破单线程约束）。核心命令：<code class="inline-code">VADD</code>/<code class="inline-code">VREM</code>/<code class="inline-code">VSIM</code>/<code class="inline-code">VRANDMEMBER</code>/<code class="inline-code">VGETATTR</code>/<code class="inline-code">VSETATTR</code>。antirez 实测 300 万向量 × 300 维，单机 VSIM（Top-10）可达 5~6 万 QPS。
+              </p>
 
-              <p><strong>新 Hash 命令设计动机</strong>：<code class="inline-code">HGETEX</code>（取值并可选设过期）、<code class="inline-code">HSETEX</code>（设值并可选设过期）、<code class="inline-code">HGETDEL</code>（取值并删除）将"读/写 + 过期/删除"合并为原子操作，减少 RTT。会话管理可用 <code class="inline-code">HSETEX session:uid field token EX 1800</code> 一步完成设值+过期；<code class="inline-code">HGETDEL</code> 实现"读后即焚"一次性令牌校验。</p>
+              <p>
+                <strong>新 Hash 命令设计动机</strong>：<code class="inline-code">HGETEX</code>（取值并可选设过期）、<code class="inline-code">HSETEX</code>（设值并可选设过期）、<code class="inline-code">HGETDEL</code>（取值并删除）将"读/写 + 过期/删除"合并为原子操作，减少 RTT。会话管理可用 <code class="inline-code">HSETEX session:uid field token EX 1800</code> 一步完成设值+过期；<code class="inline-code">HGETDEL</code>
+                实现"读后即焚"一次性令牌校验。
+              </p>
 
               <div class="callout callout-tip">
                 <div class="callout-title">升级评估清单</div>
                 <ul>
-                  <li>检查是否依赖被移除的旧模块 API（8.0 将模块命令纳入标准 ACL 分类，<code class="inline-code">+@all -@write</code> 等规则行为变化）。</li>
+                  <li>
+                    检查是否依赖被移除的旧模块 API（8.0 将模块命令纳入标准 ACL 分类，<code class="inline-code">+@all -@write</code>
+                    等规则行为变化）。
+                  </li>
                   <li>Redis Search 评分默认从 TF-IDF 改为 BM25，排序结果可能变化，依赖评分排序的业务需回归测试。</li>
                   <li>Vector Set 为 Beta，生产使用需评估 API 稳定性风险，关键路径建议仍用 Redis Search 向量检索（已 GA）。</li>
-                  <li>全新多线程 I/O 需重新调优 <code class="inline-code">io-threads</code> 参数，沿用旧参数可能无法发挥最优吞吐。</li>
+                  <li>
+                    全新多线程 I/O 需重新调优
+                    <code class="inline-code">io-threads</code> 参数，沿用旧参数可能无法发挥最优吞吐。
+                  </li>
                 </ul>
               </div>
 
@@ -443,7 +464,7 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -454,7 +475,7 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
               </div>
             </div>
           </div>
-</div>
+        </div>
         <!-- ============================================================ -->
         <!-- C08.02 Redis RDB 与 AOF 持久化的权衡？ -->
         <!-- ============================================================ -->
@@ -477,7 +498,10 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
               <p><strong>Redis 早期（2.x 前）：仅 RDB</strong>。BGSAVE 通过 fork 子进程 + COW（Copy-On-Write）写时复制生成全量二进制快照。优点：文件紧凑、恢复快、fork 后子进程异步不影响主进程。缺点：两次 BGSAVE 之间崩溃会丢失该窗口所有写入；fork 大内存实例阻塞（详见深度追问）。</p>
               <p><strong>Redis 2.x：引入 AOF</strong>。追加记录每条写命令到 appendonly.aof。Redis 7.0 起默认改为多文件 AOF（base + incr + manifest）；历史单文件加载路径仍存在，但新建实例不应把单文件当作当前默认布局。优点：数据丢失少（取决于 appendfsync）。缺点：文件膨胀、恢复慢（重放全量命令）。引入 AOF 重写（BGREWRITEAOF）压缩历史命令——只保留最终状态。</p>
               <p><strong>Redis 4.0：混合持久化（aof-use-rdb-preamble）</strong>。AOF 重写时，前半段写 RDB 全量快照、后半段追加增量 AOF 命令。加载时先加载 RDB（快）再重放增量 AOF（少）。结合 RDB 的恢复速度与 AOF 的数据完整性，<strong>成为生产推荐配置</strong>。</p>
-              <p><strong>Redis 7.0：AOF 改为多文件（manifest + base + incr）</strong>。base 文件承载 RDB preamble 或 AOF 格式，incr 文件追加增量命令，<code class="inline-code">appendonly.aof.manifest</code> 管理文件清单。重写不再覆盖单文件，而是生成新 base + incr，避免重写期间崩溃损坏原文件。<strong>趋势</strong>：持久化向"RDB 快照 + AOF 增量"的混合模式统一，7.x 的多文件 AOF 提升了原子性与可维护性。</p>
+              <p>
+                <strong>Redis 7.0：AOF 改为多文件（manifest + base + incr）</strong>。base 文件承载 RDB preamble 或 AOF 格式，incr 文件追加增量命令，<code class="inline-code">appendonly.aof.manifest</code>
+                管理文件清单。重写不再覆盖单文件，而是生成新 base + incr，避免重写期间崩溃损坏原文件。<strong>趋势</strong>：持久化向"RDB 快照 + AOF 增量"的混合模式统一，7.x 的多文件 AOF 提升了原子性与可维护性。
+              </p>
             </div>
           </div>
 
@@ -551,6 +575,7 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
               <p><strong>AOF 重写原理</strong>：fork 子进程，遍历当前内存生成"达到当前状态所需的最小命令集"（如对同一 key 的多次 SET 只保留最后一次）。重写期间父进程新写入的命令缓存在 aof_rewrite_buffer，子进程完成后追加到新 AOF 末尾。重写触发条件：当前 AOF 大小 ≥ <code class="inline-code">auto-aof-rewrite-percentage</code>(默认 100%) 且 ≥ <code class="inline-code">auto-aof-rewrite-min-size</code>(默认 64MB)。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["主进程 fork（）"] --> B["子进程: 遍历内存生成新AOF"]
@@ -596,9 +621,17 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：fork 为什么会阻塞？如何量化？</strong></p>
-              <p>fork 虽然用 COW 共享物理页，但必须<strong>复制页表</strong>（不是物理页）。页表大小与内存线性相关——64 位系统每 4KB 内存对应 8 字节页表项，10GB 实例页表约 20MB，fork 复制页表耗时约 100-200ms。此期间主线程阻塞。<code class="inline-code">INFO stats | grep latest_fork_usec</code> 查看最近一次 fork 微秒数。规避：单实例内存上限、用从节点做持久化（主节点关闭 save 与 appendonly）。</p>
+              <p>
+                fork 虽然用 COW 共享物理页，但必须<strong>复制页表</strong>（不是物理页）。页表大小与内存线性相关——64 位系统每 4KB 内存对应 8 字节页表项，10GB 实例页表约 20MB，fork 复制页表耗时约 100-200ms。此期间主线程阻塞。<code class="inline-code">INFO stats | grep latest_fork_usec</code>
+                查看最近一次 fork 微秒数。规避：单实例内存上限、用从节点做持久化（主节点关闭 save 与 appendonly）。
+              </p>
               <p><strong>追问 2：AOF 损坏如何修复？</strong></p>
-              <p>AOF 文件末尾可能因宕机不完整（如只写了半条命令）。用 <code class="inline-code">redis-check-aof --fix appendonly.aof</code> 工具截断到最后一个完整命令。7.x 多文件 AOF 用 <code class="inline-code">redis-check-aof --fix incr.aof</code> 单独修复增量文件。生产应在修复前备份原文件，并确认丢失的命令范围。</p>
+              <p>
+                AOF 文件末尾可能因宕机不完整（如只写了半条命令）。用
+                <code class="inline-code">redis-check-aof --fix appendonly.aof</code> 工具截断到最后一个完整命令。7.x 多文件 AOF 用
+                <code class="inline-code">redis-check-aof --fix incr.aof</code>
+                单独修复增量文件。生产应在修复前备份原文件，并确认丢失的命令范围。
+              </p>
             </div>
           </div>
 
@@ -777,7 +810,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>缓存三件套组合方案（布隆过滤 + 互斥锁 + 随机 TTL）的价值，必须用"保护后 DB 峰值 QPS 与缓存命中率"量化，而非仅描述方案。</strong></p>
+              <p>
+                <strong>缓存三件套组合方案（布隆过滤 + 互斥锁 + 随机 TTL）的价值，必须用"保护后 DB 峰值 QPS 与缓存命中率"量化，而非仅描述方案。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -860,6 +895,7 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
 
               <p><strong>Cache Aside 并发不一致场景</strong>（先更DB后删缓存）：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant T1 as 线程A(读)
@@ -889,6 +925,7 @@ redis.<span class="fn">del</span>(key);              <span class="com">// 4. 再
 
               <p><strong>Canal binlog 订阅架构</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["业务服务"] -->|"1、只更新DB"| B[("MySQL")]
@@ -1000,6 +1037,7 @@ flowchart LR
               <p><strong>WatchDog 看门狗续期机制</strong>：加锁成功后，若未指定 leaseTime（即用默认 -1），Redisson 启动一个定时任务，每 <code class="inline-code">lockWatchdogTimeout/3</code>（默认 10s）检查锁是否仍被当前线程持有，若是则续期到 <code class="inline-code">lockWatchdogTimeout</code>（默认 30s）。业务完成 unlock 后定时任务取消。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant T as 业务线程
@@ -1112,6 +1150,7 @@ sequenceDiagram
             <div class="qa-layer-body">
               <p><strong>多级缓存架构图</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     REQ["请求"] --> L1["L1: 本地缓存 Caffeine<br/>（纳秒级, 单机MB级）"]
@@ -1200,7 +1239,10 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：L1 缓存各实例数据不一致如何彻底解决？</strong></p>
-              <p>无法"彻底"解决——多实例本地缓存在更新瞬间必然有窗口期不一致。可行策略：① <strong>广播失效 + 短 TTL</strong>兜底（最常用）；② <strong>强一致放弃 L1</strong>——对一致性敏感的 key 只用 L2（Redis），不走本地；③ <strong>版本号校验</strong>——L1 存 value+version，查询时与 L2 版本比对，不一致则失效。架构上应区分 key 的一致性要求，分别走多级或单级缓存。</p>
+              <p>
+                无法"彻底"解决——多实例本地缓存在更新瞬间必然有窗口期不一致。可行策略：①
+                <strong>广播失效 + 短 TTL</strong>兜底（最常用）；② <strong>强一致放弃 L1</strong>——对一致性敏感的 key 只用 L2（Redis），不走本地；③ <strong>版本号校验</strong>——L1 存 value+version，查询时与 L2 版本比对，不一致则失效。架构上应区分 key 的一致性要求，分别走多级或单级缓存。
+              </p>
               <p><strong>追问 2：多级缓存的命中率如何监控与调优？</strong></p>
               <p>分层监控命中率：L1 命中率（Caffeine stats）、L2 命中率（Redis INFO stats）、DB 回源率。理想：L1 命中 70%+、L2 命中 25%+、DB 回源 &lt;5%。调优：L1 命中率低 → 调大 maximumSize 或排查热 key 是否未进 L1；DB 回源高 → 检查 L2 TTL 是否过短或缓存 key 设计是否合理。用 Micrometer 暴露指标到 Prometheus。</p>
             </div>
@@ -1274,6 +1316,7 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
               <p><strong>为何是 16384 而非 65536</strong>：① Gossip 消息携带每个节点的槽位 bitmap，16384 位 = 2KB，65536 位 = 8KB，前者带宽友好；② 集群规模实际不超过 1000 节点，16384 槽足够细粒度；③ CRC16 的 14 位即可覆盖。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     subgraph Cluster["Redis Cluster （3主3从）"]
@@ -1327,8 +1370,15 @@ flowchart TB
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <p><strong>Hash Tag 保证同槽</strong>：需同槽的多 key 操作用 <code class="inline-code">{tag}</code> 括号。<code class="inline-code">user:{1000}:info</code> 与 <code class="inline-code">user:{1000}:order</code> 都按 <code class="inline-code">user:1000</code> 计算槽位，落在同节点，可用事务/Lua/mget。但需注意热点集中风险。</p>
-              <p><strong>扩缩容</strong>：扩容——新节点加入集群，从现有主节点迁移部分槽位（<code class="inline-code">CLUSTER SETSLOT</code> + MIGRATE 逐 key 迁移）；缩容——先迁移走槽位再下线。迁移期间存在 ASK 重定向（临时重定向到目标节点读一次）。云上 Redis 通常支持无感扩缩容（在线 reshard）。</p>
+              <p>
+                <strong>Hash Tag 保证同槽</strong>：需同槽的多 key 操作用 <code class="inline-code">{tag}</code> 括号。<code class="inline-code">user:{1000}:info</code> 与 <code class="inline-code">user:{1000}:order</code> 都按
+                <code class="inline-code">user:1000</code>
+                计算槽位，落在同节点，可用事务/Lua/mget。但需注意热点集中风险。
+              </p>
+              <p>
+                <strong>扩缩容</strong>：扩容——新节点加入集群，从现有主节点迁移部分槽位（<code class="inline-code">CLUSTER SETSLOT</code>
+                + MIGRATE 逐 key 迁移）；缩容——先迁移走槽位再下线。迁移期间存在 ASK 重定向（临时重定向到目标节点读一次）。云上 Redis 通常支持无感扩缩容（在线 reshard）。
+              </p>
               <p><strong>集群规模建议</strong>：单主节点内存 ≤ 10GB（控制 fork 与 RDB 影响），集群规模 ≤ 1000 节点（Gossip 通信开销）。3 主 3 从是常见起步配置，可按需扩展。</p>
             </div>
           </div>
@@ -1365,7 +1415,11 @@ flowchart TB
               <p>Redis Cluster 在单机房内运行良好，但<strong>跨机房部署</strong>会引入网络延迟、分区风险与锁续约等新问题，需要专门的同步方案设计。</p>
               <ul>
                 <li><strong>Redis Cluster 跨机房部署</strong>：① <strong>同城双活</strong>——两个机房各部署部分 master+slave，master 在 A 机房、slave 在 B 机房（或反之），依赖同城低延迟专线；② <strong>异地灾备</strong>——主集群 + 异地从集群，通过 redis-shake/redis-sync 做异步复制；③ <strong>网络分区风险</strong>——跨机房 cluster 可能因网络抖动触发 failover，导致数据不一致，需配合 <code class="inline-code">cluster-node-timeout</code> 调大容忍窗口。</li>
-                <li><strong>Redisson 看门狗跨机房问题</strong>：看门狗默认 30s 续约，跨机房网络延迟可能导致续约失败→锁过期。不要靠简单拉大 <code class="inline-code">lockWatchdogTimeout</code> 掩盖故障；锁应按机房/共享资源域就近组织，跨机房调用配合数据库唯一约束、状态机或资源端 fencing token 校验，避免双持直接写坏状态。</li>
+                <li>
+                  <strong>Redisson 看门狗跨机房问题</strong>：看门狗默认 30s 续约，跨机房网络延迟可能导致续约失败→锁过期。不要靠简单拉大
+                  <code class="inline-code">lockWatchdogTimeout</code>
+                  掩盖故障；锁应按机房/共享资源域就近组织，跨机房调用配合数据库唯一约束、状态机或资源端 fencing token 校验，避免双持直接写坏状态。
+                </li>
                 <li><strong>Proxy 层同步</strong>：① <strong>Codis</strong>——支持跨机房 proxy 集群，数据分片后可跨机房副本，支持在线扩缩容；② <strong>twemproxy</strong>——不支持动态扩缩容，适合静态分片场景，跨机房需上层做副本同步。</li>
                 <li><strong>异步复制延迟容忍度设计</strong>：① <strong>写后立即读一致性</strong>——用"读主"策略减少读到旧副本，但牺牲性能（读走主库）；② <strong>最终一致</strong>——接受秒级延迟，业务侧用本地缓存补偿（先读本地缓存，未命中读主或按路由读副本）；③ <strong>关键交易</strong>——Redis OSS 没有数据库意义上的原生半同步复制。可用 <code class="inline-code">WAIT</code> 等待前序写入到达至少 N 个副本，但返回值必须校验，且不能视为跨机房 RPO=0 或强一致；必要时改用提供对应语义的同步复制产品。</li>
               </ul>
@@ -1552,6 +1606,7 @@ flowchart TB
               <p><strong>布隆过滤器结构</strong>：m 位位数组 + k 个独立哈希函数。添加元素 x：对每个哈希函数 h_i 计算 h_i(x) mod m，将位数组对应位置 1。查询：k 个位置全为 1 则"可能存在"（可能误判），任一为 0 则"一定不存在"（绝不漏判）。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     X["元素 x"] --> H1["h1（x）=3"]
@@ -1659,7 +1714,10 @@ flowchart LR
               <p><strong>追问 1：布隆过滤器为什么不能删除？如何解决？</strong></p>
               <p>位数组的 1 可能被多个元素共享（多个哈希函数映射到同一位）。删除元素清 0 会影响其他元素。解决：① Counting Bloom Filter 用计数器替代位（+1/-1），但空间放大；② 布谷鸟过滤器天然支持删除；③ 重建——定期重建布隆过滤器（全量重新加载合法 key），适用于 key 集合可枚举的场景。</p>
               <p><strong>追问 2：布隆过滤器的哈希函数如何选择？为何可以不独立？</strong></p>
-              <p>实际用 2 个独立哈希函数（如 murmur3 + xxhash）通过 <code class="inline-code">h_i(x) = h1(x) + i × h2(x)</code> 派生 k 个哈希值（双哈希技术），避免维护 k 个独立哈希函数。数学上已证明双哈希在 k 不大时与独立哈希效果相近。Guava 即用此技术。</p>
+              <p>
+                实际用 2 个独立哈希函数（如 murmur3 + xxhash）通过
+                <code class="inline-code">h_i(x) = h1(x) + i × h2(x)</code> 派生 k 个哈希值（双哈希技术），避免维护 k 个独立哈希函数。数学上已证明双哈希在 k 不大时与独立哈希效果相近。Guava 即用此技术。
+              </p>
             </div>
           </div>
 
@@ -1684,6 +1742,7 @@ flowchart LR
               <p><strong>扩展 1：布谷鸟过滤器的二维桶结构与指纹</strong>。与"位数组"不同，布谷鸟过滤器是<strong>桶数组 + 槽位 + 指纹</strong>的二维逻辑结构 <code class="inline-code">buckets[m][b]</code>：m 个桶，标准实现每桶 <code class="inline-code">b=4</code> 个 slot，每个 slot 存一个定长指纹（常见 8bit，工程取值 4–12bit），<code class="inline-code">0</code> 表示空槽。指纹 <code class="inline-code">f = fingerprint(x)</code> 取哈希低 N 位，<strong>取值不能为 0</strong>（取到 0 时置 1）；指纹长度直接决定假阳性率。底层内存是紧凑打包的比特数组，而非"m×b 个对象"，这是它内存接近标准布隆的根本原因。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     X["元素 x"] --> F["指纹 f = fingerprint(x)"]
@@ -1698,7 +1757,12 @@ flowchart LR
                 <div class="chart-caption">图 8.9-2 布谷鸟过滤器：二维桶 buckets[m][b=4] + 异或备选桶 + 踢挪循环</div>
               </div>
 
-              <p><strong>扩展 2：部分-key 布谷鸟哈希的异或公式（核心考点）</strong>。普通布谷鸟哈希表存完整 key，被踢出时可用原始 key 重算另一个位置；布谷鸟过滤器<strong>只存指纹、没有原始 key</strong>，因此改用 <code class="inline-code">i₂ = i₁ ⊕ hash(f)</code> 计算备选桶。该式<strong>可逆</strong>：已知当前桶号与指纹即可反推另一候选桶 <code class="inline-code">i₁ = i₂ ⊕ hash(f)</code>。这正是论文 <em>Cuckoo Filter: Practically Better Than Bloom</em> 提出的 partial-key cuckoo hashing，是过滤器区别于普通布谷鸟哈希的根本。</p>
+              <p>
+                <strong>扩展 2：部分-key 布谷鸟哈希的异或公式（核心考点）</strong>。普通布谷鸟哈希表存完整 key，被踢出时可用原始 key 重算另一个位置；布谷鸟过滤器<strong>只存指纹、没有原始 key</strong>，因此改用
+                <code class="inline-code">i₂ = i₁ ⊕ hash(f)</code>
+                计算备选桶。该式<strong>可逆</strong>：已知当前桶号与指纹即可反推另一候选桶
+                <code class="inline-code">i₁ = i₂ ⊕ hash(f)</code>。这正是论文 <em>Cuckoo Filter: Practically Better Than Bloom</em> 提出的 partial-key cuckoo hashing，是过滤器区别于普通布谷鸟哈希的根本。
+              </p>
 
               <table class="compare-table">
                 <thead>
@@ -2036,7 +2100,11 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
               <p><strong>追问 1：Redis 6.0 多线程 IO 为何不把命令执行也多线程化？</strong></p>
               <p>命令执行单线程是 Redis 的核心设计——保证命令原子有序、无锁、数据结构简单。多线程执行需对每个数据结构加锁，Hash/Set/List 等复杂结构的细粒度锁代价巨大，反而降低性能。6.0 的多线程仅在网络读写（协议解析、响应发送）环节，命令执行仍单线程，既提升网络吞吐又保核心简单。这也是 Redis 与 Memcached（多线程+锁）的根本区别。</p>
               <p><strong>追问 2：如何监控 Redis 性能瓶颈？</strong></p>
-              <p>① <strong>slowlog</strong>——<code class="inline-code">SLOWLOG GET</code> 慢命令（&gt;10ms）；② <strong>latency monitor</strong>——<code class="inline-code">LATENCY HISTORY event</code> 延迟事件（fork、expire、aof-write）；③ <strong>INFO stats</strong>——instantaneous_ops_per_sec、rejected_connections、expired_keys、evicted_keys；④ <strong>INFO commandstats</strong>——各命令调用次数与耗时，定位热点命令；⑤ <strong>Prometheus + redis_exporter</strong>——生产监控标配，配合 Grafana 告警。</p>
+              <p>
+                ① <strong>slowlog</strong>——<code class="inline-code">SLOWLOG GET</code> 慢命令（&gt;10ms）；② <strong>latency monitor</strong>——<code class="inline-code">LATENCY HISTORY event</code>
+                延迟事件（fork、expire、aof-write）；③
+                <strong>INFO stats</strong>——instantaneous_ops_per_sec、rejected_connections、expired_keys、evicted_keys；④ <strong>INFO commandstats</strong>——各命令调用次数与耗时，定位热点命令；⑤ <strong>Prometheus + redis_exporter</strong>——生产监控标配，配合 Grafana 告警。
+              </p>
             </div>
           </div>
 
@@ -2249,34 +2317,52 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
           </div>
         </div>
 
-                        <div class="qa-card" id="C08.12" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C08.12" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C08.12</div>
             <div class="qa-question">缓存击穿值班手册：热点过期瞬间如何止血？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>击穿=热点 key 过期瞬间请求打穿到 DB。分钟级目标是止血，不是架构演讲。</p></div>
+            <div class="qa-layer-body">
+              <p>击穿=热点 key 过期瞬间请求打穿到 DB。分钟级目标是止血，不是架构演讲。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>击穿与穿透、雪崩处置不同：击穿靠互斥重建/逻辑过期；穿透靠空值或布隆；雪崩靠随机 TTL/预热。失败可降级必须写进契约（对照 G05 / K05）。</p></div>
+            <div class="qa-layer-body">
+              <p>击穿与穿透、雪崩处置不同：击穿靠互斥重建/逻辑过期；穿透靠空值或布隆；雪崩靠随机 TTL/预热。失败可降级必须写进契约（对照 G05 / K05）。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>值班顺序：</p><ol><li>确认热点 key 与 DB QPS 尖刺是否同秒对齐。</li><li>打开互斥重建或逻辑过期开关。</li><li>临时加长 TTL / 预热该 key。</li><li>对该 key 或接口限流。</li><li>事后改为「永不过期 + 异步刷新」或本地缓存，走正式变更。</li></ol></div>
+            <div class="qa-layer-body">
+              <p>值班顺序：</p>
+              <ol>
+                <li>确认热点 key 与 DB QPS 尖刺是否同秒对齐。</li>
+                <li>打开互斥重建或逻辑过期开关。</li>
+                <li>临时加长 TTL / 预热该 key。</li>
+                <li>对该 key 或接口限流。</li>
+                <li>事后改为「永不过期 + 异步刷新」或本地缓存，走正式变更。</li>
+              </ol>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>开关表：singleflight/mutex、逻辑过期、热点 key 名单、DB 限流阈值、降级开关。看板：缓存命中率、该 key QPS、DB 同指纹 QPS。禁止直接「关缓存」。</p></div>
+            <div class="qa-layer-body">
+              <p>开关表：singleflight/mutex、逻辑过期、热点 key 名单、DB 限流阈值、降级开关。看板：缓存命中率、该 key QPS、DB 同指纹 QPS。禁止直接「关缓存」。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：当穿透处理乱加空值；关缓存直打；互斥锁变成全局锁。回滚点：关闭错误开关，恢复旧 TTL/降级策略。</p><p>击穿与穿透不同：击穿是热点过期瞬间并发打穿 DB。临时止血用互斥重建或逻辑过期；长期靠预热与单 key 护栏。</p><p>核对：TTL 是否对齐、是否有单飞锁、降级是否可读旧值。禁止只靠「把 TTL 调很长」掩盖设计问题。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：当穿透处理乱加空值；关缓存直打；互斥锁变成全局锁。回滚点：关闭错误开关，恢复旧 TTL/降级策略。</p>
+              <p>击穿与穿透不同：击穿是热点过期瞬间并发打穿 DB。临时止血用互斥重建或逻辑过期；长期靠预热与单 key 护栏。</p>
+              <p>核对：TTL 是否对齐、是否有单飞锁、降级是否可读旧值。禁止只靠「把 TTL 调很长」掩盖设计问题。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
-
-                
       </main>
     </div>
 
@@ -2284,37 +2370,55 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">Redis Official Documentation. — Data types, RDB/AOF persistence, Cluster, Replication, Sentinel, Memory optimization, Eviction policies</span></li>
-          <li><span class="src-title">Carlson J. Redis in Action (2013). — 缓存模式、分布式锁基础、Lua 脚本、过期与淘汰实践</span></li>
-          <li><span class="src-title">黄健宏《Redis 设计与实现》. — redisObject 编码、ziplist/skiplist/intset 底层结构、持久化 fork+COW、过期与淘汰近似 LRU 实现</span></li>
-          <li><span class="src-title">Redisson 官方文档与源码. — RLock Lua 脚本、Hash 重入计数、WatchDog 定时续期 lockWatchdogTimeout 机制</span></li>
-          <li><span class="src-title">Kleppmann M. How to do distributed locking (2016). — 对 RedLock 的质疑：GC pause、时钟依赖、fencing token</span></li>
-          <li><span class="src-title">Bloom B. Space/Time Trade-offs in Hash Coding with Allowable Errors (1970). — 布隆过滤器原始论文</span></li>
-          <li><span class="src-title">Fan B. et al. Cuckoo Filter: Practically Better Than Bloom (2014). — 布谷鸟过滤器，支持删除且空间更省</span></li>
-          <li><span class="src-title">Caffeine GitHub Wiki. — W-TinyLFU 淘汰算法、Count-Min Sketch 频率统计、命中率对比</span></li>
+          <li>
+            <span class="src-title">Redis Official Documentation. — Data types, RDB/AOF persistence, Cluster, Replication, Sentinel, Memory optimization, Eviction policies</span>
+          </li>
+          <li>
+            <span class="src-title">Carlson J. Redis in Action (2013). — 缓存模式、分布式锁基础、Lua 脚本、过期与淘汰实践</span>
+          </li>
+          <li>
+            <span class="src-title">黄健宏《Redis 设计与实现》. — redisObject 编码、ziplist/skiplist/intset 底层结构、持久化 fork+COW、过期与淘汰近似 LRU 实现</span>
+          </li>
+          <li>
+            <span class="src-title">Redisson 官方文档与源码. — RLock Lua 脚本、Hash 重入计数、WatchDog 定时续期 lockWatchdogTimeout 机制</span>
+          </li>
+          <li>
+            <span class="src-title">Kleppmann M. How to do distributed locking (2016). — 对 RedLock 的质疑：GC pause、时钟依赖、fencing token</span>
+          </li>
+          <li>
+            <span class="src-title">Bloom B. Space/Time Trade-offs in Hash Coding with Allowable Errors (1970). — 布隆过滤器原始论文</span>
+          </li>
+          <li>
+            <span class="src-title">Fan B. et al. Cuckoo Filter: Practically Better Than Bloom (2014). — 布谷鸟过滤器，支持删除且空间更省</span>
+          </li>
+          <li>
+            <span class="src-title">Caffeine GitHub Wiki. — W-TinyLFU 淘汰算法、Count-Min Sketch 频率统计、命中率对比</span>
+          </li>
           <li><span class="src-title">Alibaba Canal GitHub. — MySQL binlog 订阅、缓存一致性异步同步方案</span></li>
-          <li><span class="src-title">《Redis 开发与运维》(付磊等). — 大 Key/热 Key 治理、内存碎片、集群扩缩容、性能优化全链路</span></li>
+          <li>
+            <span class="src-title">《Redis 开发与运维》(付磊等). — 大 Key/热 Key 治理、内存碎片、集群扩缩容、性能优化全链路</span>
+          </li>
         </ol>
-      
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
-              <p>上线门禁：命中率/回源 QPS、TTL 抖动、故障降级演练。表达提纲：一致性窗口→防护组合→指标与预案。</p>
-              <div class="callout callout-deep">
-                <div class="callout-title">P0 表达提纲</div>
-                <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
-              </div>
+
+        <div class="qa-layer" data-layer="production">
+          <div class="qa-layer-title">生产实践</div>
+          <div class="qa-layer-body">
+            <p>上线门禁：命中率/回源 QPS、TTL 抖动、故障降级演练。表达提纲：一致性窗口→防护组合→指标与预案。</p>
+            <div class="callout callout-deep">
+              <div class="callout-title">P0 表达提纲</div>
+              <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
             </div>
           </div>
-</div>
+        </div>
+      </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-07-mysql-deep.html" class="nav-prev">← 第 07 篇 MySQL 深度原理</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-09-distributed-systems.html" class="nav-next">第 09 篇 分布式系统 →</a>
-        </nav>
+        <a href="chapter-07-mysql-deep.html" class="nav-prev">← 第 07 篇 MySQL 深度原理</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-08-redis-cache.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-09-distributed-systems.html" class="nav-next">第 09 篇 分布式系统 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2328,5 +2432,5 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

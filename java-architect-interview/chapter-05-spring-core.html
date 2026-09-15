@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 05 篇 · Spring 核心原理 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-04-threadpool-virtual-threads.html" class="nav-prev">← 第 04 篇 线程池与虚拟线程</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-05-spring-core.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-06-spring-boot-modern.html" class="nav-next">第 06 篇 Spring Boot 与现代框架 →</a>
-        </nav>
+        <a href="chapter-04-threadpool-virtual-threads.html" class="nav-prev">← 第 04 篇 线程池与虚拟线程</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-05-spring-core.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-06-spring-boot-modern.html" class="nav-next">第 06 篇 Spring Boot 与现代框架 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -140,8 +139,14 @@
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p><strong>Spring 2.x（XML 时代）</strong>：BeanDefinition 由 <code class="inline-code">XmlBeanDefinitionReader</code> 解析 <code class="inline-code">&lt;bean&gt;</code> 标签生成，全量 XML 配置，<code class="inline-code">ClassPathXmlApplicationContext</code> 是主流入口。容器启动即解析 XML 注册 BeanDefinition。</p>
-              <p><strong>Spring 3.x（注解时代）</strong>：引入 <code class="inline-code">@Component</code> + <code class="inline-code">ClassPathBeanDefinitionScanner</code> 扫描包路径生成 BeanDefinition；<code class="inline-code">AnnotationConfigApplicationContext</code> 取代 XML 入口。BeanDefinition 的来源从"手写 XML"演变为"扫描注解"。</p>
+              <p>
+                <strong>Spring 2.x（XML 时代）</strong>：BeanDefinition 由 <code class="inline-code">XmlBeanDefinitionReader</code> 解析 <code class="inline-code">&lt;bean&gt;</code> 标签生成，全量 XML 配置，<code class="inline-code">ClassPathXmlApplicationContext</code>
+                是主流入口。容器启动即解析 XML 注册 BeanDefinition。
+              </p>
+              <p>
+                <strong>Spring 3.x（注解时代）</strong>：引入 <code class="inline-code">@Component</code> + <code class="inline-code">ClassPathBeanDefinitionScanner</code> 扫描包路径生成 BeanDefinition；<code class="inline-code">AnnotationConfigApplicationContext</code>
+                取代 XML 入口。BeanDefinition 的来源从"手写 XML"演变为"扫描注解"。
+              </p>
               <p><strong>Spring 4.x（Boot 时代）</strong>：<code class="inline-code">@SpringBootApplication</code> + 自动配置，BeanDefinition 来源扩展为三类：扫描的、自动配置类 <code class="inline-code">@Bean</code> 方法注册的、SPI 注册的。容器仍是 <code class="inline-code">AnnotationConfigApplicationContext</code> 的 Web 变体。</p>
               <p><strong>Spring 5.x（响应式时代）</strong>：新增 <code class="inline-code">GenericApplicationContext</code> 的 <code class="inline-code">registerBean()</code> 函数式注册 API，BeanDefinition 可用 Lambda 声明式构造，适配响应式与 Kotlin。生命周期本身未变。</p>
               <p><strong>Spring 6.x（AOT/Native 时代）</strong>：AOT 阶段在构建期提前执行 <code class="inline-code">BeanFactoryInitializationAotContribution</code>，将 BeanDefinition 解析、条件评估冻结为静态代码，运行期跳过反射扫描。生命周期"前移"——部分初始化逻辑在编译期完成，这是为 GraalVM Native Image 服务的范式转移。</p>
@@ -156,6 +161,7 @@
               </p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     A["1、prepareRefresh（） 上下文准备,校验必要属性"] --> B["2、obtainFreshBeanFactory（） 刷新并获取 BeanFactory"]
@@ -182,6 +188,7 @@ flowchart TD
               <p><strong>单个 Bean 生命周期（核心 5 大阶段）</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     A["BeanDefinition 注册"] --> B["实例化 createBeanInstance"]
@@ -238,7 +245,11 @@ flowchart LR
 }</code></pre>
               </div>
 
-              <p><strong>初始化回调的执行顺序</strong>（<code class="inline-code">initializeBean</code> 内部）必须记牢：① <code class="inline-code">Aware</code> 接口回调（BeanNameAware→BeanClassLoaderAware→BeanFactoryAware）→ ② <code class="inline-code">BeanPostProcessor.postProcessBeforeInitialization</code>（<code class="inline-code">@PostConstruct</code> 由 CommonAnnotationBeanPostProcessor 在此触发）→ ③ <code class="inline-code">InitializingBean.afterPropertiesSet</code> → ④ 自定义 init-method → ⑤ <code class="inline-code">BeanPostProcessor.postProcessAfterInitialization</code>（AOP 代理由 AbstractAutoProxyCreator 在此生成）。</p>
+              <p>
+                <strong>初始化回调的执行顺序</strong>（<code class="inline-code">initializeBean</code> 内部）必须记牢：① <code class="inline-code">Aware</code> 接口回调（BeanNameAware→BeanClassLoaderAware→BeanFactoryAware）→ ② <code class="inline-code">BeanPostProcessor.postProcessBeforeInitialization</code>（<code class="inline-code">@PostConstruct</code>
+                由 CommonAnnotationBeanPostProcessor 在此触发）→ ③
+                <code class="inline-code">InitializingBean.afterPropertiesSet</code> → ④ 自定义 init-method → ⑤ <code class="inline-code">BeanPostProcessor.postProcessAfterInitialization</code>（AOP 代理由 AbstractAutoProxyCreator 在此生成）。
+              </p>
             </div>
           </div>
 
@@ -268,8 +279,9 @@ flowchart LR
                 <div class="callout-title">架构经验</div>
                 <ul>
                   <li>
-                    <strong>重活放到 <code class="inline-code">SmartInitializingSingleton</code></strong
-                    >：所有单例 Bean 创建完成后（<code class="inline-code">finishBeanFactoryInitialization</code> 末尾）触发，此时所有 Bean 就绪，适合做全局校验与预热，比 <code class="inline-code">@PostConstruct</code> 更安全（后者可能引用的 Bean 还未创建）。
+                    <strong>重活放到 <code class="inline-code">SmartInitializingSingleton</code></strong>：所有单例 Bean 创建完成后（<code class="inline-code">finishBeanFactoryInitialization</code>
+                    末尾）触发，此时所有 Bean 就绪，适合做全局校验与预热，比
+                    <code class="inline-code">@PostConstruct</code> 更安全（后者可能引用的 Bean 还未创建）。
                   </li>
                   <li><strong>构造器中不要依赖注入的属性</strong>：构造器在 <code class="inline-code">createBeanInstance</code> 阶段执行，此时 <code class="inline-code">@Autowired</code> 属性尚未注入（在 <code class="inline-code">populateBean</code>），强行使用必 NPE。</li>
                   <li><strong>Aware 接口的工程价值</strong>：实现 <code class="inline-code">ApplicationContextAware</code> 可在普通 Bean 中拿到容器引用（用于动态获取 Bean）；但更推荐注入 <code class="inline-code">ApplicationContext</code> 本身，避免 Aware 接口侵入。</li>
@@ -282,13 +294,24 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：finishBeanFactoryInitialization 之前已经创建了哪些 Bean？</strong></p>
-              <p>第 11 步之前，已创建的 Bean 包括：所有 BeanFactoryPostProcessor（第 5 步调用前必须实例化）、所有 BeanPostProcessor（第 6 步注册前必须实例化）、以及它们直接依赖的 Bean。这就是为什么 <strong>BPP 必须提前实例化</strong>——否则普通 Bean 在第 11 步创建时就拿不到 BPP。这也意味着 BPP 之间不能依赖普通 Bean，会导致普通 Bean 被迫提前实例化而错过某些 BPP。</p>
+              <p>
+                第 11 步之前，已创建的 Bean 包括：所有 BeanFactoryPostProcessor（第 5 步调用前必须实例化）、所有 BeanPostProcessor（第 6 步注册前必须实例化）、以及它们直接依赖的 Bean。这就是为什么
+                <strong>BPP 必须提前实例化</strong>——否则普通 Bean 在第 11 步创建时就拿不到 BPP。这也意味着 BPP 之间不能依赖普通 Bean，会导致普通 Bean 被迫提前实例化而错过某些 BPP。
+              </p>
 
               <p><strong>追问 2：BeanDefinition 是什么？为什么 IoC 操作的是它而非 Class？</strong></p>
               <p>BeanDefinition 是 Bean 的"图纸"，包含类名、作用域、构造参数、属性值、初始化/销毁方法、是否懒加载、依赖、是否 primary 等元数据。IoC 操作 BeanDefinition 而非 Class 的原因：① 同一个 Class 可以注册多个不同配置的 BeanDefinition（如 <code class="inline-code">@Bean</code> 多实例）；② BeanDefinition 可被 BeanFactoryPostProcessor 动态修改（如占位符替换、注册新 Bean），这是配置可编程性的基础；③ 解耦"声明"与"实现"，AOT 阶段可在无运行期反射时冻结 BeanDefinition。</p>
 
-              <p><strong>追问 3：为什么 BeanPostProcessor.postProcessAfterInitialization 之后返回的对象可能不是原 Bean？</strong></p>
-              <p>因为 AOP 代理就在这一步生成。<code class="inline-code">AbstractAutoProxyCreator.postProcessAfterInitialization</code> 会判断该 Bean 是否需要被代理（是否有切面匹配），若是则用 <code class="inline-code">ProxyFactory</code> 创建代理对象并返回。容器后续持有的就是这个代理对象，注入到其他 Bean 的也是代理。这就是为什么"自调用不走代理"——代理对象内部调用的是 <code class="inline-code">this</code>（目标对象本身），而非代理对象。</p>
+              <p>
+                <strong>追问 3：为什么 BeanPostProcessor.postProcessAfterInitialization 之后返回的对象可能不是原 Bean？</strong>
+              </p>
+              <p>
+                因为 AOP 代理就在这一步生成。<code class="inline-code">AbstractAutoProxyCreator.postProcessAfterInitialization</code>
+                会判断该 Bean 是否需要被代理（是否有切面匹配），若是则用
+                <code class="inline-code">ProxyFactory</code>
+                创建代理对象并返回。容器后续持有的就是这个代理对象，注入到其他 Bean 的也是代理。这就是为什么"自调用不走代理"——代理对象内部调用的是
+                <code class="inline-code">this</code>（目标对象本身），而非代理对象。
+              </p>
             </div>
           </div>
 
@@ -301,13 +324,16 @@ flowchart LR
                   <li><strong>混淆 BeanFactoryPostProcessor 与 BeanPostProcessor 时机</strong>：BFPP 在第 5 步操作 BeanDefinition（造图纸），BPP 在第 11 步操作 Bean 实例（造产品）。记成"工厂后置=改图纸，Bean 后置=改产品"。</li>
                   <li><strong>构造器中使用 @Autowired 字段</strong>：构造器在属性填充之前，此时注入字段为 null。需用构造器注入（参数注入）而非字段注入。</li>
                   <li><strong>误以为 @PostConstruct 在构造器前</strong>：顺序是 构造器→属性注入→@PostConstruct。@PostConstruct 中可安全使用注入的属性。</li>
-                  <li><strong>prototype 作用域不走完整生命周期</strong>：prototype Bean 不缓存、不管理销毁，<code class="inline-code">@PreDestroy</code> 不会触发，需手动清理。</li>
+                  <li>
+                    <strong>prototype 作用域不走完整生命周期</strong>：prototype Bean 不缓存、不管理销毁，<code class="inline-code">@PreDestroy</code>
+                    不会触发，需手动清理。
+                  </li>
                   <li><strong>懒加载 Bean 的初始化时机</strong>：懒加载 Bean 在 <code class="inline-code">finishBeanFactoryInitialization</code> 不会实例化，首次 <code class="inline-code">getBean</code> 才创建。</li>
                 </ul>
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -318,7 +344,7 @@ flowchart LR
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C05.02 三级缓存如何解决循环依赖？为何需要三级？ -->
@@ -332,7 +358,12 @@ flowchart LR
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-body">
               <div class="qa-layer-title">本质问题</div>
-              <p>这道题是 Spring 源码考察的"皇冠题"，直接检验候选人是否真正读过 <code class="inline-code">AbstractAutowireCapableBeanFactory</code> 的 <code class="inline-code">getSingleton</code>/<code class="inline-code">createBean</code> 链路。它考察三层认知：① 三级缓存（singletonObjects/earlySingletonObjects/singletonFactories）各自存什么、如何协作打破环；② <strong>为什么是三级而不是二级</strong>——核心是 AOP 代理的"提前暴露"与"只创建一次代理"的保证；③ 哪些循环依赖无法解决（构造器、prototype、Spring Boot 2.6+ 的默认收紧）。能讲清第二点，才算触及源码本质。</p>
+              <p>
+                这道题是 Spring 源码考察的"皇冠题"，直接检验候选人是否真正读过
+                <code class="inline-code">AbstractAutowireCapableBeanFactory</code> 的 <code class="inline-code">getSingleton</code>/<code class="inline-code">createBean</code>
+                链路。它考察三层认知：① 三级缓存（singletonObjects/earlySingletonObjects/singletonFactories）各自存什么、如何协作打破环；②
+                <strong>为什么是三级而不是二级</strong>——核心是 AOP 代理的"提前暴露"与"只创建一次代理"的保证；③ 哪些循环依赖无法解决（构造器、prototype、Spring Boot 2.6+ 的默认收紧）。能讲清第二点，才算触及源码本质。
+              </p>
             </div>
           </div>
 
@@ -340,7 +371,11 @@ flowchart LR
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>早期 Spring</strong>：用一级成品缓存 <code class="inline-code">singletonObjects</code> + 二级半成品缓存 <code class="inline-code">earlySingletonObjects</code> 解决 setter 循环依赖；A 实例化后立即放入二级缓存，再填充属性时发现需要 B；B 实例化后填充属性需要 A，从二级缓存拿到 A 的半成品，B 完成；A 继续完成。</p>
-              <p><strong>引入三级缓存（AOP 时代）</strong>：当 A 需要被 AOP 代理时，二级缓存存的是 A 的原始对象，而 B 注入的应是 A 的代理对象——若 B 注入了原始对象，代理失效。于是引入第三级 <code class="inline-code">singletonFactories</code>（ObjectFactory），为保证代理对象正确暴露，在需要时才调用 <code class="inline-code">getEarlyBeanReference</code> <strong>提前生成代理</strong>，并升级到二级缓存。这是为 AOP 服务的精细设计。</p>
+              <p>
+                <strong>引入三级缓存（AOP 时代）</strong>：当 A 需要被 AOP 代理时，二级缓存存的是 A 的原始对象，而 B 注入的应是 A 的代理对象——若 B 注入了原始对象，代理失效。于是引入第三级 <code class="inline-code">singletonFactories</code>（ObjectFactory），为保证代理对象正确暴露，在需要时才调用
+                <code class="inline-code">getEarlyBeanReference</code>
+                <strong>提前生成代理</strong>，并升级到二级缓存。这是为 AOP 服务的精细设计。
+              </p>
               <p><strong>Spring Boot 2.6+ 收紧（2021）</strong>：<code class="inline-code">spring.main.allow-circular-references</code> 默认 <strong>false</strong>，Boot 启动时若有循环依赖直接报错。注意这是 Spring Boot 层面的默认收紧（Boot 2.6 引入），不是 Spring Framework 6 的框架层变更。这是"用框架强制纠错"的演进——循环依赖本质是设计缺陷，官方态度从"尽力解决"转为"默认禁止，需显式开启"。同时 <code class="inline-code">spring.main.allow-bean-definition-overriding</code> 也默认 false。架构师应理解：未来循环依赖是 code smell，而非可依赖的特性。</p>
             </div>
           </div>
@@ -383,6 +418,7 @@ flowchart LR
               <p><strong>以 A 依赖 B、B 依赖 A（均需 AOP 代理）为例的完整时序</strong>：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant C as Container
@@ -449,7 +485,11 @@ sequenceDiagram
 
               <p><strong>为何需要三级而非二级（核心答案）</strong>：</p>
               <p>若只有二级缓存（singletonObjects + earlySingletonObjects），且 earlySingletonObjects 直接存"半成品原始对象"，则当 A 需要 AOP 代理时：B 注入的是 A 的<strong>原始对象</strong>，而最终容器持有的是 A 的<strong>代理对象</strong>——B 调用的 A 方法不走代理，AOP（含事务）失效。</p>
-              <p>引入三级缓存后，三级存的是 <code class="inline-code">ObjectFactory</code>（一个工厂 lambda），<strong>只有被其他 Bean 引用时才执行</strong> <code class="inline-code">getEarlyBeanReference</code> <strong>提前生成代理</strong>。这带来两个关键保证：</p>
+              <p>
+                引入三级缓存后，三级存的是 <code class="inline-code">ObjectFactory</code>（一个工厂 lambda），<strong>只有被其他 Bean 引用时才执行</strong>
+                <code class="inline-code">getEarlyBeanReference</code>
+                <strong>提前生成代理</strong>。这带来两个关键保证：
+              </p>
               <ul>
                 <li><strong>代理只生成一次</strong>：第一次被引用时执行 ObjectFactory 生成代理并升级到二级，后续引用直接从二级取。后续 <code class="inline-code">initializeBean</code> 阶段检测到已暴露早期引用（<code class="inline-code">earlySingletonReference != null</code>），直接复用该代理，不重复代理。</li>
                 <li><strong>没有循环依赖时不提前代理</strong>：若无循环依赖，A 的代理在正常 <code class="inline-code">postProcessAfterInitialization</code> 阶段生成，三级缓存的 ObjectFactory 从未执行——避免"为所有 Bean 提前生成代理"的性能开销，这是用工厂延迟到"真正需要时"的精妙之处。</li>
@@ -462,7 +502,10 @@ sequenceDiagram
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
               <p><strong>构造器注入循环依赖无法解决</strong>：构造器在 <code class="inline-code">createBeanInstance</code> 阶段执行，此时 Bean 还未实例化完成，无法放入三级缓存（三级缓存在实例化后才放入）。A 构造时需要 B，B 构造时需要 A，两者都没进入缓存，Spring 直接抛 <code class="inline-code">BeanCurrentlyInCreationException</code>。</p>
-              <p><strong>解决方案：@Lazy 注入代理</strong>。<code class="inline-code">@Lazy</code> 会在注入点生成一个代理对象（而非真实 Bean），首次调用方法时才从容器获取真实 Bean，从而打破构造期的强依赖。</p>
+              <p>
+                <strong>解决方案：@Lazy 注入代理</strong>。<code class="inline-code">@Lazy</code>
+                会在注入点生成一个代理对象（而非真实 Bean），首次调用方法时才从容器获取真实 Bean，从而打破构造期的强依赖。
+              </p>
               <div class="code-block">
                 <pre><code><span class="com">// 构造器循环依赖：直接报错</span>
 <span class="kw">@Component</span>
@@ -490,10 +533,18 @@ sequenceDiagram
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：三级缓存里 ObjectFactory 的 getEarlyBeanReference 具体做了什么？</strong></p>
-              <p>它遍历所有 <code class="inline-code">SmartInstantiationAwareBeanPostProcessor</code>（核心是 <code class="inline-code">AbstractAutoProxyCreator</code>），调用 <code class="inline-code">getEarlyBeanReference</code> 判断是否需要代理，需要则用 <code class="inline-code">ProxyFactory</code> 创建代理返回。这就是"提前 AOP"的实现。如果 Bean 不需要 AOP（无切面匹配），<code class="inline-code">getEarlyBeanReference</code> 原样返回原始对象，三级缓存退化为"存原始对象的工厂"。</p>
+              <p>
+                它遍历所有 <code class="inline-code">SmartInstantiationAwareBeanPostProcessor</code>（核心是 <code class="inline-code">AbstractAutoProxyCreator</code>），调用 <code class="inline-code">getEarlyBeanReference</code> 判断是否需要代理，需要则用 <code class="inline-code">ProxyFactory</code> 创建代理返回。这就是"提前 AOP"的实现。如果 Bean 不需要 AOP（无切面匹配），<code class="inline-code">getEarlyBeanReference</code>
+                原样返回原始对象，三级缓存退化为"存原始对象的工厂"。
+              </p>
 
               <p><strong>追问 2：如果用二级缓存 + earlySingletonObjects 直接存代理，能否替代三级？</strong></p>
-              <p>理论上有一种方案：实例化后立即判断是否需要代理，需要则立即生成代理存入二级。但这有两个问题：① <strong>性能损耗</strong>——所有 Bean 都要在实例化后立即做 AOP 判断并可能生成代理，即使绝大多数 Bean 不会发生循环依赖，这是无谓的开销；② <strong>语义侵入</strong>——正常情况下代理应在 <code class="inline-code">postProcessAfterInitialization</code> 生成（生命周期末尾），提前到实例化后会让"代理生成时机"分裂为两处，增加心智负担。三级缓存用 ObjectFactory 把"是否生成代理"的决策<strong>延迟到真正被引用时</strong>，巧妙兼顾了正确性与性能。</p>
+              <p>
+                理论上有一种方案：实例化后立即判断是否需要代理，需要则立即生成代理存入二级。但这有两个问题：①
+                <strong>性能损耗</strong>——所有 Bean 都要在实例化后立即做 AOP 判断并可能生成代理，即使绝大多数 Bean 不会发生循环依赖，这是无谓的开销；② <strong>语义侵入</strong>——正常情况下代理应在
+                <code class="inline-code">postProcessAfterInitialization</code>
+                生成（生命周期末尾），提前到实例化后会让"代理生成时机"分裂为两处，增加心智负担。三级缓存用 ObjectFactory 把"是否生成代理"的决策<strong>延迟到真正被引用时</strong>，巧妙兼顾了正确性与性能。
+              </p>
 
               <p><strong>追问 3：@Async 标注的 Bean 发生循环依赖为什么失效？</strong></p>
               <p><code class="inline-code">@Async</code> 由 <code class="inline-code">AsyncAnnotationBeanPostProcessor</code> 处理，它同样在 <code class="inline-code">postProcessAfterInitialization</code> 生成代理。但与 AOP 不同，<code class="inline-code">@Async</code> 的代理在 <strong>initializeBean 阶段才生成，不参与三级缓存的 getEarlyBeanReference</strong>。因此当 B 通过三级缓存拿到 A 的"AOP 代理"（不含 @Async 增强）后，A 在 initializeBean 阶段又会被 <code class="inline-code">@Async</code> 后置处理器再次代理，导致 B 持有的是"旧代理"而容器持有"新代理"——<code class="inline-code">@Async</code> 失效。Spring 通过 <code class="inline-code">BeanCurrentlyInCreationException</code> 或注入不匹配暴露此问题。解决：用 <code class="inline-code">@Lazy</code> 或重构消除环。</p>
@@ -519,11 +570,22 @@ sequenceDiagram
           <div class="qa-layer" data-layer="extension">
             <div class="qa-layer-title">扩展补全</div>
             <div class="qa-layer-body">
-              <p>三级缓存解决了 setter/field 注入的循环依赖，但构造器注入的循环依赖仍需 <code class="inline-code">@Lazy</code> 兜底。这一层深入 <code class="inline-code">@Lazy</code> 的代理机制、与三级缓存的本质区别、以及循环依赖的重构方向。</p>
+              <p>
+                三级缓存解决了 setter/field 注入的循环依赖，但构造器注入的循环依赖仍需
+                <code class="inline-code">@Lazy</code> 兜底。这一层深入 <code class="inline-code">@Lazy</code> 的代理机制、与三级缓存的本质区别、以及循环依赖的重构方向。
+              </p>
               <ul>
                 <li><strong>@Lazy 的代理机制</strong>：Spring 在注入时不会真正实例化依赖 Bean，而是通过 <code class="inline-code">ProxyFactory</code> 生成一个代理对象注入。代理对象内部持有 <code class="inline-code">BeanFactory</code> 引用，首次调用方法时才触发 <code class="inline-code">getBean</code> 获取真实 Bean，后续调用直接委托给已初始化的目标。</li>
-                <li><strong>与三级缓存的关系</strong>：<code class="inline-code">@Lazy</code> 是"注入代理"策略，三级缓存是"提前暴露 ObjectFactory"策略，两者可叠加但不是同一机制。<code class="inline-code">@Lazy</code> 在注入点生效（构造器参数、setter 参数、field），三级缓存在 <code class="inline-code">getSingleton</code> 查询链中生效。即使关闭循环依赖允许开关，<code class="inline-code">@Lazy</code> 仍可工作。</li>
-                <li><strong>构造器注入的主要方案</strong>：构造器注入的循环依赖无法被三级缓存解决（实例化阶段未进入缓存），<code class="inline-code">@Lazy</code> 是主要方案——注入代理对象使构造器参数满足，延迟真实依赖到方法调用时。</li>
+                <li>
+                  <strong>与三级缓存的关系</strong>：<code class="inline-code">@Lazy</code> 是"注入代理"策略，三级缓存是"提前暴露 ObjectFactory"策略，两者可叠加但不是同一机制。<code class="inline-code">@Lazy</code>
+                  在注入点生效（构造器参数、setter 参数、field），三级缓存在
+                  <code class="inline-code">getSingleton</code> 查询链中生效。即使关闭循环依赖允许开关，<code class="inline-code">@Lazy</code>
+                  仍可工作。
+                </li>
+                <li>
+                  <strong>构造器注入的主要方案</strong>：构造器注入的循环依赖无法被三级缓存解决（实例化阶段未进入缓存），<code class="inline-code">@Lazy</code>
+                  是主要方案——注入代理对象使构造器参数满足，延迟真实依赖到方法调用时。
+                </li>
                 <li><strong>Spring Boot 2.6+ 语境下的 @Lazy</strong>：<code class="inline-code">spring.main.allow-circular-references=false</code>（默认）时，setter/field 循环依赖直接报错，但 <code class="inline-code">@Lazy</code> 标注的注入点仍可工作——因为代理对象打破了构造期的强依赖，Spring 不再检测到循环。</li>
                 <li><strong>@Lazy 的陷阱</strong>：代理对象调用方法时才初始化，若初始化失败会在<strong>业务调用时报错</strong>而非启动时报错，延迟了问题发现时机。生产环境中应避免对核心依赖使用 <code class="inline-code">@Lazy</code>，仅作为 legacy 代码的过渡方案。</li>
                 <li><strong>重构方向一：引入中间层</strong>：将 A↔B 的循环依赖拆为 A→C←B，把共享逻辑提取到第三方 Bean C，A 和 B 各自单向依赖 C，消除环。</li>
@@ -558,7 +620,10 @@ sequenceDiagram
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>Spring 2.x</strong>：默认 JDK 动态代理（需目标实现接口）；若要用 CGLIB 需 <code class="inline-code">&lt;aop:config proxy-target-class="true"&gt;</code>。此时 CGLIB 还需额外引入 cglib 与 asm 依赖。</p>
-              <p><strong>Spring 3.2</strong>：CGLIB 与 asm 被<strong>打包进 spring-core</strong>（<code class="inline-code">org.springframework.cglib</code> 命名空间重打包），无需额外依赖，降低使用门槛。</p>
+              <p>
+                <strong>Spring 3.2</strong>：CGLIB 与 asm 被<strong>打包进 spring-core</strong>（<code class="inline-code">org.springframework.cglib</code>
+                命名空间重打包），无需额外依赖，降低使用门槛。
+              </p>
               <p><strong>Spring 4.x</strong>：策略不变——目标类实现接口则用 JDK Proxy，否则用 CGLIB。需显式配置 <code class="inline-code">@EnableAspectJAutoProxy(proxyTargetClass=true)</code> 强制 CGLIB。</p>
               <p><strong>Spring Boot 2.x（自动配置收紧）</strong>：<strong>Boot 自动配置默认改为 CGLIB</strong>（<code class="inline-code">spring.aop.proxy-target-class=true</code>）。注意这是 Spring Boot 2.x 的 AopAutoConfiguration 默认值，不是 Spring Framework 的通用默认——Framework 原生 <code class="inline-code">@EnableAspectJAutoProxy</code> 仍默认 JDK 代理。原因是 JDK Proxy 基于接口，注入时只能用接口类型，否则报 <code class="inline-code">BeanNotOfRequiredTypeException</code>，开发者困扰多。CGLIB 基于子类，注入类类型或接口类型均可，更符合直觉。</p>
               <p><strong>超越 Spring AOP：AspectJ 编译时织入</strong>。Spring AOP 是<strong>运行时代理</strong>（代理对象在 Bean 生命周期生成），有局限：只能代理 public 方法、自调用不走代理、性能有反射开销。AspectJ 提供<strong>编译时织入（CTW）</strong>和<strong>加载时织入（LTW）</strong>，在字节码层面织入切面，无代理对象，支持字段/构造器/非 public 方法。性能敏感或需要细粒度织入时考虑 AspectJ，但复杂度高，Spring AOP 已覆盖 90% 场景。</p>
@@ -631,6 +696,7 @@ sequenceDiagram
 
               <p><strong>代理链执行模型（ReflectiveMethodInvocation 责任链）</strong>：当多个切面（@Around/@Before/@After）作用于同一方法，Spring 用 <code class="inline-code">ReflectiveMethodInvocation</code> 组织成责任链。代理对象调用方法时，依次执行各 Aspect 的 Advice，最后才调用目标方法。</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     C["调用方"] --> P["代理对象 proxy.method（）"]
@@ -647,7 +713,11 @@ flowchart LR
                 <div class="chart-caption">图 5.3-1 AOP 代理链执行：多个切面按责任链顺序织入，目标方法在链末执行</div>
               </div>
 
-              <p>切面执行顺序由 <code class="inline-code">@Order</code> 或 <code class="inline-code">Ordered</code> 接口决定，值越小优先级越高（外层）。<code class="inline-code">@Around</code> 必须显式调用 <code class="inline-code">ProceedingJoinPoint.proceed()</code> 才会继续链，否则目标方法不执行。</p>
+              <p>
+                切面执行顺序由 <code class="inline-code">@Order</code> 或 <code class="inline-code">Ordered</code> 接口决定，值越小优先级越高（外层）。<code class="inline-code">@Around</code>
+                必须显式调用
+                <code class="inline-code">ProceedingJoinPoint.proceed()</code> 才会继续链，否则目标方法不执行。
+              </p>
             </div>
           </div>
 
@@ -692,10 +762,16 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
               <p>CGLIB 为目标类和代理类各生成一个 FastClass 子类，为每个方法分配一个 index。调用时通过 index 直接调用对应的 switch 分支方法（<code class="inline-code">invoke(index, obj, args)</code> 内部是 switch-case 直接调用方法），而非 <code class="inline-code">Method.invoke</code> 反射。这是 CGLIB 调用快于 JDK Proxy 的根本原因。代价是多生成两个 FastClass 类，增加类加载开销。</p>
 
               <p><strong>追问 2：Spring AOP 与 AspectJ 的本质区别？</strong></p>
-              <p>Spring AOP 是<strong>运行时代理</strong>——在 Bean 生命周期 <code class="inline-code">postProcessAfterInitialization</code> 用 ProxyFactory 生成代理对象，代理对象包裹目标对象，调用时通过责任链织入切面。它依赖 IoC 容器，只能作用于 Spring Bean 的 public 方法。AspectJ 是<strong>编译时/加载时织入</strong>——ajc 编译器在字节码生成阶段直接将切面代码插入目标方法（CTW），或 LTW 用 ClassLoader 在类加载时修改字节码。AspectJ 无代理对象，支持字段/构造器/非 public 方法/静态方法，性能更高但需 ajc 编译器或 javaagent。Spring 集成 AspectJ 的注解语法（@Aspect/@Pointcut），但默认仍用 Spring AOP 运行时代理实现。</p>
+              <p>
+                Spring AOP 是<strong>运行时代理</strong>——在 Bean 生命周期
+                <code class="inline-code">postProcessAfterInitialization</code> 用 ProxyFactory 生成代理对象，代理对象包裹目标对象，调用时通过责任链织入切面。它依赖 IoC 容器，只能作用于 Spring Bean 的 public 方法。AspectJ 是<strong>编译时/加载时织入</strong>——ajc 编译器在字节码生成阶段直接将切面代码插入目标方法（CTW），或 LTW 用 ClassLoader 在类加载时修改字节码。AspectJ 无代理对象，支持字段/构造器/非 public 方法/静态方法，性能更高但需 ajc 编译器或 javaagent。Spring 集成 AspectJ 的注解语法（@Aspect/@Pointcut），但默认仍用 Spring AOP 运行时代理实现。
+              </p>
 
               <p><strong>追问 3：为什么 final 方法无法被 CGLIB 代理？</strong></p>
-              <p>CGLIB 通过生成目标类的子类并重写方法来织入切面。final 方法不可被子类重写，故无法代理。同理 final 类不可被继承，无法用 CGLIB。Kotlin 的类默认 final，需用 <code class="inline-code">open</code> 关键字修饰才能被 CGLIB 代理，这是 Kotlin + Spring 的常见坑。</p>
+              <p>
+                CGLIB 通过生成目标类的子类并重写方法来织入切面。final 方法不可被子类重写，故无法代理。同理 final 类不可被继承，无法用 CGLIB。Kotlin 的类默认 final，需用
+                <code class="inline-code">open</code> 关键字修饰才能被 CGLIB 代理，这是 Kotlin + Spring 的常见坑。
+              </p>
             </div>
           </div>
 
@@ -737,7 +813,10 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
             <div class="qa-layer-body">
               <p><strong>编程式事务（TransactionTemplate/PlatformTransactionManager）</strong>：早期 Spring 通过 <code class="inline-code">TransactionTemplate.execute</code> 手动控制事务边界，侵入业务代码。</p>
               <p><strong>XML 声明式事务</strong>：<code class="inline-code">TransactionProxyFactoryBean</code> 或 <code class="inline-code">&lt;tx:advice&gt;</code> + <code class="inline-code">&lt;aop:config&gt;</code>，用 AOP 把事务逻辑织入，业务代码无感知，但配置繁琐。</p>
-              <p><strong>@Transactional 注解（Spring 2.5+）</strong>：注解驱动的声明式事务，<code class="inline-code">&lt;tx:annotation-driven/&gt;</code> 或 <code class="inline-code">@EnableTransactionManagement</code> 开启，<code class="inline-code">TransactionInterceptor</code> 解析注解属性（传播/隔离/回滚）。这是当前主流。</p>
+              <p>
+                <strong>@Transactional 注解（Spring 2.5+）</strong>：注解驱动的声明式事务，<code class="inline-code">&lt;tx:annotation-driven/&gt;</code> 或 <code class="inline-code">@EnableTransactionManagement</code> 开启，<code class="inline-code">TransactionInterceptor</code>
+                解析注解属性（传播/隔离/回滚）。这是当前主流。
+              </p>
               <p><strong>Spring 5+ / Boot</strong>：自动配置 <code class="inline-code">DataSourceTransactionManager</code>，<code class="inline-code">@Transactional</code> 开箱即用。Spring 6 新增 <code class="inline-code">@Transactional</code> 的 <code class="inline-code">label</code> 属性用于自定义标签，且对 reactive 事务（<code class="inline-code">ReactiveTransactionManager</code>）支持完善。</p>
             </div>
           </div>
@@ -745,7 +824,10 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>7 种传播行为</strong>（<code class="inline-code">Propagation</code> 枚举），核心是回答"当前有/无事务时怎么办"：</p>
+              <p>
+                <strong>7 种传播行为</strong>（<code class="inline-code">Propagation</code>
+                枚举），核心是回答"当前有/无事务时怎么办"：
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -845,7 +927,10 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
                 <li><strong>异常类型不匹配</strong>：抛出受检异常但未配 <code class="inline-code">rollbackFor</code>，默认不回滚。解决：<code class="inline-code">@Transactional(rollbackFor = Exception.class)</code>。</li>
                 <li><strong>类非 Spring Bean</strong>：<code class="inline-code">new</code> 出来的对象不被 IoC 管理，无代理。解决：交给容器管理。</li>
                 <li><strong>数据库引擎不支持事务</strong>：MySQL MyISAM 无事务，需 InnoDB。</li>
-                <li><strong>传播行为配错</strong>：内层 <code class="inline-code">NOT_SUPPORTED</code>/<code class="inline-code">NEVER</code> 导致非事务执行。</li>
+                <li>
+                  <strong>传播行为配错</strong>：内层 <code class="inline-code">NOT_SUPPORTED</code>/<code class="inline-code">NEVER</code>
+                  导致非事务执行。
+                </li>
               </ol>
               <div class="code-block">
                 <pre><code><span class="com">// 典型失效：自调用 + 异常被吞</span>
@@ -878,7 +963,10 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
                 <ul>
-                  <li><strong>统一规范</strong>：<code class="inline-code">@Transactional(rollbackFor = Exception.class)</code> 作为团队默认，避免受检异常不回滚的坑。</li>
+                  <li>
+                    <strong>统一规范</strong>：<code class="inline-code">@Transactional(rollbackFor = Exception.class)</code>
+                    作为团队默认，避免受检异常不回滚的坑。
+                  </li>
                   <li><strong>事务方法不要 try-catch 吞异常</strong>：要么 rethrow，要么手动标记回滚。</li>
                   <li><strong>REQUIRES_NEW 慎用</strong>：占用额外连接，高并发下可能耗尽连接池。日志审计可用异步或独立数据源。</li>
                   <li><strong>事务范围最小化</strong>：长事务持有锁久、连接占用久，把查询/外部调用移出事务方法。</li>
@@ -890,14 +978,23 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
-              <p><strong>追问 1：REQUIRED 下内层异常被 catch，外层提交为何还报 UnexpectedRollbackException？</strong></p>
+              <p>
+                <strong>追问 1：REQUIRED 下内层异常被 catch，外层提交为何还报 UnexpectedRollbackException？</strong>
+              </p>
               <p>因为内外是同一事务，内层抛异常时 <code class="inline-code">TransactionInterceptor</code> 已将事务标记为 <code class="inline-code">rollback-only</code>（即使外层 catch 住异常，事务标记无法清除）。外层方法正常返回后 <code class="inline-code">commit</code> 时检测到 rollback-only，抛 <code class="inline-code">UnexpectedRollbackException</code> 提示"事务已被标记回滚"。这是 REQUIRED 的强一致性保证——要么全成功，要么全回滚。若要内层失败不影响外层，用 REQUIRES_NEW（独立事务）或 NESTED（savepoint 局部回滚）。</p>
 
               <p><strong>追问 2：REQUIRES_NEW 挂起当前事务时，连接如何处理？会死锁吗？</strong></p>
-              <p>挂起时保存当前事务的 ConnectionHolder 并解绑（从 <code class="inline-code">TransactionSynchronizationManager</code> 的 ThreadLocal 移除），新事务从 DataSource 获取<strong>新连接</strong>。因此内外层持有不同连接。死锁风险：若外层事务已锁某行，内层 REQUIRES_NEW 事务要操作同一行，会因锁等待死锁（外层等待内层释放，内层等待外层释放锁）。设计上避免 REQUIRES_NEW 操作外层已锁的同一行。</p>
+              <p>
+                挂起时保存当前事务的 ConnectionHolder 并解绑（从
+                <code class="inline-code">TransactionSynchronizationManager</code> 的 ThreadLocal 移除），新事务从 DataSource 获取<strong>新连接</strong>。因此内外层持有不同连接。死锁风险：若外层事务已锁某行，内层 REQUIRES_NEW 事务要操作同一行，会因锁等待死锁（外层等待内层释放，内层等待外层释放锁）。设计上避免 REQUIRES_NEW 操作外层已锁的同一行。
+              </p>
 
               <p><strong>追问 3：NESTED 的 savepoint 如何实现？与数据库 savepoint 关系？</strong></p>
-              <p>NESTED 通过 <code class="inline-code">Connection.setSavepoint()</code> 创建 JDBC savepoint，内层异常时 <code class="inline-code">rollback(savepoint)</code> 只回滚到该点，外层可继续。关键：内外层是<strong>同一事务同一连接</strong>，savepoint 是数据库层面的部分回滚机制。MySQL InnoDB 支持 savepoint。注意：NESTED 不能脱离外层事务独立提交——外层回滚则 savepoint 也回滚。这与 REQUIRES_NEW 的独立提交有本质区别。</p>
+              <p>
+                NESTED 通过 <code class="inline-code">Connection.setSavepoint()</code> 创建 JDBC savepoint，内层异常时
+                <code class="inline-code">rollback(savepoint)</code>
+                只回滚到该点，外层可继续。关键：内外层是<strong>同一事务同一连接</strong>，savepoint 是数据库层面的部分回滚机制。MySQL InnoDB 支持 savepoint。注意：NESTED 不能脱离外层事务独立提交——外层回滚则 savepoint 也回滚。这与 REQUIRES_NEW 的独立提交有本质区别。
+              </p>
             </div>
           </div>
 
@@ -916,7 +1013,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
               </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -927,7 +1024,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- ============================================================ -->
         <!-- C05.05 Spring 事件机制(ApplicationEvent)原理？ -->
@@ -967,6 +1064,7 @@ enhancer.<span class="fn">setCallback</span>((<span class="type">MethodIntercept
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     P["发布者 publishEvent（event）"] --> AC["ApplicationContext"]
@@ -1054,7 +1152,10 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：@TransactionalEventListener 在无事务环境下如何表现？</strong></p>
-              <p>默认 <code class="inline-code">fallbackExecution=false</code>，无事务时事件被<strong>丢弃</strong>（不执行监听器，仅 DEBUG 日志）。这是因为该注解设计初衷是绑定事务，无事务则无意义。若希望无事务时也执行，设 <code class="inline-code">fallbackExecution=true</code>。常见坑：单元测试无事务环境，事件监听器不触发，误以为代码有 bug。</p>
+              <p>
+                默认
+                <code class="inline-code">fallbackExecution=false</code>，无事务时事件被<strong>丢弃</strong>（不执行监听器，仅 DEBUG 日志）。这是因为该注解设计初衷是绑定事务，无事务则无意义。若希望无事务时也执行，设 <code class="inline-code">fallbackExecution=true</code>。常见坑：单元测试无事务环境，事件监听器不触发，误以为代码有 bug。
+              </p>
 
               <p><strong>追问 2：早期事件（容器启动前发布）会被监听器收到吗？</strong></p>
               <p>不会。监听器 Bean 在 <code class="inline-code">registerListeners</code>（第 10 步）注册，但 <code class="inline-code">@EventListener</code> 解析依赖 Bean 实例化（第 11 步）。容器启动过程中发布的事件（如 <code class="inline-code">ContextRefreshedEvent</code>）会被早期注册的 <code class="inline-code">ApplicationListener</code> 收到，但 <code class="inline-code">@EventListener</code> 方法若监听启动事件，需确保其 Bean 已创建。Spring 通过 <code class="inline-code">earlyApplicationEvents</code> 队列缓存启动早期事件，待 Multicaster 就绪后补发。</p>
@@ -1250,7 +1351,9 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践：Spring 设计模式在中间件与框架扩展中的落地</div>
             <div class="qa-layer-body">
-              <p><strong>设计模式的价值不在于"背了多少种"，而在于理解 Spring 如何用它们构建可扩展的框架骨架。架构师设计自研中间件时，往往沿用同样的模式组合。</strong></p>
+              <p>
+                <strong>设计模式的价值不在于"背了多少种"，而在于理解 Spring 如何用它们构建可扩展的框架骨架。架构师设计自研中间件时，往往沿用同样的模式组合。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -1325,8 +1428,14 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>Spring 1.x（基础扩展点）</strong>：BeanFactoryPostProcessor（改 BeanDefinition）与 BeanPostProcessor（改 Bean 实例）两个基础扩展点，满足基本的"配置后处理"与"实例后处理"需求。</p>
-              <p><strong>Spring 2.x（注解驱动扩展）</strong>：引入 <code class="inline-code">InstantiationAwareBeanPostProcessor</code>（细化实例化前后）和 <code class="inline-code">MergedBeanDefinitionPostProcessor</code>（合并 BeanDefinition 后处理，用于收集 <code class="inline-code">@Autowired</code>/<code class="inline-code">@Resource</code> 元数据），支撑注解注入。</p>
-              <p><strong>Spring 3.x（注册型扩展）</strong>：<code class="inline-code">BeanDefinitionRegistryPostProcessor</code> 继承 BFPP，新增 <code class="inline-code">postProcessBeanDefinitionRegistry</code>，可在 BeanDefinition 注册阶段动态注册新 BeanDefinition（<code class="inline-code">ConfigurationClassPostProcessor</code> 由此扫描注册 <code class="inline-code">@Configuration</code>）。<code class="inline-code">SmartInitializingSingleton</code> 用于所有单例就绪后的回调。</p>
+              <p>
+                <strong>Spring 2.x（注解驱动扩展）</strong>：引入 <code class="inline-code">InstantiationAwareBeanPostProcessor</code>（细化实例化前后）和 <code class="inline-code">MergedBeanDefinitionPostProcessor</code>（合并 BeanDefinition 后处理，用于收集 <code class="inline-code">@Autowired</code>/<code class="inline-code">@Resource</code>
+                元数据），支撑注解注入。
+              </p>
+              <p>
+                <strong>Spring 3.x（注册型扩展）</strong>：<code class="inline-code">BeanDefinitionRegistryPostProcessor</code> 继承 BFPP，新增 <code class="inline-code">postProcessBeanDefinitionRegistry</code>，可在 BeanDefinition 注册阶段动态注册新 BeanDefinition（<code class="inline-code">ConfigurationClassPostProcessor</code> 由此扫描注册 <code class="inline-code">@Configuration</code>）。<code class="inline-code">SmartInitializingSingleton</code>
+                用于所有单例就绪后的回调。
+              </p>
               <p><strong>Spring 5/6（AOT 与优先级体系）</strong>：扩展点优先级体系成熟（PriorityOrdered &gt; Ordered &gt; 无序），AOT 处理器基于扩展点实现构建期代码生成。Spring 6 新增 <code class="inline-code">BeanRegistrationAotContribution</code> 用于 AOT 冻结扩展点逻辑。</p>
             </div>
           </div>
@@ -1385,6 +1494,7 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
               <p><strong>Spring 扩展点完整时序</strong>（一张图理解所有扩展点何时触发）：</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     S1["refresh 第5步: invokeBeanFactoryPostProcessors"] --> S2["BeanDefinitionRegistryPostProcessor.postProcessBeanDefinitionRegistry<br/>（动态注册 BeanDefinition,如扫描 @Configuration）"]
@@ -1472,12 +1582,20 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：BeanDefinitionRegistryPostProcessor 与 BeanFactoryPostProcessor 的区别？</strong></p>
-              <p>BeanDefinitionRegistryPostProcessor 继承 BeanFactoryPostProcessor，新增 <code class="inline-code">postProcessBeanDefinitionRegistry</code> 方法。区别：BFPP 的 <code class="inline-code">postProcessBeanFactory</code> 操作<strong>已注册</strong>的 BeanDefinition（修改），而 BDRPP 的 <code class="inline-code">postProcessBeanDefinitionRegistry</code> 可<strong>动态注册新的</strong> BeanDefinition。执行顺序上，BDRPP 先于普通 BFPP 执行，因为注册新 BeanDefinition 必须在修改之前。Spring 内置的 <code class="inline-code">ConfigurationClassPostProcessor</code> 就是 BDRPP，它扫描注解注册新 BeanDefinition。</p>
+              <p>
+                BeanDefinitionRegistryPostProcessor 继承 BeanFactoryPostProcessor，新增
+                <code class="inline-code">postProcessBeanDefinitionRegistry</code> 方法。区别：BFPP 的 <code class="inline-code">postProcessBeanFactory</code> 操作<strong>已注册</strong>的 BeanDefinition（修改），而 BDRPP 的 <code class="inline-code">postProcessBeanDefinitionRegistry</code> 可<strong>动态注册新的</strong> BeanDefinition。执行顺序上，BDRPP 先于普通 BFPP 执行，因为注册新 BeanDefinition 必须在修改之前。Spring 内置的 <code class="inline-code">ConfigurationClassPostProcessor</code> 就是 BDRPP，它扫描注解注册新 BeanDefinition。
+              </p>
 
               <p><strong>追问 2：BeanPostProcessor 何时被实例化？为什么 BPP 不能依赖普通 Bean？</strong></p>
-              <p>BPP 在 refresh 第6步 <code class="inline-code">registerBeanPostProcessors</code> 实例化，早于第11步的普通 Bean。这是为了让普通 Bean 创建时所有 BPP 就绪。但若 BPP A 依赖普通 Bean B（如 <code class="inline-code">@Autowired</code> B），B 会被迫在第6步提前实例化，此时其他 BPP（如处理 <code class="inline-code">@Autowired</code> 的 AutowiredAnnotationBPP）可能尚未注册，导致 B 的注入失效。Spring 对此打 WARN：<code class="inline-code">"Bean X is not eligible for getting processed by all BeanPostProcessors"</code>。设计原则：BPP 只依赖 BeanFactory 本身（用 <code class="inline-code">getBean</code> 延迟获取），不直接 <code class="inline-code">@Autowired</code> 业务 Bean。</p>
+              <p>
+                BPP 在 refresh 第6步
+                <code class="inline-code">registerBeanPostProcessors</code> 实例化，早于第11步的普通 Bean。这是为了让普通 Bean 创建时所有 BPP 就绪。但若 BPP A 依赖普通 Bean B（如 <code class="inline-code">@Autowired</code> B），B 会被迫在第6步提前实例化，此时其他 BPP（如处理 <code class="inline-code">@Autowired</code> 的 AutowiredAnnotationBPP）可能尚未注册，导致 B 的注入失效。Spring 对此打 WARN：<code class="inline-code">"Bean X is not eligible for getting processed by all BeanPostProcessors"</code>。设计原则：BPP 只依赖 BeanFactory 本身（用 <code class="inline-code">getBean</code> 延迟获取），不直接 <code class="inline-code">@Autowired</code> 业务 Bean。
+              </p>
 
-              <p><strong>追问 3：InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation 有何特殊用途？</strong></p>
+              <p>
+                <strong>追问 3：InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation 有何特殊用途？</strong>
+              </p>
               <p><strong>追问 4：不同类型 BeanPostProcessor 的执行顺序和优先级关系？</strong></p>
               <p><strong>BPP 执行顺序的完整链条</strong>：Spring 通过 PriorityOrdered &gt; Ordered &gt; 无序的优先级体系控制扩展点执行顺序：</p>
               <ul>
@@ -1527,9 +1645,15 @@ flowchart TD
           <div class="qa-layer" data-layer="evolution">
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
-              <p><strong>Spring 1.x（BeanFactory 时代）</strong>：<code class="inline-code">XmlBeanFactory</code> 是最早的具体容器，基于 XML 配置，<strong>懒加载</strong>——首次 getBean 才实例化 Bean。</p>
+              <p>
+                <strong>Spring 1.x（BeanFactory 时代）</strong>：<code class="inline-code">XmlBeanFactory</code>
+                是最早的具体容器，基于 XML 配置，<strong>懒加载</strong>——首次 getBean 才实例化 Bean。
+              </p>
               <p><strong>Spring 1.x（ApplicationContext 引入）</strong>：<code class="inline-code">ClassPathXmlApplicationContext</code>/<code class="inline-code">FileSystemXmlApplicationContext</code> 在 BeanFactory 基础上增加预实例化（启动即创建非懒加载单例）、事件、国际化、资源加载，是企业级应用推荐容器。</p>
-              <p><strong>Spring 3.x（注解容器）</strong>：<code class="inline-code">AnnotationConfigApplicationContext</code> 取代 XML 容器，基于注解配置。</p>
+              <p>
+                <strong>Spring 3.x（注解容器）</strong>：<code class="inline-code">AnnotationConfigApplicationContext</code>
+                取代 XML 容器，基于注解配置。
+              </p>
               <p><strong>Spring Boot（Web 容器变体）</strong>：<code class="inline-code">AnnotationConfigServletWebServerApplicationContext</code>（Servlet）与 <code class="inline-code">AnnotationConfigReactiveWebServerApplicationContext</code>（Reactive），内嵌 Tomcat/Jetty/Netty，是 Boot 默认容器。它们都是 ApplicationContext 的实现。</p>
             </div>
           </div>
@@ -1539,6 +1663,7 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>容器接口层次</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TD
     BF["BeanFactory 根接口<br/>getBean/containsBean"]
@@ -1634,13 +1759,19 @@ flowchart TD
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：ApplicationContext 内部的 BeanFactory 是什么？</strong></p>
-              <p>ApplicationContext 本身不直接管理 Bean，而是委托给内部的 <code class="inline-code">DefaultListableBeanFactory</code>（通过 <code class="inline-code">getBeanFactory()</code> 获取）。GenericApplicationContext 持有一个 DefaultListableBeanFactory 字段，所有 getBean/registerBeanDefinition 调用都委托给它。所以 ApplicationContext 是 BeanFactory 的"门面 + 增强器"，底层仍是 BeanFactory 实现。</p>
+              <p>
+                ApplicationContext 本身不直接管理 Bean，而是委托给内部的
+                <code class="inline-code">DefaultListableBeanFactory</code>（通过 <code class="inline-code">getBeanFactory()</code> 获取）。GenericApplicationContext 持有一个 DefaultListableBeanFactory 字段，所有 getBean/registerBeanDefinition 调用都委托给它。所以 ApplicationContext 是 BeanFactory 的"门面 + 增强器"，底层仍是 BeanFactory 实现。
+              </p>
 
               <p><strong>追问 2：为什么 BeanFactory 懒加载会导致 BeanPostProcessor 漏执行？</strong></p>
               <p>BeanFactory 不会自动注册 BPP，需手动 <code class="inline-code">addBeanPostProcessor</code>。若在 getBean 创建某 Bean 后才注册某 BPP，该 Bean 就错过了这个 BPP 的增强。ApplicationContext 在 refresh 第6步统一注册所有 BPP，保证第11步创建的 Bean 都能被所有 BPP 处理。这是 ApplicationContext 自动注册 BPP 的核心价值。</p>
 
               <p><strong>追问 3：GenericApplicationContext 为何成为 Spring 5+ 基础？</strong></p>
-              <p>GenericApplicationContext 不固定配置方式（XML/注解/函数式），通过 <code class="inline-code">registerBean</code> 函数式 API 可用 Lambda 注册 BeanDefinition，适配 AOT 与响应式。AnnotationConfigApplicationContext 继承 GenericApplicationContext，Boot 的 Web 容器变体也基于它。它取代了早期按配置方式区分的容器（如 XmlWebApplicationContext），是现代 Spring 的统一基础。</p>
+              <p>
+                GenericApplicationContext 不固定配置方式（XML/注解/函数式），通过
+                <code class="inline-code">registerBean</code> 函数式 API 可用 Lambda 注册 BeanDefinition，适配 AOT 与响应式。AnnotationConfigApplicationContext 继承 GenericApplicationContext，Boot 的 Web 容器变体也基于它。它取代了早期按配置方式区分的容器（如 XmlWebApplicationContext），是现代 Spring 的统一基础。
+              </p>
             </div>
           </div>
 
@@ -1672,7 +1803,10 @@ flowchart TD
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察 Spring 的<strong>类型转换体系</strong>（PropertyEditor→Converter→Formatter 三代演进）与<strong>数据绑定机制</strong>（DataBinder）。这是 Spring MVC 参数解析、<code class="inline-code">@ConfigurationProperties</code> 配置绑定、SpEL 求值的基础设施。理解它，才能回答"为什么前端传 String 后端能收到 Date/LocalDate""自定义参数怎么解析""@ConfigurationProperties 如何松绑定"等问题。</p>
+              <p>
+                这道题考察 Spring 的<strong>类型转换体系</strong>（PropertyEditor→Converter→Formatter 三代演进）与<strong>数据绑定机制</strong>（DataBinder）。这是 Spring MVC 参数解析、<code class="inline-code">@ConfigurationProperties</code>
+                配置绑定、SpEL 求值的基础设施。理解它，才能回答"为什么前端传 String 后端能收到 Date/LocalDate""自定义参数怎么解析""@ConfigurationProperties 如何松绑定"等问题。
+              </p>
             </div>
           </div>
 
@@ -1680,9 +1814,23 @@ flowchart TD
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>第一代：PropertyEditor（JDK 提供，Spring 早期复用）</strong>：基于 <code class="inline-code">java.beans.PropertyEditor</code> 接口，通过 <code class="inline-code">setAsText</code>/<code class="inline-code">getAsText</code> 在 String 与目标类型间转换。问题：<strong>有状态且线程不安全</strong>（实例字段存中间状态），需每个转换新建实例或加锁；API 设计面向 GUI（JavaBeans 规范），不适合服务端高并发。典型：<code class="inline-code">CustomDateEditor</code>。</p>
-              <p><strong>第二代：Converter SPI（Spring 3.0）</strong>：引入 <code class="inline-code">Converter&lt;S,T&gt;</code> 接口，<strong>无状态、线程安全</strong>，适合服务端。配套 <code class="inline-code">ConverterFactory</code>（一组类型转换，如 String→Number 子类）与 <code class="inline-code">GenericConverter</code>（多源多目标，带上下文）。统一由 <code class="inline-code">ConversionService</code>（默认 <code class="inline-code">DefaultFormattingConversionService</code>）管理。</p>
-              <p><strong>第三代：Formatter（Spring 3.0）</strong>：面向<strong>本地化格式化</strong>的转换，<code class="inline-code">Formatter&lt;T&gt;</code> 在 String 与 T 间转换并带 <code class="inline-code">Locale</code>。适用于日期/货币等需本地化的场景。Formatter 内部会被适配为 Converter 注册到 ConversionService。</p>
-              <p><strong>Spring Boot 松绑定（Relaxed Binding）</strong>：在 <code class="inline-code">@ConfigurationProperties</code> 场景下，属性名支持松散匹配（kebab-case/camelCase/snake_case 互通），并复用 ConversionService 完成类型转换与 <code class="inline-code">Duration</code>/<code class="inline-code">DataSize</code> 等特殊类型解析。</p>
+              <p>
+                <strong>第二代：Converter SPI（Spring 3.0）</strong>：引入
+                <code class="inline-code">Converter&lt;S,T&gt;</code>
+                接口，<strong>无状态、线程安全</strong>，适合服务端。配套
+                <code class="inline-code">ConverterFactory</code>（一组类型转换，如 String→Number 子类）与 <code class="inline-code">GenericConverter</code>（多源多目标，带上下文）。统一由 <code class="inline-code">ConversionService</code>（默认 <code class="inline-code">DefaultFormattingConversionService</code>）管理。
+              </p>
+              <p>
+                <strong>第三代：Formatter（Spring 3.0）</strong>：面向<strong>本地化格式化</strong>的转换，<code class="inline-code">Formatter&lt;T&gt;</code>
+                在 String 与 T 间转换并带
+                <code class="inline-code">Locale</code>。适用于日期/货币等需本地化的场景。Formatter 内部会被适配为 Converter 注册到 ConversionService。
+              </p>
+              <p>
+                <strong>Spring Boot 松绑定（Relaxed Binding）</strong>：在
+                <code class="inline-code">@ConfigurationProperties</code>
+                场景下，属性名支持松散匹配（kebab-case/camelCase/snake_case 互通），并复用 ConversionService 完成类型转换与 <code class="inline-code">Duration</code>/<code class="inline-code">DataSize</code>
+                等特殊类型解析。
+              </p>
             </div>
           </div>
 
@@ -1691,6 +1839,7 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>核心接口关系</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     PE["PropertyEditor （JDK,有状态,线程不安全）"]
@@ -1764,7 +1913,10 @@ flowchart LR
                   <li><strong>优先用 Converter 而非 PropertyEditor</strong>：Converter 无状态线程安全，PropertyEditor 有状态需谨慎。</li>
                   <li><strong>全局 Converter 注册为 Bean</strong>：Boot 自动加入 DefaultFormattingConversionService，全局生效。</li>
                   <li><strong>@ConfigurationProperties 绑定自动复用 ConversionService</strong>：支持 Duration（"30s"）、DataSize（"10MB"）、Enum 等特殊类型。</li>
-                  <li><strong>校验与绑定分离</strong>：DataBinder 同时做绑定与校验，但生产中推荐 <code class="inline-code">@Valid</code>/<code class="inline-code">@Validated</code> 显式触发校验，职责清晰。</li>
+                  <li>
+                    <strong>校验与绑定分离</strong>：DataBinder 同时做绑定与校验，但生产中推荐 <code class="inline-code">@Valid</code>/<code class="inline-code">@Validated</code>
+                    显式触发校验，职责清晰。
+                  </li>
                 </ul>
               </div>
             </div>
@@ -1774,10 +1926,18 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：Converter 与 GenericConverter 的区别？</strong></p>
-              <p>Converter 是一对一（单一源类型→单一目标类型），最简单。GenericConverter 是多对多，可声明多个ConvertiblePair，并接收 TypeDescriptor（带泛型信息），适合需要根据泛型上下文决策的转换（如 Collection&lt;String&gt;→Collection&lt;Integer&gt;，需知道元素类型）。ConditionalGenericConverter 还可加 <code class="inline-code">matches</code> 条件判断是否处理。优先用 Converter，复杂场景才用 GenericConverter。</p>
+              <p>
+                Converter 是一对一（单一源类型→单一目标类型），最简单。GenericConverter 是多对多，可声明多个ConvertiblePair，并接收 TypeDescriptor（带泛型信息），适合需要根据泛型上下文决策的转换（如 Collection&lt;String&gt;→Collection&lt;Integer&gt;，需知道元素类型）。ConditionalGenericConverter 还可加
+                <code class="inline-code">matches</code> 条件判断是否处理。优先用 Converter，复杂场景才用 GenericConverter。
+              </p>
 
               <p><strong>追问 2：Spring Boot 的松绑定如何实现？</strong></p>
-              <p>松绑定（Relaxed Binding）由 <code class="inline-code">ConfigurationPropertyName</code> 实现：将属性名统一规范化（忽略大小写、连字符/下划线等价），匹配时按规范化形式比较。如 <code class="inline-code">server.max-http-header-size</code> 可对应 <code class="inline-code">maxHttpHeaderSize</code> 字段。绑定值时复用 ConversionService 做类型转换，并内置对 <code class="inline-code">Duration</code>（"30s"/"1h"）、<code class="inline-code">DataSize</code>（"10MB"）的特殊支持。</p>
+              <p>
+                松绑定（Relaxed Binding）由
+                <code class="inline-code">ConfigurationPropertyName</code>
+                实现：将属性名统一规范化（忽略大小写、连字符/下划线等价），匹配时按规范化形式比较。如
+                <code class="inline-code">server.max-http-header-size</code> 可对应 <code class="inline-code">maxHttpHeaderSize</code> 字段。绑定值时复用 ConversionService 做类型转换，并内置对 <code class="inline-code">Duration</code>（"30s"/"1h"）、<code class="inline-code">DataSize</code>（"10MB"）的特殊支持。
+              </p>
 
               <p><strong>追问 3：PropertyEditor 线程不安全为何 Spring MVC 仍能用？</strong></p>
               <p>Spring MVC 在每个请求的 DataBinder 中<strong>新建 PropertyEditor 实例</strong>（通过 PropertyEditorRegistrar），避免共享。但 PropertyEditor 的有状态特性仍是隐患，Spring 3+ 已尽量迁移到 Converter，PropertyEditor 主要为兼容旧代码与 JavaBeans 规范保留。新代码应避免自定义 PropertyEditor。</p>
@@ -1793,7 +1953,10 @@ flowchart LR
                   <li><strong>PropertyEditor 线程不安全</strong>：共享实例会导致并发数据错乱，需新建或用 Converter。</li>
                   <li><strong>Converter 未注册</strong>：定义了 Converter 但未注册为 Bean，转换不生效。</li>
                   <li><strong>@InitBinder 作用域误判</strong>：仅作用于当前 Controller，全局需配置 WebMvcConfigurer。</li>
-                  <li><strong>松绑定的边界</strong>：仅 <code class="inline-code">@ConfigurationProperties</code> 支持松绑定，<code class="inline-code">@Value</code> 不支持。</li>
+                  <li>
+                    <strong>松绑定的边界</strong>：仅 <code class="inline-code">@ConfigurationProperties</code> 支持松绑定，<code class="inline-code">@Value</code>
+                    不支持。
+                  </li>
                 </ul>
               </div>
             </div>
@@ -1839,6 +2002,7 @@ flowchart LR
               <p><strong>解析执行流程</strong>：表达式字符串 → <strong>词法分析</strong>（Tokenizer 分词）→ <strong>语法分析</strong>（Parser 生成 AST，如 PropertyOrFieldReference/MethodReference/Indexer 等节点）→ <strong>求值</strong>（递归遍历 AST，按 EvaluationContext 解析引用与调用方法）。AST 可缓存复用，避免重复解析。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     S["表达式字符串<br/>user.name.toUpperCase（）"] --> T["Tokenizer 词法分析"]
@@ -1924,7 +2088,10 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <p><strong>典型应用：动态缓存 key 与条件</strong>。<code class="inline-code">@Cacheable(key="#user.id + ':' + #user.tenantId")</code> 组合多参数生成复合 key，避免跨租户缓存污染；<code class="inline-code">condition="#user.vip"</code> 仅缓存 VIP 用户，<code class="inline-code">unless="#result==null"</code> 不缓存空结果（防缓存穿透用布隆过滤器更佳，这里 SpEL 控制缓存策略）。</p>
+              <p>
+                <strong>典型应用：动态缓存 key 与条件</strong>。<code class="inline-code">@Cacheable(key="#user.id + ':' + #user.tenantId")</code> 组合多参数生成复合 key，避免跨租户缓存污染；<code class="inline-code">condition="#user.vip"</code> 仅缓存 VIP 用户，<code class="inline-code">unless="#result==null"</code>
+                不缓存空结果（防缓存穿透用布隆过滤器更佳，这里 SpEL 控制缓存策略）。
+              </p>
 
               <div class="callout callout-tip">
                 <div class="callout-title">安全实践</div>
@@ -1941,10 +2108,17 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：SpEL 的性能瓶颈在哪？如何优化？</strong></p>
-              <p>瓶颈在<strong>反射</strong>——SpEL 默认用反射访问属性/调用方法，比直接调用慢 10-100 倍。优化需分层看待：<strong>@Value</strong> 中的 SpEL 在启动时求值一次，属于低频场景，无需编译优化；<strong>@ConditionalOnExpression</strong> 是 Boot 条件注解，在 BeanDefinition 注册阶段求值（每个匹配的 Bean 一次），也不是高频热点；<strong>@Cacheable key/condition</strong> 等运行时每次调用都求值的场景才是高频热点，需要缓存 Expression 并启用 <code class="inline-code">SpelCompiler</code> 编译为字节码（<code class="inline-code">SpelParserConfiguration.setCompilerMode(IMMEDIATE)</code>）。注意 <strong>AOT/Native Image 限制</strong>：GraalVM Native Image 不支持运行时字节码生成，SpelCompiler 在 AOT 模式下不可用，SpEL 会降级为纯反射求值，且需为 SpEL 引用的类型注册反射元数据——这是 Spring 6 AOT 对 SpEL 表达式做预编译处理的原因。</p>
+              <p>
+                瓶颈在<strong>反射</strong>——SpEL 默认用反射访问属性/调用方法，比直接调用慢 10-100 倍。优化需分层看待：<strong>@Value</strong> 中的 SpEL 在启动时求值一次，属于低频场景，无需编译优化；<strong>@ConditionalOnExpression</strong> 是 Boot 条件注解，在 BeanDefinition 注册阶段求值（每个匹配的 Bean 一次），也不是高频热点；<strong>@Cacheable key/condition</strong>
+                等运行时每次调用都求值的场景才是高频热点，需要缓存 Expression 并启用
+                <code class="inline-code">SpelCompiler</code> 编译为字节码（<code class="inline-code">SpelParserConfiguration.setCompilerMode(IMMEDIATE)</code>）。注意 <strong>AOT/Native Image 限制</strong>：GraalVM Native Image 不支持运行时字节码生成，SpelCompiler 在 AOT 模式下不可用，SpEL 会降级为纯反射求值，且需为 SpEL 引用的类型注册反射元数据——这是 Spring 6 AOT 对 SpEL 表达式做预编译处理的原因。
+              </p>
 
               <p><strong>追问 2：SpEL 注入漏洞如何发生与防范？</strong></p>
-              <p>若把用户输入拼入 SpEL 表达式（如 <code class="inline-code">parser.parseExpression(userInput)</code>），攻击者可构造 <code class="inline-code">T(Runtime).getRuntime().exec('rm -rf /')</code> 执行任意命令。防范：① 表达式<strong>完全静态</strong>，用户数据通过 setVariable 作为变量传入，表达式内用 <code class="inline-code">#userInput</code> 引用；② 用 <code class="inline-code">SimpleEvaluationContext.forReadOnlyDataBinding()</code>，禁用类型引用与构造器，从上下文层面杜绝危险操作；③ 永不 <code class="inline-code">new StandardEvaluationContext()</code> 求值不可信表达式。</p>
+              <p>
+                若把用户输入拼入 SpEL 表达式（如
+                <code class="inline-code">parser.parseExpression(userInput)</code>），攻击者可构造 <code class="inline-code">T(Runtime).getRuntime().exec('rm -rf /')</code> 执行任意命令。防范：① 表达式<strong>完全静态</strong>，用户数据通过 setVariable 作为变量传入，表达式内用 <code class="inline-code">#userInput</code> 引用；② 用 <code class="inline-code">SimpleEvaluationContext.forReadOnlyDataBinding()</code>，禁用类型引用与构造器，从上下文层面杜绝危险操作；③ 永不 <code class="inline-code">new StandardEvaluationContext()</code> 求值不可信表达式。
+              </p>
 
               <p><strong>追问 3：@Value 中的 ${} 与 #{} 有何区别？</strong></p>
               <p><code class="inline-code">${...}</code> 是<strong>属性占位符</strong>，由 PropertySourcesPlaceholderConfigurer 解析，从 Environment 属性源取值替换，只做字符串替换不做运算。<code class="inline-code">#{...}</code> 是 <strong>SpEL 表达式</strong>，由 SpelExpressionParser 求值，支持运算、方法调用、Bean 引用。两者可组合：<code class="inline-code">@Value("#{${my.timeout} * 1000}")</code>——先解析 <code class="inline-code">${}</code> 占位符得到数字，再由 SpEL 求值乘以 1000。</p>
@@ -1960,7 +2134,10 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
                   <li><strong>SpEL 注入漏洞</strong>：用户输入拼入表达式导致 RCE，必须用变量传入 + SimpleEvaluationContext。</li>
                   <li><strong>${} 与 #{} 混淆</strong>：前者属性占位符（字符串替换），后者 SpEL（表达式求值）。</li>
                   <li><strong>未缓存 Expression</strong>：高频求值场景每次重新 parseExpression，性能差。</li>
-                  <li><strong>@Cacheable key 漏写参数</strong>：<code class="inline-code">key="#id"</code> 漏掉多参数场景导致缓存冲突。</li>
+                  <li>
+                    <strong>@Cacheable key 漏写参数</strong>：<code class="inline-code">key="#id"</code>
+                    漏掉多参数场景导致缓存冲突。
+                  </li>
                   <li><strong>GraalVM 下 T() 反射失效</strong>：Native Image 需为 SpEL 引用的类型注册反射配置。</li>
                 </ul>
               </div>
@@ -1979,7 +2156,11 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察<strong>事务与异步的时序边界</strong>：当业务在数据库事务中需要"提交成功后再异步推送通知 / 发 MQ / 调外部"，如何保证<strong>两件事原子</strong>——要么都成功，要么事务回滚时通知绝不发生。更深一层，它考察对 <code class="inline-code">TransactionSynchronizationManager</code> 事务同步钩子机制的理解，以及对"事务内直接开线程"经典反模式的识别能力。这是企业微信 / 钉钉通知、订单事件推送等场景的高频线上故障源。</p>
+              <p>
+                这道题考察<strong>事务与异步的时序边界</strong>：当业务在数据库事务中需要"提交成功后再异步推送通知 / 发 MQ / 调外部"，如何保证<strong>两件事原子</strong>——要么都成功，要么事务回滚时通知绝不发生。更深一层，它考察对
+                <code class="inline-code">TransactionSynchronizationManager</code>
+                事务同步钩子机制的理解，以及对"事务内直接开线程"经典反模式的识别能力。这是企业微信 / 钉钉通知、订单事件推送等场景的高频线上故障源。
+              </p>
             </div>
           </div>
 
@@ -1987,7 +2168,11 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>反例（禁止）</strong>：在 <code class="inline-code">@Transactional</code> 方法内直接 <code class="inline-code">executor.execute(task)</code>。异步线程可能早于 commit 执行（查不到刚写入的数据），且事务回滚后通知已发出，造成"数据库无记录、消息满天飞"的数据不一致。</p>
-              <p><strong>Spring 事务同步（afterCommit）</strong>：通过 <code class="inline-code">TransactionSynchronizationManager.registerSynchronization</code> 注册 <code class="inline-code">afterCommit</code> 钩子，仅当事务真正提交后才把任务丢进线程池；回滚则不触发。轻量、无中间件，是普通通知首选。</p>
+              <p>
+                <strong>Spring 事务同步（afterCommit）</strong>：通过 <code class="inline-code">TransactionSynchronizationManager.registerSynchronization</code> 注册
+                <code class="inline-code">afterCommit</code>
+                钩子，仅当事务真正提交后才把任务丢进线程池；回滚则不触发。轻量、无中间件，是普通通知首选。
+              </p>
               <p><strong>事务外层异步</strong>：把异步调用移到 <code class="inline-code">@Transactional</code> 方法之外，由调用方执行。时序正确，但强依赖异常处理——一旦 service 内部吞异常 / <code class="inline-code">setRollbackOnly</code>，事务回滚却仍发通知。</p>
               <p><strong>@TransactionalEventListener（AFTER_COMMIT）</strong>：Spring 事件驱动的 afterCommit 封装，业务与推送解耦；无事务默认不触发（<code class="inline-code">fallbackExecution=false</code>）。</p>
               <p><strong>本地消息表 / 事务消息</strong>：当事务后消息<strong>不允许丢失</strong>时，afterCommit 仍会丢（宕机），需升级为"业务与消息同事务落库 + 定时任务 / MQ 补偿"的可靠消息最终一致方案（详见 C09.02 / C09.09）。</p>
@@ -1997,12 +2182,21 @@ ctx.<span class="fn">setVariable</span>(<span class="str">"prefix"</span>, <span
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><code class="inline-code">TransactionSynchronizationManager</code> 把回调挂到<strong>当前线程的事务上下文</strong>上；事务提交成功后 Spring 自动回调 <code class="inline-code">afterCommit()</code>，此时才提交线程池。两个必须遵守的硬约束：</p>
+              <p>
+                <code class="inline-code">TransactionSynchronizationManager</code>
+                把回调挂到<strong>当前线程的事务上下文</strong>上；事务提交成功后 Spring 自动回调
+                <code class="inline-code">afterCommit()</code>，此时才提交线程池。两个必须遵守的硬约束：
+              </p>
               <ul>
-                <li><strong>自适应有无事务</strong>：用 <code class="inline-code">TransactionSynchronizationManager.isActualTransactionActive()</code> 判断；无事务（导入 / 批量）时无法注册钩子，直接提交异步任务，一套代码兼容两种场景。</li>
+                <li>
+                  <strong>自适应有无事务</strong>：用
+                  <code class="inline-code">TransactionSynchronizationManager.isActualTransactionActive()</code>
+                  判断；无事务（导入 / 批量）时无法注册钩子，直接提交异步任务，一套代码兼容两种场景。
+                </li>
                 <li><strong>主线程 ThreadLocal 已销毁</strong>：<code class="inline-code">afterCommit</code> 执行时主业务方法栈已退出，原主线程 ThreadLocal / MDC 已被清空。所有需要的数据（用户 ID、租户 ID、业务 ID）必须通过 lambda 闭包传入，<strong>绝不在 task 内部再从上下文取</strong>；MDC 需手动 copy。</li>
               </ul>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant M as 主线程(事务内)
@@ -2136,7 +2330,6 @@ asyncAfterCommitExecutor.executeAfterCommit(() ->
             </div>
           </div>
         </div>
-
       </main>
     </div>
 
@@ -2144,24 +2337,40 @@ asyncAfterCommitExecutor.executeAfterCommit(() ->
       <div class="sources">
         <h2>参考资料</h2>
         <ol>
-          <li><span class="src-title">Juergen Hoeller 等. Spring Framework Reference Documentation 5.x / 6.x. — IoC 容器、Bean 生命周期、AOP、事务、事件、扩展点体系官方文档</span></li>
-          <li><span class="src-title">Spring Framework 源码. AbstractAutowireCapableBeanFactory.doCreateBean / DefaultSingletonBeanRegistry.getSingleton / AbstractApplicationContext.refresh. — 三级缓存与生命周期源码</span></li>
-          <li><span class="src-title">Craig Walls. Spring in Action (6th Edition). — Spring 核心概念、AOP、事务、Spring Boot 实战</span></li>
-          <li><span class="src-title">Spring Boot 2.6 Release Notes. — 默认禁止循环依赖(spring.main.allow-circular-references=false)、Spring Framework 6 Release Notes. — AOT 处理、 GraalVM Native Image 支持</span></li>
-          <li><span class="src-title">Spring Boot 2.x Reference. — spring.aop.proxy-target-class 默认 CGLIB、@TransactionalEventListener、事件机制自动配置</span></li>
-          <li><span class="src-title">Ramin Farhanian 等. Pro Spring 6. — BeanPostProcessor/BeanFactoryPostProcessor 扩展点体系、SpEL、类型转换深度解析</span></li>
-          <li><span class="src-title">Erich Gamma 等. Design Patterns: Elements of Reusable Object-Oriented Software. Addison-Wesley, 1994. — GoF 设计模式，Spring 框架设计模式应用的理论基础</span></li>
-          <li><span class="src-title">Spring Framework GitHub Issues &amp; Blog. — Spring Boot 2.6 循环依赖收紧讨论、@Async 循环依赖失效问题、SpEL 注入安全公告</span></li>
+          <li>
+            <span class="src-title">Juergen Hoeller 等. Spring Framework Reference Documentation 5.x / 6.x. — IoC 容器、Bean 生命周期、AOP、事务、事件、扩展点体系官方文档</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Framework 源码. AbstractAutowireCapableBeanFactory.doCreateBean / DefaultSingletonBeanRegistry.getSingleton / AbstractApplicationContext.refresh. — 三级缓存与生命周期源码</span>
+          </li>
+          <li>
+            <span class="src-title">Craig Walls. Spring in Action (6th Edition). — Spring 核心概念、AOP、事务、Spring Boot 实战</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Boot 2.6 Release Notes. — 默认禁止循环依赖(spring.main.allow-circular-references=false)、Spring Framework 6 Release Notes. — AOT 处理、 GraalVM Native Image 支持</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Boot 2.x Reference. — spring.aop.proxy-target-class 默认 CGLIB、@TransactionalEventListener、事件机制自动配置</span>
+          </li>
+          <li>
+            <span class="src-title">Ramin Farhanian 等. Pro Spring 6. — BeanPostProcessor/BeanFactoryPostProcessor 扩展点体系、SpEL、类型转换深度解析</span>
+          </li>
+          <li>
+            <span class="src-title">Erich Gamma 等. Design Patterns: Elements of Reusable Object-Oriented Software. Addison-Wesley, 1994. — GoF 设计模式，Spring 框架设计模式应用的理论基础</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Framework GitHub Issues &amp; Blog. — Spring Boot 2.6 循环依赖收紧讨论、@Async 循环依赖失效问题、SpEL 注入安全公告</span>
+          </li>
         </ol>
       </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-04-threadpool-virtual-threads.html" class="nav-prev">← 第 04 篇 线程池与虚拟线程</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-05-spring-core.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-06-spring-boot-modern.html" class="nav-next">第 06 篇 Spring Boot 与现代框架 →</a>
-        </nav>
+        <a href="chapter-04-threadpool-virtual-threads.html" class="nav-prev">← 第 04 篇 线程池与虚拟线程</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-05-spring-core.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-06-spring-boot-modern.html" class="nav-next">第 06 篇 Spring Boot 与现代框架 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -2175,5 +2384,5 @@ asyncAfterCommitExecutor.executeAfterCommit(() ->
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>

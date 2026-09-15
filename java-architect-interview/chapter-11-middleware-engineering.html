@@ -5,20 +5,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>第 11 篇 · 中间件与工程化 — Java 工程能力知识库</title>
-<script src="assets/theme-init.js"></script>
+    <script src="assets/theme-init.js"></script>
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-          <a href="chapter-10-microservice-cloud.html" class="nav-prev">← 第 10 篇 微服务与云原生</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-11-middleware-engineering.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-12-ai-engineering.html" class="nav-next">第 12 篇 AI 工程与实践 →</a>
-        </nav>
+        <a href="chapter-10-microservice-cloud.html" class="nav-prev">← 第 10 篇 微服务与云原生</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-11-middleware-engineering.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-12-ai-engineering.html" class="nav-next">第 12 篇 AI 工程与实践 →</a>
+      </nav>
     </div>
 
     <div class="page-wrapper">
-
       <!-- ============ 侧边栏 TOC ============ -->
       <aside class="sidebar-toc">
         <h3>本篇目录</h3>
@@ -198,6 +197,7 @@
               <p><strong>Camunda（2013，Activiti 商业分叉）</strong>：同样源自 Activiti，走<strong>开源核心 + 商业企业版</strong>路线，强调流程监控分析（Operate/Optimize），云原生 Camunda 8 基于 Zeebe 引擎（事件流 + Raft 日志复制，告别数据库轮询），面向高并发云原生场景。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     H["硬编码流程<br/>（if-else+状态字段）"] --> J["jBPM 1.x<br/>jPDL 自有格式<br/>（2004）"]
@@ -211,21 +211,40 @@ flowchart LR
                 </div>
                 <div class="chart-caption">图 11.1-1 工作流引擎演进：jBPM → Activiti → Flowable/Camunda → Zeebe 云原生</div>
 
-              <div class="compare-table">
-                <table>
-                  <thead>
-                    <tr><th>选型</th><th>定位</th><th>当前默认建议</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr><td>Activiti 5/6/7</td><td>BPMN 嵌入式遗产栈</td><td>存量维护；新项目不首选</td></tr>
-                    <tr><td>Flowable</td><td>Activiti 分叉，BPMN/DMN/CMMN</td><td>传统内嵌审批首选社区方案</td></tr>
-                    <tr><td>Camunda 7/8</td><td>7 库表引擎；8=Zeebe 事件流</td><td>云原生高并发编排看 Camunda 8</td></tr>
-                    <tr><td>轻量状态机</td><td>Spring Statemachine / 自研</td><td>无人工任务、短生命周期编排</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <p><strong>选型矩阵（上表）</strong>：招聘侧高频词是 Camunda / Flowable / 自研编排；Activiti 仅作演进对照与存量迁移语境，表达时先报默认选型再补遗产差异。</p>
-
+                <div class="compare-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>选型</th>
+                        <th>定位</th>
+                        <th>当前默认建议</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Activiti 5/6/7</td>
+                        <td>BPMN 嵌入式遗产栈</td>
+                        <td>存量维护；新项目不首选</td>
+                      </tr>
+                      <tr>
+                        <td>Flowable</td>
+                        <td>Activiti 分叉，BPMN/DMN/CMMN</td>
+                        <td>传统内嵌审批首选社区方案</td>
+                      </tr>
+                      <tr>
+                        <td>Camunda 7/8</td>
+                        <td>7 库表引擎；8=Zeebe 事件流</td>
+                        <td>云原生高并发编排看 Camunda 8</td>
+                      </tr>
+                      <tr>
+                        <td>轻量状态机</td>
+                        <td>Spring Statemachine / 自研</td>
+                        <td>无人工任务、短生命周期编排</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p><strong>选型矩阵（上表）</strong>：招聘侧高频词是 Camunda / Flowable / 自研编排；Activiti 仅作演进对照与存量迁移语境，表达时先报默认选型再补遗产差异。</p>
               </div>
 
               <p><strong>演进驱动力</strong>：① <strong>标准化</strong>——从私有 jPDL 到 OMG 组织的 BPMN 2.0 标准，实现流程定义跨引擎互通；② <strong>解耦</strong>——流程定义与代码解耦，业务流程变更无需发版；③ <strong>云原生</strong>——从数据库轮询到事件流日志（Zeebe），突破数据库瓶颈支撑高并发；④ <strong>三引擎合一</strong>——BPMN（流程）+ DMN（决策表）+ CMMN（案例）覆盖更复杂的业务编排。</p>
@@ -297,6 +316,7 @@ flowchart LR
               </ol>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     subgraph DEF["流程定义（静态模板）"]
@@ -430,7 +450,11 @@ taskService.<span class="fn">complete</span>(task.<span class="fn">getId</span>(
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>配置化核心模型：流程节点配置表</strong>。把每个节点的可变属性抽象成一张配置表，按 <code class="inline-code">(processKey, nodeKey, tenantId)</code> 维度存储，运行时通过监听器/执行监听器注入：</p>
+              <p>
+                <strong>配置化核心模型：流程节点配置表</strong>。把每个节点的可变属性抽象成一张配置表，按
+                <code class="inline-code">(processKey, nodeKey, tenantId)</code>
+                维度存储，运行时通过监听器/执行监听器注入：
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -599,6 +623,7 @@ taskService.<span class="fn">complete</span>(task.<span class="fn">getId</span>(
               <p><strong>阶段 5：智能决策(趋势)</strong>。规则引擎 + ML 模型 + LLM 混合决策：简单规则用规则引擎（可解释、可审计），复杂非线性用 ML 模型，模糊判断用 LLM。规则引擎负责"硬性约束"，模型负责"柔性预测"。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     H["硬编码<br/>if-else"] --> S["脚本引擎<br/>Groovy/Aviator<br/>（动态加载）"]
@@ -636,6 +661,7 @@ flowchart LR
               </ul>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     F["Facts 事实<br/>（订单/用户对象）"] --> AN["Alpha 网络<br/>（单条件过滤,共享）"]
@@ -828,6 +854,7 @@ flowchart LR
               <p><strong>OAuth 2.1（草案，2020+）</strong>：<strong>收敛而非新增</strong>，把 2.0 的最佳实践固化成标准——废弃隐式模式(Implicit)与密码模式(Password)，<strong>强制所有客户端用授权码+PKCE</strong>，统一安全基线。本质是"2.0 + BCP(Best Current Practice) 的合并整理"。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     O1["OAuth 1.0<br/>HMAC 签名<br/>单流程（2007）"] --> O2["OAuth 2.0<br/>四种授权模式<br/>Bearer Token（2012）"]
@@ -898,6 +925,7 @@ flowchart LR
 
               <p><strong>授权码 + PKCE 流程（核心）</strong>：PKCE(Proof Key for Code Exchange) 解决"授权码被恶意应用拦截"问题。恶意应用在移动端可注册相同 URL Scheme 拦截回调，PKCE 让拦截到 code 也换不到 token：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 sequenceDiagram
     participant U as 用户/浏览器
@@ -981,7 +1009,10 @@ sequenceDiagram
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：OAuth 2.0 与 OpenID Connect(OIDC) 的关系？</strong></p>
-              <p>OAuth 2.0 是<strong>授权协议</strong>（Authorization，给第三方访问资源的权限），<strong>不是认证协议</strong>（Authentication，证明用户是谁）。OIDC 是构建在 OAuth 2.0 之上的<strong>认证层</strong>：在授权流程中额外返回 <strong>ID Token(JWT)</strong>，包含用户身份声明(sub/email/name)，客户端验签 ID Token 即完成认证。OIDC = OAuth 2.0 + ID Token + 标准化用户信息端点(UserInfo Endpoint)。要做"登录"用 OIDC，要做"授权访问 API"用 OAuth 2.0。</p>
+              <p>
+                OAuth 2.0 是<strong>授权协议</strong>（Authorization，给第三方访问资源的权限），<strong>不是认证协议</strong>（Authentication，证明用户是谁）。OIDC 是构建在 OAuth 2.0 之上的<strong>认证层</strong>：在授权流程中额外返回
+                <strong>ID Token(JWT)</strong>，包含用户身份声明(sub/email/name)，客户端验签 ID Token 即完成认证。OIDC = OAuth 2.0 + ID Token + 标准化用户信息端点(UserInfo Endpoint)。要做"登录"用 OIDC，要做"授权访问 API"用 OAuth 2.0。
+              </p>
               <p><strong>追问 2：refresh_token 轮换与检测机制如何防重放？</strong></p>
               <p>① <strong>refresh_token 轮换</strong>——每次用 refresh_token 换新 access_token 时，同时发新的 refresh_token 并使旧的失效（reuseRefreshTokens=false）；② <strong>重放检测</strong>——若已失效的 refresh_token 被再次使用，说明可能被盗，授权服务器应立即<strong>吊销该客户端该用户的所有 token 链</strong>（RFC 7009 token revocation）；③ <strong>sender-constrained token</strong>——用 DPoP 或 mTLS 把 token 与客户端密钥绑定，盗走也用不了。</p>
             </div>
@@ -1030,6 +1061,7 @@ sequenceDiagram
               <p><strong>阶段 4：Opaque Token + 令牌内省（趋势）</strong>。JWT 无状态导致吊销难，部分场景回归"不透明令牌 + 内省端点(Introspection)"，token 是随机串，服务端调授权服务器内省校验，可即时吊销。Gateway 做内省缓存兼顾性能。或用 <strong>JWT + 黑名单/版本号</strong>折中。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     S["Session+Cookie<br/>有状态<br/>需共享存储"] --> J["JWT<br/>无状态<br/>自包含验签"]
@@ -1157,7 +1189,10 @@ HMACSHA256(
               <p><strong>追问 1：JWT 与 Session 的本质区别？何时该用哪个？</strong></p>
               <p>本质：<strong>Session 是服务端有状态(状态在服务端)，JWT 是客户端有状态(状态在 token 里)</strong>。Session 优势在可控（随时下线、在线统计），劣势在扩展（需共享存储）；JWT 优势在无状态易扩展，劣势在不可控（难即时吊销）。<strong>选型</strong>：① 单体/需强制下线/在线管理 → Session；② 微服务/移动端/跨域/无状态 API → JWT；③ 高安全要求（金融）→ Opaque Token + 内省，可即时吊销。也可混合：网关用 Opaque，内部服务用 JWT。</p>
               <p><strong>追问 2：JWT 的 alg=none 漏洞是怎么回事？</strong></p>
-              <p>历史漏洞：JWT Header 可指定 <code class="inline-code">alg:none</code> 表示不签名，若服务端未强制校验算法，攻击者把 alg 改成 none 并篡改 Payload 即可伪造任意身份。<strong>防御</strong>：验签时<strong>强制指定允许的算法白名单</strong>（如只允许 HS256/RS256），拒绝 none 与不接受 Header 里 alg 字段指定的非白名单算法。现代 JWT 库默认已防御，但仍需显式配置算法。</p>
+              <p>
+                历史漏洞：JWT Header 可指定
+                <code class="inline-code">alg:none</code> 表示不签名，若服务端未强制校验算法，攻击者把 alg 改成 none 并篡改 Payload 即可伪造任意身份。<strong>防御</strong>：验签时<strong>强制指定允许的算法白名单</strong>（如只允许 HS256/RS256），拒绝 none 与不接受 Header 里 alg 字段指定的非白名单算法。现代 JWT 库默认已防御，但仍需显式配置算法。
+              </p>
             </div>
           </div>
 
@@ -1204,6 +1239,7 @@ HMACSHA256(
               <p><strong>阶段 4：GitOps(ArgoCD/Flux，2018+)</strong>。把<strong>期望状态(部署清单)存 Git</strong>，集群内的 Controller(ArgoCD) 持续比对 Git 期望状态与集群实际状态，发现偏差自动 Pull 同步。Git 成为<strong>唯一可信源(Single Source of Truth)</strong>，部署即 commit，回滚即 revert。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     M["手工构建部署<br/>易错不可重复"] --> J["Jenkins 脚本式<br/>Jenkinsfile<br/>Push 部署（2011）"]
@@ -1292,6 +1328,7 @@ flowchart LR
 
               <p><strong>GitOps 工作流(ArgoCD)</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     Dev["开发提交代码"] --> CI["CI 流水线<br/>（GitLab CI/Jenkins）"]
@@ -1415,7 +1452,10 @@ spec:
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：GitOps 的 selfHeal 会不会有风险？</strong></p>
-              <p>selfHeal 会在有人手动 kubectl 改集群资源后自动纠正回 Git 状态，保证一致性。风险：① <strong>紧急手动止血被回滚</strong>——运维紧急改副本数扩容，selfHeal 立即改回，需有"暂停同步"机制(ArgoCD pause)；② 配置错误快速传播——Git 错误配置快速同步到所有集群。建议：生产环境 selfHeal 谨慎开启，配合 PR 审批 + ArgoCD 同步窗口 + 健康检查(Sync Wave + Health Check)。</p>
+              <p>
+                selfHeal 会在有人手动 kubectl 改集群资源后自动纠正回 Git 状态，保证一致性。风险：①
+                <strong>紧急手动止血被回滚</strong>——运维紧急改副本数扩容，selfHeal 立即改回，需有"暂停同步"机制(ArgoCD pause)；② 配置错误快速传播——Git 错误配置快速同步到所有集群。建议：生产环境 selfHeal 谨慎开启，配合 PR 审批 + ArgoCD 同步窗口 + 健康检查(Sync Wave + Health Check)。
+              </p>
               <p><strong>追问 2：如何做 GitOps 下的数据库 schema 变更？</strong></p>
               <p>GitOps 管应用部署，数据库变更需<strong>单独流水线</strong>：① 用 <strong>Liquibase/Flyway</strong> 管理 schema 版本，变更脚本随代码库版本化；② CI 阶段执行 schema migration（向前兼容，扩展→双写→切读→收缩）；③ <strong>不与 ArgoCD 同步耦合</strong>——ArgoCD 只管 K8s 资源，DB 变更在 CI 中独立执行并校验；④ 回滚：DB schema 不回滚（向前兼容设计），应用回滚到能兼容当前 schema 的旧版本。</p>
             </div>
@@ -1459,11 +1499,16 @@ spec:
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>阶段 1：日志 + 手动埋点</strong>。靠日志打印耗时，手动在代码加时间戳统计。侵入性强、覆盖不全、无跨服务关联。</p>
-              <p><strong>阶段 2：字节码增强 APM（2012+）</strong>。Pinpoint（Naver，2012）、SkyWalking（Apache，2015）、ARMS（阿里）。基于 <strong>Java Agent + Instrumentation</strong> 在类加载时改写字节码，自动给主流框架(Spring/MyBatis/Redis/RPC)加埋点，<strong>业务零侵入</strong>。生成 Trace 树可视化调用链。</p>
+              <p>
+                <strong>阶段 2：字节码增强 APM（2012+）</strong>。Pinpoint（Naver，2012）、SkyWalking（Apache，2015）、ARMS（阿里）。基于
+                <strong>Java Agent + Instrumentation</strong>
+                在类加载时改写字节码，自动给主流框架(Spring/MyBatis/Redis/RPC)加埋点，<strong>业务零侵入</strong>。生成 Trace 树可视化调用链。
+              </p>
               <p><strong>阶段 3：OpenTelemetry 标准化（2019+）</strong>。CNCF 主导，合并 OpenTracing + OpenCensus，统一 Trace/Metrics/Log 三支柱标准与 SDK。厂商中立，可对接任意后端(Jaeger/Prometheus/Tempo)。从"各家私有 SDK"走向"标准 SDK + 多后端"。</p>
               <p><strong>阶段 4：eBPF 内核级无侵入（2021+）</strong>。eBPF(extended Berkeley Packet Filter) 在 Linux 内核运行沙箱程序，<strong>无需 Java Agent、无需改字节码</strong>，从内核态捕获网络调用(syscall/socket)自动关联 Trace。代表：Pixie、Cilium Tetragon、Datadog eBPF。优势：语言无关、零应用侵入、内核级精度；限制：需 Linux 4.4+/5.x+ 内核。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     L["日志+手动埋点<br/>侵入性强<br/>无跨服务关联"] --> A["字节码增强 APM<br/>Java Agent<br/>Pinpoint/SkyWalking（2012）"]
@@ -1489,6 +1534,7 @@ flowchart LR
 
               <p><strong>APM 系统架构（微内核+插件）——五件套全景</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     subgraph APP["应用进程（被监控）"]
@@ -1577,23 +1623,35 @@ flowchart TB
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>阶段 1：ThreadLocal（单线程内）</strong>。同一线程内用 ThreadLocal 存 TraceId，日志从 MDC 取。局限：线程切换即丢失（线程池复用线程，主线程的 ThreadLocal 传不到工作线程）。</p>
-              <p><strong>阶段 2：手动传递 + InheritableThreadLocal</strong>。InheritableThreadLocal 在<strong>创建子线程时</strong>继承父线程上下文。局限：① 只在 <code class="inline-code">new Thread()</code> 时继承，<strong>线程池复用线程不触发</strong>（线程早已创建，提交任务时不继承）；② 需手动把 TraceId 塞 Runnable。</p>
+              <p>
+                <strong>阶段 2：手动传递 + InheritableThreadLocal</strong>。InheritableThreadLocal 在<strong>创建子线程时</strong>继承父线程上下文。局限：① 只在
+                <code class="inline-code">new Thread()</code>
+                时继承，<strong>线程池复用线程不触发</strong>（线程早已创建，提交任务时不继承）；② 需手动把 TraceId 塞 Runnable。
+              </p>
               <p><strong>阶段 3：TransmittableThreadLocal(阿里 TTL)</strong>。解决线程池场景——在<strong>提交任务时</strong>（而非创建线程时）捕获当前上下文，在任务执行前回放、执行后还原。用 <code class="inline-code">TtlRunnable.get(runnable)</code> 包装或 <code class="inline-code">TtlExecutors.getTtlExecutorService</code> 装饰线程池。是线程池透传主流方案。</p>
               <p><strong>阶段 4：Virtual Thread 兼容（Java 21+）</strong>。Virtual Thread 是轻量线程，每次阻塞 IO 会 unmount/mount carrier thread，ThreadLocal 会有<strong>继承与拷贝开销</strong>问题。Scoped Values（JDK 21 引入，JDK 25 JEP 506 正式转正）是 ThreadLocal 的替代，专为虚拟线程设计。OTel SDK 已适配 Virtual Thread，MDC 在虚拟线程下仍可用但需注意开销。</p>
-              <p><strong>阶段 5：W3C TraceContext 标准</strong>。跨服务透传从各家私有 Header(B3/X-B3) 趋向 W3C 标准 <code class="inline-code">traceparent</code>/<code class="inline-code">tracestate</code> Header，保证多厂商互通。</p>
+              <p>
+                <strong>阶段 5：W3C TraceContext 标准</strong>。跨服务透传从各家私有 Header(B3/X-B3) 趋向 W3C 标准 <code class="inline-code">traceparent</code>/<code class="inline-code">tracestate</code>
+                Header，保证多厂商互通。
+              </p>
             </div>
           </div>
 
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>ThreadLocal 为何在线程池失效</strong>：ThreadLocal 的数据存在 <code class="inline-code">Thread.threadLocals</code> 字段，每个线程独立。线程池中<strong>工作线程是复用的</strong>——提交任务时主线程的 ThreadLocal 不会自动拷贝到工作线程（拷贝只在 <code class="inline-code">new Thread()</code> 时由 InheritableThreadLocal 触发）。所以主线程存的 TraceId，工作线程取不到。</p>
+              <p>
+                <strong>ThreadLocal 为何在线程池失效</strong>：ThreadLocal 的数据存在
+                <code class="inline-code">Thread.threadLocals</code>
+                字段，每个线程独立。线程池中<strong>工作线程是复用的</strong>——提交任务时主线程的 ThreadLocal 不会自动拷贝到工作线程（拷贝只在 <code class="inline-code">new Thread()</code> 时由 InheritableThreadLocal 触发）。所以主线程存的 TraceId，工作线程取不到。
+              </p>
 
               <p><strong>TTL 透传原理</strong>：TransmittableThreadLocal 重写在<strong>提交任务</strong>时（TtlRunnable 包装）<strong>捕获(capture)</strong>当前线程的所有 TTL 值，任务执行前<strong>回放(replay)</strong>到工作线程，执行后<strong>还原(restore)</strong>工作线程原值（避免污染下次复用）。本质是"提交时快照 + 执行时注入 + 执行后清理"。</p>
 
               <p><strong>跨服务透传：W3C TraceContext</strong>：HTTP 请求加 Header <code class="inline-code">traceparent: 00-{traceId}-{spanId}-{flags}</code>，下游解析并延续 traceId。RPC(Dubbo/gRPC) 用 attachment/metadata 透传。MQ 把 traceId 塞消息属性(Properties)，消费端取出放入当前上下文。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     subgraph SVC_A["服务 A"]
@@ -1728,9 +1786,15 @@ flowchart LR
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：CompletableFuture 并行编排时 TraceId 如何透传？</strong></p>
-              <p>CompletableFuture 默认用 ForkJoinPool.commonPool，其线程复用且无 TTL 透传。解法：① <strong>显式传自定义 TTL 线程池</strong>——<code class="inline-code">supplyAsync(supplier, ttlExecutor)</code>；② <strong>手动包装</strong>——在 supplyAsync 的 lambda 里先回放上下文再执行业务；③ <strong>allOf/anyOf 后续 thenApply</strong> 仍在异步线程，需确保链上每一步都在 TTL 线程池执行。最稳妥是全程用 TTL 装饰的线程池，不要用默认 commonPool。</p>
+              <p>
+                CompletableFuture 默认用 ForkJoinPool.commonPool，其线程复用且无 TTL 透传。解法：①
+                <strong>显式传自定义 TTL 线程池</strong>——<code class="inline-code">supplyAsync(supplier, ttlExecutor)</code>；② <strong>手动包装</strong>——在 supplyAsync 的 lambda 里先回放上下文再执行业务；③ <strong>allOf/anyOf 后续 thenApply</strong> 仍在异步线程，需确保链上每一步都在 TTL 线程池执行。最稳妥是全程用 TTL 装饰的线程池，不要用默认 commonPool。
+              </p>
               <p><strong>追问 2：Virtual Thread 下 ThreadLocal 有什么问题？Scoped Values 如何替代？</strong></p>
-              <p>Virtual Thread 数量可能极大（百万级），每个虚拟线程都继承 ThreadLocal 会导致<strong>内存膨胀</strong>与<strong>继承开销</strong>。JDK 21 预览的 <strong>Scoped Values</strong>（<code class="inline-code">ScopedValue.where(KEY, val).run(()-&gt;...)</code>）是不可变、有界、自动清理的上下文传递机制，专为虚拟线程设计，避免 ThreadLocal 的继承开销与泄漏问题。OTel 已用 Context 基于 ThreadLocal 适配虚拟线程，未来将迁移到 Scoped Values。</p>
+              <p>
+                Virtual Thread 数量可能极大（百万级），每个虚拟线程都继承 ThreadLocal 会导致<strong>内存膨胀</strong>与<strong>继承开销</strong>。JDK 21 预览的
+                <strong>Scoped Values</strong>（<code class="inline-code">ScopedValue.where(KEY, val).run(()-&gt;...)</code>）是不可变、有界、自动清理的上下文传递机制，专为虚拟线程设计，避免 ThreadLocal 的继承开销与泄漏问题。OTel 已用 Context 基于 ThreadLocal 适配虚拟线程，未来将迁移到 Scoped Values。
+              </p>
             </div>
           </div>
 
@@ -1764,7 +1828,11 @@ flowchart LR
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>考察<strong>"可观测性(Observability) 如何标准化落地"</strong>的架构能力。核心回答：<strong>可观测性区别于监控(Monitoring)</strong>——监控只能发现"预设的已知问题"(阈值告警)，可观测性通过 Metrics/Trace/Log 三支柱的关联分析，回答"为什么出问题、还有哪些未知问题"，三支柱必须通过 <code class="inline-code">TraceId</code> 统一关联形成闭环。<strong>OpenTelemetry(OTel)</strong> 作为统一标准的架构（API+SDK+Collector）终结厂商锁定，落地重心在 <strong>OTel Collector 管道工程</strong>（pipeline/receiver/processor/exporter、Service Graph Connector、Tail Sampling Processor）与部署模式（Agent/Deployment/Gateway 三级拓扑）。</p>
+              <p>
+                考察<strong>"可观测性(Observability) 如何标准化落地"</strong>的架构能力。核心回答：<strong>可观测性区别于监控(Monitoring)</strong>——监控只能发现"预设的已知问题"(阈值告警)，可观测性通过 Metrics/Trace/Log 三支柱的关联分析，回答"为什么出问题、还有哪些未知问题"，三支柱必须通过 <code class="inline-code">TraceId</code> 统一关联形成闭环。<strong>OpenTelemetry(OTel)</strong>
+                作为统一标准的架构（API+SDK+Collector）终结厂商锁定，落地重心在
+                <strong>OTel Collector 管道工程</strong>（pipeline/receiver/processor/exporter、Service Graph Connector、Tail Sampling Processor）与部署模式（Agent/Deployment/Gateway 三级拓扑）。
+              </p>
             </div>
           </div>
 
@@ -1778,6 +1846,7 @@ flowchart LR
               <p><strong>阶段 5：eBPF 补充 + 生态融合（2021+）</strong>。OTel eBPF Profiler 从内核采集无侵入 Profile，补足应用层 Trace 看不到的网络/系统层细节；Spring Boot 3.2+ 内置 Micrometer Tracing(桥接 OTel/Brave)；JDK 21 虚拟线程带来 ThreadLocal 上下文传播新挑战。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     L["日志 ELK<br/>三支柱割裂<br/>（2000s）"] --> A["APM 兴起<br/>Trace+Metrics+Log<br/>各自为政（2012）"]
@@ -1838,6 +1907,7 @@ flowchart LR
 
               <p><strong>OpenTelemetry 架构：API + SDK + Collector</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     subgraph APP["应用进程"]
@@ -1865,14 +1935,14 @@ flowchart LR
               <ul>
                 <li><strong>Receivers（接收器）</strong>：数据入口。<code class="inline-code">otlp</code>（gRPC 4317/HTTP 4318，接收 SDK 上报）、<code class="inline-code">prometheus</code>（pull 方式抓取指标）、<code class="inline-code">kafka</code>（从 Kafka 消费缓冲数据，抗峰削谷）、<code class="inline-code">filelog</code>（tail 本地日志文件）。同一 Collector 可同时启多个 receiver 接收不同信号。</li>
                 <li>
-                  <strong>Processors（处理器核心能力）</strong>：管道的"大脑"。① <code class="inline-code">batch</code>——批量合并减少网络请求（必配，timeout 5s/send_batch_size 1024）；② <code class="inline-code">memory_limiter</code>——软限制内存防 OOM（limit_percentage 80，必配）；③ <code class="inline-code">filter</code>——按属性过滤噪音（如过滤 <code class="inline-code">/actuator/health</code> 健康检查 Span）；④ <code class="inline-code">resource</code>——统一注入/富化 service.name、k8s.pod.name 等资源标签；⑤ <strong><code class="inline-code">tail_sampling</code></strong
-                  >——Collector 缓冲完整 Trace，按策略（ERROR 状态/慢调用/概率）决定保留（配置见工程实践）；⑥ <strong><code class="inline-code">servicegraph</code>（Service Graph Connector）</strong>——从 Trace Span 聚合生成服务调用拓扑（A→B 调用次数/RT），供 Grafana Tempo 的"服务图"直接展示。
+                  <strong>Processors（处理器核心能力）</strong>：管道的"大脑"。① <code class="inline-code">batch</code>——批量合并减少网络请求（必配，timeout 5s/send_batch_size 1024）；② <code class="inline-code">memory_limiter</code>——软限制内存防 OOM（limit_percentage 80，必配）；③ <code class="inline-code">filter</code>——按属性过滤噪音（如过滤 <code class="inline-code">/actuator/health</code> 健康检查 Span）；④ <code class="inline-code">resource</code>——统一注入/富化 service.name、k8s.pod.name 等资源标签；⑤ <strong><code class="inline-code">tail_sampling</code></strong>——Collector 缓冲完整 Trace，按策略（ERROR 状态/慢调用/概率）决定保留（配置见工程实践）；⑥ <strong><code class="inline-code">servicegraph</code>（Service Graph Connector）</strong>——从 Trace Span 聚合生成服务调用拓扑（A→B 调用次数/RT），供 Grafana Tempo 的"服务图"直接展示。
                 </li>
                 <li><strong>Exporters（导出器）</strong>：数据出口。<code class="inline-code">otlp</code>（发给下一级 Collector 或 Jaeger/Tempo）、<code class="inline-code">prometheusremotewrite</code>（写给 VictoriaMetrics/Prometheus）、<code class="inline-code">kafka</code>（写入 Kafka 做缓冲层）、<code class="inline-code">debug</code>（stdout 打印排障用）。</li>
               </ul>
 
               <p><strong>Collector 三级部署拓扑（生产推荐）</strong>：</p>
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     subgraph NODE["K8s 每个 Node（DaemonSet）"]
@@ -2071,11 +2141,15 @@ processors:
             <div class="qa-layer-body">
               <p><strong>阶段 1：传统测试</strong>。单元/集成/性能测试验证"正常路径"与"已知异常路径"，但<strong>无法覆盖生产环境的复杂不可预见故障</strong>（网络抖动、实例掉线、依赖超时组合）。</p>
               <p><strong>阶段 2：故障演练（GameDay）</strong>。运维手动制造故障（kill 实例、断网），观察系统反应。有价值但不可重复、覆盖窄。</p>
-              <p><strong>阶段 3：Netflix Chaos Monkey（2011）</strong>。Netflix 在 AWS 随机 kill 生产实例，验证弹性。开创<strong>混沌工程(Chaos Engineering)</strong> discipline——"在生产环境主动注入故障验证韧性"。后续 Simian Army 一系列猴子（Latency Monkey 注入延迟、Conformity Monkey 检查合规等）。</p>
+              <p>
+                <strong>阶段 3：Netflix Chaos Monkey（2011）</strong>。Netflix 在 AWS 随机 kill 生产实例，验证弹性。开创<strong>混沌工程(Chaos Engineering)</strong>
+                discipline——"在生产环境主动注入故障验证韧性"。后续 Simian Army 一系列猴子（Latency Monkey 注入延迟、Conformity Monkey 检查合规等）。
+              </p>
               <p><strong>阶段 4：混沌工程平台化（2018+）</strong>。ChaosBlade（阿里，开源，故障场景丰富）、Litmus（CNCF，K8s 原生）、Chaos Mesh（CNCF，K8s 原生，CRD 定义实验）、AWS FIS。从"随机杀实例"演进到<strong>可控、可编排、可度量的实验平台</strong>。</p>
               <p><strong>阶段 5：持续混沌与自适应韧性（趋势）</strong>。① <strong>持续混沌</strong>——实验自动化纳入 CI/CD，每次发布自动跑混沌实验验证韧性回归；② <strong>自适应弹性</strong>——根据混沌实验结果自动调整容量/限流/熔断阈值；③ <strong>多维度故障组合</strong>——从单故障注入到多故障组合（网络分区+磁盘满+实例宕），逼近真实灾难场景。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     T["传统测试<br/>正常+已知异常路径"] --> G["故障演练 GameDay<br/>手动制造故障<br/>不可重复（2010）"]
@@ -2143,6 +2217,7 @@ flowchart LR
               <p><strong>爆炸半径(Blast Radius) 控制</strong>：故障实验必须可控，避免把生产搞挂。① <strong>小范围开始</strong>——先单个实例/单个可用区；② <strong>自动中止</strong>——稳态指标超阈值自动停止实验；③ <strong>灰度扩大</strong>——验证小范围无影响再扩大范围；④ <strong>回滚预案</strong>——实验前准备快速回滚；⑤ <strong>非高峰期</strong>——选低峰时段实验降低影响。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart TB
     H["1、定义稳态指标<br/>（QPS/RT/错误率）"] --> E["2、设计实验假设<br/>（故障下稳态保持）"]
@@ -2243,9 +2318,15 @@ spec:
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：混沌工程与测试、SRE 的关系？</strong></p>
-              <p>混沌工程是<strong>测试的延伸</strong>——测试验证"已知预期"，混沌工程探索"未知未预期"的复杂故障组合，覆盖测试覆盖不到的生产复杂性。与 <strong>SRE</strong> 关系：SRE 关注可靠性目标(SLO/错误预算)，混沌工程是达成 SLO 的手段之一——用实验验证系统在故障下仍能维持 SLO，消耗错误预算时用混沌发现脆弱点改进。<strong>混沌工程不是 SRE 的全部</strong>，但成熟 SRE 体系必含混沌工程实践。</p>
+              <p>
+                混沌工程是<strong>测试的延伸</strong>——测试验证"已知预期"，混沌工程探索"未知未预期"的复杂故障组合，覆盖测试覆盖不到的生产复杂性。与
+                <strong>SRE</strong> 关系：SRE 关注可靠性目标(SLO/错误预算)，混沌工程是达成 SLO 的手段之一——用实验验证系统在故障下仍能维持 SLO，消耗错误预算时用混沌发现脆弱点改进。<strong>混沌工程不是 SRE 的全部</strong>，但成熟 SRE 体系必含混沌工程实践。
+              </p>
               <p><strong>追问 2：如何说服业务团队在生产环境做混沌实验？</strong></p>
-              <p>关键论点：① <strong>不在生产实验，故障早晚会真实发生</strong>——与其被动等故障暴露脆弱点，不如主动受控发现；② <strong>爆炸半径可控</strong>——小范围+自动中止+非高峰，风险可控；③ <strong>渐进式推进</strong>——先非生产，团队建立信心后再生产单实例；④ <strong>价值量化</strong>——每次发现的脆弱点都是潜在线上事故的预防，统计"实验发现的脆弱点数 vs 同期线上事故数"证明 ROI。Netflix、阿里等都是"先小规模试点 → 证明价值 → 全公司推广"。</p>
+              <p>
+                关键论点：①
+                <strong>不在生产实验，故障早晚会真实发生</strong>——与其被动等故障暴露脆弱点，不如主动受控发现；② <strong>爆炸半径可控</strong>——小范围+自动中止+非高峰，风险可控；③ <strong>渐进式推进</strong>——先非生产，团队建立信心后再生产单实例；④ <strong>价值量化</strong>——每次发现的脆弱点都是潜在线上事故的预防，统计"实验发现的脆弱点数 vs 同期线上事故数"证明 ROI。Netflix、阿里等都是"先小规模试点 → 证明价值 → 全公司推广"。
+              </p>
             </div>
           </div>
 
@@ -2329,7 +2410,11 @@ spec:
               <p><strong>事务协调器与两阶段提交</strong>：Kafka 事务引入<strong>Transaction Coordinator（事务协调器）</strong>组件，每个 Broker 上运行一个协调器实例，职责是维护事务状态与写入事务日志（特殊内部 Topic <code class="inline-code">__transaction_state</code>）。事务生命周期：</p>
               <ul>
                 <li><strong>阶段 1：BEGIN</strong>——生产者调用 <code class="inline-code">initTransactions()</code> 后分配 PID，<code class="inline-code">beginTransaction()</code> 向协调器注册事务。</li>
-                <li><strong>阶段 2：提交准备</strong>——生产者通过 <code class="inline-code">send()</code> 将消息写入目标分区（消息被标记为事务性），随后调用 <code class="inline-code">commitTransaction()</code> 向事务协调器发起结束事务（EndTxn）请求，由协调器统一决策提交或中止。</li>
+                <li>
+                  <strong>阶段 2：提交准备</strong>——生产者通过 <code class="inline-code">send()</code> 将消息写入目标分区（消息被标记为事务性），随后调用
+                  <code class="inline-code">commitTransaction()</code>
+                  向事务协调器发起结束事务（EndTxn）请求，由协调器统一决策提交或中止。
+                </li>
                 <li><strong>阶段 3：COMMIT/ABORT</strong>——协调器先在内部事务主题 <code class="inline-code">__transaction_state</code> 记录最终状态，再向各参与分区写入<strong>事务控制标记（Commit 或 Abort 控制批次）</strong>；消费者（<code class="inline-code">isolation.level=read_committed</code>）会过滤掉 Abort 标记的消息；任意环节失败协调器广播 Abort，保证原子性。</li>
               </ul>
 
@@ -2433,12 +2518,12 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>深挖点：KRaft 与 ZK 模式最本质的差异不在"去掉了什么"，而在<strong>元数据一致性协议的统一</strong>——ZK 模式下元数据用 ZK 的 Zab 协议，数据面用 ISR 拉取，两套一致性机制并存；KRaft 下元数据与数据面同为"Leader 追加日志 + Follower 复制"的日志复制模型，一致性机制归一。回答"Kafka 为什么不用 Raft"（见深度追问）时要补一句：Kafka 确实在 KRaft 元数据层用了 Raft，只是数据面出于吞吐考量保留了 ISR 异步拉取——两种协议各司其职，并不矛盾。</p>
-              
-              <p><strong>Schema Registry / 消息契约治理</strong>：生产者与消费者契约应版本化（Confluent Schema Registry / Apicurio / 自建）。兼容策略显式选择 BACKWARD / FORWARD / FULL；破坏性变更走双写或版本主题，禁止静默改字段语义。落地：① CI 阻断不兼容 schema；② 消费者按版本反序列化并监控失败；③ 与 Outbox/CDC 字段演进同单评审。缺契约治理时多团队并行极易出现线上解析事故。</p>
-</div>
+
+                <p><strong>Schema Registry / 消息契约治理</strong>：生产者与消费者契约应版本化（Confluent Schema Registry / Apicurio / 自建）。兼容策略显式选择 BACKWARD / FORWARD / FULL；破坏性变更走双写或版本主题，禁止静默改字段语义。落地：① CI 阻断不兼容 schema；② 消费者按版本反序列化并监控失败；③ 与 Outbox/CDC 字段演进同单评审。缺契约治理时多团队并行极易出现线上解析事故。</p>
+              </div>
             </div>
           </div>
-        
+
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产实践</div>
             <div class="qa-layer-body">
@@ -2449,7 +2534,7 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
               </div>
             </div>
           </div>
-</div>
+        </div>
 
         <!-- C11.12 API 网关的核心设计（限流、熔断、灰度发布）？ -->
         <!-- ============================================================ -->
@@ -2462,7 +2547,11 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>本题聚焦 C10.02/C10.03/C10.09 未覆盖的增量——网关层与服务层限流协同、AI 流量治理(Token 限流/MCP 接口配额)、网关扩展插件；基础限流算法、熔断状态机、Spring Cloud Gateway 实现、灰度染色原理详见 C10.03/C10.02/C10.09。其中 SC Gateway 过滤器链与转发末端（NettyRoutingFilter，order=LOWEST_PRECEDENCE）以 <a href="chapter-10-microservice-cloud.html#C10.20">C10.20</a> 为准，本卡聚焦限流/熔断/灰度的通用设计，不重复展开产品实现细节。</p>
+              <p>
+                本题聚焦 C10.02/C10.03/C10.09 未覆盖的增量——网关层与服务层限流协同、AI 流量治理(Token 限流/MCP 接口配额)、网关扩展插件；基础限流算法、熔断状态机、Spring Cloud Gateway 实现、灰度染色原理详见 C10.03/C10.02/C10.09。其中 SC Gateway 过滤器链与转发末端（NettyRoutingFilter，order=LOWEST_PRECEDENCE）以
+                <a href="chapter-10-microservice-cloud.html#C10.20">C10.20</a>
+                为准，本卡聚焦限流/熔断/灰度的通用设计，不重复展开产品实现细节。
+              </p>
               <p>考察<strong>API 网关作为微服务流量入口的统一治理能力</strong>。核心回答：API 网关本质是<strong>反向代理 + 协议转换 + 流量控制 + 可观测性的聚合层</strong>。需厘清限流（Rate Limiting）的算法选型、熔断（Circuit Breaker）的状态机与恢复策略、以及灰度发布（Canary）的流量染色与路由机制。</p>
             </div>
           </div>
@@ -2691,7 +2780,10 @@ mcp_tools_quota:
               <p><strong>追问 1：调度框架的"错过触发（Misfire）"如何处理？</strong></p>
               <p>当节点宕机或线程池满导致定时点未执行时，Quartz 提供 Misfire 策略：<strong>立即补执行（WITH_IGNORE_MISFIRES）</strong>、<strong>放弃错过（DO_NOTHING）</strong>、<strong>下次触发点执行（FIRE_AND_PROCEED）</strong>。选择取决于业务：对账类任务选补执行，统计类任务可放弃。XXL-JOB 通过阻塞处理策略（单机串行/丢弃后续/覆盖之前）控制。</p>
               <p><strong>追问 2：任务执行超时但节点失联，如何防止重复执行？</strong></p>
-              <p>这是分布式调度的经典难题。方案：① <strong>执行前写"执行中"状态 + 心跳续期</strong>，其他节点看到"执行中"不抢；② <strong>超时后由监控线程标记为失败</strong>，再允许重新调度；③ <strong>业务层幂等兜底</strong>——无论调度层如何保证，业务必须支持重复执行无副作用（唯一索引/状态机校验）。</p>
+              <p>
+                这是分布式调度的经典难题。方案：①
+                <strong>执行前写"执行中"状态 + 心跳续期</strong>，其他节点看到"执行中"不抢；② <strong>超时后由监控线程标记为失败</strong>，再允许重新调度；③ <strong>业务层幂等兜底</strong>——无论调度层如何保证，业务必须支持重复执行无副作用（唯一索引/状态机校验）。
+              </p>
             </div>
           </div>
 
@@ -2736,6 +2828,7 @@ mcp_tools_quota:
               <p><strong>ES 7.x/8.x（2019—至今）</strong>：引入<strong>向量检索（dense_vector + KNN）</strong>支撑语义搜索、SQL 查询接口、安全默认开启（TLS + 认证）、新类型组件提高聚合性能，向"搜索 + 分析 + 向量数据库"综合体演进。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     L["Lucene 1.x<br/>单机全文检索库<br/>（1999）"] --> S["Solr<br/>企业级搜索<br/>HTTP+主从（2004）"]
@@ -2931,6 +3024,7 @@ flowchart LR
               <p><strong>gRPC-Web / Connect（2018+）</strong>：浏览器原生不支持 HTTP/2 Trailer，gRPC-Web 通过代理转译让前端可调 gRPC；Buf Connect 重新设计协议，更贴合 HTTP 语义，降低网关复杂度。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     C["CORBA/SOAP<br/>重量级 RPC<br/>强耦合（2000）"] --> R["REST/JSON<br/>轻量但低效<br/>HTTP/1.1（2010）"]
@@ -3088,7 +3182,10 @@ flowchart LR
               <p><strong>追问 1：Protobuf 如何保证向后/向前兼容？</strong></p>
               <p>Protobuf 靠<strong>字段编号</strong>而非字段名定位，兼容规则：① 新增字段用新编号，旧客户端忽略未知字段（unknown fields 保留），向前兼容；② 删除字段需保留编号不复用（用 reserved 标记），避免新旧端误读；③ 字段类型需兼容（如 int32→int64 可放宽，反过来会截断）；④ proto3 默认字段<strong>无 presence（无 optional 语义）</strong>——普通标量字段无法区分"未设"与"默认值"，反序列化后两者等价；如需判定需声明 <strong>显式 optional 关键字（protobuf 3.12+ 重新引入，行为同 proto2）</strong>，才会生成 hasXxx() 方法。核心：编号是契约的稳定锚点，改名不影响。</p>
               <p><strong>追问 2：gRPC 是长连接，如何做负载均衡？</strong></p>
-              <p>HTTP/2 长连接使传统 L4 负载均衡（每次请求重新建连）失效。方案分两层：① <strong>客户端侧 LB（内置）</strong>——gRPC 提供 pick_first（默认连一个）与 round_robin 策略，客户端直接从解析到的多个后端地址轮询，无中间代理层延迟低；② <strong>服务端代理 LB（Envoy xDS）</strong>——客户端只连 Envoy，Envoy 通过 xDS 动态获取后端实例并做加权/最少连接调度，配合健康检查与熔断，是 Service Mesh 的标准做法。注意 DNS 缓存会导致实例上下线感知延迟，生产用 xDS 主动推送。</p>
+              <p>
+                HTTP/2 长连接使传统 L4 负载均衡（每次请求重新建连）失效。方案分两层：①
+                <strong>客户端侧 LB（内置）</strong>——gRPC 提供 pick_first（默认连一个）与 round_robin 策略，客户端直接从解析到的多个后端地址轮询，无中间代理层延迟低；② <strong>服务端代理 LB（Envoy xDS）</strong>——客户端只连 Envoy，Envoy 通过 xDS 动态获取后端实例并做加权/最少连接调度，配合健康检查与熔断，是 Service Mesh 的标准做法。注意 DNS 缓存会导致实例上下线感知延迟，生产用 xDS 主动推送。
+              </p>
             </div>
           </div>
 
@@ -3135,6 +3232,7 @@ flowchart LR
               <p><strong>Nacos 2.0（2021）</strong>：通信模型从 HTTP 短连接长轮询升级为 gRPC 长连接；官方基准测试称连接管理与推送延迟较 1.x 有数量级（约 10x）提升，实际以官方与自身压测为准。</p>
 
               <div class="mermaid-container">
+                <!-- prettier-ignore -->
                 <div class="mermaid">
 flowchart LR
     P["properties<br/>硬编码/随包发布"] --> D["DB 配置表<br/>定时轮询拉取"]
@@ -3157,7 +3255,10 @@ flowchart LR
               <p><strong>Apollo 长轮询机制</strong>：客户端定时（默认 1s 检测）向 Config Server 发起长轮询请求，服务端<strong>hold 住连接</strong>：若有配置变更立即返回变更的 namespace 列表，客户端再拉取具体配置内容；若无变更则保持连接到超时（默认 60s）后返回，客户端立即发下一次请求。本质是"服务端有变更才返回 + 客户端持续保活"，兼顾实时性与连接复用。</p>
               <p><strong>Nacos gRPC 长连接推送（2.x）/ 长轮询+UDP（1.x 兼容）</strong>：2.x 客户端通过 gRPC 长连接订阅配置，服务端变更时通过 gRPC 流主动推送；1.x 兼容模式下仍用长轮询+UDP（客户端长轮询，服务端变更时额外发 UDP 包做快速通知，UDP 丢失时长轮询兜底）。</p>
               <p><strong>配置灰度发布</strong>：按 <strong>IP 维度</strong>或<strong>标签维度</strong>指定部分实例先生效新配置，验证无误再全量推送。Apollo 内置灰度规则引擎，Nacos 通过命名空间 + 分组 + DataId 组合实现类似隔离。</p>
-              <p><strong>多环境隔离</strong>：Apollo 用 <strong>Env（DEV/FAT/UAT/PRO）+ Cluster（机房）+ Namespace</strong> 三级隔离；Nacos 用<strong>命名空间（Namespace）+ 分组（Group）+ DataId</strong> 三级隔离，命名空间天然对应环境。</p>
+              <p>
+                <strong>多环境隔离</strong>：Apollo 用 <strong>Env（DEV/FAT/UAT/PRO）+ Cluster（机房）+ Namespace</strong> 三级隔离；Nacos 用<strong>命名空间（Namespace）+ 分组（Group）+ DataId</strong>
+                三级隔离，命名空间天然对应环境。
+              </p>
               <p><strong>Nacos AP/CP 切换</strong>：</p>
               <ul>
                 <li><strong>临时实例（AP）</strong>：客户端靠心跳维持，实例下线心跳超时自动剔除，AP 优先可用性，适合注册中心场景。</li>
@@ -3274,7 +3375,10 @@ spring:
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：Nacos 为何能同时支持 AP 和 CP？</strong></p>
-              <p>Nacos 区分<strong>临时实例与永久实例</strong>。临时实例由客户端发心跳保活，心跳断开即剔除，走 <strong>Distro 协议（AP）</strong>——各节点独立处理写请求再异步同步，优先可用性，适合服务注册（实例频繁上下线，临时不一致可接受）。永久实例由服务端主动探测，走 <strong>Raft 协议（CP）</strong>——写需多数派确认，强一致，适合数据库等持久化服务的注册。一套系统两种协议按实例类型分治，是 Nacos 的设计亮点。</p>
+              <p>
+                Nacos 区分<strong>临时实例与永久实例</strong>。临时实例由客户端发心跳保活，心跳断开即剔除，走
+                <strong>Distro 协议（AP）</strong>——各节点独立处理写请求再异步同步，优先可用性，适合服务注册（实例频繁上下线，临时不一致可接受）。永久实例由服务端主动探测，走 <strong>Raft 协议（CP）</strong>——写需多数派确认，强一致，适合数据库等持久化服务的注册。一套系统两种协议按实例类型分治，是 Nacos 的设计亮点。
+              </p>
               <p><strong>追问 2：配置中心与 K8s ConfigMap 如何取舍？</strong></p>
               <p>ConfigMap 是 K8s 原生的配置卷，改 ConfigMap 后 Pod 挂载的文件会更新（但应用需自行 watch 或重启才能感知），优势是<strong>无额外组件、与 K8s 深度集成</strong>。配置中心优势在于<strong>动态推送（无需重启）、灰度发布、多环境统一管理、跨集群</strong>。取舍：纯 K8s 环境且配置变更少、可接受滚动重启，用 ConfigMap 足够；需要秒级动态生效、灰度、跨 K8s/非 K8s 混合部署，用配置中心。二者也可结合：ConfigMap 放启动参数，配置中心放运行期动态配置。</p>
             </div>
@@ -3310,7 +3414,12 @@ spring:
 
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
-                <p>深挖点：长轮询"挂起连接"的最大坑是<strong>连接泄漏与服务端线程占用</strong>——若客户端超时设置与服务端挂起超时不匹配，或客户端异常退出后服务端未及时清理 <code class="inline-code">allSubs</code>，挂起的 <code class="inline-code">AsyncContext</code> 会积压成连接 / 线程泄漏。这也是 Nacos 1.x 生产调优的重点（检查客户端超时 <code class="inline-code">long-polling.timeout</code> 与服务端一致性、监控挂起连接数）。理解这一点，就能答出"长轮询不是没有代价，只是把轮询成本转移成了连接管理成本"——这也是 2.x 换 gRPC 长连接的根本动机之一。</p>
+                <p>
+                  深挖点：长轮询"挂起连接"的最大坑是<strong>连接泄漏与服务端线程占用</strong>——若客户端超时设置与服务端挂起超时不匹配，或客户端异常退出后服务端未及时清理
+                  <code class="inline-code">allSubs</code>，挂起的 <code class="inline-code">AsyncContext</code> 会积压成连接 / 线程泄漏。这也是 Nacos 1.x 生产调优的重点（检查客户端超时
+                  <code class="inline-code">long-polling.timeout</code>
+                  与服务端一致性、监控挂起连接数）。理解这一点，就能答出"长轮询不是没有代价，只是把轮询成本转移成了连接管理成本"——这也是 2.x 换 gRPC 长连接的根本动机之一。
+                </p>
               </div>
             </div>
           </div>
@@ -3347,8 +3456,15 @@ spring:
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>1. Flyway 核心</strong>：① <strong>版本化 SQL 文件</strong>——命名 <code class="inline-code">V{版本号}__{描述}.sql</code>（如 <code class="inline-code">V1__init.sql</code>→<code class="inline-code">V2__add_column.sql</code>），按版本号顺序执行；② <strong>checksum 校验</strong>——已执行脚本记录 checksum，再次启动比对，<strong>脚本被修改则 checksum 不匹配报错</strong>（防止偷偷改历史脚本破坏一致性）；③ <strong>repair 机制</strong>——<code class="inline-code">flyway repair</code> 修正历史表中的 checksum（用于"故意修改已执行脚本"的合法场景，慎用）；④ <strong>Baseline</strong>——对已有数据库设定基线版本（<code class="inline-code">baselineVersion</code>），只执行基线之后的迁移，避免对存量库全量重跑。Flyway 还有 <code class="inline-code">Repeatable</code>（<code class="inline-code">R__</code> 前缀，视图/存储过程每次 checksum 变化重跑）和 <code class="inline-code">Undo</code>（仅 Teams 付费版；<strong>社区版无自动回滚</strong>，生产回滚靠向前兼容迁移与备份而非工具 Undo）。Liquibase 的回滚也仅在 changeset <strong>显式定义 rollback 块</strong>时生效（部分 DDL 可自动生成反向 SQL）。</p>
-              <p><strong>2. Liquibase 核心</strong>：① <strong>changeset + xml/yaml</strong>——用结构化格式描述变更（<code class="inline-code">&lt;createTable&gt;</code>/<code class="inline-code">&lt;addColumn&gt;</code>），可跨数据库生成方言 SQL；② <strong>preconditions</strong>——执行前校验（如表存在才执行、列不存在才加），增强幂等性；③ <strong>rollback 标签</strong>——显式定义回滚逻辑（<code class="inline-code">&lt;rollback&gt;&lt;dropColumn.../&gt;&lt;/rollback&gt;</code>），部分操作支持自动回滚（createTable→dropTable）；④ <strong>diff 工具</strong>——对比两库 Schema 差异并生成 changeset，便于存量库导入。Liquibase 用 <code class="inline-code">DATABASECHANGELOG</code>/<code class="inline-code">DATABASECHANGELOGLOCK</code> 表管理状态。</p>
+              <p>
+                <strong>1. Flyway 核心</strong>：① <strong>版本化 SQL 文件</strong>——命名 <code class="inline-code">V{版本号}__{描述}.sql</code>（如 <code class="inline-code">V1__init.sql</code>→<code class="inline-code">V2__add_column.sql</code>），按版本号顺序执行；② <strong>checksum 校验</strong>——已执行脚本记录 checksum，再次启动比对，<strong>脚本被修改则 checksum 不匹配报错</strong>（防止偷偷改历史脚本破坏一致性）；③ <strong>repair 机制</strong>——<code class="inline-code">flyway repair</code>
+                修正历史表中的 checksum（用于"故意修改已执行脚本"的合法场景，慎用）；④
+                <strong>Baseline</strong>——对已有数据库设定基线版本（<code class="inline-code">baselineVersion</code>），只执行基线之后的迁移，避免对存量库全量重跑。Flyway 还有 <code class="inline-code">Repeatable</code>（<code class="inline-code">R__</code> 前缀，视图/存储过程每次 checksum 变化重跑）和 <code class="inline-code">Undo</code>（仅 Teams 付费版；<strong>社区版无自动回滚</strong>，生产回滚靠向前兼容迁移与备份而非工具 Undo）。Liquibase 的回滚也仅在 changeset <strong>显式定义 rollback 块</strong>时生效（部分 DDL 可自动生成反向 SQL）。
+              </p>
+              <p>
+                <strong>2. Liquibase 核心</strong>：① <strong>changeset + xml/yaml</strong>——用结构化格式描述变更（<code class="inline-code">&lt;createTable&gt;</code>/<code class="inline-code">&lt;addColumn&gt;</code>），可跨数据库生成方言 SQL；② <strong>preconditions</strong>——执行前校验（如表存在才执行、列不存在才加），增强幂等性；③ <strong>rollback 标签</strong>——显式定义回滚逻辑（<code class="inline-code">&lt;rollback&gt;&lt;dropColumn.../&gt;&lt;/rollback&gt;</code>），部分操作支持自动回滚（createTable→dropTable）；④ <strong>diff 工具</strong>——对比两库 Schema 差异并生成 changeset，便于存量库导入。Liquibase 用 <code class="inline-code">DATABASECHANGELOG</code>/<code class="inline-code">DATABASECHANGELOGLOCK</code>
+                表管理状态。
+              </p>
               <p><strong>3. 迁移策略</strong>：① <strong>向前兼容迁移（Forward-compatible）</strong>：Schema 只做加法（加列、加表、加索引），新代码兼容旧 Schema，回滚代码即可、Schema 不动——<strong>生产推荐</strong>；② <strong>向后兼容迁移（Backward-compatible）</strong>：新 Schema 兼容旧代码（如删列前先停止双写），允许新旧代码共存发布。<strong>核心原则：代码可回滚，Schema 尽量不回滚</strong>，靠向前兼容设计避免回滚 schema 的灾难。</p>
               <p><strong>4. Expand-Contract 模式</strong>：处理破坏性变更（删列/改类型）的安全分步法——<strong>Expand</strong>（加新列/新表，新旧并存）→ <strong>Migrate</strong>（双写新旧列 + 后台迁数据）→ <strong>Switch</strong>（读切到新列）→ <strong>Contract</strong>（确认无读旧列后删旧列）。每步独立发布、可回滚，<strong>中间状态任何一步都兼容</strong>，实现零停机变更。</p>
               <p><strong>5. 零停机迁移</strong>：大表 DDL 会锁表（如 MySQL <code class="inline-code">ALTER TABLE</code> 加列在 5.6 前是全表锁）。策略：① MySQL 8.0 Instant DDL（加列/加索引部分支持秒级）；② <strong>pt-online-schema-change（pt-osc）/ gh-ost</strong>：创建影子表 + 触发器/binlog 同步增量，后台分批拷贝数据，最后 rename 切换，全程不阻塞读写；③ 分批 UPDATE 大表数据避免长事务。</p>
@@ -3387,16 +3503,28 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
-              <p><strong>高级开发</strong>：① <strong>Spring Boot 集成 Flyway/Liquibase 配置</strong>——<code class="inline-code">spring.flyway.*</code>/<code class="inline-code">spring.liquibase.*</code> 一键启用，脚本放 <code class="inline-code">src/main/resources/db/migration</code>，应用启动自动迁移；② <strong>迁移脚本编写规范</strong>——版本号严格递增（<code class="inline-code">V{yyyyMMddHHmm}__desc.sql</code> 时间戳命名避免多人协作版本冲突），每个脚本只做一件事且幂等，<strong>禁止修改已执行脚本</strong>（改了 checksum 报错），新需求新增脚本而非改旧的。</p>
+              <p>
+                <strong>高级开发</strong>：① <strong>Spring Boot 集成 Flyway/Liquibase 配置</strong>——<code class="inline-code">spring.flyway.*</code>/<code class="inline-code">spring.liquibase.*</code> 一键启用，脚本放 <code class="inline-code">src/main/resources/db/migration</code>，应用启动自动迁移；② <strong>迁移脚本编写规范</strong>——版本号严格递增（<code class="inline-code">V{yyyyMMddHHmm}__desc.sql</code>
+                时间戳命名避免多人协作版本冲突），每个脚本只做一件事且幂等，<strong>禁止修改已执行脚本</strong>（改了 checksum 报错），新需求新增脚本而非改旧的。
+              </p>
               <p><strong>架构师决策</strong>：</p>
               <p>① <strong>CI/CD 管道集成迁移</strong>：迁移脚本随代码 PR 评审，CI 阶段在临时库执行迁移 + 跑集成测试验证 Schema 正确；部署阶段<strong>先执行迁移再发应用</strong>（迁移作为独立 Pipeline Step），避免应用启动与迁移并发冲突。生产建议<strong>迁移与应用解耦部署</strong>——DBA/CI 单独执行迁移，应用启动只校验不迁移（<code class="inline-code">flyway.enabled=false</code> + 预检）。</p>
               <p>② <strong>多环境迁移策略（dev/staging/prod）</strong>：同一套脚本跨环境，靠 <code class="inline-code">profile</code> 区分配置（如 prod 关闭 <code class="inline-code">clean</code> 防误删）。staging 必须用与 prod 同等量级数据验证迁移性能（大表加索引在 staging 跑通再去 prod）。<strong>prod 迁移必须有 rollback plan 与执行窗口</strong>。</p>
-              <p>③ <strong>回滚策略：代码回滚但 Schema 不回滚</strong>——靠<strong>向前兼容设计</strong>保证代码回滚后旧代码仍兼容新 Schema（加列用 NULL/默认值，新代码写新列、旧代码忽略）。破坏性变更（删列）走 Expand-Contract 多版本分步，<strong>绝不依赖工具的 rollback 标签回滚生产 Schema</strong>（数据不可逆）。真正兜底是<strong>备份 + 时间点恢复(PITR)</strong>。</p>
+              <p>
+                ③
+                <strong>回滚策略：代码回滚但 Schema 不回滚</strong>——靠<strong>向前兼容设计</strong>保证代码回滚后旧代码仍兼容新 Schema（加列用 NULL/默认值，新代码写新列、旧代码忽略）。破坏性变更（删列）走 Expand-Contract 多版本分步，<strong>绝不依赖工具的 rollback 标签回滚生产 Schema</strong>（数据不可逆）。真正兜底是<strong>备份 + 时间点恢复(PITR)</strong>。
+              </p>
               <p>④ <strong>大规模表迁移（Online DDL/pt-osc）</strong>：千万级大表 DDL 不能用普通 <code class="inline-code">ALTER</code>（锁表风险）。MySQL 8.0 优先用 Instant DDL；不支持的应用 <strong>gh-ost/pt-osc</strong> 在线改表，配合 <code class="inline-code">--chunk-size</code> 控制拷贝速率。迁移脚本里只写 DDL 语句，<strong>实际执行由 DBA 用工具在维护窗口操作</strong>，Flyway 记录已执行（<code class="inline-code">flyway repair</code> 同步状态）。</p>
-              <p>⑤ <strong>迁移审计与合规</strong>：<code class="inline-code">flyway_schema_history</code>/<code class="inline-code">DATABASECHANGELOG</code> 表本身就是审计日志（谁、何时、执行了什么 SQL）。金融/合规场景要求所有 Schema 变更可追溯，迁移脚本进 Git + PR 评审 + 执行记录表，满足审计要求。</p>
+              <p>
+                ⑤ <strong>迁移审计与合规</strong>：<code class="inline-code">flyway_schema_history</code>/<code class="inline-code">DATABASECHANGELOG</code>
+                表本身就是审计日志（谁、何时、执行了什么 SQL）。金融/合规场景要求所有 Schema 变更可追溯，迁移脚本进 Git + PR 评审 + 执行记录表，满足审计要求。
+              </p>
               <div class="callout callout-tip">
                 <div class="callout-title">架构决策红线</div>
-                <p>数据库迁移的第一原则是<strong>可逆性与兼容性优先于便捷性</strong>。① <strong>生产 Schema 变更默认向前兼容</strong>（只加不删），破坏性变更走 Expand-Contract 分步发布；② <strong>迁移脚本一旦合并不改</strong>，新需求新加脚本，靠版本号保证顺序；③ <strong>生产迁移独立于应用启动</strong>，CI/CD 单独 Step 执行 + 人工审批窗口；④ <strong>大表 DDL 必须评估锁表风险</strong>，用 gh-ost/pt-osc 而非裸 ALTER。把"删列"当原子操作的设计，迟早在线上丢数据。</p>
+                <p>
+                  数据库迁移的第一原则是<strong>可逆性与兼容性优先于便捷性</strong>。①
+                  <strong>生产 Schema 变更默认向前兼容</strong>（只加不删），破坏性变更走 Expand-Contract 分步发布；② <strong>迁移脚本一旦合并不改</strong>，新需求新加脚本，靠版本号保证顺序；③ <strong>生产迁移独立于应用启动</strong>，CI/CD 单独 Step 执行 + 人工审批窗口；④ <strong>大表 DDL 必须评估锁表风险</strong>，用 gh-ost/pt-osc 而非裸 ALTER。把"删列"当原子操作的设计，迟早在线上丢数据。
+                </p>
               </div>
             </div>
           </div>
@@ -3405,11 +3533,22 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：Flyway 的 checksum 失败如何处理？</strong></p>
-              <p>checksum 失败意味着<strong>历史执行记录的脚本内容与当前脚本文件不一致</strong>——有人修改了已执行的迁移脚本。这是 Flyway 的一致性保护机制，启动会直接报错阻止应用启动。处理步骤：① <strong>判断是否故意修改</strong>——若是合法修改（如修正脚本注释/格式），执行 <code class="inline-code">flyway repair</code>，它会用当前文件 checksum 更新 <code class="inline-code">flyway_schema_history</code> 表，使记录与新文件一致；② <strong>若是误改</strong>——应 Git 回退脚本到原始版本（保持 checksum 一致），而非 repair，因为修改已执行脚本可能破坏多环境一致性；③ <strong>生产环境 repair 需审批</strong>——repair 会改历史表，必须在 DBA 确认后执行。<strong>最佳实践：已执行脚本视为不可变</strong>，新需求一律新增版本号脚本，从源头避免 checksum 冲突。</p>
+              <p>
+                checksum 失败意味着<strong>历史执行记录的脚本内容与当前脚本文件不一致</strong>——有人修改了已执行的迁移脚本。这是 Flyway 的一致性保护机制，启动会直接报错阻止应用启动。处理步骤：①
+                <strong>判断是否故意修改</strong>——若是合法修改（如修正脚本注释/格式），执行 <code class="inline-code">flyway repair</code>，它会用当前文件 checksum 更新 <code class="inline-code">flyway_schema_history</code> 表，使记录与新文件一致；② <strong>若是误改</strong>——应 Git 回退脚本到原始版本（保持 checksum 一致），而非 repair，因为修改已执行脚本可能破坏多环境一致性；③ <strong>生产环境 repair 需审批</strong>——repair 会改历史表，必须在 DBA 确认后执行。<strong>最佳实践：已执行脚本视为不可变</strong>，新需求一律新增版本号脚本，从源头避免 checksum 冲突。
+              </p>
               <p><strong>追问 2：零停机添加 NOT NULL 列怎么做？</strong></p>
-              <p>直接 <code class="inline-code">ALTER TABLE ADD COLUMN col NOT NULL</code> 在多数数据库会因"已有行无默认值"而锁表或失败。零停机分步法（Expand-Contract 思想）：① <strong>第一步加可空列</strong>：<code class="inline-code">ALTER TABLE t ADD COLUMN col VARCHAR(32) NULL</code>（不锁表/秒级，旧行 NULL）；② <strong>第二步回填数据</strong>：分批 UPDATE 把已有行的 col 填默认值（<code class="inline-code">WHERE col IS NULL LIMIT 1000</code> 循环），避免长事务；③ <strong>第三步加默认值与非空约束</strong>：先 <code class="inline-code">ALTER TABLE t MODIFY COLUMN col VARCHAR(32) NOT NULL DEFAULT 'N'</code>（MySQL 8.0 Instant DDL 可秒级，或用 gh-ost）；④ <strong>第四步应用代码改为强制写该列</strong>。整个过程每步独立发布可回滚，<strong>核心是先加可空列避开 NOT NULL 的全表重写</strong>。也可直接用 <code class="inline-code">ADD COLUMN col VARCHAR(32) NOT NULL DEFAULT 'N'</code>（MySQL 8.0 Instant DDL 支持带默认值的 NOT NULL 加列秒级完成），但仍建议分步以兼容低版本与复杂场景。</p>
+              <p>
+                直接
+                <code class="inline-code">ALTER TABLE ADD COLUMN col NOT NULL</code>
+                在多数数据库会因"已有行无默认值"而锁表或失败。零停机分步法（Expand-Contract 思想）：①
+                <strong>第一步加可空列</strong>：<code class="inline-code">ALTER TABLE t ADD COLUMN col VARCHAR(32) NULL</code>（不锁表/秒级，旧行 NULL）；② <strong>第二步回填数据</strong>：分批 UPDATE 把已有行的 col 填默认值（<code class="inline-code">WHERE col IS NULL LIMIT 1000</code> 循环），避免长事务；③ <strong>第三步加默认值与非空约束</strong>：先 <code class="inline-code">ALTER TABLE t MODIFY COLUMN col VARCHAR(32) NOT NULL DEFAULT 'N'</code>（MySQL 8.0 Instant DDL 可秒级，或用 gh-ost）；④ <strong>第四步应用代码改为强制写该列</strong>。整个过程每步独立发布可回滚，<strong>核心是先加可空列避开 NOT NULL 的全表重写</strong>。也可直接用 <code class="inline-code">ADD COLUMN col VARCHAR(32) NOT NULL DEFAULT 'N'</code>（MySQL 8.0 Instant DDL 支持带默认值的 NOT NULL 加列秒级完成），但仍建议分步以兼容低版本与复杂场景。
+              </p>
               <p><strong>追问 3：Flyway 和 Liquibase 如何选型？</strong></p>
-              <p>核心差异在<strong>迁移描述方式</strong>与<strong>目标用户</strong>。① <strong>Flyway（SQL-first）</strong>：迁移就是纯 SQL，开发者写熟悉的 SQL 即可，简单直观、学习成本低、与 DBA 现有 SQL 脚本无缝衔接；缺点是跨数据库需为每种方言写不同脚本，回滚需手写 Undo 脚本（付费版）。<strong>适合单一数据库、开发者主导、Spring Boot 项目</strong>（Spring Boot 默认集成）。② <strong>Liquibase（XML/YAML changeset）</strong>：用结构化 changeset 描述变更，自动生成各数据库方言 SQL，<strong>跨数据库能力强</strong>；支持 preconditions 前置校验、显式 rollback 标签、diff 工具存量导入；缺点是 XML 学习成本高、与纯 SQL 习惯不同。<strong>适合需支持多种数据库、DBA 深度参与、有复杂回滚/审计需求</strong>的场景（如商业产品交付多客户多种 DB）。选型口诀：<strong>单库 + 开发者主导选 Flyway；多库 + DBA 主导选 Liquibase</strong>。两者都能满足大部分需求，团队熟悉度是重要决策因素。</p>
+              <p>
+                核心差异在<strong>迁移描述方式</strong>与<strong>目标用户</strong>。①
+                <strong>Flyway（SQL-first）</strong>：迁移就是纯 SQL，开发者写熟悉的 SQL 即可，简单直观、学习成本低、与 DBA 现有 SQL 脚本无缝衔接；缺点是跨数据库需为每种方言写不同脚本，回滚需手写 Undo 脚本（付费版）。<strong>适合单一数据库、开发者主导、Spring Boot 项目</strong>（Spring Boot 默认集成）。② <strong>Liquibase（XML/YAML changeset）</strong>：用结构化 changeset 描述变更，自动生成各数据库方言 SQL，<strong>跨数据库能力强</strong>；支持 preconditions 前置校验、显式 rollback 标签、diff 工具存量导入；缺点是 XML 学习成本高、与纯 SQL 习惯不同。<strong>适合需支持多种数据库、DBA 深度参与、有复杂回滚/审计需求</strong>的场景（如商业产品交付多客户多种 DB）。选型口诀：<strong>单库 + 开发者主导选 Flyway；多库 + DBA 主导选 Liquibase</strong>。两者都能满足大部分需求，团队熟悉度是重要决策因素。
+              </p>
             </div>
           </div>
 
@@ -3516,7 +3655,10 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
               </div>
               <div class="callout callout-tip">
                 <div class="callout-title">关键结论</div>
-                <p>选型：<strong>日志/埋点/流处理/高吞吐</strong> → Kafka；<strong>电商交易/分布式事务/延迟任务/顺序消费</strong> → RocketMQ。二者都需消费端<strong>幂等</strong>。</p>
+                <p>
+                  选型：<strong>日志/埋点/流处理/高吞吐</strong> → Kafka；<strong>电商交易/分布式事务/延迟任务/顺序消费</strong>
+                  → RocketMQ。二者都需消费端<strong>幂等</strong>。
+                </p>
               </div>
             </div>
           </div>
@@ -3535,7 +3677,10 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-body">
               <p><strong>追问 1：Kafka 为什么不适合做强事务消息？</strong> Kafka 的 exactly-once 是"读-处理-写"的有限 EOS，没有 RocketMQ 的 Half+回查机制，难以把"外部 DB 事务"与"消息"对齐为最终一致。</p>
               <p><strong>追问 2：RocketMQ 回查机制为何必要？</strong> 本地事务执行后生产者宕机，Broker 不知道 Commit/Rollback，必须回查生产者恢复最终状态，否则消息永久半消息或误决。</p>
-              <p><strong>追问 3：为什么阿里系偏爱 RocketMQ？</strong> 阿里系（淘宝/支付宝）大量使用，事务消息/顺序消息/延迟队列是电商交易核心能力，考察候选人对业务可靠消息的实战理解。</p>
+              <p>
+                <strong>追问 3：为什么阿里系偏爱 RocketMQ？</strong>
+                阿里系（淘宝/支付宝）大量使用，事务消息/顺序消息/延迟队列是电商交易核心能力，考察候选人对业务可靠消息的实战理解。
+              </p>
             </div>
           </div>
 
@@ -3558,7 +3703,9 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
           <div class="qa-layer" data-layer="production">
             <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
             <div class="qa-layer-body">
-              <p><strong>选型结论：高吞吐/流处理选 Kafka（顺序写 + 零拷贝 + 页缓存是吞吐关键），金融级事务/延迟队列/顺序消息选 RocketMQ；削峰靠 MQ 缓冲下游压力。</strong></p>
+              <p>
+                <strong>选型结论：高吞吐/流处理选 Kafka（顺序写 + 零拷贝 + 页缓存是吞吐关键），金融级事务/延迟队列/顺序消息选 RocketMQ；削峰靠 MQ 缓冲下游压力。</strong>
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -3605,7 +3752,11 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
                 <li><strong>削峰填谷落地策略</strong>：① <strong>消费者限流</strong>——用令牌桶控制消费速率，让消息在 Broker 端积压缓冲，下游按自身能力消费，避免瞬时洪峰打垮下游；② <strong>队列堆积告警 + 弹性扩容</strong>——监控消费 lag（如 RocketMQ 控制台 lag、Kafka consumer lag），超过阈值触发告警并自动扩容消费者实例（K8s HPA 按 lag 扩缩容）；③ <strong>分级降级</strong>——核心消息进高优队列优先消费（RocketMQ 多 Topic 分级 / 队列优先级），非核心消息延迟消费或降级丢弃，优先保障核心链路。</li>
                 <li><strong>RocketMQ 死信队列（DLQ）</strong>：命名规则 <code class="inline-code">%DLQ%ConsumerGroupName</code>（如 <code class="inline-code">%DLQ%order_consumer_group</code>），消息<strong>重试 16 次仍失败</strong>后自动转入该 Topic。DLQ 中的消息不会自动消费，需人工介入排查或定时任务扫描补偿。与 Kafka 对比：<strong>Kafka 没有内置 DLQ</strong>，需业务自行实现（消费失败写 error topic + 定时重放），这是 RocketMQ 在业务可靠性场景的明显优势。</li>
                 <li><strong>重试机制</strong>：RocketMQ 重试间隔<strong>按延迟 level 递增</strong>（1s, 5s, 10s, 30s, 1m, 2m, 3m, 4m, 5m, 6m, 7m, 8m, 9m, 10m, 20m, 30m, 1h, 2h，共 18 档）；重试消息存储在 <code class="inline-code">%RETRY%ConsumerGroupName</code> 私有 Topic 中。消费者处理返回 <code class="inline-code">RECONSUME_LATER</code> 触发下次重试，返回 <code class="inline-code">CONSUME_SUCCESS</code> 表示消费成功。</li>
-                <li><strong>消息轨迹（Message Trace）</strong>：开启 <code class="inline-code">traceTopic=RMQ_SYS_TRACE_TOPIC</code> 后，每条消息的生产-消费全链路被记录：发送时间、存储 Broker、消费时间、消费状态、消费耗时等。用途：排查<strong>消息丢失</strong>（生产未发出 / 消费未收到）、<strong>重复消费</strong>（同一消息多次消费记录）、<strong>消费延迟</strong>（消费耗时异常）三大问题，是生产排障的核心抓手。</li>
+                <li>
+                  <strong>消息轨迹（Message Trace）</strong>：开启
+                  <code class="inline-code">traceTopic=RMQ_SYS_TRACE_TOPIC</code>
+                  后，每条消息的生产-消费全链路被记录：发送时间、存储 Broker、消费时间、消费状态、消费耗时等。用途：排查<strong>消息丢失</strong>（生产未发出 / 消费未收到）、<strong>重复消费</strong>（同一消息多次消费记录）、<strong>消费延迟</strong>（消费耗时异常）三大问题，是生产排障的核心抓手。
+                </li>
               </ul>
 
               <div class="callout callout-deep">
@@ -3628,7 +3779,10 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
-              <p>这道题考察对 <strong>eBPF 无侵入可观测能力</strong> 的理解，以及它和传统 <strong>APM Agent / OpenTelemetry 埋点</strong> 的边界分工：eBPF 在内核态挂载钩子，<strong>不改应用代码、不注入 Agent</strong> 即可采集网络、系统调用、文件 IO、函数延迟等底层信号，是 2025-26 云原生可观测的新范式。</p>
+              <p>
+                这道题考察对 <strong>eBPF 无侵入可观测能力</strong> 的理解，以及它和传统 <strong>APM Agent / OpenTelemetry 埋点</strong> 的边界分工：eBPF 在内核态挂载钩子，<strong>不改应用代码、不注入 Agent</strong>
+                即可采集网络、系统调用、文件 IO、函数延迟等底层信号，是 2025-26 云原生可观测的新范式。
+              </p>
             </div>
           </div>
 
@@ -3644,7 +3798,10 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
-              <p><strong>机制</strong>：eBPF 程序挂载到内核钩子（<code class="inline-code">kprobe</code>/<code class="inline-code">uprobe</code>/tracepoint/<code class="inline-code">XDP</code>/TC），运行时由校验器确保内存安全，通过 <code class="inline-code">perf buffer</code>/<code class="inline-code">ring buffer</code> 把数据送用户态。可观测 TCP 重传、syscall 延迟、调度延迟、文件 IO。</p>
+              <p>
+                <strong>机制</strong>：eBPF 程序挂载到内核钩子（<code class="inline-code">kprobe</code>/<code class="inline-code">uprobe</code>/tracepoint/<code class="inline-code">XDP</code>/TC），运行时由校验器确保内存安全，通过 <code class="inline-code">perf buffer</code>/<code class="inline-code">ring buffer</code>
+                把数据送用户态。可观测 TCP 重传、syscall 延迟、调度延迟、文件 IO。
+              </p>
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -3702,7 +3859,11 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-body">
               <p><strong>追问 1：eBPF 能完全替代 APM Agent 吗？</strong> 不能。eBPF 在内核态拿不到上层业务语义（如 Spring 方法入参、完整 SQL 文本），这类需用户态 Agent 或 uprobe 解析；二者应协同。</p>
               <p><strong>追问 2：eBPF 相比 Sidecar 开销如何？</strong> eBPF 在内核态，无 Sidecar 的额外网络跳数与资源占用，对延迟敏感应用更友好；但覆盖范围（如七层协议解析）不如 Sidecar 灵活。</p>
-              <p><strong>追问 3：安全边界是什么？</strong> 校验器强制内存安全、禁止越界/死循环/非法绑定；<strong>权限随内核演进收敛</strong>——旧内核需完整 <code class="inline-code">CAP_SYS_ADMIN</code>，5.8+ 引入细粒度 <code class="inline-code">CAP_BPF</code> 即可，无需再授 <code class="inline-code">CAP_SYS_ADMIN</code>；绝不能加载未经验证器校验的 eBPF 程序。</p>
+              <p>
+                <strong>追问 3：安全边界是什么？</strong>
+                校验器强制内存安全、禁止越界/死循环/非法绑定；<strong>权限随内核演进收敛</strong>——旧内核需完整
+                <code class="inline-code">CAP_SYS_ADMIN</code>，5.8+ 引入细粒度 <code class="inline-code">CAP_BPF</code> 即可，无需再授 <code class="inline-code">CAP_SYS_ADMIN</code>；绝不能加载未经验证器校验的 eBPF 程序。
+              </p>
             </div>
           </div>
 
@@ -3742,7 +3903,11 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p>自建机房是<strong>重资产前置成本</strong>（买了就要用，容量定了就固定）；上云是<strong>按需弹性</strong>，省了前期资本却把成本转移到了"每一毫秒的波动"上。云的成本失控根源在两点：<strong>① 弹性=双刃剑</strong>——按需扩容很方便，代价是"没人为单笔开销负责、闲置资源无限堆积"；<strong>② 账单归属不清</strong>——费用下沉到了 K8s Pod 级别，没有人/团队对这个数字负责。</p>
-              <p>因此 2020 前后 FinOps 从"省钱运动"演化为<strong>"工程+财务+业务的协作文化"</strong>（FinOps Foundation 与云厂商共建）：用 Framework 三相 <strong>Inform / Optimize / Operate</strong> 把成本变成共享工程指标。实践中通常与"云账单治理、云成本分析（AWS Cost Explorer / FinOps Hub）、K8s 成本规控（Kubecost / OpenCost）"结合落地。</p>
+              <p>
+                因此 2020 前后 FinOps 从"省钱运动"演化为<strong>"工程+财务+业务的协作文化"</strong>（FinOps Foundation 与云厂商共建）：用 Framework 三相
+                <strong>Inform / Optimize / Operate</strong>
+                把成本变成共享工程指标。实践中通常与"云账单治理、云成本分析（AWS Cost Explorer / FinOps Hub）、K8s 成本规控（Kubecost / OpenCost）"结合落地。
+              </p>
             </div>
           </div>
 
@@ -3798,8 +3963,15 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-title">深度追问</div>
             <div class="qa-layer-body">
               <p><strong>追问 1：怎么让研发"主动"降本而不是靠行政命令？</strong> 核心是<strong>责任共担 + 反馈闭环</strong>：把成本按 Tag 分到每个团队"每天可见"（Inform），把"单位成本趋势 / 成本红黑榜"作为团队显性指标而非指令；配合"预算透明 + 超预算前先说明"的文化，避免一刀切砍功能。可落地的抓手：<strong>成本归属到负责人 + 超支预警给到 owner</strong>。</p>
-              <p><strong>追问 2：预留 / 按量 / Spot 怎么配比？</strong> 基线稳定负载用<strong>预留</strong>（包年省钱），弹性波动用<strong>按量</strong>，可中断批量用 <strong>Spot</strong>。典型配比如核心应用 <strong>60% 预留 + 30% 按量 + 10% Spot</strong>，跑批任务可到 80% Spot；配比随业务峰谷与容错能力动态调整，预留必须贴近基线、宁少勿多。</p>
-              <p><strong>追问 3：怎么证明我们真的"省了钱"？</strong> 不能只看总账单（业务量在涨），要用<strong>单位成本</strong>指标——每万请求成本、每用户月成本、CPU 利用率天花板；在<strong>同等业务量口径</strong>下做同比/环比，才能区分"真正的浪费"与"业务增长导致的合理上升"。</p>
+              <p>
+                <strong>追问 2：预留 / 按量 / Spot 怎么配比？</strong>
+                基线稳定负载用<strong>预留</strong>（包年省钱），弹性波动用<strong>按量</strong>，可中断批量用
+                <strong>Spot</strong>。典型配比如核心应用 <strong>60% 预留 + 30% 按量 + 10% Spot</strong>，跑批任务可到 80% Spot；配比随业务峰谷与容错能力动态调整，预留必须贴近基线、宁少勿多。
+              </p>
+              <p>
+                <strong>追问 3：怎么证明我们真的"省了钱"？</strong>
+                不能只看总账单（业务量在涨），要用<strong>单位成本</strong>指标——每万请求成本、每用户月成本、CPU 利用率天花板；在<strong>同等业务量口径</strong>下做同比/环比，才能区分"真正的浪费"与"业务增长导致的合理上升"。
+              </p>
             </div>
           </div>
 
@@ -3932,7 +4104,10 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-body">
               <p>追问一：时间轮为什么会有微小的误差？——处理器被慢 tick 的溢出槽阻塞，或槽内任务过多导致单 tick 处理超时，出现 <code class="inline-code">sheak</code> 误差；对精确到点敏感的任务要放大 tick 或改用最小堆。</p>
               <p>追问二：时间轮如何实现"超长延时"？——remainingRounds 分级，每次到槽只减 1 轮，等于把巨大刻度摊到多圈，空间与 O(1) 保持。</p>
-              <p>追问三：Redisson DelayedQueue 的实现？——Redis ZSET 按 score 排序 + 客户端 <code class="inline-code">poll(millis)</code> 拉取到期元素 + 发布订阅通知抢占者，配合空值预取。</p>
+              <p>
+                追问三：Redisson DelayedQueue 的实现？——Redis ZSET 按 score 排序 + 客户端
+                <code class="inline-code">poll(millis)</code> 拉取到期元素 + 发布订阅通知抢占者，配合空值预取。
+              </p>
             </div>
           </div>
 
@@ -3953,7 +4128,11 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-body">
               <ul>
                 <li><strong>时钟回拨</strong>：依赖本地时钟的延时任务在 NTP 回拨时可能早触发/晚触发；分布式场景优先用 Redis/MQ 服务端时间或单调业务截止时间戳，并对回拨做检测（拒绝过大负跳）。</li>
-                <li><strong>动态分片</strong>：海量延时任务按 <code class="inline-code">shard = hash(bizId) % N</code> 分槽扫描，执行器增减时重算分片并做窗口补偿，避免漏关单。</li>
+                <li>
+                  <strong>动态分片</strong>：海量延时任务按
+                  <code class="inline-code">shard = hash(bizId) % N</code>
+                  分槽扫描，执行器增减时重算分片并做窗口补偿，避免漏关单。
+                </li>
                 <li><strong>订单超时关单</strong>：分钟级宽松延时用 Redis ZSET/延时消息即可；关单必须幂等（状态机：待支付→已关闭），并与库存回补、优惠券回滚同事务或本地消息表，详见场景题互链。</li>
               </ul>
             </div>
@@ -3997,7 +4176,11 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-title">工程实践</div>
             <div class="qa-layer-body">
               <p><strong>幂等三件套</strong>：① 唯一业务键（如 orderId）建唯一索引，重复插入被拒；② 幂等表/消息去重（插入先查已处理）；③ 分布式锁（Redis SETNX + 过期时间，或 ZK 临时节点）包裹任务主体。</p>
-              <p><strong>动态分片</strong>：把数据按 <code class="inline-code">id % 分片数</code> 或主键范围路由，执行器增减时分片重算并触发一次重分布；用"轮询/一致性哈希"减少迁移量。</p>
+              <p>
+                <strong>动态分片</strong>：把数据按
+                <code class="inline-code">id % 分片数</code>
+                或主键范围路由，执行器增减时分片重算并触发一次重分布；用"轮询/一致性哈希"减少迁移量。
+              </p>
               <p><strong>故障转移与补跑</strong>：执行器心跳超时 → 调度中心重派；同时提供补跑入口（手动触发某分片/某天任务）。对关键任务设置失败重试上限 + 告警。</p>
             </div>
           </div>
@@ -4176,10 +4359,7 @@ ALTER TABLE <span class="type">t_order</span> ADD COLUMN amount_cents BIGINT NUL
             <div class="qa-layer-title">本质问题</div>
             <div class="qa-layer-body">
               <p>
-                Flink 把<strong>事件时间 + 分布式状态 + 一致性快照</strong>做成一等公民：用 Checkpoint 在失败时恢复「算子状态与输入位置」的一致切面，用 Watermark 推进事件时间窗口。本题讲引擎与运维契约；CEP/风控场景编排见 <a href="chapter-questions-scenario.html#S11.03"><strong>S11.03</strong></a
-                >，Kafka 内轻量流处理见 <a href="#C11.24"><strong>C11.24</strong></a
-                >，Broker EOS 底座见 <a href="#C11.11"><strong>C11.11</strong></a
-                >。
+                Flink 把<strong>事件时间 + 分布式状态 + 一致性快照</strong>做成一等公民：用 Checkpoint 在失败时恢复「算子状态与输入位置」的一致切面，用 Watermark 推进事件时间窗口。本题讲引擎与运维契约；CEP/风控场景编排见 <a href="chapter-questions-scenario.html#S11.03"><strong>S11.03</strong></a>，Kafka 内轻量流处理见 <a href="#C11.24"><strong>C11.24</strong></a>，Broker EOS 底座见 <a href="#C11.11"><strong>C11.11</strong></a>。
               </p>
             </div>
           </div>
@@ -4334,88 +4514,148 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
           </div>
         </div>
 
-                        <div class="qa-card" id="C11.26" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C11.26" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C11.26</div>
             <div class="qa-question">消息消费积压怎么分级处置：扩容、跳过、降速还是切备？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>积压不是「多加几个消费者」一句话：先分型（流量突增 / 消费变慢 / 毒消息卡住 / 位点错误）。</p></div>
+            <div class="qa-layer-body">
+              <p>积压不是「多加几个消费者」一句话：先分型（流量突增 / 消费变慢 / 毒消息卡住 / 位点错误）。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>积压速率 = 生产速率 − 消费速率；单分区热点会使扩消费者无效。毒消息无限重试会打爆下游。位点重置是数据决策，不是默认止血。</p></div>
+            <div class="qa-layer-body">
+              <p>积压速率 = 生产速率 − 消费速率；单分区热点会使扩消费者无效。毒消息无限重试会打爆下游。位点重置是数据决策，不是默认止血。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>分级：</p><ol><li>L1 看积压速率与消费 RT。</li><li>L2 是否单分区/单队列热点。</li><li>L3 是否反复失败同一批消息。</li><li>L4 业务是否允许丢弃/延迟。</li></ol><p>动作顺序：扩消费者 → 限速生产 → 毒消息进死信 → 必要时只读降级。</p></div>
+            <div class="qa-layer-body">
+              <p>分级：</p>
+              <ol>
+                <li>L1 看积压速率与消费 RT。</li>
+                <li>L2 是否单分区/单队列热点。</li>
+                <li>L3 是否反复失败同一批消息。</li>
+                <li>L4 业务是否允许丢弃/延迟。</li>
+              </ol>
+              <p>动作顺序：扩消费者 → 限速生产 → 毒消息进死信 → 必要时只读降级。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>参数：并发消费者、拉取批量、消费超时、最大重试、死信 Topic、位点重置权限（双人）。看板：积压量、消费成功率、死信速率。</p></div>
+            <div class="qa-layer-body">
+              <p>参数：并发消费者、拉取批量、消费超时、最大重试、死信 Topic、位点重置权限（双人）。看板：积压量、消费成功率、死信速率。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：盲目 reset 位点丢数据；无限重试打爆下游；扩容后单分区仍串行。回滚点：恢复原并发与订阅组配置。</p><p>积压分级：下游故障→暂停消费；消费慢→扩容/提并发；毒消息→跳过/死信；流量洪峰→限产。禁止无证据盲目丢弃。</p><p>每级都要有可回放位点与对账任务；扩容前确认分区与消费组模型。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：盲目 reset 位点丢数据；无限重试打爆下游；扩容后单分区仍串行。回滚点：恢复原并发与订阅组配置。</p>
+              <p>积压分级：下游故障→暂停消费；消费慢→扩容/提并发；毒消息→跳过/死信；流量洪峰→限产。禁止无证据盲目丢弃。</p>
+              <p>每级都要有可回放位点与对账任务；扩容前确认分区与消费组模型。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
 
-                <div class="qa-card" id="C11.27" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C11.27" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C11.27</div>
             <div class="qa-question">本地消息表落地清单：事务消息最小闭环怎么上？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>本地消息表解决「本地事务与发消息」一致性，不是银弹。按清单落地：表结构、扫描、重试、对账、清理。</p></div>
+            <div class="qa-layer-body">
+              <p>本地消息表解决「本地事务与发消息」一致性，不是银弹。按清单落地：表结构、扫描、重试、对账、清理。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>同库事务写业务行 + 消息行，再用异步发送；消费侧幂等；对账补齐最终一致。跨库本地消息表无法提供原子性。</p></div>
+            <div class="qa-layer-body">
+              <p>同库事务写业务行 + 消息行，再用异步发送；消费侧幂等；对账补齐最终一致。跨库本地消息表无法提供原子性。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>清单：</p><ol><li>同库事务写业务+消息行。</li><li>状态机 NEW/SENT/DONE/DEAD。</li><li>定时扫描发送 + 退避重试。</li><li>消费幂等键。</li><li>对账任务。</li><li>归档清理。</li></ol><p>上线前演练：发送失败重试、重复投递。</p></div>
+            <div class="qa-layer-body">
+              <p>清单：</p>
+              <ol>
+                <li>同库事务写业务+消息行。</li>
+                <li>状态机 NEW/SENT/DONE/DEAD。</li>
+                <li>定时扫描发送 + 退避重试。</li>
+                <li>消费幂等键。</li>
+                <li>对账任务。</li>
+                <li>归档清理。</li>
+              </ol>
+              <p>上线前演练：发送失败重试、重复投递。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>字段建议：biz_key、payload、status、retry_cnt、next_time、updated_at。扫描间隔与批量可配；DEAD 告警可行动。关联 G06.03。</p></div>
+            <div class="qa-layer-body">
+              <p>字段建议：biz_key、payload、status、retry_cnt、next_time、updated_at。扫描间隔与批量可配；DEAD 告警可行动。关联 G06.03。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：消息表与业务不同库；无幂等导致重复扣款；扫描无退避打爆 MQ。回滚点：暂停扫描器，保留表数据人工补发。</p><p>本地消息表最小闭环：同事务写业务+outbox → 异步投递 → 成功标记 → 对账补偿。缺对账等于假可靠。</p><p>落地清单：表结构、投递线程、重试退避、死信、对账窗口与告警。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：消息表与业务不同库；无幂等导致重复扣款；扫描无退避打爆 MQ。回滚点：暂停扫描器，保留表数据人工补发。</p>
+              <p>本地消息表最小闭环：同事务写业务+outbox → 异步投递 → 成功标记 → 对账补偿。缺对账等于假可靠。</p>
+              <p>落地清单：表结构、投递线程、重试退避、死信、对账窗口与告警。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
 
-                <div class="qa-card" id="C11.28" data-difficulty="senior" data-priority="p1">
+        <div class="qa-card" id="C11.28" data-difficulty="senior" data-priority="p1">
           <div class="qa-header">
             <div class="qa-badge">C11.28</div>
             <div class="qa-question">死信与延迟消息值班：堆积、重放与顺序怎么处理？<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="qa-layer" data-layer="essence">
             <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body"><p>死信不是垃圾桶：要有分类、重放策略与审计。延迟消息常见坑是「到期瞬间洪峰」。</p></div>
+            <div class="qa-layer-body">
+              <p>死信不是垃圾桶：要有分类、重放策略与审计。延迟消息常见坑是「到期瞬间洪峰」。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="principle">
             <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body"><p>死信应保留失败原因码与原始位点信息；重放必须限速且可审计。延迟到期要按曲线削峰，避免当成普通高峰硬扛。</p></div>
+            <div class="qa-layer-body">
+              <p>死信应保留失败原因码与原始位点信息；重放必须限速且可审计。延迟到期要按曲线削峰，避免当成普通高峰硬扛。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="practice">
             <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body"><p>值班顺序：</p><ol><li>死信速率与原因码。</li><li>抽样 payload。</li><li>可修则修后限速重放。</li><li>不可修则人工工单。</li><li>延迟队列看到期曲线，必要时削峰。</li></ol></div>
+            <div class="qa-layer-body">
+              <p>值班顺序：</p>
+              <ol>
+                <li>死信速率与原因码。</li>
+                <li>抽样 payload。</li>
+                <li>可修则修后限速重放。</li>
+                <li>不可修则人工工单。</li>
+                <li>延迟队列看到期曲线，必要时削峰。</li>
+              </ol>
+            </div>
           </div>
           <div class="qa-layer" data-layer="deep">
             <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body"><p>开关：死信重放速率、最大重放次数、延迟级别表、到期告警阈值。禁止无审计的生产控制台重放。</p></div>
+            <div class="qa-layer-body">
+              <p>开关：死信重放速率、最大重放次数、延迟级别表、到期告警阈值。禁止无审计的生产控制台重放。</p>
+            </div>
           </div>
           <div class="qa-layer" data-layer="pitfall">
             <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body"><p>失败模式：死信无限回流原 Topic；延迟到期打满下游；重放打乱顺序且无幂等。回滚点：停止重放任务，恢复原消费组。</p><p>死信堆积先分型：业务拒绝 vs 系统故障。重放要控速并保证幂等；顺序主题重放勿打乱分区键。</p><p>延迟消息值班：看到期堆积与消费滞后；止血可暂停调度或降级即时路径。</p><p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p></div>
+            <div class="qa-layer-body">
+              <p>失败模式：死信无限回流原 Topic；延迟到期打满下游；重放打乱顺序且无幂等。回滚点：停止重放任务，恢复原消费组。</p>
+              <p>死信堆积先分型：业务拒绝 vs 系统故障。重放要控速并保证幂等；顺序主题重放勿打乱分区键。</p>
+              <p>延迟消息值班：看到期堆积与消费滞后；止血可暂停调度或降级即时路径。</p>
+              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+            </div>
           </div>
         </div>
-
-                
       </main>
     </div>
 
@@ -4424,30 +4664,58 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
         <h2>参考资料</h2>
         <ol>
           <li><span class="src-title">OMG. BPMN 2.0 Specification (2011). — BPMN 2.0 标准元素、流程定义模型</span></li>
-          <li><span class="src-title">Flowable Documentation / Activiti User Guide / Camunda 8 (Zeebe) Documentation. — 工作流引擎演进、Token 漫游执行模型、事件流日志</span></li>
-          <li><span class="src-title">Alibaba QLExpress GitHub / Drools Documentation (Rete Algorithm). — 规则引擎 AST 编译与 Rete 网络匹配原理</span></li>
-          <li><span class="src-title">RFC 6749 OAuth 2.0 (2012) / RFC 7636 PKCE / OAuth 2.1 Draft. — 授权模式演进、PKCE 防拦截、隐式与密码模式废弃</span></li>
-          <li><span class="src-title">RFC 7519 JSON Web Token (JWT) / RFC 7515 JWS / RFC 7516 JWE. — JWT 三段结构、签名与加密、双 Token 续期</span></li>
-          <li><span class="src-title">Spring Authorization Server Documentation. — 授权码+PKCE、客户端凭证、令牌轮换</span></li>
-          <li><span class="src-title">GitLab CI/CD Documentation / ArgoCD Documentation / OpenGitOps Principles. — CI/CD 演进、GitOps 声明式同步、selfHeal</span></li>
-          <li><span class="src-title">Apache SkyWalking Documentation / OpenTelemetry Specification. — Java Agent 字节码增强、Trace/Span 模型、OTel 三支柱</span></li>
-          <li><span class="src-title">Alibaba TransmittableThreadLocal GitHub / W3C TraceContext Recommendation. — 线程池上下文透传、MDC TaskDecorator、Virtual Thread 兼容</span></li>
-          <li><span class="src-title">CNCF OpenTelemetry Documentation / OTLP Protocol Specification. — API/SDK/Collector 三层解耦、Exemplar 三支柱关联</span></li>
-          <li><span class="src-title">Netflix Chaos Monkey / ChaosBlade Documentation / Chaos Mesh Documentation (CNCF). — 混沌工程四原则、稳态假设、爆炸半径控制</span></li>
-          <li><span class="src-title">eBPF Documentation / Pixie / Cilium Tetragon. — eBPF 内核级无侵入监控、与 OTel 融合趋势</span></li>
-          <li><span class="src-title">Elasticsearch: The Definitive Guide / Lucene Documentation. — 倒排索引、Segment Merge、FST、分片路由</span></li>
-          <li><span class="src-title">gRPC Documentation / Protocol Buffers Language Guide / HTTP/2 RFC 7540. — Protobuf 编码、HTTP/2 多路复用、四种调用模式</span></li>
-          <li><span class="src-title">Nacos Documentation / Apollo Configuration Center Guide. — 长轮询、UDP 推送、灰度发布、AP/CP 切换</span></li>
+          <li>
+            <span class="src-title">Flowable Documentation / Activiti User Guide / Camunda 8 (Zeebe) Documentation. — 工作流引擎演进、Token 漫游执行模型、事件流日志</span>
+          </li>
+          <li>
+            <span class="src-title">Alibaba QLExpress GitHub / Drools Documentation (Rete Algorithm). — 规则引擎 AST 编译与 Rete 网络匹配原理</span>
+          </li>
+          <li>
+            <span class="src-title">RFC 6749 OAuth 2.0 (2012) / RFC 7636 PKCE / OAuth 2.1 Draft. — 授权模式演进、PKCE 防拦截、隐式与密码模式废弃</span>
+          </li>
+          <li>
+            <span class="src-title">RFC 7519 JSON Web Token (JWT) / RFC 7515 JWS / RFC 7516 JWE. — JWT 三段结构、签名与加密、双 Token 续期</span>
+          </li>
+          <li>
+            <span class="src-title">Spring Authorization Server Documentation. — 授权码+PKCE、客户端凭证、令牌轮换</span>
+          </li>
+          <li>
+            <span class="src-title">GitLab CI/CD Documentation / ArgoCD Documentation / OpenGitOps Principles. — CI/CD 演进、GitOps 声明式同步、selfHeal</span>
+          </li>
+          <li>
+            <span class="src-title">Apache SkyWalking Documentation / OpenTelemetry Specification. — Java Agent 字节码增强、Trace/Span 模型、OTel 三支柱</span>
+          </li>
+          <li>
+            <span class="src-title">Alibaba TransmittableThreadLocal GitHub / W3C TraceContext Recommendation. — 线程池上下文透传、MDC TaskDecorator、Virtual Thread 兼容</span>
+          </li>
+          <li>
+            <span class="src-title">CNCF OpenTelemetry Documentation / OTLP Protocol Specification. — API/SDK/Collector 三层解耦、Exemplar 三支柱关联</span>
+          </li>
+          <li>
+            <span class="src-title">Netflix Chaos Monkey / ChaosBlade Documentation / Chaos Mesh Documentation (CNCF). — 混沌工程四原则、稳态假设、爆炸半径控制</span>
+          </li>
+          <li>
+            <span class="src-title">eBPF Documentation / Pixie / Cilium Tetragon. — eBPF 内核级无侵入监控、与 OTel 融合趋势</span>
+          </li>
+          <li>
+            <span class="src-title">Elasticsearch: The Definitive Guide / Lucene Documentation. — 倒排索引、Segment Merge、FST、分片路由</span>
+          </li>
+          <li>
+            <span class="src-title">gRPC Documentation / Protocol Buffers Language Guide / HTTP/2 RFC 7540. — Protobuf 编码、HTTP/2 多路复用、四种调用模式</span>
+          </li>
+          <li>
+            <span class="src-title">Nacos Documentation / Apollo Configuration Center Guide. — 长轮询、UDP 推送、灰度发布、AP/CP 切换</span>
+          </li>
         </ol>
       </div>
     </footer>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
-          <a href="chapter-10-microservice-cloud.html" class="nav-prev">← 第 10 篇 微服务与云原生</a>
-          <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-11-middleware-engineering.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
-          <a href="chapter-12-ai-engineering.html" class="nav-next">第 12 篇 AI 工程与实践 →</a>
-        </nav>
+        <a href="chapter-10-microservice-cloud.html" class="nav-prev">← 第 10 篇 微服务与云原生</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-11-middleware-engineering.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-12-ai-engineering.html" class="nav-next">第 12 篇 AI 工程与实践 →</a>
+      </nav>
     </div>
 
     <!-- Mermaid 与导航 JS -->
@@ -4461,5 +4729,5 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
     </script>
 
     <script src="assets/nav.js"></script>
-</body>
+  </body>
 </html>
