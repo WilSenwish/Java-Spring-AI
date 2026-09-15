@@ -16,6 +16,7 @@ java-kb-expand · 全量校验脚本（通用版）
   1c) 主题 / 暗黑模式：站点 HTML 含 theme-init.js；design-system.css 含 data-theme="dark" 令牌块
   1d) Mermaid：每个 class="mermaid" 上一行 prettier-ignore；图源码未塌缩（换行≥2）
   1e) 顶/底导航壳：根/章节 index 无导航；其余页 top 贴 body 首、bottom 在 script 前
+  1f) **内部编辑字眼**：卡片正文不得出现「再加厚/补厚/占位段落/待补写」（2026-09-15 补，实测曾残留 15 处）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -41,6 +42,10 @@ MIND_DIR = f"{BASE}/java-architect-interview-mind"
 COUNTS_JSON = f"{BASE}/docs/kb-counts.json"
 if not os.path.isfile(COUNTS_JSON):
     COUNTS_JSON = f"{CHAPTER_DIR}/docs/kb-counts.json"
+
+# 面向读者的卡片正文里禁止出现的内部编辑字眼（占位/批注词）
+# 2026-09-15 实测：「再加厚：」曾残留在 10 个章节页 / 15 处，且无校验可拦，故纳入硬门禁
+EDITORIAL_WORDS = ["再加厚", "补厚", "占位段落", "待补写"]
 if not os.path.isfile(COUNTS_JSON):
     raise SystemExit(f"[FATAL] 未找到 kb-counts.json，已尝试：{BASE}/docs/ 与 {CHAPTER_DIR}/docs/")
 
@@ -295,6 +300,14 @@ def main():
     for k, t in texts.items():
         c = t.count("data-page-node-id")
         check(c == 0, f"[红线] {k}: data-page-node-id={c} (须 0)")
+
+    # 1c) 内部编辑字眼（不得出现在面向读者的卡片正文里）
+    #     来源：内容补写轮次的占位/批注词未被清理（2026-09-15 实测「再加厚：」残留 15 处，
+    #     且此前无任何校验能拦住，故纳入硬门禁）
+    for k, t in texts.items():
+        for w in EDITORIAL_WORDS:
+            c = t.count(w)
+            check(c == 0, f"[内部字眼] {k}: 出现「{w}」x{c}（须 0）")
 
     # 1b) 手机小屏强制（MOBILE-MANDATORY / format-shared §8）
     css_path = os.path.join(CHAPTER_DIR, "assets/design-system.css")

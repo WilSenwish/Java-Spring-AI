@@ -557,15 +557,19 @@ agent_created: true
 - **Bash 内置 `grep` 受 `_zshz` 干扰**：交叉验证用 `Grep` 工具或 `git grep`。
 - **校验提取正则必须覆盖新编号空间（2026-09-04 实测）**：升层重编号后若用旧模式（如 `M0[1-7]\.\d{2}`）提取 after 集合做多重集断言，会"看不见" M08+ 的新号而误报不一致（替换其实已成功）；after 一律用宽模式 `M\d{2}\.\d{2}`。
 - **Mermaid 被格式化压成一行（2026-09-15）**：每个 `<div class="mermaid">` 必须带上一行 `<!-- prettier-ignore -->`；统一用 `npm run format:html`。缺 ignore 时 Prettier 会塌缩图源码，`validate_kb` 会拦。
+- **导图 Mermaid 节点未随新增卡补齐（2026-09-15 实测，validate_kb 查不出）**：同步导图时最易「补了 `<summary>` 主题卡、忘了 `<div class="mermaid">` 图节点」。实测新增 4 卡（C11.29/C11.30/G07.09/S12.09）时漏掉该步，致 mind-11 缺 2 节点、mind-engineering-practices 缺 1 节点（mind-12 因惯例带 ID 前缀反而被注意到）。**导图 Mermaid 是「本篇章卡的全量列点」**——章节 +N 张卡，图里必须 +N 个节点，插在交叉卡（E/S）节点之前以对齐原卡序；节点 id 在分支内递增，需插队时把后续 id 顺延（节点 id 不被别处引用，重编安全）。校验用 `scripts/check_mind_mermaid.py`。
+- **mind `<summary>` 的 ID 对齐 ≠ 标题对齐（2026-09-15 发现并已修复）**：`validate_kb` 只比对 mind 与章节的 **ID 集合**，两者 ID 集合相同但**标题错位**时不会报错。实测已修 6 处：mind-11 `C11.12/C11.13/C11.14`（导图把「调度」标成 .12、「ES」标成 .13，并有 1 条章节页不存在的幽灵卡「分布式任务调度与搜索整合」→ 现改为 C11.12=API 网关 / C11.13=调度 / C11.14=ES，幽灵卡消除）、mind-12 `C12.16/C12.17`（互换编号）、`C12.22`（原误用 C12.21 的标题「十亿级向量库」，正文实为「Embedding 模型升级迁移」）。**改导图卡编号时，同步改三处**：① `map-body-text` 正文（须与新标题同题）；② Mermaid 节点（mind-11/12 的 C 卡节点不带 ID，须按**内容**改标签；mind-12 的 S 卡节点带 ID）；③ 全站交叉引用「与 Cxx.yy 印证」——实测 mind-11 有 4 处、mind-12 有 4 处引用这些 ID，编号一改即须跟着改。
+- **内部编辑字眼会漏进正文（2026-09-15 实测，已纳入硬门禁）**：内容补写轮次留下的占位/批注词（`<strong>再加厚：</strong>`）曾残留在 10 个章节页 / 15 处，**任何校验都拦不住**（`validate_kb` 原无此检查）。已全部清除，并在 `validate_kb.py` 新增 **1f) 内部编辑字眼**检查（`EDITORIAL_WORDS = ["再加厚","补厚","占位段落","待补写"]`，全站须 0）。**教训：替换占位段落时，连包裹它的 `<strong>标签</strong>` 一并处理**，只换正文会留下标签壳。
 - **顶底导航位置（2026-09-15）**：顶栏必须是 `body` 第一个壳；底栏在 footer 后、script 前；根/章节 index 无导航。勿再把导航塞进 `content-main` 中部。
 
 ## Resources
 
 - `references/conventions.md` — 完整结构约定：题号前缀、卡片 HTML 模板（`.qa-card`/`.qa-layer` 七层/场景七层）、导图节点模板、4 份聚合页字段名与 `ov-stat-num` 顺序、权威计数示例、导航/小屏/Prettier（§7–§7.2）。
-- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、overview 排序/类型、三权威源、红线、**Mermaid prettier-ignore**、主题/小屏。
+- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、**0d 页头难度自证**、overview 排序/类型、三权威源、红线（`data-page-node-id`）、**1f 内部编辑字眼**、**Mermaid prettier-ignore**、主题/小屏。
 - `scripts/ensure_mermaid_prettier_ignore.py` — 批量为缺失的 mermaid 节点补 `<!-- prettier-ignore -->`（格式化前可先跑）。
 - `scripts/normalize_html_closers.py` — Prettier 后把 `</tag\\n>` 压回同行（保护 kb-count 锚点）。
 - `scripts/check_html_format.py` — `npm run format:html:check` 稳态检查。
 - `scripts/audit_l1_counts.py` — 只跑 L1 裸计数扫描（改聚合文案后可先跑这支）。
+- `scripts/check_mind_mermaid.py` — 导图站不变式校验：每条 map-card（含 `C12.11~15 …` 聚合条目）是否都有对应 Mermaid 图节点；缺失 → exit 1。补这个盲区（`validate_kb` 只查 ID 集合，查不出图节点缺失）。
 - `scripts/sync_new_card.py` — 新增卡片的 7 文件同步脚本骨架（参数化），含备份、断言、`data-page-node-id` 守卫；按需填充卡片 HTML 与计数增量。
 - 仓库根：`npm run format:html` / `format:html:check`；规范正文见 `docs/format-shared.md` §4.2 / §10。

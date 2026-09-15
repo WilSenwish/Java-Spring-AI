@@ -44,9 +44,18 @@ os.makedirs(BACKUP, exist_ok=True)
 #       （ov-type 为每个难度子组内的「篇章/核心原理/场景题」三分块，易被整体忽略）
 # 章节 index（java-architect-interview/index.html）
 #   [8] c{NN}.n / c{NN}.expert / c{NN}.architect（struct.chap.idx.*）；不枚举单题 ID
-# mind 站
-#   [9] 对应 mind-NN 页：主干范围句（如「主干 C11.01–C11.28」→ C11.30）+ 主题卡；
-#       mind index 的 card-foot（struct.mind.idx.mind-foot-c_N / -e_N / -s_N）；
+# mind 站（一处漏改即「导图与正文不同步」，validate_kb 查不出，必须人工双改）
+#   [9] 对应 mind-NN 页须改【四处】，缺任一即不同步：
+#       (a) 主干范围句（如「主干 C11.01–C11.28」→ C11.30）
+#       (b) 主题卡 <details class="map-card"><summary>ID 简称</summary>…（体例对齐同组兄弟卡）
+#       (c) ⚠ Mermaid 图节点：<div class="mermaid"> 内的 `tN --> nNNN["简称"]`。
+#           实测 2026-09-15：新增 4 卡时只补了 (a)(b)，漏 (c)，
+#           导致 mind-11 缺 C11.29/C11.30、mind-engineering-practices 缺 G07.09。
+#           导图 Mermaid 是「本篇章卡的全量列点」——章节 +N 张卡，图里就必须 +N 个节点。
+#           节点 id 保持在分支内递增；插在交叉卡（E/S）节点之前，与原卡序一致；
+#           若需插队在既有 id 之前，把后续节点 id 顺延（如 n113 → n115），
+#           mermaid 节点 id 不被其它位置引用，重编安全。
+#       (d) mind index 的 card-foot（struct.mind.idx.mind-foot-c_N / -e_N / -s_N）
 #       ⚠ S 场景卡并入其所属篇章的 mind 页（如 S12.x → mind-12-ai-engineering.html），
 #         不存在独立的 mind 场景页
 # 收尾
