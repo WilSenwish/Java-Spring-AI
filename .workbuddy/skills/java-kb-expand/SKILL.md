@@ -561,11 +561,15 @@ agent_created: true
 - **mind `<summary>` 的 ID 对齐 ≠ 标题对齐（2026-09-15 发现并已修复）**：`validate_kb` 只比对 mind 与章节的 **ID 集合**，两者 ID 集合相同但**标题错位**时不会报错。实测已修 6 处：mind-11 `C11.12/C11.13/C11.14`（导图把「调度」标成 .12、「ES」标成 .13，并有 1 条章节页不存在的幽灵卡「分布式任务调度与搜索整合」→ 现改为 C11.12=API 网关 / C11.13=调度 / C11.14=ES，幽灵卡消除）、mind-12 `C12.16/C12.17`（互换编号）、`C12.22`（原误用 C12.21 的标题「十亿级向量库」，正文实为「Embedding 模型升级迁移」）。**改导图卡编号时，同步改三处**：① `map-body-text` 正文（须与新标题同题）；② Mermaid 节点（mind-11/12 的 C 卡节点不带 ID，须按**内容**改标签；mind-12 的 S 卡节点带 ID）；③ 全站交叉引用「与 Cxx.yy 印证」——实测 mind-11 有 4 处、mind-12 有 4 处引用这些 ID，编号一改即须跟着改。
 - **内部编辑字眼会漏进正文（2026-09-15 实测，已纳入硬门禁）**：内容补写轮次留下的占位/批注词（`<strong>再加厚：</strong>`）曾残留在 10 个章节页 / 15 处，**任何校验都拦不住**（`validate_kb` 原无此检查）。已全部清除，并在 `validate_kb.py` 新增 **1f) 内部编辑字眼**检查（`EDITORIAL_WORDS = ["再加厚","补厚","占位段落","待补写"]`，全站须 0）。**教训：替换占位段落时，连包裹它的 `<strong>标签</strong>` 一并处理**，只换正文会留下标签壳。
 - **顶底导航位置（2026-09-15）**：顶栏必须是 `body` 第一个壳；底栏在 footer 后、script 前；根/章节 index 无导航。勿再把导航塞进 `content-main` 中部。
+- **移动端横向溢出：逐选择器枚举的兜底会漏整类容器（2026-09-15 实测事故）**：共享 CSS 原先只给 `qa-question`/`qa-layer-body`/`chapter-card *`/`epq-question` 等**逐个选择器**加 `overflow-wrap`，结果新增的 `epq-*` 正文容器整类被漏——核心原理页 375px 视口文档溢出 **248px**、**18 处**元素越界（最狠一条 `META-INF/spring/org.springframework…` 长 80 字符、超标 275px）。**修法**：`body` 加一条 `overflow-wrap: anywhere`（可继承属性，一条覆盖全站），**不要再罗列选择器**。裸 `<pre>` 另需兜底：实测 chapter-07 有 8 处未包 `.code-block`（无深色样式也无横滑）溢出 **814px**，已补包裹 + `pre { overflow-x: auto }`。
+- **新门禁必须做正向验证（2026-09-15 实测，否则极易恒真）**：本轮 `check("overflow-wrap: anywhere" in css_txt)` 看似合理，但该串在 CSS 里本就有 9 处（属其它选择器规则），删掉 `body` 规则后依然 PASS —— **形同虚设**。规约：① 断言锚定结构而非子串（`re.search(r"^\s*body\s*\{[^}]*overflow-wrap:\s*anywhere", css, re.M)`）；② 每条新门禁跑一次「注入缺陷 → 必须 FAIL（exit≠0）→ 还原并核对 MD5」，脚本范式 `scripts/probe_validate_gate.py`。
+- **移动端实测必须用 CDP，`--window-size` 不可用（2026-09-15）**：macOS 上 Chrome 的 `--window-size=375,812` 被最小窗口宽度钳制为 **500 CSS px**（新旧 headless 皆然）；且**文本溢出不改变元素 `getBoundingClientRect()`**，用 rect 判定会全漏。正确姿势：CDP `Emulation.setDeviceMetricsOverride` 设视口 → 以 `scrollWidth > clientWidth` 判溢出 → 向上排除「自身或祖先带 `overflow:auto/scroll/hidden`」的容器（代码块横滑属设计而非缺陷）。可复用：`scripts/check_mobile_overflow.js`（批量、Node 22 原生 WebSocket、零依赖）。
 
 ## Resources
 
 - `references/conventions.md` — 完整结构约定：题号前缀、卡片 HTML 模板（`.qa-card`/`.qa-layer` 七层/场景七层）、导图节点模板、4 份聚合页字段名与 `ov-stat-num` 顺序、权威计数示例、导航/小屏/Prettier（§7–§7.2）。
-- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、**0d 页头难度自证**、overview 排序/类型、三权威源、红线（`data-page-node-id`）、**1f 内部编辑字眼**、**Mermaid prettier-ignore**、主题/小屏。
+- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、**0d 页头难度自证**、overview 排序/类型、三权威源、红线（`data-page-node-id`）、**1f 内部编辑字眼**、**1g 横向溢出兜底**、**Mermaid prettier-ignore**、主题/小屏。
+- `scripts/check_mobile_overflow.js` — 移动端横向溢出**实测**（CDP + headless Chrome，Node 22 原生 WebSocket，零依赖）。静态审计只能发现风险，不能证明修好；本脚本在真实视口下量 `documentElement.scrollWidth - clientWidth` 与「内容越出卡片」的元素数。`node check_mobile_overflow.js`（内置 8 页 × 320/375/414）、`--path <html>`（单页）、或传 cfg.json。溢出即 exit 1，可直接作门禁。
 - `scripts/ensure_mermaid_prettier_ignore.py` — 批量为缺失的 mermaid 节点补 `<!-- prettier-ignore -->`（格式化前可先跑）。
 - `scripts/normalize_html_closers.py` — Prettier 后把 `</tag\\n>` 压回同行（保护 kb-count 锚点）。
 - `scripts/check_html_format.py` — `npm run format:html:check` 稳态检查。

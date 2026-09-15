@@ -388,9 +388,11 @@ def main():
     #     ① CSS 层：body 全局 overflow-wrap（长英文标识符/路径/签名可断行）
     #        + 裸 pre 横向滚动；缺任一条长 token 会再度撑破卡片
     #     ② HTML 层：不得存在未被 .code-block 包裹的裸 <pre>（既无样式也无滚动）
-    check("overflow-wrap: anywhere" in css_txt,
-          "[溢出] design-system.css 须含 body { overflow-wrap: anywhere } 全局换行兜底")
-    check(re.search(r"pre\s*\{[^}]*overflow-x:\s*auto", css_txt),
+    #     注意：不可用简单子串匹配——CSS 里本就有多处针对特定选择器的
+    #     overflow-wrap: anywhere（.chapter-card .card-title 等），子串匹配会恒真、形同虚设。
+    check(re.search(r"^\s*body\s*\{[^}]*overflow-wrap:\s*anywhere", css_txt, re.M),
+          "[溢出] design-system.css 须在 body 规则内声明 overflow-wrap: anywhere（全局继承兜底）")
+    check(re.search(r"^\s*pre\s*\{[^}]*overflow-x:\s*auto", css_txt, re.M),
           "[溢出] design-system.css 须含裸 pre { overflow-x: auto } 横向滚动兜底")
     _pre_texts = dict(texts)
     _ck = os.path.join(CHAPTER_DIR, "nav-server-security-checkpoint.html")

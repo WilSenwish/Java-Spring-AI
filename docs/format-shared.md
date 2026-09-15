@@ -205,10 +205,15 @@ index.html                         # 首页
 1. **共享基线**：写在 `assets/design-system.css`，段注释标记为 `MOBILE-MANDATORY`（禁止删除该标记）。覆盖 `page-wrapper` / `chapter-*` / `qa-*` / `code-block` / `chapter-grid` / `index-hero`，并对导图/根目录常见类（`map-*` / `idx-*` / `dir-*` / `epq-*`）提供小屏兜底。
 2. **页面内联样式**：若在 `<style>` 里写了桌面专用布局（如 `grid-template-columns: repeat(3, 1fr)`、固定 `minmax(320px,…)`、大字号 hero），**同一文件必须**提供对应 `@media (max-width: 768px)`（建议再补 `480px`）覆盖；否则桌面规则会压过共享 CSS（同特异度、页面样式后加载）。
 3. **禁止**：固定宽表格/代码块不横滑；卡片页脚与标签不换行导致横向溢出；仅桌面 `hover` 位移作为唯一可发现性（触控设备须可直接点击）。
+4. **长 token 换行兜底（2026-09-15 补，实测事故）**：`body` 必须声明 `overflow-wrap: anywhere`——它是可继承属性，一条声明覆盖全站所有文本容器。缺此声明时，`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`、`-Djdk.tracePinnedThreads=full|short` 这类长英文标识符/路径/方法签名不换行，横向撑破卡片：实测 375px 视口下核心原理页（`chapter-questions-eight-part.html`）文档溢出 **248px**、**18 处**元素越界（`@media` 内的逐选择器兜底不可靠，`.epq-kp-list li` / `.epq-fu-list li` / `ol>li` / `.callout p` 全被漏掉）。
+   裸 `<pre>`（未被 `.code-block` 包裹）另需 `pre { overflow-x: auto }` 兜底：实测 chapter-07 有 8 处裸 pre 溢出 **814px**。
+   > 注意：**逐选择器枚举的兜底方式本身是缺陷来源**——共享 CSS 原先只覆盖 `qa-*` / `epq-question` / `chapter-card *`，新增的 `epq-*` 正文容器整类被漏。优先用可继承的全局兜底而非罗列选择器。
 
 ### 8.4 验收清单（改样式必过）
 
 - [ ] ≤768px 无整页横向滚动（代码块/表允许组件内横滑）
+- [ ] 长英文 token（包名/路径/方法签名/命令行参数）可断行，不撑破卡片
+- [ ] 代码块统一 `<div class="code-block"><pre><code>…</code></pre></div>` 包裹；裸 `<pre>` 无深色样式也无横滑，属缺陷
 - [ ] 标题与长摘要可断词，不撑破卡片
 - [ ] 统计条/元信息为网格或可换行，不挤成单行溢出
 - [ ] 卡片 footer（题量 + 难度徽标）小屏可换行或上下堆叠
@@ -216,9 +221,11 @@ index.html                         # 首页
 - [ ] Mermaid 容器可横滑，不撑破版心
 - [ ] 未用预览服务打开 HTML 做视觉确认（避免 `data-page-node-id` 注入）；交付写清改动文件绝对路径与适配结论
 
+> **实测建议**：静态审计（扫描超阈值长 token）只能发现风险，不能证明修复有效。用 headless 浏览器在真实视口下量 `documentElement.scrollWidth - clientWidth` 与「内容越出卡片」的元素数，才是可交付的证据。macOS 上 Chrome 的 `--window-size` 被最小窗口宽度钳制为 500 CSS px，须用 CDP `Emulation.setDeviceMetricsOverride` 精确模拟 375/414（脚本见 `tmp/cdp_measure_batch.js`，可复用）。
+
 ### 8.5 校验
 
-`validate_kb.py` 会检查：全站 HTML 含 viewport；`design-system.css` 含 `MOBILE-MANDATORY`；根 index / 导图 index / 导图页含小屏 `@media`。
+`validate_kb.py` 会检查：全站 HTML 含 viewport；`design-system.css` 含 `MOBILE-MANDATORY`；根 index / 导图 index / 导图页含小屏 `@media`；**校验项 1g**——`design-system.css` 的 `body` 规则含 `overflow-wrap: anywhere`、含裸 `pre { overflow-x: auto }`，且全站不存在未被 `.code-block` 包裹的裸 `<pre>`。
 
 ## 9. 主题 / 暗黑模式
 
