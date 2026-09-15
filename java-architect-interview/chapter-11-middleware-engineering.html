@@ -106,6 +106,12 @@
           <li>
             <a href="#C11.28"><span class="toc-number">C11.28</span>死信与延迟消息值班</a>
           </li>
+          <li>
+            <a href="#C11.29"><span class="toc-number">C11.29</span>Schema Registry 契约兼容演进</a>
+          </li>
+          <li>
+            <a href="#C11.30"><span class="toc-number">C11.30</span>GraphQL 在 BFF 层的落地与治理</a>
+          </li>
         </ol>
       </aside>
 
@@ -117,15 +123,15 @@
           <h1 class="chapter-title">第 11 篇 · 中间件与工程化</h1>
           <p class="chapter-subtitle">本篇把中间件当可产品化能力：流程/规则与认证，经 CI/CD·可观测·FinOps，再到搜索/消息/调度与流处理值班闭环。</p>
           <div class="chapter-meta">
-            <span>题目数：28</span>
+            <span>题目数：30</span>
             <span class="meta-divider">|</span>
-            <span>高级开发 ×7</span>
+            <span>高级开发 ×10</span>
             <span class="meta-divider">|</span>
-            <span>架构级 ×16</span>
+            <span>架构级 ×18</span>
             <span class="meta-divider">|</span>
             <span>专家级 ×2</span>
             <span class="meta-divider">|</span>
-            <span>预计复习：350 分钟</span>
+            <span>预计复习：380 分钟</span>
           </div>
 
           <div class="chapter-lead">
@@ -2563,6 +2569,7 @@ consumer.subscribe(Arrays.asList(<span class="str">"input-topic"</span>));
               <p><strong>阶段 2：网关 1.0（Spring Cloud Gateway / Zuul / Kong）</strong>。动态路由（对接注册中心）、过滤器链（鉴权/限流/日志）、插件化扩展。Zuul 1.x 阻塞 IO，Gateway 基于 WebFlux 非阻塞。</p>
               <p><strong>阶段 3：网关 2.0（Envoy / Traefik）</strong>。Service Mesh 边车或独立网关，支持 gRPC/HTTP2、动态配置（xDS 协议）、WASM 插件、更精细的流量管理。</p>
               <p><strong>阶段 4：云原生网关（Ingress Controller / APISIX / Higress）</strong>。K8s 原生集成、MCP（Model Context Protocol）支持、AI 流量管理（Token 限流、模型路由）、Serverless 弹性。</p>
+              <p><strong>WASM 插件的真实边界：</strong>网关插件做跨实现可移植，靠的是 Proxy-Wasm ABI（Envoy 生态主导），因此「一份插件跑遍所有网关」只在支持该 ABI 的实现上成立——NGINX / APISIX 的原生插件、Spring Cloud Gateway 的 GlobalFilter 与 WASM 插件互不通用。生产选型要核对三件事：① 目标网关是否声明支持 Proxy-Wasm 及其 ABI 版本；② 插件位于请求热路径，需实测单请求额外延迟与内存上限，宿主侧要为其预留资源；③ 插件与网关版本需绑定升级，ABI 不兼容会直接导致网关启动失败。若团队本无跨网关复用需求，用宿主语言写原生插件在性能与可调试性上通常更优。</p>
             </div>
           </div>
 
@@ -4556,7 +4563,7 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
               <p>失败模式：盲目 reset 位点丢数据；无限重试打爆下游；扩容后单分区仍串行。回滚点：恢复原并发与订阅组配置。</p>
               <p>积压分级：下游故障→暂停消费；消费慢→扩容/提并发；毒消息→跳过/死信；流量洪峰→限产。禁止无证据盲目丢弃。</p>
               <p>每级都要有可回放位点与对账任务；扩容前确认分区与消费组模型。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化判定：积压速率 > 消费速率 × 1.5 且持续 5 分钟为 L1；单分区积压占比 > 60% 说明热点，扩消费者无效，应先重设分区键再均衡；死信率 > 0.1% 触发人工介入。演进：把「积压量、消费 RT P99、死信速率、位点滞后」四指标做成一张分级告警看板；位点重置权限收归双人复核，且重置前必须确认下游幂等能力。</p>
             </div>
           </div>
         </div>
@@ -4605,7 +4612,7 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
               <p>失败模式：消息表与业务不同库；无幂等导致重复扣款；扫描无退避打爆 MQ。回滚点：暂停扫描器，保留表数据人工补发。</p>
               <p>本地消息表最小闭环：同事务写业务+outbox → 异步投递 → 成功标记 → 对账补偿。缺对账等于假可靠。</p>
               <p>落地清单：表结构、投递线程、重试退避、死信、对账窗口与告警。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化：扫描间隔 5~30s（按 RT 敏感度取），单批 ≤ 500 行，重试退避 1s → 5s → 30s → 5min，最大重试 8 次后转 DEAD。对账窗口 = T+1 全量 + 每 10 分钟增量，差异率 > 0.01% 告警。演进：outbox 表按 biz_key 哈希分表，单表超 5000 万行或扫描耗时 > 1s 即分片；量级再上一个台阶可退化为事务消息 / CDC 订阅，但必须保留对账兜底。</p>
             </div>
           </div>
         </div>
@@ -4652,7 +4659,269 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
               <p>失败模式：死信无限回流原 Topic；延迟到期打满下游；重放打乱顺序且无幂等。回滚点：停止重放任务，恢复原消费组。</p>
               <p>死信堆积先分型：业务拒绝 vs 系统故障。重放要控速并保证幂等；顺序主题重放勿打乱分区键。</p>
               <p>延迟消息值班：看到期堆积与消费滞后；止血可暂停调度或降级即时路径。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化：死信重放速率 ≤ 生产均值 × 0.3（防止重放把下游再打挂），最大重放 5 次；延迟消息按到期曲线分桶（±1min / ±5min / ±30min）削峰，避免整点洪峰。演进：每条死信补 reason_code + 原始位点 + 首次失败时间，重放走审计流水（谁、何时、多少条）；顺序主题的重放必须按分区键串行，且整批幂等。</p>
+            </div>
+          </div>
+        <div class="qa-card" id="C11.29" data-difficulty="architect" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C11.29</div>
+            <div class="qa-question">Schema Registry 如何治理 Avro/Protobuf 契约的兼容演进？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body">
+              <p>事件驱动系统真正的接口不是 Topic 名，而是<strong>事件的 Schema</strong>。生产者以为「加个字段」是小事，消费者却按旧结构反序列化——这类故障<strong>不抛异常、只静默错读</strong>，比服务间接口不兼容更难排查：服务调用不兼容至少会 500，消息错读可能几周后才发现对账不平。</p>
+              <p>Schema Registry 把契约从口头约定升级为<strong>可注册、可校验、可回滚的线上资源</strong>：写入前先按兼容性策略校验，通过后分配全局 ID；消费端凭消息头里的 ID 取回 schema，无需在每个消费者里硬编码结构。Kafka 三件套的分工是：<a href="#C11.11"><strong>C11.11</strong></a> 管消息路径 EOS，<a href="#C11.24"><strong>C11.24</strong></a> 管内嵌流处理，本题管<strong>契约演进</strong>。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="evolution">
+            <div class="qa-layer-title">演进脉络</div>
+            <div class="qa-layer-body">
+              <p><strong>裸 JSON / 字符串时代</strong>：字段靠人约定。加字段消费者忽略、删字段消费者拿到 null、改类型静默截断；Schema 只活在设计文档里，与线上消息无关。</p>
+              <p><strong>Schema 前置</strong>：Avro / Protobuf 把结构写进 schema，支持紧凑二进制编码与形式化兼容判定——兼容性从「靠人吵」变成「可计算」。</p>
+              <p><strong>集中注册</strong>：Confluent Schema Registry / Apicurio / AWS Glue Schema Registry 把版本集中托管，消息只带 schema ID（Magic Byte + 4 字节），载荷不再自描述，省带宽也省解析开销。</p>
+              <p><strong>治理内建</strong>：兼容性策略（BACKWARD / FORWARD / FULL / NONE）、CI 期预检、变更审批与影响面分析进入发布门禁；Registry 与 Catalog 联动做血缘与质量。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">第一性原理</div>
+            <div class="qa-layer-body">
+              <p><strong>兼容性四象限</strong>：判定方向由「谁先升级」决定，不是由格式决定。生产默认 <code class="inline-code">BACKWARD</code>（新消费者读旧数据），因为消费端通常先发版；涉及跨团队订阅多、升级节奏不可控时用 <code class="inline-code">FULL</code>。</p>
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>策略</th>
+                    <th>语义</th>
+                    <th>允许的变更</th>
+                    <th>适用</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>BACKWARD</td>
+                    <td>新 Schema 读旧数据</td>
+                    <td>删字段、加带默认值的可选字段</td>
+                    <td>默认；消费者先升级</td>
+                  </tr>
+                  <tr>
+                    <td>FORWARD</td>
+                    <td>旧 Schema 读新数据</td>
+                    <td>加字段、删带默认值的字段</td>
+                    <td>生产者先升级、订阅方被动</td>
+                  </tr>
+                  <tr>
+                    <td>FULL</td>
+                    <td>双向可读</td>
+                    <td>仅加/删带默认值的可选字段</td>
+                    <td>跨团队共享 Topic、节奏不可控</td>
+                  </tr>
+                  <tr>
+                    <td>NONE</td>
+                    <td>不校验</td>
+                    <td>任意</td>
+                    <td>仅限内部临时 Topic，须有到期清理</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p><strong>Avro 的关键约束是默认值</strong>：字段必须有 <code class="inline-code">default</code> 才能安全新增/删除；无默认值的字段变更在多版本混跑时直接反序列化失败。<strong>Protobuf 的关键约束是字段号</strong>：号永不复用、<code class="inline-code">reserved</code> 标记废弃号、<code class="inline-code">optional/explicit</code> 显式区分「未设置」与「零值」——否则 <code class="inline-code">0</code> 与缺省无法区分，业务判空逻辑会错。</p>
+              <p><strong>Wire Format</strong>：消息 = Magic Byte(<code class="inline-code">0x0</code>) + 4 字节 schema ID + 序列化载荷。ID 全局单调整，<strong>同一 schema 演进不更新 ID</strong>（ID 标识一个已注册版本，不是逻辑主题）；这一条决定了「回滚消息」在协议层天然可行。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">工程实践</div>
+            <div class="qa-layer-body">
+              <div class="code-block">
+                <pre><code><span class="com">// 生产端：注册 + 带 ID 序列化（Spring Kafka 示意）</span>
+<span class="var">props</span>.<span class="fn">put</span>(<span class="type">ProducerConfig</span>.<span class="fn">VALUE_SERIALIZER_CLASS_CONFIG</span>, KafkaAvroSerializer.<span class="kw">class</span>);
+<span class="var">props</span>.<span class="fn">put</span>(<span class="str">"schema.registry.url"</span>, registryUrl);
+<span class="var">props</span>.<span class="fn">put</span>(<span class="str">"auto.register.schemas"</span>, <span class="kw">false</span>);   <span class="com">// 生产禁自动注册</span>
+<span class="var">props</span>.<span class="fn">put</span>(<span class="str">"use.latest.version"</span>, <span class="kw">true</span>);      <span class="com">// 用已审批版本</span>
+<span class="var">props</span>.<span class="fn">put</span>(<span class="str">"value.subject.name.strategy"</span>, TopicNameStrategy.<span class="kw">class</span>);
+
+<span class="com">// 消费端：先取最新可用 schema，再反序列化历史数据</span>
+<span class="var">props</span>.<span class="fn">put</span>(<span class="str">"specific.avro.reader"</span>, <span class="kw">true</span>);       <span class="com">// 生成 SpecificRecord 而非 GenericRecord</span>
+<span class="var">props</span>.<span class="fn">put</span>(<span class="str">"latest.compatibility.strict"</span>, <span class="kw">false</span>);</code></pre>
+              </div>
+              <p><strong>CI 期预检</strong>：把兼容性校验前移到构建阶段，而不是等上线时被 Registry 拒绝。Avro 用 <code class="inline-code">avro-tools</code> / <code class="inline-code">schema-registry-maven-plugin</code> 的 <code class="inline-code">test-compatibility</code> 目标；Protobuf 用 <code class="inline-code">buf breaking --against</code> 与主干对比。流水线失败即阻断合并，比生产侧拦截便宜一个数量级。</p>
+              <p><strong>变更流程</strong>：新字段一律可空 + 给默认值 → 生产者先发版（双写新老字段窗口）→ 观测消费端无异常 → 清理旧字段（先 <code class="inline-code">reserved</code> 再物理删除）。破坏性变更（改类型、改语义、复用字段号）不走同 Topic，<strong>新建 Topic + 双写迁移 + 到期下线</strong>。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">深度追问</div>
+            <div class="qa-layer-body">
+              <p><strong>追问 1：Schema Registry 会不会成为新的单点？</strong> 会，但故障模式可控。Schema Registry 是<strong>控制面</strong>（写少读多）：客户端本地缓存 schema，正常运行不依赖实时调用；Registry 宕机只影响新 schema 注册，已缓存消费者可继续。高可用按控制面设计：多副本 + 客户端缓存 + 本地降级读缓存；但<strong>绝不能把 auto.register 当兜底</strong>，否则契约治理形同虚设。</p>
+              <p><strong>追问 2：它能替代 API 版本治理吗？</strong> 不能，覆盖范围不同。Registry 管的是「异步消息契约」，同步接口（REST/gRPC）另有版本策略（URL 版本、Header 协商、<code class="inline-code">buf breaking</code> + gRPC 兼容规则）。两者的共同原则是一致的：<strong>只做向后兼容的增量演进，破坏性变更走新通道</strong>。可参考 <a href="#C10.02">C10.02</a> 的接口演进讨论。</p>
+              <p><strong>追问 3：字段删了就删了，为什么要先 reserved？</strong> 因为历史消息还在。Kafka 保留期内（或数据湖里）旧数据仍可按老 schema 解析，一旦字段号被新字段复用，<strong>同一块字节会有两种解释</strong>——这是最隐蔽的一类数据事故。Protobuf 的 <code class="inline-code">reserved 5;</code> 与 Avro 的语义删除（保留字段、停用访问）都是为了让「号」与「名」不可回收。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">常见陷阱</div>
+            <div class="qa-layer-body">
+              <ul>
+                <li><strong>生产开 auto.register.schemas</strong>：谁先发版谁定契约，兼容性策略形同废止；应该关掉，改为流水线预注册 + 审批。</li>
+                <li><strong>用 NONE 策略「先跑起来」</strong>：一旦有消费者依赖旧结构，NONE 会把不兼容变更放进生产。NONE 必须配到期时间与清理任务。</li>
+                <li><strong>Subject 命名策略不统一</strong>：TopicNameStrategy 与 RecordNameStrategy 混用会产生多套 subject，兼容性校验跨了个空——同一点位必须固定一种策略，写进脚手架。</li>
+                <li><strong>Avro 加字段不给默认值</strong>：旧消费者遇到新消息直接反序列化异常；且在 BACKWARD 策略下会被 Registry 拒绝，团队常误判为「Registry 有问题」。</li>
+                <li><strong>把 registry 当配置中心用</strong>：往里塞业务开关、塞大 JSON 配置，读写次数与体积失控；Registry 只放 Schema。</li>
+                <li><strong>只在生产侧校验</strong>：CI 不预检，问题在上线时才暴露，回滚代价放大；预检成本极低，必须进主流水线。</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="production">
+            <div class="qa-layer-title">生产实践</div>
+            <div class="qa-layer-body">
+              <p><strong>上线门禁</strong>：① 兼容性策略按 Topic 显式声明（默认 BACKWARD，共享 Topic 用 FULL）；② <code class="inline-code">auto.register.schemas=false</code> 且 schema 走审批注册；③ CI 含 <code class="inline-code">test-compatibility</code> / <code class="inline-code">buf breaking</code> 且失败阻断合并；④ 破坏性变更必须新建 Topic 并附迁移与下线时间表。</p>
+              <p><strong>可观测</strong>：Registry 侧看注册/校验失败次数、各 subject 版本数与最后变更时间；消费侧看反序列化失败率（应恒为 0，非 0 即契约被绕过）、<code class="inline-code">UnknownSchemaException</code> 计数、schema ID 分布（可发现仍在跑旧版本的实例）。</p>
+              <p><strong>回滚</strong>：schema 版本不可删（删除会破坏历史数据可读性），回滚只能<strong>前滚到兼容版本</strong>；进程侧回滚到上一镜像即可，因为新 schema 兼容旧代码。数据修复需按 schema ID 分组重放，而非整 Topic 重放。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="extension">
+            <div class="qa-layer-title">扩展阅读</div>
+            <div class="qa-layer-body">
+              <p><strong>官方主线</strong>：Confluent Schema Registry API / Compatibility Types（BACKWARD、FORWARD、FULL 及 TRANSITIVE 变体）；Apache Avro Spec — Schema Resolution 与 default 语义；Protocol Buffers Language Guide — Field Numbers / reserved / optional 语义。</p>
+              <p><strong>与全站交叉</strong>：Kafka 消息语义与 EOS 见 <a href="#C11.11">C11.11</a>；Kafka Streams 内嵌处理见 <a href="#C11.24">C11.24</a>；流处理引擎对照见 <a href="#C11.25">C11.25</a>；接口演进与版本治理见 <a href="#C10.02">C10.02</a>。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-card" id="C11.30" data-difficulty="architect" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C11.30</div>
+            <div class="qa-question">GraphQL 在 Java BFF 层怎么落地？N+1、查询深度与字段级授权怎么治理？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body">
+              <p>GraphQL 要解决的不是「REST 不好」，而是<strong>客户端取数形状不可预知</strong>：移动端、小程序、Web 三端各要不同字段组合，靠后端不断加接口必然膨胀成接口泥潭。GraphQL 把<strong>取数形状的决策权交给客户端</strong>，服务端只声明「有哪些字段、怎么解析」。</p>
+              <p>代价同样明确：单一入口 + 递归查询 = <strong>查询复杂度不可预知</strong>。因此 GraphQL 的工程难点不在语法，而在治理——如何限制深度与复杂度、如何把 N+1 压成批量、如何做字段级授权、如何让查询可缓存。本题谈 Java 侧（Spring for GraphQL / graphql-java）的落地与治理边界。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="evolution">
+            <div class="qa-layer-title">演进脉络</div>
+            <div class="qa-layer-body">
+              <p><strong>REST 时代</strong>：一个页面调 5~10 个接口，过度取数与请求瀑布（Waterfall）并存；后端为聚合需求不断加 <code class="inline-code">/summary</code> 类定制接口。</p>
+              <p><strong>BFF 聚合</strong>：为每端建 BFF 做聚合，缓解了前端问题但把复杂度搬到后端，BFF 数量随端数增长。</p>
+              <p><strong>GraphQL 单入口</strong>：Schema 即契约，客户端按需取数；Facebook 2015 开源后由 GraphQL Foundation 托管规范。</p>
+              <p><strong>规模化治理</strong>：Federation（多团队各自维护子图）、<strong>持久化查询</strong>（Persisted Query，只允许白名单查询）、复杂度预算与深度限制成为生产标配；Java 侧以 <code class="inline-code">spring-graphql</code> + <code class="inline-code">graphql-java</code> 为主流。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">第一性原理</div>
+            <div class="qa-layer-body">
+              <p><strong>Schema First</strong>：<code class="inline-code">.graphqls</code> 是唯一契约，先定 Schema 再写 Resolver。类型系统天然承担文档与校验职责，且可生成前端类型（Codegen）。</p>
+              <p><strong>Resolver 与 N+1 的根因</strong>：字段级解析意味着 <code class="inline-code">[Order] → customer</code> 会对每个 Order 各查一次用户，1 个查询变成 N+1 次下游调用。<strong>DataLoader 是解药</strong>：在同一事件循环 tick 内收集 key，合并为一次批量查询并做请求级缓存——这是 GraphQL 与普通 RPC 最大的工程差异点。</p>
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>REST / gRPC</th>
+                    <th>GraphQL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>契约</td>
+                    <td>OpenAPI / .proto，端点或方法级</td>
+                    <td>单 Schema，类型与字段级</td>
+                  </tr>
+                  <tr>
+                    <td>取数形状</td>
+                    <td>服务端决定，客户端可能过度取数</td>
+                    <td>客户端决定，天然按需</td>
+                  </tr>
+                  <tr>
+                    <td>HTTP 缓存</td>
+                    <td>GET + URL 即可用 CDN / ETag</td>
+                    <td>多为 POST 单端点，需持久化查询或客户端规范化缓存</td>
+                  </tr>
+                  <tr>
+                    <td>传输</td>
+                    <td>gRPC 走 HTTP/2 二进制，性能最优</td>
+                    <td>JSON over HTTP（或延展协议），编解码开销更高</td>
+                  </tr>
+                  <tr>
+                    <td>适合场景</td>
+                    <td>服务间内网调用、需要强契约与性能</td>
+                    <td>面向多端的前端取数层（BFF）</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p><strong>安全模型</strong>：单一端点让「按 URL 做鉴权」失效，必须下沉到<strong>字段级授权</strong>——Resolver 内校验当前用户对目标对象的访问权，而不是只校验「能不能调这个接口」。同时必须限制深度（<code class="inline-code">maxDepth</code>）、复杂度（按字段配权重累加）、查询体量，否则一次嵌套查询可打穿数据库。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">工程实践</div>
+            <div class="qa-layer-body">
+              <div class="code-block">
+                <pre><code><span class="com">// Spring for GraphQL：DataLoader 批量解 N+1</span>
+<span class="fn">@SchemaMapping</span>(typeName = <span class="str">"Order"</span>, field = <span class="str">"customer"</span>)
+<span class="kw">public</span> <span class="type">CompletableFuture</span>&lt;<span class="type">Customer</span>&gt; <span class="fn">customer</span>(<span class="type">Order</span> o, <span class="type">DataLoader</span>&lt;<span class="type">Long</span>, <span class="type">Customer</span>&gt; loader) {
+    <span class="kw">return</span> loader.<span class="fn">load</span>(o.<span class="fn">getCustomerId</span>());   <span class="com">// 同 tick 内自动合并为一次批量查询</span>
+}
+
+<span class="fn">@Bean</span>
+<span class="type">BatchLoaderRegistry</span>.<span class="type">RegistrationSpec</span>&lt;<span class="type">Long</span>, <span class="type">Customer</span>&gt; <span class="fn">customerLoader</span>(<span class="type">CustomerRepo</span> repo) {
+    <span class="kw">return</span> batchLoaderRegistry -&gt; batchLoaderRegistry
+        .<span class="fn">forType</span>(<span class="str">"customerLoader"</span>, <span class="type">Long</span>.<span class="kw">class</span>, <span class="type">Customer</span>.<span class="kw">class</span>)
+        .<span class="fn">registerMappedBatchLoader</span>((ids, env) -&gt;
+            <span class="type">Mono</span>.<span class="fn">just</span>(repo.<span class="fn">findByIds</span>(ids)));   <span class="com">// 一次 IN 查询</span>
+}</code></pre>
+              </div>
+              <p><strong>查询防护配置</strong>：<code class="inline-code">MaxQueryDepthInstrumentation</code> 限制嵌套深度（建议 8~10）；<code class="inline-code">MaxQueryComplexityInstrumentation</code> 按字段权重累计复杂度并设预算；<code class="inline-code">MaxQueryComplexityCalculator</code> 可给列表字段乘倍数，防止 <code class="inline-code">first: 1000</code> 类放大。分页强制游标（Relay Cursor Connections），禁止无界列表。</p>
+              <p><strong>持久化查询</strong>：客户端上传查询得 hash，运行期只接受已知 hash——这是 GraphQL 抗滥用最有效的一招，同时把 POST 变成可缓存语义，并让「谁在查什么」可审计。新增查询走白名单审批，未注册查询直接拒绝。</p>
+              <p><strong>与同步接口分工</strong>：服务间内网调用继续用 gRPC（契约强、性能优、流式支持好）；GraphQL 只放在面向多端的最外层 BFF，内部仍调 gRPC/REST，避免把 GraphQL 渗透到全链路导致排障困难。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">深度追问</div>
+            <div class="qa-layer-body">
+              <p><strong>追问 1：N+1 用缓存解决不行吗？</strong> 部分可以，但缓存解决的是「重复读」，N+1 的本质是「批量机会被拆散」。同一个请求里 100 个不同 ID 的查询，缓存全部 miss，仍是 100 次调用。<strong>DataLoader 做的是合并</strong>（1 次 IN 查询），缓存做的是复用，两者互补而不是替代。</p>
+              <p><strong>追问 2：为什么强调字段级授权？</strong> 因为端点级授权失效后，攻击面被放大：一个 <code class="inline-code">viewer</code> 角色可以构造查询拿到本不该见的字段（如 <code class="inline-code">order.internalNote</code>）。规则是<strong>每个敏感字段的 Resolver 必须自带权限判定</strong>，并对返回集合做租户过滤；授权失败返回 null 还是抛错要显式设计（抛错更安全，返回 null 会被当成「无数据」）。</p>
+              <p><strong>追问 3：GraphQL 适合内部服务间调用吗？</strong> 通常不适合。内网调用要的是强契约、低开销、流式与背压——gRPC 更合适。GraphQL 的价值在<strong>客户端形状不可预知</strong>；内网调用方是确定的，引入 GraphQL 只会增加解析开销与排障成本。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">常见陷阱</div>
+            <div class="qa-layer-body">
+              <ul>
+                <li><strong>N+1 未治理就上线</strong>：列表页 QPS 打满下游，表现为「数据库 CPU 高但慢 SQL 不多」——因为是大量小查询。上线前必须做 DataLoader 覆盖度检查。</li>
+                <li><strong>无深度/复杂度限制</strong>：一段 <code class="inline-code">friends { friends { friends { ... } } }</code> 即可耗尽内存与连接池；这是 GraphQL 最典型的拒绝服务面。</li>
+                <li><strong>只做端点鉴权</strong>：认为「登录了就能查」；字段级越权在单端点模型下不会被网关拦截。</li>
+                <li><strong>Schema 破坏性变更</strong>：直接删字段或改类型，客户端 Codegen 产物与运行期不一致；规则同 Protobuf——只增不改，废弃字段用 <code class="inline-code">@deprecated</code> 标注并给下线期。</li>
+                <li><strong>把 GraphQL 当数据库查询语言</strong>：在 Resolver 里透传客户端过滤条件拼 SQL，等于把查询权限交给前端；过滤条件必须服务端白名单化。</li>
+                <li><strong>错误处理含糊</strong>：GraphQL 允许「部分成功」（data 有值、errors 有项），若不约定 errors 语义，前端会把降级数据当完整数据渲染。</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="production">
+            <div class="qa-layer-title">生产实践</div>
+            <div class="qa-layer-body">
+              <p><strong>上线门禁</strong>：① 已启用深度 + 复杂度双限制且给出预算值；② 所有列表字段有分页上限，无界列表为 0；③ 敏感字段 Resolver 含权限校验，且有越权用例回归；④ 持久化查询白名单已启用（或说明为何不启用）；⑤ DataLoader 覆盖率检查通过。</p>
+              <p><strong>可观测</strong>：按 operation name 打点（P50/P95/P99 延迟、错误率）、字段级耗时热力图（定位慢 Resolver）、复杂度分布（防止客户端逐步加码）、DataLoader 平均批量大小（接近 1 说明合并失效）。</p>
+              <p><strong>降级</strong>：非核心字段提供 fallback（返回 null 并标记 <code class="inline-code">degraded</code>），核心字段失败则整查询失败；对高频查询结果做请求级缓存；流量异常时可临时下调复杂度预算而非直接摘除端点，保留可观测性。</p>
+            </div>
+          </div>
+
+          <div class="qa-layer" data-layer="extension">
+            <div class="qa-layer-title">扩展阅读</div>
+            <div class="qa-layer-body">
+              <p><strong>官方主线</strong>：GraphQL Specification（graphql.org）——类型系统、执行语义、Validation 规则；Spring for GraphQL Reference——<code class="inline-code">@SchemaMapping</code>、DataLoader 注册、Instrumentation；graphql-java 文档——<code class="inline-code">MaxQueryDepth</code> / <code class="inline-code">MaxQueryComplexity</code> 实现。</p>
+              <p><strong>与全站交叉</strong>：同步接口选型与 gRPC 对照见 <a href="chapter-questions-eight-part.html#E08.04">E08.04</a>；网关与鉴权见 <a href="#C10.02">C10.02</a>；API 安全与越权防护见 <a href="chapter-questions-eight-part.html#E09.01">E09.01</a>。</p>
             </div>
           </div>
         </div>

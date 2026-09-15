@@ -71,7 +71,7 @@
           <div class="chapter-meta">
             <span>题目数：12</span>
             <span class="meta-divider">|</span>
-            <span>高级开发 ×3</span>
+            <span>高级开发 ×4</span>
             <span class="meta-divider">|</span>
             <span>架构级 ×7</span>
             <span class="meta-divider">|</span>
@@ -1498,7 +1498,7 @@ spring:
     }
 }
 
-<span class="com">// 2. 陷阱: synchronized 导致 pinning, 必须替换为 ReentrantLock</span>
+<span class="com">// 2. 陷阱: JDK 21–23 下 synchronized 块内阻塞会 pinning（JDK 24+ 已由 JEP 491 修复）</span>
 <span class="kw">public class</span> <span class="type">VehicleCache</span> {
 
     <span class="com">// BAD: synchronized 块内阻塞会 pin 载体线程, 退化为阻塞</span>
@@ -1561,7 +1561,7 @@ spring:
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
-                  <li><strong>synchronized/native 导致 pinning</strong>：<code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时虚拟线程无法 unmount，载体线程被固定退化为阻塞，必须替换为 <code class="inline-code">ReentrantLock</code>，用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code> 检测。</li>
+                  <li><strong>synchronized/native 导致 pinning（须按 JDK 版本判断）</strong>：<strong>JDK 21–23</strong>——<code class="inline-code">synchronized</code> 块内或 <code class="inline-code">native</code> 方法中阻塞时虚拟线程无法 unmount，载体线程被固定退化为阻塞，此时才需换 <code class="inline-code">ReentrantLock</code>，可用 <code class="inline-code">-Djdk.tracePinnedThreads=full</code>（JDK 21–23 专用）或 JFR 事件 <code class="inline-code">jdk.VirtualThreadPinned</code> 检测。<strong>JDK 24+（JEP 491）</strong>——监视器改为按虚拟线程登记，<code class="inline-code">synchronized</code> 内阻塞、进入监视器、<code class="inline-code">Object.wait()</code> 均可正常 unmount，<strong>主要 pinning 源已消除，勿再机械「凡 synchronized 必换锁」</strong>；该版本已移除 <code class="inline-code">-Djdk.tracePinnedThreads</code>，残留 pinning（native/FFI、类加载与类初始化）统一用 JFR 的 <code class="inline-code">jdk.VirtualThreadPinned</code> 观测。</li>
                   <li><strong>Virtual Threads 用于 CPU 密集</strong>：CPU 密集任务跑在虚拟线程上长时间占住载体线程，饿死其他虚拟线程，CPU 密集应仍用 <code class="inline-code">ForkJoinPool</code> 或 <code class="inline-code">Schedulers.parallel()</code>。</li>
                   <li><strong>池化虚拟线程</strong>：把虚拟线程放入线程池复用是反模式——虚拟线程极轻量用完即弃，池化反而增加调度开销，应用 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code>。</li>
                   <li><strong>内存占用低估</strong>：虽每虚拟线程几 KB，但百万级虚拟线程仍占数 GB 内存，且栈深度大时栈帧占用增长，需按实际并发量评估内存。</li>
@@ -2627,7 +2627,7 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               <p>失败模式：无界 buffer 当「解法」；drop 未告知业务；阻塞调用藏在 flatMap。回滚点：恢复旧缓冲策略并限流上游。</p>
               <p>背压未传递常见于：边界用了无界队列、block 在弹性线程、下游超时被吞。症状是内存涨而错误率不高。</p>
               <p>临时止血：降产/限流/切有界队列；长期把背压写成契约并做拒绝可观测。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化信号：某 operator 后队列长度 5 分钟内单调上涨，且内存曲线与错误率脱钩（内存涨而错误率不升），即判定背压断裂；prefetch 默认 256（flatMap 时再乘并发度）常是隐藏缓冲点。演进：把背压改成契约——每个跨边界点声明有界容量与 onBackpressure 策略并暴露拒绝计数；drop / latest 须业务书面允许后启用，且拒绝必须可观测。</p>
             </div>
           </div>
         </div>

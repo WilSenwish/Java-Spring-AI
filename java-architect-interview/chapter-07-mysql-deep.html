@@ -83,7 +83,7 @@
           <div class="chapter-meta">
             <span>题目数：16</span>
             <span class="meta-divider">|</span>
-            <span>高级开发 ×10</span>
+            <span>高级开发 ×11</span>
             <span class="meta-divider">|</span>
             <span>架构级 ×4</span>
             <span class="meta-divider">|</span>
@@ -1377,12 +1377,11 @@ replica_preserve_commit_order = ON</code></pre>
 gtid_mode=ON
 # 强制 GTID 一致性
 enforce_gtid_consistency=ON
-# Binlog 过期自动清理（8.0 用 binlog_expire_logs_seconds，单位秒）
+# Binlog 过期自动清理（8.0+ 用 binlog_expire_logs_seconds，单位秒）
+# 注意：expire_logs_days 自 8.0 起废弃、MySQL 8.4 已移除；8.4+ 写该参数会导致 mysqld 启动报错
 binlog_expire_logs_seconds=259200
 # Binlog 格式必须为 ROW
 binlog_format=ROW
-# Binlog 保持时间（至少保留3天）
-expire_logs_days=3
 # 记录执行的GTID到信息
 log_replica_updates=ON  # 8.0 名称，5.7 及以前为 log_slave_updates</code></pre>
               <p><strong>从库 GTID 复制搭建步骤</strong>（命令按版本分列；<strong>MySQL 8.4 LTS 以 SOURCE/REPLICA 为准</strong>）：</p>
@@ -1429,7 +1428,11 @@ FROM performance_schema.replication_connection_status;</code></pre>
                 <code class="inline-code">STOP REPLICA IO_THREAD; START REPLICA IO_THREAD;</code>
                 才会以半同步身份重连。8.4 LTS 官方支持窗口长（至约 2032），仍是多数企业默认基线。
               </p>
-              <p><strong>MySQL 9.x / 9.7 LTS（2026）</strong>：可作为演进目标跟踪；升级须单独评估兼容性与工具链。新集群若无强制约束，优先 8.4 LTS；跟进 9.x 时对照官方 LTS 说明，勿把创新版默认当生产唯一基线。</p>
+              <p><strong>版本时间线（2026 现况，选型必答）</strong>：MySQL <strong>9.7.0 LTS 已于 2026-04-21 GA</strong>，是 9.x 首个 LTS（Premier 至 2031、Extended 至 2034）；<strong>MySQL 8.0 已于 2026-04-30 EOL</strong>（最后版本 8.0.46，Premier 早在 2025-04-30 结束），继续运行 8.0 意味着不再获得主动补丁与安全修复——托管平台各有独立窗口（HeatWave 至 2027-04、AWS RDS 至 2026-07-31、Aurora MySQL 至 2028-04），不能与自建混谈。8.4 LTS Premier 至 2029-04、Extended 至 2032-04。</p>
+              <p><strong>升级路径不可跨 LTS 跳升</strong>：只能 8.0.x → 8.4.x LTS → 9.7.0 LTS 两段升级。升级前必查三类兼容项：① <strong>认证插件</strong>——<code class="inline-code">mysql_native_password</code> 在 8.4 已默认禁用、9.x 已移除，须先迁到 <code class="inline-code">caching_sha2_password</code>（9.7 起新增 PBKDF2 / SHA-512 存储格式）；② <strong>已移除变量</strong>——<code class="inline-code">expire_logs_days</code>、<code class="inline-code">query_cache_*</code>、<code class="inline-code">innodb_log_files_in_group</code> 等，须从 my.cnf 清理；③ <strong>外键约束</strong>——8.4 起要求外键引用的父表列必须有唯一索引。</p>
+              <p><strong>9.7 社区版可用的新能力</strong>：Hypergraph Optimizer（基于 DPhyp 动态规划，可枚举 Bushy Tree 计划；默认关闭，须 <code class="inline-code">optimizer_switch='hypergraph_optimizer=on'</code> opt-in，开启后不支持 <code class="inline-code">STRAIGHT_JOIN</code> 与 <code class="inline-code">EXPLAIN FORMAT=TRADITIONAL/JSON</code>）、JSON Duality Views 全量 DML、cgroup cpuset 感知（容器 / K8s 场景下语义更准），以及原先仅企业版的多个复制与观测组件下放社区版。Hypergraph 建议先在预发单条 SQL 用 hint 验证，不要生产全局开启。</p>
+              <p><strong>必须避免的误判</strong>：<code class="inline-code">VECTOR</code> 类型虽然可用，但 9.7 <strong>社区版不提供 HNSW 向量索引，也不含官方距离函数</strong>（<code class="inline-code">DISTANCE()</code> / <code class="inline-code">VECTOR_DISTANCE()</code> 仅 HeatWave on OCI 与 MySQL AI 提供）——把「MySQL 9.7 支持向量检索」当作社区版可用的 ANN 方案是错的，ANN 检索仍需 HeatWave 或外部向量库（pgvector / Milvus / Qdrant 等）。</p>
+              <p><strong>选型建议</strong>：新集群若无强制约束，优先 8.4 LTS（稳定、第三方镜像与备份 / 集群工具跟进充分）；已在 8.0 且需要 Hypergraph / Duality Views / cgroup 能力、并希望一举脱离 EOL 风险，按 8.0 → 8.4 → 9.7 规划。无论哪条路径都需在测试环境跑完整回归；9.0~9.6 属季度 Innovation 版本，不应作为生产唯一基线。</p>
               <pre><code># 源端 my.cnf（8.4）
 [mysqld]
 # INSTALL PLUGIN rpl_semi_sync_source SONAME 'semisync_source.so';
@@ -1442,7 +1445,7 @@ rpl_semi_sync_source_wait_no_replica=ON
 [mysqld]
 # INSTALL PLUGIN rpl_semi_sync_replica SONAME 'semisync_replica.so';
 rpl_semi_sync_replica_enabled=ON</code></pre>
-              <p><strong>MySQL 8.0.x（历史对照）</strong>：旧插件 <code class="inline-code">semisync_master.so</code> / <code class="inline-code">semisync_slave.so</code>，变量前缀 <code class="inline-code">rpl_semi_sync_master_*</code> / <code class="inline-code">rpl_semi_sync_slave_*</code>。8.4 生产勿再默认教旧名。</p>
+              <p><strong>MySQL 8.0.x（历史对照）</strong>：旧插件 <code class="inline-code">semisync_master.so</code> / <code class="inline-code">semisync_slave.so</code>，变量前缀 <code class="inline-code">rpl_semi_sync_master_*</code> / <code class="inline-code">rpl_semi_sync_slave_*</code>。8.4 起已弃用，<strong>MySQL 9.5 起旧插件与旧变量一并移除</strong>（改 <code class="inline-code">semisync_source.so</code> / <code class="inline-code">semisync_replica.so</code> 与 <code class="inline-code">rpl_semi_sync_source_*</code> / <code class="inline-code">rpl_semi_sync_replica_*</code>），生产勿再默认教旧名。</p>
               <pre><code>[mysqld]
 # 历史示例（8.0）
 rpl_semi_sync_master_enabled=ON
@@ -1554,6 +1557,7 @@ innodb_purge_threads=1</code></pre>
               <p><strong>从库高并发参数</strong>（并行应用靠 <code class="inline-code">replica_parallel_workers</code>；网上流传的多 IO/SQL 线程参数多为<strong>伪配置</strong>，官方无对应系统变量，照抄会无效或报错）：</p>
               <pre><code>[mysqld]
 # 8.4 现行名（8.0 可见 slave_parallel_* 同义；新环境统一 replica_*）
+# 注意：replica_parallel_type 自 8.0.29 废弃、MySQL 9.5 起已移除——LOGICAL_CLOCK 为唯一策略，无需再配
 replica_parallel_type=LOGICAL_CLOCK
 replica_parallel_workers=8
 replica_preserve_commit_order=ON
@@ -2906,7 +2910,7 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
                 与事务持续时间，再判断是业务慢还是索引缺失。超时要能区分「语句超时」与「事务超时」。
               </p>
               <p>止血顺序：①限流入口 ②杀掉明显空闲长事务 ③临时降隔离/拆批（有评审）④补索引与拆事务后回放。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化：innodb_lock_wait_timeout 默认 50s（OLTP 建议 1~5s），长事务判定 = 持续 > 60s 或 history list length > 10 万；kill 前先估回滚时长（约等于已修改行数 / 1000 行每秒）。演进：事务内禁止 RPC / HTTP；大事务拆批（单批 ≤ 1000 行）并对齐复制延迟阈值；超时分「语句超时」与「事务超时」两层配置，避免只调一层。</p>
             </div>
           </div>
         </div>

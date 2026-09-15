@@ -140,7 +140,7 @@
           <div class="chapter-meta">
             <span>题目数：35</span>
             <span class="meta-divider">|</span>
-            <span>高级开发 ×1</span>
+            <span>高级开发 ×4</span>
             <span class="meta-divider">|</span>
             <span>架构级 ×19</span>
             <span class="meta-divider">|</span>
@@ -217,6 +217,8 @@
               </p>
               <p><strong>Spring AI 1.0 M（2024）</strong>：引入 <code class="inline-code">ChatClient</code> 高层 Fluent API、<code class="inline-code">Advisor</code> 链（前置/后置拦截，支持 RAG/日志/重试）、Structured Output（JSON → POJO）、声明式 Function Calling。同步/流式/异步全支持。</p>
               <p><strong>Spring AI 1.0 GA（2025）+ MCP</strong>：支持 Model Context Protocol（Anthropic 主导标准），把"工具/资源/Prompt 模板"标准化为 MCP Server，Spring AI 可作为 MCP Client 跨进程消费工具。Agent 编排在 1.0 由 Tool Calling + Advisor 链承载，后续版本（1.1+/2.0）持续增强 Agentic 模式与图编排能力，并非单一 <code class="inline-code">ChatClientAgent</code> 类。</p>
+              <p><strong>Spring AI 2.0.0 GA（2026-06-12）是当前基线</strong>。硬约束：<strong>Java 21+、Spring Boot 4.x、Spring Framework 7.0</strong>。相对 1.x 的三个结构性变化：① <strong>工具循环上移到 Advisor 链</strong>——<code class="inline-code">ToolCallingAdvisor</code> 由 ChatClient 自动注册，原先散落在各模型实现里的私有 tool loop 被移除，同一机制同时驱动工具调用、结构化输出重试与评测循环，需要逐轮控制时可显式退出手动驱动；② <strong>渐进式工具披露</strong>——<code class="inline-code">ToolSearchToolCallingAdvisor</code> 每会话索引一次全量工具、按需暴露，解决「几百个工具全量注册」带来的上下文膨胀与选择准确率下降；③ <strong>结构化输出自纠正</strong>——<code class="inline-code">StructuredOutputValidationAdvisor</code> 在校验失败时自动重试，而非直接把非法 JSON 抛给业务。</p>
+              <p><strong>与 MCP 的版本配对（易错点）</strong>：Spring AI 2.0 随附 <strong>MCP Java SDK 2.0.0</strong>（Spring 团队维护的官方实现），对标 <strong>2025-11-25</strong> 版 MCP 规范；<code class="inline-code">mcp-annotations</code> 模块并入核心，<code class="inline-code">@McpTool</code> / <code class="inline-code">@McpResource</code> / <code class="inline-code">@McpPrompt</code> 可将任意 Spring 服务以单个方法注解暴露为 MCP Server。传输侧 <strong>Streamable HTTP 成为默认，SSE 传输已废弃</strong>，其无状态变体可换取远程部署的横向扩展能力（代价是失去 MCP 的双向通信能力）；STDIO 仍保留用于本地进程集成。工程提醒：SDK 对标的是 2025-11-25，而协议 2026-07-28 版做了无状态化重构——升级前必须先核对「SDK 版本 ↔ 目标规范版本」，勿把两者当成同一代。</p>
               <p><strong>趋势</strong>：向 Agentic AI 演进——多 Agent 协作、长记忆（Long-term Memory）、工具自主编排；与 Spring Boot AOT/Native 集成优化冷启动；多模态（图像/音频/视频）统一抽象；Spring AI Alibaba 生态（通义/百炼/Gemini 插件）补足国产链路。</p>
 
               <div class="mermaid-container">
@@ -739,6 +741,11 @@ flowchart LR
               <div class="callout callout-deep">
                 <div class="callout-title">深入解析</div>
                 <p>GraphRAG 的价值在于解决了传统 RAG 的"只见树木不见森林"问题——传统 RAG 只能检索局部文本块，无法回答需要跨文档综合的全局性问题。社区摘要提供了层次化的全局视角，Leiden 算法划分的社区天然形成"主题聚类"。但 GraphRAG 构建成本高（每篇文档都要 LLM 抽取实体），适合知识密度高、关系密集型场景（企业财报分析、法律案例图谱、医学文献）；简单事实查询用传统 RAG 更快更便宜。实践趋势是<strong>混合架构</strong>：简单问题走向量 RAG，全局/多跳问题走 GraphRAG，由路由层决策。</p>
+              </div>
+
+              <div class="callout callout-deep">
+                <div class="callout-title">深入解析</div>
+                <p><strong>自托管推理引擎是成本公式的第二个自变量。</strong>当调用量足够大时，自建推理（vLLM / SGLang / TensorRT-LLM）相对按 token 计费 API 的盈亏平衡点取决于三项：GPU 小时成本 ÷ 有效吞吐（tokens/s）、显存可承载的并发（KV Cache 容量）、以及缓存命中率。vLLM 的核心机制是 <strong>PagedAttention</strong>（把 KV Cache 按块管理，消除显存碎片，同等显存可承载更多并发）与<strong>连续批处理</strong>（continuous batching：请求完成即出批、新请求立即入批，而非等整批结束），两者共同决定 token/s 与单位成本。落地要关注：① 显存按「权重 + KV Cache + 激活」分段预算，KV Cache 不足会直接限制并发；② 批大小与延迟是权衡——吞吐优先可堆大批，交互场景需限制最大批以保证首 token 延迟；③ 推理引擎只解决算力侧，语义缓存与 Prompt 缓存仍要在应用侧做（见上文），二者叠加才是完整降本方案；④ 自建会引入模型版本、GPU 容量与故障转移的运维成本，规模不足时用 API 反而总成本更低。</p>
               </div>
             </div>
           </div>
@@ -1481,7 +1488,9 @@ sequenceDiagram
                 <li><strong>Plan-and-Execute（2023+）</strong>：先<strong>规划</strong>（拆成步骤列表）再<strong>执行</strong>（逐步执行），比 ReAct 边想边做更可控，适合长任务。</li>
                 <li><strong>LangGraph（2024）</strong>：把 Agent 建模为<strong>状态图</strong>（节点=动作，边=条件转移），支持循环、分支、人机协同、持久化，可控性大幅提升。</li>
                 <li><strong>Multi-Agent（AutoGen/CrewAI，2024+）</strong>：多 Agent 角色分工（Planner/Researcher/Coder/Reviewer），消息通信协作，解决单 Agent 上下文爆炸与角色混淆。</li>
-                <li><strong>MCP 协议（Anthropic 主导；规范持续修订）</strong>：2024-11 起公开；现行工程应对齐 <strong>2025-06 / 2026-07-28</strong> 等修订中的鉴权与传输语义（OAuth 2.1 资源服务器角色、远程 Streamable HTTP），勿只写"2024.11"一笔带过。</li>
+                <li><strong>MCP 协议（Anthropic 主导；规范持续修订）</strong>：2024-11 起公开；现行工程应对齐 <strong>2025-11-25 与 2026-07-28</strong> 两版修订中的鉴权与传输语义（OAuth 2.1 资源服务器角色、远程 Streamable HTTP），勿只写"2024.11"一笔带过。</li>
+                <li><strong>2026-07-28 版是破坏性变更（迄今最大一次改版）</strong>，规范由 Linux Foundation 下的 Agentic AI Foundation 治理。核心是<strong>协议层无状态化</strong>：移除 <code class="inline-code">initialize</code>/<code class="inline-code">initialized</code> 握手（SEP-2575）与 <code class="inline-code">Mcp-Session-Id</code> 会话（SEP-2567），协议版本 / 客户端信息 / 能力改为每请求 <code class="inline-code">_meta</code> 内联携带，并新增 <code class="inline-code">server/discover</code>——任何请求可落到任意实例，原先为横向扩展准备的粘性会话与共享会话存储不再必需。配套四项落地变化：① 新增路由头 <code class="inline-code">Mcp-Method</code> / <code class="inline-code">Mcp-Name</code>（SEP-2243），负载均衡与限流无需解包 body，头体不一致服务端拒绝；② 列表结果带 <code class="inline-code">ttlMs</code> / <code class="inline-code">cacheScope</code>（SEP-2549）支持客户端缓存、消除冗余轮询；③ 工具 schema 升到 <strong>JSON Schema 2020-12</strong>（SEP-2106），支持 <code class="inline-code">oneOf</code>/<code class="inline-code">anyOf</code>/<code class="inline-code">$ref</code> 组合，但实现不得自动解引用外部 <code class="inline-code">$ref</code>，且须限制 schema 深度与校验耗时；④ <strong>缺失资源的错误码从 MCP 自定义的 <code class="inline-code">-32002</code> 改为 JSON-RPC 标准 <code class="inline-code">-32602</code></strong>（SEP-2164）——客户端若按字面值匹配 <code class="inline-code">-32002</code> 必须同步修改，这是最容易漏的兼容点。</li>
+                <li><strong>废弃与新增（同版）</strong>：Roots / Sampling / Logging 三项进入<strong>废弃</strong>（仅注解级，方法与能力标志在一年内仍可用，最小废弃窗口 12 个月）——Roots 改用工具参数或资源 URI，Sampling 改为直连模型厂商 API，Logging 改为 stdio 走 stderr、结构化观测走 OpenTelemetry。新增能力以<strong>扩展</strong>形式提供：Tasks（长任务 create/poll/cancel/resume）与 MCP Apps（服务端渲染 UI，动作走与工具调用相同的 JSON-RPC 同意路径）；多轮往返请求用 <code class="inline-code">InputRequiredResult</code> + <code class="inline-code">requestState</code> 回填（SEP-2322），状态随负载走因而重试可落任意实例。时间线：RC 于 2026-05-21 锁定，正式规范 2026-07-28 发布。<strong>迁移要点</strong>：依赖握手或协议级会话的自研 Server 必须重构（改为由工具铸造 basket_id / task_id 等显式句柄、由模型在后续调用中回传），客户端升级后行为自动切换。</li>
               </ul>
               <p><strong>演进驱动力</strong>：从"<strong>单步反应式</strong>"（ReAct）到"<strong>先规划后执行</strong>"（Plan-Execute）到"<strong>图状态机</strong>"（LangGraph，可控）到"<strong>分工协作</strong>"（Multi-Agent），核心是解决<strong>可靠性、可控性、复杂度</strong>三大挑战——LLM 越自主越不可控，工程化的核心是"用结构约束自主性"。</p>
             </div>
@@ -5941,7 +5950,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p>失败模式：只看「能回答」不看依据；黄金集被生产流量污染；无版本号无法回滚。回滚点：切回旧索引/模型/prompt 版本。</p>
               <p>最小回归：正确性集、安全拒答集、延迟/成本冒烟、工具副作用集。无集上线按静默事故定级。</p>
               <p>报告要可贴链接进变更单；阈值失败阻断，禁止「先上再补评测」。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化基线：黄金集 ≥ 50 题（覆盖事实问答 / 多跳 / 拒答 / 工具调用四类），要点覆盖率基线 ≥ 90%，检索 Recall@5 ≥ 0.85；放量卡点取「≥ 基线 −2%」。演进：黄金集按月扩 10%，把线上差评样本回灌为回归用例；索引 / 模型 / Prompt 三者的版本号与评测报告 ID 绑定，任一变更即触发全量回归。</p>
             </div>
           </div>
         </div>
@@ -5986,7 +5995,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p>失败模式：直接改线上 Prompt 字符串；工具无副作用分级；影子写了生产库。回滚点：路由回旧 prompt_id，关闭新工具。</p>
               <p>灰度维度：用户/租户比例、影子流量对比、一键回滚点（Prompt/工具/索引版本）。文案小改也走同一门禁。</p>
               <p>核对：新旧版本并存窗口、评测 diff、线上反馈同向。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化门禁：先 1% 租户灰度 30 分钟，观察投诉率 ≤ 基线 +0.1%、要点覆盖 ≥ 基线 −2%、P99 延迟 ≤ 基线 ×1.1，三项同向才依次放 10% → 50% → 100%。演进：把 prompt_id / tool_schema 版本对做成发布单必填项，任一侧回滚即整单回退；灰度期间新旧版本并存窗口不超过 1 小时，避免长尾请求落到不同版本。</p>
             </div>
           </div>
         </div>
@@ -6033,7 +6042,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p>失败模式：超时过长拖垮网关；失败重试打满配额；降级未演练。回滚点：切旧模型路由并打开降级开关。</p>
               <p>模型超时要有舱壁：线程/连接/信号量隔离，避免拖垮主链路。降级开关要用户可感文案，不是空响应。</p>
               <p>值班：先限流/降级，再查上游超时预算与重试是否放大。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化：read timeout 取模型 P99 × 1.5（通常 8~15s，流式另算首 token 预算），熔断错误率阈值 50% / 10s，舱壁并发 = 峰值 QPS × 平均 RT × 1.2 并留 20% 余量。演进：把「降级命中率、降级话术投诉率」纳入看板——做不到用户可感话术的降级不算演练通过；配额被打满时先按租户限流，再考虑切小模型，而非直接返回空响应。</p>
             </div>
           </div>
         </div>

@@ -535,6 +535,9 @@
             <li>
               <a href="#S12.08"><span class="toc-number">S12.08</span>MCP/多 Agent 生产化</a>
             </li>
+            <li>
+              <a href="#S12.09"><span class="toc-number">S12.09</span>AI 辅助研发落地</a>
+            </li>
           </ol>
         </div>
       </aside>
@@ -547,15 +550,15 @@
           <h1 class="chapter-title">高频真实场景题</h1>
           <p class="chapter-subtitle">
             基于最新工程能力要求 ·
-            <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P88">73</span>
+            <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P88">74</span>
             道覆盖高并发、分布式、数据库、微服务、性能、云原生与 AI、高可用、安全、网络 IO、搜索与大数据、AI 生产级的综合场景设计题
           </p>
           <div class="chapter-meta">
-            <span>题目数：71</span>
+            <span>题目数：74</span>
             <span class="meta-divider">|</span>
             <span>高级开发 ×17</span>
             <span class="meta-divider">|</span>
-            <span>架构级 ×47</span>
+            <span>架构级 ×50</span>
             <span class="meta-divider">|</span>
             <span>专家级 ×7</span>
             <span class="meta-divider">|</span>
@@ -568,7 +571,7 @@
           <div class="guide-body">
             <p>
               本页
-              <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P27">73</span>
+              <span class="kb-count" data-kb-count="scenarios" data-kb-pos="P27">74</span>
               道场景题，表面五花八门（秒杀、分库分表、RAG、容灾…），破解路径却万变不离其宗。把每一题当作一次「<strong>读约束 → 拆难点 → 立主线 → 分层治 → 收兜底</strong>」的工程推演，下面三道题即是对这条路线的完整演示：<span class="guide-tag g-dao">道</span><span class="guide-tag g-fa">法</span><span class="guide-tag g-shu">术</span><span class="guide-tag g-trick">劝说</span>
             </p>
             <p><span class="guide-tag g-dao">道 · 看清楚再动手</span>——先量化再谈方案。每道题都给出硬指标（P99、QPS、成功率、字节上限、SLA），它是约束更是评分锚点：<strong>先复述并量化目标</strong>（如"12 亿行、P99 3.5s、扩到 256 张表"），再指出真正的瓶颈层，避免一上来就背方案。约束决定取舍——同样"缓存"，秒杀要的是抗洪峰，短链要的是省存储，落到同一技术上的考量完全不同。</p>
@@ -1356,7 +1359,7 @@ graph TD
                 <div class="insight-method"><strong>破题主线：</strong>记账分离+异步汇总+影子账户拆分，写流水(无热点)→聚合更新余额，强一致读走DB。</div>
                 <div class="insight-method"><strong>易错点：</strong>查余额与扣减非原子(用UPDATE...WHERE balance&gt;=amt)；缓冲无持久化(流水先落库)；汇总与扣款并发冲突(加锁)；对账只看总额(须逐笔)。</div>
                 <div class="insight-method">
-                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M06.06">M06.06 热点治理方法论</a> ·
+                  <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M07.06">M07.06 热点治理方法论</a> ·
                   <a href="chapter-11-middleware-engineering.html#C11.22">C11.22 延时任务</a>
                 </div>
               </div>
@@ -2735,7 +2738,7 @@ graph TD
               <div class="qa-layer-body">
                 <p><strong>接入层</strong>：在应用层实现"写后读强制主库"策略——写操作完成后，将当前请求的 ThreadLocal 标记为"强制主库"，后续 N 秒内（默认 3 秒，覆盖平均延迟窗口）该用户的读请求路由到主库。使用 ShardingSphere 的读写分离 + HintManager 实现强制路由。同时引入从库健康检查，延迟超过阈值（如 5 秒）的从库自动从路由池中摘除。</p>
                 <p><strong>应用层</strong>：引入 Redis 作为"延迟缓冲层"——写入主库后同步写入 Redis（TTL=10s），读请求优先查 Redis，未命中再查从库。配合本地缓存（Caffeine，TTL=2s）进一步降低从库压力。对订单列表场景，写入后立即将最新订单 ID 列表缓存到 Redis，确保用户刷新能看到最新数据。</p>
-                <p><strong>数据层</strong>：升级为半同步复制（rpl_semi_sync_master_wait_slave_count=1，超时 3 秒降级异步）。开启 MySQL 8.0 并行复制：slave_parallel_type=LOGICAL_CLOCK，slave_parallel_workers=16，slave_preserve_commit_order=ON，binlog_transaction_dependency_tracking=WRITESET。拆分大事务为小批次（每 500 行提交一次），避免单事务 binlog 过大导致回放阻塞。统计报表查询迁移到独立分析型从库（或 TiDB），隔离影响。</p>
+                <p><strong>数据层</strong>：升级为半同步复制（8.4 起 <code class="inline-code">rpl_semi_sync_source_wait_for_replica_count=1</code>；旧名 <code class="inline-code">rpl_semi_sync_master_wait_slave_count</code> 写法有误且在 MySQL 9.5 已随旧插件移除；超时 3 秒降级异步）。开启并行复制（8.0.26+ 统一 <code class="inline-code">replica_*</code> 新名）：<code class="inline-code">replica_parallel_workers=16</code>，<code class="inline-code">replica_preserve_commit_order=ON</code>；<code class="inline-code">binlog_transaction_dependency_tracking=WRITESET</code> 仅 8.0 可设（<strong>8.4 起该变量已移除</strong>，依赖跟踪内建）；<code class="inline-code">slave_parallel_type</code> 自 MySQL 9.5 起已移除，无需再配。拆分大事务为小批次（每 500 行提交一次），避免单事务 binlog 过大导致回放阻塞。统计报表查询迁移到独立分析型从库（或 TiDB），隔离影响。</p>
                 <table class="compare-table">
                   <thead>
                     <tr>
@@ -2848,8 +2851,8 @@ graph TD
               <div class="qa-layer-body">
                 <ul class="pitfall-list">
                   <li><strong>全量读走主库</strong>：为解决延迟将所有读请求切到主库，主库 CPU 打满导致写入也受影响。规避：仅写后短窗口内强制主库，其余走从库 + 缓存。</li>
-                  <li><strong>半同步超时设置过长</strong>：rpl_semi_sync_master_timeout 设置为 10 秒甚至更长，从库不可用时写入阻塞 10 秒。规避：超时设为 1-3 秒，降级后走异步保证可用性，同时告警人工介入修复从库。</li>
-                  <li><strong>并行复制 workers 设置过高</strong>：slave_parallel_workers 设为 32 甚至 64，CPU 上下文切换开销反而降低回放速度。规避：workers 数量建议为 CPU 核数的 1/2 到 1 倍，配合 benchmark 调优。</li>
+                  <li><strong>半同步超时设置过长</strong>：rpl_semi_sync_source_timeout（旧名 rpl_semi_sync_master_timeout）设置为 10 秒甚至更长，从库不可用时写入阻塞 10 秒。规避：超时设为 1-3 秒，降级后走异步保证可用性，同时告警人工介入修复从库。</li>
+                  <li><strong>并行复制 workers 设置过高</strong>：replica_parallel_workers（旧名 slave_parallel_workers）设为 32 甚至 64，CPU 上下文切换开销反而降低回放速度。规避：workers 数量建议为 CPU 核数的 1/2 到 1 倍，配合 benchmark 调优。</li>
                   <li><strong>忽略大事务对复制的影响</strong>：批量导入 10 万行单事务，从库回放时单线程阻塞数分钟。规避：大事务拆分为每 500-1000 行提交一次，或使用 LOAD DATA 分批导入。</li>
                   <li><strong>从库无负载隔离</strong>：报表统计查询和业务读共用从库，大查询阻塞回放线程。规避：从库分角色——业务读从库 + 报表分析从库（独立实例），统计类重查询走分析库。</li>
                 </ul>
@@ -10890,7 +10893,7 @@ if (job.lastHeartbeatAge() &gt; Duration.ofMinutes(30)
           <h2 class="group-title">
             <span class="group-number">十二</span>
             <a class="group-title-link" href="#group-12">AI 生产级场景</a>
-            <span class="group-count"><span class="kb-count" data-kb-count="struct.scenario.group_12" data-kb-pos="P347">8</span> 题</span>
+            <span class="group-count"><span class="kb-count" data-kb-count="struct.scenario.group_12" data-kb-pos="P347">9</span> 题</span>
           </h2>
           <div class="group-lead">
             <div class="group-lead-block">
@@ -12084,6 +12087,101 @@ public Outcome run(AgentGraph graph, Session s) {
                 <div class="insight-method"><strong>一眼定位：</strong>生产化=MCP 供给 + 编排护栏 + 治理面，三角缺一不可。</div>
                 <div class="insight-method"><strong>破题主线：</strong>域内 Server → 鉴权分级 → Supervisor/状态图 → 环检测/幂等 → 观测与配额。</div>
                 <div class="insight-method"><strong>易错点：</strong>演示配置上生产；工具失败抛穿循环；无环检测；把 MCP 当 Exactly-Once。</div>
+              </div>
+            </div>
+          </div>
+          <div class="qa-card" id="S12.09" data-difficulty="architect" data-priority="p1">
+            <div class="qa-header">
+              <div class="qa-badge">S12.09</div>
+              <div class="qa-question">AI 辅助研发落地：编码助手、AI 评审与单测生成怎么接进流水线？<span class="difficulty difficulty-architect">架构级</span><span class="priority priority-p1">P1</span></div>
+            </div>
+            <div class="scenario-tags">
+              <span class="scenario-tag">AI 辅助研发</span>
+              <span class="scenario-tag">研发效能</span>
+              <span class="scenario-tag">AI Code Review</span>
+              <span class="scenario-tag">数据边界</span>
+            </div>
+            <div class="qa-layer" data-layer="scenario">
+              <div class="qa-layer-title">场景背景</div>
+              <div class="qa-layer-body">
+                <p>
+                  200 人研发团队要把 AI 提效推全量：编码助手接入 IDE、PR 自动触发 AI 评审、单测由 AI 生成候选。诉求是<strong>提效可量化、代码不泄漏、质量不下降</strong>；但首轮试点就出现三类问题——AI 生成代码忽略了项目封装规范、AI 评审误报刷屏让评审人直接忽略、有同学把含业务标识的日志片段贴进外部模型。G07.09 讲门禁红线，E04.07/C12.32 讲 Agent 与工具合约原理——本题考<strong>接入方案与效能治理</strong>。
+                </p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="challenge">
+              <div class="qa-layer-title">核心挑战</div>
+              <div class="qa-layer-body">
+                <p>① <strong>上下文质量</strong>：模型只看到片段时会给「能编译但不合规范」的代码，如何把项目约束（分层、封装体、命名、禁手写 get/set）喂进去；② <strong>评审信噪比</strong>：AI 评审意见如何分级，避免与静态检查重叠刷屏；③ <strong>数据边界</strong>：哪些内容可出内网、哪些必须阻断，如何在工具侧而非靠人自觉；④ <strong>效能度量</strong>：采纳率不等于提效，如何定义不虚的指标；⑤ <strong>失败兜底</strong>：AI 产出质量下降时如何快速回退到人工模式。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">分析框架</div>
+              <div class="qa-layer-body">
+                <p>三层：<strong>接入（IDE / PR / CI 三个触点）→ 边界（数据分级 + 上下文最小化）→ 度量（质量与效率双指标）</strong>。接入层解决「在哪里用」，边界层解决「能看什么」，度量层解决「值不值得用」。三者缺一：只接入无边界的团队会出数据事故，只接入无度量的团队会在一年后说不清 ROI 而被砍。</p>
+                <p>原则与 G07.09 一致且更强：<strong>AI 产物过同一道门禁</strong>。ROI 用「单位需求交付时长」与「线上缺陷密度」双指标校正，而非只看 AI 写码占比。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="practice">
+              <div class="qa-layer-title">解决方案</div>
+              <div class="qa-layer-body">
+                <p><strong>1. 三个触点</strong>：IDE 侧给补全与解释（本地或内网模型优先）；PR 侧给评审意见（只发「未在静态检查覆盖内」的问题）；CI 侧给单测候选与覆盖率缺口定位（生成后必须真实执行通过才纳入）。</p>
+                <p><strong>2. 上下文工程</strong>：把项目规范固化为可注入的规则文件（分层约定、<code>ApiResponse</code> 封装、Lombok 强制、异常处理模式、禁手写 get/set），随仓库版本化；检索只取相关文件片段，禁止整仓投喂。规范文件本身走代码评审。</p>
+                <p><strong>3. 数据边界</strong>：三档分类——<strong>可送公网模型</strong>（开源库用法、通用算法）、<strong>仅内网模型</strong>（业务代码片段）、<strong>禁止外送</strong>（密钥、连接串、客户数据、生产日志）。前两档由工具侧策略强制，第三档在 IDE 插件层做模式匹配硬阻断。</p>
+                <p><strong>4. 评审降噪</strong>：AI 意见分「阻断 / 建议 / 提示」三级，仅阻断级进 PR 必读区；与 SonarQube 等静态检查去重；每条意见必须给可执行动作，禁止「建议优化」式空话；对误报率做月度统计并调优提示词。</p>
+                <p><strong>5. 度量口径</strong>：<strong>效率</strong>——需求从提测到上线时长、PR 评审等待时长；<strong>质量</strong>——AI 涉及代码的线上缺陷密度、返工率、单测覆盖率增量、AI 单测的真实通过率（生成即通过的不算）。以「同一团队试点前后对照 + 同期对照组」双口径评估。</p>
+                <p><strong>6. 上线检查表</strong>：① 工具过合规与依赖审计；② 规则文件已入库并被模型加载；③ 数据分级策略生效且有阻断演练；④ AI 评审分级与去重已配置；⑤ 度量看板含质量与效率双指标；⑥ 关闭开关可一键退回人工模式。</p>
+                <p><strong>失败回滚</strong>：质量指标恶化时先关闭 AI 单测纳入与 PR 阻断级意见，保留 IDE 辅助；数据边界演练发现泄漏路径时立即停用外部模型调用，切内网模型；工具级回滚通过开关与策略配置完成，不依赖发版。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="practice">
+              <div class="qa-layer-title">关键代码</div>
+              <div class="qa-layer-body">
+                <div class="code-block">
+                  <pre><code>// 上下文组装：最小化 + 脱敏 + 规范注入（示意）
+public Prompt build(String changedFile, Diff diff, ProjectRules rules) {
+    if (sensitive.scan(diff) != ScanResult.CLEAN) {
+        throw new BlockedException("含禁止外送内容，已阻断");   // 硬阻断，不降级
+    }
+    List&lt;String&gt; snippets = retriever.topK(changedFile, K);   // 仅相关片段
+    return Prompt.of()
+        .system(rules.asSystemPrompt())        // 分层/封装/命名/禁手写 get-set
+        .context(masker.mask(snippets))        // 业务标识脱敏
+        .task(diff.asReviewTask());
+}</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="deep">
+              <div class="qa-layer-title">深度追问</div>
+              <div class="qa-layer-body">
+                <ul>
+                  <li><strong>追问 1：AI 评审意见该不该进合并门禁？</strong>仅「阻断级」进，且必须误报率可控（试点期 &lt;10%）。全量进会导致「狼来了」——评审人对 AI 意见整体免疫，比不用更糟。</li>
+                  <li><strong>追问 2：AI 生成的单测值得纳入仓库吗？</strong>以「真实执行通过 + 断言有效」为前提，并以覆盖率缺口为导向生成，而非按文件批量刷。只保覆盖率数字的测试是负债。</li>
+                  <li><strong>追问 3：提效怎么证明不是幸存者偏差？</strong>需要同期对照组与全量指标，而非只统计试点成员的自我报告；尤其要观察「缺陷是否被推迟到线上」——返工位置后移同样是成本。</li>
+                  <li><strong>追问 4：能不能用 AI 代替代码评审？</strong>不能。静态与 AI 检查覆盖「可形式化」问题，架构意图、边界取舍、长期可维护性仍需人判断；AI 只降低评审者的机械负担。</li>
+                </ul>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="pitfall">
+              <div class="qa-layer-title">常见陷阱</div>
+              <div class="qa-layer-body">
+                <ul>
+                  <li><strong>把 AI 当可信源</strong>：直接采纳生成代码而不验证，幻觉依赖与错误 API 进主干。</li>
+                  <li><strong>上下文投喂整仓</strong>：既浪费预算又放大泄漏面；应做检索式最小上下文。</li>
+                  <li><strong>只统计采纳率</strong>：采纳率高可能只是「省事」，与交付质量无关，甚至掩盖返工成本。</li>
+                  <li><strong>评审意见与静态检查重复</strong>：同一问题报两遍，评审噪音翻倍。</li>
+                  <li><strong>数据边界靠人自觉</strong>：不写进工具策略就一定会有人越过；阻断必须是技术手段。</li>
+                  <li><strong>与 G07.09 写成两份清单</strong>：本题必须落到「接进流水线的工程方案」，源头红线引用 G07.09 而不重复展开。</li>
+                </ul>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">破题点拨</div>
+              <div class="qa-layer-body">
+                <div class="insight-method"><strong>一眼定位：</strong>AI 辅助研发 = 三触点接入 + 数据边界 + 双指标度量，三角缺一不可。</div>
+                <div class="insight-method"><strong>破题主线：</strong>规范入库 → 上下文最小化 → 数据分级阻断 → 评审分级降噪 → 质量效率双指标 → 一键回退。</div>
+                <div class="insight-method"><strong>易错点：</strong>只谈提效不谈质量指标；边界靠自觉；AI 评审全量进门禁；把采纳率当 ROI。</div>
               </div>
             </div>
           </div>

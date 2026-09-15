@@ -125,7 +125,7 @@
           <div class="chapter-meta">
             <span>题目数：30</span>
             <span class="meta-divider">|</span>
-            <span>高级开发 ×7</span>
+            <span>高级开发 ×9</span>
             <span class="meta-divider">|</span>
             <span>架构级 ×18</span>
             <span class="meta-divider">|</span>
@@ -948,7 +948,7 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
                   <tr>
                     <td>Ingress</td>
                     <td>七层流量入口</td>
-                    <td>Nginx/Traefik 等 Ingress Controller 实现 HTTP 路由与 TLS</td>
+                    <td>Ingress API（API 本身仍在、功能已冻结）由各 Ingress Controller 实现 HTTP 路由与 TLS；社区版 ingress-nginx 控制器已于 2026-03 退役</td>
                   </tr>
                   <tr>
                     <td>ConfigMap/Secret</td>
@@ -964,6 +964,9 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
               </table>
 
               <p><strong>K8s 控制平面</strong>：API Server（唯一入口）+ etcd（状态存储，Raft）+ Scheduler（调度 Pod 到节点）+ Controller Manager（副本/节点/端点等控制循环）+ Kubelet（节点代理）+ Kube-proxy（Service 转发，早期 userspace 模式已移除；iptables/IPVS/nftables 等实现按集群版本和节点能力选择并压测）。</p>
+
+              <p><strong>Ingress-NGINX 控制器已于 2026-03 退役（高频时效盲区）</strong>：Kubernetes SIG Network 与安全响应委员会宣布社区维护的 <strong>ingress-nginx 控制器</strong>维护终止，继续使用将无法获得 CVE 修复、功能更新与社区支持。<strong>须澄清的误解</strong>：退役的是这个控制器，<strong>不是 Ingress API</strong>——Ingress API 仍然受支持且被广泛使用，只是功能已冻结。两条迁移路径：① <strong>平移换控制器</strong>（如 Contour 等 Envoy 系实现），保留既有 Ingress YAML、只切换 ingressClass，迁移投入低到中，但所有 <code class="inline-code">nginx.ingress.kubernetes.io/*</code> 注解会失效，须逐条翻译或改用目标控制器 CRD；② <strong>迁移到 Gateway API</strong>（上游 Ingress 的继任与演进），采用 GatewayClass / Gateway / HTTPRoute 的面向角色模型，把基础设施职责与应用路由显式分离，标准化流量拆分、高级 Header 匹配与安全的跨命名空间路由——迁移投入高（路由清单需重写），但长期有上游支持且能力内建。</p>
+              <p><strong>落地建议与工具</strong>：先盘点现有 <code class="inline-code">nginx.ingress.kubernetes.io/*</code> 注解技术债，用官方 <code class="inline-code">ingress2gateway</code>（1.0 于 2026-03 发布，覆盖 30+ 常见 ingress-nginx 注解，并输出无法自动翻译项的告警供人工复核）生成 Gateway API 清单，再以「并行运行 + DNS 切换」灰度迁移非关键工作负载，避免就地替换。云厂商窗口各不相同（例如 AKS 对基于 ingress-nginx 的应用路由附加组件提供关键安全补丁至 2026-11，之后须迁移到其 Gateway API 实现），须以自用平台的公告为准，不能套用其他厂商时间表。</p>
 
               <div class="mermaid-container">
                 <!-- prettier-ignore -->
@@ -4509,7 +4512,7 @@ flowchart LR
             <div class="qa-layer-title">演进脉络</div>
             <div class="qa-layer-body">
               <p><strong>Spring Cloud Commons 1.0（2015，Angel 发行版）</strong>：第一次提出核心抽象——<code class="inline-code">DiscoveryClient</code> / <code class="inline-code">ServiceInstance</code> / <code class="inline-code">LoadBalancerClient</code>，奠定"面向抽象编程、替换注册中心不改代码"的架构基调。</p>
-              <p><strong>Spring Cloud Commons 2.x（Spring Cloud 2020.x，移除 Ribbon）</strong>：新增 <code class="inline-code">Spring Cloud LoadBalancer</code>（Reactor 实现）取代 Netflix Ribbon（已停止维护），抽象层增加 <code class="inline-code">ReactorLoadBalancer</code> / <code class="inline-code">ServiceInstanceListSupplier</code> 响应式接口。</p>
+              <p><strong>Spring Cloud Commons 3.x（Spring Cloud 2020.x / Ilford，移除 Ribbon）</strong>：新增 <code class="inline-code">Spring Cloud LoadBalancer</code>（Reactor 实现）取代 Netflix Ribbon（已停止维护），抽象层增加 <code class="inline-code">ReactorLoadBalancer</code> / <code class="inline-code">ServiceInstanceListSupplier</code> 响应式接口。</p>
               <p><strong>Spring Cloud Commons 4.x（Boot 3.x / Spring 6.x）</strong>：删除 Spring Cloud Netflix 大量已废弃接口（Ribbon/Hystrix/Archaius），抽象全面对齐 Spring 6，<code class="inline-code">spring.factories</code> 迁移到 <code class="inline-code">AutoConfiguration.imports</code>。</p>
               <p><strong>Spring Cloud 2023.x（Leyton）+ Commons 4.1.x（2024 ~ 至今）</strong>：全面支持 GraalVM Native Image、CRaC Coordinated Restore at Checkpoint（秒级启动）、Micrometer Observability 内嵌 Trace/Metrics。</p>
             </div>
@@ -5714,7 +5717,7 @@ flowchart TD
               <p>失败模式：只调网关不调客户端；超时后疯狂重试放大；异步回调无超时。回滚点：恢复上一版超时配置（配置当发布，对照 G01.02）。</p>
               <p>超时链路要可加总：客户端 &gt; 网关 &gt; 服务 &gt; 下游，且每一跳留余量。排查从最外层超时症状往内对预算表。</p>
               <p>常见坑：网关 1s、服务 3s；或重试把预算打穿。临时止血：降重试、扩超时（有上限）、切降级。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化契约：客户端 3s > 网关 2.5s > 服务 2.0s > 单跳下游 ≤ 500ms，各跳留 ≥ 20% 余量；重试次数与超时须满足「(n+1) × timeout ≤ 上游预算」，否则重试即放大。演进：把超时预算写进接口契约（随 OpenAPI / gRPC 描述交付），CI 阶段校验「下游声明超时之和 ≤ 本服务超时」，从源头阻断「网关 1s、服务 3s」类倒挂。</p>
             </div>
           </div>
         </div>
@@ -5761,7 +5764,7 @@ flowchart TD
               <p>失败模式：控制台无单改生产；只退镜像不退配置；RefreshScope 未覆盖的 Bean 静默不生效。回滚点：配置快照 + 必要时缩容到未刷新实例。</p>
               <p>@RefreshScope 只刷新代理 Bean；静态字段、连接池、本地缓存不会自动跟。回滚要核对配置中心版本与实例实际生效值。</p>
               <p>清单：刷新范围、失败实例、是否需滚动重启、回滚后的只读校验。</p>
-              <p><strong>再加厚：</strong>把本卡动作写进值班 Runbook 检查清单，并与对账/错误预算/变更单号联动；演练时至少走通一次「发现→止血→回滚/补偿→复盘」闭环。</p>
+              <p><strong>再加厚：</strong>量化：推送后 15 分钟内订阅滞后实例比例 > 5% 或快照版本不一致，即暂停放量；@RefreshScope 只覆盖被代理 Bean，静态字段 / 连接池 / 本地缓存需滚动重启才生效。演进：把「配置版本 + 生效实例清单 + 需重启实例数」写入变更单，需重启实例数为 0 才认刷新成功；回滚默认退配置快照而非重推修复值，限流 / 鉴权 / 路由类开关设双人复核。</p>
             </div>
           </div>
         </div>

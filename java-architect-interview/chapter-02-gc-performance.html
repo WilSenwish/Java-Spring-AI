@@ -620,13 +620,13 @@ graph TD
                   <tr>
                     <td><code>-XX:G1MixedGCLiveThresholdPercent</code></td>
                     <td>Mixed GC 存活阈值</td>
-                    <td>65%</td>
+                    <td>85%</td>
                     <td>调高避免回收高成本Region（如>85%则回收收益低），调低提升吞吐</td>
                   </tr>
                   <tr>
                     <td><code>-XX:ParallelGCThreads</code></td>
                     <td>STW GC 线程数</td>
-                    <td>CPU 核数的 5/8</td>
+                    <td>≤8 核 = 核数；&gt;8 核 = 8+(核数−8)×5/8</td>
                     <td>容器内务必按实际核数限制，否则过度抢占</td>
                   </tr>
                   <tr>
@@ -734,7 +734,7 @@ graph TD
               <p>
                 JDK 10+ 默认开启 <code class="inline-code">UseContainerSupport</code>，有 CPU quota 时 JVM 按 cgroup 的 <code class="inline-code">ActiveProcessorCount</code> 推导 GC 线程数；<strong>未设 CPU limit / 旧 JDK</strong>
                 才可能看到宿主机核数，从而开出远超配额的 GC 线程，STW 时过度抢占。生产仍建议显式设
-                <code class="inline-code">-XX:ParallelGCThreads</code> 与 <code class="inline-code">-XX:ConcGCThreads</code>。注意：默认公式里的「核数×5/8」是 <code class="inline-code">ParallelGCThreads</code> 的启发式，不是「把 limit 再乘 5/8」。
+                <code class="inline-code">-XX:ParallelGCThreads</code> 与 <code class="inline-code">-XX:ConcGCThreads</code>。注意：官方默认公式是「可用 CPU ≤8 核时取核数；&gt;8 核时取 <code class="inline-code">8+(核数−8)×5/8</code>」，既不是笼统的「核数×5/8」，也不是「把 limit 再乘 5/8」。
               </p>
 
               <p><strong>追问 3：MaxGCPauseMillis 设成 10ms 会怎样？</strong></p>
@@ -1216,14 +1216,14 @@ graph TD
                     <td>32GB-16TB</td>
                     <td>P99 &lt;10ms</td>
                     <td>ZGC（JDK21 分代）</td>
-                    <td><code>-XX:+UseZGC -XX:+ZGenerational</code></td>
+                    <td><code>-XX:+UseZGC</code>（JDK 21 追加 <code>-XX:+ZGenerational</code>；JDK 23+ 已默认分代可省略）</td>
                   </tr>
                   <tr>
                     <td>金融交易/游戏</td>
                     <td>4-32GB</td>
                     <td>P99 &lt;1ms</td>
                     <td>Generational ZGC</td>
-                    <td><code>-XX:+UseZGC -XX:+ZGenerational</code></td>
+                    <td><code>-XX:+UseZGC</code>（JDK 21 追加 <code>-XX:+ZGenerational</code>；23+ 省略；26 起移除）</td>
                   </tr>
                   <tr>
                     <td>离线批处理</td>
@@ -1272,7 +1272,7 @@ graph TD
 
 <span class="com"># 场景2: 大内存低延迟服务（16GB 堆，JDK21）</span>
 -XX:+UseZGC
--XX:+ZGenerational
+-XX:+ZGenerational <span class="com"># JDK 21 专用；JDK 26+ 删除此行</span>
 -XX:SoftMaxHeapSize=12g
 -XX:ZAllocationSpikeTolerance=2.0
 -XX:+HeapDumpOnOutOfMemoryError
@@ -2067,6 +2067,7 @@ graph TD
 
               <p><strong>追问 3：Project Valhalla 的值类型与标量替换有什么关系？</strong></p>
               <p>标量替换是 JIT 运行时对未逃逸对象的优化，是隐式、不确定、依赖编译器实现的。Project Valhalla 的值/内联类型想把扁平布局与 null 性约束固化到语言、类文件和运行时模型中，但其演进阶段、API 名称和能力必须按当时 JEP/JDK 状态回答，不应提前写成 GA 语义。</p>
+              <p><strong>当前状态（截至 2026-09）：</strong>JEP 401（Value Objects，预览）与 JEP 539（JVM 严格字段初始化，预览）已于 2026-08 并入 OpenJDK 主线，随 <strong>JDK 28</strong> 发布，默认关闭、需 <code class="inline-code">--enable-preview</code>。值类放弃对象标识：字段必须 final、禁止 <code class="inline-code">synchronized</code>、<code class="inline-code">==</code> 改为逐字段比较，JIT 因而可做标量替换与堆扁平化——但扁平化是「JVM 能在安全时应用」的优化，把值对象存入字段或向上转型为接口仍可能真实分配。另需注意 <strong>值类仍可为 null</strong>（null 限制是后续独立 JEP），Valhalla 的其余能力（null 受限存储、数组增强、原语与类统一、参数化 JVM）尚在 Draft 或原型阶段，不能与 JEP 401 一并当作已交付。</p>
             </div>
           </div>
 
@@ -2153,8 +2154,8 @@ flowchart TD
                   <tr>
                     <td><code>-XX:+ZGenerational</code></td>
                     <td>选择分代模式</td>
-                    <td>JDK 23+ 默认分代；JDK 24 起无非分代 ZGC</td>
-                    <td>JDK 21/22 需显式开启；JDK 23+ 以目标版本文档确认开关状态</td>
+                    <td>JDK 21/22 需显式开启；JDK 23+ 已默认分代（无需该参数）</td>
+                    <td>JDK 24 该参数废弃（JEP 490）、<strong>JDK 26 起已移除</strong>——JDK 26+ 写该参数 JVM 拒绝启动，只保留 <code>-XX:+UseZGC</code></td>
                   </tr>
                   <tr>
                     <td><code>-XX:SoftMaxHeapSize</code></td>
@@ -2190,9 +2191,9 @@ flowchart TD
             <div class="qa-layer-body">
               <p><strong>生产参数模板（示例，仅说明版本线；容量和线程数需压测）</strong>：</p>
               <div class="code-block">
-                <pre><code><span class="com"># JDK 21 显式开启分代 ZGC；JDK 23 默认分代，JDK 24 无非分代 ZGC</span>
+                <pre><code><span class="com"># JDK 21 显式开启分代 ZGC；JDK 23 默认分代；JDK 24 该参数废弃（JEP 490），JDK 26 起移除</span>
 -XX:+UseZGC
--XX:+ZGenerational
+-XX:+ZGenerational <span class="com"># JDK 21 专用；JDK 23+ 可省略；JDK 26+ 必须删除此行，否则启动报错</span>
 -Xms16g -Xmx16g
 -XX:SoftMaxHeapSize=12g           <span class="com"># 示例值，按压测调整</span>
 -XX:ConcGCThreads=4               <span class="com"># 示例值，与容器 CPU 配额匹配</span>

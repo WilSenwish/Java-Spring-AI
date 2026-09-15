@@ -10,6 +10,7 @@ java-kb-expand · 全量校验脚本（通用版）
   0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P89，防页头「本页 N 道」漂移）
   0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×len(ov_stat_order)）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   0c) **L1 聚合 UI**：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等容器内「N题|卡|道|组」不得裸数字（见 conventions §5.1.4）
+  0d) **页头难度分布**：chapter-meta 的「题目数 / 高级开发×N / 架构级×N / 专家级×N」须与本页实体卡片逐项一致（2026-09-15 补，防新增卡漏同步页头）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   1b) 手机小屏强制：design-system.css / 根·导图 index / 导图页含 MOBILE-MANDATORY；全站 HTML 含 viewport
   1c) 主题 / 暗黑模式：站点 HTML 含 theme-init.js；design-system.css 含 data-theme="dark" 令牌块
@@ -35,7 +36,13 @@ import re, sys, os, glob, json
 BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
 CHAPTER_DIR = f"{BASE}/java-architect-interview"
 MIND_DIR = f"{BASE}/java-architect-interview-mind"
-COUNTS_JSON = f"{CHAPTER_DIR}/docs/kb-counts.json"
+# 2026-09-15：docs/ 已由 java-architect-interview/docs 迁至项目根 docs/，
+# 此处写死旧路径会导致脚本启动即 FileNotFoundError（全量校验护栏失效）。优先新路径，兼容旧布局。
+COUNTS_JSON = f"{BASE}/docs/kb-counts.json"
+if not os.path.isfile(COUNTS_JSON):
+    COUNTS_JSON = f"{CHAPTER_DIR}/docs/kb-counts.json"
+if not os.path.isfile(COUNTS_JSON):
+    raise SystemExit(f"[FATAL] 未找到 kb-counts.json，已尝试：{BASE}/docs/ 与 {CHAPTER_DIR}/docs/")
 
 # ====== 权威计数：单一真源 kb-counts.json（禁止硬编码，改数用 sync_counts.py bump）======
 _cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
@@ -50,7 +57,7 @@ CARDS_IN_CHAPTERS = EXPECT["total"] + EXPECT["methodology"] + ENGINEERING + PITF
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 # 注意：方法论/工程化卡默认不进 overview；含 M/G 时跳过 overview 落位检查
-NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.27","C11.28","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","G01.04","G02.04","G03.04","G04.04","G05.04","G06.04","G07.04","G08.04","K01.01","K01.02","K02.01","K02.02","K03.01","K03.02","K04.01","K04.02","K05.01","K05.02","K06.01","K06.02","K07.01","K07.02","K08.01","K08.02"]
+NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.27","C11.28","C11.29","C11.30","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","G01.04","G02.04","G03.04","G04.04","G05.04","G06.04","G07.04","G07.09","G08.04","K01.01","K01.02","K02.01","K02.02","K03.01","K03.02","K04.01","K04.02","K05.01","K05.02","K06.01","K06.02","K07.01","K07.02","K08.01","K08.02","S12.09"]
 
 # 4 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
 AGG_FILES = {
@@ -105,6 +112,58 @@ def run_sync_counts_check():
         for ln in fails[:12]:
             print(ln)
         check(False, f"[散文计数/SSOT] sync_counts.py check 失败 exit={r.returncode} fail行={len(fails)}")
+
+
+def run_chapter_meta_difficulty_check():
+    """页头 chapter-meta 的「题目数 / 高级开发×N / 架构级×N / 专家级×N」必须与本页实体卡片一致。
+
+    背景（2026-09-15 独立审查发现）：12 个页面的页头难度分布未随新增卡同步——
+    新增 22 张篇章卡后，页头 `高级开发 ×N` 全部停留在旧值；S 页页头「题目数：71」实际 73。
+    根因是 `chapter-01~15` 未纳入 SSOT positions（data-kb-pos 计数为 0），
+    故 sync_counts.py check 报 PASS 也无法发现该漂移。此处按「页面自身实体卡片」自证，
+    不依赖 SSOT，作为 L1 规则拦截同类漂移复发（对应 format-shared §5.1.4 聚合 UI 禁裸数字）。
+    """
+    _diff = re.compile(r'data-difficulty="(senior|architect|expert)"')
+    _meta = re.compile(r'<div class="chapter-meta">.*?</div>', re.S)
+    _cn = {"senior": "高级开发", "architect": "架构级", "expert": "专家级"}
+    _n_re = re.compile(r'题目数：\s*(?:<span class="kb-count"[^>]*>)?(\d+)')
+    targets = []
+    for c in range(1, 16):
+        targets += sorted(glob.glob(f"{CHAPTER_DIR}/chapter-{c:02d}-*.html"))
+    targets += [f"{CHAPTER_DIR}/chapter-questions-eight-part.html",
+                f"{CHAPTER_DIR}/chapter-questions-scenario.html"]
+    for p in targets:
+        if not os.path.isfile(p):
+            continue
+        raw = read(p)
+        bn = os.path.basename(p)
+        m = _meta.search(raw)
+        if not m:
+            check(False, f"[页头难度] {bn}: 缺少 chapter-meta 容器")
+            continue
+        block = m.group(0)
+        if bn == "chapter-questions-eight-part.html":
+            card_pat = r'<div class="[^"]*card[^"]*"\s+id="E\d{2}\.\d{2}"[^>]*>'
+        else:
+            card_pat = r'<div class="qa-card(?:\s+[^"]*)?"\s+id="[CMES]\d{2}\.\d{2}"[^>]*>'
+        cards = re.findall(card_pat, raw)
+        cnt = {"senior": 0, "architect": 0, "expert": 0}
+        for cm in cards:
+            d = _diff.search(cm)
+            if d:
+                cnt[d.group(1)] += 1
+        errs = []
+        mn = _n_re.search(block)
+        if mn and int(mn.group(1)) != len(cards):
+            errs.append(f"题目数 页头{mn.group(1)}≠实测{len(cards)}")
+        for k in ("senior", "architect", "expert"):
+            h = re.search(r'<span>' + _cn[k] + r' ×(\d+)</span>', block)
+            if h and int(h.group(1)) != cnt[k]:
+                errs.append(f"{_cn[k]} 页头{h.group(1)}≠实测{cnt[k]}")
+        check(not errs,
+              f"[页头难度] {bn}: "
+              + ("一致 (n=%d 高=%d 架=%d 专=%d)" % (len(cards), cnt["senior"], cnt["architect"], cnt["expert"])
+                 if not errs else "；".join(errs)))
 
 
 def run_kb_count_markup_check():
@@ -222,6 +281,8 @@ def main():
     run_sync_counts_check()
     run_kb_count_markup_check()
     run_l1_container_scan()
+    # 0d) 篇章页/E/S 页头难度分布 vs 实体卡片（2026-09-15 新增，防 12 页漂移复发）
+    run_chapter_meta_difficulty_check()
 
     # 4 聚合页 + 全部章节 + 全部导图（红线校验覆盖全站）
     texts = {k: read(v) for k, v in AGG_FILES.items()}

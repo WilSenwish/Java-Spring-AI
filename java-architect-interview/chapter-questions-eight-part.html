@@ -534,11 +534,11 @@
           <div class="chapter-meta">
             <span>题目数：<span class="kb-count" data-kb-count="basics" data-kb-pos="P33">73</span></span>
             <span class="meta-divider">|</span>
-            <span>高级开发 ×35</span>
+            <span>高级开发 ×39</span>
             <span class="meta-divider">|</span>
             <span>专家级 ×3</span>
             <span class="meta-divider">|</span>
-            <span>架构级 ×26</span>
+            <span>架构级 ×31</span>
             <span class="meta-divider">|</span>
             <span>预计复习：170 分钟</span>
           </div>
@@ -1075,7 +1075,7 @@
 
           <div class="callout callout-tip">
             <div class="callout-title">工程实践</div>
-            <p>JDK 8 默认 Parallel GC，建议升级 JDK 17+ 使用 G1（平衡吞吐与延迟）。延迟敏感（如金融交易）用 ZGC：<code class="inline-code">-XX:+UseZGC -XX:+ZGenerational</code>。大堆（&gt;32GB）避免 CMS，G1 或 ZGC 更合适。调优时关注 GC 日志中的 pause time 和 throughput。</p>
+            <p>JDK 8 默认 Parallel GC，建议升级 JDK 17+ 使用 G1（平衡吞吐与延迟）。延迟敏感（如金融交易）用 ZGC：<code class="inline-code">-XX:+UseZGC</code>（JDK 21 需追加 <code class="inline-code">-XX:+ZGenerational</code>；JDK 23+ 已默认分代、无需该参数；该参数 JDK 24 废弃、<strong>JDK 26 起移除</strong>）。大堆（&gt;32GB）避免 CMS，G1 或 ZGC 更合适。调优时关注 GC 日志中的 pause time 和 throughput。</p>
           </div>
 
           <div class="epq-section">
@@ -1230,7 +1230,7 @@
 
           <div class="callout callout-tip">
             <div class="callout-title">工程实践</div>
-            <p>启用参数：<code class="inline-code">-XX:+UseZGC</code>（JDK 15+ 生产可用），<code class="inline-code">-XX:+ZGenerational</code> 显式开启分代（JDK 21 默认关闭，JDK 23+ 计划默认开）。堆大小：ZGC 设计支持 16TB 堆，生产 32GB~512GB 表现最佳；小堆（&lt; 4GB）优势不明显，G1 更合适。监控指标：GC 暂停时间（<code class="inline-code">jcmd &lt;pid&gt; GC.Heap_info</code>）、并发标记周期时长、染色指针翻转频率；目标暂停 &lt; 10ms。吞吐量权衡：ZGC 吞吐量比 G1 低 5%~15%，但暂停稳定 &lt; 10ms；延迟敏感（交易/风控/实时推荐）选 ZGC，吞吐优先（离线 ETL）选 G1。调优要点：避免大对象频繁分配（触发 ZGC 转移）、监控 ConcurrentHashMap 等引用密集结构的读屏障开销。</p>
+            <p>启用参数：<code class="inline-code">-XX:+UseZGC</code>（JDK 15+ 生产可用），<code class="inline-code">-XX:+ZGenerational</code> 显式开启分代（JDK 21 需显式开启；JDK 23+ 已默认分代、无需该参数；JDK 24 该参数废弃，<strong>JDK 26 起移除</strong>，再写会导致 JVM 拒绝启动）。堆大小：ZGC 设计支持 16TB 堆，生产 32GB~512GB 表现最佳；小堆（&lt; 4GB）优势不明显，G1 更合适。监控指标：GC 暂停时间（<code class="inline-code">jcmd &lt;pid&gt; GC.Heap_info</code>）、并发标记周期时长、染色指针翻转频率；目标暂停 &lt; 10ms。吞吐量权衡：ZGC 吞吐量比 G1 低 5%~15%，但暂停稳定 &lt; 10ms；延迟敏感（交易/风控/实时推荐）选 ZGC，吞吐优先（离线 ETL）选 G1。调优要点：避免大对象频繁分配（触发 ZGC 转移）、监控 ConcurrentHashMap 等引用密集结构的读屏障开销。</p>
           </div>
 
           <div class="epq-section">
@@ -2477,7 +2477,7 @@
               <li>复制链路：主库 binlog（ROW 格式为主）→ dump 线程推送 → 从库 IO 线程写 relay log → SQL 线程回放，三线程模型</li>
               <li>三种复制模式：异步复制（默认，主从不保一致）、半同步复制（semisync，主库等至少 1 个从库 ACK 再提交，AFTER_COMMIT/AFTER_SYNC）、组复制 MGR（Paxos 多数派，强一致/类 Raft）</li>
               <li>GTID（Global Transaction ID）：事务全局唯一（UUID:seq），从库断点续传不依赖 binlog 文件名+位点，自动跳过已执行事务，主从切换免手工定位</li>
-              <li>并行复制：从库 SQL 线程多线程回放（<code class="inline-code">slave_parallel_workers</code> + <code class="inline-code">slave_parallel_type=LOGICAL_CLOCK</code>），解决单线程回放瓶颈</li>
+              <li>并行复制：从库 SQL 线程多线程回放（<code class="inline-code">replica_parallel_workers</code>；旧名 <code class="inline-code">slave_parallel_workers</code> 自 8.0.26 起废弃。<code class="inline-code">*_parallel_type</code> 仅 LOGICAL_CLOCK 一种策略，该变量自 8.0.29 废弃、<strong>MySQL 9.5 起已移除</strong>），解决单线程回放瓶颈</li>
               <li>高可用架构：MHA（Manager 检测主故障，选新主 + 补 binlog + 虚拟 IP 漂移）、MGR（内置组复制自动选主）、Orchestrator（拓扑管理与故障切换编排）</li>
             </ul>
           </div>
@@ -2486,7 +2486,7 @@
             <div class="epq-section-title">详细解答</div>
             <p><strong>复制流程</strong>：客户端提交事务 → 主库写 binlog → <code class="inline-code">dump</code> 线程监听 binlog 变更并推送 → 从库 <code class="inline-code">IO 线程</code> 接收写入 <code class="inline-code">relay log</code> → 从库 <code class="inline-code">SQL 线程</code>（或并行回放线程组）顺序执行 relay log。主从状态看 <code class="inline-code">SHOW SLAVE STATUS</code> 的 <code class="inline-code">Seconds_Behind_Master</code> 与 <code class="inline-code">Relay_Log_File/Pos</code>。</p>
             <p>
-              <strong>半同步复制</strong>：主库提交事务前等待至少一个从库 ACK（<code class="inline-code">rpl_semi_sync_master_enabled=1</code>），事务丢失窗口从「网络传输 + 从库回放」压缩到「主库本地崩溃的极小窗口」；从库无 ACK 时半同步自动退化为异步（<code class="inline-code">rpl_semi_sync_master_timeout</code>
+              <strong>半同步复制</strong>：主库提交事务前等待至少一个从库 ACK（8.4 起 <code class="inline-code">rpl_semi_sync_source_enabled=1</code>；旧名 <code class="inline-code">rpl_semi_sync_master_enabled</code> 已于 MySQL 9.5 随旧插件一并移除），事务丢失窗口从「网络传输 + 从库回放」压缩到「主库本地崩溃的极小窗口」；从库无 ACK 时半同步自动退化为异步（8.4 起 <code class="inline-code">rpl_semi_sync_source_timeout</code>）
               控制等待时间），保证主库可用性。
             </p>
             <p>
@@ -2494,14 +2494,14 @@
               <code class="inline-code">CHANGE MASTER TO ... MASTER_AUTO_POSITION=1</code>
               自动对齐，无需手工指定位点，杜绝「位点偏移重复执行」风险。
             </p>
-            <p><strong>主从延迟治理</strong>：延迟来源——大事务（长 SQL 回放慢）、从库单线程、DDL 锁、主库压力大 binlog 生成快、从库硬件弱。方案：并行复制（<code class="inline-code">slave_parallel_type=LOGICAL_CLOCK</code> + <code class="inline-code">slave_parallel_workers=4~16</code>）、拆分大事务（分批提交）、读写分离中间件按延迟剔除从库（<code class="inline-code">seconds_behind_master &gt; 阈值</code> 摘除）、从库加索引/加硬件、<code class="inline-code">pt-heartbeat</code> 精准测延迟。</p>
+            <p><strong>主从延迟治理</strong>：延迟来源——大事务（长 SQL 回放慢）、从库单线程、DDL 锁、主库压力大 binlog 生成快、从库硬件弱。方案：并行复制（<code class="inline-code">replica_parallel_workers=4~16</code>；8.0.26+ 推荐 <code class="inline-code">replica_*</code> 新名，MySQL 9.5 起 <code class="inline-code">*_parallel_type</code> 已移除）、拆分大事务（分批提交）、读写分离中间件按延迟剔除从库（<code class="inline-code">seconds_behind_master &gt; 阈值</code> 摘除）、从库加索引/加硬件、<code class="inline-code">pt-heartbeat</code> 精准测延迟。</p>
             <p><strong>高可用切换</strong>：MHA 故障流程——Manager 通过 SSH 检查主库 → 找到 binlog 最全的从库晋升新主 → 补拉旧主残留 binlog → 其余从库 <code class="inline-code">CHANGE MASTER</code> 到新主 → VIP 漂移/更新注册中心。MGR 由 Paxos 组成员自动选主（单主模式写多节点），需 3 节点奇数 + 网络稳定，不适用于大事务/DDL 频繁场景。</p>
           </div>
 
           <div class="callout callout-tip">
             <div class="callout-title">工程实践</div>
             <p>
-              生产推荐：一主两从 + 半同步（<code class="inline-code">rpl_semi_sync_master_enabled=1</code>）+ GTID + 并行复制；读写分离用中间件（ShardingSphere/ProxySQL/MyCat）并做延迟感知路由；监控 <code class="inline-code">Seconds_Behind_Master</code>、<code class="inline-code">relay log 堆积</code>、<code class="inline-code">IO/SQL 线程状态</code>（<code class="inline-code">YES/NO</code>
+              生产推荐：一主两从 + 半同步（8.4 起 <code class="inline-code">rpl_semi_sync_source_enabled=1</code>，旧名 <code class="inline-code">rpl_semi_sync_master_enabled</code> 9.5 起移除）+ GTID + 并行复制；读写分离用中间件（ShardingSphere/ProxySQL/MyCat）并做延迟感知路由；监控 <code class="inline-code">Seconds_Behind_Master</code>、<code class="inline-code">relay log 堆积</code>、<code class="inline-code">IO/SQL 线程状态</code>（<code class="inline-code">YES/NO</code>
               中断即告警）；大表 DDL 用
               <code class="inline-code">pt-online-schema-change</code> 避免复制延迟；切换演练常态化（每季度 Kill 主库验证自动切换 &lt; 30s）。从库一致性兜底：<code class="inline-code">sync_binlog=1</code> + <code class="inline-code">innodb_flush_log_at_trx_commit=1</code> 保主库，从库可放宽；定期 <code class="inline-code">pt-table-checksum</code> + <code class="inline-code">pt-table-sync</code> 校验修复数据。
             </p>
