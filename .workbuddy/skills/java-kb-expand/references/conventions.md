@@ -127,7 +127,7 @@
 | 导图 index | `N+N+N`、`card-foot` 章节/原理/场景 | 章节=C 卡；原理/场景=`<summary>` 内唯一 E/S 题号数 |
 | 导图页 | mermaid 根节点「章节·原理·场景」 | 与上同口径；改并入清单后同步 |
 
-审计脚本（只读）：`java-architect-interview/tmp/full_site_count_audit.py`。
+审计脚本（只读）：`tmp/full_site_count_audit.py`。
 
 #### 5.1.4 计数点分级与标记（2026-09-14：废除本地计数）
 
@@ -222,15 +222,15 @@
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
-| P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
-| P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
-| P12 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分子） |
-| P13 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分母） |
-| P14 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分子 |
-| P15 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分母 |
-| P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
-| P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
+| P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
+| P11 | `docs/README.md` | docs/README.md 难度分布段 |
+| P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
+| P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
+| P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
+| P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
+| P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
+| P17 | `docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |

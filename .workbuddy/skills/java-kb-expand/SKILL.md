@@ -62,15 +62,15 @@ agent_created: true
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
-| P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
-| P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
-| P12 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分子） |
-| P13 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分母） |
-| P14 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分子 |
-| P15 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分母 |
-| P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
-| P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
+| P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
+| P11 | `docs/README.md` | docs/README.md 难度分布段 |
+| P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
+| P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
+| P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
+| P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
+| P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
+| P17 | `docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
@@ -479,7 +479,7 @@ agent_created: true
 不要自行新增。给出归属结论 + 覆盖度表 + 2~4 个形式候选（见下「形式候选定义」），让用户以 `OPT-A / B / C…` 或自由偏好确认。明确每个候选的联动成本（改几个文件、是否动计数）。
 
 ### Step 4 · 执行（确认后）
-1. **先备份**所有待改文件到 `java-architect-interview/tmp/`（如 `java-architect-interview/tmp/kb_<task>_backup/`）。
+1. **先备份**所有待改文件到 `tmp/`（如 `tmp/kb_<task>_backup/`）。
 2. 用 **Python 脚本**（而非 `Edit`）做精确字符串替换并即时断言——`Edit` 对 overview 的大数字 `ov-stat-num` 存在"报成功但未落盘"的 IDE 实时改写竞态，脚本最可靠。脚本须内含断言：替换命中数 = 预期、插入内容存在、`data-page-node-id` 计数 = 0。
    - ⚠️ **防重复插入的断言必须按"卡片区间"判定，不能按文件级计数**：一个章节页通常**已存在多个** `data-layer="extension"` 层（如 chapter-08 有 6 个）。错写成 `assert t.count('data-layer="extension"') == 0` 会直接误报中断。正确写法：先切出目标卡区间再判定，并用「改前计数 +1」校验落盘。
      ```python
@@ -568,4 +568,4 @@ agent_created: true
 - `scripts/check_html_format.py` — `npm run format:html:check` 稳态检查。
 - `scripts/audit_l1_counts.py` — 只跑 L1 裸计数扫描（改聚合文案后可先跑这支）。
 - `scripts/sync_new_card.py` — 新增卡片的 7 文件同步脚本骨架（参数化），含备份、断言、`data-page-node-id` 守卫；按需填充卡片 HTML 与计数增量。
-- 仓库根：`npm run format:html` / `format:html:check`；规范正文见 `java-architect-interview/docs/format-shared.md` §4.2 / §10。
+- 仓库根：`npm run format:html` / `format:html:check`；规范正文见 `docs/format-shared.md` §4.2 / §10。

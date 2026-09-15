@@ -3,7 +3,7 @@
 """
 java-kb-expand · 全量校验脚本（通用版）
 ==============================================
-复制本文件到 java-architect-interview/tmp/，按需填 EXPECT 字典（本轮权威计数）与 NEW_IDS（新增/改动题号列表），
+复制本文件到 tmp/，按需填 EXPECT 字典（本轮权威计数）与 NEW_IDS（新增/改动题号列表），
 然后运行：python3 validate_kb.py
 
 校验项：

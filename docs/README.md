@@ -1,6 +1,6 @@
 # Java 工程能力知识库 · 全站章节内容总览
 
-本目录（`..`）为《Java 专家 · 架构师 · 高级开发 工程能力知识库》静态文档站，全部页面为**单文件自包含 HTML**，无构建步骤，可被 GitHub Pages 直接托管。
+本仓库根目录（即本项目根）为《Java 专家 · 架构师 · 高级开发 工程能力知识库》静态文档站，全部页面为**单文件自包含 HTML**，无构建步骤，可被 GitHub Pages 直接托管。
 
 本文件给出全站章节内容与文件结构总览；格式组织规则分为「共用规则」「标准 QA 章节」「特殊章节独享」三份文档，见文末[规则文档索引](#4.md)。
 
@@ -19,33 +19,43 @@
 ## 2. 目录结构与文件清单
 
 ```
-java-architect-interview/
-├── index.html                              # 全站首页（导航 + 章节卡片 + 统计区）
-├── chapter-01-jvm-memory-classloading.html # 标准QA章节 ×15
-├── chapter-02-gc-performance.html
-├── chapter-03-concurrency-locks.html
-├── chapter-04-threadpool-virtual-threads.html
-├── chapter-05-spring-core.html
-├── chapter-06-spring-boot-modern.html
-├── chapter-07-mysql-deep.html
-├── chapter-08-redis-cache.html
-├── chapter-09-distributed-systems.html
-├── chapter-10-microservice-cloud.html
-├── chapter-11-middleware-engineering.html
-├── chapter-12-ai-engineering.html
-├── chapter-13-network-io.html
-├── chapter-14-databases.html
-├── chapter-15-reactive.html
-├── chapter-core-methodology.html           # 特殊章节：核心方法论（M系列）
-├── nav-overview-priority.html          # 特殊章节：优先级大盘（ov组件）
-├── chapter-questions-eight-part.html       # 特殊章节：核心原理速查（E系列）
-├── chapter-questions-scenario.html         # 特殊章节：场景题（S系列）
-├── nav-server-security-checkpoint.html # 特殊章节：安全 Checkpoint 手册
-├── assets/                                 # design-system.css, nav.js
-├── shared/                                 # fonts, js（echarts/mermaid）
+.
+├── index.html                              # 全站首页（导航 + 章节卡片 + 统计区，仓库根）
+├── AGENTS.md                               # 协作规范（硬红线 / 计数位）
+├── docs/                                   # 格式规范文档（本目录）
+│   ├── format-shared.md                    # 全站共用格式规则
+│   ├── format-std-qa.md                    # 标准 QA 章节格式规则
+│   ├── format-special.md                   # 特殊章节独享规则
+│   ├── README.md                           # 本文件
+│   ├── fix_mermaid.py                      # Mermaid 格式化辅助
+│   ├── kb-counts.json                      # 权威计数唯一真源（勿手改）
+│   └── facts/                              # 官方参考文档归档（只读，不在任何修改范围内）
 ├── tmp/                                    # 临时文件/备份（已 gitignore，不进版本库）
-└── docs/                                   # 本文档所在目录（规则说明，非站点页面）
-    └── facts/                              # 官方参考文档归档（只读，不在任何修改范围内）
+├── java-architect-interview/               # 主知识库（标准 QA + 特殊章节）
+│   ├── index.html                          # 知识库首页（导航 + 章节卡片 + 统计区）
+│   ├── chapter-01-jvm-memory-classloading.html # 标准QA章节 ×15
+│   ├── chapter-02-gc-performance.html
+│   ├── chapter-03-concurrency-locks.html
+│   ├── chapter-04-threadpool-virtual-threads.html
+│   ├── chapter-05-spring-core.html
+│   ├── chapter-06-spring-boot-modern.html
+│   ├── chapter-07-mysql-deep.html
+│   ├── chapter-08-redis-cache.html
+│   ├── chapter-09-distributed-systems.html
+│   ├── chapter-10-microservice-cloud.html
+│   ├── chapter-11-middleware-engineering.html
+│   ├── chapter-12-ai-engineering.html
+│   ├── chapter-13-network-io.html
+│   ├── chapter-14-databases.html
+│   ├── chapter-15-reactive.html
+│   ├── chapter-core-methodology.html       # 特殊章节：核心方法论（M系列）
+│   ├── nav-overview-priority.html          # 特殊章节：优先级大盘（ov组件）
+│   ├── chapter-questions-eight-part.html   # 特殊章节：核心原理速查（E系列）
+│   ├── chapter-questions-scenario.html     # 特殊章节：场景题（S系列）
+│   ├── nav-server-security-checkpoint.html # 特殊章节：安全 Checkpoint 手册
+│   ├── assets/                             # design-system.css, nav.js
+│   └── shared/                             # fonts, js（echarts/mermaid）
+└── java-architect-interview-mind/          # 思维导图版（mind-* 对应篇章）
 ```
 
 ## 3. 章节内容与归属规则矩阵
@@ -54,7 +64,7 @@ java-architect-interview/
 
 | 文件 | 主题 | ID 体系 | 卡片数 | 格式规则类型 |
 |------|------|---------|-------|--------------|
-| `../../index.html` | 全站首页（导航/统计/标签云） | – | – | 独享（首页专属组件） |
+| `../index.html` | 全站首页（导航/统计/标签云） | – | – | 独享（首页专属组件） |
 | `chapter-01-jvm-memory-classloading` | JVM 内存与类加载 | `C01.##` | 11 | 标准QA（共用） |
 | `chapter-02-gc-performance` | GC 算法与性能调优 | `C02.##` | 12 | 标准QA（共用） |
 | `chapter-03-concurrency-locks` | 并发与锁 | `C03.##` | 12 | 标准QA（共用） |

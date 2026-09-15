@@ -105,7 +105,7 @@ def find_html_files_with_mermaid():
         rel_root = os.path.relpath(root, BASE_DIR)
         if 'rk-xigui' in rel_root.split(os.sep) or '.git' in dirs:
             continue
-        if 'docs/facts' in rel_root or rel_root.startswith('java-architect-interview/docs/facts'):
+        if 'docs/facts' in rel_root or rel_root.startswith('docs/facts'):
             continue
         if 'node_modules' in dirs:
             dirs.remove('node_modules')

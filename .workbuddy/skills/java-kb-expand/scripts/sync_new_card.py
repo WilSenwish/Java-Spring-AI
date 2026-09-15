@@ -3,11 +3,11 @@
 """
 java-kb-expand · 新增卡片 7 文件同步脚本骨架
 ===================================================
-复制本文件到 java-architect-interview/tmp/，按需填 TODO 区（新增题号、卡片 HTML、计数增量、各文件锚点），
+复制本文件到 tmp/，按需填 TODO 区（新增题号、卡片 HTML、计数增量、各文件锚点），
 然后运行：python3 sync_new_card.py
 
 设计要点（来自实战坑位）：
-  - 先备份全部目标文件到 java-architect-interview/tmp/kb_<task>_backup/
+  - 先备份全部目标文件到 tmp/kb_<task>_backup/
   - 用精确字符串替换 + 断言（命中数=预期），规避 Edit 对 overview 大数字的"竞态未落盘"
   - 全程守卫 data-page-node-id == 0
   - 章节导航页（java-architect-interview/index.html）不枚举单题 ID，只改统计与 card-footer
@@ -18,7 +18,7 @@ import os, re, shutil, sys, datetime, json
 
 BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
 TASK = "optx"  # TODO: 改成本轮任务标识，如 optc / opta_c13
-BACKUP = f"{BASE}/java-architect-interview/tmp/kb_{TASK}_backup"
+BACKUP = f"{BASE}/tmp/kb_{TASK}_backup"
 os.makedirs(BACKUP, exist_ok=True)
 
 # ===================== TODO 区 =====================
@@ -38,7 +38,7 @@ ANCHOR_INSERT_MAPCARD = "</details>\n    <h3 class=\"theme-h\">②"      # TODO:
 DELTA = {"total": 1, "p1": 1, "architect": 1, "chapters": 1}
 # 执行前 overview ov-stat-num（11 项）：取自单一真源 kb-counts.json，禁止硬编码
 #   [total, p0, p1, p2, expert, architect, senior, methodology, chapters, basics, scenarios]
-_cfg = json.load(open(f"{BASE}/java-architect-interview/docs/kb-counts.json", encoding="utf-8"))
+_cfg = json.load(open(f"{BASE}/docs/kb-counts.json", encoding="utf-8"))
 OV_KEYS = list(_cfg["ov_stat_order"])
 OV_BEFORE = [_cfg["counts"][k] for k in OV_KEYS]
 # ==================================================

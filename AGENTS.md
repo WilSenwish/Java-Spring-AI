@@ -1,7 +1,7 @@
 # AGENTS.md — 项目常驻规则（Codex / Cursor / 所有支持 AGENTS.md 的 Agent 通用）
 
 本文件是**精简版硬约束**。完整约定见 `.workbuddy/memory/MEMORY.md`（WorkBuddy 专用，其他工具可不读）。
-详细格式规范见 `java-architect-interview/docs/`（README / format-shared / format-std-qa / format-special）。
+详细格式规范见 `docs/`（README / format-shared / format-std-qa / format-special）。
 
 ## 1. 项目是什么
 
@@ -20,16 +20,16 @@
 2. **`data-page-node-id` 全站必须为 0**。改动后必须扫描确认（42 个 HTML 文件）。
 3. **禁用词**：`面试`、`面试官`、`八股`。全站已清除，新增内容一律不得出现。
    术语映射：面试→知识点/技术沟通；面试题→知识点；八股→核心原理；层名「面试应用」→「工程表达」（`data-layer="application"` 英文值不动）。
-4. **`java-architect-interview/docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
+4. **`docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
 5. **同文件多处修改禁止并行编辑**（会静默丢更新）；须串行修改或整文件重写后重新校验。
-6. **全站手机小屏样式强制优化**（违反即返工）：所有对用户可见的页面必须在 ≤768px（及 ≤480px 极小屏）下可读、可点、无横向撑破；共享样式以 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段为准，页面内联桌面规则必须自带对应 `@media` 覆盖。细则见 `java-architect-interview/docs/format-shared.md` §8。交付仍遵守红线 1（禁止预览注入），用绝对路径 + 文字结论说明适配点。
-7. **主题 / 暗黑模式**：新页须在 CSS 前引入 `theme-init.js`；换肤只改 CSS 变量；切换器与回顶/去底由 `theme-init.js` 注入。细则见 `java-architect-interview/docs/format-shared.md` §9。
+6. **全站手机小屏样式强制优化**（违反即返工）：所有对用户可见的页面必须在 ≤768px（及 ≤480px 极小屏）下可读、可点、无横向撑破；共享样式以 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段为准，页面内联桌面规则必须自带对应 `@media` 覆盖。细则见 `docs/format-shared.md` §8。交付仍遵守红线 1（禁止预览注入），用绝对路径 + 文字结论说明适配点。
+7. **主题 / 暗黑模式**：新页须在 CSS 前引入 `theme-init.js`；换肤只改 CSS 变量；切换器与回顶/去底由 `theme-init.js` 注入。细则见 `docs/format-shared.md` §9。
 8. **顶/底章节导航**：仅根 `index.html` 与章节站 `index.html` 无导航；其余页顶栏为 `body` 首块（`.site-page-nav--top`），底栏在脚本前（`.site-page-nav--bottom`），顶底同文、壳层间距对称。细则见 `format-shared.md` §4.2。
 9. **HTML Prettier + Mermaid**：用户可见 HTML 用 `npm run format:html`；每个 `<div class="mermaid">` 上一行必须 `<!-- prettier-ignore -->`。细则见 `format-shared.md` §10。
 
 ## 3. 权威计数（单一真源驱动）
 
-**真源**：`java-architect-interview/docs/kb-counts.json`（唯一写源，勿在别处手改数字）。
+**真源**：`docs/kb-counts.json`（唯一写源，勿在别处手改数字）。
 **改数唯一入口**：`python3 .workbuddy/skills/java-kb-expand/scripts/sync_counts.py bump 键=增量`
 （例：`bump methodology=+1 total=+1`；随后自动写回全部计数位并复核。只读核对用 `check`。）
 **计数点标记**：每个展示题量/卡量须带 `data-kb-pos="Pxx"` + `data-kb-count`（全局键或 `struct.*`）；`<title>` 用属性打标。**禁止** `kb-count-local`。分级见 `conventions.md` §5.1.4；`validate_kb` 扫描聚合 UI 裸数字。
@@ -37,7 +37,7 @@
 统计口径（易错）：跨大篇章/聚合分组**只算「篇章 + 核心原理 + 场景」**（= `total`）；方法论 / 工程化 / 踩坑为**专篇键**，**不设全站合计**（已废除 `sum_all`）。概览页、安全卡页的题量口径亦为 `total`，不含 M/G/K。
 全文件扫到 C+E+S+M+G+K 张卡属正常，勿把分域加总当成对外「全站合计」。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
 `<span class="priority priority-p*">P*</span>`，改级两处同步。
-分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / mind `card-foot`）须与实际卡片数一致；细则见 `java-architect-interview/docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
+分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / mind `card-foot`）须与实际卡片数一致；细则见 `docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
 - 题目总量 **395** = 篇章 249 + 核心原理 73 + 场景 73
@@ -62,15 +62,15 @@
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
-| P10 | `java-architect-interview/docs/README.md` | docs/README.md 文件表方法论数 |
-| P11 | `java-architect-interview/docs/README.md` | docs/README.md 难度分布段 |
-| P12 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分子） |
-| P13 | `java-architect-interview/docs/README.md` | docs/README.md 方法论带优先级数（分母） |
-| P14 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分子 |
-| P15 | `java-architect-interview/docs/format-shared.md` | docs/format-shared.md 分母 |
-| P16 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `java-architect-interview/docs/format-special.md` | docs/format-special.md 难度段合计 |
-| P18 | `java-architect-interview/docs/format-special.md` | docs/format-special.md ov-stats 段 |
+| P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
+| P11 | `docs/README.md` | docs/README.md 难度分布段 |
+| P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
+| P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
+| P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
+| P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
+| P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
+| P17 | `docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
@@ -451,7 +451,7 @@
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 
-- **改 HTML 前先备份**到 `java-architect-interview/tmp/`（已 gitignore）；脚本也写在这里，用绝对路径、不依赖记忆数字。
+- **改 HTML 前先备份**到 `tmp/`（已 gitignore）；脚本也写在这里，用绝对路径、不依赖记忆数字。
 - **统计/校验脚本**：先写入 `tmp/` 再执行（Bash 内联长脚本可能被安全策略拦截）。
 - **Python**：`/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3`。
 - **Bash 内置 `grep` 受 `_zshz` 干扰会误返空**，交叉验证请用其他方式。
