@@ -148,13 +148,12 @@ def cmd_show(cfg):
     print(f"真源：{COUNTS_JSON}  (updated {cfg['updated']})")
     print(f"  题目总量 {c['total']} = 篇章 {c['chapters']} + 核心原理 {c['basics']} + 场景 {c['scenarios']}")
     print(f"  优先级    P0={c['p0']} / P1={c['p1']} / P2={c['p2']}")
-    print(f"  难度      专家={c['expert']} / 架构={c['architect']} / 高级开发={c['senior']}")
-    print(f"  方法论    {c['methodology']} 卡（带优先级 {c['methodology_with_priority']}；"
-          f"专家 {c['methodology_expert']}/架构 {c['methodology_architect']}/高级 {c['methodology_senior']}）")
-    print(f"  工程化    {c.get('engineering', 0)} 卡（专篇，口径见 invariants/conventions）")
-    print(f"  生产踩坑  {c.get('pitfalls', 0)} 卡（专篇，口径见 invariants/conventions）")
+    print(f"  难度      专家={c['expert']} / 架构师={c['architect']} / 高级开发={c['senior']}  (仅 C/E/S)")
+    print(f"  方法论    {c['methodology']} 卡（带优先级 {c['methodology_with_priority']}；不分难度等级）")
+    print(f"  工程化    {c.get('engineering', 0)} 卡（专篇，不分难度等级）")
+    print(f"  生产踩坑  {c.get('pitfalls', 0)} 卡（专篇，不分难度等级）")
     print(f"  struct    {len(cfg.get('struct') or {})} 键（结构/分组计数）")
-    print("  （聚合口径仅篇章+核心原理+场景=total；M/G/K 专篇单独键）")
+    print("  （聚合口径仅篇章+核心原理+场景=total；M/G/K 专篇单独键且不做难度分级）")
     ok = True
     for inv in cfg["invariants"]:
         r = eval(inv["expr"], {}, dict(c))
@@ -257,13 +256,12 @@ def render_block(cfg, compact=False):
         BEGIN,
         f"- 题目总量 **{c['total']}** = 篇章 {c['chapters']} + 核心原理 {c['basics']} + 场景 {c['scenarios']}",
         f"- 优先级 **P0={c['p0']} / P1={c['p1']} / P2={c['p2']}**（求和 = {c['total']}）",
-        f"- 难度 **专家 {c['expert']} / 架构 {c['architect']} / 高级开发 {c['senior']}**（求和 = {c['total']}）",
-        f"- 方法论 **{c['methodology']} 卡**（M01~M12，专篇键 methodology）",
-        f"- 工程化 **{c.get('engineering', 0)} 卡**（G01~G08，专篇键 engineering）",
-        f"- 生产踩坑 **{c.get('pitfalls', 0)} 卡**（K01~K08，专篇键 pitfalls）",
+        f"- 难度 **专家 {c['expert']} / 架构师 {c['architect']} / 高级开发 {c['senior']}**（求和 = {c['total']}；仅覆盖 C/E/S，M/G/K 不分级）",
+        f"- 方法论 **{c['methodology']} 卡**（M01~M12，专篇键 methodology；**不分难度等级**）",
+        f"- 工程化 **{c.get('engineering', 0)} 卡**（G01~G08，专篇键 engineering；**不分难度等级**）",
+        f"- 生产踩坑 **{c.get('pitfalls', 0)} 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）",
         f"- 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**",
-        f"- 方法论细分：带优先级 {c['methodology_with_priority']}/{c['methodology']}；"
-        f"难度 专家 {c['methodology_expert']} / 架构 {c['methodology_architect']} / 高级开发 {c['methodology_senior']}",
+        f"- 方法论细分：带优先级 {c['methodology_with_priority']}/{c['methodology']}（2026-09-16 起 M/G/K 不设难度计数）",
     ]
     if compact:
         ids = [p["id"].split("_")[0] for p in cfg["positions"]]

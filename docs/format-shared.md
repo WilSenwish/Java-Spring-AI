@@ -60,14 +60,16 @@
 
 ### 3.1 难度 `difficulty-*`
 
-| 类名 | 文案 | 取值（属性） |
+| 类名 | 文案（标签位） | 取值（属性） |
 |------|------|------|
-| `difficulty-senior` | 高级开发 | `senior` |
-| `difficulty-expert` | 专家级 | `expert` |
-| `difficulty-architect`| 架构级 | `architect` |
+| `difficulty-senior` | 高级 | `senior` |
+| `difficulty-expert` | 专家 | `expert` |
+| `difficulty-architect`| 架构 | `architect` |
 
 - 卡片根节点用 `data-difficulty="senior|expert|architect"` 记录机器可读；提问行内叠加 `<span class="difficulty difficulty-xxx">文案</span>` 作视觉标签。
-  - **例外（2026-09-16 长官决策）**：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡**不呈现视觉标签**（属性照写）。三处载体同步：专篇页 `.qa-question`、根 index 的 M/G/K 区块（220 条 q-item，连 `.q-tags` 壳一并去掉）、章节导航 index 的三张专篇 `chapter-card`（无 `.card-tags`）。细则见 `conventions.md` §2。
+  - **口径（2026-09-16 长官决策）**：**标签位**一律短表 **专家 / 架构 / 高级**（徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` / `.ov-subgroup-title`、各导航页 `card-tags` / `q-tags`、页脚排序说明）；**正文**用 **专家 / 架构师 / 高级开发**。存量正文中把等级当定语的写法（「架构级理解」「专家级深度」等 8 处）保留、不再新增。门禁 `validate_kb.py` 1j。
+  - **`M` / `G` / `K` 三专篇彻底取消难度分级（同日决策）**：不写 `data-difficulty`、不呈现难度徽标、`kb-counts.json` 无对应难度键与不变式；`counts.expert/architect/senior`（46/191/161 = 398）**只覆盖 C/E/S**。细则见 `conventions.md` §2。
+  - **优先级例外**：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡**不呈现优先级徽标**；三处载体同步：专篇页 `.qa-question`、根 index 的 M/G/K 区块（220 条 q-item，连 `.q-tags` 壳一并去掉）、章节导航 index 的三张专篇 `chapter-card`（无 `.card-tags`）。
 
 ### 3.2 优先级 `priority-p*`
 
@@ -77,8 +79,19 @@
 | `priority-p1` | P1 | 高频 |
 | `priority-p2` | P2 | 中频 |
 
-- 携带优先级（属性侧）：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">91</span>）携带；安全手册不携带。**可见徽标侧：M/G/K 一律不呈现等级与优先级徽标**（2026-09-16 长官决策），同条目 3.1 的例外口径；该三处原计数位 P74/P75/P76/P103/P104/P105 已随之作废删除。
+- 携带优先级（属性侧）：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">91</span>）携带；安全手册不携带。**可见徽标侧：M/G/K 一律不呈现优先级徽标**（2026-09-16 长官决策，见 §3.1）；该三处原计数位 P74/P75/P76/P103/P104/P105 已随之作废删除。**注意与难度的差别**：难度是「属性 + 键 + 徽标」三层全删，优先级只删徽标、属性保留。
 - 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`（**M/G/K 三类卡只写属性、不叠加可见徽标**）。
+
+### 3.3 导图分层标签 `layer-tag`（**非难度**）
+
+根 index 的导图节点（T01~T48）用「想 / 做 / 守」标注所在分层（对应导图三组：① 思维模式（道）② 方法论（法）③ 原则（术））。
+
+```html
+<span class="q-tags"><span class="layer-tag">想</span></span>
+```
+
+- 类定义在 `design-system.css`（视觉与 `.difficulty` + `.difficulty-architect` 完全一致）；根 index 页内另有 `.q-tags .layer-tag` 尺寸覆盖（引用 `--dir-fs-2xs` / `--dir-pad-chip`）。
+- **禁止再用 `difficulty difficulty-architect` 承载这类非难度标签**（2026-09-16 整改）：既违反「difficulty 类只放难度」口径，也会让按类名做文案归一/门禁的脚本把「想」误改成「架构」。门禁 `validate_kb.py` 1j。
 
 ## 4. 资源按需载入规则
 

@@ -18,7 +18,7 @@ agent_created: true
 
 - **章节站** `java-architect-interview/`：15 个编号篇章页 `chapter-01~15-*.html` + 方法论页 `chapter-core-methodology.html`（M 前缀）+ 工程化要点页 `chapter-engineering-practices.html`（G 前缀）+ 生产踩坑页 `chapter-production-pitfalls.html`（K）+ 安全卡 `nav-server-security-checkpoint.html` + 核心原理页 `chapter-questions-eight-part.html`（E 前缀）+ 场景页 `chapter-questions-scenario.html`（S 前缀）+ 章节导航 `index.html`。
 - **导图站** `java-architect-interview-mind/`：对应 `mind-01~15-*.html` + `mind-core-methodology.html` + `mind-engineering-practices.html` + `mind-server-security-checkpoint.html` + 导图导航 `index.html`（18 个导图页，线性链顺序见 `references/conventions.md` §7）。
-- **项目根** `Java Spring AI/index.html`：全部题目的扁平全量快照（每题一个 `q-item` li，带难度 + `priority-pX` 徽标）。
+- **项目根** `Java Spring AI/index.html`：全部题目的扁平全量快照（每题一个 `q-item` li，C/E/S 带难度徽标 + `priority-pX` 徽标；**M/G/K 区块无任何徽标**，2026-09-16）。
 
 题号前缀：方法论页用 **M**，工程化要点页用 **G**，`chapter-01~15` 用 **C**，`E` 核心原理、`S` 场景。卡片三级目录为 `页面篇章 / 分组 / 题号`。
 
@@ -37,17 +37,17 @@ agent_created: true
 权威计数口径（以 `ov-stat-num` 与根 index 全量徽标为权威三源，三者须相等）：
 - 总量 = 篇章(深度Q&A) + 核心原理 + 场景
 - 优先级 P0 / P1 / P2（求和 = 总量）
-- 难度三级：专家级 / 架构级 / 高级开发（求和 = 总量）
+- 难度三级（**仅 C/E/S**）：专家 / 架构师 / 高级开发（求和 = 总量）。**标签位文案一律短表 专家 / 架构 / 高级**；M/G/K 不分难度等级。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
 - 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
 - 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
-- 难度 **专家 46 / 架构 191 / 高级开发 161**（求和 = 398）
-- 方法论 **91 卡**（M01~M12，专篇键 methodology）
-- 工程化 **65 卡**（G01~G08，专篇键 engineering）
-- 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls）
+- 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
+- 方法论 **91 卡**（M01~M12，专篇键 methodology；**不分难度等级**）
+- 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
+- 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
+- 方法论细分：带优先级 45/91（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -59,17 +59,17 @@ agent_created: true
 | P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
-| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
+| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 10 项（顺序见 ov_stat_order；不含方法论） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
 | P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
-| P11 | `docs/README.md` | docs/README.md 难度分布段 |
+| P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
 | P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
 | P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
 | P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
 | P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P17 | `docs/format-special.md` | docs/format-special.md 专篇合计段 |
 | P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
@@ -511,13 +511,14 @@ agent_created: true
 
 每轮用 `OPT-A/B/C…` 是用户选择的标签，不全局固定。常用形式：
 
-- **形式1 · 新增篇章题**（`Cxx.xx`，架构级/P1 等）：需全量同步 7 文件（章节页 + 4 聚合 + 2 mind），计数 +1。
+- **形式1 · 新增篇章题**（`Cxx.xx`，架构/P1 等）：需全量同步 7 文件（章节页 + 4 聚合 + 2 mind），计数 +1。
 - **形式2 · 新增场景题**（`Sxx.xx`，归 `group-N`）：需全量同步 7 文件，计数 +1。
 - **形式3 · 新增核心原理题**（`Exx.xx`）：需全量同步 7 文件，计数 +1。
 - **形式4 · 补入现有卡**（不新增计数）：把增量作为现有卡的新 `qa-layer`（如 `data-layer="extension"`）+ 对应 mind 节点描述补一句；只改 2 文件，4 聚合页不动。
 - **形式5 · 不入库**：判定同源重复、增量微小，仅记录核查结论。
 
-难度/优先级建议：新卡默认 `data-difficulty="architect"` + `data-priority="p1"`（除非内容更偏专家级或高级开发）；双编码必须同步（属性 + 可见徽标）。**例外：M/G/K（方法论 / 工程化要点 / 生产踩坑）三类卡只写属性、不呈现任何等级与优先级徽标**（2026-09-16 长官决策），三处载体（专篇页 / 根 index M·G·K 区块 / 章节导航三张专篇卡）详见 `conventions.md` §2。
+难度/优先级建议（**仅 C/E/S**）：新卡默认 `data-difficulty="architect"` + `data-priority="p1"`（除非内容更偏专家或高级开发）；双编码必须同步（属性 + 可见徽标），徽标文案用**短表 专家 / 架构 / 高级**。
+**`M`/`G`/`K` 三专篇（方法论 / 工程化要点 / 生产踩坑）不分难度等级、不呈现任何徽标**（2026-09-16 长官决策）：不写 `data-difficulty`（原 220 处已全清）；`data-priority` 仅 M 卡部分保留但不呈现；难度计数键与不变式已从 `kb-counts.json` 移除。三处载体（专篇页 / 根 index M·G·K 区块 / 章节导航三张专篇卡）与视觉后果详见 `conventions.md` §2；门禁 `validate_kb.py` 1j/1k。
 
 ## 全量同步必改点（形式1/2/3）
 
@@ -536,13 +537,13 @@ agent_created: true
 
 - **Edit 大数字竞态**：overview 的 `ov-stat-num` 用 `Edit` 报成功却未落盘，改用 Python 脚本替换。
 - **章节导航页不枚举单题 ID**：`java-architect-interview/index.html` 只列章节卡片与统计，不含 `Cxx.xx`/`Sxx.xx` 条目——校验时"落位=False"属预期。
-- **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家级/架构级/高级开发），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
+- **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家/架构/高级），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
 - **overview 新卡落位排序（2026-09-13 硬约束）**：P0→P2 → 专家→架构→高级 → 子组内 **C→E→S** → **题号升序**。详见 `conventions.md` §5.1.1。`validate_kb.py` 校验子组内 `ov-num` 单调；曾因「插在同 priority 某 E 卡后」导致 E10 跑到 E09 前。三类占比见 §5.1.2（**不要求各桶均分**，按内容定级）。
 - **全站分组/页头页尾计数（2026-09-13 全站固化）**：见 `conventions.md` §5.1.3。高频坑：① 场景卡插在 `</section>` 外导致 `group-count` 表面正确、结构孤儿；② overview `ov-nav-cnt`/组 h2 与 `ov-stat` 脱节；③ mind `card-foot`/mermaid「章节·原理·场景」未随并入清单更新；④ overview 难度子组未拆 C/E/S `ov-type` 或 `ov-type-count` 漂移。`validate_kb` 3b2/3c + `sync_counts` P47–P62 覆盖导航/组标题/聚合统计；改后必跑 `validate_kb.py`。
 - **计数点标记（2026-09-14）**：见 `conventions.md` §5.1.4。新增/移动计数数字必须 `data-kb-pos` + `data-kb-count`（`counts`/`struct`）；**禁止** `kb-count-local`；禁止留下裸数字权威位。
 - **计数点分级全量门禁（2026-09-13）**：L0–L2/LX 见 §5.1.4。改题或改聚合文案后必跑 `validate_kb.py`（含 **0c L1 扫描**）。禁止再「发现一处补一处」——新增展示题量必须先定级再落标。
 - **overview 类型三级计数（2026-09-13）**：每个难度子组内须有 `ov-type`（篇章/核心原理/场景题）分块；禁止只挂一个「篇章」标题却混入 E/S。`ov-type-count` 必须=块内题数。见 `conventions.md` §5.1.3/§5.1.4；`validate_kb` 3b2。
-- **overview `ov-stat-num` 共 11 项全要改**：总量/方法论/P0/P1/P2/专家级/架构级/高级开发/章节题/核心原理/场景题（顺序见 `ov_stat_order`）。最易漏的是「章节题」（篇章数）与「方法论」（紧随总量），漏改会导致 overview 与根 index、章节 index 的计数不一致。另须同步组标题/`ov-nav-cnt`/页头副标题「全站 N 道（篇章+原理+场景）」。
+- **overview `ov-stat-num` 共 10 项全要改**：题目总数/P0/P1/P2/专家/架构/高级/章节题/核心原理/场景题（顺序见 `ov_stat_order`；**不含方法论**——方法论只在专篇页与各 index 呈现）。最易漏的是「章节题」（篇章数）与「核心原理」（紧随「章节题」），漏改会导致 overview 与根 index、章节 index 的计数不一致。另须同步组标题/`ov-nav-cnt`/页头副标题「全站 N 道（篇章+原理+场景）」。
 - **禁止全站合计**：跨大篇章/聚合只动 total（C+E+S）；加 M/G/K 只 bump 对应键，**不要**再维护 sum_all（已废除）。
 - **mind 导图页数 19 与题量无关**（`mind_pages` = mind-01~15 + mind-core-methodology + mind-engineering-practices + **mind-production-pitfalls** + mind-server-security-checkpoint；**勿漏踩坑页**，本处曾误记为 18）；`idx-meta` 五格含方法论/工程化卡数与 `N+N+N`；改题同步对应 `card-foot`。
 - **`dir-group-count` / `group-count` / 篇章 `dir-count` 必须等于实际卡片数**；M12 禁止嵌套进「一、高并发」。
@@ -569,6 +570,9 @@ agent_created: true
 - **统计块（`.dir-stats`）加计数项须让每行项数为偶（2026-09-16）**：≤480px 为两列，根 index 首行原 3 项 → 「题目总数」独占一行、右侧整格留白（长官反馈的「空白位置占比大」之一）；补入「思维导图 19」后首行 4 项、次行 6 项，375px 下两行均整除无空格。新增展示位须同时登记 `positions`（本轮用空位 **P37**，键 `mind_pages`，首次展示该键于根 index）。
 - **聚合计数格「只删 DOM」会留下孤儿 position（2026-09-16 固化）**：hero 统计格增删必须**三处同步** —— ① 该页 DOM 的 `.stat-item`；② `design-system.css` 中该 hero 的 `grid-template-columns`（**每个断点的列数都须整除项数**，与上条同口径）；③ `docs/kb-counts.json` 的 `positions`。**只删 DOM 不删 position，`sync_counts.py check` 与 `validate_kb.py` 的「kb-count 标记」项会双双 FAIL**（校验按「每个 position 必须命中 1 处 `data-kb-pos=…`」判定，命中 0 处即报缺失）。实测：章节导航 index 移除「思维导图」格（`mind_pages`，**P221**）后 `positions` **396 → 395**、`check` 恢复全绿；同时须同步 `conventions.md` §5.2/§5.3 口径（`counts.mind_pages = 19` 键本身保留，仅删展示位）。新增格子同理（根 index 加 P37 已验证），**改完必跑 `sync_counts.py render`** 刷新 AGENTS.md / SKILL.md / conventions.md 的计数位表。
 - **根 index 页内取值发散：同一语义 12 档字号 / 7 档圆角（2026-09-16 实测）**：页内 416 行内联样式里，字号 **12 档**中有 4 档挤在 `10.88~12.8px`（0.68/0.72/0.78/0.8rem，最大差 0.48px，肉眼不可辨）；圆角 7 档（页内自造 `3px`/`5px`/`20px` 与共享 token `4px`/`8px` 混用，其中 20px 胶囊有 1085 处却硬编码）；横向 padding 7 档（`6/7/8/10/12/16/24`，前两档差 1px）；gap 4 档（`.q-item` 父层 8px 与 `a` 子层 9.6px 并存）；另有 `#0f766e` / `#fff` / `rgba(37,99,235,0.04)` 三处硬编码、`max-width:1100px` 重复 4 次。**修法**：页内 `:root` 建 `--dir-*` token 层（字号 12→7 档、内距 7→3 档、色值与宽度收口），**只改写法不改视觉**（差异 ≤1px）。这类批量改写用**带期望命中数的替换脚本**（`tmp/normalize_root_index_style.py`），不要逐个手改。
+- **去掉 `data-difficulty` 会连带改视觉：共享 CSS 有属性选择器（2026-09-16 实测）**：`design-system.css` 里 `.qa-card[data-difficulty="architect"]`（紫左边框 + 紫 `qa-badge`）与 `["expert"]`（渐变左边框 + 渐变 `qa-badge`）是**属性选择器**，不是只有类。所以给 M/G/K 清掉 220 处 `data-difficulty` 后，这 220 张卡会从「按难度变色」统一回落 `.qa-card` 默认蓝色左边框 —— 这是「取消分级」的必然结果，**不是 bug**；若日后要给专篇配统一专色，须显式加页面级类，勿再借难度属性。同理，任何「只删属性/只删 DOM」的改动都要先 `grep '\[data-'` 确认有无属性选择器。
+- **难度标签文案是双轨制，改一处必查另一处（2026-09-16 长官口径）**：**标签位**一律短表 **专家 / 架构 / 高级**（`difficulty` 徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` 与 `.ov-subgroup-title`、各导航页 `card-tags` / `q-tags`、页脚排序说明、`format-shared` §3.1 的「文案」列）；**正文**用 **专家 / 架构师 / 高级开发**。存量正文里把等级当定语用的 8 处（「架构级理解」「专家级深度」「专家级的技术判断力」）**保留不改**。**连带点**：`validate_kb.py` 的 `_cn`（页头统计匹配）与 `_diff_from_title` + 子组标题正则（overview 归桶）都硬编码了文案，改文案必须同步这两处，否则校验会「正则不命中 → 静默跳过」而非报错。
+- **`difficulty` 类被非难度语义占用：根 index 的 想/做/守（2026-09-16 实测）**：48 个导图节点（T01~T48）的分层标签「想/做/守」原先写成 `<span class="difficulty difficulty-architect">想</span>` —— 借用难度类取紫色胶囊外观。它既违反「标签只放难度」口径，也会让**任何按类名做文案归一/门禁的脚本把「想」改写成「架构」**（本轮批量替换前必须先把它摘出来，否则直接改坏）。**修法**：新增中立类 `design-system.css → .layer-tag`（视觉与 `.difficulty` + `.difficulty-architect` 完全一致，零视觉变化），根 index 页内补 `.q-tags .layer-tag` 尺寸覆盖（引用 `--dir-fs-2xs` / `--dir-pad-chip`）。**门禁**：`validate_kb.py` 1j 会拦「作文案不在白名单」的 difficulty 徽标。
   - **两个必踩的脚本坑**：① **边改边用旧 `span` 取片段 → 偏移失效**（插入 token 块后后续规则统计到被截断的串，计数全错）→ 必须「先在原始 `<style>` 串上完成全部替换，最后一次性拼回」；② **token 定义行会被同名规则命中** —— 把 `rgba(37,99,235,0.04)` 换成 `var(--dir-hover)` 时，会连带把定义行 `--dir-hover: rgba(…)` 自己也换掉、退化成 `var(--dir-hover)` **自引用**（根因：token 块在串首，而 `replace(old,new,3)` 从头部计数）→ 替换必须先于 token 块插入。
 - **「对齐」不等于「共用一条线」：要区分左侧内容线与右侧计数线（2026-09-16 实测）**：改前桌面 面板标题 115 / 分组标题 91 / 题号 107 三套左缘（小屏 53/17/25）—— 真缺陷不是「没共线」，而是**题号列不隶属任何一条线**（107 = 91+8+8，比分组标题还右 16px）。**修法**：`.q-list`/`.q-item` 的**左侧**内缩归零（**右侧必须保留**，否则 hover 背景贴死行尾）→ 题号与分组标题共线（桌面 91 / 小屏 17），且列表可用宽只增不减。**计数标签的位置策略必须统一**：21 处章节计数靠 `tagline{flex:1}` 推到行尾，55 处分组计数却以 `margin-left:0.5rem` 紧邻标题文本 → 统一为「右对齐」（`.dir-group-title` 改 `flex` + `space-between`），两侧计数落在同一右缘（桌面 1109 / 小屏 358）；小屏还需把 `.dir-header` 的右内缩从 16px 收到 4px 才能对齐。
 - **小屏面板头 `tagline` 被挤成「竖排」（2026-09-16 实测）**：`.dir-header` 在小屏仍沿用桌面单行 flex，标题 + tagline + 计数胶囊抢 341px，tagline 只剩 ~50px 可用宽 → 中文**逐字换行**（「先建世界观」被拆成 5 行）。**修法**：小屏 `flex-wrap: wrap` + `.dir-title{flex:1 1 auto}` + `.dir-count{order:2}` + `.dir-header .tagline{order:3; flex:1 1 100%}`（首行＝箭头+标题+胶囊，次行 tagline 独占）。**该缺陷溢出检测不报，只有截图能发现。**
@@ -578,9 +582,10 @@ agent_created: true
 ## Resources
 
 - `references/conventions.md` — 完整结构约定：题号前缀、卡片 HTML 模板（`.qa-card`/`.qa-layer` 七层/场景七层）、导图节点模板、4 份聚合页字段名与 `ov-stat-num` 顺序、权威计数示例、导航/小屏/Prettier（§7–§7.2）。
-- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、**0d 页头难度自证**、**0e/1i 卡片嵌套**（`qa-card`/`map-card` 不得互相包含）、overview 排序/类型、三权威源、红线（`data-page-node-id`）、**1f 内部编辑字眼**、**1g 横向溢出兜底**、**1h 列表缩进兜底**、**Mermaid prettier-ignore**、主题/小屏。
+- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、**0d 页头难度自证**（页头 `高级 ×N / 架构 ×N / 专家 ×N`）、**0e/1i 卡片嵌套**（`qa-card`/`map-card` 不得互相包含）、**1j 难度标签口径**（徽标文案须为短表 专家/架构/高级）、**1k M/G/K 无 `data-difficulty`**、overview 排序/类型、三权威源、红线（`data-page-node-id`）、**1f 内部编辑字眼**、**1g 横向溢出兜底**、**1h 列表缩进兜底**、**Mermaid prettier-ignore**、主题/小屏。
 - `scripts/check_list_indent.js` — 列表 marker 缩进**实测**（CDP，零依赖）。两重判定：① `markerSpace < 1.2×li字号 − 0.5px`：`markerSpace` = 列表内容盒左边 − 边界容器内容盒左边（边界优先取卡片类 `.epq-card`/`.qa-card`/`details.map-card`，其次取最近有 padding 的块级祖先，**绝不退到 0**，否则 375px 假阳 / 1280px 假阴）；② **同容器内 `min(ol pl) < max(ul pl) − 0.5`** —— 有序列表比无序列表少缩进（给 `ul` 写 padding 漏了 `ol`）。`node check_list_indent.js`（全站 44 页 × {1280, 375}）、`--only <相对路径>`、`--viewport 375`、`--dump`（打印各分组样本）、`--out r.json`。任一判定命中即 exit 1。**注意**：本脚本的度量代码位于 `MEASURE` 模板字符串内，**其注释里禁止出现反引号**（会提前终止模板字符串，报 `SyntaxError: Unexpected identifier`）—— 本轮实测踩过。
 - `scripts/probe_card_nesting_gate.py` — **1i 卡片嵌套门禁的正向验证**（三轮：当前树 PASS → 删掉 chapter-11 中 C11.28 的 `</div>` 必须 FAIL 2 张 → 还原并核对 MD5 一致 + PASS）。项目根由「向上查找含 AGENTS.md + index.html 的祖先」推导；只临时改 1 个文件且用内存原文还原，可随时复跑（`PROBE_EXIT=0`）。
+- `scripts/probe_diff_label_gate.py` — **1j（难度标签口径）+ 1k（M/G/K 无 `data-difficulty`）的正向验证**，五轮：当前树 PASS → 注入 A「徽标改回长表 `高级开发`」须 1j FAIL → 注入 B「难度类被非难度语义占用」（根 index 的 `layer-tag` 改回 `difficulty-architect`）须 1j FAIL → 注入 C「给 M 卡加回 `data-difficulty`」须 1k FAIL → 还原后三文件 MD5 一致且 PASS。**每轮先复位其它文件**，避免缺陷叠加导致误判（首版即踩此坑）。（`PROBE_EXIT=0`）
 - `scripts/probe_list_gate.py` — 1h 门禁的**正向验证**（注入缺陷 → 必须 FAIL）：`1` 删除兜底规则、`2` 兜底退化为裸选择器 `ul, ol { … }`；`--inject` 只注入不校验（便于分步执行，规避前台信号中断）。注入态始终由权威备份构造，还原由调用方命令负责。
 - `scripts/check_mobile_overflow.js` — 移动端横向溢出**实测**（CDP + headless Chrome，Node 22 原生 WebSocket，零依赖）。静态审计只能发现风险，不能证明修好；本脚本在真实视口下量 `documentElement.scrollWidth - clientWidth` 与「内容越出卡片」的元素数。`node check_mobile_overflow.js`（内置 8 页 × 320/375/414）、`--path <html>`（单页）、或传 cfg.json。溢出即 exit 1，可直接作门禁。
 - `scripts/ensure_mermaid_prettier_ignore.py` — 批量为缺失的 mermaid 节点补 `<!-- prettier-ignore -->`（格式化前可先跑）。

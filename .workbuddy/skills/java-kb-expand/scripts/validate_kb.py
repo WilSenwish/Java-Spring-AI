@@ -14,7 +14,7 @@ java-kb-expand · 全量校验脚本（通用版）
   0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P89，防页头「本页 N 道」漂移）
   0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×len(ov_stat_order)）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   0c) **L1 聚合 UI**：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等容器内「N题|卡|道|组」不得裸数字（见 conventions §5.1.4）
-  0d) **页头难度分布**：chapter-meta 的「题目数 / 高级开发×N / 架构级×N / 专家级×N」须与本页实体卡片逐项一致（2026-09-15 补，防新增卡漏同步页头）
+  0d) **页头难度分布**：chapter-meta 的「题目数 / 高级×N / 架构×N / 专家×N」须与本页实体卡片逐项一致（2026-09-15 补，防新增卡漏同步页头）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   1b) 手机小屏强制：design-system.css / 根·导图 index / 导图页含 MOBILE-MANDATORY；全站 HTML 含 viewport
   1c) 主题 / 暗黑模式：站点 HTML 含 theme-init.js；design-system.css 含 data-theme="dark" 令牌块
@@ -28,6 +28,11 @@ java-kb-expand · 全量校验脚本（通用版）
       （2026-09-16 补，实测核心原理页 20 处、安全检查页 1 处）
   1i) **卡片嵌套**：任一 `qa-card` / `map-card` 不得被另一张卡包含（= 前一张卡缺 `</div>`；渲染为卡片套卡片）
       （2026-09-16 补，实测 chapter-11 的 C11.28 缺 1 个 `</div>`，C11.29/C11.30 被吞进去，当时全部门禁 PASS）
+  1j) **难度标签口径**：全站 `<span class="difficulty difficulty-X">TEXT</span>` 的 TEXT 必须等于短表
+      {expert:专家, architect:架构, senior:高级}（可带 ` ×N`）；禁止非难度语义占用 difficulty 类
+      （2026-09-16 补，实测根 index 48 个导图节点把「想/做/守」写成 difficulty-architect）
+  1k) **M/G/K 无难度分级**：三个专篇页（方法论/工程化/生产踩坑）不得出现 `data-difficulty`
+      （2026-09-16 长官决策：彻底取消 M/G/K 难度分级，counts 键与不变式一并移除）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -132,17 +137,19 @@ def run_sync_counts_check():
 
 
 def run_chapter_meta_difficulty_check():
-    """页头 chapter-meta 的「题目数 / 高级开发×N / 架构级×N / 专家级×N」必须与本页实体卡片一致。
+    """页头 chapter-meta 的「题目数 / 高级×N / 架构×N / 专家×N」必须与本页实体卡片一致。
 
     背景（2026-09-15 独立审查发现）：12 个页面的页头难度分布未随新增卡同步——
     新增 22 张篇章卡后，页头 `高级开发 ×N` 全部停留在旧值；S 页页头「题目数：71」实际 73。
     根因是 `chapter-01~15` 未纳入 SSOT positions（data-kb-pos 计数为 0），
     故 sync_counts.py check 报 PASS 也无法发现该漂移。此处按「页面自身实体卡片」自证，
     不依赖 SSOT，作为 L1 规则拦截同类漂移复发（对应 format-shared §5.1.4 聚合 UI 禁裸数字）。
+
+    2026-09-16：标签口径改短表（高级 / 架构 / 专家），页头统计随之。
     """
     _diff = re.compile(r'data-difficulty="(senior|architect|expert)"')
     _meta = re.compile(r'<div class="chapter-meta">.*?</div>', re.S)
-    _cn = {"senior": "高级开发", "architect": "架构级", "expert": "专家级"}
+    _cn = {"senior": "高级", "architect": "架构", "expert": "专家"}
     _n_re = re.compile(r'题目数：\s*(?:<span class="kb-count"[^>]*>)?(\d+)')
     targets = []
     for c in range(1, 16):
@@ -394,6 +401,57 @@ def run_card_nesting_check():
         check(True, f"[卡片嵌套] {n} 个章节/导图页的卡片层级无嵌套")
 
 
+# 难度标签唯一合法文案（2026-09-16 长官口径：标签限定为「专家 / 架构 / 高级」）
+DIFF_LABEL = {"expert": "专家", "architect": "架构", "senior": "高级"}
+# M/G/K 三专篇：彻底取消难度分级
+NO_DIFF_PAGES = ("chapter-core-methodology.html",
+                 "chapter-engineering-practices.html",
+                 "chapter-production-pitfalls.html")
+
+
+def run_difficulty_label_check():
+    """1j) 全站 difficulty 徽标文案必须是短表；difficulty 类不得被非难度语义占用。"""
+    pat = re.compile(r'<span class="difficulty difficulty-(expert|architect|senior)">(.*?)</span>',
+                     re.S)
+    files = ([os.path.join(BASE, "index.html")]
+             + sorted(glob.glob(f"{CHAPTER_DIR}/*.html"))
+             + sorted(glob.glob(f"{MIND_DIR}/*.html")))
+    bad, total = [], 0
+    for p in files:
+        s = read(p)
+        for m in re.finditer(r'<span class="difficulty difficulty-([A-Za-z-]+)">(.*?)</span>',
+                             s, re.S):
+            total += 1
+            cls, inner = m.group(1), re.sub(r"<[^>]+>", "", m.group(2)).strip()
+            exp = DIFF_LABEL.get(cls)
+            ok = exp is not None and re.fullmatch(re.escape(exp) + r"( ×\d+)?", inner)
+            if not ok:
+                ln = s[:m.start()].count("\n") + 1
+                bad.append(f"{os.path.basename(p)}:{ln} difficulty-{cls} → {inner!r}（期望 {exp!r}）")
+    if bad:
+        for x in bad[:20]:
+            print("FAIL [难度标签口径]", x)
+        check(False, f"[难度标签口径] {len(bad)}/{total} 枚徽标文案非法（须 专家/架构/高级；见 conventions §2）")
+    else:
+        check(True, f"[难度标签口径] {total} 枚 difficulty 徽标文案全为短表（专家/架构/高级）")
+
+
+def run_special_no_difficulty_check():
+    """1k) M/G/K 三专篇彻底取消难度分级：不得出现 data-difficulty。"""
+    bad = []
+    for bn in NO_DIFF_PAGES:
+        p = os.path.join(CHAPTER_DIR, bn)
+        n = read(p).count("data-difficulty=")
+        if n:
+            bad.append(f"{bn}: data-difficulty×{n}")
+    if bad:
+        for x in bad:
+            print("FAIL [专篇无分级]", x)
+        check(False, f"[专篇无分级] {len(bad)} 个专篇页仍带 data-difficulty（须 0；见 conventions §2）")
+    else:
+        check(True, f"[专篇无分级] {len(NO_DIFF_PAGES)} 个专篇页均无 data-difficulty（方法论/工程化/生产踩坑不分级）")
+
+
 def main():
     # 0) 权威计数位（含散文）——必须先于其他统计断言
     run_sync_counts_check()
@@ -403,6 +461,8 @@ def main():
     run_chapter_meta_difficulty_check()
     # 0e/1i) 卡片层级：qa-card / map-card 不得互相嵌套（2026-09-16 新增，防缺 </div> 卡片套卡片）
     run_card_nesting_check()
+    run_difficulty_label_check()
+    run_special_no_difficulty_check()
 
     # 4 聚合页 + 全部章节 + 全部导图（红线校验覆盖全站）
     texts = {k: read(v) for k, v in AGG_FILES.items()}
@@ -583,7 +643,7 @@ def main():
     def _ov_sort_key(nid: str):
         return ({"C": 0, "E": 1, "S": 2}.get(nid[:1], 9), nid)
 
-    _diff_from_title = {"专家级": "expert", "架构级": "architect", "高级开发": "senior"}
+    _diff_from_title = {"专家": "expert", "架构": "architect", "高级": "senior"}
     _ov_sort_fail = 0
     _ov_bucket_fail = 0
     _ov_title_fail = 0
@@ -596,7 +656,7 @@ def main():
         _expect_prio = _gid.replace("group-", "")  # p0/p1/p2
         for _sm in re.split(r'(?=<h3 class="ov-subgroup-title">)', _gbody):
             _tm = re.match(
-                rf'<h3 class="ov-subgroup-title">(专家级|架构级|高级开发)\s*·\s*{_KB_NUM}\s*题</h3>',
+                rf'<h3 class="ov-subgroup-title">(专家|架构|高级)\s*·\s*{_KB_NUM}\s*题</h3>',
                 _sm,
             )
             if not _tm:

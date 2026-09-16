@@ -16,7 +16,7 @@
   <div class="qa-header">
     <div class="qa-badge">C10.26</div>
     <div class="qa-question">题目标题
-      <span class="difficulty difficulty-architect">架构级</span>
+      <span class="difficulty difficulty-architect">架构</span>
       <span class="priority priority-p1">P1</span>
     </div>
   </div>
@@ -29,14 +29,20 @@
 </div>
 ```
 
-- `data-difficulty` 取值：`expert`（专家级）/ `architect`（架构级）/ `senior`（高级开发）。
+- `data-difficulty` 取值：`expert` / `architect` / `senior`（**仅 C/E/S 使用**；M/G/K 一律不用，见下条）。
 - `data-priority` 取值：`p0` / `p1` / `p2`（**P3 已废除**）。
 - 双编码一致：卡片 `data-priority="p*"` 属性 **与** 可见徽标 `<span class="priority priority-p*">P*</span>` 必须同步，禁止只改其一。
-- **等级 / 优先级徽标的例外：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡一律不呈现任何徽标（2026-09-16 长官二次下达，覆盖三处载体）**：
-  1. 三个专篇页（`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`）的 `.qa-question` 内不写 `<span class="difficulty …">` / `<span class="priority …">`；
-  2. 根 index 的 M/G/K 三个区块共 **220 条 q-item**（M91+G65+K64）**连 `.q-tags` 空壳一并去掉**（其内只有等级徽标）；
-  3. 章节导航 index 的三张专篇 `chapter-card` **不带 `.card-tags`**（原 M 3 枚 / G 2 枚 / K 1 枚）。
-  - **属性侧保留**：`.qa-card` 的 `data-difficulty` 照写（M/G/K 难度分布仍可机读，`counts.methodology_expert/architect/senior`、`engineering_architect/senior`、`pitfalls_senior` 与「方法论难度三级求和=methodology」不变式继续成立）；`data-priority` 仅 M 卡部分携带（45/91），同样不再呈现。**新增 M/G/K 卡（含导航位）时勿再贴徽标。**
+- **难度文案口径（全站唯一，2026-09-16 长官决策）**：
+  - **标签位**一律短表 **专家 / 架构 / 高级**（`difficulty-expert` / `architect` / `senior`）。标签位 = 卡片 `.qa-question` 徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` 与 `.ov-subgroup-title`、章节导航 `card-tags`、根 index `q-tags`、总览页脚排序说明、`format-shared` §3.1 的「文案」列。
+  - **正文**用 **专家 / 架构师 / 高级开发**（称人/角色）；存量正文中把等级当定语用的写法（「架构级理解」「专家级深度」「专家级的技术判断力」，共 8 处）**保留不改、不再新增**。
+  - 门禁：`validate_kb.py` **1j**（徽标文案白名单，可带 ` ×N`）。
+- **`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡彻底取消难度分级（2026-09-16 长官决策，属性 / 徽标 / 计数三层一并移除）**：
+  1. 三个专篇页（`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`）的 `.qa-card` **不写 `data-difficulty`**（原 220 处已全清），`.qa-question` 内不写 `<span class="difficulty …">`；
+  2. 根 index 的 M/G/K 三个区块共 **220 条 q-item** 连 `.q-tags` 空壳一并去掉（其内只有等级徽标）；章节导航 index 的三张专篇 `chapter-card` **不带 `.card-tags`**（原 M 3 枚 / G 2 枚 / K 1 枚）；
+  3. `kb-counts.json` **不再有** `methodology_expert/architect/senior`、`engineering_architect/senior`、`pitfalls_senior` 六个键，**也不再有不变量**「方法论难度三级求和 = methodology」；全局 `counts.expert/architect/senior`（46/191/161 = 398）**只覆盖 C/E/S**。
+  - **视觉后果**：`.qa-card[data-difficulty="architect"|"expert"]` 的紫左边框 / 渐变左边框、`.qa-badge` 配色不再命中 → M/G/K 220 张卡统一回落 `.qa-card` 默认蓝色左边框。若日后要给某专篇统一专色，须显式加页面级类，**勿再借难度属性**。
+  - **仍保留**：M 卡 `data-priority`（45/91）属性，但不呈现。新增 M/G/K 卡（含导航位）时**勿写 `data-difficulty`、勿贴难度徽标**。
+  - 门禁：`validate_kb.py` **1k**（三专篇 `data-difficulty` 须 0）。
 - `qa-layer` 合法 `data-layer` 取值（在 `assets/design-system.css`）：`essence` / `evolution` / `principle` / `practice` / `deep` / `pitfall` / `extension` / `production` / `scenario` / `evaluation` / `insight` / `application` / `challenge`。
 - 常用组件类：`compare-table`（对比表）、`code-block`/`pre>/code`（代码）、`callout callout-pitfall`（警示）、`inline-code`。
 
@@ -63,7 +69,7 @@
 
 ### 5.0.1 高级开发「桥接」口径（计入题目总量）
 
-标签：`data-difficulty="senior"`，默认 `data-priority="p1"`。定位在初级高开与架构之间：
+标签：`data-difficulty="senior"`（标签位文案 **高级**），默认 `data-priority="p1"`。定位在初级高开与架构之间：
 
 | | 偏「初级高开」 | **桥接（目标）** | 偏「架构」 |
 |---|---|---|---|
@@ -86,25 +92,25 @@
 ### 5.1 `nav-overview-priority.html`（优先级总览）
 
 > 文件名前缀 `nav-`：导航/聚合页，**不是**篇章题宿主。`ov_stat_order` 现为 **10 项**（total/P0–P2/难度三级/C·E·S），**不含** methodology；M/G/K 单独计数、不进 overview 统计条。P37（根合计）与 **sum_all / 全站合计**均已废止；M/G/K 仅各自 L0，不进跨大篇章加总。
-- `ov-stat-num` 顺序（**11 个**，校验权威三源；顺序以 `kb-counts.json` 的 `ov_stat_order` 为准；**方法论紧随总量**，勿遗漏；取值见 §6 COUNTS 块）：
+- `ov-stat-num` 顺序（**10 个**，校验权威三源；顺序以 `kb-counts.json` 的 `ov_stat_order` 为准；**不含 方法论**——方法论只在专篇页/各 index 呈现，不进本页统计条；取值见 §6 COUNTS 块）：
   1. 总量
-  2. 方法论
-  3. P0
-  4. P1
-  5. P2
-  6. 专家级
-  7. 架构级
-  8. 高级开发
-  9. 篇章题数
-  10. 核心原理题数
-  11. 场景题数
-- 9 子组标题：`<h3 class="ov-subgroup-title">专家级 · 10 题</h3>` 格式，按 **优先级×难度** 排列（P0/P1/P2 各含 专家级/架构级/高级开发），求和须各自等于 P0/P1/P2 与难度三级；**标题内题数 = 该子组 `ov-item` 实际个数**（易漏）。
+  2. P0
+  3. P1
+  4. P2
+  5. 专家
+  6. 架构
+  7. 高级
+  8. 篇章题数
+  9. 核心原理题数
+  10. 场景题数
+  （DOM 实测 `data-kb-ov-i` = 0…9 与上表逐项对应；渲染上 P2 之后换行。）
+- 9 子组标题：`<h3 class="ov-subgroup-title">专家 · 10 题</h3>` 格式，按 **优先级×难度** 排列（P0/P1/P2 各含 专家/架构/高级），求和须各自等于 P0/P1/P2 与难度三级；**标题内题数 = 该子组 `ov-item` 实际个数**（易漏）。
 - 每个 ov-item：`<a class="ov-item" href="…#ID">…<span class="ov-num">ID</span>…`，与章节页卡片一一对应（仅 C/E/S；M/G 不进 overview）。
   - **难度/优先级徽标必须包在 `<span class="ov-badges">` 内**：`<span class="ov-badges"><span class="difficulty …">…</span><span class="priority priority-pX">PX</span></span>`。漏包裹时两枚徽标直接成为 `.ov-item` 的 flex 子项，取 `.ov-item { gap: var(--space-sm) }`（大间距），而正常项取 `.ov-badges { gap: 4px }` → **页面上同列徽标间距时宽时窄**（2026-09-16 实测 15 条：C06.15、C07.16、C08.12、C09.17、C10.29/30、C11.26/27/28、C12.33/34/35、C13.14、C14.13、C15.12）。门禁 `scripts/check_index_badges.py`。
 
 #### 5.1.1 新卡插入排序（硬约束，2026-09-13 固化）
 
-页面声明顺序：**P0 → P2**，组内 **专家级 → 架构级 → 高级开发**，子组内再 **篇章(C) → 核心原理(E) → 场景(S)**，同类内 **题号升序**。
+页面声明顺序：**P0 → P2**，组内 **专家 → 架构 → 高级**，子组内再 **篇章(C) → 核心原理(E) → 场景(S)**，同类内 **题号升序**。
 
 插入算法（禁止「随便插在同优先级某卡后面」）：
 
@@ -116,7 +122,7 @@
 
 #### 5.1.2 三类占比（观察口径，非强制均分）
 
-全局 C:E:S ≈ 篇章:原理:场景（当前 234:73:72）。**各 P×难度桶不要求三类均分**——P1 专家级几乎全是篇章、P2 场景占比偏高属现状。新增时优先按知识点真实优先级/难度归桶，勿为「凑均衡」改级；若某桶长期缺失 E 或 S，可在扩库时优先补该桶缺口，但仍服从内容定级。
+全局 C:E:S ≈ 篇章:原理:场景（当前 234:73:72）。**各 P×难度桶不要求三类均分**——P1 专家几乎全是篇章、P2 场景占比偏高属现状。新增时优先按知识点真实优先级/难度归桶，勿为「凑均衡」改级；若某桶长期缺失 E 或 S，可在扩库时优先补该桶缺口，但仍服从内容定级。
 
 #### 5.1.3 全站聚合/分组/页头页尾计数清单（2026-09-13 全站核查固化）
 
@@ -125,7 +131,7 @@
 | 层级 | 位置 | 规则 |
 |---|---|---|
 | SSOT | `kb-counts.json` | 唯一写源；`bump`/`apply`/`check` |
-| overview | `ov-stat-num`×11、顶栏 `ov-nav-cnt`、组 `h2 · N 题`、子组 `h3 · N 题`、**类型三级 `ov-type-count`（篇章/核心原理/场景题）**、页头副标题、页脚数据来源 | 与 P0/P1/P2/总量/类型一致；子组 N=该组 ov-item 数；**每个难度子组必须拆成 C/E/S 三个（或有则建）`ov-type` 块，计数=块内题数** |
+| overview | `ov-stat-num`×10、顶栏 `ov-nav-cnt`、组 `h2 · N 题`、子组 `h3 · N 题`、**类型三级 `ov-type-count`（篇章/核心原理/场景题）**、页头副标题、页脚数据来源 | 与 P0/P1/P2/总量/类型一致；子组 N=该组 ov-item 数；**每个难度子组必须拆成 C/E/S 三个（或有则建）`ov-type` 块，计数=块内题数** |
 | 根 index | `stat-number`、`dir-count`、`dir-group-count`、overview tagline | `dir-*` 必须等于紧随 `q-list` 的 `q-item` 数 |
 | 章节 index | `stat-number`、篇章 `card-footer N 题`、散文总量 | footer N=该章 C 卡数 |
 | 核心原理页 | title/h1/meta「N 题」 | = basics；TOC 各组 li 数=该组 E 卡 |
@@ -231,12 +237,12 @@
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
 - 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
 - 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
-- 难度 **专家 46 / 架构 191 / 高级开发 161**（求和 = 398）
-- 方法论 **91 卡**（M01~M12，专篇键 methodology）
-- 工程化 **65 卡**（G01~G08，专篇键 engineering）
-- 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls）
+- 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
+- 方法论 **91 卡**（M01~M12，专篇键 methodology；**不分难度等级**）
+- 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
+- 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 45/91；难度 专家 26 / 架构 61 / 高级开发 4
+- 方法论细分：带优先级 45/91（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -248,17 +254,17 @@
 | P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
-| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 11 项（顺序见 ov_stat_order） |
+| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 10 项（顺序见 ov_stat_order；不含方法论） |
 | P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
 | P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
 | P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
-| P11 | `docs/README.md` | docs/README.md 难度分布段 |
+| P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
 | P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
 | P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
 | P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
 | P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `docs/format-special.md` | docs/format-special.md 难度段合计 |
+| P17 | `docs/format-special.md` | docs/format-special.md 专篇合计段 |
 | P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |

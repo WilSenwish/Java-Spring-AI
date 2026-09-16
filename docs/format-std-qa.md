@@ -50,9 +50,9 @@
         <p class="chapter-subtitle">钩子副题（约一两句；禁止「演进罗列：直击考点」句式）</p>
         <div class="chapter-meta">
           <span>题目数：N</span> <span class="meta-divider">|</span>
-          <span>高级开发 ×a</span> <span class="meta-divider">|</span>
-          <span>专家级 ×b</span>   <span class="meta-divider">|</span>
-          <span>架构级 ×c</span>   <span class="meta-divider">|</span>
+          <span>高级 ×a</span> <span class="meta-divider">|</span>
+          <span>架构 ×b</span>   <span class="meta-divider">|</span>
+          <span>专家 ×c</span>   <span class="meta-divider">|</span>
           <span>预计复习：XX 分钟</span>
         </div>
         <!-- 篇章导读：知识链（含阶段说明）+ 工程化要点 + 本篇思维模式 -->
@@ -117,11 +117,13 @@
 ```html
 <div class="qa-header">
   <div class="qa-badge">C01.01</div>
-  <div class="qa-question">题干<span class="difficulty difficulty-senior">高级开发</span><span class="priority priority-p0">P0</span></div>
+  <div class="qa-question">题干<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
 </div>
 ```
 
-- **M/G/K 三专篇例外（2026-09-16 长官决策）**：方法论 / 工程化要点 / 生产踩坑页的 `.qa-question` **不写任何等级、优先级徽标**，只留题干文本。**根节点属性 `data-difficulty` / `data-priority` 照写**（难度分布与计数键机读用；`design-system.css` 无属性选择器，故零视觉影响）。同步口径见 `conventions.md` §2。
+- **难度标签文案 = 短表 `专家 / 架构 / 高级`**（2026-09-16 长官决策）；正文表述用 `专家 / 架构师 / 高级开发`。门禁 `validate_kb.py` 1j。
+- **M/G/K 三专篇不参与难度分级（2026-09-16 长官决策）**：方法论 / 工程化要点 / 生产踩坑页的 `.qa-card` **不写 `data-difficulty`**（原 220 处已全清），`.qa-question` 也不写任何等级、优先级徽标，只留题干文本；`data-priority` 仍保留（M 卡部分携带，不呈现）。
+  - **视觉影响**：`design-system.css` 有 `.qa-card[data-difficulty="architect"]`（紫左边框 + 紫 `qa-badge`）与 `["expert"]`（渐变左边框 + 渐变 `qa-badge`）属性选择器，故 M/G/K 220 张卡由「按难度变色」回落为 `.qa-card` 默认蓝色左边框——这是「取消分级」的预期结果。同步口径见 `conventions.md` §2。
 
 ### 3.3 内容层（layer）
 
