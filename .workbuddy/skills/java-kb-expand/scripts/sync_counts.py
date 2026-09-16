@@ -12,7 +12,7 @@ java-kb-expand · 权威计数同步工具（单一真源驱动）
   python3 sync_counts.py apply                     把真源写回全部计数位（自动备份）
   python3 sync_counts.py bump methodology=+1 total=+1   改数 + 写回 + 复核（一条龙）
   python3 sync_counts.py bump struct.chap.idx.c01.n=+1  结构键同语法（前缀 struct.）
-  python3 sync_counts.py render                    渲染四份文档的 COUNTS 锚点块
+  python3 sync_counts.py render                    渲染三份文档的 COUNTS 锚点块
 
 设计要点：
   - 真源分 counts（全局）与 struct（结构/分组）；禁止页面 kb-count-local
@@ -26,19 +26,16 @@ BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
 COUNTS_JSON = f"{BASE}/docs/kb-counts.json"
 BACKUP_ROOT = f"{BASE}/tmp/counts_apply_backup"
 
+# 渲染目标：这三份是「跨工具常驻规则 + 技能正文」，需要内联完整计数位表。
+# `.workbuddy/memory/MEMORY.md` **不在其中** —— 它按体积上限（~3KB 每轮注入）已收敛为
+# 指针版，不含 COUNTS:BEGIN/END 锚点块；计数摘要由 AGENTS.md 承载，MEMORY.md 只留
+# 「权威清单 = docs/kb-counts.json 的 positions」这类指针，故不再尝试渲染（否则永久 WARN）。
 RENDER_TARGETS = [
     f"{BASE}/AGENTS.md",
-    f"{BASE}/.workbuddy/memory/MEMORY.md",
     f"{BASE}/.workbuddy/skills/java-kb-expand/SKILL.md",
     f"{BASE}/.workbuddy/skills/java-kb-expand/references/conventions.md",
 ]
-# 紧凑块目标：只渲染计数摘要 + 指针，不展开 397 行计数位表。
-# 理由：MEMORY.md 每轮会话全量注入有体积上限（~50KB 会被截断），
-# 计数位表与 AGENTS.md / kb-counts.json 三重重复；AGENTS.md 是跨工具常驻规则，
-# 模板保持原样不动，仅 MEMORY.md 收敛为指针。
-COMPACT_TARGETS = {
-    f"{BASE}/.workbuddy/memory/MEMORY.md",
-}
+COMPACT_TARGETS = set()
 BEGIN = "<!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->"
 END = "<!-- COUNTS:END -->"
 

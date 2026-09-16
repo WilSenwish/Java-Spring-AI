@@ -169,15 +169,33 @@
 - **Mermaid**：节点纯文本；旁注挂锚点。
 - **口径**：`total` = 篇章+核心原理+场景；`methodology` / `engineering` / `pitfalls` 为专篇键；不设全站合计。
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
-- 统计块 `stat-number`：深度Q&A / 核心原理 / 场景（跨大篇章口径=total）与方法论 / 工程化 / 踩坑**各自单独计数**；禁止「题数+M+G+K」式合计；「全站 N 题」仅指 total（C+E+S）。
+- **Hero 统计块**（`.dir-hero` 内两行，共 10 项；改数走 `sync_counts.py`，勿手改）：
+  - 首行 `.dir-stats`（4 项，无 `stat-tag`）：编号体系 `6`（`struct.misc.index.site-meta_1`，P108）/ 页面篇章 `20`（`site-meta_2`，P109）/ **思维导图 `19`（`mind_pages`，P37）** / 题目总数 `total`（P36）。
+  - 次行 `.dir-stats.dir-stats-sub`（6 项，各带 `stat-tag`）：M 核心方法论 / G 工程化要点 / K 生产踩坑 / C 深度 Q&A / E 核心原理速查 / S 真实场景题。
+  - 口径：M/G/K 为专篇键，**各自单独计数，禁止「题数+M+G+K」式合计**；「全站 N 题」仅指 `total`（C+E+S）。禁止 `kb-count-local`。
+  - **`mind_pages` 是全站唯一的导图页数键**（19 = 15 篇章导图 + 方法论 + 工程化 + 踩坑 + 安全），三处展示：根 index P37、章节导航 index P221/P222、导图站 index P351；文案一律「思维导图」/「思维导图页」。
+  - 小屏列数（**按块定列，使列数与项数整除**）：≤768px 首行 `.dir-stats` **4 列**（4 项＝1 行）、次行 `.dir-stats-sub` **3 列**（6 项＝2 行）；≤480px 两行统一 **2 列**（4 项＝2 行、6 项＝3 行）。**加计数项须让两行项数各自能被当前列数整除**，否则末行出现半空格子（历史：首行 3 项时 375px 下「题目总数」独占一行、右侧整格留白；首行 4 项而用 3 列时 481~768px 也会「3+1」留白）。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
   - **结构完整性**：`q-tags` 必须闭合、`<a>` 不得顶格（须与同级 li 内缩进一致）。历史新增题曾出现「顶格 `<a>` + `q-tags` 未闭合」（2026-09-16 实测 7 条：C11.28/29/30、S12.08/09 顶格+未闭合，G07.08/09 仅未闭合），渲染上表现为徽标错位、层级断开。门禁 `scripts/check_index_badges.py`（顶格 `<a href=…>` 与未闭合 `q-tags` 均为 FAIL）。
   - **优先级补齐口径**：缺失徽标按**镜像源页**判定——源页有优先级则补（C11.28/29/30、S12.08/09 补 `P1`），源页无优先级则**不补，仅修结构**（G/K 块源页本无优先级，`validate_kb` 亦不强制）。**根 index 方法论块（M 卡）整体不加优先级**（2026-09-16 长官决策），M 卡优先级只在章节页呈现。
 - per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（见 COUNTS）。
 - 方法论目录结构（平级 `dir-group`，禁止嵌套）：序章①~⑤ → **⑥ 生产与领域思维速查（M12，16 卡）** → 一~五主题（M06~M10）→ 附录（M11）。**禁止**把 M12 嵌进「一、高并发」。
+- **小屏（≤768px）横向 gutter 归一口径（2026-09-16 固化）**：全页横向留白**唯一来源 = `.dir-container` 的 `12px`**，与 `.dir-hero` / `.dir-legend` / `.dir-toolbar` 一致。`.dir-section` **不得**再叠加留边——既要清掉页面内联的 `margin-left/right: 12px`，也要显式覆盖**共享 `design-system.css` 的 `.dir-toolbar,.dir-legend,.dir-section,.dir-stats { padding-left/right: max(12px, env(safe-area-inset-*)) }`**（该规则位于共享表的 ≤768 段，页面 `<style>` 后加载，同特异度下页面胜出，故须写 `padding-left: 0` 显式归零）。列表横向内缩由 **`.dir-body` 单层**承担 `4px`（桌面为 `--dir-pad-panel` = 1rem）——`.dir-group` / `.q-list` 横向必须为 `0`，`.q-item` **仅左侧**为 `0`（右侧内缩有意保留，hover 背景不贴死行尾）。**内缩层必须唯一**：曾把内缩放在 `.dir-group` 上，导致「有分组」与「无分组」（深度 Q&A 15 篇章）两类区块分叉 —— 题号左缘 1px vs 17px，视觉上像两个页面。
+  - 修复前每侧累计 **68px**（容器 24 + section margin 12 + 共享 CSS padding 12 + 边框 1 + 8+8+8），375px 下列表可用宽仅 **229px（视口 61%）**，页高 62066px；修复后每侧 **25px**、可用宽 **325px（87%）**、页高 52570px（展开态 −15.3%）。复测/回归用 `scripts/probe_root_index_whitespace.js`。
+  - 附带修掉两个被 `overflow: hidden` 掩盖的缺陷：`.dir-header` 的 `.dir-count` 计数胶囊在 303px 内容宽下溢出 section 被裁切（`check_mobile_overflow.js` 会因祖先 `overflow:hidden` 计入「横滑容器」而不报 —— **溢出只有宽度实测 + 截图肉眼可见**）；折叠态页高 3413 → 2692px（−21%）。
+- **`q-tags` 缩进口径**：标签行左缘须对齐**题号列宽 + `.q-item a` 的 gap**（gap 现为 `--dir-gap-sm` = 0.5rem）。≤768px `padding-left: 5rem`（q-id 4.5rem + 0.5rem）；≤480px q-id 收窄为 3.8rem，故须同步改 `4.3rem`（曾写 `0`，与 ≤768 断点口径不一致 → 标签错位）。**改 `a` 的 gap 必须同步改这两处**。
+- **页内风格 token 层（2026-09-16 归一化）**：页面 `<style>` 顶部声明 `:root { --dir-* }`，把发散的取值收口到有限档位（原字号 **12 档** / 圆角 7 档 / 横向 padding 7 档 / gap 4 档，其中 4 档字号挤在 10.88~12.8px、差 ≤0.48px 肉眼不可辨）。改页内样式**一律引用 token，不得再写裸值**；门禁会先把 `var(--dir-*)` 解析为实际值再比对，token 被删/改名即 FAIL（不静默放行）。
+  - **字号 7 档**：`--dir-fs-2xs` 0.7rem（徽标 / 分组计数 / 小屏辅助）· `-xs` 0.8rem（说明 / 等宽编号 / 分隔标题 / 图例）· `-sm` 0.85rem（题目 / 按钮 / 分组标题 / 折叠箭头）· `-md` 0.95rem（面板标题 / 副标题）· `-lg` 1.15rem（次级统计数字）· `-xl` 1.8rem（主统计数字）· `-2xl` 2rem（页主标题）。**响应式字号不进阶梯**：小屏 h1 `clamp(1.25rem,5vw,1.65rem)`、≤480 的 1.2rem、小屏统计数字 1.25rem。
+  - **布局 / 内距 / 圆角 / 色彩**：`--dir-maxw` 1100px · `--dir-gutter` 1.5rem（桌面）· `--dir-gutter-sm` 12px（小屏）；内距 3 档 `--dir-pad-chip` 6px（徽标 / 行内 code）· `-item` 8px（列表项 / 计数胶囊 / 分组）· `-panel` 1rem（面板头 / 分组头 / 按钮）；间距 `--dir-gap-xs` 4px · `-sm` 0.5rem · `--dir-stats-gap` 2rem · `-sub` 1.6rem；圆角沿用共享 `--radius-sm/md`，另加 `--dir-radius-pill` 20px；色彩 `--dir-ink-on-tag` / `--dir-tag-g`（G 卡专色，其余 5 个 tag 走共享 token）/ `--dir-hover`（三处 hover 底色的唯一来源）。
+- **页内对齐口径（2026-09-16 固化，实测驱动）**：
+  - **左侧内容线**：`.q-list` 与 `.q-item` 的**左侧**内缩必须为 `0`，使题号列与分组标题左缘共线（改前桌面 107 vs 91、小屏 25 vs 17，各差 16/8px）。**只约束左侧**——右侧必须保留内缩，否则 hover 背景贴死行尾。
+  - **右侧计数线**：`.dir-group-title` 须 `display:flex` + `justify-content:space-between`，使 55 处分组计数与 21 处章节计数胶囊落在同一条右缘垂直线（桌面 1109 / 小屏 358）。改前分组计数以 `margin-left:0.5rem` 紧邻标题文本、章节行却靠 `tagline{flex:1}` 推到行尾 —— 同一语义两种位置策略。
+  - **小屏面板头换行**：`.dir-header` 须 `flex-wrap:wrap`，配合 `.dir-title{flex:1 1 auto}`、`.dir-count{order:2}`、`.dir-header .tagline{order:3;flex:1 1 100%}` —— 首行＝箭头+标题+计数胶囊（右缘对齐），tagline 独占第二行。不换行时 tagline 仅剩 ~50px 可用宽，中文逐字换行成竖排（实测「先建世界观」被拆成 5 行）。
+  - **列表内缩单层化**：横向内缩**只允许 `.dir-body` 一层**（桌面 `var(--dir-pad-panel)` / 小屏 4px），`.dir-group` 桌面与小屏横向必须为 `0`。页内 24 个 section 分两类：**有分组**（导图/序章/原理/场景，`q-list` 在 `.dir-group` 内）与**无分组**（深度 Q&A 15 篇章，`q-list` 直接挂 `.dir-body`）—— 内缩若挂在 `.dir-group` 上，无分组区块就失去该层，题号左缘退化为紧贴 section 边框（实测 **1px vs 17px**）。修复后两类一致：桌面 **17px** / 小屏 **5px**。
+  - **计数胶囊位置**：`.dir-count` 必须 `margin-left:auto` —— 位置**不可**依赖 `.tagline{flex:1}` 撑开。15 个 C 篇章的 header 无 tagline，胶囊会紧贴标题右侧（实测桌面右缘 **294px** vs 行尾 1035px）；小屏因 `.dir-title{flex:1 1 auto}` 恰好推开，**掩盖了该缺陷**（成因即「小屏统一、大屏不统一」）。修复后 24 个 section 的计数右缘取值集合 = `{1035}`（桌面）/ `{346}`（小屏）。
 
 ### 5.3 `java-architect-interview/index.html`（章节导航）
-- `stat-number`：深度Q&A / 核心原理 / 场景 / 方法论 / 工程化 / 踩坑各自计数；「全站 N 道」= total（仅 C+E+S）。
+- `stat-number`：思维导图（`mind_pages`，P221，文案「思维导图」）/ 深度Q&A / 核心原理 / 场景 / 方法论 / 工程化 / 踩坑各自计数；「全站 N 道」= total（仅 C+E+S）。
 - 每篇章 `<div class="chapter-card">…<div class="card-footer"><span>N 题</span>…</div></div>`，`N` = 该章 `C##.##` 卡片数（与根 index `dir-count` 一致）。
 - **不枚举单题 ID**（无 `Cxx.xx`/`Sxx.xx` li）——校验时落位=False 属预期。
 
@@ -252,6 +270,7 @@
 | P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
 | P35 | `index.html` | 根 index 核心原理 dir-count |
 | P36 | `index.html` | 根 index 题目总数 |
+| P37 | `index.html` | 根 index 思维导图页数统计卡 |
 | P38 | `index.html` | 根 index 核心原理统计 |
 | P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
 | P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |

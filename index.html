@@ -7,62 +7,97 @@
     <script src="java-architect-interview/assets/theme-init.js"></script>
     <link rel="stylesheet" href="java-architect-interview/assets/design-system.css" />
     <style>
+      /* ===== 页内 token 层（根 index 专属，命名空间 --dir-* 避免与共享变量撞名） =====
+         背景：页内取值严重发散——实测字号 12 档、圆角 7 档、横向 padding 7 档、
+         gap 4 档，其中 4 档字号挤在 10.88~12.8px（最大差 0.48px，肉眼不可辨）。
+         本节把取值收口到有限档位，只改"值的写法"，不改任何视觉设计意图。 */
+      :root {
+        /* --- 布局 --- */
+        --dir-maxw: 1100px; /* 页面内容最大宽（原 4 处重复字面量） */
+        --dir-gutter: 1.5rem; /* 桌面横向 gutter（全页唯一来源） */
+        --dir-gutter-sm: 12px; /* 小屏横向 gutter（与 hero/legend/toolbar 同值） */
+        /* --- 内距阶梯 3 档（原 6/7/8/10/12/16px 六值） --- */
+        --dir-pad-chip: 6px; /* 小徽标 / 行内代码 */
+        --dir-pad-item: 8px; /* 列表项 / 计数胶囊 / 分组 */
+        --dir-pad-panel: 1rem; /* 面板头 / 分组头 / 按钮 */
+        /* --- 间距 2 档（原 0.5/0.6rem 并存 8px 与 9.6px） --- */
+        --dir-gap-xs: 4px; /* 徽标组内 */
+        --dir-gap-sm: 0.5rem; /* 行内 / 面板头 / 按钮组 */
+        --dir-stats-gap: 2rem; /* 主统计行间距 */
+        --dir-stats-gap-sub: 1.6rem; /* 次统计行间距（与主行构成层级） */
+        /* --- 圆角（与共享 --radius-sm=4 / --radius-md=8 并用，本页另需胶囊） --- */
+        --dir-radius-pill: 20px; /* 计数胶囊；难度/优先级沿用共享同名值 */
+        /* --- 色彩（值不变，仅把页内硬编码集中到一处） --- */
+        --dir-ink-on-tag: #fff; /* 实心徽标前景 */
+        --dir-tag-g: #0f766e; /* G 卡专色（其余 5 个 tag 走共享 token） */
+        --dir-hover: rgba(37, 99, 235, 0.04); /* 三处 hover 底色的唯一来源 */
+        /* --- 字号阶梯 7 档（原 12 档） --- */
+        --dir-fs-2xs: 0.7rem; /* 11.2 徽标 / 分组计数 / 小屏辅助（原 0.68/0.7/0.72） */
+        --dir-fs-xs: 0.8rem; /* 12.8 说明 / 等宽编号 / 分隔标题 / 图例（原 0.78/0.8） */
+        --dir-fs-sm: 0.85rem; /* 13.6 题目 / 按钮 / 分组标题 / 折叠箭头（原 0.85/0.9） */
+        --dir-fs-md: 0.95rem; /* 15.2 面板标题 / 副标题 */
+        --dir-fs-lg: 1.15rem; /* 18.4 次级统计数字 */
+        --dir-fs-xl: 1.8rem; /* 28.8 主统计数字 */
+        --dir-fs-2xl: 2rem; /* 32 页面主标题 */
+        /* 响应式字号不进阶梯：小屏 h1 clamp(1.25rem,5vw,1.65rem) 与 480 段 1.2rem、
+           小屏统计数字 1.25rem —— 三者随视口缩放，保留原值。 */
+      }
+
       /* ===== 目录页专属样式 ===== */
       .dir-hero {
-        max-width: 1100px;
+        max-width: var(--dir-maxw);
         margin: 0 auto;
-        padding: 3rem 1.5rem 1.5rem;
+        padding: 3rem var(--dir-gutter) 1.5rem;
         text-align: center;
       }
       .dir-hero h1 {
-        font-size: 2rem;
+        font-size: var(--dir-fs-2xl);
         font-weight: 700;
         color: var(--ink);
         margin-bottom: 0.5rem;
       }
       .dir-hero .subtitle {
         color: var(--muted);
-        font-size: 0.95rem;
+        font-size: var(--dir-fs-md);
         margin-bottom: 1.5rem;
       }
       .dir-stats {
         display: flex;
         justify-content: center;
-        gap: 2rem;
+        gap: var(--dir-stats-gap);
         flex-wrap: wrap;
       }
       .dir-stats .stat-item {
         text-align: center;
       }
       .dir-stats .stat-number {
-        font-size: 1.8rem;
+        font-size: var(--dir-fs-xl);
         font-weight: 700;
         color: var(--accent);
         font-family: var(--font-mono);
       }
       .dir-stats .stat-label {
-        font-size: 0.8rem;
+        font-size: var(--dir-fs-xs);
         color: var(--muted);
         margin-top: 0.2rem;
       }
       .dir-stats-sub {
         margin-top: 0.85rem;
-        gap: 1.6rem;
+        gap: var(--dir-stats-gap-sub);
       }
-      .dir-stats-sub .stat-sub .stat-number.small,
-      .stat-sub-sum .stat-number.small {
-        font-size: 1.15rem;
+      .dir-stats-sub .stat-sub .stat-number.small {
+        font-size: var(--dir-fs-lg);
       }
       .stat-tag {
         display: inline-block;
         width: 22px;
         height: 22px;
         line-height: 22px;
-        border-radius: 5px;
+        border-radius: var(--radius-sm);
         font-family: var(--font-mono);
         font-weight: 700;
-        font-size: 0.8rem;
-        color: #fff;
+        font-size: var(--dir-fs-xs);
+        color: var(--dir-ink-on-tag);
         margin-bottom: 2px;
       }
       .tag-m {
@@ -79,34 +114,28 @@
       }
       .tag-k {
         background: var(--danger);
-        color: #fff;
+        color: var(--dir-ink-on-tag);
       }
       .tag-g {
-        background: #0f766e;
-      }
-      .stat-sub-sum {
-        text-align: center;
-        align-self: center;
-        padding-left: 1.6rem;
-        border-left: 1px solid var(--rule);
+        background: var(--dir-tag-g);
       }
 
       /* ===== 工具栏 ===== */
       .dir-toolbar {
-        max-width: 1100px;
+        max-width: var(--dir-maxw);
         margin: 0 auto 1rem;
-        padding: 0 1.5rem;
+        padding: 0 var(--dir-gutter);
         display: flex;
         gap: 0.75rem;
         align-items: center;
       }
       .dir-toolbar button {
-        padding: 6px 16px;
+        padding: 6px var(--dir-pad-panel);
         border: 1px solid var(--rule);
         border-radius: var(--radius-sm);
         background: var(--bg);
         color: var(--ink);
-        font-size: 0.85rem;
+        font-size: var(--dir-fs-sm);
         cursor: pointer;
         transition: all 0.15s;
         font-family: var(--font-body);
@@ -114,24 +143,24 @@
       .dir-toolbar button:hover {
         border-color: var(--accent);
         color: var(--accent);
-        background: rgba(37, 99, 235, 0.04);
+        background: var(--dir-hover);
       }
       .dir-toolbar .filter-info {
         margin-left: auto;
-        font-size: 0.8rem;
+        font-size: var(--dir-fs-xs);
         color: var(--muted);
       }
 
       /* ===== 目录主体 ===== */
       .dir-container {
-        max-width: 1100px;
+        max-width: var(--dir-maxw);
         margin: 0 auto;
-        padding: 0 1.5rem 4rem;
+        padding: 0 var(--dir-gutter) 4rem;
       }
 
       /* 分隔标题 */
       .dir-divider {
-        font-size: 0.78rem;
+        font-size: var(--dir-fs-xs);
         font-weight: 700;
         color: var(--muted);
         letter-spacing: 0.08em;
@@ -158,18 +187,18 @@
       .dir-header {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1rem;
+        gap: var(--dir-gap-sm);
+        padding: 0.75rem var(--dir-pad-panel);
         cursor: pointer;
         background: var(--bg2);
         user-select: none;
         transition: background 0.15s;
       }
       .dir-header:hover {
-        background: rgba(37, 99, 235, 0.04);
+        background: var(--dir-hover);
       }
       .dir-toggle {
-        font-size: 0.9rem;
+        font-size: var(--dir-fs-sm);
         color: var(--muted);
         width: 1rem;
         flex-shrink: 0;
@@ -180,7 +209,7 @@
       }
       .dir-title {
         font-weight: 600;
-        font-size: 0.95rem;
+        font-size: var(--dir-fs-md);
         color: var(--ink);
         text-decoration: none;
         flex-shrink: 0;
@@ -189,36 +218,49 @@
         color: var(--accent);
       }
       .dir-header .tagline {
-        font-size: 0.8rem;
+        font-size: var(--dir-fs-xs);
         color: var(--muted);
         flex: 1;
       }
       .dir-count {
-        font-size: 0.78rem;
+        /* margin-left:auto 是计数胶囊位置的**唯一来源**：不可依赖 .tagline{flex:1}
+           撑开 —— 无 tagline 的区块（深度 Q&A 15 篇章）会把胶囊紧贴标题右侧
+           （实测桌面右缘 294px vs 行尾 1035px）；小屏因 .dir-title{flex:1 1 auto}
+           恰好把胶囊推开，才掩盖了这个缺陷（即长官反馈的「小屏统一、大屏不统一」）。 */
+        margin-left: auto;
+        font-size: var(--dir-fs-xs);
         color: var(--muted);
         background: var(--bg);
-        padding: 2px 10px;
-        border-radius: 20px;
+        padding: 2px var(--dir-pad-item);
+        border-radius: var(--dir-radius-pill);
         border: 1px solid var(--rule);
         white-space: nowrap;
         flex-shrink: 0;
       }
 
-      /* 折叠内容 */
+      /* 折叠内容。
+         列表横向内缩在此**统一承担**（页面唯一列表内缩层）：有分组的区块由 .dir-group
+         铺开、无分组的区块（深度 Q&A 15 篇章）直接把 q-list 挂在 body 下 ——
+         两者题号左缘必须同值，故内缩不可放在 .dir-group 上，否则无分组区块的列表
+         会紧贴 section 左边框（实测 1px vs 有分组的 17px，视觉上像两个页面）。 */
       .dir-body {
         display: none;
-        padding: 0.5rem 0 1rem;
+        padding: 0.5rem var(--dir-pad-panel) 1rem;
       }
       .dir-section.expanded .dir-body {
         display: block;
       }
 
-      /* 分组 */
+      /* 分组（横向内缩已上移至 .dir-body，此处横向必须为 0，只保留纵向节奏） */
       .dir-group {
-        padding: 0.5rem 1rem 0.25rem;
+        padding: 0.5rem 0 0.25rem;
       }
       .dir-group-title {
-        font-size: 0.85rem;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--dir-gap-sm);
+        font-size: var(--dir-fs-sm);
         font-weight: 700;
         color: var(--accent2);
         padding: 0.5rem 0 0.25rem;
@@ -226,32 +268,31 @@
         margin-bottom: 0.25rem;
       }
       .dir-group-count {
-        font-size: 0.72rem;
+        font-size: var(--dir-fs-2xs);
         font-weight: 400;
         color: var(--muted);
-        margin-left: 0.5rem;
       }
 
       /* 题目列表 */
       .q-list {
         list-style: none;
-        padding: 0 0.5rem;
+        padding: 0;
       }
       .q-item {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.35rem 0.5rem;
+        gap: var(--dir-gap-sm);
+        padding: 0.35rem var(--dir-pad-item) 0.35rem 0;
         border-radius: var(--radius-sm);
         transition: background 0.1s;
       }
       .q-item:hover {
-        background: rgba(37, 99, 235, 0.04);
+        background: var(--dir-hover);
       }
       .q-item a {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: var(--dir-gap-sm);
         text-decoration: none;
         color: var(--ink);
         flex: 1;
@@ -259,14 +300,14 @@
       }
       .q-id {
         font-family: var(--font-mono);
-        font-size: 0.78rem;
+        font-size: var(--dir-fs-xs);
         color: var(--accent);
         font-weight: 600;
         flex-shrink: 0;
         width: 4.5rem;
       }
       .q-title {
-        font-size: 0.85rem;
+        font-size: var(--dir-fs-sm);
         color: var(--ink);
         overflow: hidden;
         text-overflow: ellipsis;
@@ -277,16 +318,16 @@
       }
       .q-tags {
         display: flex;
-        gap: 4px;
+        gap: var(--dir-gap-xs);
         flex-shrink: 0;
       }
       .q-tags .difficulty {
-        font-size: 0.68rem;
-        padding: 1px 7px;
+        font-size: var(--dir-fs-2xs);
+        padding: 1px var(--dir-pad-chip);
       }
       .q-tags .priority {
-        font-size: 0.68rem;
-        padding: 1px 7px;
+        font-size: var(--dir-fs-2xs);
+        padding: 1px var(--dir-pad-chip);
         min-width: 30px;
         text-align: center;
       }
@@ -301,29 +342,34 @@
 
       /* 编号体系说明 */
       .dir-legend {
-        max-width: 1100px;
+        max-width: var(--dir-maxw);
         margin: 0 auto 1rem;
-        padding: 0 1.5rem;
+        padding: 0 var(--dir-gutter);
         display: flex;
         gap: 1.5rem;
         flex-wrap: wrap;
-        font-size: 0.8rem;
+        font-size: var(--dir-fs-xs);
         color: var(--muted);
       }
       .dir-legend code {
         font-family: var(--font-mono);
-        font-size: 0.78rem;
+        font-size: var(--dir-fs-xs);
         background: var(--bg2);
-        padding: 2px 6px;
-        border-radius: 3px;
+        padding: 2px var(--dir-pad-chip);
+        border-radius: var(--radius-sm);
         color: var(--accent);
         font-weight: 600;
       }
 
-      /* ===== MOBILE-MANDATORY: 根目录小屏 ===== */
+      /* ===== MOBILE-MANDATORY: 根目录小屏 =====
+         横向 gutter 全页统一 12px（.dir-container 是唯一横向留白来源）；
+         列表横向内缩由 .dir-body 单层承担 4px（.dir-group / .q-list / .q-item
+         横向必须为 0，禁止再加层），不再叠加 section 级 margin/padding ——
+         修复前每侧累计 68px（24 容器 + 12 section margin + 12 共享 CSS padding + 1 边框 + 8+8+8），
+         375px 下列表可用宽仅 229px（视口的 61%）。 */
       @media (max-width: 768px) {
         .dir-hero {
-          padding: 1.5rem 12px 1rem;
+          padding: 1.25rem var(--dir-gutter-sm) 0.75rem;
         }
         .dir-hero h1 {
           font-size: clamp(1.25rem, 5vw, 1.65rem);
@@ -331,51 +377,80 @@
           overflow-wrap: anywhere;
         }
         .dir-hero .subtitle {
-          font-size: 0.9rem;
+          font-size: var(--dir-fs-sm);
           line-height: 1.55;
-          margin-bottom: 1rem;
+          margin-bottom: 0.9rem;
         }
         .dir-stats {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 0.75rem 0.5rem;
+          /* 首行 4 项 / 次行 6 项：列数与项数整除，末行不留空格子 */
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 0.6rem 0.4rem;
           max-width: 100%;
         }
         .dir-stats .stat-number {
-          font-size: 1.3rem;
+          font-size: 1.25rem;
         }
         .dir-stats .stat-label {
-          font-size: 0.7rem;
+          font-size: var(--dir-fs-2xs);
         }
         .dir-stats-sub {
           grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-        .stat-sub-sum {
-          padding-left: 0;
-          border-left: none;
-          grid-column: 1 / -1;
-          padding-top: 0.5rem;
-          border-top: 1px dashed var(--rule);
+          margin-top: 0.6rem;
         }
         .dir-toolbar {
-          padding: 0 12px;
+          padding: 0 var(--dir-gutter-sm);
           flex-wrap: wrap;
+          gap: var(--dir-gap-sm);
         }
         .dir-toolbar button {
-          font-size: 0.78rem;
+          font-size: var(--dir-fs-xs);
           padding: 0.35rem 0.7rem;
         }
         .dir-legend {
-          padding: 0 12px;
-          gap: 0.6rem 1rem;
+          padding: 0 var(--dir-gutter-sm);
+          gap: 0.5rem 0.9rem;
+          margin-bottom: 0.75rem;
+        }
+        /* 唯一横向留白 = .dir-container 的 12px；section 不再额外留边（含取消共享 CSS 的 12px） */
+        .dir-container {
+          padding: 0 var(--dir-gutter-sm) 2.5rem;
+        }
+        /* 小屏面板头改「换行」布局：首行＝折叠箭头 + 标题 + 计数胶囊（右缘对齐），
+           tagline 独占第二行。不换行时 tagline 仅剩 ~50px 可用宽，中文逐字换行成竖排
+           （实测「先建世界观」被拆成 5 行）。右内缩归 4px 与 .dir-group 同值 → 计数右缘共线。 */
+        .dir-header {
+          flex-wrap: wrap;
+          padding-right: 4px;
+        }
+        .dir-title {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .dir-count {
+          order: 2;
+        }
+        .dir-header .tagline {
+          order: 3;
+          flex: 1 1 100%;
+          margin-top: 0.15rem;
         }
         .dir-section {
-          margin-left: 12px;
-          margin-right: 12px;
+          margin-left: 0;
+          margin-right: 0;
+          padding-left: 0;
+          padding-right: 0;
+        }
+        .dir-divider {
+          margin: 1.25rem 0 0.5rem;
+        }
+        .dir-body {
+          padding: 0.35rem 4px 0.6rem;
         }
         .q-item {
           flex-wrap: wrap;
           align-items: flex-start;
+          padding: 0.3rem 4px 0.3rem 0;
         }
         .q-item a {
           width: 100%;
@@ -389,12 +464,14 @@
         }
         .q-tags {
           width: 100%;
-          padding-left: 5.1rem;
+          padding-left: 5rem;
           flex-wrap: wrap;
         }
         .dir-group {
-          padding-left: 0.5rem;
-          padding-right: 0.5rem;
+          padding: 0.4rem 0 0.2rem;
+        }
+        .q-list {
+          padding: 0;
         }
       }
       @media (max-width: 480px) {
@@ -406,10 +483,11 @@
         }
         .q-id {
           width: 3.8rem;
-          font-size: 0.72rem;
+          font-size: var(--dir-fs-2xs);
         }
         .q-tags {
-          padding-left: 0;
+          /* 与 ≤768 口径统一：标签行左缘对齐题号列宽（3.8rem）+ a 的 gap（0.6rem） */
+          padding-left: 4.3rem;
         }
       }
     </style>
@@ -431,6 +509,12 @@
             <span class="kb-count" data-kb-count="struct.misc.index.site-meta_2" data-kb-pos="P109">20</span>
           </div>
           <div class="stat-label">页面篇章</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">
+            <span class="kb-count" data-kb-count="mind_pages" data-kb-pos="P37">19</span>
+          </div>
+          <div class="stat-label">思维导图</div>
         </div>
         <div class="stat-item">
           <div class="stat-number"><span class="kb-count" data-kb-count="total" data-kb-pos="P36">398</span></div>

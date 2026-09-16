@@ -90,6 +90,7 @@
 | P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
 | P35 | `index.html` | 根 index 核心原理 dir-count |
 | P36 | `index.html` | 根 index 题目总数 |
+| P37 | `index.html` | 根 index 思维导图页数统计卡 |
 | P38 | `index.html` | 根 index 核心原理统计 |
 | P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
 | P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
