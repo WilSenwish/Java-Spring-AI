@@ -70,6 +70,8 @@
   - **口径（2026-09-16 长官决策）**：**标签位**一律短表 **专家 / 架构 / 高级**（徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` / `.ov-subgroup-title`、各导航页 `card-tags` / `q-tags`、页脚排序说明）；**正文**用 **专家 / 架构师 / 高级开发**。存量正文中把等级当定语的写法（「架构级理解」「专家级深度」等 8 处）保留、不再新增。门禁 `validate_kb.py` 1j。
   - **`M` / `G` / `K` 三专篇彻底取消难度分级（同日决策）**：不写 `data-difficulty`、不呈现难度徽标、`kb-counts.json` 无对应难度键与不变式；`counts.expert/architect/senior`（46/191/161 = 398）**只覆盖 C/E/S**。细则见 `conventions.md` §2。
   - **优先级例外**：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡**不呈现优先级徽标**；三处载体同步：专篇页 `.qa-question`、根 index 的 M/G/K 区块（220 条 q-item，连 `.q-tags` 壳一并去掉）、章节导航 index 的三张专篇 `chapter-card`（无 `.card-tags`）。
+  - **配色（2026-09-16 晚修订，长官反馈「专家/架构区分度不明显」）**：`senior` = 蓝 `--accent`、`architect` = 紫 `--accent2`、`expert` = **青绿 `--diff-expert`**（浅色 `#0f766e` / 深色 `#2dd4bf`）。**改前** `expert` 与 `architect` 的文字色**同为 `var(--accent2)`**、底色都是 10% 蓝紫浅色，只有边框透明度 0.2/0.3 的微差，等于专家借用了架构的紫 —— 这是「区分度不明显」的真因。专家卡的左边框与 `qa-badge` 底色改用 `--diff-expert-solid`（浅 `#0f766e` / 深 `#14b8a6`），**原「蓝→紫渐变」已废弃**；两个令牌拆开的原因：徽标底色承白字、胶囊文字是前景色，对比度要求相反，同值无法兼顾。
+  - **难度色相须避开优先级色相**（二者在 `.qa-question` 内紧邻同框）：蓝＝高级 + `P2`；紫＝架构 + `callout-deep`；红＝`P0`；琥珀＝`P1` + `callout-pitfall`；翡翠绿＝`callout-tip`。可用余量只剩青绿。`.layer-tag`（想/做/守）刻意沿用架构紫，**不随难度配色改动**。
 
 ### 3.2 优先级 `priority-p*`
 

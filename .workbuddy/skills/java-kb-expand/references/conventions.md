@@ -36,11 +36,17 @@
   - **标签位**一律短表 **专家 / 架构 / 高级**（`difficulty-expert` / `architect` / `senior`）。标签位 = 卡片 `.qa-question` 徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` 与 `.ov-subgroup-title`、章节导航 `card-tags`、根 index `q-tags`、总览页脚排序说明、`format-shared` §3.1 的「文案」列。
   - **正文**用 **专家 / 架构师 / 高级开发**（称人/角色）；存量正文中把等级当定语用的写法（「架构级理解」「专家级深度」「专家级的技术判断力」，共 8 处）**保留不改、不再新增**。
   - 门禁：`validate_kb.py` **1j**（徽标文案白名单，可带 ` ×N`）。
+- **难度配色口径（2026-09-16 晚修订，长官反馈「专家/架构区分度不明显」+「主要是颜色」）**：
+  - 三档色相：`senior` = 蓝 `--accent`（`#2563eb`）；`architect` = 紫 `--accent2`（`#7c3aed`）；**`expert` = 青绿 `--diff-expert`**（浅色 `#0f766e` / 深色 `#2dd4bf`）。
+  - **改前真因**：`expert` 与 `architect` 的 `color` **同为 `var(--accent2)`**、底色都是 10% 蓝紫浅色，仅边框透明度 0.2 / 0.3 之差 —— 专家等于借用了架构的紫。
+  - 专家卡的 `border-left-color` 与 `qa-badge` 底色取 **`--diff-expert-solid`**（浅 `#0f766e` / 深 `#14b8a6`），**原「蓝→紫渐变」已废弃**。两个令牌拆开的原因：徽标底色承白字、胶囊文字是前景色，对比度要求相反，同一值无法兼顾（若用 `#0d9488` 做底色，白字仅 1.86:1）。
+  - **色相避让**：难度胶囊与优先级胶囊在 `.qa-question` 内**紧邻同框**，故难度色相必须避开已占用色相 —— 蓝＝高级 + `P2`；紫＝架构 + `callout-deep`；红＝`P0`；琥珀＝`P1` + `callout-pitfall`；翡翠绿＝`callout-tip`。剩余可用即青绿。
+  - 落地面：`design-system.css` 三处令牌（`:root` + 两处深色覆盖）+ 两条 `[data-difficulty="expert"]` 规则；全站 1252 枚徽标自动生效。`.layer-tag`（想/做/守）刻意沿用架构紫，**不随本次改动**。
 - **`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡彻底取消难度分级（2026-09-16 长官决策，属性 / 徽标 / 计数三层一并移除）**：
   1. 三个专篇页（`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`）的 `.qa-card` **不写 `data-difficulty`**（原 220 处已全清），`.qa-question` 内不写 `<span class="difficulty …">`；
   2. 根 index 的 M/G/K 三个区块共 **220 条 q-item** 连 `.q-tags` 空壳一并去掉（其内只有等级徽标）；章节导航 index 的三张专篇 `chapter-card` **不带 `.card-tags`**（原 M 3 枚 / G 2 枚 / K 1 枚）；
   3. `kb-counts.json` **不再有** `methodology_expert/architect/senior`、`engineering_architect/senior`、`pitfalls_senior` 六个键，**也不再有不变量**「方法论难度三级求和 = methodology」；全局 `counts.expert/architect/senior`（46/191/161 = 398）**只覆盖 C/E/S**。
-  - **视觉后果**：`.qa-card[data-difficulty="architect"|"expert"]` 的紫左边框 / 渐变左边框、`.qa-badge` 配色不再命中 → M/G/K 220 张卡统一回落 `.qa-card` 默认蓝色左边框。若日后要给某专篇统一专色，须显式加页面级类，**勿再借难度属性**。
+  - **视觉后果**：`.qa-card[data-difficulty="architect"|"expert"]` 的紫左边框 / 青绿左边框、`.qa-badge` 配色不再命中 → M/G/K 220 张卡统一回落 `.qa-card` 默认蓝色左边框。若日后要给某专篇统一专色，须显式加页面级类，**勿再借难度属性**。
   - **仍保留**：M 卡 `data-priority`（45/91）属性，但不呈现。新增 M/G/K 卡（含导航位）时**勿写 `data-difficulty`、勿贴难度徽标**。
   - 门禁：`validate_kb.py` **1k**（三专篇 `data-difficulty` 须 0）。
 - `qa-layer` 合法 `data-layer` 取值（在 `assets/design-system.css`）：`essence` / `evolution` / `principle` / `practice` / `deep` / `pitfall` / `extension` / `production` / `scenario` / `evaluation` / `insight` / `application` / `challenge`。
