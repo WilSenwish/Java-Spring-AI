@@ -55,10 +55,11 @@
   │                   └─ ov-item ×359
   │                        ├─ ov-num        # 序号
   │                        ├─ ov-title      # 条目名
-  │                        └─ ov-badges     # 难度 / 优先级徽标
+  │                        └─ ov-badges     # 难度 / 优先级徽标（**必须包裹**，漏包则间距取 ov-item 的 gap → 同行间距不一致）
   ```
 
 - 条目为链接卡片，点击跳转对应题目的站内锚点；改新题 / 更名页面时须同步本页 `ov-item` 的 href 与徽标。
+- **`.ov-badges` 是硬结构**：难度徽标 + 优先级徽标须同处一个 `.ov-badges` 内（`.ov-badges { gap: 4px }`）；直接挂在 `.ov-item` 下会继承 `.ov-item { gap: var(--space-sm) }`，出现「同列徽标间距时宽时窄」。结构校验：`scripts/check_index_badges.py`。
 
 ## <a id="3"></a>3. 核心原理速查 chapter-questions-eight-part（epq 组件）
 

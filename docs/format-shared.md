@@ -257,6 +257,18 @@ index.html                         # 首页
 | `check_list_indent.js` | 列表 marker 缩进 + 同容器 ol/ul 缩进一致性（全站 44 页 × {1280, 375}） | 可用空间 < 1.2×字号，或 `min(ol pl) < max(ul pl) − 0.5`，即 exit 1 |
 | `probe_list_gate.py` | 1h 门禁的正向验证（注入缺陷 → 必须 FAIL） | 两轮注入，`--inject` 支持分步 |
 
+### 8.6 门禁编写规约（新增 `validate_kb` 断言必守）
+
+- **锚定结构，禁用子串 `in`**：断言必须匹配带上下文的真实规则，例如判定 CSS 兜底用
+  `re.search(r"^\s*body\s*\{[^}]*overflow-wrap:\s*anywhere", css, re.M)`，
+  **禁止**写成 `"overflow-wrap" in css` 这类子串判定——CSS/HTML 里同名串（`body` / `pre` / `ul` / `ol` 等）随处可见，
+  子串命中恒真，无法验证规则是否真在、是否退化。
+- **每条新门禁须正向验证**：注入对应缺陷 → 断言必须 FAIL → 还原文件并核 MD5 确认无误伤。
+  范式脚本：`scripts/probe_validate_gate.py`（通用两步注入）/ `scripts/probe_list_gate.py`（1h 专项，支持 `--inject` 分步）/ `scripts/probe_index_badge_gate.py`（聚合徽标结构，沙箱双向验证、不写真实文件）。
+- **脚本定位项目根禁止写死层级**：校验/探针脚本若需项目根，须**向上查找特征文件**（同时含 `AGENTS.md` 与 `index.html` 的最近祖先），而非 `dirname(__file__)` 叠加固定层数——本技能可经 `.agents/skills/java-kb-expand` 软链调用，层级一变即静默指错目录（曾指到 `.workbuddy/` 并报 `FileNotFoundError`，看似「门禁通过」实则未执行到判定）。
+- **只比结构特征，不比展示文本**：跨文件一致性（如 mind 与章节）只比对 **ID 集合**，标题/措辞错位不报错；
+  避免门禁因文案微调而误杀，也避免文案漂移漏报结构问题。
+
 ## 9. 主题 / 暗黑模式
 
 全站浅色 / 深色 / 跟随系统三态，以 CSS 变量换肤为唯一入口。

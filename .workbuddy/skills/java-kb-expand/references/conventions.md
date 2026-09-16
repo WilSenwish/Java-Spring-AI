@@ -95,6 +95,7 @@
   11. 场景题数
 - 9 子组标题：`<h3 class="ov-subgroup-title">专家级 · 10 题</h3>` 格式，按 **优先级×难度** 排列（P0/P1/P2 各含 专家级/架构级/高级开发），求和须各自等于 P0/P1/P2 与难度三级；**标题内题数 = 该子组 `ov-item` 实际个数**（易漏）。
 - 每个 ov-item：`<a class="ov-item" href="…#ID">…<span class="ov-num">ID</span>…`，与章节页卡片一一对应（仅 C/E/S；M/G 不进 overview）。
+  - **难度/优先级徽标必须包在 `<span class="ov-badges">` 内**：`<span class="ov-badges"><span class="difficulty …">…</span><span class="priority priority-pX">PX</span></span>`。漏包裹时两枚徽标直接成为 `.ov-item` 的 flex 子项，取 `.ov-item { gap: var(--space-sm) }`（大间距），而正常项取 `.ov-badges { gap: 4px }` → **页面上同列徽标间距时宽时窄**（2026-09-16 实测 15 条：C06.15、C07.16、C08.12、C09.17、C10.29/30、C11.26/27/28、C12.33/34/35、C13.14、C14.13、C15.12）。门禁 `scripts/check_index_badges.py`。
 
 #### 5.1.1 新卡插入排序（硬约束，2026-09-13 固化）
 
@@ -170,6 +171,8 @@
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
 - 统计块 `stat-number`：深度Q&A / 核心原理 / 场景（跨大篇章口径=total）与方法论 / 工程化 / 踩坑**各自单独计数**；禁止「题数+M+G+K」式合计；「全站 N 题」仅指 total（C+E+S）。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
+  - **结构完整性**：`q-tags` 必须闭合、`<a>` 不得顶格（须与同级 li 内缩进一致）。历史新增题曾出现「顶格 `<a>` + `q-tags` 未闭合」（2026-09-16 实测 7 条：C11.28/29/30、S12.08/09 顶格+未闭合，G07.08/09 仅未闭合），渲染上表现为徽标错位、层级断开。门禁 `scripts/check_index_badges.py`（顶格 `<a href=…>` 与未闭合 `q-tags` 均为 FAIL）。
+  - **优先级补齐口径**：缺失徽标按**镜像源页**判定——源页有优先级则补（C11.28/29/30、S12.08/09 补 `P1`），源页无优先级则**不补，仅修结构**（G/K 块源页本无优先级，`validate_kb` 亦不强制）。**根 index 方法论块（M 卡）整体不加优先级**（2026-09-16 长官决策），M 卡优先级只在章节页呈现。
 - per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（见 COUNTS）。
 - 方法论目录结构（平级 `dir-group`，禁止嵌套）：序章①~⑤ → **⑥ 生产与领域思维速查（M12，16 卡）** → 一~五主题（M06~M10）→ 附录（M11）。**禁止**把 M12 嵌进「一、高并发」。
 
