@@ -173,7 +173,7 @@
   - 首行 `.dir-stats`（4 项，无 `stat-tag`）：编号体系 `6`（`struct.misc.index.site-meta_1`，P108）/ 页面篇章 `20`（`site-meta_2`，P109）/ **思维导图 `19`（`mind_pages`，P37）** / 题目总数 `total`（P36）。
   - 次行 `.dir-stats.dir-stats-sub`（6 项，各带 `stat-tag`）：M 核心方法论 / G 工程化要点 / K 生产踩坑 / C 深度 Q&A / E 核心原理速查 / S 真实场景题。
   - 口径：M/G/K 为专篇键，**各自单独计数，禁止「题数+M+G+K」式合计**；「全站 N 题」仅指 `total`（C+E+S）。禁止 `kb-count-local`。
-  - **`mind_pages` 是全站唯一的导图页数键**（19 = 15 篇章导图 + 方法论 + 工程化 + 踩坑 + 安全），三处展示：根 index P37、章节导航 index P221/P222、导图站 index P351；文案一律「思维导图」/「思维导图页」。
+  - **`mind_pages` 是全站唯一的导图页数键**（19 = 15 篇章导图 + 方法论 + 工程化 + 踩坑 + 安全），三处展示：根 index P37 / 章节导航 index P222 / 导图站 P351；文案一律「思维导图」/「思维导图页」。（章节导航 hero 原有第 7 格 P221，2026-09-16 长官移除其「思维导图」统计卡后该位作废并已从 `positions` 删除。**删展示位必须同步删 position**：残留 position 会让 `sync_counts.py check` 与 `validate_kb.py` 的「kb-count 标记」项双双 FAIL。）
   - 小屏列数（**按块定列，使列数与项数整除**）：≤768px 首行 `.dir-stats` **4 列**（4 项＝1 行）、次行 `.dir-stats-sub` **3 列**（6 项＝2 行）；≤480px 两行统一 **2 列**（4 项＝2 行、6 项＝3 行）。**加计数项须让两行项数各自能被当前列数整除**，否则末行出现半空格子（历史：首行 3 项时 375px 下「题目总数」独占一行、右侧整格留白；首行 4 项而用 3 列时 481~768px 也会「3+1」留白）。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
   - **结构完整性**：`q-tags` 必须闭合、`<a>` 不得顶格（须与同级 li 内缩进一致）。历史新增题曾出现「顶格 `<a>` + `q-tags` 未闭合」（2026-09-16 实测 7 条：C11.28/29/30、S12.08/09 顶格+未闭合，G07.08/09 仅未闭合），渲染上表现为徽标错位、层级断开。门禁 `scripts/check_index_badges.py`（顶格 `<a href=…>` 与未闭合 `q-tags` 均为 FAIL）。
@@ -195,7 +195,9 @@
   - **计数胶囊位置**：`.dir-count` 必须 `margin-left:auto` —— 位置**不可**依赖 `.tagline{flex:1}` 撑开。15 个 C 篇章的 header 无 tagline，胶囊会紧贴标题右侧（实测桌面右缘 **294px** vs 行尾 1035px）；小屏因 `.dir-title{flex:1 1 auto}` 恰好推开，**掩盖了该缺陷**（成因即「小屏统一、大屏不统一」）。修复后 24 个 section 的计数右缘取值集合 = `{1035}`（桌面）/ `{346}`（小屏）。
 
 ### 5.3 `java-architect-interview/index.html`（章节导航）
-- `stat-number`：思维导图（`mind_pages`，P221，文案「思维导图」）/ 深度Q&A / 核心原理 / 场景 / 方法论 / 工程化 / 踩坑各自计数；「全站 N 道」= total（仅 C+E+S）。
+- **Hero `.meta-stats` 固定 6 格**（顺序）：核心方法论（`methodology`，P03）/ 工程化要点（`engineering`，P24）/ 生产踩坑（`pitfalls`，P91）/ 深度 Q&A（`chapters`，P55）/ 核心原理速查（`basics`，P39）/ 真实场景题（`scenarios`，P56），各自计数；「全站 N 道」= `total`（仅 C+E+S）。
+  - **增删格子必须同步 `design-system.css` 的列数**（`.index-hero .meta-stats` 只在 §5.3 这一页出现）：桌面 `repeat(6)`（6 项＝1 行）、≤1024 / ≤768 / ≤480 均 `repeat(3)`（6 项＝3+3 两整行）。**任何断点的列数都须整除项数**，否则末行留半空格子（与 §5.2 根 index 同口径）。
+  - **2026-09-16 长官移除原第 1 格「思维导图」（`mind_pages`，P221）**：DOM 删 4 行 + 桌面列数 7→6，P221 已从 `kb-counts.json` 的 `positions` 删除（口径见 §5.2 `mind_pages` 条）。
 - 每篇章 `<div class="chapter-card">…<div class="card-footer"><span>N 题</span>…</div></div>`，`N` = 该章 `C##.##` 卡片数（与根 index `dir-count` 一致）。
 - **不枚举单题 ID**（无 `Cxx.xx`/`Sxx.xx` li）——校验时落位=False 属预期。
 
@@ -452,7 +454,6 @@
 | P218 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_24 |
 | P219 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_25 |
 | P220 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_26 |
-| P221 | `java-architect-interview/index.html` | 升格 local:mind-pages → mind_pages |
 | P222 | `java-architect-interview/index.html` | 升格 local:mind-pages → mind_pages |
 | P223 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_1 |
 | P224 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_1 |

@@ -272,7 +272,6 @@
 | P218 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_24 |
 | P219 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_25 |
 | P220 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_26 |
-| P221 | `java-architect-interview/index.html` | 升格 local:mind-pages → mind_pages |
 | P222 | `java-architect-interview/index.html` | 升格 local:mind-pages → mind_pages |
 | P223 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_1 |
 | P224 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_1 |
