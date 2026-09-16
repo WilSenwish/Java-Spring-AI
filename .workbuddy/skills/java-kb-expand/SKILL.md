@@ -126,9 +126,6 @@ agent_created: true
 | P71 | `java-architect-interview-mind/index.html` | mind index 方法论卡 footer 卡数 |
 | P72 | `java-architect-interview-mind/index.html` | mind index 工程化卡 footer 卡数 |
 | P73 | `java-architect-interview-mind/index.html` | mind index 工程化卡 desc 卡数 |
-| P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
-| P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
-| P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
 | P77 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页副标题卡数 |
 | P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
 | P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
@@ -153,9 +150,6 @@ agent_created: true
 | P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
 | P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
 | P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
-| P103 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 架构数 |
-| P104 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 高级数 |
-| P105 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 高级数 |
 | P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |
@@ -523,7 +517,7 @@ agent_created: true
 - **形式4 · 补入现有卡**（不新增计数）：把增量作为现有卡的新 `qa-layer`（如 `data-layer="extension"`）+ 对应 mind 节点描述补一句；只改 2 文件，4 聚合页不动。
 - **形式5 · 不入库**：判定同源重复、增量微小，仅记录核查结论。
 
-难度/优先级建议：新卡默认 `data-difficulty="architect"` + `data-priority="p1"`（除非内容更偏专家级或高级开发）；双编码必须同步（属性 + 可见徽标）。
+难度/优先级建议：新卡默认 `data-difficulty="architect"` + `data-priority="p1"`（除非内容更偏专家级或高级开发）；双编码必须同步（属性 + 可见徽标）。**例外：M/G/K（方法论 / 工程化要点 / 生产踩坑）三类卡只写属性、不呈现任何等级与优先级徽标**（2026-09-16 长官决策），三处载体（专篇页 / 根 index M·G·K 区块 / 章节导航三张专篇卡）详见 `conventions.md` §2。
 
 ## 全量同步必改点（形式1/2/3）
 
@@ -534,7 +528,7 @@ agent_created: true
 | `chapter-xx-*.html` | meta 题目数 / 难度计数 / 复习分钟 +N；TOC 加条目；导航前插卡片（双编码一致） |
 | `nav-overview-priority.html` | 新增 ov-item（**插入位置见 `conventions.md` §5.1.1**：P0→P2 / 专家→架构→高级 / 组内 C→E→S / 题号升序，禁止随意插在同级某卡后）；`ov-stat-num` 共 **10 个**字段须同步 +N（顺序见 `kb-counts.json` → `ov_stat_order`）；对应子组标题与组标题/`ov-nav-cnt`/页头「全站 N 道」+N |
 | `Java Spring AI/index.html`（根） | 类型计数 /「全站」仅=total（C+E+S）/ M·G·K 各自统计卡；`dir-count` + `dir-group-count`（须=该组 q-list 长度）+N；新增 q-item li |
-| `java-architect-interview/index.html` | stat-number +N（C/E/S 与 M/G/K 分卡）；「全站」仅=total；章节 card-footer +N（**不枚举单题 ID**） |
+| `java-architect-interview/index.html` | stat-number +N（C/E/S 与 M/G/K 分卡）；「全站」仅=total；章节 card-footer +N（**不枚举单题 ID**）；**M/G/K 三张专篇卡的 `card-tags` 已移除**（不呈现等级徽标，2026-09-16） |
 | `mind-xx-*.html` | 主干范围 `C10.01–C10.N` 扩尾；插 map-card（summary/body/tags）；meta；`map-note` 并入清单 |
 | `mind/index.html` | 题量表达式 `N+N+N`；对应卡片 `card-foot`（章节=C 卡数；原理/场景=该 mind `<summary>` 中 E/S 数） |
 
@@ -569,6 +563,7 @@ agent_created: true
 
 - **聚合页徽标结构断裂：漏 `.ov-badges` 包裹 / `q-item` 顶格与未闭合（2026-09-16 实测）**：根因是新增卡片时**只贴徽标、不贴容器**。① overview：难度+优先级徽标漏包 `<span class="ov-badges">` 时，二者成为 `.ov-item` 的直接 flex 子项并继承 `.ov-item { gap: var(--space-sm) }`（大间距），而正常项取 `.ov-badges { gap: 4px }` → 页面上**同列徽标间距时宽时窄**（实测 15 条：C06.15、C07.16、C08.12、C09.17、C10.29/30、C11.26/27/28、C12.33/34/35、C13.14、C14.13、C15.12）；② 根 index：新增题写成**顶格 `<a>`** 且 `<span class="q-tags">` **未闭合**（实测 7 条：C11.28/29/30、S12.08/09、G07.08/09）→ 渲染上徽标错位、层级断开。**修法**：overview 补包裹；index 取上一 `<a>` 行缩进并闭合 `q-tags`。**优先级补齐口径 = 镜像源页**：源页有级则补（C11.28/29/30、S12.08/09 补 `P1`），源页无级则不补只修结构（G/K 块）；**根 index 方法论块（M 卡）整体不加优先级**（长官决策，M 卡优先级只在章节页呈现）。**门禁** `scripts/check_index_badges.py`（正向验证：修复后 PASS / 缺陷版 FAIL 29）。**教训：HTML 结构分析一律按块解析（`<li class="q-item">…</li>`），按行匹配 `class=` 与徽标会因二者不在同一行而全量误报。**
 
+- **卡片缺 `</div>` → 后续卡片被「吞进」上一张卡（2026-09-16 长官实测，已纳入硬门禁 1i）**：`chapter-11-middleware-engineering.html` 的 C11.28（行 4620）少一个闭合 `</div>`，C11.29/C11.30 于是成为 C11.28 的 DOM 子节点，页面渲染为**卡片套卡片**（内层卡片整块落进上一张卡的框里）。**当时 `validate_kb` 全绿** —— 校验面完全不覆盖 DOM 层级（`data-page-node-id` / 裸计数 / `</spa` 截断都查不出），而 div 不平衡恰是「手工粘贴新卡片」最易引入的缺陷。**判定口径**：用 HTML 解析栈（`html.parser`，浏览器不会自动闭合 `<div>`）记录每张 `qa-card` / `map-card` 入栈时栈中是否已有同类卡，有即被嵌套。**修法**：在上一张卡最后一个 `.qa-layer` 之后、下一张 `<div class="qa-card">` 之前补 `        </div>`（8 空格，与相邻卡一致）。**门禁**：`validate_kb.py` 1i（`run_card_nesting_check`，全站 43 文件 / 1181 张卡）；正向验证 `scripts/probe_card_nesting_gate.py`（注入缺陷 → FAIL 2 张 → 还原后 MD5 一致 → PASS）。
 - **根 index 小屏「空白占比大」：横向 gutter 有 4 个来源在叠加（2026-09-16 实测）**：375px 下列表可用宽只有 **229px（视口的 61%）**，每侧被吃掉 **68px** —— `.dir-container` 桌面 `1.5rem`(24) + 页面内联 `.dir-section { margin: 0 12px }`(12) + **共享 `design-system.css` ≤768 段的 `.dir-section { padding-left/right: max(12px, env(safe-area-inset-*)) }`**(12) + 1px 边框 + `.dir-group/.q-list/.q-item` 各 8px。**归一化口径：全页横向留白唯一来源 = `.dir-container` 的 12px**（与 hero/legend/toolbar 一致），`.dir-section` 的 margin 与共享 CSS 的 padding 都要**显式归零**（共享规则与页面同特异度、页面后加载故页面胜出，但**必须写 `padding-left: 0` 才生效**），列表层级内缩各 4px。修复后可用宽 **325px（87%）**、展开态页高 −15.3%、折叠态 3413→2692px。**陷阱**：`.dir-section { overflow: hidden }` 会把「`.dir-header` 的 `.dir-count` 胶囊撑破容器」**裁掉而不报错**，`check_mobile_overflow.js` 也因祖先 `overflow:hidden` 放行 —— 这类缺陷只有**宽度实测 + 截图**才能发现。复测：`scripts/probe_root_index_whitespace.js`。
 - **第二行内容（`.q-tags` 等）的缩进要用题号列宽推导（2026-09-16）**：≤768px 为 `5.1rem`（q-id 4.5rem + `.q-item a` 的 gap 0.6rem），≤480px 题号收窄到 3.8rem 后须同步改 `4.4rem`；原先在 ≤480px 写 `padding-left: 0`，与宽断点口径不一致导致标签行错位。**跨断点改任何「列宽 + gap」组合时，都要同步所有依赖它的缩进。**
 - **统计块（`.dir-stats`）加计数项须让每行项数为偶（2026-09-16）**：≤480px 为两列，根 index 首行原 3 项 → 「题目总数」独占一行、右侧整格留白（长官反馈的「空白位置占比大」之一）；补入「思维导图 19」后首行 4 项、次行 6 项，375px 下两行均整除无空格。新增展示位须同时登记 `positions`（本轮用空位 **P37**，键 `mind_pages`，首次展示该键于根 index）。
@@ -583,8 +578,9 @@ agent_created: true
 ## Resources
 
 - `references/conventions.md` — 完整结构约定：题号前缀、卡片 HTML 模板（`.qa-card`/`.qa-layer` 七层/场景七层）、导图节点模板、4 份聚合页字段名与 `ov-stat-num` 顺序、权威计数示例、导航/小屏/Prettier（§7–§7.2）。
-- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、**0d 页头难度自证**、overview 排序/类型、三权威源、红线（`data-page-node-id`）、**1f 内部编辑字眼**、**1g 横向溢出兜底**、**1h 列表缩进兜底**、**Mermaid prettier-ignore**、主题/小屏。
+- `scripts/validate_kb.py` — 可复用全量校验：SSOT check、**0b 标记**、**0c L1 聚合 UI 扫描**、**0d 页头难度自证**、**0e/1i 卡片嵌套**（`qa-card`/`map-card` 不得互相包含）、overview 排序/类型、三权威源、红线（`data-page-node-id`）、**1f 内部编辑字眼**、**1g 横向溢出兜底**、**1h 列表缩进兜底**、**Mermaid prettier-ignore**、主题/小屏。
 - `scripts/check_list_indent.js` — 列表 marker 缩进**实测**（CDP，零依赖）。两重判定：① `markerSpace < 1.2×li字号 − 0.5px`：`markerSpace` = 列表内容盒左边 − 边界容器内容盒左边（边界优先取卡片类 `.epq-card`/`.qa-card`/`details.map-card`，其次取最近有 padding 的块级祖先，**绝不退到 0**，否则 375px 假阳 / 1280px 假阴）；② **同容器内 `min(ol pl) < max(ul pl) − 0.5`** —— 有序列表比无序列表少缩进（给 `ul` 写 padding 漏了 `ol`）。`node check_list_indent.js`（全站 44 页 × {1280, 375}）、`--only <相对路径>`、`--viewport 375`、`--dump`（打印各分组样本）、`--out r.json`。任一判定命中即 exit 1。**注意**：本脚本的度量代码位于 `MEASURE` 模板字符串内，**其注释里禁止出现反引号**（会提前终止模板字符串，报 `SyntaxError: Unexpected identifier`）—— 本轮实测踩过。
+- `scripts/probe_card_nesting_gate.py` — **1i 卡片嵌套门禁的正向验证**（三轮：当前树 PASS → 删掉 chapter-11 中 C11.28 的 `</div>` 必须 FAIL 2 张 → 还原并核对 MD5 一致 + PASS）。项目根由「向上查找含 AGENTS.md + index.html 的祖先」推导；只临时改 1 个文件且用内存原文还原，可随时复跑（`PROBE_EXIT=0`）。
 - `scripts/probe_list_gate.py` — 1h 门禁的**正向验证**（注入缺陷 → 必须 FAIL）：`1` 删除兜底规则、`2` 兜底退化为裸选择器 `ul, ol { … }`；`--inject` 只注入不校验（便于分步执行，规避前台信号中断）。注入态始终由权威备份构造，还原由调用方命令负责。
 - `scripts/check_mobile_overflow.js` — 移动端横向溢出**实测**（CDP + headless Chrome，Node 22 原生 WebSocket，零依赖）。静态审计只能发现风险，不能证明修好；本脚本在真实视口下量 `documentElement.scrollWidth - clientWidth` 与「内容越出卡片」的元素数。`node check_mobile_overflow.js`（内置 8 页 × 320/375/414）、`--path <html>`（单页）、或传 cfg.json。溢出即 exit 1，可直接作门禁。
 - `scripts/ensure_mermaid_prettier_ignore.py` — 批量为缺失的 mermaid 节点补 `<!-- prettier-ignore -->`（格式化前可先跑）。

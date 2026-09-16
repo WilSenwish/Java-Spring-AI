@@ -3,7 +3,11 @@
 """
 java-kb-expand · 全量校验脚本（通用版）
 ==============================================
-复制本文件到 tmp/，按需填 EXPECT 字典（本轮权威计数）与 NEW_IDS（新增/改动题号列表），
+运行位置：**本文件（`.workbuddy/skills/java-kb-expand/scripts/validate_kb.py`）原地运行**
+（项目根由「向上查找同时含 AGENTS.md + index.html 的祖先目录」推导，路径全部绝对化）。
+**勿再复制到 `tmp/` 运行**——曾因 tmp 副本按自身层级推导，把 BASE 解析成
+`<项目根>/java-architect-interview`，报出 `docs/kb-counts.json 不存在` 之类假故障
+（2026-09-16 实测）。按需填 EXPECT 字典（本轮权威计数）与 NEW_IDS（新增/改动题号列表），
 然后运行：python3 validate_kb.py
 
 校验项：
@@ -22,6 +26,8 @@ java-kb-expand · 全量校验脚本（通用版）
   1h) **列表缩进兜底**：design-system.css 须含零特异度 `:where(ul,ol){padding-inline-start:1.25rem}`（reset 抹掉了
       ul/ol 默认缩进，无类规则的列表圆点/数字会画到内容盒外、贴边甚至越出卡片），且不得退化成裸 `ul, ol {…}`
       （2026-09-16 补，实测核心原理页 20 处、安全检查页 1 处）
+  1i) **卡片嵌套**：任一 `qa-card` / `map-card` 不得被另一张卡包含（= 前一张卡缺 `</div>`；渲染为卡片套卡片）
+      （2026-09-16 补，实测 chapter-11 的 C11.28 缺 1 个 `</div>`，C11.29/C11.30 被吞进去，当时全部门禁 PASS）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -331,6 +337,63 @@ def scan_bare_pre(html):
     return p.found
 
 
+CARD_CLASSES = ("qa-card", "map-card")
+
+
+def scan_card_nesting(html):
+    """返回被嵌套的卡片 [(id, line, outer_id, outer_line)]。
+
+    判定：解析栈里已存在 `qa-card` / `map-card` 时又开启一张卡 ⇒ 前一张卡缺 `</div>`
+    （浏览器渲染为卡片套卡片：后续卡片整块落进上一张卡的框里）。
+    背景（2026-09-16 长官实测）：chapter-11 的 C11.28 少一个 `</div>`，C11.29/C11.30
+    被吞进 C11.28 内部，而当时 validate_kb 全绿 —— 校验面缺这一类结构缺陷。
+    """
+    class _P(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=False)
+            self.stack = []
+            self.found = []
+
+        def handle_starttag(self, tag, attrs):
+            d = dict(attrs)
+            cls = (d.get("class") or "").split()
+            if any(c in CARD_CLASSES for c in cls):
+                outer = [s for s in self.stack if any(c in CARD_CLASSES for c in s[1])]
+                if outer:
+                    self.found.append((d.get("id") or "(无 id)", self.getpos()[0],
+                                       outer[-1][2] or "(无 id)", outer[-1][3]))
+            self.stack.append((tag, cls, d.get("id"), self.getpos()[0]))
+            if tag in _VOID_TAGS:
+                self.stack.pop()
+
+        def handle_endtag(self, tag):
+            if tag in _VOID_TAGS:
+                return
+            for i in range(len(self.stack) - 1, -1, -1):
+                if self.stack[i][0] == tag:
+                    del self.stack[i:]
+                    break
+
+    p = _P()
+    p.feed(html)
+    return p.found
+
+
+def run_card_nesting_check():
+    """1i) 卡片层级：章节/导图页的 qa-card / map-card 不得互相嵌套。"""
+    bad, n = [], 0
+    for p in all_chapter_files() + all_mind_files():
+        bn = os.path.basename(p)
+        bad += [(bn,) + x for x in scan_card_nesting(read(p))]
+        n += 1
+    if bad:
+        for x in bad[:20]:
+            print("FAIL [卡片嵌套]", f"{x[0]}: {x[1]}@行{x[2]} 被嵌进 {x[3]}@行{x[4]}（缺 </div>）")
+        check(False, f"[卡片嵌套] {len(bad)} 张卡被嵌进上一张卡（须 0；见 conventions §2）")
+    else:
+        check(True, f"[卡片嵌套] {n} 个章节/导图页的卡片层级无嵌套")
+
+
 def main():
     # 0) 权威计数位（含散文）——必须先于其他统计断言
     run_sync_counts_check()
@@ -338,6 +401,8 @@ def main():
     run_l1_container_scan()
     # 0d) 篇章页/E/S 页头难度分布 vs 实体卡片（2026-09-15 新增，防 12 页漂移复发）
     run_chapter_meta_difficulty_check()
+    # 0e/1i) 卡片层级：qa-card / map-card 不得互相嵌套（2026-09-16 新增，防缺 </div> 卡片套卡片）
+    run_card_nesting_check()
 
     # 4 聚合页 + 全部章节 + 全部导图（红线校验覆盖全站）
     texts = {k: read(v) for k, v in AGG_FILES.items()}

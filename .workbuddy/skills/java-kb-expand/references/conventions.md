@@ -32,6 +32,11 @@
 - `data-difficulty` 取值：`expert`（专家级）/ `architect`（架构级）/ `senior`（高级开发）。
 - `data-priority` 取值：`p0` / `p1` / `p2`（**P3 已废除**）。
 - 双编码一致：卡片 `data-priority="p*"` 属性 **与** 可见徽标 `<span class="priority priority-p*">P*</span>` 必须同步，禁止只改其一。
+- **等级 / 优先级徽标的例外：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡一律不呈现任何徽标（2026-09-16 长官二次下达，覆盖三处载体）**：
+  1. 三个专篇页（`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`）的 `.qa-question` 内不写 `<span class="difficulty …">` / `<span class="priority …">`；
+  2. 根 index 的 M/G/K 三个区块共 **220 条 q-item**（M91+G65+K64）**连 `.q-tags` 空壳一并去掉**（其内只有等级徽标）；
+  3. 章节导航 index 的三张专篇 `chapter-card` **不带 `.card-tags`**（原 M 3 枚 / G 2 枚 / K 1 枚）。
+  - **属性侧保留**：`.qa-card` 的 `data-difficulty` 照写（M/G/K 难度分布仍可机读，`counts.methodology_expert/architect/senior`、`engineering_architect/senior`、`pitfalls_senior` 与「方法论难度三级求和=methodology」不变式继续成立）；`data-priority` 仅 M 卡部分携带（45/91），同样不再呈现。**新增 M/G/K 卡（含导航位）时勿再贴徽标。**
 - `qa-layer` 合法 `data-layer` 取值（在 `assets/design-system.css`）：`essence` / `evolution` / `principle` / `practice` / `deep` / `pitfall` / `extension` / `production` / `scenario` / `evaluation` / `insight` / `application` / `challenge`。
 - 常用组件类：`compare-table`（对比表）、`code-block`/`pre>/code`（代码）、`callout callout-pitfall`（警示）、`inline-code`。
 
@@ -177,7 +182,7 @@
   - 小屏列数（**按块定列，使列数与项数整除**）：≤768px 首行 `.dir-stats` **4 列**（4 项＝1 行）、次行 `.dir-stats-sub` **3 列**（6 项＝2 行）；≤480px 两行统一 **2 列**（4 项＝2 行、6 项＝3 行）。**加计数项须让两行项数各自能被当前列数整除**，否则末行出现半空格子（历史：首行 3 项时 375px 下「题目总数」独占一行、右侧整格留白；首行 4 项而用 3 列时 481~768px 也会「3+1」留白）。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
   - **结构完整性**：`q-tags` 必须闭合、`<a>` 不得顶格（须与同级 li 内缩进一致）。历史新增题曾出现「顶格 `<a>` + `q-tags` 未闭合」（2026-09-16 实测 7 条：C11.28/29/30、S12.08/09 顶格+未闭合，G07.08/09 仅未闭合），渲染上表现为徽标错位、层级断开。门禁 `scripts/check_index_badges.py`（顶格 `<a href=…>` 与未闭合 `q-tags` 均为 FAIL）。
-  - **优先级补齐口径**：缺失徽标按**镜像源页**判定——源页有优先级则补（C11.28/29/30、S12.08/09 补 `P1`），源页无优先级则**不补，仅修结构**（G/K 块源页本无优先级，`validate_kb` 亦不强制）。**根 index 方法论块（M 卡）整体不加优先级**（2026-09-16 长官决策），M 卡优先级只在章节页呈现。
+  - **优先级补齐口径**：缺失徽标按**镜像源页**判定——源页有优先级则补（C11.28/29/30、S12.08/09 补 `P1`），源页无优先级则**不补，仅修结构**（G/K 块源页本无优先级，`validate_kb` 亦不强制）。**M/G/K 三类卡一律不呈现等级与优先级徽标**（2026-09-16 长官决策，两次下达：先三专篇页、再三处导航位）——根 index M/G/K 区块 220 条 `.q-tags` 已整块移除，全文口径见 §2 例外条。**长尾提醒**：删徽标会连带**孤立计数位**（本轮 6 个：P74/P75/P76/P103/P104/P105 随章节导航 `card-tags` 一并作废），必须同步从 `kb-counts.json` 的 `positions` 删除并跑 `sync_counts.py render`。
 - per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（见 COUNTS）。
 - 方法论目录结构（平级 `dir-group`，禁止嵌套）：序章①~⑤ → **⑥ 生产与领域思维速查（M12，16 卡）** → 一~五主题（M06~M10）→ 附录（M11）。**禁止**把 M12 嵌进「一、高并发」。
 - **小屏（≤768px）横向 gutter 归一口径（2026-09-16 固化）**：全页横向留白**唯一来源 = `.dir-container` 的 `12px`**，与 `.dir-hero` / `.dir-legend` / `.dir-toolbar` 一致。`.dir-section` **不得**再叠加留边——既要清掉页面内联的 `margin-left/right: 12px`，也要显式覆盖**共享 `design-system.css` 的 `.dir-toolbar,.dir-legend,.dir-section,.dir-stats { padding-left/right: max(12px, env(safe-area-inset-*)) }`**（该规则位于共享表的 ≤768 段，页面 `<style>` 后加载，同特异度下页面胜出，故须写 `padding-left: 0` 显式归零）。列表横向内缩由 **`.dir-body` 单层**承担 `4px`（桌面为 `--dir-pad-panel` = 1rem）——`.dir-group` / `.q-list` 横向必须为 `0`，`.q-item` **仅左侧**为 `0`（右侧内缩有意保留，hover 背景不贴死行尾）。**内缩层必须唯一**：曾把内缩放在 `.dir-group` 上，导致「有分组」与「无分组」（深度 Q&A 15 篇章）两类区块分叉 —— 题号左缘 1px vs 17px，视觉上像两个页面。
@@ -195,6 +200,7 @@
   - **计数胶囊位置**：`.dir-count` 必须 `margin-left:auto` —— 位置**不可**依赖 `.tagline{flex:1}` 撑开。15 个 C 篇章的 header 无 tagline，胶囊会紧贴标题右侧（实测桌面右缘 **294px** vs 行尾 1035px）；小屏因 `.dir-title{flex:1 1 auto}` 恰好推开，**掩盖了该缺陷**（成因即「小屏统一、大屏不统一」）。修复后 24 个 section 的计数右缘取值集合 = `{1035}`（桌面）/ `{346}`（小屏）。
 
 ### 5.3 `java-architect-interview/index.html`（章节导航）
+- **三张专篇 `chapter-card` 不带 `.card-tags`**（M/G/K 无等级徽标，2026-09-16；`card-footer` 只留组数/卡数/ID 前缀的计数行）。其余章节卡（C01–15 / 核心原理 / 场景 / 优先级总览）保留 `card-tags`，顺序 **专家 → 架构 → 高级**，某档为 0 则省略；数字须与目标页 `data-difficulty` 实计一致。
 - **Hero `.meta-stats` 固定 6 格**（顺序）：核心方法论（`methodology`，P03）/ 工程化要点（`engineering`，P24）/ 生产踩坑（`pitfalls`，P91）/ 深度 Q&A（`chapters`，P55）/ 核心原理速查（`basics`，P39）/ 真实场景题（`scenarios`，P56），各自计数；「全站 N 道」= `total`（仅 C+E+S）。
   - **增删格子必须同步 `design-system.css` 的列数**（`.index-hero .meta-stats` 只在 §5.3 这一页出现）：桌面 `repeat(6)`（6 项＝1 行）、≤1024 / ≤768 / ≤480 均 `repeat(3)`（6 项＝3+3 两整行）。**任何断点的列数都须整除项数**，否则末行留半空格子（与 §5.2 根 index 同口径）。
   - **2026-09-16 长官移除原第 1 格「思维导图」（`mind_pages`，P221）**：DOM 删 4 行 + 桌面列数 7→6，P221 已从 `kb-counts.json` 的 `positions` 删除（口径见 §5.2 `mind_pages` 条）。
@@ -309,9 +315,6 @@
 | P71 | `java-architect-interview-mind/index.html` | mind index 方法论卡 footer 卡数 |
 | P72 | `java-architect-interview-mind/index.html` | mind index 工程化卡 footer 卡数 |
 | P73 | `java-architect-interview-mind/index.html` | mind index 工程化卡 desc 卡数 |
-| P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
-| P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
-| P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
 | P77 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页副标题卡数 |
 | P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
 | P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
@@ -336,9 +339,6 @@
 | P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
 | P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
 | P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
-| P103 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 架构数 |
-| P104 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 高级数 |
-| P105 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 高级数 |
 | P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |

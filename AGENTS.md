@@ -127,9 +127,6 @@
 | P71 | `java-architect-interview-mind/index.html` | mind index 方法论卡 footer 卡数 |
 | P72 | `java-architect-interview-mind/index.html` | mind index 工程化卡 footer 卡数 |
 | P73 | `java-architect-interview-mind/index.html` | mind index 工程化卡 desc 卡数 |
-| P74 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 专家数 |
-| P75 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 架构数 |
-| P76 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer 高级数 |
 | P77 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页副标题卡数 |
 | P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
 | P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
@@ -154,9 +151,6 @@
 | P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
 | P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
 | P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
-| P103 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 架构数 |
-| P104 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 高级数 |
-| P105 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 高级数 |
 | P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |

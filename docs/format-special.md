@@ -139,12 +139,12 @@
   7. 第 01～15 篇（网格）
   8. 服务端安全 Checkpoint（通栏）
 - **组件**：
-  - `chapter-card`：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`
+  - `chapter-card`：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`；**M/G/K 三张专篇卡不带 `card-tags`**（不呈现等级/优先级徽标，2026-09-16 长官决策）
   - `stat-item` / `stat-label` / `stat-number`：全站统计区
   - `tag-cloud` / `trend-section`：知识点标签云与趋势块；**须用 `<details class="… index-fold">` 包裹且默认折叠**（不加 `open`），`<summary>` 内放原 `h2` 标题
 - **难度徽标（`card-tags`）约定**：
   - **统一顺序**：有计数时按 **专家 → 架构 → 高级**；某档为 0 则省略该档（不写 `×0`）。
-  - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心方法论、工程化、核心原理、场景、优先级总览（总览口径 = 篇章+核心原理+场景 = `total`；M/G/K 为专篇键）。
+  - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心原理、场景、优先级总览（总览口径 = 篇章+核心原理+场景 = `total`）。**M/G/K 三张专篇卡不写 `card-tags`** —— 方法论/工程化/生产踩坑一律不呈现等级与优先级徽标（2026-09-16 长官决策，`data-difficulty` 属性仍保留），原 6 个计数位 P74/P75/P76/P103/P104/P105 随之作废并已从 `kb-counts.json` 删除。
   - **无法实计的卡**（思维导图站入口、安全 Checkpoint 等无 `data-difficulty` 题卡）：只标档位文案，不写 ×N。
   - 数字须与目标页 `data-difficulty` 实计一致；改题难度后同步本页对应卡徽标。
 - 每张章节卡片须链接到对应目标页；`card-number / card-title` 应与目标页一致；`card-footer` 题数须与目标页实卡数一致。
@@ -157,10 +157,13 @@
 | 页面 | 外壳 | 内容单元 | ID 前缀 | 难度 | 优先级 | nav.js |
 |------|------|----------|:---:|:---:|:---:|:---:|
 | chapter-01~15（标准） | page-wrapper + sidebar | `qa-card` 六层 | `C##.##` | ✔ | ✔ | ✔ |
-| chapter-core-methodology | 同标准外壳 | `qa-card` 三层（insight/principle/application） | `M##.##` | 架构/专家/高级 | 部分(31/75) | ✔ |
+| chapter-core-methodology | 同标准外壳 | `qa-card` 三层（insight/principle/application） | `M##.##` | 不呈现（属性仍存） | 不呈现 | ✔ |
 | chapter-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |
 | chapter-questions-eight-part | – | `epq-*` 问答速查 | `E##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-scenario | – | `qa-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
 | chapter-server-security-checkpoint | page-wrapper + sidebar | 章节式 h2/h3 + compare-table + checklist | – | – | – | ✔ |
-| chapter-engineering-practices | page-wrapper + sidebar | `qa-card` 三层（insight/principle/application） | `G##.##` | ✔ | – | ✔ |
+| chapter-engineering-practices | page-wrapper + sidebar | `qa-card` 三层（insight/principle/application） | `G##.##` | 不呈现（属性仍存） | 不呈现 | ✔ |
+| chapter-production-pitfalls | page-wrapper + sidebar | `qa-card` 三层（insight/principle/application） | `K##.##` | 不呈现（属性仍存） | 不呈现 | ✔ |
 | index | – | chapter-card / stat / tag-cloud（`index-fold` 默认折叠） | – | 可计卡带 ×N（专家→架构→高级） | – | ✔ |
+
+（「不呈现」= 页面不显示徽标，`.qa-card` 的 `data-difficulty` 仍写，供难度分布与计数键机读；M/G/K 三行同一口径，2026-09-16 长官决策。）

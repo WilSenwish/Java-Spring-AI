@@ -67,6 +67,7 @@
 | `difficulty-architect`| 架构级 | `architect` |
 
 - 卡片根节点用 `data-difficulty="senior|expert|architect"` 记录机器可读；提问行内叠加 `<span class="difficulty difficulty-xxx">文案</span>` 作视觉标签。
+  - **例外（2026-09-16 长官决策）**：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡**不呈现视觉标签**（属性照写）。三处载体同步：专篇页 `.qa-question`、根 index 的 M/G/K 区块（220 条 q-item，连 `.q-tags` 壳一并去掉）、章节导航 index 的三张专篇 `chapter-card`（无 `.card-tags`）。细则见 `conventions.md` §2。
 
 ### 3.2 优先级 `priority-p*`
 
@@ -76,8 +77,8 @@
 | `priority-p1` | P1 | 高频 |
 | `priority-p2` | P2 | 中频 |
 
-- 携带优先级：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">91</span>）携带；安全手册不携带。
-- 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`。
+- 携带优先级（属性侧）：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">91</span>）携带；安全手册不携带。**可见徽标侧：M/G/K 一律不呈现等级与优先级徽标**（2026-09-16 长官决策），同条目 3.1 的例外口径；该三处原计数位 P74/P75/P76/P103/P104/P105 已随之作废删除。
+- 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`（**M/G/K 三类卡只写属性、不叠加可见徽标**）。
 
 ## 4. 资源按需载入规则
 
