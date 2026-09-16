@@ -18,6 +18,12 @@
  *      `list-style-position: inside` 与 `list-style-type: none` 的列表不参与判定
  *      （marker 在内容流内 / 无 marker）。
  *
+ * 另判定（2026-09-16 补）：同一容器内「有 marker 的 ol」与「有 marker 的 ul」
+ *      padding-inline-start 必须一致 —— min(ol pl) < max(ul pl) − 0.5 → MISMATCH。
+ *      根因：多处 CSS 只给 ul 写了缩进（如 nav-server-security-checkpoint 的
+ *      `.content-main ul{padding-left:24px}`），ol 回落到共享样式 1.25rem 兜底，
+ *      数字比圆点少缩进 4px。**给 ul 加规则时务必同步写 ol。**
+ *
  * 用法:
  *   node check_list_indent.js                     # 全站 44 页 × {1280, 375}
  *   node check_list_indent.js --viewport 375      # 指定视口
@@ -90,6 +96,7 @@ const MEASURE = `
     return document.querySelector('main.content-main') || document.querySelector('main') || document.body;
   }
   var out = [];
+  var cardRefs = [];
   document.querySelectorAll('ul,ol').forEach(function (ul) {
     var s = getComputedStyle(ul);
     if (s.display === 'none') return;
@@ -107,9 +114,10 @@ const MEASURE = `
     var lpos = li ? getComputedStyle(li).listStylePosition : s.listStylePosition;
     var need = (s.listStyleType === 'none' ? 0 : 1.2 * lf);
     var markerSpace = (s.listStyleType === 'none' || lpos === 'inside') ? Infinity : (contentLeft - cardContentLeft);
-    out.push({
+    var rec = {
       card: card ? (card.id || nm(card)).slice(0, 26) : '(no-card)',
       sel: pathOf(ul).slice(0, 46),
+      tag: ul.tagName.toLowerCase(),
       type: s.listStyleType,
       pos: lpos,
       pl: Math.round(pl * 10) / 10,
@@ -120,7 +128,28 @@ const MEASURE = `
       li: Math.round(lf * 10) / 10,
       suspect: markerSpace !== Infinity && markerSpace < need - 0.5,
       txt: (ul.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 42)
-    });
+    };
+    out.push(rec);
+    cardRefs.push({ el: card, rec: rec });
+  });
+  /* 同容器（含 marker 的）有序列表与无序列表缩进必须一致：
+     实测 nav-server-security-checkpoint 的 .content-main ul{padding-left:24px} 漏了 ol，
+     导致正文数字列表回落到 1.25rem 兜底，比圆点少缩进 4px（2026-09-16 修复）。
+     只比较同一 boundaryOf 容器，避免跨区块误判；body 级容器不参与（粒度太粗）。 */
+  var cardMap = new Map();
+  cardRefs.forEach(function (x) {
+    if (!x.el || x.el === document.body) return;
+    if (x.rec.type === 'none' || x.rec.pos === 'inside') return;
+    var e = cardMap.get(x.el);
+    if (!e) { e = { name: x.rec.card, ul: [], ol: [] }; cardMap.set(x.el, e); }
+    (x.rec.tag === 'ol' ? e.ol : e.ul).push(x.rec.pl);
+  });
+  var mismatch = [];
+  cardMap.forEach(function (e) {
+    if (!e.ul.length || !e.ol.length) return;
+    var maxUl = Math.max.apply(null, e.ul);
+    var minOl = Math.min.apply(null, e.ol);
+    if (minOl < maxUl - 0.5) mismatch.push({ card: e.name, ulPl: maxUl, olPl: minOl });
   });
   var sus = out.filter(function (o) { return o.suspect; });
   var samples = {};
@@ -131,7 +160,7 @@ const MEASURE = `
   });
   return {
     measured: true, vw: document.documentElement.clientWidth,
-    total: out.length, suspect: sus.length,
+    total: out.length, suspect: sus.length, mismatch: mismatch.slice(0, 12),
     byPl: out.reduce(function (a, o) { var k = o.type + '@pl=' + o.pl; a[k] = (a[k] || 0) + 1; return a; }, {}),
     samples: samples, sus: sus.slice(0, 60)
   };
@@ -211,12 +240,16 @@ const toFileUrl = (p) => 'file://' + path.resolve(ROOT, p).replace(/ /g, '%20');
   let bad = 0;
   for (const r of results) {
     if (r.err) { console.log(`ERR  ${r.page} @${r.vw}  ${r.err}`); bad++; continue; }
-    const isBad = r.suspect > 0;
+    const mis = r.mismatch || [];
+    const isBad = r.suspect > 0 || mis.length > 0;
     if (isBad) bad++;
-    console.log(`${isBad ? 'FAIL' : 'PASS'} ${String(r.vw).padStart(4)}px  ${r.page.padEnd(46)} 列表=${String(r.total).padStart(3)} 嫌疑=${String(r.suspect).padStart(2)}  ${JSON.stringify(r.byPl)}`);
-    if (isBad) for (const s of r.sus) {
+    console.log(`${isBad ? 'FAIL' : 'PASS'} ${String(r.vw).padStart(4)}px  ${r.page.padEnd(46)} 列表=${String(r.total).padStart(3)} 嫌疑=${String(r.suspect).padStart(2)} 缩进不一致=${String(mis.length).padStart(2)}  ${JSON.stringify(r.byPl)}`);
+    if (r.suspect > 0) for (const s of r.sus) {
       console.log(`         ${s.card} | ${s.sel}`);
       console.log(`           type=${s.type} pos=${s.pos} pl=${s.pl} 可用=${s.space}px 需=${s.need}px | ${s.txt}`);
+    }
+    for (const m of mis) {
+      console.log(`         [缩进不一致] ${m.card}：ol pl=${m.olPl} < ul pl=${m.ulPl}（数字比圆点少缩进 ${(m.ulPl - m.olPl).toFixed(1)}px）`);
     }
   }
   if (argv.includes('--dump')) {
@@ -228,6 +261,7 @@ const toFileUrl = (p) => 'file://' + path.resolve(ROOT, p).replace(/ /g, '%20');
     }
   }
   const total = results.reduce((a, r) => a + (r.suspect || 0), 0);
-  console.log(`\n共 ${results.length} 次测量，marker 缩进不足的列表合计 ${total} 处 → ${bad ? 'FAIL' : 'ALL PASS'}`);
+  const totalMis = results.reduce((a, r) => a + ((r.mismatch || []).length), 0);
+  console.log(`\n共 ${results.length} 次测量，marker 缩进不足 ${total} 处、ol/ul 缩进不一致 ${totalMis} 处 → ${bad ? 'FAIL' : 'ALL PASS'}`);
   process.exit(bad ? 1 : 0);
 })();

@@ -219,6 +219,15 @@ index.html                         # 首页
    > `.map-col ul { padding: 0 }`、`.sidebar-toc ol { padding: 0 }`、`.guide-body ul { padding-left: 1.2em }`）
    > 都能覆盖它。**写成裸选择器 `ul, ol { … }`（特异度 0,0,1）会顶掉这些自定义列表的排版**，
    > 反而制造新缺陷——`validate_kb` 项 1h 会拦这一退化。
+6. **有序列表缩进必须与无序列表同步（2026-09-16 补，实测事故）**：给 `ul` 写 `padding-left` 时，
+   **同一容器的 `ol` 必须同步**。多处 CSS 只写了 `ul` —— `nav-server-security-checkpoint.html` 的
+   `.content-main ul { padding-left: 24px }`、`chapter-questions-scenario.html` 的
+   `.reading-guide .guide-body ul { padding-left: 1.2em }`；`ol` 于是回落到共享样式的 `1.25rem`
+   兜底，**数字比同容器的圆点少缩进 4px**（实测安全检查页正文数字列表 pl=20 vs 圆点 pl=24）。
+   另注意 `footer .sources ol` / `.qa-layer-body ul, ol` 用的是 `1.2rem`，与兜底的 `1.25rem` 不同值。
+   `check_list_indent.js` 按「同容器内 `min(ol pl) < max(ul pl) − 0.5`」拦截。
+   > `list-style: none` 的自定义装饰列表（`.map-col ul` / `.epq-kp-list ul` / `.sidebar-toc ol`）
+   > 不参与该判定。
 
 ### 8.4 验收清单（改样式必过）
 
@@ -226,6 +235,7 @@ index.html                         # 首页
 - [ ] 长英文 token（包名/路径/方法签名/命令行参数）可断行，不撑破卡片
 - [ ] 代码块统一 `<div class="code-block"><pre><code>…</code></pre></div>` 包裹；裸 `<pre>` 无深色样式也无横滑，属缺陷
 - [ ] 列表 marker（圆点/数字）落在内容区内：既未压到卡片内边距、更未越出卡片；列表内容相对正文有明显缩进层次
+- [ ] 同一容器内**有序列表与无序列表的缩进一致**：给 `ul` 写 `padding-left` 时同步写 `ol`（否则数字回落到 `1.25rem` 兜底，比圆点少缩进 4px）
 - [ ] 标题与长摘要可断词，不撑破卡片
 - [ ] 统计条/元信息为网格或可换行，不挤成单行溢出
 - [ ] 卡片 footer（题量 + 难度徽标）小屏可换行或上下堆叠
@@ -244,7 +254,7 @@ index.html                         # 首页
 | 脚本 | 用途 | 判定 |
 |---|---|---|
 | `check_mobile_overflow.js` | 横向溢出（文档级 + 越出卡片） | `scrollWidth - clientWidth`，溢出即 exit 1 |
-| `check_list_indent.js` | 列表 marker 缩进（全站 44 页 × {1280, 375}） | 可用空间 < 1.2×字号 即 exit 1 |
+| `check_list_indent.js` | 列表 marker 缩进 + 同容器 ol/ul 缩进一致性（全站 44 页 × {1280, 375}） | 可用空间 < 1.2×字号，或 `min(ol pl) < max(ul pl) − 0.5`，即 exit 1 |
 | `probe_list_gate.py` | 1h 门禁的正向验证（注入缺陷 → 必须 FAIL） | 两轮注入，`--inject` 支持分步 |
 
 ## 9. 主题 / 暗黑模式
