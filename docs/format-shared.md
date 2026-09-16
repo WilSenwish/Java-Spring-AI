@@ -208,12 +208,24 @@ index.html                         # 首页
 4. **长 token 换行兜底（2026-09-15 补，实测事故）**：`body` 必须声明 `overflow-wrap: anywhere`——它是可继承属性，一条声明覆盖全站所有文本容器。缺此声明时，`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`、`-Djdk.tracePinnedThreads=full|short` 这类长英文标识符/路径/方法签名不换行，横向撑破卡片：实测 375px 视口下核心原理页（`chapter-questions-eight-part.html`）文档溢出 **248px**、**18 处**元素越界（`@media` 内的逐选择器兜底不可靠，`.epq-kp-list li` / `.epq-fu-list li` / `ol>li` / `.callout p` 全被漏掉）。
    裸 `<pre>`（未被 `.code-block` 包裹）另需 `pre { overflow-x: auto }` 兜底：实测 chapter-07 有 8 处裸 pre 溢出 **814px**。
    > 注意：**逐选择器枚举的兜底方式本身是缺陷来源**——共享 CSS 原先只覆盖 `qa-*` / `epq-question` / `chapter-card *`，新增的 `epq-*` 正文容器整类被漏。优先用可继承的全局兜底而非罗列选择器。
+5. **列表 marker 缩进兜底（2026-09-16 补，实测事故）**：`design-system.css` 必须保留零特异度兜底
+   `:where(ul, ol) { padding-inline-start: 1.25rem }`。顶部 reset（`* { margin: 0; padding: 0 }`）抹掉了
+   `ul` / `ol` 的 UA 默认 `padding-inline-start`（40px），全站列表缩进因此完全依赖各自的类规则；
+   凡未匹配到类规则的列表 `padding-left` 即为 0，而 `list-style-position: outside` 的圆点/数字是
+   **绘制在内容盒之外**的——会被甩进卡片内边距区：桌面表现为「列表没有缩进、圆点贴着卡片边缘」，
+   小屏（卡片内边距收窄到 `0.9rem` = 14.4px）直接越出卡片。实测核心原理页 20 处
+   （`.epq-section > ul/ol`）、安全检查页 1 处（`main.content-main > ol`）。
+   > 必须用 `:where()` 把特异度压到 0，这样任何带类名的列表规则（`.epq-kp-list { padding: 0 }`、
+   > `.map-col ul { padding: 0 }`、`.sidebar-toc ol { padding: 0 }`、`.guide-body ul { padding-left: 1.2em }`）
+   > 都能覆盖它。**写成裸选择器 `ul, ol { … }`（特异度 0,0,1）会顶掉这些自定义列表的排版**，
+   > 反而制造新缺陷——`validate_kb` 项 1h 会拦这一退化。
 
 ### 8.4 验收清单（改样式必过）
 
 - [ ] ≤768px 无整页横向滚动（代码块/表允许组件内横滑）
 - [ ] 长英文 token（包名/路径/方法签名/命令行参数）可断行，不撑破卡片
 - [ ] 代码块统一 `<div class="code-block"><pre><code>…</code></pre></div>` 包裹；裸 `<pre>` 无深色样式也无横滑，属缺陷
+- [ ] 列表 marker（圆点/数字）落在内容区内：既未压到卡片内边距、更未越出卡片；列表内容相对正文有明显缩进层次
 - [ ] 标题与长摘要可断词，不撑破卡片
 - [ ] 统计条/元信息为网格或可换行，不挤成单行溢出
 - [ ] 卡片 footer（题量 + 难度徽标）小屏可换行或上下堆叠
@@ -225,7 +237,15 @@ index.html                         # 首页
 
 ### 8.5 校验
 
-`validate_kb.py` 会检查：全站 HTML 含 viewport；`design-system.css` 含 `MOBILE-MANDATORY`；根 index / 导图 index / 导图页含小屏 `@media`；**校验项 1g**——`design-system.css` 的 `body` 规则含 `overflow-wrap: anywhere`、含裸 `pre { overflow-x: auto }`，且全站不存在未被 `.code-block` 包裹的裸 `<pre>`。
+`validate_kb.py` 会检查：全站 HTML 含 viewport；`design-system.css` 含 `MOBILE-MANDATORY`；根 index / 导图 index / 导图页含小屏 `@media`；**校验项 1g**——`design-system.css` 的 `body` 规则含 `overflow-wrap: anywhere`、含裸 `pre { overflow-x: auto }`，且全站不存在未被 `.code-block` 包裹的裸 `<pre>`；**校验项 1h**——`design-system.css` 含零特异度列表缩进兜底 `:where(ul, ol) { padding-inline-start: … }`，且该兜底未退化为裸选择器 `ul, ol { … }`。
+
+实测脚本（`.workbuddy/skills/java-kb-expand/scripts/`）：
+
+| 脚本 | 用途 | 判定 |
+|---|---|---|
+| `check_mobile_overflow.js` | 横向溢出（文档级 + 越出卡片） | `scrollWidth - clientWidth`，溢出即 exit 1 |
+| `check_list_indent.js` | 列表 marker 缩进（全站 44 页 × {1280, 375}） | 可用空间 < 1.2×字号 即 exit 1 |
+| `probe_list_gate.py` | 1h 门禁的正向验证（注入缺陷 → 必须 FAIL） | 两轮注入，`--inject` 支持分步 |
 
 ## 9. 主题 / 暗黑模式
 

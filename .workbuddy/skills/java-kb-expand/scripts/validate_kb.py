@@ -19,6 +19,9 @@ java-kb-expand · 全量校验脚本（通用版）
   1f) **内部编辑字眼**：卡片正文不得出现「再加厚/补厚/占位段落/待补写」（2026-09-15 补，实测曾残留 15 处）
   1g) **横向溢出兜底**：design-system.css 含全局 `body{overflow-wrap:anywhere}` + 裸 `pre{overflow-x:auto}`；
       且全站不得存在未被 .code-block 包裹的裸 <pre>（2026-09-15 补，实测核心原理页 375px 溢出 248px/18 处）
+  1h) **列表缩进兜底**：design-system.css 须含零特异度 `:where(ul,ol){padding-inline-start:1.25rem}`（reset 抹掉了
+      ul/ol 默认缩进，无类规则的列表圆点/数字会画到内容盒外、贴边甚至越出卡片），且不得退化成裸 `ul, ol {…}`
+      （2026-09-16 补，实测核心原理页 20 处、安全检查页 1 处）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
@@ -401,6 +404,21 @@ def main():
     _bare_pre = [k for k, t in _pre_texts.items()
                  if any(not inside for _, inside in scan_bare_pre(t))]
     check(not _bare_pre, f"[溢出] 存在未被 .code-block 包裹的裸 <pre>: {_bare_pre[:8]}")
+
+    # 1h) 列表 marker 缩进兜底（2026-09-16 实测：核心原理页 20 处、安全检查页 1 处）
+    #     上面的 reset `* { margin: 0; padding: 0 }` 抹掉了 ul/ol 的 UA 默认
+    #     padding-inline-start(40px)，全站列表缩进因此依赖各自的类规则；凡未匹配到
+    #     类规则的列表 padding-left 即为 0，而 list-style-position: outside 的圆点/
+    #     数字是绘制在内容盒之外的 —— 桌面表现为「列表没有缩进、圆点贴着卡片边缘」，
+    #     小屏（卡片内边距收窄到 0.9rem）直接越出卡片（实测 375px 越界 2.6px）。
+    #     兜底必须写成 :where(ul, ol)（特异度 0），任何带类名的列表规则都能覆盖它；
+    #     若写成裸选择器 `ul, ol { … }`（特异度 0,0,1）就会顶掉
+    #     `.epq-kp-list{padding:0}` / `.map-col ul{padding:0}` 这类自定义列表的排版。
+    check(re.search(r"^\s*:where\(\s*ul\s*,\s*ol\s*\)\s*\{[^}]*padding-inline-start", css_txt, re.M),
+          "[列表] design-system.css 须含零特异度缩进兜底 :where(ul, ol) { padding-inline-start: … }")
+    check(not re.search(r"^\s*ul\s*,\s*ol\s*\{[^}]*padding-inline-start", css_txt, re.M),
+          "[列表] 列表缩进兜底不得用裸选择器 ul, ol { … }（特异度 0,0,1 会顶掉自定义列表的 padding:0）")
+
     _mind_media_miss = []
     for p in mind_files:
         mt = read(p)

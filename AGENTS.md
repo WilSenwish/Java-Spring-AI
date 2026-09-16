@@ -23,6 +23,7 @@
 4. **`docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
 5. **同文件多处修改禁止并行编辑**（会静默丢更新）；须串行修改或整文件重写后重新校验。
 6. **全站手机小屏样式强制优化**（违反即返工）：所有对用户可见的页面必须在 ≤768px（及 ≤480px 极小屏）下可读、可点、无横向撑破；共享样式以 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段为准，页面内联桌面规则必须自带对应 `@media` 覆盖。细则见 `docs/format-shared.md` §8。交付仍遵守红线 1（禁止预览注入），用绝对路径 + 文字结论说明适配点。
+   - **列表缩进兜底不得删改**：共享 CSS 的零特异度 `:where(ul, ol) { padding-inline-start: 1.25rem }` 必须保留，且**不得退化为裸选择器 `ul, ol { … }`**。原因是顶部 reset（`* { margin: 0; padding: 0 }`）把 `ul`/`ol` 的 UA 默认缩进一并归零，凡未匹配到类规则的列表 `padding-left` 即为 0，而 `list-style-position: outside` 的圆点/数字绘制在内容盒之外 —— 桌面「列表无缩进、圆点贴卡片边缘」，小屏直接越出卡片（实测核心原理页 20 处、安全检查页 1 处）。校验：`validate_kb` 项 **1h** + `scripts/check_list_indent.js`。
 7. **主题 / 暗黑模式**：新页须在 CSS 前引入 `theme-init.js`；换肤只改 CSS 变量；切换器与回顶/去底由 `theme-init.js` 注入。细则见 `docs/format-shared.md` §9。
 8. **顶/底章节导航**：仅根 `index.html` 与章节站 `index.html` 无导航；其余页顶栏为 `body` 首块（`.site-page-nav--top`），底栏在脚本前（`.site-page-nav--bottom`），顶底同文、壳层间距对称。细则见 `format-shared.md` §4.2。
 9. **HTML Prettier + Mermaid**：用户可见 HTML 用 `npm run format:html`；每个 `<div class="mermaid">` 上一行必须 `<!-- prettier-ignore -->`。细则见 `format-shared.md` §10。

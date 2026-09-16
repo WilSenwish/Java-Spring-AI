@@ -138,6 +138,18 @@ html[data-theme="dark"] {
   margin: 0;
   padding: 0;
 }
+/* 列表缩进兜底（2026-09-16）：
+   上面的 reset 抹掉了 ul/ol 的 UA 默认 `padding-inline-start`（40px），全站列表
+   缩进因此完全依赖各自的类规则；凡未匹配到类规则的列表 padding-left 即为 0，
+   而 `list-style-position: outside` 的圆点/数字是绘制在内容盒之外的 —— 会被甩进
+   卡片内边距区：桌面表现为「列表没有缩进、圆点贴着卡片边缘」，小屏（卡片内边距
+   收窄到 0.9rem）直接越出卡片（实测核心原理页 20 处、安全检查页 1 处）。
+   用 :where() 把特异度压到 0，任何带类名的列表规则都能覆盖它；list-style:none 的
+   自定义列表（.epq-kp-list / .map-col ul / .sidebar-toc ol …）各自都写了 padding，
+   不受影响。 */
+:where(ul, ol) {
+  padding-inline-start: 1.25rem;
+}
 html {
   font-size: var(--body-size);
   scroll-behavior: smooth;
