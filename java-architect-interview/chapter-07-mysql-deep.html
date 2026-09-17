@@ -1373,7 +1373,7 @@ replica_preserve_commit_order = ON</code></pre>
               <p><strong>GTID 复制详细配置</strong>：</p>
               <p><strong>主库 GTID 配置</strong>：</p>
               <div class="code-block">
-              <pre><code>[mysqld]
+                <pre><code>[mysqld]
 # 开启 GTID 模式
 gtid_mode=ON
 # 强制 GTID 一致性
@@ -1388,7 +1388,7 @@ log_replica_updates=ON  # 8.0 名称，5.7 及以前为 log_slave_updates</code>
               </div>
               <p><strong>从库 GTID 复制搭建步骤</strong>（命令按版本分列；<strong>MySQL 8.4 LTS 以 SOURCE/REPLICA 为准</strong>）：</p>
               <div class="code-block">
-              <pre><code>-- 1. 源库创建复制用户
+                <pre><code>-- 1. 源库创建复制用户
 CREATE USER 'repl'@'%' IDENTIFIED BY 'password';
 GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';      -- 8.0 常见
 -- GRANT REPLICATION REPLICA ON *.* TO 'repl'@'%'; -- 8.4 文档语义（按权限模型选用）
@@ -1438,7 +1438,7 @@ FROM performance_schema.replication_connection_status;</code></pre>
               <p><strong>必须避免的误判</strong>：<code class="inline-code">VECTOR</code> 类型虽然可用，但 9.7 <strong>社区版不提供 HNSW 向量索引，也不含官方距离函数</strong>（<code class="inline-code">DISTANCE()</code> / <code class="inline-code">VECTOR_DISTANCE()</code> 仅 HeatWave on OCI 与 MySQL AI 提供）——把「MySQL 9.7 支持向量检索」当作社区版可用的 ANN 方案是错的，ANN 检索仍需 HeatWave 或外部向量库（pgvector / Milvus / Qdrant 等）。</p>
               <p><strong>选型建议</strong>：新集群若无强制约束，优先 8.4 LTS（稳定、第三方镜像与备份 / 集群工具跟进充分）；已在 8.0 且需要 Hypergraph / Duality Views / cgroup 能力、并希望一举脱离 EOL 风险，按 8.0 → 8.4 → 9.7 规划。无论哪条路径都需在测试环境跑完整回归；9.0~9.6 属季度 Innovation 版本，不应作为生产唯一基线。</p>
               <div class="code-block">
-              <pre><code># 源端 my.cnf（8.4）
+                <pre><code># 源端 my.cnf（8.4）
 [mysqld]
 # INSTALL PLUGIN rpl_semi_sync_source SONAME 'semisync_source.so';
 rpl_semi_sync_source_enabled=ON
@@ -1453,7 +1453,7 @@ rpl_semi_sync_replica_enabled=ON</code></pre>
               </div>
               <p><strong>MySQL 8.0.x（历史对照）</strong>：旧插件 <code class="inline-code">semisync_master.so</code> / <code class="inline-code">semisync_slave.so</code>，变量前缀 <code class="inline-code">rpl_semi_sync_master_*</code> / <code class="inline-code">rpl_semi_sync_slave_*</code>。8.4 起已弃用，<strong>MySQL 9.5 起旧插件与旧变量一并移除</strong>（改 <code class="inline-code">semisync_source.so</code> / <code class="inline-code">semisync_replica.so</code> 与 <code class="inline-code">rpl_semi_sync_source_*</code> / <code class="inline-code">rpl_semi_sync_replica_*</code>），生产勿再默认教旧名。</p>
               <div class="code-block">
-              <pre><code>[mysqld]
+                <pre><code>[mysqld]
 # 历史示例（8.0）
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_master_timeout=10000
@@ -1463,7 +1463,7 @@ rpl_semi_sync_master_wait_no_slave=ON
               </div>
               <p><strong>Java 监控半同步复制状态</strong>（示例状态名偏 8.0；8.4 请查 Rpl_semi_sync_source_* / Rpl_semi_sync_replica_*）：</p>
               <div class="code-block">
-              <pre><code>@Service
+                <pre><code>@Service
 public class SemiSyncMonitorService {
     
     @Autowired
@@ -1551,7 +1551,7 @@ public class SemiSyncMonitorService {
               <p><strong>并行复制最佳实践参数</strong>：</p>
               <p><strong>主库优化参数</strong>：</p>
               <div class="code-block">
-              <pre><code>[mysqld]
+                <pre><code>[mysqld]
 # 事务持久性保证（主库必须为1保证数据安全）
 innodb_flush_log_at_trx_commit=1
 # Binlog 立即刷盘（主库必须为1保证数据安全）
@@ -1568,7 +1568,7 @@ innodb_purge_threads=1</code></pre>
               </div>
               <p><strong>从库高并发参数</strong>（并行应用靠 <code class="inline-code">replica_parallel_workers</code>；网上流传的多 IO/SQL 线程参数多为<strong>伪配置</strong>，官方无对应系统变量，照抄会无效或报错）：</p>
               <div class="code-block">
-              <pre><code>[mysqld]
+                <pre><code>[mysqld]
 # 8.4 现行名（8.0 可见 slave_parallel_* 同义；新环境统一 replica_*）
 # 注意：replica_parallel_type 自 8.0.29 废弃、MySQL 9.5 起已移除——LOGICAL_CLOCK 为唯一策略，无需再配
 replica_parallel_type=LOGICAL_CLOCK
@@ -1579,7 +1579,7 @@ sync_binlog=0</code></pre>
               </div>
               <p><strong>Java 监控并行复制性能</strong>（8.4 用 SHOW REPLICA STATUS）：</p>
               <div class="code-block">
-              <pre><code>@Service
+                <pre><code>@Service
 public class ParallelReplicationMonitorService {
     
     @Autowired

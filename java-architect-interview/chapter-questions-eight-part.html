@@ -2485,10 +2485,7 @@
           <div class="epq-section">
             <div class="epq-section-title">详细解答</div>
             <p><strong>复制流程</strong>：客户端提交事务 → 主库写 binlog → <code class="inline-code">dump</code> 线程监听 binlog 变更并推送 → 从库 <code class="inline-code">IO 线程</code> 接收写入 <code class="inline-code">relay log</code> → 从库 <code class="inline-code">SQL 线程</code>（或并行回放线程组）顺序执行 relay log。主从状态看 <code class="inline-code">SHOW SLAVE STATUS</code> 的 <code class="inline-code">Seconds_Behind_Master</code> 与 <code class="inline-code">Relay_Log_File/Pos</code>。</p>
-            <p>
-              <strong>半同步复制</strong>：主库提交事务前等待至少一个从库 ACK（8.4 起 <code class="inline-code">rpl_semi_sync_source_enabled=1</code>；旧名 <code class="inline-code">rpl_semi_sync_master_enabled</code> 已于 MySQL 9.5 随旧插件一并移除），事务丢失窗口从「网络传输 + 从库回放」压缩到「主库本地崩溃的极小窗口」；从库无 ACK 时半同步自动退化为异步（8.4 起 <code class="inline-code">rpl_semi_sync_source_timeout</code>）
-              控制等待时间），保证主库可用性。
-            </p>
+            <p><strong>半同步复制</strong>：主库提交事务前等待至少一个从库 ACK（8.4 起 <code class="inline-code">rpl_semi_sync_source_enabled=1</code>；旧名 <code class="inline-code">rpl_semi_sync_master_enabled</code> 已于 MySQL 9.5 随旧插件一并移除），事务丢失窗口从「网络传输 + 从库回放」压缩到「主库本地崩溃的极小窗口」；从库无 ACK 时半同步自动退化为异步（8.4 起 <code class="inline-code">rpl_semi_sync_source_timeout</code>） 控制等待时间），保证主库可用性。</p>
             <p>
               <strong>GTID 复制</strong>：<code class="inline-code">gtid_mode=ON</code> + <code class="inline-code">enforce_gtid_consistency=ON</code> 后，事务带 <code class="inline-code">GTID</code>；从库通过 <code class="inline-code">GTID_EXECUTED</code> 集合判断哪些事务已执行，主从切换时新主只需
               <code class="inline-code">CHANGE MASTER TO ... MASTER_AUTO_POSITION=1</code>

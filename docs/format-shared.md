@@ -81,7 +81,7 @@
 | `priority-p1` | P1 | 高频 |
 | `priority-p2` | P2 | 中频 |
 
-- 携带优先级（属性侧）：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">91</span>）携带；安全手册不携带。**可见徽标侧：M/G/K 一律不呈现优先级徽标**（2026-09-16 长官决策，见 §3.1）；该三处原计数位 P74/P75/P76/P103/P104/P105 已随之作废删除。**注意与难度的差别**：难度是「属性 + 键 + 徽标」三层全删，优先级只删徽标、属性保留。
+- 携带优先级（属性侧）：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">94</span>）携带；安全手册不携带。**可见徽标侧：M/G/K 一律不呈现优先级徽标**（2026-09-16 长官决策，见 §3.1）；该三处原计数位 P74/P75/P76/P103/P104/P105 已随之作废删除。**注意与难度的差别**：难度是「属性 + 键 + 徽标」三层全删，优先级只删徽标、属性保留。
 - 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`（**M/G/K 三类卡只写属性、不叠加可见徽标**）。
 
 ### 3.3 导图分层标签 `layer-tag`（**非难度**）

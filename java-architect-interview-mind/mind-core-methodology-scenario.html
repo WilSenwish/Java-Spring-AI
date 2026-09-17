@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>R3 场景六桶 · 方法论视角导图 | Java 工程能力知识库</title>
+    <script src="../java-architect-interview/assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../java-architect-interview/assets/design-system.css" />
+    <style>
+
+      /* ===== 思维导图页面专属样式 ===== */
+      .map-hero {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 1.5rem 1rem;
+        text-align: center;
+      }
+      .map-hero h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 0.5rem;
+      }
+      .map-hero .subtitle {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 760px;
+        margin: 0 auto 1rem;
+      }
+      .map-legend {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+      .map-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        color: var(--ink);
+      }
+      .map-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .map-body {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem 3rem;
+      }
+
+      /* 三栏对照总览 */
+      .map-overview {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-md);
+        margin: var(--space-lg) 0;
+      }
+      .map-col {
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
+        background: var(--bg2);
+      }
+      .map-col h2 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .map-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .map-col li {
+        font-size: 0.9rem;
+        color: var(--ink);
+        padding: 0.4rem 0 0.4rem 1rem;
+        border-bottom: 1px dashed var(--rule);
+        position: relative;
+      }
+      .map-col li:last-child {
+        border-bottom: none;
+      }
+      .map-col li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.85rem;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .map-col.col-think li::before {
+        background: var(--accent);
+      }
+      .map-col.col-method li::before {
+        background: var(--success);
+      }
+      .map-col.col-principle li::before {
+        background: var(--accent2);
+      }
+
+      /* 细节折叠卡片 */
+      details.map-card {
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-md);
+        margin: var(--space-sm) 0;
+        background: var(--bg);
+        overflow: hidden;
+      }
+      details.map-card summary {
+        cursor: pointer;
+        padding: var(--space-sm) var(--space-md);
+        font-weight: 600;
+        color: var(--ink);
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      details.map-card summary::-webkit-details-marker {
+        display: none;
+      }
+      details.map-card summary::before {
+        content: "▸";
+        color: var(--accent);
+        transition: transform 0.2s;
+      }
+      details.map-card[open] summary::before {
+        transform: rotate(90deg);
+      }
+      details.map-card .map-body-text {
+        padding: 0 var(--space-md) var(--space-md);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      details.map-card .map-tags {
+        padding: 0 var(--space-md) var(--space-sm);
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+      .map-tag {
+        font-size: 0.72rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--rule);
+        color: var(--muted);
+      }
+      .map-tag.t-think {
+        background: rgba(37, 99, 235, 0.08);
+        border-color: rgba(37, 99, 235, 0.3);
+        color: var(--accent);
+      }
+      .map-tag.t-method {
+        background: rgba(5, 150, 105, 0.08);
+        border-color: rgba(5, 150, 105, 0.3);
+        color: var(--success);
+      }
+      .map-tag.t-principle {
+        background: rgba(124, 58, 237, 0.08);
+        border-color: rgba(124, 58, 237, 0.3);
+        color: #6d28d9;
+      }
+
+      .map-note {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: var(--space-md);
+        padding-top: var(--space-sm);
+        border-top: 1px solid var(--rule);
+      }
+
+      /* MOBILE-MANDATORY */
+      @media (max-width: 760px) {
+        .map-hero { padding: 0 12px 0.75rem; }
+        .map-hero h1 {
+          font-size: clamp(1.25rem, 5.5vw, 1.65rem);
+          line-height: 1.3;
+          overflow-wrap: anywhere;
+        }
+        .map-hero .subtitle { font-size: 0.9rem; line-height: 1.55; }
+        .map-body { padding-left: 12px; padding-right: 12px; }
+        .map-overview { grid-template-columns: 1fr; gap: var(--space-sm); }
+        .map-legend { gap: 0.75rem; }
+        .map-col { padding: var(--space-sm); }
+        .theme-h { font-size: 1.05rem; line-height: 1.35; overflow-wrap: anywhere; }
+        .map-card summary { font-size: 0.92rem; line-height: 1.4; }
+        .idx-hero { padding: 1.5rem 12px 1rem; }
+        .idx-hero h1 {
+          font-size: clamp(1.25rem, 5vw, 1.65rem);
+          line-height: 1.3;
+        }
+        .idx-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid {
+          grid-template-columns: 1fr;
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+      }
+      @media (max-width: 480px) {
+        .map-hero h1,
+        .idx-hero h1 { font-size: 1.2rem; }
+        .idx-meta { grid-template-columns: 1fr 1fr; }
+      }
+
+
+      .map-switch { margin-top: 0.75rem; font-size: 0.9rem; overflow-wrap: anywhere; }
+      .map-switch a { margin: 0 0.35rem; }
+      .map-id-list { display: flex; flex-wrap: wrap; gap: 0.35rem 0.7rem; margin: 0.4rem 0 0; padding: 0; list-style: none; }
+      .map-id-list li { font-size: 0.88rem; }
+      .map-id-list a { color: var(--accent); text-decoration: none; }
+      .map-id-list a:hover { text-decoration: underline; }
+      .map-overview.cols-2 { grid-template-columns: repeat(2, 1fr); }
+      .map-overview.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+      .map-overview.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .map-col.col-dao { border-top: 3px solid #2563eb; }
+      .map-col.col-fa { border-top: 3px solid #059669; }
+      .map-col.col-shu { border-top: 3px solid #d97706; }
+      .map-col.col-qi { border-top: 3px solid #475569; }
+      .map-col.col-shi { border-top: 3px solid #e11d48; }
+      .map-col.col-dao li::before { background: #2563eb; }
+      .map-col.col-fa li::before { background: #059669; }
+      .map-col.col-shu li::before { background: #d97706; }
+      .map-col.col-qi li::before { background: #475569; }
+      .map-col.col-shi li::before { background: #e11d48; }
+      .map-tag.t-dao { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.3); color: var(--accent); }
+      .map-tag.t-fa { background: rgba(5, 150, 105, 0.08); border-color: rgba(5, 150, 105, 0.3); color: var(--success); }
+      .map-tag.t-shu { background: rgba(217, 119, 6, 0.08); border-color: rgba(217, 119, 6, 0.3); color: #b45309; }
+      .map-tag.t-qi { background: rgba(71, 85, 105, 0.08); border-color: rgba(71, 85, 105, 0.3); color: #475569; }
+      .map-tag.t-shi { background: rgba(225, 29, 72, 0.08); border-color: rgba(225, 29, 72, 0.3); color: #e11d48; }
+      @media (max-width: 1100px) {
+        .map-overview.cols-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 768px) {
+        .map-overview.cols-5 { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 768px) {
+        .map-overview.cols-2, .map-overview.cols-3 { grid-template-columns: 1fr; }
+        .map-id-list { gap: 0.3rem 0.55rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="site-page-nav site-page-nav--top">
+      <nav class="chapter-nav-top">
+        <a href="mind-core-methodology.html" class="nav-home">← 权威导图</a>
+        <span class="nav-center"><a href="../java-architect-interview/index.html" class="nav-mind">全部章节 &#8599;</a><a href="index.html" class="nav-mind">导图总览 &#8599;</a><a href="../java-architect-interview/chapter-core-methodology.html" class="nav-mind">本导图对应的章节 &#8599;</a></span>
+        <a href="mind-core-methodology-dao-fa-shu.html" class="nav-next">R2 道法术器势 →</a>
+      </nav>
+    </div>
+    <section class="map-hero">
+      <h1>R3 · 场景六桶</h1>
+      <p class="subtitle">按场景问题重组全部方法论卡：选型、吞吐、可靠、安全、故障、表达。视角分桶，编号以章节为准。</p>
+      <p class="map-switch">换视角：<a href="mind-core-methodology.html">权威（与本章同构）</a> · <a href="mind-core-methodology-dao-fa-shu.html">R2 道法术器势贯穿</a> · <strong>R3 场景六桶</strong></p>
+      <div class="map-legend">
+        <span><span class="map-dot" style="background:#2563eb"></span>选型</span>
+        <span><span class="map-dot" style="background:#d97706"></span>吞吐</span>
+        <span><span class="map-dot" style="background:#059669"></span>可靠</span>
+        <span><span class="map-dot" style="background:#7c3aed"></span>安全</span>
+        <span><span class="map-dot" style="background:#e11d48"></span>故障</span>
+        <span><span class="map-dot" style="background:#64748b"></span>表达</span>
+      </div>
+    </section>
+
+    <div class="map-body">
+      <p class="map-note">视角分桶，编号以章节为准。本页不进阅读主链。颜色与图例对应六桶。</p>
+      <section class="map-overview cols-3" aria-label="六桶总览">
+        <div class="map-col col-dao">
+          <h2 style="color:#2563eb">选型与边界</h2>
+          <ul>
+            <li>第一性、抽象、边界、原则、风格</li>
+          </ul>
+        </div>
+        <div class="map-col col-shu">
+          <h2 style="color:#d97706">吞吐与扩展</h2>
+          <ul>
+            <li>拆分、背压、容量、性能</li>
+          </ul>
+        </div>
+        <div class="map-col col-fa">
+          <h2 style="color:#059669">可靠与一致</h2>
+          <ul>
+            <li>失败、一致、容灾、冗余</li>
+          </ul>
+        </div>
+        <div class="map-col" style="border-top:3px solid #7c3aed">
+          <h2 style="color:#7c3aed">安全与合规</h2>
+          <ul>
+            <li>纵深、认证、数据、密码学</li>
+          </ul>
+        </div>
+        <div class="map-col col-shi">
+          <h2 style="color:#e11d48">故障与演进</h2>
+          <ul>
+            <li>稳态、骨架、排障、复盘</li>
+          </ul>
+        </div>
+        <div class="map-col col-qi">
+          <h2 style="color:#64748b">表达与对齐</h2>
+          <ul>
+            <li>节奏、考点、架构思维、结构化</li>
+          </ul>
+        </div>
+      </section>
+      <div class="mermaid-container">
+        <!-- prettier-ignore -->
+        <div class="mermaid">
+flowchart TB
+  S[场景六桶]
+  S --> B1["选型与边界"]
+  S --> B2["吞吐与扩展"]
+  S --> B3["可靠与一致"]
+  S --> B4["安全与合规"]
+  S --> B5["故障与演进"]
+  S --> B6["表达与对齐"]
+  style S fill:#f3e8ff,stroke:#7c3aed
+  style B1 fill:#dbeafe,stroke:#2563eb
+  style B2 fill:#fef3c7,stroke:#d97706
+  style B3 fill:#dcfce7,stroke:#059669
+  style B4 fill:#ede9fe,stroke:#7c3aed
+  style B5 fill:#ffe4e6,stroke:#e11d48
+  style B6 fill:#e2e8f0,stroke:#64748b
+        </div>
+        <div class="chart-caption">图 R3 六桶只改分组，外链仍是同一套 M 号</div>
+      </div>
+      <details class="map-card" id="b-选型与边界">
+        <summary>选型与边界（21）</summary>
+        <ul class="map-id-list">
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M01.01">M01.01 第一性原理思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M01.03">M01.03 抽象与系统思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M01.04">M01.04 取舍思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M01.06">M01.06 定性与定量思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M02.01">M02.01 复杂度控制思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M02.02">M02.02 边界思维（高内聚低耦合）</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M02.05">M02.05 面向问题与业务思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M02.06">M02.06 数据驱动思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M02.07">M02.07 成本思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M03.01">M03.01 SOLID 设计原则</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M03.02">M03.02 简洁三原则 DRY/KISS/YAGNI</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M03.03">M03.03 高内聚低耦合与关注点分离</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M04.01">M04.01 领域驱动设计 DDD</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M04.02">M04.02 设计模式与持续重构</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M04.03">M04.03 整洁架构/六边形/洋葱架构</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M05.02">M05.02 黄金路径降低认知负荷</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M05.03">M05.03 架构决策记录（ADR）</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.05">M06.05 服务自治与数据优先</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.06">M10.06 存储引擎选型</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M12.05">M12.05 框架与数据访问思维（Spring/事务/N+1）</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M12.06">M12.06 Spring 代理边界与配置契约</a></li>
+        </ul>
+      </details>
+      <details class="map-card" id="b-吞吐与扩展">
+        <summary>吞吐与扩展（25）</summary>
+        <ul class="map-id-list">
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.04">M06.04 无状态优先</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.08">M06.08 分层定位与连接是资源</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.01">M08.01 单点拆分思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.02">M08.02 拆分顺序</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.03">M08.03 异步解耦</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.04">M08.04 水平扩展</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.05">M08.05 计划驱动与扩展前先单机</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.06">M08.06 背压机制</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.07">M08.07 背压是契约与半响应式零容忍</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.09">M08.09 负载分型与取消一等公民</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.10">M08.10 并发容量定律</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M08.11">M08.11 高并发设计流程</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.03">M09.03 流量治理三板斧</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.06">M09.06 容量评估方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.01">M10.01 高性能思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.02">M10.02 调优先定目标函数</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.03">M10.03 高性能方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.04">M10.04 局部性思维与原理</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.05">M10.05 缓存策略</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.07">M10.07 空间换时间</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M10.08">M10.08 性能优化流程</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M12.01">M12.01 并发思维（JMM/不可变/虚拟线程）</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M12.02">M12.02 并发先三性后原语</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M12.03">M12.03 JVM 思维</a></li>
+        </ul>
+      </details>
+      <details class="map-card" id="b-可靠与一致">
+        <summary>可靠与一致（17）</summary>
+        <ul class="map-id-list">
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.01">M06.01 面向失败设计（熔断/降级/限流）</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.02">M06.02 迟滞阈值与稳定窗口</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.03">M06.03 隔离原则（故障/资源/数据）</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M07.01">M07.01 一致模型先行与故障域隔离</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M07.02">M07.02 缓存非源与一致性选代价</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M07.03">M07.03 分布式思维（最终一致/Saga/TCC）</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.01">M09.01 高可用思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.02">M09.02 高可用方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.04">M09.04 容灾架构方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.07">M09.07 分布式一致性方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.08">M09.08 消息可靠性方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.09">M09.09 CAP / BASE / PACELC</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.10">M09.10 渐近一致性</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.11">M09.11 冗余与容错</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.14">M09.14 高可用保障流程</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M11.02">M11.02 副作用幂等与超时预算</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M11.03">M11.03 对账兜底思维</a></li>
+        </ul>
+      </details>
+      <details class="map-card" id="b-安全与合规">
+        <summary>安全与合规（5）</summary>
+        <ul class="map-id-list">
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M13.01">M13.01 安全设计思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M13.02">M13.02 纵深防御方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M13.03">M13.03 认证授权方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M13.04">M13.04 数据保护方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M13.05">M13.05 密码学选型原则</a></li>
+        </ul>
+      </details>
+      <details class="map-card" id="b-故障与演进">
+        <summary>故障与演进（22）</summary>
+        <ul class="map-id-list">
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M01.02">M01.02 稳态与闭环反馈</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M01.05">M01.05 演进思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M01.07">M01.07 技术债管理</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M02.03">M02.03 故障与风险前置思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M02.04">M02.04 防御式编程思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M05.01">M05.01 事前-事中-事后</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M05.04">M05.04 TDD/BDD 与工程实践</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.06">M06.06 回滚优先与安全发布</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M06.07">M06.07 可观测性三支柱</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.05">M09.05 安全发布方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.12">M09.12 SLO 与错误预算</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M09.13">M09.13 混沌工程</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M11.01">M11.01 变更可回滚与错误预算</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M12.04">M12.04 JVM 落区归因与容器预算</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M14.01">M14.01 AI 变更必回归与工具有契约</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M15.01">M15.01 线上排障思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M15.02">M15.02 排障证据链</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M15.03">M15.03 线上问题处理方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M15.04">M15.04 故障自愈方法论</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M15.05">M15.05 可观测性原则</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M15.06">M15.06 5Whys 复盘</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M15.07">M15.07 线上问题处理流程</a></li>
+        </ul>
+      </details>
+      <details class="map-card" id="b-表达与对齐">
+        <summary>表达与对齐（4）</summary>
+        <ul class="map-id-list">
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M16.01">M16.01 主导技术沟通节奏</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M16.02">M16.02 反推考点</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M16.03">M16.03 展现架构思维</a></li>
+          <li><a href="../java-architect-interview/chapter-core-methodology.html#M16.04">M16.04 结构化表达</a></li>
+        </ul>
+      </details>
+    </div>
+    <div class="site-page-nav site-page-nav--bottom">
+      <nav class="chapter-nav">
+        <a href="mind-core-methodology.html" class="nav-home">← 权威导图</a>
+        <span class="nav-center"><a href="../java-architect-interview/index.html" class="nav-mind">全部章节 &#8599;</a><a href="index.html" class="nav-mind">导图总览 &#8599;</a><a href="../java-architect-interview/chapter-core-methodology.html" class="nav-mind">本导图对应的章节 &#8599;</a></span>
+        <a href="mind-core-methodology-dao-fa-shu.html" class="nav-next">R2 道法术器势 →</a>
+      </nav>
+    </div>
+    <script src="../java-architect-interview/assets/nav.js"></script>
+    <script defer src="../java-architect-interview/shared/js/mermaid.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || { startOnLoad: true, theme: "base", securityLevel: "loose", flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" }, sequence: { useMaxWidth: true, mirrorActors: false } });
+      });
+    </script>
+  </body>
+</html>

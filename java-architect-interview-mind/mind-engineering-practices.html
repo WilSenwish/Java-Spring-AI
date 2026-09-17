@@ -426,7 +426,7 @@ flowchart LR
         <div class="chart-caption">图 2 变更单自检三问：任一否决即退回，禁止靠感觉放量</div>
       </div>
 
-      <h3 class="theme-h">G01 · 发布回滚与变更门禁 <span class="qline">· 与 M04.06 / M06.02 互补</span></h3>
+      <h3 class="theme-h">G01 · 发布回滚与变更门禁 <span class="qline">· 与 M06.06 / M11.01 互补</span></h3>
       <details class="map-card">
         <summary>G01.01 · 发布三要素：灰度·卡点·回滚 <span class="qline">→ 正文</span></summary>
         <div class="map-body-text">
@@ -530,7 +530,7 @@ flowchart LR
         </div>
       </details>
 
-      <p class="map-note" style="border:none;margin:0 0 0.5rem;padding:0">本组管「变更怎么上、怎么退」。代码、配置、框架升级都当发布：没有灰度与卡点不扩量，没有演练过的回滚不上线。与 M04.06 / M06.02 互为思维与门禁。</p>
+      <p class="map-note" style="border:none;margin:0 0 0.5rem;padding:0">本组管「变更怎么上、怎么退」。代码、配置、框架升级都当发布：没有灰度与卡点不扩量，没有演练过的回滚不上线。与 M06.06 / M11.01 互为思维与门禁。</p>
 
       <h3 class="theme-h">G02 · 可观测与排障证据链</h3>
       <details class="map-card">
@@ -555,7 +555,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>故障现场先止血再取证：保留现场（日志段、指标窗口、堆栈/转储、变更单），再离线分析。现场长时间 debug 拉长 MTTR，是最大的反模式。</p>
           <p><strong>反模式：</strong>一上来重启丢掉现场；多人并行改配置无指挥；把「感觉像是缓存」当归因；交接班只交感觉不交证据包。</p>
-          <p><strong>原理：</strong>标准动作链：分区归因（变更？流量？依赖？资源？）→ 采证 → 假设 → 验证 → 固化 Runbook。与线上问题主题 M06.01、M11 证据优于经验对齐。</p>
+          <p><strong>原理：</strong>标准动作链：分区归因（变更？流量？依赖？资源？）→ 采证 → 假设 → 验证 → 固化 Runbook。与线上问题主题 M15.02、M11 证据优于经验对齐。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>复盘输出：时间线、根因、改进项负责人与截止日期。</li>
@@ -659,7 +659,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>线程池、连接池、信号量的拒绝策略必须可观测：拒绝次数、队列等待、活跃数进指标与告警。静默拒绝等于悄悄丢业务——拒绝是保护机制，必须让调用方与值班同时看见。</p>
           <p><strong>反模式：</strong>拒绝只打本地日志；Caller 无感知继续重试打穿；虚拟线程不限制下游并发把 DB 打爆。</p>
-          <p><strong>原理：</strong>Caller 需感知背压（快速失败/降级），Callee 需暴露饱和信号。与 M06.16 背压是契约、M07.05 背压主题同构。</p>
+          <p><strong>原理：</strong>Caller 需感知背压（快速失败/降级），Callee 需暴露饱和信号。与 M08.07 背压是契约、M08.06 背压主题同构。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>看板固定：拒绝 QPS、排队 P99、活跃线程/连接、下游错误率。</li>
@@ -780,7 +780,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>分库分表、读写分离前先压榨单机：索引、SQL、缓存、批量、异步。过早拆分把复杂度前置，却不一定换来容量——拆分是架构税，要用证据证明值得交。</p>
           <p><strong>反模式：</strong>为了微服务而拆库；未解决热点就按用户 ID 哈希；无对账上双写；读写分离当银弹忽视复制延迟语义。</p>
-          <p><strong>原理：</strong>与 M06.10「扩展前先单机」同构：先证明瓶颈在容量而非实现。拆分后的事务、对账、路由、热点、跨库查询成本要写进 ADR。</p>
+          <p><strong>原理：</strong>与 M08.05「扩展前先单机」同构：先证明瓶颈在容量而非实现。拆分后的事务、对账、路由、热点、跨库查询成本要写进 ADR。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>第一期交付：可回滚路由 + 对账任务 + 观察看板。</li>
@@ -850,7 +850,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>缓存穿透/击穿/雪崩与缓存集群故障时，必须有降级：回源限流、默认值、只读旧数据、熔断依赖，禁止无限回源打穿 DB。缓存挂了系统仍应「降级可用」，而不是「更不可用」。</p>
           <p><strong>反模式：</strong>无互斥重建导致击穿；空值不缓存导致穿透；多级缓存失效顺序未定义层层放大；故障时关闭限流「先顶住」。</p>
-          <p><strong>原理：</strong>失败模式要在设计期声明：一致性窗口、过期策略、互斥重建、布隆/空值缓存、回源配额。与 M06.11 缓存非源同构。</p>
+          <p><strong>原理：</strong>失败模式要在设计期声明：一致性窗口、过期策略、互斥重建、布隆/空值缓存、回源配额。与 M07.02 缓存非源同构。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>Runbook：何时开降级、何时允许回源、何时止损回滚。</li>
@@ -867,7 +867,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>缓存与 DB 的一致性不是「最终会一致」一句话，而要写成契约：窗口时长、读路径（主/从/缓存）、用户可感语义。窗口内允许什么、不允许什么，产品与研发必须同一张纸。</p>
           <p><strong>反模式：</strong>口头最终一致；延迟双删无窗口说明；读写分离延迟当缓存一致；变更缓存策略不走发布。</p>
-          <p><strong>原理：</strong>Cache-Aside / Write-Through / 延迟双删各有代价：写失败、删失败、并发读写窗口不同。先定一致模型，再选组件（M06.11 / M06.12）。</p>
+          <p><strong>原理：</strong>Cache-Aside / Write-Through / 延迟双删各有代价：写失败、删失败、并发读写窗口不同。先定一致模型，再选组件（M07.02 / M07.01）。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>排障话术：先确认读路径与变更窗口。</li>
@@ -884,7 +884,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>热 key 与大 key 必须专项治理：拆分、本地缓存、复制、压缩、拆 value。热点会把集群变成单点——大促前不知道热点在哪，等于不知道单点在哪。</p>
           <p><strong>反模式：</strong>全站一个「热门商品」键；巨型 Hash/List 不拆；只加机器不打散；热点清单无主人。</p>
-          <p><strong>原理：</strong>发现靠：代理层热点统计、大 key 扫描、慢查询、分片 CPU。治理按「打散」：哈希标签、分片、多副本只读、本地缓存短 TTL。与高并发热点 M07.06 对齐。</p>
+          <p><strong>原理：</strong>发现靠：代理层热点统计、大 key 扫描、慢查询、分片 CPU。治理按「打散」：哈希标签、分片、多副本只读、本地缓存短 TTL。与高并发热点 M08.08 对齐。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>清单含：key 模式、QPS、分片、负责人、预案（拆分/本地缓存/限流）。</li>
@@ -954,7 +954,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>同步调用链的超时必须可加总：各跳超时之和小于用户超时，并留重试与排队余量。无预算的超时 = 随机故障。超时是分布式系统的第一公民，不是调优参数。</p>
           <p><strong>反模式：</strong>每跳都 3s 叠出 30s；入口超时短于下游；无限重试；超时后仍继续写。</p>
-          <p><strong>原理：</strong>超时、重试、幂等、熔断一起设计。与 M06.03 超时预算、M06.08 负载分型与取消同构。</p>
+          <p><strong>原理：</strong>超时、重试、幂等、熔断一起设计。与 M11.02 超时预算、M08.09 负载分型与取消同构。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>写路径重试必须幂等键或去重表。</li>
@@ -988,7 +988,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>消息与 DB 双写禁止「先发消息再写库」无补偿；用 Outbox / CDC / 事务消息保证至少一次投递后的可对账。双写是分布式一致的经典陷阱，必须有模式而不是有感觉。</p>
           <p><strong>反模式：</strong>本地事务外发消息；消费者无幂等；CDC 乱序无版本；表结构变更打断解析无兼容策略。</p>
-          <p><strong>原理：</strong>最终一致三件套：幂等消费、可重试、对账（M06.04 / M06.12）。Outbox 与业务同事务；CDC 注意顺序、表结构变更兼容；乱序用版本或聚合键。</p>
+          <p><strong>原理：</strong>最终一致三件套：幂等消费、可重试、对账（M11.03 / M07.01）。Outbox 与业务同事务；CDC 注意顺序、表结构变更兼容；乱序用版本或聚合键。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>对账任务进值班看板，差异超阈告警可行动。</li>
@@ -1058,7 +1058,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>Prompt、模型 ID、检索配置、工具实现、编排图全部版本化，可对齐回放与一键回退；版本号进日志与审计。AI 变更面远大于普通服务，版本化是唯一可回放手段。</p>
           <p><strong>反模式：</strong>线上手改 Prompt 无版本；模型静默切换；无法从一条回答追溯制品组合；回滚靠「凭记忆再改回去」。</p>
-          <p><strong>原理：</strong>与 M06.14 AI 变更必回归同构：制品不可追溯则回归无意义。多模型路由、AB 实验桶、检索索引版本一并纳入制品清单。</p>
+          <p><strong>原理：</strong>与 M14.01 AI 变更必回归同构：制品不可追溯则回归无意义。多模型路由、AB 实验桶、检索索引版本一并纳入制品清单。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>审计：任一线上回答能追溯到制品组合。</li>
@@ -1075,7 +1075,7 @@ flowchart LR
         <div class="map-body-text">
           <p><strong>红线：</strong>任何改动必须过固定黄金集/测试集回归；无测试集不上线。离线指标 + 小流量线上数据双确认后再全量。个例体验不是评测，是采样偏差。</p>
           <p><strong>反模式：</strong>只看 demo 好不好；无安全用例；线上全量后再补评测；用变化的测试集宣称提升。</p>
-          <p><strong>原理：</strong>评测是门禁不是演示：通过率阈值、回归报告、失败用例归因（模型/检索/工具/提示词）要可拆。与 M06.14、M01.06 定性定量同构：先定量门槛，再谈主观体验。</p>
+          <p><strong>原理：</strong>评测是门禁不是演示：通过率阈值、回归报告、失败用例归因（模型/检索/工具/提示词）要可拆。与 M14.01、M01.06 定性定量同构：先定量门槛，再谈主观体验。</p>
           <p><strong>门禁清单：</strong></p>
           <ul>
             <li>表达：先报评测数字，再报主观体验。</li>
@@ -1281,7 +1281,7 @@ flowchart LR
         尾注：工程化
         <span class="kb-count" data-kb-count="engineering" data-kb-pos="P78">65</span>
         卡（专篇）；题目总量（C+E+S）<span class="kb-count" data-kb-count="total" data-kb-pos="P79">398</span>（篇章+核心原理+场景）；方法论
-        <span class="kb-count" data-kb-count="methodology" data-kb-pos="P80">91</span>
+        <span class="kb-count" data-kb-count="methodology" data-kb-pos="P80">94</span>
         卡（专篇）。本页补强红线/反模式/门禁清单与八组互锁；三层正文、变更单字段与验收话术以章节页为准。
       </p>
     </div>

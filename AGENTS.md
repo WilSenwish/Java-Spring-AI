@@ -9,15 +9,15 @@
 
 - `index.html`：站点总目录（聚合统计页，三权威源之一）
 - `java-architect-interview/`：章节站。方法论页 `chapter-core-methodology.html`、工程化要点页 `chapter-engineering-practices.html`、生产踩坑页 `chapter-production-pitfalls.html`、`chapter-01~15-*`、`chapter-questions-eight-part.html`（核心原理）、`chapter-questions-scenario.html`（场景）、`nav-server-security-checkpoint.html`、`nav-overview-priority.html`（导航聚合页；前缀 nav- 表示非篇章题）
-- `java-architect-interview-mind/`：导图站，19 个 `mind-*.html`，与章节页一一对应互链
+- `java-architect-interview-mind/`：导图站，21 个 `mind-*.html`（19 主链 + R2/R3 视角），与章节页互链
 - 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`（导图站相对路径引用同套文件）
 
-**卡片编号**：`M##.##`（方法论，M01~M12 共 91 卡）/ `G##.##`（工程化，G01~G08 共 64 卡）/ `K##.##`（踩坑，K01~K08 共 64 卡）/ `C##.##`（篇章 249）/ `E##.##`（核心原理 73）/ `S##.##`（场景 73）。
+**卡片编号**：`M##.##`（方法论，M01~M16 共 94 卡）/ `G##.##`（工程化，G01~G08 共 64 卡）/ `K##.##`（踩坑，K01~K08 共 64 卡）/ `C##.##`（篇章 249）/ `E##.##`（核心原理 73）/ `S##.##`（场景 73）。
 
 ## 2. 硬红线（违反即返工）
 
 1. **禁止预览/打开任何 HTML 做可视化确认**。预览服务会持有文件并回写注入 `data-page-node-id` 属性（历史上单文件被注入 6517 处）。交付方式：**绝对路径 + 文字结论**。
-2. **`data-page-node-id` 全站必须为 0**。改动后必须扫描确认（42 个 HTML 文件）。
+2. **`data-page-node-id` 全站必须为 0**。改动后必须扫描确认（46 个 HTML 文件）。
 3. **禁用词**：`面试`、`面试官`、`八股`。全站已清除，新增内容一律不得出现。
    术语映射：面试→知识点/技术沟通；面试题→知识点；八股→核心原理；层名「面试应用」→「工程表达」（`data-layer="application"` 英文值不动）。
 4. **`docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
@@ -44,11 +44,11 @@
 - 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
 - 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
 - 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **91 卡**（M01~M12，专篇键 methodology；**不分难度等级**）
+- 方法论 **94 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 45/91（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 45/94（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -443,6 +443,10 @@
 | P396 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_12 |
 | P397 | `java-architect-interview-mind/mind-server-security-checkpoint.html` | 升格 local:mind-note-local → struct.mind.mind-server-security-checkpoint.mind-note-local_1 |
 | P398 | `java-architect-interview-mind/mind-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_13 |
+| P399 | `index.html` | 根 index 方法论 M13 组卡数 |
+| P400 | `index.html` | 根 index 方法论 M14 组卡数 |
+| P401 | `index.html` | 根 index 方法论 M15 组卡数 |
+| P402 | `index.html` | 根 index 方法论 M16 组卡数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

@@ -4,7 +4,7 @@
 
 ## 1. 题号前缀与三级目录
 
-- 篇章页：`chapter-core-methodology.html` 用 **M**（分组 M01~M12，共 91 卡，如 `M01.06` / `M12.01`；序章：M01~M05=核心哲学/通用核心思维模式/通用方法论/通用架构与工程原则/Java 生态思维，M12=生产与领域思维速查，M06~M10=高并发/高可用/高性能/安全/线上问题处理，M11=附录实战表达），`chapter-engineering-practices.html` 用 **G**（G01~G08，卡数见 `engineering`，方法论同款三层 insight/principle/application，专篇键），`chapter-01~15` 用 **C**（如 `C10.26`）。
+- 篇章页：`chapter-core-methodology.html` 用 **M**（分组 M01~M16，共 94 卡，如 `M01.02` / `M16.04`；道 M01–M02，法 M03–M07，术 M08–M16 且 M12 在 TOC 收口、R2 仍标法），`chapter-engineering-practices.html` 用 **G**（G01~G08，卡数见 `engineering`，方法论同款三层 insight/principle/application，专篇键），`chapter-01~15` 用 **C**（如 `C10.26`）。
 - 核心原理页：`E`（如 `E07.02`）。
 - 场景页：`S`（如 `S04.06`），按 `group-N` 归组（微服务架构 / 并发 / 数据库 …）。
 - 目录层级：页面篇章 / 分组 / 题号。
@@ -222,14 +222,14 @@
 ### 5.4 `java-architect-interview-mind/index.html`（导图导航）
 - 顶部 `idx-meta` 固定 **5** 格（`.idx-meta` 五列；窄屏两列）：
   1. `1+1+1+15+1` — 方法论 + 工程化 + 踩坑 + 篇章 + 服务端安全手册
-  2. `19` — 思维导图页（+ mind-production-pitfalls）
+  2. `21` — 思维导图页（主链 19 + R2/R3 视角；`mind_pages`）
   3. 方法论卡片数（`methodology`，P08）
   4. 工程化要点卡片数（`engineering`，P26）
   5. 生产踩坑卡片数（`pitfalls`，P93）
   6. `N+N+N` — Q&A · 原理 · 场景（取值见 COUNTS / P57–P59）
 - 每张卡片底部 `card-foot` 计数口径（改题后必须同步）：
   - **篇章卡 mind-01~15**：`章节 N` = 对应 `chapter-NN` 的 C 卡数；`原理 N` / `场景 N` = 该 mind 页 `<summary>` 中实际列出的 E / S 卡数（无则省略该 chip）。
-  - **方法论卡**：`91 卡 · 12 组`（M01~M12）。
+  - **方法论卡**：`94 卡 · 16 组`（M01~M16）。
   - **工程化卡**：`24 卡 · 8 组`（G01~G08）。
   - **安全手册卡**：`手册 7 章` + 该 mind 页并入的原理/场景数。
 - `idx-meta` 题量表达式形如 `篇章+原理+场景`（取值见 COUNTS，勿写死旧数）。
@@ -244,11 +244,11 @@
 - 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
 - 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
 - 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **91 卡**（M01~M12，专篇键 methodology；**不分难度等级**）
+- 方法论 **94 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 45/91（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 45/94（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -643,6 +643,10 @@
 | P396 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_12 |
 | P397 | `java-architect-interview-mind/mind-server-security-checkpoint.html` | 升格 local:mind-note-local → struct.mind.mind-server-security-checkpoint.mind-note-local_1 |
 | P398 | `java-architect-interview-mind/mind-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_13 |
+| P399 | `index.html` | 根 index 方法论 M13 组卡数 |
+| P400 | `index.html` | 根 index 方法论 M14 组卡数 |
+| P401 | `index.html` | 根 index 方法论 M15 组卡数 |
+| P402 | `index.html` | 根 index 方法论 M16 组卡数 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

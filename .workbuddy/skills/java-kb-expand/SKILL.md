@@ -43,11 +43,11 @@ agent_created: true
 - 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
 - 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
 - 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **91 卡**（M01~M12，专篇键 methodology；**不分难度等级**）
+- 方法论 **94 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 45/91（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 45/94（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -442,6 +442,10 @@ agent_created: true
 | P396 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_12 |
 | P397 | `java-architect-interview-mind/mind-server-security-checkpoint.html` | 升格 local:mind-note-local → struct.mind.mind-server-security-checkpoint.mind-note-local_1 |
 | P398 | `java-architect-interview-mind/mind-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_13 |
+| P399 | `index.html` | 根 index 方法论 M13 组卡数 |
+| P400 | `index.html` | 根 index 方法论 M14 组卡数 |
+| P401 | `index.html` | 根 index 方法论 M15 组卡数 |
+| P402 | `index.html` | 根 index 方法论 M16 组卡数 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
