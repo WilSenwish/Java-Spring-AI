@@ -208,7 +208,8 @@ def cmd_apply(cfg):
             assert ms, f"[{pos['id']}] 锚点失效，拒绝写入"
             t = apply_one(t, pos, exp)
         if t != orig:
-            guard_dpni(t, os.path.basename(f))
+            if f.endswith(".html"):
+                guard_dpni(t, os.path.basename(f))
             write(f, t)
             changed.append(os.path.relpath(f, BASE))
     print(f"已写回 {len(changed)} 个文件：" + (", ".join(changed) if changed else "（无差异，未改动）"))
