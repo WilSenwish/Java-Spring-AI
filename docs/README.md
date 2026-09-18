@@ -80,7 +80,7 @@
 | `chapter-13-network-io` | 网络与 IO | `C13.##` | 13 | 标准QA（共用） |
 | `chapter-14-databases` | 数据库扩展 | `C14.##` | 12 | 标准QA（共用） |
 | `chapter-15-reactive` | 响应式编程 | `C15.##` | 6 | 标准QA（共用） |
-| `chapter-core-methodology` | 核心方法论 | `M##.##` | <span class="kb-count" data-kb-count="methodology" data-kb-pos="P10">97</span> | 独享（方法论变体卡片） |
+| `chapter-core-methodology` | 核心方法论 | `M##.##` | <span class="kb-count" data-kb-count="methodology" data-kb-pos="P10">127</span> | 独享（方法论变体卡片） |
 | `chapter-overview-priority` | 知识点大盘与优先级 | `ov-*` 组件 | 359 条目 | 独享（优先级矩阵） |
 | `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | 61 | 独享（epq 速查组件） |
 | `chapter-questions-scenario` | 场景设计题 | `S##.##` | 70 | 独享（场景卡片变体） |
@@ -95,8 +95,8 @@
 ### 3.2 全站难度 / 优先级分布（按卡片）
 
 - 难度三级：`senior`(高级) / `expert`(专家) / `architect`(架构)。**仅覆盖 C/E/S 的 398 题**：专家 46 / 架构师 191 / 高级开发 161。**文案双轨**：标签位一律短表 **专家 / 架构 / 高级**，正文用 **专家 / 架构师 / 高级开发**（见 `format-shared.md` §3.1）。
-- **M/G/K 三专篇不分难度等级**（2026-09-16 长官决策）：无 `data-difficulty`、无 `methodology_*`/`engineering_*`/`pitfalls_senior` 难度计数键、无「方法论难度三级求和」不变式。方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P11">97</span> 卡另计，不与题目难度加总。
-- 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 94/246/58 = 398）；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P12">45</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P13">97</span>）携带；安全手册**不含**优先级。
+- **M/G/K 三专篇不分难度等级**（2026-09-16 长官决策）：无 `data-difficulty`、无 `methodology_*`/`engineering_*`/`pitfalls_senior` 难度计数键、无「方法论难度三级求和」不变式。方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P11">127</span> 卡另计，不与题目难度加总。
+- 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 94/246/58 = 398）；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P12">75</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P13">127</span>）携带；安全手册**不含**优先级。
 
 ## 4. 规则文档索引
 

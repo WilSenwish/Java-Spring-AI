@@ -17,7 +17,7 @@ agent_created: true
 题库为**纯静态 HTML 双站**，两站经导航互链：
 
 - **章节站** `java-architect-interview/`：15 个编号篇章页 `chapter-01~15-*.html` + 方法论页 `chapter-core-methodology.html`（M 前缀）+ 工程化要点页 `chapter-engineering-practices.html`（G 前缀）+ 生产踩坑页 `chapter-production-pitfalls.html`（K）+ 安全卡 `nav-server-security-checkpoint.html` + 核心原理页 `chapter-questions-eight-part.html`（E 前缀）+ 场景页 `chapter-questions-scenario.html`（S 前缀）+ 章节导航 `index.html`。
-- **导图站** `java-architect-interview-mind/`：对应 `mind-01~15-*.html` + `mind-core-methodology.html` + `mind-engineering-practices.html` + `mind-server-security-checkpoint.html` + 导图导航 `index.html`（18 个导图页，线性链顺序见 `references/conventions.md` §7）。
+- **导图站** `java-architect-interview-mind/`：对应 `mind-01~15-*.html` + `mind-core-methodology.html`（M） + `mind-core-methodology-dao-fa-shu.html`（R2 道法器势） + `mind-core-methodology-scenario.html`（R3 场景六桶） + `mind-engineering-practices.html`（G） + `mind-production-pitfalls.html`（K） + `mind-server-security-checkpoint.html` + 导图导航 `index.html`（**21 个导图页**，与 `counts.mind_pages` 一致；线性链顺序见 `references/conventions.md` §7）。
 - **项目根** `Java Spring AI/index.html`：全部题目的扁平全量快照（每题一个 `q-item` li，C/E/S 带难度徽标 + `priority-pX` 徽标；**M/G/K 区块无任何徽标**，2026-09-16）。
 
 题号前缀：方法论页用 **M**，工程化要点页用 **G**，`chapter-01~15` 用 **C**，`E` 核心原理、`S` 场景。卡片三级目录为 `页面篇章 / 分组 / 题号`。
@@ -43,11 +43,11 @@ agent_created: true
 - 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
 - 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
 - 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **97 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
+- 方法论 **127 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 45/97（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 75/127（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -549,8 +549,14 @@ agent_created: true
 - **overview 类型三级计数（2026-09-13）**：每个难度子组内须有 `ov-type`（篇章/核心原理/场景题）分块；禁止只挂一个「篇章」标题却混入 E/S。`ov-type-count` 必须=块内题数。见 `conventions.md` §5.1.3/§5.1.4；`validate_kb` 3b2。
 - **overview `ov-stat-num` 共 10 项全要改**：题目总数/P0/P1/P2/专家/架构/高级/章节题/核心原理/场景题（顺序见 `ov_stat_order`；**不含方法论**——方法论只在专篇页与各 index 呈现）。最易漏的是「章节题」（篇章数）与「核心原理」（紧随「章节题」），漏改会导致 overview 与根 index、章节 index 的计数不一致。另须同步组标题/`ov-nav-cnt`/页头副标题「全站 N 道（篇章+原理+场景）」。
 - **禁止全站合计**：跨大篇章/聚合只动 total（C+E+S）；加 M/G/K 只 bump 对应键，**不要**再维护 sum_all（已废除）。
-- **mind 导图页数 19 与题量无关**（`mind_pages` = mind-01~15 + mind-core-methodology + mind-engineering-practices + **mind-production-pitfalls** + mind-server-security-checkpoint；**勿漏踩坑页**，本处曾误记为 18）；`idx-meta` 五格含方法论/工程化卡数与 `N+N+N`；改题同步对应 `card-foot`。
+- **mind 导图页数 21 与题量无关**（`mind_pages` = mind-01~15 + mind-core-methodology + **mind-core-methodology-dao-fa-shu（R2 道法器势）** + **mind-core-methodology-scenario（R3 场景六桶）** + mind-engineering-practices + **mind-production-pitfalls** + mind-server-security-checkpoint；**勿漏踩坑页与 R2/R3**，本处曾误记为 18 → 19）；`idx-meta` 五格含方法论/工程化卡数与 `N+N+N`；改题同步对应 `card-foot`。
 - **`dir-group-count` / `group-count` / 篇章 `dir-count` 必须等于实际卡片数**；M12 禁止嵌套进「一、高并发」。
+- **M 卡（方法论）的跨文件同步面 = 5 文件，且不含 overview（2026-09-18 实测，方法论重构 97→127 卡）**：M 卡新增/重编号须同步 ① `chapter-core-methodology.html`（卡本体三层 + 侧栏 TOC + 本组 mermaid 节点与 `style` + 本组 mod-hang 下挂矩阵 + 全库挂网总表行 + 页内 `methodology` 计数 span）② 根 `index.html`（对应 M 组内的 `li.q-item` + `struct.root.dir_group_N`）③ `mind-core-methodology.html`（`<details class="map-card">`，其中 **`map-body-text` = 该卡 insight 层首段纯文本**，实测与存量 70/97 精确一致）④ `mind-core-methodology-dao-fa-shu.html`（**R2**，各模块 `details` 内 `ul.map-id-list`）⑤ `mind-core-methodology-scenario.html`（**R3**，六桶 `details` 内 `ul.map-id-list` + 桶 `summary` 的 `（N）` 计数）。**`nav-overview-priority.html` 全文 0 个 M 卡号、0 个 `methodology` 计数位 → M 卡不需要同步 overview**（与 C/E/S 卡不同，勿照搬其 9 项清单）。
+- **M 卡批量同步的三个坑（2026-09-18 实测）**：① **卡清单容器类名不统一**——根 `index.html` 用 `ul.q-list`，mind/R2/R3 用 `ul.map-id-list`，批量脚本的容器定位不可写死；② **两道门禁都覆盖不到 M 卡清单**：`sync_counts.py check` 只校验「已登记计数位」（`struct.root.dir_group_N` 登记在内，故真源与站点同为旧值时 check 全绿而内容陈旧）、`validate_kb.py` 也不逐卡校验 M 卡落位（新卡 0 条记录）——**章节 +N 卡而某导图页漏补时两者都不报错**，必须自行逐卡断言「四文件各 N/N 命中」；③ **改根 index 的 M 组计数即须 bump 真源**（`struct.root.dir_group_4/8/9` 是已登记键），否则 `check` 会从 393/393 掉到 390/393。
+- **多文件批量写盘一律「先算后写」（2026-09-18 实测）**：把各文件的替换与断言全部在内存跑完（`[(path, new_text, msg), …]`），**全部通过后才逐个 `open(...,'w')`**。本轮 4 文件同步首版按「算一个写一个」，`sync_root` 已写盘、`sync_mind` 断言失败，留下半写状态；改「先算后写」后同类失败零副作用。
+- **悬空卡号核查须逐号精确匹配（2026-09-18 实测）**：用 `M0[12]\.0[47]` 这类字符组会把**合法卡号** `M01.04`/`M02.07` 一并吞入造成假阳性；重编号后核查须逐个写全 `M01.07`、`M02.04`。
+- **Mermaid 节点 ID 禁含 `.`（2026-09-18 实测，方法论重构遗留）**：M 卡节点 ID 规约为 **`NM` + 卡号去点**（`NM0101` / `NM0505` / `NM0611`），即 `'NM' + cid[1:].replace('.','')`。误用 `cid.replace('M','')` 会生成 `NM05.15` / `NM06.11` 这类**含点 ID** —— `.` 在 Mermaid 中被解析为 class 选择器，节点与 `style` 行双双失效。本轮 M05.15–M05.25 + M06.11 共 **12 节点 × 2（节点定义 + style）= 24 处** 因此遗留，后经 `NM(\d{2})\.(\d{2})` → `NM\1\2` 全量归位。**核查**：全站每个 `<div class="mermaid">` 块内 `NM\d{2}\.\d{2}` 须为 0；同图节点数应等于该组卡数（如 M05 图 25、M06 图 11），`style` 数亦然。
+- **历史设计/登记文档的重编号残留不要机械替换（2026-09-18 实测）**：`docs/plans/*.md`、`方法论篇章重构建议.md`、`方法论篇章落地追踪.md` 中的旧卡号属**规划期编号与映射记录**，且规划期编号与最终编号**并不同构**（如 id-map 的 `M01.07` 指「稳态与闭环反馈」、建议文档 §元认知层指「定性定量」，落地后才是「技术债管理」）；机械替换会制造语义错误并摧毁可追溯性。**这类残留应保留**，只清站点（HTML）内的悬空引用。散文里的「原 M01.07」「（升法）」类批注才属须清除的内部标记。
 - **`</spa` 误判**：截断检测用负向前瞻排除合法 `</span>`（正则 `</spa(?!n>)`）。
 - **路径双层**：`Java Spring AI/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
 - **Bash 内置 `grep` 受 `_zshz` 干扰**：交叉验证用 `Grep` 工具或 `git grep`。
