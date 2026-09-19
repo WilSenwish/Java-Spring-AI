@@ -43,8 +43,8 @@
 
   /* ---------- 数据 ---------- */
   var IDEA_COLORS = {
-    i1: "#2563eb", i2: "#7c3aed", i3: "#059669", i4: "#d97706", i5: "#db2777",
-    i6: "#1e3a8a", i7: "#6d28d9", i8: "#b45309", i9: "#0f766e"  /* 深度透镜⑥~⑨ */
+    i1: "#3b82f6", i2: "#8b5cf6", i3: "#22c55e", i4: "#f59e0b", i5: "#ec4899",
+    i6: "#14b8a6", i7: "#65a30d", i8: "#d946ef", i9: "#ef4444"  /* 深度透镜⑥~⑨，色相与一~五交错 */
   };
   // 雷达：九思路 × 五维度（1-5 分，仅示意性相对强度）
   var RADAR_AXES = ["抽象深度", "场景广度", "组织维度", "落地实操", "哲学深度"];
@@ -77,7 +77,7 @@
   function renderRadar() {
     var svg = document.getElementById("radar");
     if (!svg) return;
-    var cx = 175, cy = 175, maxR = 132, n = RADAR_AXES.length, levels = 5;
+    var cx = 210, cy = 210, maxR = 118, n = RADAR_AXES.length, levels = 5;
     var ns = "http://www.w3.org/2000/svg";
     function pt(i, r) {
       var ang = (-90 + i * (360 / n)) * Math.PI / 180;
@@ -106,7 +106,7 @@
       html += '<polygon class="radar-poly" points="' + pts.join(" ") + '" fill="' + IDEA_COLORS[s.key] + '" stroke="' + IDEA_COLORS[s.key] + '"/>';
       for (var m = 0; m < n; m++) { var pp = pt(m, maxR * s.v[m] / levels); html += '<circle cx="' + pp[0].toFixed(1) + '" cy="' + pp[1].toFixed(1) + '" r="2.6" fill="' + IDEA_COLORS[s.key] + '"/>'; }
     });
-    svg.setAttribute("viewBox", "0 0 350 350");
+    svg.setAttribute("viewBox", "0 0 420 420");
     svg.innerHTML = html;
     // 图例
     var leg = document.getElementById("radarLegend");
