@@ -282,6 +282,9 @@
             <li>
               <a href="#K07.08"><span class="toc-number">K07.08</span>评测集被业务刷题</a>
             </li>
+            <li>
+              <a href="#K07.09"><span class="toc-number">K07.09</span>模型别名未固定致质量静默漂移</a>
+            </li>
           </ol>
         </div>
         <div class="toc-group">
@@ -321,11 +324,11 @@
           <h1 class="chapter-title">生产踩坑</h1>
           <p class="chapter-subtitle">
             与工程化门禁同域的事故翻车专篇：八组共
-            <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P94">64</span> 卡（K 前缀）。回答「线上真实怎么翻车、如何识别与止血」——门禁在 G，叙事与值班动作在 K。
+            <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P94">65</span> 卡（K 前缀）。回答「线上真实怎么翻车、如何识别与止血」——门禁在 G，叙事与值班动作在 K。
           </p>
           <p class="meth-frame">事故是<strong>反器</strong>；骨架见 <a href="chapter-core-methodology.html#prologue">核心方法论</a>。</p>
           <div class="chapter-meta">
-            <span><span class="kb-count" data-kb-count="pitfalls_groups" data-kb-pos="P348">8</span> 组 · <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P92">64</span> 卡</span>
+            <span><span class="kb-count" data-kb-count="pitfalls_groups" data-kb-pos="P348">8</span> 组 · <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P92">65</span> 卡</span>
             <span class="meta-divider">|</span>
             <span>题目总量（C+E+S）<span class="kb-count" data-kb-count="total" data-kb-pos="P98">400</span></span>
             <span class="meta-divider">|</span>
@@ -1643,7 +1646,7 @@
         <section class="eng-group" id="K07">
           <h2 class="eng-group-title">AI 静默塌方</h2>
 
-          <p class="eng-group-lead">AI 静默塌方组：无黄金集上线质量静默跌、索引切换未双跑召回塌、评测集过拟合、Prompt 热改无版本、工具副作用未分级、成本突增无熔断、影子流量对比缺失、评测集被业务刷题。AI 事故常「功能看似正常」——用黄金集/影子对比/成本熔断发现。</p>
+          <p class="eng-group-lead">AI 静默塌方组：无黄金集上线质量静默跌、索引切换未双跑召回塌、评测集过拟合、Prompt 热改无版本、工具副作用未分级、成本突增无熔断、影子流量对比缺失、评测集被业务刷题、模型别名未固定致静默漂移。AI 事故常「功能看似正常」——用黄金集/影子对比/成本熔断发现。</p>
 
           <div class="qa-card" id="K07.01">
             <div class="qa-header">
@@ -1847,6 +1850,34 @@
               <div class="qa-layer-body">
                 <p>止血：冻结发布；复盘防刷分。</p>
                 <p>复盘三问：门禁为何没拦住、演练为何没暴露、下次抽检看什么。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="qa-card" id="K07.09">
+            <div class="qa-header">
+              <div class="qa-badge">K07.09</div>
+              <div class="qa-question">模型别名未固定致质量静默漂移</div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">事故叙事</div>
+              <div class="qa-layer-body">
+                <p>调用侧写的是供应商的模型别名（浮动名）而非 pin 到具体版本快照；供应商侧静默换版后，输出风格、指令遵循度、结构化字段成功率与单位 token 成本同时漂移。本地没有变更单、没有制品版本、也没有可回滚目标——发布记录全绿，质量塌方只能从工单与成本曲线倒推。</p>
+                <p>典型后果：静默质量劣化被当成「模型正常波动」，缺陷累积数周才暴露，且无法用回滚收敛。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">识别要点</div>
+              <div class="qa-layer-body">
+                <p>四个同向信号：① 同一 Prompt、同一入参的<strong>输出指纹</strong>（首 token 分布、结构化字段漂移率、拒答率）偏离上周基线，而代码零变更；② 单位成本变化而非总量变化（换版常伴随计费口径或推理长度改变）；③ 供应商 changelog / 状态页出现未订阅的版本更新；④ 评估回归分数在无发布日下降。</p>
+                <p>先分区归因（变更/依赖/容量/数据/配置）；其中「依赖」侧漂移最易被误判为「模型正常波动」，须先用输入指纹证明输入未变，再怀疑模型侧。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">止血与复盘</div>
+              <div class="qa-layer-body">
+                <p>止血顺序：① 切回上一已知 snapshot（若从未 pin 则临时指定一个固定版本）② 打开输出指纹与结构化字段兜底校验告警 ③ 对高价值链路加规则兜底，避免静默劣化继续放大。互链 G07 / K07.04 / K07.01 / M14.01。</p>
+                <p>复盘产出：模型版本纳入制品管理（生产 pin 具体 snapshot，别名只用于预发探路）；输出指纹、拒答率、单位成本纳入与发版同级卡点；订阅供应商变更通告并进变更日历；同链路换版走影子双跑 + 黄金集卡点。</p>
               </div>
             </div>
           </div>

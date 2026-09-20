@@ -23,12 +23,18 @@ os.makedirs(BACKUP, exist_ok=True)
 
 # ============ 必同步清单（2026-09-15 新增 4 卡实测，漏一处即 validate_kb FAIL）============
 # 宿主页（chapter-*.html）
-#   [1] 卡片本体：C/E/S 卡必带双编码（data-priority + 可见 priority-pX 徽标）；G/K 卡按组体例
+#   [1] 卡片本体：C/E/S 卡必带双编码（data-priority + 可见 priority-pX 徽标）；
+#       ⚠ G/K 卡【两者都没有】：无 data-priority、无 data-difficulty、无优先级徽标
+#         （2026-09-20 实测：踩坑页 / 工程化页 三项目均 = 0；仅方法论页有
+#          data-priority × 75，对应 SSOT `methodology_with_priority`）
 #   [2] 页头 <div class="chapter-meta">：题目数 + 高级开发×N / 架构级×N / 专家级×N
 #       —— 不在 SSOT positions 内，必须手工改；
 #          由 validate_kb「0d) 页头难度」按「本页实体卡片」自证拦截（不依赖 SSOT）
 #   [3] 侧栏 TOC <li><a href="#ID">…</a></li>
-#       —— ⚠ 场景页 chapter-questions-scenario.html 与 E 页同样有 TOC；漏加 → FAIL [TOC缺失]
+#       —— ⚠ 场景页 chapter-questions-scenario.html、E 页（eight-part）、以及
+#          【专篇页（方法论 / 工程化 / 踩坑）】同样有 TOC；漏加 → FAIL [TOC缺失]。
+#          2026-09-20 实测：踩坑页 64 个 toc-number 与 64 张卡 id 一一对应，
+#          新增 K 卡必须同步补 TOC 条目（且文案须与 qa-question 逐字一致）。
 # 根 index（{BASE}/index.html）
 #   [4] q-item 必须【独立 li 包裹】：
 #         <li class="q-item">
@@ -38,6 +44,9 @@ os.makedirs(BACKUP, exist_ok=True)
 #         <li class="q-item"> 计数不增 → FAIL [根index dir-count] 计数≠列表
 #   [5] 对应 dir-group-count / dir-count 增量（struct.root.dir_group_N / struct.root.dir_count_N）
 # overview（nav-overview-priority.html）
+#   ⚠ M/G/K 专篇卡【不进 overview】（2026-09-20 实测：overview 全文 K 引用 = 0；
+#     validate_kb 的 [落位] 亦对 M/G/K 豁免 overview）。新增 K/G/M 卡时 [6][7] 全部跳过。
+#     同理 M/G/K 不参与 p0/p1/p2 与难度三级求和（total 不含专篇）。
 #   [6] ov-item 插到正确的「优先级 × 难度」子组，子组内按 C(0) → E(1) → S(2)、题号升序
 #   [7] 三级计数同改：ov-stat-num（struct.ov.subgroup_*）、ov-type-count（struct.ov.type_*）、
 #       组标题题数（p0/p1/p2）。漏 ov-type-count → FAIL [overview类型计数]
