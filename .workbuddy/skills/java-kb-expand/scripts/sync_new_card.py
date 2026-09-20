@@ -58,6 +58,15 @@ os.makedirs(BACKUP, exist_ok=True)
 #       (d) mind index 的 card-foot（struct.mind.idx.mind-foot-c_N / -e_N / -s_N）
 #       ⚠ S 场景卡并入其所属篇章的 mind 页（如 S12.x → mind-12-ai-engineering.html），
 #         不存在独立的 mind 场景页
+#       ⚠⚠ E 核心原理卡同样并入「其所属篇章」的 mind 页（2026-09-20 实测）：
+#         如 E03.09 → mind-03-concurrency-locks.html。E 卡不是只进 eight-part 页——
+#         mind-foot-e_N 校验 = 该 mind 页 <summary> 里的 E 号集合数，漏补则
+#         validate_kb「[mind card-foot] 与篇章/summary 不一致」FAIL。
+#       ⚠⚠ 一个 mind 页有【两个】<div class="mermaid">：block0=flowchart（`tN --> nNNN["简称"]`）、
+#         block1=mindmap（纯文本行 `C14.13 慢 SQL…`）。新卡【两处都要加节点】。
+#         （2026-09-20 更新）check_mind_mermaid 已改为**逐块取标签**（flowchart 方括号标签
+#         + mindmap 裸文本行），故它只能判「两块都缺该卡」——**两块彼此不一致它查不出来**
+#         （任一图有即 PASS）。因此「两处都改」属人工纪律，不可再依赖该门禁兜底。
 # 收尾
 #   [10] sync_counts.py bump（counts 与 struct.* 一并传参）→ check 全 PASS
 #   [11] validate_kb.py 的 NEW_IDS 补入本轮新题号 → 全量校验 ALL PASS

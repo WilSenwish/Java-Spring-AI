@@ -61,6 +61,9 @@
           <li>
             <a href="#C14.13"><span class="toc-number">C14.13</span>慢 SQL 值班动作</a>
           </li>
+          <li>
+            <a href="#C14.14"><span class="toc-number">C14.14</span>数据库存储与文件系统：从页缓存到 WAL 的双向指导</a>
+          </li>
         </ol>
       </aside>
 
@@ -73,11 +76,11 @@
           <p class="chapter-subtitle">本篇用负载形状选引擎：文档/向量、分布式 SQL 与列存 OLAP，再到图/时序/CDC——引擎边界先于 ORM 习惯。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-10">M10</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#hang-master">核心方法论 · 全库挂网</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：13</span>
+            <span>题目数：14</span>
             <span class="meta-divider">|</span>
             <span>高级 ×4</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×6</span>
+            <span>架构 ×7</span>
             <span class="meta-divider">|</span>
             <span>专家 ×3</span>
             <span class="meta-divider">|</span>
@@ -2454,6 +2457,57 @@ repo.upsert(pk, event.payload(), event.sourcePos());
               <p>慢 SQL 最短路径：告警→执行计划→是否新发布/新索引缺失→限流/杀会话→补索引或改写→回放。</p>
               <p>禁止只调超时；要有慢查询闭环单与回归用例。</p>
               <p>量化分级：avg_rt > 1s 且 rows_examined > 10 万为一级；锁等待 > 5s 或影响接口 > 3 个先止血。索引变更按数据变更门禁走，生产环境禁止无单执行 CREATE INDEX（MySQL 8.0 起 Online DDL 仍会短时持元数据锁）。演进：把慢查询指纹 + 回归用例沉淀为 SQL 基线，发布前 diff 新增指纹；rows_examined / rows_sent 比值 > 100 视为索引失效信号。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ C14.14 新增：数据库存储与文件系统 ============ -->
+        <div class="qa-card" id="C14.14" data-difficulty="architect" data-priority="p1">
+          <div class="qa-header">
+            <div class="qa-badge">C14.14</div>
+            <div class="qa-question">数据库存储与文件系统：从页缓存到 WAL 的双向指导<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="qa-layer" data-layer="essence">
+            <div class="qa-layer-title">本质问题</div>
+            <div class="qa-layer-body">
+              <p>任何数据库最终都落盘到文件系统：存储引擎的页/块 → 文件系统的 inode/extent → 块设备的扇区。文件系统的特性（页缓存、顺序写、块对齐、fsync 语义、IO 调度）不是底层细节，而是反向约束数据库设计的硬边界。</p>
+            </div>
+          </div>
+          <div class="qa-layer" data-layer="principle">
+            <div class="qa-layer-title">原理映射</div>
+            <div class="qa-layer-body">
+              <ul>
+                <li><strong>双层缓存与双写。</strong>OS page cache 缓存文件页，数据库 buffer pool 缓存数据页，二者可能缓存同一页（双缓存浪费内存且语义分裂）。InnoDB 用 <code class="inline-code">innodb_flush_method=O_DIRECT</code> 绕过 page cache，但仍靠 fsync 落盘；WAL/redo/undo 用 append-only 顺序写，天然契合文件系统与 SSD 的高顺序吞吐。</li>
+                <li><strong>块对齐与写放大。</strong>数据库页（通常 16K）必须与 FS block（4K）对齐；未对齐会触发 read-modify-write，把一次写放大成多次。XFS/ext4 的 stripe/太阳对齐、大页顺序写对吞吐影响显著。</li>
+                <li><strong>fd / inode 上限。</strong>数据库打开大量表与数据文件受 <code class="inline-code">ulimit -n</code>、<code class="inline-code">fs.file-max</code>、<code class="inline-code">table_open_cache</code>/<code class="inline-code">innodb_open_files</code> 约束；单实例文件数受 FS 与 inode 上限限制。</li>
+                <li><strong>fsync 语义与持久化。</strong><code class="inline-code">fdatasync</code> 只刷数据不刷元数据（更快）；O_DIRECT 绕过 page cache 但仍需 fsync 才真正落盘；group commit 合并多次 fsync 降低提交延迟。durability 级别（如 sync_binlog、innodb_flush_log_at_trx_commit）本质是对「fsync 频率」的权衡。</li>
+                <li><strong>双重日志。</strong>ext4 journal（ordered/data 模式）与 InnoDB redo 是两套日志：FS journal 只保 FS 元数据一致，崩溃恢复以数据库自身 WAL 为准，理解二者关系避免重复开销与误判。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="qa-layer" data-layer="practice">
+            <div class="qa-layer-title">落地排查</div>
+            <div class="qa-layer-body">
+              <ol>
+                <li>IO 瓶颈先看队列深度与 await（iostat/iowait），区分随机 vs 顺序。</li>
+                <li>确认 buffer pool 是否双缓存（O_DIRECT 是否生效）。</li>
+                <li>大表/分区评估 inode 与单文件大小上限，必要时拆分或对象存储归档。</li>
+                <li>durability 调优先定 fsync 频率，再评估 group commit 收益。</li>
+                <li>SSD 场景开 fstrim/discard、对齐写入，避免写放大吞噬寿命。</li>
+              </ol>
+            </div>
+          </div>
+          <div class="qa-layer" data-layer="deep">
+            <div class="qa-layer-title">参数与开关</div>
+            <div class="qa-layer-body">
+              <p>关键开关：<code class="inline-code">innodb_flush_method</code>（O_DIRECT/O_DSYNC）、<code class="inline-code">innodb_flush_log_at_trx_commit</code>、<code class="inline-code">sync_binlog</code>、<code class="inline-code">table_open_cache</code>、<code class="inline-code">innodb_open_files</code>。分布式/对象存储：WAL 归档到 S3/Ceph、计算存储分离、备份落到对象存储——文件系统的一致性/副本模型延伸到分布式层，反向约束部署（如 CephFS/HDFS 的副本与一致性语义影响主从延迟与恢复点）。</p>
+            </div>
+          </div>
+          <div class="qa-layer" data-layer="pitfall">
+            <div class="qa-layer-title">失败模式与回滚</div>
+            <div class="qa-layer-body">
+              <p>失败模式：误以为 buffer pool 已落盘（实际还在 page cache，掉电丢数据）；O_DIRECT 未开导致双缓存把内存吃满；大事务长事务让 fsync 堆积、提交 RT 飙升；单表过大撑爆 inode/文件上限。回滚点：调低 fsync 频率需先确认副本/备份能兜住 RPO；分离存储先验证网络与一致性窗口。</p>
+              <p>反向设计要点：顺序写优先（LSM-tree 比 B+树更贴文件系统顺序写特性）、页对齐、批量 fsync、借 OS 预读但更靠自身预读避免 page cache 污染、mmap 大文件会挤占 page cache 反而拖慢。</p>
             </div>
           </div>
         </div>

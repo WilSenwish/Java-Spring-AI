@@ -295,6 +295,9 @@
             <li>
               <a href="#E03.08"><span class="toc-number">E03.08</span>CAS 原子类与 LongAdder 高并发计数</a>
             </li>
+            <li>
+              <a href="#E03.09"><span class="toc-number">E03.09</span>Java 并发容器全景选型</a>
+            </li>
           </ol>
         </div>
 
@@ -533,9 +536,9 @@
           <p class="chapter-subtitle">聚焦头部大厂仍在深入考察的核心原理，精炼四层结构速查导向</p>
           <p class="meth-frame">核心原理是领域切片；框在 <a href="chapter-core-methodology.html#hang-master">方法论挂网</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：<span class="kb-count" data-kb-count="basics" data-kb-pos="P33">73</span></span>
+            <span>题目数：<span class="kb-count" data-kb-count="basics" data-kb-pos="P33">74</span></span>
             <span class="meta-divider">|</span>
-            <span>高级 ×39</span>
+            <span>高级 ×40</span>
             <span class="meta-divider">|</span>
             <span>专家 ×3</span>
             <span class="meta-divider">|</span>
@@ -670,6 +673,15 @@
             <p>并发安全问题：JDK 1.7 头插法扩容时，两个线程同时操作可能导致环形链表，后续 get 会死循环。JDK 1.8 改为尾插法避免了死链，但并发 put 仍可能丢失数据（覆盖写入）。</p>
           </div>
 
+          <div class="epq-section">
+            <div class="epq-section-title">关键机制深解：树化与退化的全链路</div>
+            <p><strong>TreeNode 的双重结构。</strong>HashMap 桶内树化后的节点是 <code class="inline-code">TreeNode extends LinkedHashMap.Entry</code>，除了红黑树所需的 <code class="inline-code">parent/left/right/red</code> 指针，它还通过继承自 <code class="inline-code">Entry</code> 的 <code class="inline-code">next/prev</code> 维持一条双向链表。也就是说，一个桶同时持有「红黑树」与「双向链表」两套结构：查找走树（O(log n)），<code class="inline-code">containsValue</code> / 迭代器顺序遍历走链表。树只在查找路径上重组，链表顺序保留，因此树化后迭代顺序依然稳定。</p>
+            <p><strong>树化的双闸门。</strong>链表转红黑树必须同时满足：① 桶内链表长度 ≥ <code class="inline-code">TREEIFY_THRESHOLD(8)</code>；② 表数组容量 ≥ <code class="inline-code">MIN_TREEIFY_CAPACITY(64)</code>。若长度到了 8 但容量还 &lt; 64，HashMap 优先选择 <code class="inline-code">resize()</code> 而非树化——因为小表扩容后单桶元素骤减，往往根本无需树化；树化本身有构建成本，先扩容性价比更高。</p>
+            <p><strong>treeify / untreeify 的全过程。</strong><code class="inline-code">treeifyBin()</code> 先把普通 <code class="inline-code">Node</code> 逐个替换为 <code class="inline-code">TreeNode</code>，再对每个节点做 <code class="inline-code">balanceInsertion</code>（红黑插入平衡：叔节点红则变色、黑则旋转），最后用 <code class="inline-code">moveRootToFront</code> 把树根放到桶首。<code class="inline-code">untreeify()</code> 则沿 <code class="inline-code">prev/next</code> 把 <code class="inline-code">TreeNode</code> 还原成普通 <code class="inline-code">Node</code> 链表。退化阈值 <code class="inline-code">UNTREEIFY_THRESHOLD=6</code> 与树化 8 之间留了 2 的迟滞（hysteresis），专门防止在 6~8 区间内因增删反复「树化↔退化」震荡。</p>
+            <p><strong>扩容时的 split。</strong>树桶扩容不会整体重排，而是按哈希高位把节点 <code class="inline-code">split</code> 成 lo（低位）和 hi（高位）两棵子树；若某一侧子树节点数 ≤ 6，直接 <code class="inline-code">untreeify</code> 退化为链表，否则保留 <code class="inline-code">TreeNode</code> 并可能再平衡。这样大红黑树在扩容时只做「拆分 + 局部平衡」，避免 O(n) 重排。</p>
+            <p><strong>红黑性质与碰撞攻击。</strong>红黑树保证最长路径 ≤ 2×最短路径、查找稳定 O(log n)；<code class="inline-code">balanceInsertion</code> 在插入后修复黑高一致。恶意方构造大量 hashCode 碰撞的 key 能把所有元素压进同一桶并触发树化——树化把最坏 O(n) 降到 O(log n)，但树化本身耗 CPU，且查询成本仍高于均匀分布。根本防御不在 HashMap（扰动函数只是缓解），而在「不可控 key 的 hashCode 不可预测」+ 限流 + 拒绝超大单桶请求。</p>
+          </div>
+
           <div class="callout callout-tip">
             <div class="callout-title">工程实践</div>
             <p>已知数据量时指定初始容量：<code class="inline-code">new HashMap&lt;&gt;(expectedSize / 0.75F + 1.0F)</code>，避免扩容。高并发读多写少用 <code class="inline-code">Collections.unmodifiableMap</code> 包装，或换用 <code class="inline-code">ConcurrentHashMap</code>。</p>
@@ -680,6 +692,8 @@
             <ul class="epq-fu-list">
               <li><span class="q">Q: 为什么 HashMap 不用平衡二叉树而用红黑树？</span><span class="a">A: 红黑树插入/删除旋转次数更少，实现更简单，平均性能与 AVL 树接近但常数更优。HashMap 主要场景是查找，红黑树足够。</span></li>
               <li><span class="q">Q: 为什么负载因子是 0.75 而不是 0.5 或 1.0？</span><span class="a">A: 0.75 是时间与空间的权衡：0.5 浪费空间但减少碰撞；1.0 节省空间但链表/树化概率大增。0.75 在泊松分布下链表平均长度可控。</span></li>
+              <li><span class="q">Q: 为什么容量 ≥ 64 才树化，否则先扩容？</span><span class="a">A: 小表扩容后单桶元素大幅减少，多数情况下无需树化；树化有构建与平衡成本，先扩容（翻倍 + 重新散列）的边际收益更高。MIN_TREEIFY_CAPACITY=64 是实测经验阈值。</span></li>
+              <li><span class="q">Q: TreeNode 为什么还要保留链表结构？</span><span class="a">A: 三层原因——① 扩容 split 时需要沿链表顺序拆分（树指针在 resize 时不稳定，先退化为链表再分发）；② containsValue / 迭代器需要顺序遍历，链表比树中序遍历更直接；③ 保证迭代器在树重组时仍输出稳定顺序。</span></li>
             </ul>
           </div>
 
@@ -697,7 +711,7 @@
         <div class="qa-card epq-card" id="E01.03" data-difficulty="senior" data-priority="p1">
           <div class="epq-header">
             <div class="epq-badge">E01.03</div>
-            <div class="epq-question">常用设计模式：策略、工厂、观察者、责任链、模板方法与应用场景<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+            <div class="epq-question">设计模式全景：GoF 23 种与 Spring 框架落地（意图·Spring 落点·陷阱）<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
           <div class="epq-section">
@@ -897,6 +911,25 @@
               <li><strong>命令模式</strong>：将请求封装为对象（命令对象包含接收者+动作+参数）。场景：Runnable 是命令模式的简化版（只有动作，无接收者和参数）。Spring JdbcTemplate.execute(ConnectionCallback action) 将 Connection 操作封装为 ConnectionCallback 命令对象。陷阱：命令模式引入额外类层级，简单调用不值得封装。</li>
               <li><strong>建造者模式</strong>：分步构建复杂对象。经典场景：StringBuilder、Stream.Builder、Lombok @Builder。与工厂模式的区别：工厂一次性创建完整对象，建造者分步构建（可跳过某些可选参数）。陷阱：建造者适合参数多（&gt;4）且大多可选的场景；参数少时直接构造器更清晰。</li>
               <li><strong>组合模式</strong>：将对象组合成树形结构，统一处理单个对象和组合对象。场景：Spring Security 的 CompositeFilterChainProxy、UI 组件树（Vue/React 组件嵌套）。陷阱：组合模式中"叶子节点"和"组合节点"实现同一接口，叶子节点的 add/remove 方法应抛出 UnsupportedOperationException。</li>
+            </ul>
+
+            <p><strong>其余 15 种模式深解</strong>（意图 + Spring 落点 + 关键陷阱，补全 GoF 全谱）：</p>
+            <ul class="epq-kp-list">
+              <li><strong>单例（Singleton）</strong>：保证进程内唯一实例。Spring 默认 singleton Bean 由容器缓存保证；但多 ClassLoader/JVM 下非全局唯一。JDK 枚举是最佳实现（防反射/序列化破坏）。陷阱：懒加载双重检查锁必须用 volatile 修饰实例（防指令重排导致半初始化对象逃逸）；Spring 的单例是「容器级」非「JVM 级」。</li>
+              <li><strong>工厂方法（Factory Method）</strong>：子类决定产品。Spring <code class="inline-code">BeanFactory.getBean()</code> 按类型/名称获取，<code class="inline-code">AbstractBeanFactory</code> 是工厂方法骨架；<code class="inline-code">FactoryBean</code> 更特殊——它本身是工厂，<code class="inline-code">getObject()</code> 返回产品（如 SqlSessionFactoryBean）。陷阱：FactoryBean 与 BeanFactory 易混；<code class="inline-code">&amp;</code> 前缀取工厂本身。</li>
+              <li><strong>抽象工厂（Abstract Factory）</strong>：创建产品族（一组相关产品）。Spring <code class="inline-code">ApplicationContext</code> 是抽象工厂——同时生产 Bean、Environment、ResourceLoader、MessageSource 等一族对象。陷阱：产品族扩展容易，但新增产品等级结构需改接口（违反开闭），适合「家族稳定、个体多变」。</li>
+              <li><strong>原型（Prototype）</strong>：每次获取克隆新实例。Spring <code class="inline-code">@Scope("prototype")</code> 每次 getBean 新建；JDK <code class="inline-code">clone()</code> 是原型应用，但有浅拷贝陷阱（引用字段共享）。陷阱：prototype 依赖注入只在创建时进行一次，容器不管理其销毁；循环依赖中 prototype 无法解决（抛 BeanCurrentlyInCreationException）。</li>
+              <li><strong>桥接（Bridge）</strong>：抽象与实现分离，各自独立变化。经典：JDBC 的 Driver（实现侧）与 Connection/Statement（抽象侧）经 DriverManager 桥接，切换驱动不改业务；Spring <code class="inline-code">PlatformTransactionManager</code> 桥接不同事务实现（JDBC/JTA/Redis）。陷阱：桥接 vs 适配器——桥接在「设计期」分离抽象与实现，适配器在「运行期」接已存在的不兼容接口。</li>
+              <li><strong>享元（Flyweight）</strong>：共享细粒度对象降内存。JDK：Integer.valueOf 缓存 -128~127、Boolean/String 常量池、Charset 缓存；连接池（HikariCP 复用 Connection）、线程池（复用 Thread）本质都是享元。陷阱：享元对象必须不可变（内部状态共享），可变状态必须外置为「外部状态」由调用方传入，否则并发串数据。</li>
+              <li><strong>迭代器（Iterator）</strong>：统一遍历集合，隔离内部结构。JDK Iterable/Iterator 的 fail-fast（遍历中结构变更抛 ConcurrentModificationException）；Spring CompositeIterator 组合多迭代器。陷阱：fail-fast 非 fail-safe，并发遍历用 CopyOnWrite/Concurrent 集合或显式加锁；remove() 必须走 Iterator 而非集合自身。</li>
+              <li><strong>中介者（Mediator）</strong>：用中介对象封装一组对象交互降耦合。Spring <code class="inline-code">ApplicationContext</code> 是巨型中介者——Bean 间不直接引用，全靠容器牵线；MVC <code class="inline-code">DispatcherServlet</code> 也是中介者（集中调度 Handler/View/Resolver）。陷阱：中介者易膨胀成「上帝类」，复杂交互应拆子中介或结合观察者。</li>
+              <li><strong>备忘录（Memento）</strong>：捕获并恢复内部状态，不破坏封装。JDK Serializable 快照；Spring StateMachine 的 StateMachineContext 充当备忘录保存状态机快照（持久化恢复）。陷阱：备忘录持有完整状态，频繁保存有大内存/序列化成本；只存「必要最小状态」，结合原型做深拷贝。</li>
+              <li><strong>观察者（Observer）</strong>：一对多依赖，状态变更自动通知。JDK 旧 Observable/Observer（JDK9 废弃）→ Flow API/Reactor 替代；Spring <code class="inline-code">ApplicationEvent</code> + <code class="inline-code">@EventListener</code>（同步/异步可选、泛型事件）；MQ（Kafka/RabbitMQ）是跨进程发布订阅。陷阱：观察者链过长致通知延迟；同步观察者抛异常会中断后续（Spring 默认同步，需 @Async 或 ErrorHandler）；避免观察者间循环依赖。</li>
+              <li><strong>责任链（Chain of Responsibility）</strong>：请求沿链传递，节点决定处理或转发。Servlet Filter、Spring HandlerInterceptor、Dubbo Filter、Sentinel SlotChain、MyBatis Plugin。陷阱：链过长增加 RT；某节点吞异常或不调用 chain 会「断链」；顺序敏感（鉴权必须在业务前）。</li>
+              <li><strong>解释器（Interpreter）</strong>：给定文法定义解释器。Spring 的 SpEL（Spring Expression Language）是解释器模式——把表达式解析为 AST 后求值（@Value、安全表达式、权限注解底层）。陷阱：复杂文法用解释器性能差、类膨胀；适合「规则/表达式频繁变、结构稳定」，重计算交专用引擎。</li>
+              <li><strong>策略（Strategy）</strong>：算法族可替换，消除 if-else。Spring <code class="inline-code">Resource</code> 接口多实现（ClassPath/FileSystem/Url/InputStream），<code class="inline-code">ResourceLoader</code> 按前缀选策略；<code class="inline-code">@Autowired List&lt;Strategy&gt;</code> 自动收集全部实现做路由。陷阱：策略类过多时用 Map 缓存路由（key=类型，value=实现）避免遍历；策略与工厂常配合（工厂创建、策略行为）。</li>
+              <li><strong>模板方法（Template Method）</strong>：父类定骨架，子类填步骤。JDK AbstractList/InputStream；Spring JdbcTemplate/RestTemplate/HibernateTemplate（固定「资源获取→执行→异常转换→释放」，钩子由回调传）。陷阱：父类抽象方法过多增子类负担；能用回调（组合）替代继承时优先回调（避免强耦合、更灵活）。</li>
+              <li><strong>访问者（Visitor）</strong>：将操作与数据结构分离，便于新增操作。JDK FileVisitor（遍历目录树执行 visitFile/visitDir）；Spring <code class="inline-code">BeanDefinitionVisitor</code> 遍历 BeanDefinition 做属性占位符替换。陷阱：访问者依赖「元素类稳定」（新增元素类型要改所有 Visitor），适合「结构稳定、操作多变」；双分派（element.accept(visitor) → visitor.visit(element)）是核心机制。</li>
             </ul>
 
             <p><strong>模式选型决策树</strong>——按需求维度快速定位：</p>
@@ -1754,6 +1787,54 @@
             <span class="epq-tag">LongAdder</span>
             <span class="epq-tag">VarHandle</span>
             <span class="epq-tag">StampedLock</span>
+          </div>
+        </div>
+
+        <!-- ============ E03.09 新增：Java 并发容器全景 ============ -->
+        <div class="qa-card epq-card" id="E03.09" data-difficulty="senior" data-priority="p1">
+          <div class="epq-header">
+            <div class="epq-badge">E03.09</div>
+            <div class="epq-question">Java 并发容器全景：ConcurrentHashMap、COW、阻塞队列族、无锁队列与计数器的选型<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">核心要点</div>
+            <ul class="epq-kp-list">
+              <li>键值：ConcurrentHashMap（JDK8 Node+CAS+synchronized，size 用 baseCount+CounterCell，transfer 并发扩容）</li>
+              <li>读多写少：CopyOnWriteArrayList / CopyOnWriteArraySet（写时复制，读无锁弱一致）</li>
+              <li>队列族：ArrayBlockingQueue / LinkedBlockingQueue / PriorityBlockingQueue / DelayQueue / SynchronousQueue / LinkedTransferQueue / ConcurrentLinkedQueue（无锁 CAS）</li>
+              <li>有序并发：ConcurrentSkipListMap / ConcurrentSkipListSet（跳表，范围查询 O(log n)）</li>
+              <li>热点计数：LongAdder / DoubleAdder（分段 Cell，Striped64）</li>
+              <li>屏障与分治：Phaser / Exchanger / CyclicBarrier、ForkJoinPool（工作窃取）</li>
+            </ul>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">详细解答</div>
+            <p>ConcurrentHashMap 的并发语义（见 E03.01）是容器族的基准：读基本无锁、写 CAS+synchronized 首节点、size() 弱一致。在此之上，CopyOnWrite 适合监听器/路由表等读远多于写的场景，代价是写时复制整份数组、内存翻倍且读可能看到旧快照；不要用它承载频繁写入的大列表。</p>
+            <p>BlockingQueue 是生产者-消费者与线程池的骨架。<strong>选型</strong>：有界且公平用 ArrayBlockingQueue（单锁、固定容量）；高吞吐可选 LinkedBlockingQueue（双锁、可选有界）；定时/延时任务用 DelayQueue；线程池拒绝策略或「直接交接」用 SynchronousQueue（容量 0，握手式传递）；需要 transfer/多角色交接用 LinkedTransferQueue。ConcurrentLinkedQueue 用 Michael-Scott CAS 算法无锁入队出队，高并发吞吐优于锁队列，但 size() 弱一致、禁止 null。</p>
+            <p>ConcurrentSkipListMap 提供线程安全的有序 Map（替代 Collections.synchronizedSortedMap），适合需要范围查询/有序遍历的并发场景。LongAdder 在热点计数上显著优于 AtomicLong：把单点竞争分散到多个 Cell，sum() 时累加；代价是 sum() 弱一致、读取有偏差，不适合需要精确即时值的控制流。ForkJoinPool 用工作窃取双端队列做分治，并行流与 CompletableFuture 默认共用 CommonPool；陷阱是 IO/阻塞任务别丢进 ForkJoinPool（会饿死其他任务），且要控制递归拆分粒度。</p>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">工程实践</div>
+            <p>选型口诀：键值并发用 ConcurrentHashMap；读多写少用 COW；解耦生产与消费用 BlockingQueue（容量与拒绝策略先定）；有序并发用 SkipListMap；热点计数用 LongAdder；分治并行用 ForkJoinPool。统一警惕「弱一致性」——size()/isEmpty()/迭代器只反映某一时刻快照，不能用于精确控制流。</p>
+          </div>
+
+          <div class="epq-section">
+            <div class="epq-section-title">高频追问</div>
+            <ul class="epq-fu-list">
+              <li><span class="q">Q: ConcurrentHashMap.computeIfAbsent 有坑吗？</span><span class="a">A: JDK8 在值计算过程中对同一桶再 put 会触发递归锁（死锁风险），JDK9+ 已修复为只锁首节点且禁止重入计算；生产仍建议避免在 compute 回调里做重操作或再写同表。</span></li>
+              <li><span class="q">Q: ThreadLocal 算并发容器吗？为什么线程池下会泄漏？</span><span class="a">A: ThreadLocal 是线程私有存储，不算共享容器。线程池复用线程时 key 为弱引用、value 为强引用且不会被 GC，若不清 remove() 会累积泄漏；务必用 try-finally 收尾清理。</span></li>
+            </ul>
+          </div>
+
+          <div class="epq-tags">
+            <span class="epq-tag">并发容器</span>
+            <span class="epq-tag">ConcurrentHashMap</span>
+            <span class="epq-tag">BlockingQueue</span>
+            <span class="epq-tag">LongAdder</span>
+            <span class="epq-tag">ForkJoinPool</span>
           </div>
         </div>
 

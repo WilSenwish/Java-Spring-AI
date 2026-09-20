@@ -41,9 +41,9 @@
 分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / mind `card-foot`）须与实际卡片数一致；细则见 `docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
-- 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
-- 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
+- 题目总量 **400** = 篇章 252 + 核心原理 74 + 场景 74
+- 优先级 **P0=94 / P1=248 / P2=58**（求和 = 400）
+- 难度 **专家 46 / 架构师 192 / 高级开发 162**（求和 = 400；仅覆盖 C/E/S，M/G/K 不分级）
 - 方法论 **127 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）

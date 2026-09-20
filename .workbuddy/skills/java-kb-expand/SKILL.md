@@ -40,9 +40,9 @@ agent_created: true
 - 难度三级（**仅 C/E/S**）：专家 / 架构师 / 高级开发（求和 = 总量）。**标签位文案一律短表 专家 / 架构 / 高级**；M/G/K 不分难度等级。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **398** = 篇章 251 + 核心原理 73 + 场景 74
-- 优先级 **P0=94 / P1=246 / P2=58**（求和 = 398）
-- 难度 **专家 46 / 架构师 191 / 高级开发 161**（求和 = 398；仅覆盖 C/E/S，M/G/K 不分级）
+- 题目总量 **400** = 篇章 252 + 核心原理 74 + 场景 74
+- 优先级 **P0=94 / P1=248 / P2=58**（求和 = 400）
+- 难度 **专家 46 / 架构师 192 / 高级开发 162**（求和 = 400；仅覆盖 C/E/S，M/G/K 不分级）
 - 方法论 **127 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **64 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
@@ -576,6 +576,7 @@ agent_created: true
 - **校验提取正则必须覆盖新编号空间（2026-09-04 实测）**：升层重编号后若用旧模式（如 `M0[1-7]\.\d{2}`）提取 after 集合做多重集断言，会"看不见" M08+ 的新号而误报不一致（替换其实已成功）；after 一律用宽模式 `M\d{2}\.\d{2}`。
 - **Mermaid 被格式化压成一行（2026-09-15）**：每个 `<div class="mermaid">` 必须带上一行 `<!-- prettier-ignore -->`；统一用 `npm run format:html`。缺 ignore 时 Prettier 会塌缩图源码，`validate_kb` 会拦。
 - **导图 Mermaid 节点未随新增卡补齐（2026-09-15 实测，validate_kb 查不出）**：同步导图时最易「补了 `<summary>` 主题卡、忘了 `<div class="mermaid">` 图节点」。实测新增 4 卡（C11.29/C11.30/G07.09/S12.09）时漏掉该步，致 mind-11 缺 2 节点、mind-engineering-practices 缺 1 节点（mind-12 因惯例带 ID 前缀反而被注意到）。**导图 Mermaid 是「本篇章卡的全量列点」**——章节 +N 张卡，图里必须 +N 个节点，插在交叉卡（E/S）节点之前以对齐原卡序；节点 id 在分支内递增，需插队时把后续 id 顺延（节点 id 不被别处引用，重编安全）。校验用 `scripts/check_mind_mermaid.py`。
+- **`check_mind_mermaid` 曾因只认方括号标签而整页误判（2026-09-20 已修）**：Mermaid `mindmap` 用**裸文本**声明节点（`C14.13 慢 SQL 值班动作`），方括号 `["…"]` 标签数为 **0**；原实现只抽 `["…"]` 故凡「flowchart 走组级概览、mindmap 走逐卡」的页会整页判缺失——实测 `mind-core-methodology.html`（flowchart 仅 17 个组级节点 vs **127** 张 map-card）恒报 **126 条 FAIL**，长期亮红灯。**修法**：`mermaid_blocks()` + `block_labels()` 逐块取标签＝方括号标签 **+** mindmap 裸文本行（`root((…))` 取内层文案）。全站复跑 **508/508 PASS**。**重要副作用**：判定放宽为「**任一**图块有该卡即命中」，故**两块彼此不一致它已查不出来**——新增卡「两图都改」从门禁兜底降级为**人工纪律**。正向验证见 `scripts/probe_mind_mermaid_gate.py`（5 轮：标题替换 / 新增幽灵卡 / 只抹 flowchart / 两图都抹 / 原样基线，应 FAIL 者均 FAIL）。
 - **mind `<summary>` 的 ID 对齐 ≠ 标题对齐（2026-09-15 发现并已修复）**：`validate_kb` 只比对 mind 与章节的 **ID 集合**，两者 ID 集合相同但**标题错位**时不会报错。实测已修 6 处：mind-11 `C11.12/C11.13/C11.14`（导图把「调度」标成 .12、「ES」标成 .13，并有 1 条章节页不存在的幽灵卡「分布式任务调度与搜索整合」→ 现改为 C11.12=API 网关 / C11.13=调度 / C11.14=ES，幽灵卡消除）、mind-12 `C12.16/C12.17`（互换编号）、`C12.22`（原误用 C12.21 的标题「十亿级向量库」，正文实为「Embedding 模型升级迁移」）。**改导图卡编号时，同步改三处**：① `map-body-text` 正文（须与新标题同题）；② Mermaid 节点（mind-11/12 的 C 卡节点不带 ID，须按**内容**改标签；mind-12 的 S 卡节点带 ID）；③ 全站交叉引用「与 Cxx.yy 印证」——实测 mind-11 有 4 处、mind-12 有 4 处引用这些 ID，编号一改即须跟着改。
 - **内部编辑字眼会漏进正文（2026-09-15 实测，已纳入硬门禁）**：内容补写轮次留下的占位/批注词（`<strong>再加厚：</strong>`）曾残留在 10 个章节页 / 15 处，**任何校验都拦不住**（`validate_kb` 原无此检查）。已全部清除，并在 `validate_kb.py` 新增 **1f) 内部编辑字眼**检查（`EDITORIAL_WORDS = ["再加厚","补厚","占位段落","待补写"]`，全站须 0）。**教训：替换占位段落时，连包裹它的 `<strong>标签</strong>` 一并处理**，只换正文会留下标签壳。
 - **顶底导航位置（2026-09-15）**：顶栏必须是 `body` 第一个壳；底栏在 footer 后、script 前；根/章节 index 无导航。勿再把导航塞进 `content-main` 中部。
@@ -611,12 +612,13 @@ agent_created: true
 - `scripts/probe_card_nesting_gate.py` — **1i 卡片嵌套门禁的正向验证**（三轮：当前树 PASS → 删掉 chapter-11 中 C11.28 的 `</div>` 必须 FAIL 2 张 → 还原并核对 MD5 一致 + PASS）。项目根由「向上查找含 AGENTS.md + index.html 的祖先」推导；只临时改 1 个文件且用内存原文还原，可随时复跑（`PROBE_EXIT=0`）。
 - `scripts/probe_diff_label_gate.py` — **1j（难度标签口径）+ 1k（M/G/K 无 `data-difficulty`）的正向验证**，五轮：当前树 PASS → 注入 A「徽标改回长表 `高级开发`」须 1j FAIL → 注入 B「难度类被非难度语义占用」（根 index 的 `layer-tag` 改回 `difficulty-architect`）须 1j FAIL → 注入 C「给 M 卡加回 `data-difficulty`」须 1k FAIL → 还原后三文件 MD5 一致且 PASS。**每轮先复位其它文件**，避免缺陷叠加导致误判（首版即踩此坑）。（`PROBE_EXIT=0`）
 - `scripts/probe_list_gate.py` — 1h 门禁的**正向验证**（注入缺陷 → 必须 FAIL）：`1` 删除兜底规则、`2` 兜底退化为裸选择器 `ul, ol { … }`；`--inject` 只注入不校验（便于分步执行，规避前台信号中断）。注入态始终由权威备份构造，还原由调用方命令负责。
+- `scripts/probe_mind_mermaid_gate.py` — **导图 map-card ↔ Mermaid 节点门禁（`check_mind_mermaid.py`）的正向验证**，五轮：原样副本 PASS（防误杀）→ 整条替换卡标题须 FAIL → 新增两块图都无的 `<summary>` 须 FAIL（守住 2026-09-15 原盲区）→ 只抹 flowchart 节点须 PASS（2026-09-20 放宽**有意**生效）→ 两图都抹须 FAIL。**不写任何项目文件**：把门禁源码的 `MI` 常量在内存里重定向到 `tempfile` 镜像目录后 `exec`，无还原动作、零污染链；也天然规避「脚本按自身层级误解析项目根」。门禁改口径后必须复跑本探针，否则无法证明没被改废。
 - `scripts/check_mobile_overflow.js` — 移动端横向溢出**实测**（CDP + headless Chrome，Node 22 原生 WebSocket，零依赖）。静态审计只能发现风险，不能证明修好；本脚本在真实视口下量 `documentElement.scrollWidth - clientWidth` 与「内容越出卡片」的元素数。`node check_mobile_overflow.js`（内置 8 页 × 320/375/414）、`--path <html>`（单页）、或传 cfg.json。溢出即 exit 1，可直接作门禁。
 - `scripts/ensure_mermaid_prettier_ignore.py` — 批量为缺失的 mermaid 节点补 `<!-- prettier-ignore -->`（格式化前可先跑）。
 - `scripts/normalize_html_closers.py` — Prettier 后把 `</tag\\n>` 压回同行（保护 kb-count 锚点）。
 - `scripts/check_html_format.py` — `npm run format:html:check` 稳态检查。
 - `scripts/audit_l1_counts.py` — 只跑 L1 裸计数扫描（改聚合文案后可先跑这支）。
-- `scripts/check_mind_mermaid.py` — 导图站不变式校验：每条 map-card（含 `C12.11~15 …` 聚合条目）是否都有对应 Mermaid 图节点；缺失 → exit 1。补这个盲区（`validate_kb` 只查 ID 集合，查不出图节点缺失）。
+- `scripts/check_mind_mermaid.py` — 导图站不变式校验：每条 map-card（含 `C12.11~15 …` 聚合条目）是否都有对应 Mermaid 图节点；缺失 → exit 1。补这个盲区（`validate_kb` 只查 ID 集合，查不出图节点缺失）。**（2026-09-20 修）逐 mermaid 块取标签＝`["…"]` 方括号标签 + mindmap 裸文本行**，故「flowchart 组级 + mindmap 逐卡」的页不再整页误报；代价是**两块不一致已查不出**（任一图有即 PASS），「两图都改」降级为人工纪律。全站 508/508 PASS。
 - `scripts/sync_new_card.py` — 新增卡片的 7 文件同步脚本骨架（参数化），含备份、断言、`data-page-node-id` 守卫；按需填充卡片 HTML 与计数增量。
 - `scripts/check_index_badges.py` — 根 index / overview 聚合 UI **结构与样式**门禁（零依赖，纯正则，**四类判定**）：
   ① **徽标结构**——overview 每条 `ov-item` 必须含 `.ov-badges` 包裹（漏包 → 徽标间距时宽时窄）；根 `index.html` 不得出现顶格 `<a href="…">`、不得有未闭合 `<span class="q-tags">`。
