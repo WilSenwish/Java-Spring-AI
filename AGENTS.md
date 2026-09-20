@@ -44,11 +44,11 @@
 - 题目总量 **400** = 篇章 252 + 核心原理 74 + 场景 74
 - 优先级 **P0=94 / P1=248 / P2=58**（求和 = 400）
 - 难度 **专家 46 / 架构师 192 / 高级开发 162**（求和 = 400；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **127 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
+- 方法论 **126 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 75/127（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 74/126（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -372,12 +372,12 @@
 | P327 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_10 |
 | P328 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_11 |
 | P329 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_12 |
-| P330 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_1 |
-| P331 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_2 |
-| P332 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_3 |
-| P333 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_4 |
-| P334 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_5 |
-| P335 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_6 |
+| P330 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M14 组头卡数（原键 theme_count_1，2026-09-20 归一为 group_N） |
+| P331 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M15 组头卡数（原键 theme_count_2，2026-09-20 归一为 group_N） |
+| P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16 组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
+| P333 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
+| P334 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 卡数（原键 theme_count_5，改为复用 canonical group_13） |
+| P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（原键 theme_count_6，改为复用 canonical engineering_groups） |
 | P336 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_1 |
 | P337 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_2 |
 | P338 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_3 |
@@ -445,6 +445,7 @@
 | P400 | `index.html` | 根 index 方法论 M14 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
 | P402 | `index.html` | 根 index 方法论 M16 组卡数 |
+| P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

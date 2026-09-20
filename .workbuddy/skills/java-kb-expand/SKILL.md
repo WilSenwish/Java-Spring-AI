@@ -43,11 +43,11 @@ agent_created: true
 - 题目总量 **400** = 篇章 252 + 核心原理 74 + 场景 74
 - 优先级 **P0=94 / P1=248 / P2=58**（求和 = 400）
 - 难度 **专家 46 / 架构师 192 / 高级开发 162**（求和 = 400；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **127 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
+- 方法论 **126 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 75/127（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 74/126（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -371,12 +371,12 @@ agent_created: true
 | P327 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_10 |
 | P328 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_11 |
 | P329 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_12 |
-| P330 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_1 |
-| P331 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_2 |
-| P332 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_3 |
-| P333 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_4 |
-| P334 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_5 |
-| P335 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme-count → struct.meth.theme_count_6 |
+| P330 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M14 组头卡数（原键 theme_count_1，2026-09-20 归一为 group_N） |
+| P331 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M15 组头卡数（原键 theme_count_2，2026-09-20 归一为 group_N） |
+| P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16 组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
+| P333 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
+| P334 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 卡数（原键 theme_count_5，改为复用 canonical group_13） |
+| P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（原键 theme_count_6，改为复用 canonical engineering_groups） |
 | P336 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_1 |
 | P337 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_2 |
 | P338 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_3 |
@@ -444,6 +444,7 @@ agent_created: true
 | P400 | `index.html` | 根 index 方法论 M14 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
 | P402 | `index.html` | 根 index 方法论 M16 组卡数 |
+| P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -549,7 +550,9 @@ agent_created: true
 - **禁止全站合计**：跨大篇章/聚合只动 total（C+E+S）；加 M/G/K 只 bump 对应键，**不要**再维护 sum_all（已废除）。
 - **mind 导图页数 21 与题量无关**（`mind_pages` = mind-01~15 + mind-core-methodology + **mind-core-methodology-dao-fa-shu（R2 道法器势）** + **mind-core-methodology-scenario（R3 场景六桶）** + mind-engineering-practices + **mind-production-pitfalls** + mind-server-security-checkpoint；**勿漏踩坑页与 R2/R3**，本处曾误记为 18 → 19）；`idx-meta` 五格含方法论/工程化卡数与 `N+N+N`；改题同步对应 `card-foot`。
 - **`dir-group-count` / `group-count` / 篇章 `dir-count` 必须等于实际卡片数**；M12 禁止嵌套进「一、高并发」。
-- **M 卡（方法论）的跨文件同步面 = 5 文件，且不含 overview（2026-09-18 实测，方法论重构 97→127 卡）**：M 卡新增/重编号须同步 ① `chapter-core-methodology.html`（卡本体三层 + 侧栏 TOC + 本组 mermaid 节点与 `style` + 本组 mod-hang 下挂矩阵 + 全库挂网总表行 + 页内 `methodology` 计数 span）② 根 `index.html`（对应 M 组内的 `li.q-item` + `struct.root.dir_group_N`）③ `mind-core-methodology.html`（`<details class="map-card">`，其中 **`map-body-text` = 该卡 insight 层首段纯文本**，实测与存量 70/97 精确一致）④ `mind-core-methodology-dao-fa-shu.html`（**R2**，各模块 `details` 内 `ul.map-id-list`）⑤ `mind-core-methodology-scenario.html`（**R3**，六桶 `details` 内 `ul.map-id-list` + 桶 `summary` 的 `（N）` 计数）。**`nav-overview-priority.html` 全文 0 个 M 卡号、0 个 `methodology` 计数位 → M 卡不需要同步 overview**（与 C/E/S 卡不同，勿照搬其 9 项清单）。
+- **M 卡（方法论）的跨文件同步面 = 5 文件，且不含 overview（2026-09-18 实测，方法论重构 97→127 卡；2026-09-20 M01.17 并入 M01.05 后为 126 卡）**：M 卡新增/重编号须同步 ① `chapter-core-methodology.html`（卡本体三层 + 侧栏 TOC + 本组 mermaid 节点与 `style` + 本组 mod-hang 下挂矩阵 + 全库挂网总表行 + 页内 `methodology` 计数 span）② 根 `index.html`（对应 M 组内的 `li.q-item` + `struct.root.dir_group_N`）③ `mind-core-methodology.html`（`<details class="map-card">`，其中 **`map-body-text` = 该卡 insight 层首段纯文本**，实测与存量 70/97 精确一致；**另有 mindmap 块的逐卡文本行 `      MXX.YY 标题`，必须与 map-card 成对增删**）④ `mind-core-methodology-dao-fa-shu.html`（**R2**，各模块 `details` 内 `ul.map-id-list` + mindmap 逐卡行）⑤ `mind-core-methodology-scenario.html`（**R3**，六桶 `details` 内 `ul.map-id-list` + 桶 `summary` 的 `（N）` 计数 + mindmap 逐卡行）。**`nav-overview-priority.html` 全文 0 个 M 卡号、0 个 `methodology` 计数位 → M 卡不需要同步 overview**（与 C/E/S 卡不同，勿照搬其 9 项清单）。
+- **M 卡删除 / 并入的同步面（2026-09-20 实测：M01.17「加减思维」并入 M01.05）**：反向操作比新增多 5 类易漏点，皆有实测。① **章节页 mermaid 要删两行**——节点行 `G --> NM0117["…"]` **和** `style NM0117 …` 行（只删前者会留下孤儿 style）；② **"并入"必须移植内容**：把待删卡的 `insight` / `principle` / `application` 要点写进目标卡（本例把"加减"的完整表述、`M02.01`/`M02.02` 落点与「先加能力后减熵」话术移入 M01.05），**门禁查不出内容静默丢失**，只能人工比对；③ **`mind` 三页各有两处**——`map-card` / `ul.map-id-list` 条目 **＋** mindmap 的逐卡文本行 `      MXX.YY 标题`，漏删后者会让 `check_mind_mermaid` 的图-卡对应悬空；④ **计数要 bump 9 个键**：`methodology`（卡数）＋ **`methodology_with_priority`（卡带 `data-priority` 时同步 -1，本例 75→74）**＋ `struct.meth.group_N`（组头）＋ `struct.meth.table_N`（组对照表）＋ **`struct.meth.meta_N`（道/法/术 段合计，本组属"道"故 `meta_1..4` 全 -1，23→22）**＋ `struct.root.dir_group_N`；⑤ **"组数"键勿误伤**：`struct.misc…meth-groups_1`、`struct.mind.idx.mind-foot-meta_1`、`struct.chap.idx.meta_1` 承载的都是**组数 16**（M01~M16），本例 M01 卡数 16→15 而这三个键**保持 16 不变**。
+- **散文裸值不受 `sync_counts` 管辖（2026-09-20 实测）**：`docs/format-special.md` 与 `references/conventions.md` 各有一处**写死的 `75/127`**（不在标记位内、`positions` 未登记）——真源改数后 `sync_counts.py apply` 与 `check` 均**不会**触及，`check` 仍全绿而文档已陈旧。**改任何 `methodology*` 计数后，须手改这两处**。同类风险：`Laws-Theories-Principles-and-Patterns/index.html` 有 `127 卡 / 127 方法论` 的引用文案（外部子站，不在校验范围）。
 - **M 卡批量同步的三个坑（2026-09-18 实测）**：① **卡清单容器类名不统一**——根 `index.html` 用 `ul.q-list`，mind/R2/R3 用 `ul.map-id-list`，批量脚本的容器定位不可写死；② **两道门禁都覆盖不到 M 卡清单**：`sync_counts.py check` 只校验「已登记计数位」（`struct.root.dir_group_N` 登记在内，故真源与站点同为旧值时 check 全绿而内容陈旧）、`validate_kb.py` 也不逐卡校验 M 卡落位（新卡 0 条记录）——**章节 +N 卡而某导图页漏补时两者都不报错**，必须自行逐卡断言「四文件各 N/N 命中」；③ **改根 index 的 M 组计数即须 bump 真源**（`struct.root.dir_group_4/8/9` 是已登记键），否则 `check` 会从 393/393 掉到 390/393。
 - **多文件批量写盘一律「先算后写」（2026-09-18 实测）**：把各文件的替换与断言全部在内存跑完（`[(path, new_text, msg), …]`），**全部通过后才逐个 `open(...,'w')`**。本轮 4 文件同步首版按「算一个写一个」，`sync_root` 已写盘、`sync_mind` 断言失败，留下半写状态；改「先算后写」后同类失败零副作用。
 - **悬空卡号核查须逐号精确匹配（2026-09-18 实测）**：用 `M0[12]\.0[47]` 这类字符组会把**合法卡号** `M01.04`/`M02.07` 一并吞入造成假阳性；重编号后核查须逐个写全 `M01.07`、`M02.04`。
@@ -593,6 +596,9 @@ agent_created: true
 - **第二行内容（`.q-tags` 等）的缩进要用题号列宽推导（2026-09-16）**：≤768px 为 `5.1rem`（q-id 4.5rem + `.q-item a` 的 gap 0.6rem），≤480px 题号收窄到 3.8rem 后须同步改 `4.4rem`；原先在 ≤480px 写 `padding-left: 0`，与宽断点口径不一致导致标签行错位。**跨断点改任何「列宽 + gap」组合时，都要同步所有依赖它的缩进。**
 - **统计块（`.dir-stats`）加计数项须让每行项数为偶（2026-09-16）**：≤480px 为两列，根 index 首行原 3 项 → 「题目总数」独占一行、右侧整格留白（长官反馈的「空白位置占比大」之一）；补入「思维导图 19」后首行 4 项、次行 6 项，375px 下两行均整除无空格。新增展示位须同时登记 `positions`（本轮用空位 **P37**，键 `mind_pages`，首次展示该键于根 index）。
 - **聚合计数格「只删 DOM」会留下孤儿 position（2026-09-16 固化）**：hero 统计格增删必须**三处同步** —— ① 该页 DOM 的 `.stat-item`；② `design-system.css` 中该 hero 的 `grid-template-columns`（**每个断点的列数都须整除项数**，与上条同口径）；③ `docs/kb-counts.json` 的 `positions`。**只删 DOM 不删 position，`sync_counts.py check` 与 `validate_kb.py` 的「kb-count 标记」项会双双 FAIL**（校验按「每个 position 必须命中 1 处 `data-kb-pos=…`」判定，命中 0 处即报缺失）。实测：章节导航 index 移除「思维导图」格（`mind_pages`，**P221**）后 `positions` **396 → 395**、`check` 恢复全绿；同时须同步 `conventions.md` §5.2/§5.3 口径（`counts.mind_pages = 19` 键本身保留，仅删展示位）。新增格子同理（根 index 加 P37 已验证），**改完必跑 `sync_counts.py render`** 刷新 AGENTS.md / SKILL.md / conventions.md 的计数位表。
+- **反向孤儿：`struct` 键存在但无 `position` → 两道门禁全绿也查不出（2026-09-20 固化）**：`sync_counts.py check` 只遍历**已登记的 positions**（未被任何 position 引用的 key 根本不进循环），`validate_kb.py` 的「kb-count 标记」项也只按「每个 position 须命中 1 处 DOM」判定。因此**页面漏掉一个计数展示位**时：positions 里没该项 → `check` 全绿；DOM 里没该 span → 也无从 FAIL。实测：`chapter-core-methodology.html` 的 M13 组头 `<span class="dim-subtitle">术 · 专篇收口</span>` **无数字**（M01–M12 组头均有），而真源里 `struct.meth.group_13 = 5` 是**孤儿键**（0 处引用）；更隐蔽的是同页正文自证「M13 安全 5 卡**已在组头**」→ 文档内部自相矛盾，却全门禁通过。**检测手法**：`set(struct 键) − set(positions[*].key)`。**补位流程**：① `docs/kb-counts.json` 的 `positions` 追加项（新号取现存 max+1；注意 `kind="number"` 时 **`group` 字段是正则捕获组号**、`nth` 是第几个匹配，别误当分组 id）；② HTML 补 `data-kb-pos` + `data-kb-count` span；③ `sync_counts.py check`；④ `sync_counts.py render`。实测补 P403 后 positions 391→392、`check 392/392`、五道门禁全绿。**推论：组头/统计位的「键值正确」不等于「展示到位」，改完组头务必人眼核一遍数字是否真的渲染出来。**
+- **给页面内联 `<style>` 追加 CSS 后 `check_html_format` 必 FAIL（2026-09-20 实测）**：Prettier 会按嵌套深度重排缩进（`<style>` 顶层规则 4 空格、`@media` 内 6 空格），手写的缩进/空行必被判定为非稳态。修法＝用**与校验脚本完全相同的调用方式**写回：`node_modules/.bin/prettier --stdin-filepath <相对路径>` 管道输入，再跑 `normalize_html_closers`（等价于 `npm run format:html`）。可直接复用 `tmp/do_format_core.py` 模式——它带**结构守恒守卫**（qa-card / data-kb-pos / mermaid / M 卡 id / NM 节点数逐项比对，任一变化则拒绝写盘），改完复跑 `check_html_format` 应回 `OK (46 HTML)`。
+- **组级特殊标识的落点与写法（2026-09-20 固化）**：给「某组与其他组不一样」加标识时——① 先**实测该组与其余组是否结构同构**（逐组比对 卡数/导语/导图/组概要/下挂格 五项），多数情况差异在**语义层**而非结构，标识文案要据此定；② 胶囊**复用既有非难度类 `.layer-tag`**，不要为标识新造配色（新色相极可能与难度三色 蓝/紫/青绿 或优先级三色 红/琥珀/蓝 撞车）；③ 组级样式用**属性选择器**挂载（如 `<section … data-group-distinct="expression">` + `.dimension-section[data-group-distinct="expression"] { … }`），不改 `class="dimension-section theme-shu"` 以免波及同维度的其他组；④ **三面同步**：章节页组头（胶囊，可加整组样式）、根 index 的该组 `q-tags`（`<span class="layer-tag">…</span>`）、mind 站权威树 `<li>`；⑤ **mindmap 是裸文本行，放不了 HTML 胶囊**——R2/R3 聚合页只列逐卡链接、无组条目，这两类面加不了，属预期而非遗漏，交付时要说明。⑥ 佐证指标：`check_mobile_overflow.js --path <页> 320 640` 与 `check_list_indent.js --only <页> --viewport 375` 必须 PASS（胶囊会改变行宽/缩进）。
 - **根 index 页内取值发散：同一语义 12 档字号 / 7 档圆角（2026-09-16 实测）**：页内 416 行内联样式里，字号 **12 档**中有 4 档挤在 `10.88~12.8px`（0.68/0.72/0.78/0.8rem，最大差 0.48px，肉眼不可辨）；圆角 7 档（页内自造 `3px`/`5px`/`20px` 与共享 token `4px`/`8px` 混用，其中 20px 胶囊有 1085 处却硬编码）；横向 padding 7 档（`6/7/8/10/12/16/24`，前两档差 1px）；gap 4 档（`.q-item` 父层 8px 与 `a` 子层 9.6px 并存）；另有 `#0f766e` / `#fff` / `rgba(37,99,235,0.04)` 三处硬编码、`max-width:1100px` 重复 4 次。**修法**：页内 `:root` 建 `--dir-*` token 层（字号 12→7 档、内距 7→3 档、色值与宽度收口），**只改写法不改视觉**（差异 ≤1px）。这类批量改写用**带期望命中数的替换脚本**（`tmp/normalize_root_index_style.py`），不要逐个手改。
 - **去掉 `data-difficulty` 会连带改视觉：共享 CSS 有属性选择器（2026-09-16 实测）**：`design-system.css` 里 `.qa-card[data-difficulty="architect"]`（紫左边框 + 紫 `qa-badge`）与 `["expert"]`（**原为**渐变左边框 + 渐变 `qa-badge`，2026-09-16 晚已改为青绿实色，见下条）是**属性选择器**，不是只有类。所以给 M/G/K 清掉 220 处 `data-difficulty` 后，这 220 张卡会从「按难度变色」统一回落 `.qa-card` 默认蓝色左边框 —— 这是「取消分级」的必然结果，**不是 bug**；若日后要给专篇配统一专色，须显式加页面级类，勿再借难度属性。同理，任何「只删属性/只删 DOM」的改动都要先 `grep '\[data-'` 确认有无属性选择器。
 - **难度三档配色：色相必须避开优先级三色（2026-09-16 晚，长官反馈「专家/架构区分度不明显」+「主要是颜色」）**：难度胶囊与优先级胶囊在 `.qa-question` 内**紧邻同框**，色相空间被挤到只剩青绿可用。定案：`senior` = 蓝 `--accent`、`architect` = 紫 `--accent2`、`expert` = **青绿** `--diff-expert`（浅 `#0f766e` / 深 `#2dd4bf`）；卡片左边框与 `qa-badge` 底色取 `--diff-expert-solid`（浅 `#0f766e` / 深 `#14b8a6`），**原「蓝→紫渐变」已废弃**。**改前真因**：`expert` 与 `architect` 的 `color` **同为 `var(--accent2)`**，底色都是 10% 蓝紫浅色，只有边框透明度 0.2/0.3 的微差 —— 等于专家借了架构的紫。**为何拆两个令牌**：徽标底色承白字、胶囊文字是前景色，二者对比度要求相反，同一值无法兼顾（若用 `#0d9488` 做徽标底色，白字仅 1.86:1）。**已占用色相（勿再借用）**：蓝＝高级 + `P2`；紫＝架构 + `callout-deep`；红＝`P0`；琥珀＝`P1` + `callout-pitfall`；翡翠绿＝`callout-tip`。改动面仅 `design-system.css` 三处令牌（`:root` + 两处深色覆盖）与两条 `[data-difficulty="expert"]` 规则，全站 1252 枚徽标自动生效；`.layer-tag`（想/做/守）刻意沿用架构紫，**不随本次改动**。

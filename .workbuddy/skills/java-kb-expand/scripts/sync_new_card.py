@@ -82,6 +82,24 @@ os.makedirs(BACKUP, exist_ok=True)
 #   【能拦住 TOC / overview 类型 / 页头难度 / dir-count 漂移的只有 validate_kb.py；
 #     sync_counts.py check 只校验 SSOT 已声明的计数位，新增结构漏同步它发现不了】
 # =====================================================================================
+# ============ 反向操作：删除 / 并入一张卡（2026-09-20 实测：M01.17 → 并入 M01.05）============
+# 与新增对称，但多 5 类易漏点，皆有实测：
+#   [R1] 章节页 Mermaid 要删【两行】：节点行 `G --> NM0117["…"]` 和 `style NM0117 …` 行
+#        —— 只删前者会留下孤儿 style（节点 id 规约仍为「NM + 卡号去点」）
+#   [R2] 「并入」必须移植内容：把待删卡的 insight / principle / application 要点写进目标卡。
+#        本例：加减的完整表述 + M02.01/M02.02 落点 + 「先加能力后减熵」话术 → 移入 M01.05。
+#        ⚠ 门禁查不出内容丢失，只能人工比对三层要点是否都落地。
+#   [R3] mind 三页各有【两处】：map-card（R2/R3 视角页为 ul.map-id-list 条目）＋ mindmap 逐卡
+#        文本行 `      MXX.YY 标题`。漏删 mindmap 行会让图-卡对应悬空。
+#   [R4] 计数 bump 共 9 键：methodology（卡数）、methodology_with_priority（卡带 data-priority 时同步 -1）、
+#        struct.meth.group_N（组头）、struct.meth.table_N（组对照表）、
+#        struct.meth.meta_N（道/法/术 段合计；本组属「道」故 meta_1..4 全 -1）、
+#        struct.root.dir_group_N
+#   [R5] ⚠ 「组数」键勿误伤：struct.misc…meth-groups_1 / struct.mind.idx.mind-foot-meta_1 /
+#        struct.chap.idx.meta_1 承载的都是【组数 16】（M01~M16），M01 卡数 16→15 时这三个键【不变】。
+#   [R6] ⚠ 散文裸值不受 sync_counts 管辖：docs/format-special.md 与 references/conventions.md
+#        各有一处写死的 `75/127`（未登记 positions）→ 改数后必须手改为 `74/126`；check 全绿也查不出。
+# =====================================================================================
 
 # ===================== TODO 区 =====================
 # 已知真实文件名（避免猜错）：

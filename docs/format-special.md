@@ -18,7 +18,7 @@
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：全库框。C/E/S 是领域细枝，G 是门禁化的器，K 是器失效的反例；本篇提供可挂载的道/法/术。器与势**禁止** TOC Part（不新开 M17）。开篇含五层定义、同一词跨层三例、16×5 挂网总表与四种错位；**每组必有** `.mod-hang` 五列下挂。<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">127</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M16` 共 16 组分层侧边目录。
+- **定位**：全库框。C/E/S 是领域细枝，G 是门禁化的器，K 是器失效的反例；本篇提供可挂载的道/法/术。器与势**禁止** TOC Part（不新开 M17）。开篇含五层定义、同一词跨层三例、16×5 挂网总表与四种错位；**每组必有** `.mod-hang` 五列下挂。<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">126</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 `M01~M16` 共 16 组分层侧边目录。
 - **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -27,8 +27,8 @@
   | `principle` | 原理映射 | 把公理落到工程化手段 |
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
-- **难度**：**不适用 —— M 卡不分难度等级**（2026-09-16 长官决策：移除 `data-difficulty`、难度计数键与「方法论难度三级求和」不变式）。本篇合计 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P17">127</span> 卡。
-- **优先级**：**属性侧**仅部分卡片携带 `data-priority`（75/127，权威键 `methodology_with_priority` / `methodology`，展示位在 `format-shared.md` §3.2）；**可见徽标侧不呈现**（同日决策：M/G/K 去等级与优先级徽标）。不属于全站题目优先级口径（P0/P1/P2 只统计 C+E+S = `total`）。
+- **难度**：**不适用 —— M 卡不分难度等级**（2026-09-16 长官决策：移除 `data-difficulty`、难度计数键与「方法论难度三级求和」不变式）。本篇合计 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P17">126</span> 卡。
+- **优先级**：**属性侧**仅部分卡片携带 `data-priority`（74/126，权威键 `methodology_with_priority` / `methodology`，展示位在 `format-shared.md` §3.2）；**可见徽标侧不呈现**（同日决策：M/G/K 去等级与优先级徽标）。不属于全站题目优先级口径（P0/P1/P2 只统计 C+E+S = `total`）。
 - **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题，**不带难度/优先级徽标**）。
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
   - 十六组 → `#m-group-01`～`#m-group-16`（与 Module 编号一致）
@@ -45,7 +45,7 @@
   ov-stats（两行统计；ov-stat-num 顶部 10 项 + 9 子组标题计数 = 全页 19 处；顺序见 `kb-counts.json` → `ov_stat_order`）
   ├─ ov-stats-row ① 题目总数 / P0 / P1 / P2
   ├─ ov-stats-row ② 专家 / 架构 / 高级 / 章节题 / 核心原理 / 场景题
-  ├─ （方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P18">127</span> 卡不在本页统计条，只在专篇页与各 index 呈现）
+  ├─ （方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P18">126</span> 卡不在本页统计条，只在专篇页与各 index 呈现）
   ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title
   │    └─ ov-group-body
