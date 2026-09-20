@@ -169,7 +169,7 @@
 | L0 · 全局键 | `<span class="kb-count" data-kb-count="total" data-kb-pos="Pxx">N</span>` |
 | L0 · 结构键 | `<span class="kb-count" data-kb-count="struct.chap.idx.c01.n" data-kb-pos="Pxx">N</span>` |
 | L0 · ov_series | 同上，另加 `data-kb-ov-i="0..10"`（P07，顺序=`ov_stat_order`） |
-| title 特例 | 属性打在 `<title class="kb-count" data-kb-pos="Pxx">`（勿嵌套 span，现 P31） |
+| title 特例 | 属性打在 `<title class="kb-count" data-kb-pos="Pxx">`（勿嵌套 span） |
 
 ##### 硬约定
 
@@ -284,8 +284,6 @@
 | P28 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段篇章题数 |
 | P29 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段场景题数 |
 | P30 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段核心原理数 |
-| P31 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 title 散文题数 |
-| P32 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 h1 题数 |
 | P33 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 meta 题目数 |
 | P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
 | P35 | `index.html` | 根 index 核心原理 dir-count |

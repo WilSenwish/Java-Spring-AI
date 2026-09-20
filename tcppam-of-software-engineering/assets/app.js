@@ -6,26 +6,86 @@
 (function () {
   "use strict";
 
-  /* ---------- 主题切换（明/暗） ---------- */
+  /* ---------- 主题切换（浅色 / 深色 / 跟随系统 三态） ---------- */
   var root = document.documentElement;
-  var saved = null;
-  try { saved = localStorage.getItem("tcppam-theme"); } catch (e) {}
-  if (saved) root.setAttribute("data-theme", saved);
-  else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-    root.setAttribute("data-theme", "dark");
+  var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  var MODE_KEY = "tcppam-theme";
+  var MODES = ["light", "dark", "system"];
+  function readMode() {
+    var s = null;
+    try { s = localStorage.getItem(MODE_KEY); } catch (e) {}
+    if (s && MODES.indexOf(s) !== -1) return s;
+    return "system"; /* 首屏默认跟随系统 */
+  }
+  function resolveMode(mode) {
+    if (mode === "system" && mq) return mq.matches ? "dark" : "light";
+    return mode;
+  }
+  function paintThemeButtons() {
+    var mode = readMode();
+    var label = mode === "dark" ? "☾ 深色" : mode === "system" ? "◐ 系统" : "☀ 浅色";
+    var tbtn = document.getElementById("themeBtn");
+    if (tbtn) tbtn.textContent = label;
+    if (typeof fTheme !== "undefined" && fTheme) {
+      var icon = mode === "dark" ? "☾" : mode === "system" ? "◐" : "☀";
+      var txt = mode === "dark" ? "深色" : mode === "system" ? "系统" : "浅色";
+      fTheme.innerHTML = '<span class="theme-toggle-icon" aria-hidden="true">' + icon + '</span><span>' + txt + "</span>";
+    }
+  }
+  function applyTheme() {
+    var mode = readMode();
+    root.setAttribute("data-theme", resolveMode(mode));
+    root.setAttribute("data-theme-mode", mode);
+    paintThemeButtons();
   }
   function toggleTheme() {
-    var cur = root.getAttribute("data-theme") === "dark" ? "dark" : "light";
-    var next = cur === "dark" ? "light" : "dark";
-    root.setAttribute("data-theme", next);
-    try { localStorage.setItem("tcppam-theme", next); } catch (e) {}
-    var b = document.getElementById("themeBtn");
-    if (b) b.textContent = next === "dark" ? "☀ 浅色" : "🌙 深色";
+    var mode = readMode();
+    var next = MODES[(MODES.indexOf(mode) + 1) % MODES.length]; /* light → dark → system → light */
+    try { localStorage.setItem(MODE_KEY, next); } catch (e) {}
+    applyTheme();
   }
   var tb = document.getElementById("themeBtn");
-  if (tb) { tb.textContent = (root.getAttribute("data-theme") === "dark") ? "☀ 浅色" : "🌙 深色"; tb.addEventListener("click", toggleTheme); }
+  if (tb) tb.addEventListener("click", toggleTheme);
+  if (mq && mq.addEventListener) {
+    mq.addEventListener("change", function () { if (readMode() === "system") applyTheme(); });
+  }
+  applyTheme();
   var top = document.getElementById("topBtn");
   if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
+
+  /* ---------- 悬浮控件：主题切换 / 回顶 / 去底（叠加 Laws 站点风格，固定右下角） ---------- */
+  function ensureFloatBtn(cls, html, title, onClick) {
+    var b = document.createElement("button");
+    b.className = cls;
+    b.type = "button";
+    b.innerHTML = html;
+    b.setAttribute("aria-label", title);
+    b.setAttribute("title", title);
+    b.addEventListener("click", onClick);
+    document.body.appendChild(b);
+    return b;
+  }
+  var fTop = ensureFloatBtn("back-to-top", "&#8593;", "返回顶部", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  var fBot = ensureFloatBtn("go-to-bottom", "&#8595;", "去到底部", function () {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+  });
+  function updateFloatScroll() {
+    var y = window.scrollY || window.pageYOffset || 0;
+    var remain = document.documentElement.scrollHeight - y - window.innerHeight;
+    if (y > 400) fTop.classList.add("visible"); else fTop.classList.remove("visible");
+    if (remain > 400) fBot.classList.add("visible"); else fBot.classList.remove("visible");
+  }
+  window.addEventListener("scroll", updateFloatScroll, { passive: true });
+  window.addEventListener("resize", updateFloatScroll);
+  updateFloatScroll();
+
+  /* 悬浮主题切换：镜像同一套三态（浅色 / 深色 / 跟随系统），复用 toggleTheme 单一真源，与工具条按钮同步 */
+  var fTheme = ensureFloatBtn("theme-toggle", "", "切换颜色主题（浅色 / 深色 / 跟随系统）", function () {
+    if (tb) tb.click();
+  });
+  paintThemeButtons();
 
   /* ---------- Tabs（九种思路切换） ---------- */
   var tabEls = document.querySelectorAll(".tab");
