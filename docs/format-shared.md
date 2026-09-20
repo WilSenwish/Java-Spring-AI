@@ -323,14 +323,23 @@ index.html                         # 首页
 | 防闪白 | `<head>` 在 CSS **之前**引入 `assets/theme-init.js` |
 | 切换 UI | 由 `theme-init.js` 注入 `.theme-toggle`（浅色 → 深色 → 跟随系统）以及 `.back-to-top` / `.go-to-bottom` 成对浮动按钮；`nav.js` 仅兜底防漏；页面**不得**手写第二套 |
 | Mermaid | `mermaid.initialize(kbTheme.mermaidConfig({ startOnLoad: true }))`（偏蓝 `base` + themeVariables）；换肤时 `theme-init.js` 用 `data-kb-mermaid-src` 还原源码再 `mermaid.run` |
+| 图内配色 | ①**分支配色**（思维导图/饼图）由 `cScale*` / `cScaleInv*` / `cScaleLabel*` / `git0` 显式接管（浅深各一套）；②**图内内联色**（`style X fill:#dbeafe`）由 `theme-init.js` 在渲染后**重着色**（`RETINT_*_DARK` 映射 + `MutationObserver`），源码不动 |
 
 硬约束：
 
 1. **令牌只写 CSS 变量**：新增样式优先 `var(--bg)` / `var(--ink)` / `var(--accent)` 等；禁止新增仅适配浅色的裸 hex 作为页面主色（装饰性章节色条、accent 底上的 `#fff` 文字可例外）。
 2. **深色令牌块**：`design-system.css` 须含 `html[data-theme="dark"]` 与 `@media (prefers-color-scheme: dark)` 下 `html:not([data-theme="light"])` 同套令牌。
-3. **不改** `docs/facts/`；不重写 Mermaid 图内数百处 `fill:#dbeafe`（默认偏蓝主题变量已覆盖无内联 fill 的节点）。
+3. **不改** `docs/facts/`；不重写 Mermaid 图内数百处 `fill:#dbeafe`（**源码保持浅色**，深色改写一律在运行时做）。
+   注意：`themeVariables` 只覆盖**无内联 fill** 的节点；`style X fill:#dbeafe` 会渲染成元素上的
+   `fill:#dbeafe !important`，实测**样式表 `!important` 压不过内联 `!important`**，深色下即成「浅底 + 近白字」（对比度 1.0）。
+   故必须走 `theme-init.js` 的渲染后重着色。
+4. **内联色白名单**：图内 `style` / `classDef` 出现的每个 `fill:` / `stroke:` 色值，都必须已在
+   `RETINT_FILL_DARK` / `RETINT_STROKE_DARK` 中登记；新增配色**先登记再画图**，否则深色下出现不可读节点
+   （`validate_kb` 会 FAIL 并点名色值）。
 
-`validate_kb.py` 会检查：站点 HTML 含 `theme-init.js`；`design-system.css` 含 `data-theme="dark"` 令牌块。
+`validate_kb.py` 会检查：站点 HTML 含 `theme-init.js`；`design-system.css` 含 `data-theme="dark"` 令牌块；
+`theme-init.js` 含浅/深两套 `cScale0` 与 `cScaleLabel`、`RETINT_*_DARK` 映射与重着色入口；
+以及**图内内联色值全部在映射表内**。
 
 ## 10. HTML 格式化（Prettier）与 Mermaid 保护
 

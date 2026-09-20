@@ -573,6 +573,45 @@ def main():
             _theme_miss.append(os.path.relpath(p, BASE))
     check(not _theme_miss, f"[主题] 缺 theme-init.js 的页面: {_theme_miss[:8]}")
 
+    # 1c-2) 图表深色适配（format-shared §9）：思维导图分支配色接管 + 内联色深色改写
+    _js_path = os.path.join(CHAPTER_DIR, "assets", "theme-init.js")
+    if os.path.isfile(_js_path):
+        _js = read(_js_path)
+        check(len(re.findall(r"cScale0\s*:\s*'#", _js)) >= 2,
+              "[主题] theme-init.js 须浅/深两套均显式定义 cScale0（否则思维导图回落 base 主题默认紫蓝盘，"
+              "分支标签在浅色下仅 2.5:1）")
+        check(re.search(r"cScaleLabel'\s*\+\s*_ci", _js) is not None,
+              "[主题] theme-init.js 须为 cScaleLabel0..11 赋标签色")
+        check(re.search(r"var\s+RETINT_FILL_DARK\s*=\s*\{", _js) is not None
+              and re.search(r"var\s+RETINT_STROKE_DARK\s*=\s*\{", _js) is not None,
+              "[主题] theme-init.js 须定义 RETINT_FILL_DARK / RETINT_STROKE_DARK 深色改写映射")
+        check(re.search(r"function\s+applyMermaidRetint\s*\(", _js) is not None
+              and re.search(r"startMermaidRetintWatcher\(\)\s*;", _js) is not None,
+              "[主题] theme-init.js 须在渲染完成后重着色（applyMermaidRetint + 观察器启动）")
+
+        def _retint_keys(name):
+            m = re.search(r"var\s+" + name + r"\s*=\s*\{(.*?)\n  \};", _js, re.S)
+            if not m:
+                return set()
+            return {h.lower() for h in re.findall(r"'(#[0-9a-fA-F]{3,8})'\s*:", m.group(1))}
+
+        _fill_map = _retint_keys("RETINT_FILL_DARK")
+        _stroke_map = _retint_keys("RETINT_STROKE_DARK")
+        _unmapped = []
+        for p in _site_html:
+            if not os.path.isfile(p):
+                continue
+            for inner in re.findall(r'<div class="mermaid(?:\s+[\w-]+)?">(.*?)</div>', read(p), re.S):
+                for line in inner.splitlines():
+                    if not re.match(r"\s*(?:style|classDef)\b", line):
+                        continue
+                    for prop, hexv in re.findall(r"(fill|stroke)\s*:\s*(#[0-9a-fA-F]{3,8})", line):
+                        pool = _fill_map if prop == "fill" else _stroke_map
+                        if hexv.lower() not in pool:
+                            _unmapped.append(f"{os.path.basename(p)} {prop}:{hexv}")
+        check(not _unmapped,
+              f"[主题] Mermaid 内联色未纳入深色改写映射（深色下将浅底浅字）: {sorted(set(_unmapped))[:8]}")
+
     # 1d) Mermaid：prettier-ignore + 未塌缩（format-shared §10）
     _mm_miss = []
     _mm_flat = []

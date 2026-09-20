@@ -44,6 +44,36 @@
     activationBkgColor: '#bfdbfe',
     activationBorderColor: '#2563eb',
     sequenceNumberColor: '#ffffff',
+    /* cScale 系列：思维导图分支底色/连线/标签色。
+       不显式定义时 Mermaid 会用 base 主题的默认紫蓝调色板（如 #6a5ffb），
+       配本主题的深藏青标签色只有 2.54:1（不可读）——必须显式接管。 */
+    cScale0: '#dbeafe',
+    cScale1: '#fef3c7',
+    cScale2: '#dcfce7',
+    cScale3: '#ede9fe',
+    cScale4: '#fee2e2',
+    cScale5: '#cffafe',
+    cScale6: '#f3e8ff',
+    cScale7: '#fef9c3',
+    cScale8: '#d1fae5',
+    cScale9: '#ffe4e6',
+    cScale10: '#e0e7ff',
+    cScale11: '#e2e8f0',
+    cScaleInv0: '#2563eb',
+    cScaleInv1: '#d97706',
+    cScaleInv2: '#059669',
+    cScaleInv3: '#7c3aed',
+    cScaleInv4: '#dc2626',
+    cScaleInv5: '#0891b2',
+    cScaleInv6: '#9333ea',
+    cScaleInv7: '#ca8a04',
+    cScaleInv8: '#10b981',
+    cScaleInv9: '#e11d48',
+    cScaleInv10: '#4f46e5',
+    cScaleInv11: '#64748b',
+    /* 思维导图根节点走 git0 / gitBranchLabel0（非 cScale） */
+    git0: '#bfdbfe',
+    gitBranchLabel0: '#1e3a5f',
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
   };
   var MERMAID_VARS_DARK = {
@@ -78,8 +108,145 @@
     activationBkgColor: '#1e40af',
     activationBorderColor: '#60a5fa',
     sequenceNumberColor: '#0f1419',
+    /* cScale 系列：深底版分支底色（与浅色同色相，仅降明度、提对比） */
+    cScale0: '#1e3a5f',
+    cScale1: '#3d3312',
+    cScale2: '#14402b',
+    cScale3: '#2a2255',
+    cScale4: '#4b1a1d',
+    cScale5: '#0e3a44',
+    cScale6: '#341d4d',
+    cScale7: '#3b3708',
+    cScale8: '#0f3d33',
+    cScale9: '#4a1c24',
+    cScale10: '#1e2a5c',
+    cScale11: '#26313f',
+    cScaleInv0: '#60a5fa',
+    cScaleInv1: '#fbbf24',
+    cScaleInv2: '#34d399',
+    cScaleInv3: '#a78bfa',
+    cScaleInv4: '#f87171',
+    cScaleInv5: '#22d3ee',
+    cScaleInv6: '#c084fc',
+    cScaleInv7: '#facc15',
+    cScaleInv8: '#34d399',
+    cScaleInv9: '#fb7185',
+    cScaleInv10: '#818cf8',
+    cScaleInv11: '#94a3b8',
+    /* 思维导图根节点走 git0 / gitBranchLabel0（非 cScale） */
+    git0: '#24406b',
+    gitBranchLabel0: '#e2e8f0',
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
   };
+
+  /* cScaleLabel：分支标签文字色（不定义则回落 labelTextColor） */
+  for (var _ci = 0; _ci < 12; _ci++) {
+    MERMAID_VARS_LIGHT['cScaleLabel' + _ci] = '#1e3a5f';
+    MERMAID_VARS_DARK['cScaleLabel' + _ci] = '#e2e8f0';
+  }
+
+  /* ---------- 图表内联配色「深色重着色」 ----------
+   * 背景：Mermaid 的 `style X fill:#dbeafe` 指令会被渲染成元素上的内联
+   *   fill:#dbeafe !important
+   * 样式表里的 !important 压不过内联 !important（实测两种特异性皆败），
+   * 只能在渲染完成后改写 style 属性本身。浅色画布若原样保留，会变成
+   * 「浅底 + 近白字」，对比度 1.0 —— 文字事实上不可见。
+   * 故按「同色相、降明度」映射为深底，浅色文字即可读（对比度 9:1 以上）；
+   * 少数饱和实色配白字的节点则压暗明度，保住白字。 */
+  var RETINT_ATTR = 'data-kb-orig-style';
+  var RETINT_FILL_DARK = {
+    '#dbeafe': '#1e3a5f',
+    '#fef3c7': '#3d3312',
+    '#dcfce7': '#14402b',
+    '#d1fae5': '#0f3d33',
+    '#fee2e2': '#4b1a1d',
+    '#ffe4e6': '#4a1c24',
+    '#ede9fe': '#2a2255',
+    '#f3e8ff': '#341d4d',
+    '#e0e7ff': '#1e2a5c',
+    '#f0f3f7': '#232e40',
+    '#e2e8f0': '#26313f',
+    '#e5e7eb': '#2a323d',
+    '#e1f5fe': '#123a47',
+    '#fff3e0': '#46301a',
+    '#e8f5e9': '#1d3b22',
+    '#4a90d9': '#2f5f96',
+    '#7b68ee': '#4f3fb0',
+    '#ff6b35': '#a5431f',
+    '#e74c3c': '#9e2f26',
+    '#f39c12': '#8a5a09',
+    '#9b59b6': '#6a3a7f',
+  };
+  var RETINT_STROKE_DARK = {
+    '#2563eb': '#60a5fa',
+    '#d97706': '#fbbf24',
+    '#059669': '#34d399',
+    '#dc2626': '#f87171',
+    '#7c3aed': '#a78bfa',
+    '#e11d48': '#fb7185',
+    '#4f46e5': '#818cf8',
+    '#6b7280': '#94a3b8',
+    '#475569': '#94a3b8',
+    '#64748b': '#94a3b8',
+    '#9ca3af': '#cbd5e1',
+  };
+  var RETINT_DECL = /(^|;)\s*(fill|stroke)\s*:\s*(#[0-9a-fA-F]{3,8})\s*(!important)?/g;
+
+  function remapStyle(orig, dark) {
+    if (!dark) return orig;
+    return orig.replace(RETINT_DECL, function (all, sep, prop, hex, imp) {
+      var map = prop.toLowerCase() === 'fill' ? RETINT_FILL_DARK : RETINT_STROKE_DARK;
+      var to = map[hex.toLowerCase()];
+      if (!to) return all;
+      return sep + prop + ':' + to + (imp ? ' !important' : '');
+    });
+  }
+
+  /** 只在「确实需要改写」时记录原始值，便于换回浅色时还原 */
+  function retintMermaidShapes(dark) {
+    var nodes = document.querySelectorAll('.mermaid svg [style]');
+    Array.prototype.forEach.call(nodes, function (el) {
+      var cur = el.getAttribute('style');
+      if (!cur || !/fill\s*:|stroke\s*:/.test(cur)) return;
+      if (!el.hasAttribute(RETINT_ATTR)) el.setAttribute(RETINT_ATTR, cur);
+      var orig = el.getAttribute(RETINT_ATTR);
+      var next = remapStyle(orig, dark);
+      if (next !== cur) el.setAttribute('style', next);
+    });
+  }
+
+  function applyMermaidRetint() {
+    retintMermaidShapes(resolvedTheme(readPref()) === 'dark');
+  }
+
+  var _retintTimer = null;
+  function scheduleMermaidRetint() {
+    if (_retintTimer) clearTimeout(_retintTimer);
+    _retintTimer = setTimeout(function () {
+      _retintTimer = null;
+      applyMermaidRetint();
+    }, 50);
+  }
+
+  /** 只监听 childList：Mermaid 插入 <svg> 时触发；本函数自身的 style 改写不会回环触发 */
+  var _retintObserver = null;
+  function startMermaidRetintWatcher() {
+    if (!window.MutationObserver || !document.body || _retintObserver) return;
+    _retintObserver = new MutationObserver(function (records) {
+      for (var i = 0; i < records.length; i++) {
+        var added = records[i].addedNodes;
+        for (var j = 0; j < added.length; j++) {
+          var n = added[j];
+          if (n.nodeType !== 1) continue;
+          if (n.tagName.toLowerCase() === 'svg' || (n.querySelector && n.querySelector('svg'))) {
+            scheduleMermaidRetint();
+            return;
+          }
+        }
+      }
+    });
+    _retintObserver.observe(document.body, { childList: true, subtree: true });
+  }
 
   function systemDark() {
     try {
@@ -185,6 +352,7 @@
     } catch (e2) {
       /* 失败则下次刷新生效 */
     }
+    scheduleMermaidRetint();
   }
 
   function scheduleMermaidRefresh() {
@@ -209,6 +377,8 @@
     mermaidConfig: mermaidConfig,
     snapshotMermaid: snapshotMermaidSources,
     refreshMermaid: scheduleMermaidRefresh,
+    /** 深色下把图表内联浅色重着色为深底；换肤后由 kb-theme-change 自动触发 */
+    retint: applyMermaidRetint,
     cycle: function () {
       var cur = readPref();
       var next = cur === 'light' ? 'dark' : cur === 'dark' ? 'system' : 'light';
@@ -341,6 +511,8 @@
     if (document.body) {
       initThemeToggle();
       initScrollJumpButtons();
+      startMermaidRetintWatcher();
+      scheduleMermaidRetint();
     }
   }
   if (document.readyState === 'loading') {
