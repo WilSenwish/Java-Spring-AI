@@ -364,7 +364,7 @@ C 段只覆盖「短元数据块」（可见文本 ≤ `max_block_chars`）；**
 | `guard.coverage.prose` | **正文聚合计数**：`enabled` / `units` / `mask` / `exempt`（含 `name` 理由）/ `exempt_window` —— 数字 ∈ V 且紧邻单位词、未受 span 包裹即 FAIL，**真值锚定** | 同上 + `audit_prose_exempt` |
 | `guard.coverage.exempt` | 豁免正则（按整行匹配则跳过，服务 A/B 段） | 同上 |
 | **`guard.sources`** | **真源声明**：`types`（类型说明）/ `rules`（怎么求真值）/ `manual`（人工锚定）/ `invariants`（不变式） | **`audit_truth_source`** |
-| `guard.layers` | 层归属 `range` + 合计 `sum_keys`（真值随 `range` 变化 → probe D 用例） | `audit_truth_source`（`layer_sum` 规则） |
+| `guard.layers` | 层归属 `range` + 合计 `sum_keys`（真值随 `range` 变化 → probe D 用例）；**层展示位须复用 `sum_keys` 内已有键**（道/法/术各 4 键 `meta_1..4`/`theme_1..4`/`appendix_1..4`，势/附**仅** `shi_3`/`fu_3`）——新建未登记的同族键（如 `shi_1`/`fu_1`）会被判「声明未生效」 | `audit_truth_source`（`layer_sum` 规则） |
 | `guard.single_source` | 单值键（组数 / 总卡数）来源声明 | 同上（`dom_count` 规则 + `manual`） |
 | `guard.derived` | **结构性派生计数**：`key` / `file` / `region` / `count`（真源 = DOM 元素数） | 同上（`derived` 规则） |
 | `guard.pos_allow_multi` | 允许多点位白名单 | `audit_count_drift` |
@@ -936,6 +936,12 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
 | P435 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M16 单列势定律（11 张）」组卡数（2026-09-21 升格；同键既有位 P332 在 chapter-core-methodology） |
 | P436 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M17 表达与对齐（4 张）」组卡数（2026-09-21 升格；同键既有位 P406） |
+| P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
+| P438 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 附卡数 |
+| P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M13 |
+| P440 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M14 |
+| P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M15 |
+| P442 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M16 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

@@ -483,6 +483,12 @@
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
 | P435 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M16 单列势定律（11 张）」组卡数（2026-09-21 升格；同键既有位 P332 在 chapter-core-methodology） |
 | P436 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M17 表达与对齐（4 张）」组卡数（2026-09-21 升格；同键既有位 P406） |
+| P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
+| P438 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 附卡数 |
+| P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M13 |
+| P440 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M14 |
+| P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M15 |
+| P442 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M16 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 
