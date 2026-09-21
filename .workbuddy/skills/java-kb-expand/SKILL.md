@@ -43,11 +43,11 @@ agent_created: true
 - 题目总量 **400** = 篇章 252 + 核心原理 74 + 场景 74
 - 优先级 **P0=94 / P1=248 / P2=58**（求和 = 400）
 - 难度 **专家 46 / 架构师 192 / 高级开发 162**（求和 = 400；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **137 卡**（M01~M16，专篇键 methodology；**不分难度等级**）
+- 方法论 **149 卡**（M01~M17：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16 / 附 M17，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 85/137（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 0/149（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -373,7 +373,7 @@ agent_created: true
 | P329 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_12 |
 | P330 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M14 组头卡数（原键 theme_count_1，2026-09-20 归一为 group_N） |
 | P331 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M15 组头卡数（原键 theme_count_2，2026-09-20 归一为 group_N） |
-| P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16 组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
+| P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16（势定律）组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
 | P333 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
 | P334 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 卡数（原键 theme_count_5，改为复用 canonical group_13） |
 | P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（原键 theme_count_6，改为复用 canonical engineering_groups） |
@@ -443,8 +443,33 @@ agent_created: true
 | P399 | `index.html` | 根 index 方法论 M13 组卡数 |
 | P400 | `index.html` | 根 index 方法论 M14 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
-| P402 | `index.html` | 根 index 方法论 M16 组卡数 |
+| P402 | `index.html` | 根 index 方法论 M16(势) 组卡数 |
+| P407 | `index.html` | 根 index 方法论 M17(附) 组卡数 |
+| P404 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 附(M17) 卡数 |
+| P405 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
+| P406 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
 | P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
+| P408 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 M16 势定律组数（原误复用章节页 P405，2026-09-21 独立注册） |
+| P409 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 M17 表达与对齐组数（原误复用章节页 P404，2026-09-21 独立注册） |
+| P410 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M1 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P411 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M2 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P412 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M3 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P413 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M4 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P414 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M5 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P415 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M6 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P416 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M7 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P417 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M8 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P418 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M9 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P419 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M10 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P420 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M11 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P421 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M12 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P422 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M14 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P423 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M15 组数（2026-09-21 由纯文本升格为受保护计数位） |
+| P424 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 道层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
+| P425 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 法层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
+| P426 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 术层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
+| P427 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 器层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
+| P428 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 势层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -491,18 +516,22 @@ agent_created: true
 4. 环境 Python：`/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3`。
 
 ### Step 5 · 全量校验 + 记忆
-1. 跑 `scripts/validate_kb.py`（会**强制**子进程跑 `sync_counts.py check`）：三权威源一致、**散文计数位 P01–P89 与真源一致**、各文件 `data-page-node-id` 全 0、无 `</spa` 截断、新卡双编码与落位。
+1. 跑 `scripts/validate_kb.py`（会**强制**子进程跑 `sync_counts.py check`）：三权威源一致、**散文计数位与真源一致**（位号以 SSOT `positions` 为唯一权威，勿写死范围）、各文件 `data-page-node-id` 全 0、无 `</spa` 截断、新卡双编码与落位。
 2. **散文计数硬约束（2026-09-13 固化，禁止遗漏）**：
-   - 页头/来源段里的「本页 N 道 / 234 道深度问答 / 72 道场景…」属于**散文位**，已登记为 `kb-counts.json` → `positions` 的 **P01–P89**（及后续扩展）。
+   - 页头/来源段里的「本页 N 道 / 234 道深度问答 / 72 道场景…」属于**散文位**，已登记为 `kb-counts.json` → `positions`（**位号以 SSOT 为唯一权威，文档中禁止写死范围**）。
    - **改题数必须**走 `sync_counts.py bump …`（或 bump 后 `apply`），禁止只改 HTML 散文数字。
    - `validate_kb.py` 第 0 步即 `sync_counts check`；任一散文位漂移 → **整次校验 FAIL**。
    - 新增散文数字时：先在 `kb-counts.json` 加 position（pattern 命中恰好 1 处），**同时**给数字套上 `data-kb-pos="Pxx"` 标记（见 `conventions.md` §5.1.4），再 `render` 更新 SKILL/AGENTS/conventions 的 COUNTS 表，最后 `check`。
    - **计数点分级（2026-09-13 全量固化）**：见 `conventions.md` **§5.1.4**。
-     - **L0** SSOT：`data-kb-pos`（`kb-counts.json` positions，现 P01–P89）
-     - **L1** 聚合 UI：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等，禁止裸「N题|卡|道|组」
+     - **L0** SSOT：`data-kb-pos`（`kb-counts.json` positions；位号以 SSOT 为准）
+     - **L1** 聚合 UI：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等，禁止裸「N题|卡|道|组|项」；**全域**还须覆盖 inline 模式（如「M## 名（N）」括号式组数）
      - **L2** 页内结构：`ov-type`/`group-count`/`m-sub-count`/meth-table 等
      - **L3** 正文技术数字：不打标；**LX** Mermaid：节点纯文本 + 旁注锚点
-     - `validate_kb`：**0b** 标记齐全，**0c** L1 容器扫描
+     - `validate_kb`：**0b** 标记齐全，**0c** 计数覆盖扫描（`run_l1_container_scan`，配置读 SSOT `guard.coverage`）
+   - **计数保护全覆盖（2026-09-21 长官指令）**：展示计数一律「带 `data-kb-pos` 或 SSOT 显式豁免」，**不允许门禁看不见的计数**；三重门禁 = `validate_kb` 0c（覆盖）→ `sync_counts check`（一致）→ `audit_count_drift`（真值）。容器/单位/模式/**兜底**/层归属/**派生真源**/白名单/忽略目录**全部配置在 SSOT `guard`，脚本内禁止写死编码子集**。
+    - **枚举必然漏 → 必有结构性兜底**：0c 的 C 段按 `block_tags` 切块，**短块**（可见文本 ≤ `max_block_chars`）内裸计数即 FAIL；判据与容器名无关，故新样式自动覆盖（旧版靠 `containers` 枚举，mind 页 14 处括号式组数因此漏网）。
+    - **真源不是卡片数的计数**（如 `layer-count` = 该层下挂 chip 元素数）须在 `guard.derived` 声明 `region`+`count` 并注册 position，由审计脚本三方互证。
+    - 详见 `conventions.md` §5.1.4「计数保护全覆盖」。
 3. **补层轮次也要做"计数体检"**：即使本轮不改计数，也应跑 `validate_kb.py`。另须覆盖：
    - **① `stat-number` 全部字段**（题目总数 ≠ 合计；合计 = 题数 + 方法论 + 工程化）。
    - **② 散文式数字**（已由 P27+ 与 sync_counts check 覆盖；章节 index `card-desc`/`card-footer` 等若新增散文数字须同步登记 position）。
@@ -521,7 +550,7 @@ agent_created: true
 - **形式5 · 不入库**：判定同源重复、增量微小，仅记录核查结论。
 
 难度/优先级建议（**仅 C/E/S**）：新卡默认 `data-difficulty="architect"` + `data-priority="p1"`（除非内容更偏专家或高级开发）；双编码必须同步（属性 + 可见徽标），徽标文案用**短表 专家 / 架构 / 高级**。
-**`M`/`G`/`K` 三专篇（方法论 / 工程化要点 / 生产踩坑）不分难度等级、不呈现任何徽标**（2026-09-16 长官决策）：不写 `data-difficulty`（原 220 处已全清）；`data-priority` 仅 M 卡部分保留但不呈现；难度计数键与不变式已从 `kb-counts.json` 移除。三处载体（专篇页 / 根 index M·G·K 区块 / 章节导航三张专篇卡）与视觉后果详见 `conventions.md` §2；门禁 `validate_kb.py` 1j/1k。
+**`M`/`G`/`K` 三专篇（方法论 / 工程化要点 / 生产踩坑）不分难度等级、不呈现任何徽标**（2026-09-16 长官决策）：不写 `data-difficulty`（原 220 处已全清）；M 卡不写 `data-priority`（2026-09-21 废除：属性无消费方）；难度计数键与不变式已从 `kb-counts.json` 移除。三处载体（专篇页 / 根 index M·G·K 区块 / 章节导航三张专篇卡）与视觉后果详见 `conventions.md` §2；门禁 `validate_kb.py` 1j/1k。
 
 ## 全量同步必改点（形式1/2/3）
 
@@ -632,9 +661,12 @@ agent_created: true
 - `scripts/ensure_mermaid_prettier_ignore.py` — 批量为缺失的 mermaid 节点补 `<!-- prettier-ignore -->`（格式化前可先跑）。
 - `scripts/normalize_html_closers.py` — Prettier 后把 `</tag\\n>` 压回同行（保护 kb-count 锚点）。
 - `scripts/check_html_format.py` — `npm run format:html:check` 稳态检查。
-- `scripts/audit_l1_counts.py` — 只跑 L1 裸计数扫描（改聚合文案后可先跑这支）。
+- `scripts/audit_l1_counts.py` — **计数保护覆盖门禁**（单跑版；= `validate_kb` 0c 步 `run_l1_container_scan`）。配置全部读 SSOT `guard.coverage`（`scan` 范围 / `containers` 容器 / `units` 单位词 / `inline` 全域模式 / `exempt` 豁免 / **`fallback` 通用兜底**），脚本内不写死容器名与编码。**三段扫描**：A 聚合容器内裸「N+单位词」、B inline 模式（如「M## 名（N）」）、**C 通用兜底**（按 `block_tags` 切块，块可见文本 ≤ `max_block_chars`(=100) 者视为元数据/标签块，其内裸计数即 FAIL —— **判据是「块有多短」而非容器名，白名单外的新样式自动被覆盖**；误报只准进 `fallback.exempt`）。未受 `data-kb-pos` 保护即 FAIL。改聚合文案或新增展示计数后先跑这支。
 - `scripts/check_mind_mermaid.py` — 导图站不变式校验：每条 map-card（含 `C12.11~15 …` 聚合条目）是否都有对应 Mermaid 图节点；缺失 → exit 1。补这个盲区（`validate_kb` 只查 ID 集合，查不出图节点缺失）。**（2026-09-20 修）逐 mermaid 块取标签＝`["…"]` 方括号标签 + mindmap 裸文本行**，故「flowchart 组级 + mindmap 逐卡」的页不再整页误报；代价是**两块不一致已查不出**（任一图有即 PASS），「两图都改」降级为人工纪律。全站 508/508 PASS。
 - `scripts/sync_new_card.py` — 新增卡片的 7 文件同步脚本骨架（参数化），含备份、断言、`data-page-node-id` 守卫；按需填充卡片 HTML 与计数增量。
+- `scripts/audit_count_drift.py` — **计数漂移反向审计**（零依赖，2026-09-21 新增；同日改造为**完全数据驱动**）。补 `sync_counts.py check` 的盲区：① **键值本身漂移**——键与 DOM 同为旧值，check 全绿却 ≠ 页面真实卡数；② **`data-kb-pos` 跨文件重复 / 未登记**——check 按 position 的 `file` 字段过滤，重复位在非登记文件里完全不校验。**配置全部读 SSOT `guard`**（`layers` 层归属 / `single_source` 单值键 / `pos_allow_multi` 白名单 / `exclude` 全局忽略目录，含 `rk/` 软考资料站 / **`derived` 结构性派生计数真源**），宿主页**自动识别**（全站扫 `qa-card`），脚本内**不写死任何组号区间、文件名与白名单**。四条链路互证：宿主页实际 `qa-card` 数 → SSOT 键 → DOM 取值 → position 全局唯一且全部已登记；另含「无效 `data-kb-count` 键」「卡片重复定义」，以及 **`guard.derived` 三方互证**（DOM 元素数 = SSOT 键值 = DOM 展示值；`region` 须恰好命中 1 次、每个派生键**必须有已注册 position**）。支持 `[项目根]`、`--only <glob>`、`--quiet`。有漂移 exit 1 并给出 `bump` 命令；1=漂移 / 2=定位失败。**新增或重编号卡片后必跑**。
+- `scripts/probe_count_coverage_gate.py` — **计数覆盖门禁的正向验证**（2026-09-21 新增，同日扩到 **4 用例**）：A 把 mind 页已保护的「M## 名（N）」去保护、B 给某 `card-foot` 注入裸「99 卡」、**C 注入一个不在 `containers` 白名单里的全新容器样式（内含裸「99 卡」）**、**D 把 `chapter-core-methodology` 的 `layer-count` 去保护**；四者必须 FAIL（`[计数覆盖]`），还原后必须 PASS；`try/finally` 逐字节核对还原。**C 用例是「兜底不可被关掉」的证据**——若有人把 C 段改回容器枚举，本 probe 立即变红。任一未检出即 exit 1（假绿）。改 `validate_kb` 0c 步 / `guard.coverage` 后必跑。
+- `scripts/probe_count_drift_gate.py` — **计数漂移审计的正向验证**（2026-09-21 新增，同日扩到 **8 用例**）：八类注入各须 FAIL 并点名 —— A 键值漂移（`meth.group_7`）、B position 未登记（`P999`）、C position 重复（「出现 2 次」）、D 改 `guard.layers` 的 range 证明**校验目标由 SSOT 配置驱动**、**E `guard.derived` 键值 ≠ DOM 元素数**、**F derived 独占检出**（页面多插一个 `layer-chip`：卡数不变、position 值不变，**只有 DOM 派生链路能发现**）、**G derived `region` 正则不再命中**（防线自检）、**H 声明了 derived 键却没有已注册 position**；还原后复跑 PASS。改 `audit_count_drift.py` / `guard` 后必跑。
 - `scripts/check_index_badges.py` — 根 index / overview 聚合 UI **结构与样式**门禁（零依赖，纯正则，**四类判定**）：
   ① **徽标结构**——overview 每条 `ov-item` 必须含 `.ov-badges` 包裹（漏包 → 徽标间距时宽时窄）；根 `index.html` 不得出现顶格 `<a href="…">`、不得有未闭合 `<span class="q-tags">`。
   ② **小屏留白归一**（2026-09-16 新增）——从 `@media (max-width:768px)` 块中（**按花括号配对提取，不依赖缩进**）断言：`.dir-container` 横向 padding 为 `0 12px`（唯一 gutter 来源）、`.dir-section` 的 `padding-left/right` 与 `margin-left/right` 均显式声明为 `0`（否则叠加页面内联 margin + 共享 CSS 的 12px padding）；**列表内缩单层化** —— `.dir-body` 横向 ≤ 4px（唯一归属层）而 `.dir-group`/`.q-list` 横向必须为 `0`、`.q-item` **仅左侧**必须为 `0`（右侧内缩**有意保留**：hover 背景不贴死行尾；且两类区块该值相同，不会造成右缘分叉）。（**padding 简写须按 1/2/3/4 值规则只取横向/左侧分量**，否则纵向值会误报。）

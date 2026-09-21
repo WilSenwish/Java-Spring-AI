@@ -84,7 +84,7 @@ CARDS_IN_CHAPTERS = EXPECT["total"] + EXPECT["methodology"] + ENGINEERING + PITF
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 # 注意：方法论/工程化卡默认不进 overview；含 M/G 时跳过 overview 落位检查
-NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.27","C11.28","C11.29","C11.30","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","G01.04","G02.04","G03.04","G04.04","G05.04","G06.04","G07.04","G07.09","G08.04","K01.01","K01.02","K02.01","K02.02","K03.01","K03.02","K04.01","K04.02","K05.01","K05.02","K06.01","K06.02","K07.01","K07.02","K07.09","K08.01","K08.02","S12.09","M01.07","M01.08","M01.09","M01.10","M02.04","M02.09","M02.10","M02.11","M02.12","M02.13","M03.04","M03.05","M03.06","M03.07"]
+NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.27","C11.28","C11.29","C11.30","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","G01.04","G02.04","G03.04","G04.04","G05.04","G06.04","G07.04","G07.09","G08.04","K01.01","K01.02","K02.01","K02.02","K03.01","K03.02","K04.01","K04.02","K05.01","K05.02","K06.01","K06.02","K07.01","K07.02","K07.09","K08.01","K08.02","S12.09","M01.07","M01.08","M01.09","M01.10","M02.04","M02.09","M02.10","M02.11","M02.12","M02.13","M03.04","M03.05","M03.06","M03.07","M07.04","M16.01","M16.02","M16.03","M16.04","M16.05","M16.06","M16.07","M16.08","M16.09","M16.10","M16.11","M17.01","M17.02","M17.03","M17.04"]
 
 # 4 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
 AGG_FILES = {
@@ -237,28 +237,119 @@ def run_kb_count_markup_check():
         check(True, f"[kb-count标记] SSOT positions 均含 data-kb-pos（{len(cfg['positions'])} 位）；无 local/禁语文案")
 
 
+# ---------------- 计数保护覆盖（数据驱动，权威配置在 SSOT `guard.coverage`） ----------------
+# 设计红线（2026-09-21）：**本脚本内不得出现任何具体组号 / 文件名 / 容器名以外的编码子集**。
+# 容器清单、单位集合、inline 模式、扫描范围、豁免 一律取自 SSOT；新增受保护场景改 SSOT，不改脚本。
+# 以下默认值仅在 SSOT 缺该键时回落（保证向后兼容），与 SSOT 保持同值。
+_COVERAGE_DEFAULTS = {
+    "scan": [
+        "index.html",
+        "java-architect-interview/*.html",
+        "java-architect-interview-mind/*.html",
+    ],
+    "containers": [
+        [r'<div class="card-footer">(.*?)</div>', "card-footer"],
+        [r'<div class="card-foot">(.*?)</div>', "card-foot"],
+        [r'<div class="card-desc">(.*?)</div>', "card-desc"],
+        [r'<p class="chapter-subtitle">(.*?)</p>', "chapter-subtitle"],
+        [r'<div class="chapter-meta">(.*?)</div>', "chapter-meta"],
+        [r'<p class="subtitle">(.*?)</p>', "subtitle"],
+        [r'<p class="map-note"[^>]*>(.*?)</p>', "map-note"],
+        [r'<p class="ov-subtitle">(.*?)</p>', "ov-subtitle"],
+        [r'<span class="tagline">(.*?)</span>', "tagline"],
+        [r'<div class="stat-number[^"]*"[^>]*>(.*?)</div>', "stat-number"],
+        [r'<tfoot>(.*?)</tfoot>', "tfoot"],
+    ],
+    "units": ["题", "卡", "组", "道", "页", "章", "张", "项"],
+    "inline": [
+        [r'<li>[^<]{0,44}?M\d\d[^（(<>\n]{0,24}[（(](\d+)[）)]', "括号式组数「M## 名（N）」"],
+    ],
+    "exempt": [],
+    "fallback": {
+        "enabled": True,
+        "max_block_chars": 100,
+        "block_tags": ["p", "div", "li", "td", "th", "h1", "h2", "h3", "h4", "h5", "h6",
+                       "summary", "blockquote", "tfoot", "thead", "tr", "caption",
+                       "dt", "dd", "details", "section", "article"],
+        "mask": ["<!--.*?-->", r"<script\b.*?</script>", r"<style\b.*?</style>",
+                 r"<pre\b.*?</pre>", r"<code\b.*?</code>", r"<svg\b.*?</svg>",
+                 r'<div class="mermaid"[^>]*>.*?</div>', "<[^>]*>"],
+        "exempt": [
+            {"re": r"第\s*\d+\s*章", "name": "章节序号引用（第 N 章）"},
+            {"re": r"\d+\s*测\s*中", "name": "官方基准测项叙述（非 KB 计数）"},
+            {"re": r"P0\s*/\s*P1|P0→P2", "name": "优先级文案（P0/P1）"},
+        ],
+        "exempt_window": 20,
+    },
+}
+
+
+def _norm_pairs(lst):
+    """归一「[re, name] 数组对」与「{re, name} 字典」两种写法（SSOT 用字典以便阅读）。"""
+    out = []
+    for e in lst:
+        if isinstance(e, dict):
+            out.append((e.get("re") or e.get("pattern"), e.get("name") or e.get("desc") or ""))
+        else:
+            out.append((e[0], e[1]))
+    return out
+
+
+def _norm_exempt(e):
+    """归一豁免条目：str 或 {"re","name"}；返回 (re, name)。"""
+    if isinstance(e, dict):
+        return e.get("re") or e.get("pattern"), e.get("name") or e.get("desc") or ""
+    return e, ""
+
+
+def guard_coverage():
+    """读 SSOT `guard.coverage`（数据驱动）；缺键回落 `_COVERAGE_DEFAULTS`。"""
+    g = dict((_cfg.get("guard") or {}).get("coverage") or {})
+    for k, v in _COVERAGE_DEFAULTS.items():
+        if k not in g:
+            g[k] = v
+    return g
+
+
 def run_l1_container_scan():
-    """L1 聚合 UI 容器内不得出现未标记的「N题|卡|道|组|页|章|张」。
-    口径见 conventions.md §5.1.4；排除「第 N 章」标题序号与 P0/P1 文案。
+    """计数保护覆盖门禁（全域，数据驱动）。
+
+    A) 聚合 UI 容器内不得出现未标记的「N+单位词」（单位集合取自 SSOT）。
+    B) 通用 inline 模式（默认「括号式组数 M## 名（N）」）命中的数字必须带 data-kb-pos。
+    C) **通用兜底**：按 `block_tags` 切块，块「可见文本」长度 ≤ `max_block_chars` 者视为
+       元数据/标签块，其内任何未受保护的「数字+单位词」即 FAIL —— **不依赖容器类名白名单**，
+       新增容器样式自动被覆盖（A 是精确网，C 是防漏网）。
+
+    扫描范围 / 容器 / 单位 / inline / 兜底参数 / 豁免 全部来自 SSOT `guard.coverage`，
+    函数内不写死任何组号与文件名 —— 杜绝「写死子集 → 漏网」。口径见 conventions.md §5.1.4。
     """
-    region_pats = [
-        (r'<div class="card-footer">(.*?)</div>', "card-footer"),
-        (r'<div class="card-foot">(.*?)</div>', "card-foot"),
-        (r'<div class="card-desc">(.*?)</div>', "card-desc"),
-        (r'<p class="chapter-subtitle">(.*?)</p>', "chapter-subtitle"),
-        (r'<div class="chapter-meta">(.*?)</div>', "chapter-meta"),
-        (r'<p class="subtitle">(.*?)</p>', "subtitle"),
-        (r'<p class="map-note"[^>]*>(.*?)</p>', "map-note"),
-        (r'<p class="ov-subtitle">(.*?)</p>', "ov-subtitle"),
-        (r'<span class="tagline">(.*?)</span>', "tagline"),
-        (r'<div class="stat-number[^"]*"[^>]*>(.*?)</div>', "stat-number"),
-        (r'<tfoot>(.*?)</tfoot>', "tfoot"),
-    ]
-    digit_unit = re.compile(r"(\d+)\s*(题|卡|组|道|页|章|张)")
-    targets = [os.path.join(BASE, "index.html")]
-    targets += glob.glob(os.path.join(CHAPTER_DIR, "*.html"))
-    targets += glob.glob(os.path.join(MIND_DIR, "*.html"))
+    cfg = guard_coverage()
+    containers = [(re.compile(p, re.S), n) for p, n in _norm_pairs(cfg["containers"])]
+    digit_unit = re.compile(r"(\d+)\s*(%s)" % "|".join(cfg["units"]))
+    inlines = [(re.compile(p), n) for p, n in _norm_pairs(cfg["inline"])]
+    exempts = [re.compile(p) for p in cfg.get("exempt") or []]
+    targets = sorted({p for pat in cfg["scan"] for p in glob.glob(os.path.join(BASE, pat))})
     misses = []
+    # C) 兜底参数（全部取自 SSOT；缺键回落 _COVERAGE_DEFAULTS）
+    fb = cfg.get("fallback") or {}
+    fb_on = bool(fb.get("enabled"))
+    fb_splits = re.compile(
+        r"</?(?:%s)\b[^>]*>" % "|".join(fb.get("block_tags") or []), re.I)
+    fb_masks = [re.compile(p, re.S) for p in fb.get("mask") or []]
+    fb_exempts = [(_norm_exempt(e)) for e in (fb.get("exempt") or [])]
+    fb_exempts = [(re.compile(p, re.S), n) for p, n in fb_exempts]
+    fb_max = int(fb.get("max_block_chars", 100))
+    fb_win = int(fb.get("exempt_window", 20))
+    fb_digit = re.compile(r"(?<![\w.])(\d+)\s*(%s)" % "|".join(cfg["units"]))
+
+    def visible_mask(t):
+        """可见性掩码：屏蔽非可见区（注释/script/style/pre/code/svg/mermaid/标签本身）。"""
+        vis = bytearray(b"\x01" * len(t))
+        for mp in fb_masks:
+            for m in mp.finditer(t):
+                for i in range(m.start(), m.end()):
+                    vis[i] = 0
+        return vis
 
     def tagged_at(t, pos):
         w = t[max(0, pos - 180) : pos]
@@ -267,13 +358,18 @@ def run_l1_container_scan():
             return True
         return False
 
+    def exempted(t, m):
+        line = t[t.rfind("\n", 0, m.start()) + 1 : t.find("\n", m.end())]
+        return any(e.search(line) for e in exempts)
+
     for path in targets:
         if not os.path.isfile(path):
             continue
         t = read(path)
         rel = os.path.relpath(path, BASE)
-        for rpat, rname in region_pats:
-            for rm in re.finditer(rpat, t, re.S):
+        # A) 容器内「数字+单位词」
+        for rpat, rname in containers:
+            for rm in rpat.finditer(t):
                 region = rm.group(1)
                 if 'class="mermaid"' in region:
                     continue
@@ -294,15 +390,42 @@ def run_l1_container_scan():
                     ctx = region[max(0, dm.start() - 12) : dm.end() + 8]
                     if re.search(r"P0\s*/\s*P1|P0→P2", ctx):
                         continue
+                    misses.append(f"{rel} [{rname}] {dm.group(1)}{dm.group(2)}")
+        # B) 通用 inline 模式（不限定容器；命中的数字必须已受 data-kb-pos 保护）
+        for ipat, iname in inlines:
+            for m in ipat.finditer(t):
+                if tagged_at(t, m.start(1)) or exempted(t, m):
+                    continue
+                misses.append(f"{rel} [{iname}] {m.group(0)[:64]}")
+        # C) 通用兜底：短块（元数据/标签块）内的裸「数字+单位词」
+        if fb_on:
+            vis = visible_mask(t)
+            bnds = [0] + [m.end() for m in fb_splits.finditer(t)] + [len(t)]
+            for a, b in zip(bnds, bnds[1:]):
+                seg = t[a:b]
+                vtext = re.sub(
+                    r"\s+", " ", "".join(c for i, c in enumerate(seg) if vis[a + i])
+                ).strip()
+                if not vtext or len(vtext) > fb_max:
+                    continue
+                for dm in fb_digit.finditer(seg):
+                    ap = a + dm.start(1)
+                    if not vis[ap] or tagged_at(t, ap):
+                        continue
+                    win = t[max(0, ap - fb_win) : ap + fb_win]
+                    if any(e.search(win) for e, _ in fb_exempts):
+                        continue
                     misses.append(
-                        f"{rel} [{rname}] {dm.group(1)}{dm.group(2)}"
-                    )
+                        f"{rel} [兜底·短块] «{dm.group(0)}» 块=«{vtext[:44]}»")
     if misses:
-        for x in misses[:20]:
-            print("FAIL [L1聚合UI]", x)
-        check(False, f"[L1聚合UI] 裸计数 {len(misses)} 处（须 data-kb-pos + kb-counts.json，见 §5.1.4）")
+        for x in dict.fromkeys(misses[:24]):
+            print("FAIL [计数覆盖]", x)
+        check(False, f"[计数覆盖] 未受 data-kb-pos 保护的计数 {len(misses)} 处"
+                     f"（须升格为 kb-count + 注册 position，见 conventions.md §5.1.4）")
     else:
-        check(True, "[L1聚合UI] 页头/footer/desc/meta/note/tagline/stat 无裸「N题|卡|道|组」")
+        check(True, f"[计数覆盖] {len(targets)} 个文件：聚合容器无裸「N+单位词」，"
+                    f"inline 模式（{len(inlines)} 类）+ 短块兜底（≤{fb_max} 字，"
+                    f"{len(fb_exempts)} 类豁免）全部受 data-kb-pos 保护")
 
 
 _VOID_TAGS = {"br", "img", "meta", "link", "input", "hr", "area", "base",

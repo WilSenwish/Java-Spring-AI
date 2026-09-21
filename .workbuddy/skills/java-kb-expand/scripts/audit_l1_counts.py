@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""L1 聚合 UI 裸计数审计（只读）。口径同 validate_kb.run_l1_container_scan / conventions §5.1.4。"""
+"""计数保护覆盖门禁（只读，单跑版）。= `validate_kb.run_l1_container_scan`：容器内裸「N+单位词」与
+inline 模式（如「M## 名（N）」）未受 data-kb-pos 保护即 FAIL。配置全部读 SSOT `guard.coverage`
+（scan / containers / units / inline / exempt），脚本内不写死容器名与编码。口径见 conventions §5.1.4。"""
 import os, re, sys
 BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
 CHAPTER_DIR = f"{BASE}/java-architect-interview"

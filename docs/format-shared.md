@@ -81,8 +81,8 @@
 | `priority-p1` | P1 | 高频 |
 | `priority-p2` | P2 | 中频 |
 
-- 携带优先级（属性侧）：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">85</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">137</span>）携带；安全手册不携带。**可见徽标侧：M/G/K 一律不呈现优先级徽标**（2026-09-16 长官决策，见 §3.1）；该三处原计数位 P74/P75/P76/P103/P104/P105 已随之作废删除。**注意与难度的差别**：难度是「属性 + 键 + 徽标」三层全删，优先级只删徽标、属性保留。
-- 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`（**M/G/K 三类卡只写属性、不叠加可见徽标**）。
+- 携带优先级（属性侧）：标准 QA、核心原理速查、场景题（条目级全覆盖，合计 92/209/58 = 359）；优先级大盘以 `ov-item` 徽标呈现；方法论仅部分卡片（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P14">0</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P15">149</span>）携带；安全手册不携带。**可见徽标侧：M/G/K 一律不呈现优先级徽标**（2026-09-16 长官决策，见 §3.1）；该三处原计数位 P74/P75/P76/P103/P104/P105 已随之作废删除。**注意与难度的差别**：难度是「属性 + 键 + 徽标」三层全删，优先级只删徽标、属性保留。
+- 属性侧：卡片用 `data-priority="p0|p1|p2"`；提问行叠加 `<span class="priority priority-p0">P0</span>`（**M/G/K 三类卡不写 data-priority、不叠加可见徽标**）。
 
 ### 3.3 导图分层标签 `layer-tag`（**非难度**）
 
@@ -298,6 +298,8 @@ index.html                         # 首页
 | `check_mobile_overflow.js` | 横向溢出（文档级 + 越出卡片） | `scrollWidth - clientWidth`，溢出即 exit 1 |
 | `check_list_indent.js` | 列表 marker 缩进 + 同容器 ol/ul 缩进一致性（全站 44 页 × {1280, 375}） | 可用空间 < 1.2×字号，或 `min(ol pl) < max(ul pl) − 0.5`，即 exit 1 |
 | `probe_list_gate.py` | 1h 门禁的正向验证（注入缺陷 → 必须 FAIL） | 两轮注入，`--inject` 支持分步 |
+| `probe_count_coverage_gate.py` | 计数**覆盖**门禁（`validate_kb` 0c = `audit_l1_counts.py`）正向验证 | **四类**注入：① 去保护「M## 名（N）」② 容器内裸「99 卡」③ **白名单外的全新容器样式内裸计数**（容器枚举必漏 → 证明兜底生效）④ **短块兜底**（layer-count 去保护）→ 必须 FAIL，还原后 PASS |
+| `probe_count_drift_gate.py` | 计数**漂移**审计（`audit_count_drift.py`）正向验证 | **八类**注入：键值漂移 / position 未登记 / position 重复 / 改 `guard.layers` range 证明**数据驱动** / **`guard.derived` 真源漂移** / **derived 独占检出（多插 chip）** / **derived region 失效** / **derived 无展示位** → 必须 FAIL，还原后 PASS |
 
 ### 8.6 门禁编写规约（新增 `validate_kb` 断言必守）
 
@@ -310,6 +312,27 @@ index.html                         # 首页
 - **脚本定位项目根禁止写死层级**：校验/探针脚本若需项目根，须**向上查找特征文件**（同时含 `AGENTS.md` 与 `index.html` 的最近祖先），而非 `dirname(__file__)` 叠加固定层数——本技能可经 `.agents/skills/java-kb-expand` 软链调用，层级一变即静默指错目录（曾指到 `.workbuddy/` 并报 `FileNotFoundError`，看似「门禁通过」实则未执行到判定）。
 - **只比结构特征，不比展示文本**：跨文件一致性（如 mind 与章节）只比对 **ID 集合**，标题/措辞错位不报错；
   避免门禁因文案微调而误杀，也避免文案漂移漏报结构问题。
+- **门禁配置数据化，脚本内禁止写死编码子集**（2026-09-21 长官指令「极易遗漏」）：
+  门禁的**扫描范围 / 容器白名单 / 单位词 / 模式正则 / 兜底参数 / 层归属区间 / 派生计数真源 / 白名单 / 忽略目录**一律写入
+  `docs/kb-counts.json` 的 **`guard` 块**，脚本运行时读取（缺键才回落内置默认）；
+  **禁止**在脚本里写死「组号区间」「文件名清单」「容器名列表」「单位词表」——写死一个子集必然遗漏集合外的一切。
+  历史事故：`audit_count_drift.py` 初版写死层归属区间、只审计 3 个文件、白名单硬编码单一位号；
+  `run_l1_container_scan` 的容器与单位词写死后，mind 页「M## 名（N）」**括号式组数**（14 处）长期无人管。
+  **新增受保护场景只改 SSOT 配置，不改脚本。** 配置键清单与消费方见 `conventions.md` §5.1.4「计数保护全覆盖」。
+- **枚举必然漏 → 必须有「结构性兜底」**（2026-09-21）：凡门禁用**清单**判定覆盖面（容器名 / 文件名 / 编码前缀），
+  就必须另加一条**不依赖清单**的结构性判据作兜底，否则清单外的一切静默漏网。
+  计数类范式 = `guard.coverage.fallback`：按块级标签切块，**短块**（可见文本 ≤ `max_block_chars`）内
+  裸「数字+单位词」即 FAIL——判据是「块有多短」，与容器叫什么名字无关，故新样式自动被覆盖；
+  误报一律进 `fallback.exempt`（数据），**禁止调阈值或关兜底**来换取绿灯。
+- **真源不唯一的计数要显式声明真源**（2026-09-21）：若某展示计数的真源**不是卡片数**
+  （如某层下挂元素个数），须在 `guard.derived.items` 声明 `region` + `count`（真源 = DOM 元素数），
+  并为其注册 position；审计脚本按声明三方互证（DOM 元素数 = SSOT 键值 = DOM 展示值），
+  且**声明了却没有已注册 position 即 FAIL**（防止「有真源无展示位」的空转声明）。
+- **门禁改动须双向验证并留 probe**：「注入 → 必须 FAIL → 还原并核一致」之外，**新增 / 修改门禁实现或 `guard` 配置后**
+  必须跑配套 probe 复验（计数类：`scripts/probe_count_coverage_gate.py` / `scripts/probe_count_drift_gate.py`），
+  证明「注入必 FAIL、还原必 PASS」，否则视为**假绿**。
+- **全局忽略目录统一取自 `guard.exclude`**：`tmp/`（脚本沙盒备份）、`node_modules/`、**`rk/`（软考资料站，非 KB 站群）**；
+  所有扫描 / 门禁 / 审计一律跳过 `rk/`，**不得各脚本各写一份**（避免遗漏与互相漂移）。
 
 ## 9. 主题 / 暗黑模式
 

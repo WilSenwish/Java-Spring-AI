@@ -122,7 +122,7 @@
 ```
 
 - **难度标签文案 = 短表 `专家 / 架构 / 高级`**（2026-09-16 长官决策）；正文表述用 `专家 / 架构师 / 高级开发`。门禁 `validate_kb.py` 1j。
-- **M/G/K 三专篇不参与难度分级（2026-09-16 长官决策）**：方法论 / 工程化要点 / 生产踩坑页的 `.qa-card` **不写 `data-difficulty`**（原 220 处已全清），`.qa-question` 也不写任何等级、优先级徽标，只留题干文本；`data-priority` 仍保留（M 卡部分携带，不呈现）。
+- **M/G/K 三专篇不参与难度分级（2026-09-16 长官决策）**：方法论 / 工程化要点 / 生产踩坑页的 `.qa-card` **不写 `data-difficulty`**（原 220 处已全清），`.qa-question` 也不写任何等级、优先级徽标，只留题干文本；M 卡不写 `data-priority`（2026-09-21 废除：属性无消费方）。
   - **视觉影响**：`design-system.css` 有 `.qa-card[data-difficulty="architect"]`（紫左边框 + 紫 `qa-badge`）与 `["expert"]`（青绿左边框 + 青绿 `qa-badge`，2026-09-16 晚由「蓝→紫渐变」改定）属性选择器，故 M/G/K 220 张卡由「按难度变色」回落为 `.qa-card` 默认蓝色左边框——这是「取消分级」的预期结果。同步口径见 `conventions.md` §2。
 - **难度配色（2026-09-16 晚修订）**：`senior` 蓝 / `architect` 紫 / `expert` **青绿**（`--diff-expert`），卡片边框与 `qa-badge` 底色用 `--diff-expert-solid`；改前 `expert` 与 `architect` 文字色同为 `var(--accent2)`，区分度不足。难度胶囊与优先级胶囊同框，色相须避开 `P0` 红 / `P1` 琥珀 / `P2` 蓝。
 
