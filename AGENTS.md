@@ -28,14 +28,16 @@
 8. **顶/底章节导航**：仅根 `index.html` 与章节站 `index.html` 无导航；其余页顶栏为 `body` 首块（`.site-page-nav--top`），底栏在脚本前（`.site-page-nav--bottom`），顶底同文、壳层间距对称。细则见 `format-shared.md` §4.2。
 9. **HTML Prettier + Mermaid**：用户可见 HTML 用 `npm run format:html`；每个 `<div class="mermaid">` 上一行必须 `<!-- prettier-ignore -->`。细则见 `format-shared.md` §10。
 10. **`rk/` 目录全局忽略**（2026-09-21 长官指令）：`rk/` 是软考资料站，**不属于 KB 站群**；一切扫描 / 门禁 / 审计（含计数、禁用词、格式、链接）一律跳过，AI 亦不主动改动其中内容。忽略清单权威配置：SSOT `guard.exclude`。
+11. **计数位必须可校验，且校验口径必须来自 SSOT**（2026-09-21 长官指令「登记的位置点的计数得有正确性校验」）：注册 `data-kb-pos` 的每个键**必须**能在 `guard.sources` 被某条规则或 `manual` 覆盖，否则 0c2 步 FAIL；**门禁脚本内禁止写死**任何编码子集（组号区间 / 文件名 / 容器名 / 单位词 / 白名单 / 项目根层级 / 家目录绝对路径）——写死一个子集必然遗漏集合外的一切，全部配置归 SSOT `guard`，项目根唯一实现 `scripts/_kbroot.py::find_root`。**禁止**为让门禁过而调阈值、关兜底（`fallback.enabled` / `prose.enabled`）、或把真值口径改写成当前值。改门禁必跑对应 probe 双向验证（注入必 FAIL、还原必 PASS），否则视为假绿。
 
 ## 3. 权威计数（单一真源驱动）
 
 **真源**：`docs/kb-counts.json`（唯一写源，勿在别处手改数字）。
 **改数唯一入口**：`python3 .workbuddy/skills/java-kb-expand/scripts/sync_counts.py bump 键=增量`
 （例：`bump methodology=+1 total=+1`；随后自动写回全部计数位并复核。只读核对用 `check`。）
-**计数点标记**：每个展示题量/卡量须带 `data-kb-pos="Pxx"` + `data-kb-count`（全局键或 `struct.*`）；`<title>` 用属性打标。**禁止** `kb-count-local`。分级见 `conventions.md` §5.1.4；`validate_kb` 0c 步分 A 聚合容器 / B 全域 inline / **C 通用兜底（短块）**三层扫描裸数字。
-**零裸计数 + 配置数据化（2026-09-21 长官指令）**：展示计数一律「带 `data-kb-pos` 或 SSOT 显式豁免」，**不允许存在门禁看不见的计数**；三重门禁 `validate_kb` 0c（覆盖）→ `sync_counts check`（一致）→ `audit_count_drift`（真值）互证。扫描范围 / 容器白名单 / 单位词 / inline 模式 / **兜底参数（`guard.coverage.fallback`）** / 层归属 / 派生计数真源（`guard.derived`） / 白名单 / 忽略目录**全部配置于 SSOT `guard` 块，脚本内禁止写死任何编码子集**（写死一个子集必然遗漏集合外的一切）。**容器枚举必漏 → 靠 C 段「短块」结构性兜底**（块可见文本 ≤ `max_block_chars` 即视为元数据块，块内裸计数 FAIL；误报只准进 `fallback.exempt`，**不准调阈值或关兜底**）。改门禁后必跑 `probe_count_coverage_gate.py`（4 用例）/ `probe_count_drift_gate.py`（8 用例）双向验证，否则视为假绿。
+**计数点标记**：每个展示题量/卡量须带 `data-kb-pos="Pxx"` + `data-kb-count`（全局键或 `struct.*`）；`<title>` 用属性打标。**禁止** `kb-count-local`。分级见 `conventions.md` §5.1.4；`validate_kb` 0c 步分 A 聚合容器 / B 全域 inline / **C 通用兜底（短块）** / **D 正文聚合（真值锚定）**四层扫描裸数字。
+**登记了位置点，位上的数就必须有正确性校验（2026-09-21 长官指令「不然门禁有啥意义」）**：`validate_kb` 0c2 步 = `audit_truth_source.py`，按 SSOT `guard.sources` 逐键**独立求真值**，与 SSOT 键值、DOM 显示值**三方比对**；五类 FAIL 全部点名且默认**不截断**：`[未声明真源]`（注册了 position 却没声明真源）/ `[真值不符]`（**键值写得对不对**）/ `[键路径冲突]`（同一逻辑键扁平 + 嵌套双写）/ `[不变式]`（分项展示值之和 ≠ 合计真值）/ `[无展示位]`（有真源却无 position）。**新计数注册 position 后必须同步在 `guard.sources` 声明真源**，否则 0d 直接 FAIL。
+**零裸计数 + 配置数据化（2026-09-21 长官指令）**：展示计数一律「带 `data-kb-pos` 或 SSOT 显式豁免」，**不允许存在门禁看不见的计数——包括埋在长正文段落里的聚合计数**；**五重门禁** `validate_kb` 0c（覆盖）→ `sync_counts check`（一致）→ `audit_count_drift`（结构：位已登记 / 全局唯一 / 键有效）→ **`audit_truth_source`（真值：键值本身对不对）** → `audit_prose_exempt`（**豁免台账**：豁免本身不得成为盲区）互证。扫描范围 / 容器白名单 / 单位词 / inline 模式 / **兜底参数（`guard.coverage.fallback`）** / **正文参数（`guard.coverage.prose`）** / **真源声明（`guard.sources`：rules / manual / invariants）** / 层归属 / 派生计数真源（`guard.derived`） / 白名单 / 忽略目录 / **项目根层级（统一 `scripts/_kbroot.py::find_root`）** 全部配置于 SSOT `guard` 块，**脚本内禁止写死任何编码子集或绝对路径**（写死一个子集必然遗漏集合外的一切；写死家目录换机器即全崩）。**容器枚举必漏 → 靠 C 段「短块」结构性兜底**（块可见文本 ≤ `max_block_chars` 即视为元数据块，块内裸计数 FAIL；误报只准进 `fallback.exempt`，**不准调阈值或关兜底**）；**短块兜底之外的正文段落 → 靠 D 段「真值锚定」**（数字 ∈ V = `counts` 全部值 ∪ 已注册 position 键的当前值，且紧邻单位词，且未被 `data-kb-pos` span 精确包裹 → FAIL；误报只准进 `prose.exempt` 且每条须写理由，**不准调 `prose.units`、不准关 `prose.enabled`**）。改门禁后必跑 `probe_count_coverage_gate.py`（**6 用例**）/ `probe_count_drift_gate.py`（8 用例）/ **`probe_truth_gate.py`（6 用例，含「值错但 DOM+SSOT 四处自洽」——只有真源审计能发现）** 双向验证，改 `prose.exempt` 后另跑 `audit_prose_exempt.py` 看豁免台账，否则视为假绿。
 
 统计口径（易错）：跨大篇章/聚合分组**只算「篇章 + 核心原理 + 场景」**（= `total`）；方法论 / 工程化 / 踩坑为**专篇键**，**不设全站合计**（已废除 `sum_all`）。概览页、安全卡页的题量口径亦为 `total`，不含 M/G/K。
 全文件扫到 C+E+S+M+G+K 张卡属正常，勿把分域加总当成对外「全站合计」。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
@@ -267,13 +269,13 @@
 | P219 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_25 |
 | P220 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_26 |
 | P222 | `java-architect-interview/index.html` | 升格 local:mind-pages → mind_pages |
-| P223 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_1 |
-| P224 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_1 |
-| P225 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_2 |
-| P226 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_3 |
-| P227 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_4 |
-| P228 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_5 |
-| P229 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_6 |
+| P223 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_1（2026-09-21 真值修正 16→17） |
+| P224 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「专家」数 → chapter-questions-eight-part.html 内 difficulty-expert 数 |
+| P225 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「架构」数 → 该页内 difficulty-architect 数 |
+| P226 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「高级」数 → 该页内 difficulty-senior 数（2026-09-21 真值修正 39→40） |
+| P227 | `java-architect-interview/index.html` | 章节索引页「场景」卡「专家」数 → chapter-questions-scenario.html 内 difficulty-expert 数 |
+| P228 | `java-architect-interview/index.html` | 章节索引页「场景」卡「架构」数 → 该页内 difficulty-architect 数（2026-09-21 真值修正 49→50） |
+| P229 | `java-architect-interview/index.html` | 章节索引页「场景」卡「高级」数 → 该页内 difficulty-senior 数 |
 | P230 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c01.n |
 | P231 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.expert |
 | P232 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.architect |
@@ -297,15 +299,15 @@
 | P250 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c06.n |
 | P251 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.expert |
 | P252 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.architect |
-| P253 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.senior |
+| P253 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.senior（2026-09-21 真值修正 8→9） |
 | P254 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c07.n |
 | P255 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.expert |
 | P256 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.architect |
-| P257 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.senior |
+| P257 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.senior（2026-09-21 真值修正 10→11） |
 | P258 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c08.n |
 | P259 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.expert |
 | P260 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.architect |
-| P261 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.senior |
+| P261 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.senior（2026-09-21 真值修正 7→8） |
 | P262 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c09.n |
 | P263 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.expert |
 | P264 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.architect |
@@ -313,28 +315,28 @@
 | P266 | `java-architect-interview/index.html` | 升格 local:chap-desc-local → struct.misc.chap_index.chap-desc-local_1 |
 | P267 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c10.n |
 | P268 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c10.expert |
-| P269 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_7 |
-| P270 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_8 |
+| P269 | `java-architect-interview/index.html` | 章节索引页第 10 篇「架构」数 → chapter-10-microservice-cloud.html 内 difficulty-architect 数 |
+| P270 | `java-architect-interview/index.html` | 章节索引页第 10 篇「高级」数 → 该篇内 difficulty-senior 数（2026-09-21 真值修正 7→9） |
 | P271 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c11.n |
 | P272 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.expert |
 | P273 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.architect |
-| P274 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_9 |
+| P274 | `java-architect-interview/index.html` | 章节索引页第 11 篇「高级」数 → chapter-11-middleware-engineering.html 内 difficulty-senior 数（2026-09-21 真值修正 7→10） |
 | P275 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c12.n |
 | P276 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.expert |
 | P277 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.architect |
-| P278 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.senior |
+| P278 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.senior（2026-09-21 真值修正 1→4） |
 | P279 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c13.n |
 | P280 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.expert |
 | P281 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.architect |
-| P282 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.senior |
+| P282 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.senior（2026-09-21 真值修正 4→5） |
 | P283 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c14.n |
 | P284 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.expert |
 | P285 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.architect |
-| P286 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_10 |
+| P286 | `java-architect-interview/index.html` | 章节索引页第 14 篇「高级」数 → chapter-14-databases.html 内 difficulty-senior 数（2026-09-21 真值修正 3→4） |
 | P287 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c15.n |
 | P288 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.expert |
 | P289 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.architect |
-| P290 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.senior |
+| P290 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.senior（2026-09-21 真值修正 3→4） |
 | P291 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_2 |
 | P292 | `java-architect-interview/chapter-engineering-practices.html` | 升格 local:eng-groups → engineering_groups |
 | P293 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_1 |
@@ -379,7 +381,7 @@
 | P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16（势定律）组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
 | P333 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
 | P334 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 卡数（原键 theme_count_5，改为复用 canonical group_13） |
-| P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（原键 theme_count_6，改为复用 canonical engineering_groups） |
+| P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（与工程化页同源 canonical 键 engineering_groups；2026-09-21 统一键形） |
 | P336 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_1 |
 | P337 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_2 |
 | P338 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_3 |
@@ -473,15 +475,24 @@
 | P426 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 术层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
 | P427 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 器层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
 | P428 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 势层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
+| P429 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer「15 篇」篇章页数（2026-09-21 由正文裸数字升格） |
+| P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
+| P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
+| P432 | `java-architect-interview-mind/index.html` | mind index 副标题「15 篇知识篇章」篇章页数（2026-09-21 升格） |
+| P433 | `java-architect-interview-mind/index.html` | mind index idx-meta 算式「1+1+1+15+1」中的篇章项（2026-09-21 升格；无单位词，由一致性链路保障） |
+| P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
+| P435 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M16 单列势定律（11 张）」组卡数（2026-09-21 升格；同键既有位 P332 在 chapter-core-methodology） |
+| P436 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M17 表达与对齐（4 张）」组卡数（2026-09-21 升格；同键既有位 P406） |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 
-- **改 HTML 前先备份**到 `tmp/`（已 gitignore）；脚本也写在这里，用绝对路径、不依赖记忆数字。
+- **改 HTML 前先备份**到 `tmp/`（已 gitignore）；**一次性临时脚本**也写在这里，用绝对路径、不依赖记忆数字。
+- **技能目录里的脚本（`.workbuddy/skills/java-kb-expand/scripts/`）恰恰相反：禁止写死绝对路径与任何编码子集** —— 项目根一律 `find_root(__file__)`（`scripts/_kbroot.py`，**全脚本唯一实现**），扫描目标 / 容器 / 键名 / 白名单 / 忽略目录全部从 SSOT `guard` 读，并支持传参（`[项目根]` / `--only <glob>`）。
 - **统计/校验脚本**：先写入 `tmp/` 再执行（Bash 内联长脚本可能被安全策略拦截）。
 - **Python**：`/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3`。
 - **Bash 内置 `grep` 受 `_zshz` 干扰会误返空**，交叉验证请用其他方式。
 - 改题库后必须跑全量校验：`.workbuddy/skills/java-kb-expand/scripts/validate_kb.py`（校验红线 + 三权威源一致性）。
-- **计数相关改动（新增 / 重编号 / 删除卡片，改展示计数）后追加两跑**：`scripts/audit_count_drift.py`（真值审计：宿主页实际卡数 / **`guard.derived` 声明的 DOM 派生元素数** → SSOT → DOM → position 全局唯一且已登记）+ `scripts/sync_counts.py check`（逐位一致）。**改门禁脚本或 SSOT `guard` 配置后**再跑 `scripts/probe_count_coverage_gate.py`（4 用例，含白名单外全新容器样式 + 短块兜底）与 `scripts/probe_count_drift_gate.py`（8 用例，含 4 类 `guard.derived` 注入）做双向验证。
+- **计数相关改动（新增 / 重编号 / 删除卡片，改展示计数，**或改正文里的聚合计数**）后追加四跑**：`scripts/audit_truth_source.py`（**真值审计**：按 `guard.sources` 逐键独立求真值 → 与 SSOT 键值、DOM 显示值三方比对；**这一条才管「写得对不对」**）+ `scripts/audit_count_drift.py`（结构审计：宿主页实际卡数 / **`guard.derived` 声明的 DOM 派生元素数** / position 全局唯一且已登记；内部已委托真源引擎）+ `scripts/sync_counts.py check`（逐位一致）+ `scripts/audit_prose_exempt.py`（**豁免台账**：正文段候选的豁免归属，未豁免须为 0）。**改门禁脚本或 SSOT `guard` 配置后**再跑 `scripts/probe_count_coverage_gate.py`（**6 用例**，含白名单外全新容器样式 + 短块兜底 + 正文长段落 + 长正文新裸计数）、`scripts/probe_count_drift_gate.py`（8 用例）、**`scripts/probe_truth_gate.py`（6 用例，含「值错但 DOM+SSOT 四处自洽」——传统门禁全绿、只有真源审计能发现）** 做双向验证；**新增/重写的 probe 必须自包含（不依赖 `tmp/` 历史夹具）且还原走 `try/finally`**，夹具缺失以退出码 3 明示，**不得抛异常、不得静默退出 0**（2026-09-21 事故：某 probe 中断未还原，把 `chapter-01` 徽标污染成「高级开发」）。
 
 ## 5. 可用 Skill
 

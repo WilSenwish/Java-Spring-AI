@@ -1,133 +1,155 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """正向验证「聚合 UI 结构 + 小屏留白 + 页内对齐」门禁（check_index_badges.py）。
-=================================================================
-为什么需要：门禁若恒真（永远 PASS）形同虚设。本探针用**权威备份的缺陷版**在沙箱里构造
-反例，验证门禁确实会 exit 1；再对当前项目跑一次，验证其不会误杀。
+=================================================================================
+为什么需要：门禁若恒真（永远 PASS）形同虚设。本探针在**沙箱**里从当前项目的真实文件
+派生出缺陷版，验证门禁确实会 exit 1；再对当前项目跑一次，验证其不会误杀。
 
-与 probe_list_gate.py 的差异：本探针**不写入项目真实文件**——只在 tmp/ 下建沙箱目录，
-因此无需还原、无污染链风险（overview / 根 index 体积大，就地注入-还原成本高于建沙箱）。
+自包含纪律（与 probe_undeclared_gate / probe_count_gate / probe_truth_gate 同构）：
+  - **从当前文件派生注入态**，不依赖 tmp/ 下的历史缺陷快照（那些快照清理后即失效，
+    旧版探针因此退 3 SKIP —— 本版改写后彻底摆脱该依赖）。
+  - 只写**系统临时沙箱**（tempfile，不在项目 tmp/ 下，不被清理），不碰项目真实文件，
+    故无需还原、无污染链风险（overview / 根 index 体积大，就地注入-还原成本高于建沙箱）。
+  - 环境缺失 → 退出码 3（明确报告，不抛 traceback 误导为「门禁失效」）。
 
-五轮场景（每轮都断言分类计数，防止"缺陷换了类别但总数没变"的假通过）：
-  轮 1  徽标缺陷版     tmp/badge_fix_backup_20260916          → 徽标 = 29、留白 > 0
-  轮 2  留白缺陷版     tmp/root_index_mobile_backup_20260916  → 留白 > 0、徽标 = 0
-  轮 3  对齐缺陷版     tmp/root_index_style_backup_20260916   → 对齐 = 8、留白 = 3、徽标 = 0
-  轮 4  内缩/计数缺陷版 tmp/root_index_unify_backup_20260916    → 对齐 = 2、留白 = 1、徽标 = 0
-       （必须命中两条新口径：`.dir-count 缺 margin-left: auto` 与 `桌面 .dir-group 横向 ≠ 0`）
-  轮 5  当前项目树                                             → 期望 exit 0
-  轮 5 通过但轮 1~4 未 FAIL ⇒ 门禁恒真；轮 5 FAIL ⇒ 门禁误杀。
+三轮缺陷（每轮断言「门禁抓到该类」的签名串，防止"缺陷换了类别但总数没变"的假通过）：
+  轮 1  徽标缺陷：剥掉一个 ov-item 的 `class="ov-badges"` 包裹
+        → 期望 gate exit 1 且 FAIL 命中「缺 .ov-badges 包裹」。
+  轮 2  留白缺陷：删除根 index ≤768 段里的 `.dir-container {…}` 规则（gutter 失去唯一来源）
+        → 期望 gate exit 1 且 FAIL 命中「≤768 段缺 .dir-container 规则」。
+  轮 3  对齐缺陷：删除根 index 里的 `.dir-count {…}` 规则（计数胶囊定位方式未知）
+        → 期望 gate exit 1 且 FAIL 命中「缺 .dir-count 规则」。
+  轮 4  当前项目树（干净） → 期望 gate exit 0（无误杀）。
+  轮 1~3 未 FAIL 或轮 4 FAIL ⇒ 门禁失效 / 误杀。
 
-用法：python3 probe_index_badge_gate.py [--expect-badge 29] [--expect-align 6]
-退出码：0 = 各轮均符合预期；1 = 任一不符。
+用法：python3 probe_index_badge_gate.py
+退出码：0 = 各轮均符合预期；1 = 门禁未抓到注入（失效）/ 误杀；2 = 定位失败；3 = 环境缺失。
 """
+import io
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
-B = '/Users/chenjunbing/Develop/Project/Personal/Java Spring AI'
-PY = '/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3'
-GATE = B + '/.workbuddy/skills/java-kb-expand/scripts/check_index_badges.py'
-BADGE_BK = B + '/tmp/badge_fix_backup_20260916'
-MOBILE_BK = B + '/tmp/root_index_mobile_backup_20260916'
-STYLE_BK = B + '/tmp/root_index_style_backup_20260916'
-UNIFY_BK = B + '/tmp/root_index_unify_backup_20260916'   # 2026-09-16「两类列表风格归一」改前
-SANDBOX = B + '/tmp/badge_gate_probe'
-LIVE_OV = 'java-architect-interview/nav-overview-priority.html'
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
 
-expect_badge, expect_align = 29, 8       # 轮 3 对齐：增补两条口径后由 6 → 8
-expect_gutter3 = 3                       # 轮 3 留白：小屏 .dir-group/.q-list/.q-item 各 4px（内缩未单层化）
-expect_align4, expect_gutter4 = 2, 1     # 轮 4：计数缺 margin-left:auto + 桌面 .dir-group 横向 16px
-for i, a in enumerate(sys.argv):
-    if a == '--expect-badge' and i + 1 < len(sys.argv):
-        expect_badge = int(sys.argv[i + 1])
-    if a == '--expect-align' and i + 1 < len(sys.argv):
-        expect_align = int(sys.argv[i + 1])
+B = find_root(__file__)
+if not B:
+    print("FAIL 未能定位项目根（须含 docs/kb-counts.json）")
+    sys.exit(2)
 
+PY = sys.executable
+GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check_index_badges.py")
+if not os.path.isfile(GATE):
+    print("FAIL 未找到 check_index_badges.py: %s" % GATE)
+    sys.exit(2)
 
-def run_gate(target=None):
-    cmd = [PY, GATE] + ([target] if target else [])
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd='/tmp')
-    return r.returncode, r.stdout.strip()
+IDX = os.path.join(B, "index.html")
+OV = os.path.join(B, "java-architect-interview", "nav-overview-priority.html")
+for _p, _n in ((IDX, "根 index.html"), (OV, "nav-overview-priority.html")):
+    if not os.path.isfile(_p):
+        print("SKIP 环境缺失（退出码 3）：%s 不存在于 %s" % (_n, _p))
+        sys.exit(3)
 
 
-def counts(out):
-    """解析 `FAIL 发现 N 处缺陷（徽标结构 X / 小屏留白 Y / 页内对齐 Z / 变量解析 W）：`。"""
-    m = re.search(r'徽标结构 (\d+) / 小屏留白 (\d+)(?: / 页内对齐 (\d+) / 变量解析 (\d+))?', out)
-    if m:
-        return (int(m.group(1)), int(m.group(2)),
-                int(m.group(3) or 0), int(m.group(4) or 0))
-    if out.startswith('PASS'):
-        return 0, 0, 0, 0
-    return -1, -1, -1, -1
+def read(p):
+    return io.open(p, encoding="utf-8", errors="ignore").read()
 
 
-def make_sandbox(index_src, ov_src):
-    shutil.rmtree(SANDBOX, ignore_errors=True)
-    os.makedirs(SANDBOX + '/java-architect-interview', exist_ok=True)
-    open(SANDBOX + '/AGENTS.md', 'w').write('probe sandbox\n')
-    shutil.copy(index_src, SANDBOX + '/index.html')
-    shutil.copy(ov_src, SANDBOX + '/' + LIVE_OV)
+def write(p, s):
+    io.open(p, "w", encoding="utf-8").write(s)
 
 
-ok = True
+def run_gate(sandbox):
+    r = subprocess.run([PY, GATE, sandbox], capture_output=True, text=True, cwd=sandbox)
+    return r.returncode, (r.stdout or "") + (r.stderr or "")
 
-# ---- 轮 1：徽标缺陷 ----
-make_sandbox(BADGE_BK + '/index.html.bak', BADGE_BK + '/nav-overview-priority.html.bak')
-code, out = run_gate(SANDBOX)
-bd, gu, al, uv = counts(out)
-r1 = (code == 1 and bd == expect_badge and gu > 0)
-ok &= r1
-print(f'[1] 徽标缺陷版：exit={code}（期望 1）、徽标 {bd}（期望 {expect_badge}）、留白 {gu}（期望 >0）'
-      f' -> {"符合预期 ✅" if r1 else "不符预期 ❌"}')
 
-# ---- 轮 2：留白缺陷（overview 用当前已修版本 → 徽标应为 0）----
-make_sandbox(MOBILE_BK + '/index.html.bak', B + '/' + LIVE_OV)
-code, out = run_gate(SANDBOX)
-bd, gu, al, uv = counts(out)
-r2 = (code == 1 and bd == 0 and gu > 0)
-ok &= r2
-print(f'[2] 留白缺陷版：exit={code}（期望 1）、徽标 {bd}（期望 0）、留白 {gu}（期望 >0）'
-      f' -> {"符合预期 ✅" if r2 else "不符预期 ❌"}')
+def mk_sandbox(sandbox):
+    """从当前项目复制干净的根 index + overview 进沙箱（含 AGENTS.md 以满足定位回退）。"""
+    os.makedirs(os.path.join(sandbox, "java-architect-interview"), exist_ok=True)
+    write(os.path.join(sandbox, "AGENTS.md"), "probe sandbox\n")
+    write(os.path.join(sandbox, "index.html"), read(IDX))
+    write(os.path.join(sandbox, "java-architect-interview", "nav-overview-priority.html"), read(OV))
 
-# ---- 轮 3：对齐缺陷（本轮改前，留白已归一 → 留白应为 0）----
-if os.path.isfile(STYLE_BK + '/index.html.bak'):
-    make_sandbox(STYLE_BK + '/index.html.bak', B + '/' + LIVE_OV)
-    code, out = run_gate(SANDBOX)
-    bd, gu, al, uv = counts(out)
-    r3 = (code == 1 and al == expect_align and gu == expect_gutter3 and bd == 0)
-    ok &= r3
-    print(f'[3] 对齐缺陷版：exit={code}（期望 1）、对齐 {al}（期望 {expect_align}）、'
-          f'留白 {gu}（期望 {expect_gutter3}）、徽标 {bd}（期望 0） -> '
-          f'{"符合预期 ✅" if r3 else "不符预期 ❌"}')
-    for line in out.splitlines()[1:4]:
-        print('     ', line)
-else:
-    print(f'[3] 跳过：未找到对齐缺陷备份 {STYLE_BK}/index.html.bak')
 
-# ---- 轮 4：列表内缩单层化 / 计数胶囊位置 缺陷（本轮改前）----
-# 除分类计数外，额外断言**两条新口径确实被触发** —— 防止"新断言写成恒真"。
-if os.path.isfile(UNIFY_BK + '/index.html.bak'):
-    make_sandbox(UNIFY_BK + '/index.html.bak', B + '/' + LIVE_OV)
-    code, out = run_gate(SANDBOX)
-    bd, gu, al, uv = counts(out)
-    r4 = (code == 1 and al == expect_align4 and gu == expect_gutter4 and bd == 0
-          and 'margin-left: auto' in out and '桌面 .dir-group 横向' in out)
-    ok &= r4
-    print(f'[4] 内缩/计数位置缺陷版：exit={code}（期望 1）、对齐 {al}（期望 {expect_align4}）、'
-          f'留白 {gu}（期望 {expect_gutter4}） -> {"符合预期 ✅" if r4 else "不符预期 ❌"}')
-    for line in out.splitlines()[1:]:
-        print('     ', line)
-else:
-    print(f'[4] 跳过：未找到备份 {UNIFY_BK}/index.html.bak')
+def main():
+    sandbox = tempfile.mkdtemp(prefix="badge_gate_probe_")
+    ok = True
+    try:
+        # ---- 轮 1：徽标缺陷（剥 ov-badges 包裹）----
+        mk_sandbox(sandbox)
+        ov = read(os.path.join(sandbox, "java-architect-interview", "nav-overview-priority.html"))
+        mutated = ov.replace('class="ov-badges"', 'class="ov-badges-missing"', 1)
+        if mutated == ov:
+            print("[1] 跳过：overview 未找到 `class=\"ov-badges\"`（无法构造徽标缺陷）")
+        else:
+            write(os.path.join(sandbox, "java-architect-interview", "nav-overview-priority.html"), mutated)
+            code, out = run_gate(sandbox)
+            caught = (code == 1) and ("缺 .ov-badges 包裹" in out)
+            ok &= caught
+            print("[1] 徽标缺陷：gate exit=%d（期望 1）、命中「缺 .ov-badges 包裹」=%s -> %s"
+                  % (code, caught, "符合预期 ✅" if caught else "不符预期 ❌"))
+            for ln in out.splitlines():
+                if "缺 .ov-badges 包裹" in ln:
+                    print("     ", ln)
 
-# ---- 轮 5：当前项目树必须 PASS（无误杀）----
-code, out = run_gate()
-rcur = (code == 0 and out.startswith('PASS'))
-ok &= rcur
-print(f'[5] 当前项目：exit={code}（期望 0）-> {"符合预期 ✅" if rcur else "不符预期 ❌"}')
-print('     ', out.splitlines()[0] if out else '')
+        # ---- 轮 2：留白缺陷（删 ≤768 段 .dir-container 规则）----
+        mk_sandbox(sandbox)
+        idx = read(os.path.join(sandbox, "index.html"))
+        idx2 = re.sub(r"\.dir-container\s*\{[^}]*\}", "", idx)  # 删全部 .dir-container 规则
+        if idx2 == idx:
+            print("[2] 跳过：根 index 未找到 `.dir-container {…}`（无法构造留白缺陷）")
+        else:
+            write(os.path.join(sandbox, "index.html"), idx2)
+            code, out = run_gate(sandbox)
+            caught = (code == 1) and ("≤768 段缺 .dir-container 规则" in out)
+            ok &= caught
+            print("[2] 留白缺陷：gate exit=%d（期望 1）、命中「≤768 段缺 .dir-container 规则」=%s -> %s"
+                  % (code, caught, "符合预期 ✅" if caught else "不符预期 ❌"))
+            for ln in out.splitlines():
+                if "≤768 段缺 .dir-container 规则" in ln:
+                    print("     ", ln)
 
-shutil.rmtree(SANDBOX, ignore_errors=True)
-sys.exit(0 if ok else 1)
+        # ---- 轮 3：对齐缺陷（删 .dir-count 规则）----
+        mk_sandbox(sandbox)
+        idx = read(os.path.join(sandbox, "index.html"))
+        idx3 = re.sub(r"\.dir-count\s*\{[^}]*\}", "", idx)  # 删全部 .dir-count 规则
+        if idx3 == idx:
+            print("[3] 跳过：根 index 未找到 `.dir-count {…}`（无法构造对齐缺陷）")
+        else:
+            write(os.path.join(sandbox, "index.html"), idx3)
+            code, out = run_gate(sandbox)
+            caught = (code == 1) and ("缺 .dir-count 规则" in out)
+            ok &= caught
+            print("[3] 对齐缺陷：gate exit=%d（期望 1）、命中「缺 .dir-count 规则」=%s -> %s"
+                  % (code, caught, "符合预期 ✅" if caught else "不符预期 ❌"))
+            for ln in out.splitlines():
+                if "缺 .dir-count 规则" in ln:
+                    print("     ", ln)
+
+        # ---- 轮 4：干净树必须 PASS（无误杀）----
+        mk_sandbox(sandbox)
+        code, out = run_gate(sandbox)
+        clean = (code == 0) and out.startswith("PASS")
+        ok &= clean
+        print("[4] 当前项目（干净）：gate exit=%d（期望 0）-> %s" % (code, "符合预期 ✅" if clean else "不符预期 ❌"))
+        if not clean:
+            for ln in out.splitlines()[:6]:
+                print("     ", ln)
+    except Exception as e:  # noqa: BLE001  任何异常都要先清理沙箱再上报
+        ok = False
+        print("探针异常：%r" % e)
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+    print("✅ 徽标/留白/对齐门禁通过双向验证：三类缺陷必 FAIL、干净树必 PASS（沙箱已清理）。"
+          if ok else "❌ 徽标/留白/对齐门禁验证未通过")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

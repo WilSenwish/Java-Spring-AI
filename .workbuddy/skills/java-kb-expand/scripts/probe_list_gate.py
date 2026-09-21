@@ -1,40 +1,85 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""正向验证 1h 列表缩进兜底门禁：单轮注入缺陷 -> 跑校验 -> 必须 FAIL
+"""正向验证 1h「列表缩进兜底」门禁：注入缺陷 → 跑校验 → 必须 FAIL → 自动还原
 
-用法: probe_list_gate.py 1|2
-  轮 1：删除整条 :where(ul, ol) 兜底          -> 期望命中「须含零特异度缩进兜底」
-  轮 2：保留兜底、另加裸选择器 ul, ol { … }    -> 期望命中「不得用裸选择器」
+两轮的注入态**都从当前 design-system.css 派生**（2026-09-21 加固）：
+  轮 1：删除零特异度 `:where(ul, ol) { padding-inline-start: 1.25rem; }`   → 期望命中「须含」
+  轮 2：保留兜底、另加裸选择器 `ul, ol { … }`（特异度更高会盖掉兜底）      → 期望命中「不得用裸选择器」
 
-注入态始终由权威备份 tmp/list_indent_backup/design-system.after.css 构造（无污染链）；
-还原由调用方命令负责（脚本不写回权威备份）。
+此前脚本依赖 `tmp/list_indent_backup/design-system.after.css` 这个历史夹具：
+夹具随 `tmp/` 清理而消失 → 脚本直接 FileNotFoundError（被误读成「门禁失效」），
+且注入时直写**真实** CSS 文件、还原交给调用方（一旦中途失败就留下脏树）。
+现在：就地派生 + `finally` 还原 + MD5 核验。
+
+用法：probe_list_gate.py [1|2]   （缺省跑完两轮）
+退出码：0=双向验证通过；1=门禁失效；2=定位失败。
 """
-import re, subprocess, sys
+import hashlib
+import io
+import os
+import re
+import subprocess
+import sys
 
-B = '/Users/chenjunbing/Develop/Project/Personal/Java Spring AI'
-PY = '/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3'
-CSS = B + '/java-architect-interview/assets/design-system.css'
-AUTH = B + '/tmp/list_indent_backup/design-system.after.css'
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
 
-rnd = sys.argv[1] if len(sys.argv) > 1 else '1'
-t = open(AUTH, encoding='utf-8').read()
+B = find_root(__file__) or sys.exit(2)
+PY = sys.executable
+GATE = os.path.join(HERE, "validate_kb.py")
+CSS = os.path.join(B, "java-architect-interview/assets/design-system.css")
 
-if rnd == '1':
-    t2 = re.sub(r":where\(ul, ol\) \{\s*padding-inline-start: 1\.25rem;\s*\}",
-                '/* probe: removed */', t, count=1)
-else:
-    t2 = t.replace(':where(ul, ol) {',
-                   ':where(ul, ol) {\n  padding-inline-start: 1.25rem;\n}\nul, ol {', 1)
-assert t2 != t, '注入模式未匹配'
-open(CSS, 'w', encoding='utf-8').write(t2)
+ROUNDS = [sys.argv[1]] if (len(sys.argv) > 1 and sys.argv[1] in ("1", "2")) else ["1", "2"]
 
-if '--inject' in sys.argv:
-    print(f'轮 {rnd} 缺陷已注入（仅注入模式，未跑校验）')
-    sys.exit(0)
+FALLBACK = re.compile(r":where\(ul,\s*ol\)\s*\{\s*padding-inline-start:\s*1\.25rem;\s*\}")
 
-r = subprocess.run([PY, B + '/.workbuddy/skills/java-kb-expand/scripts/validate_kb.py'],
-                   capture_output=True, text=True, cwd=B)
-fails = [l for l in r.stdout.splitlines() if 'FAIL' in l and '[列表]' in l]
-print(f'轮 {rnd} 注入后：校验 exit={r.returncode}（预期非 0），命中 [列表] FAIL {len(fails)} 条（预期 1）')
-for l in fails:
-    print('   ', l)
+
+def read(p):
+    return io.open(p, encoding="utf-8").read()
+
+
+def md5(p):
+    return hashlib.md5(io.open(p, "rb").read()).hexdigest()
+
+
+ORIG = read(CSS)
+ORIG_MD5 = md5(CSS)
+ok = True
+
+for rnd in ROUNDS:
+    print("\n== 轮 %s ==" % rnd)
+    try:
+        if rnd == "1":
+            if not FALLBACK.search(ORIG):
+                print("  !! 未找到注入锚点（CSS 无零特异度缩进兜底），本用例判失败")
+                ok = False
+                continue
+            io.open(CSS, "w", encoding="utf-8").write(
+                FALLBACK.sub("/* probe: removed */", ORIG, count=1))
+            expect_needle = "须含零特异度缩进兜底"
+        else:
+            if ":where(ul, ol) {" not in ORIG:
+                print("  !! 未找到注入锚点（CSS 无 :where(ul, ol)）")
+                ok = False
+                continue
+            io.open(CSS, "w", encoding="utf-8").write(
+                ORIG.replace(":where(ul, ol) {",
+                             "ul, ol {\n  padding-inline-start: 1.25rem;\n}\n:where(ul, ol) {", 1))
+            expect_needle = "不得用裸选择器"
+
+        r = subprocess.run([PY, GATE], capture_output=True, text=True, cwd=B)
+        out = (r.stdout or "") + (r.stderr or "")
+        hits = [l for l in out.split("\n") if "FAIL" in l and "[列表]" in l]
+        for l in hits:
+            print("  " + l.strip()[:150])
+        good = r.returncode != 0 and any(expect_needle in l for l in hits)
+        print("  校验 exit=%d，命中 [列表] FAIL %d 条（须含 %r）%s"
+              % (r.returncode, len(hits), expect_needle, "✅ 如期检出" if good else "❌ 未检出"))
+        ok &= good
+    finally:
+        io.open(CSS, "w", encoding="utf-8").write(ORIG)
+        print("  已还原 design-system.css（MD5 一致: %s）" % (md5(CSS) == ORIG_MD5))
+
+print("\nPROBE_EXIT=%s" % ("0 双向验证通过 ✅" if ok else "1 门禁失效 ❌"))
+sys.exit(0 if ok else 1)

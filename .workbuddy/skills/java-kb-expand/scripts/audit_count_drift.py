@@ -10,15 +10,21 @@
   ② **data-kb-pos 跨文件重复 / 未登记**——check 按 position 的 `file` 字段过滤，
      重复位在「非登记文件」里完全不校验（实测：mind 页误复用章节页 P405/P404）。
 
+职责边界（2026-09-21 收敛）：
+  · **本脚本**只做「**结构性**」校验：全站卡片普查（含重复定义）、DOM ↔ SSOT 逐位、
+    position 已登记 / 全局唯一、data-kb-count 键有效性。
+  · 「某个键的**真值**应该是几」**不在本脚本**——统一委托 `audit_truth_source.py`
+    （SSOT `guard.sources` 驱动）。历史上 `guard.layers` / `guard.derived` /
+    `guard.single_source` 的真值语义被两个脚本各解读一遍，改一处就会分叉。
+
 设计红线（2026-09-21，长官指令「门禁脚本得针对全局或接收参数，不能固定写死部分编码等」）：
-  本脚本**不得写死任何组号区间、文件名、白名单、单位词**。全部读 SSOT：
-    层归属（range + sum_keys）→ `guard.layers`
-    单值键来源              → `guard.single_source`
+  本脚本**不得写死任何组号区间、文件名、白名单、单位词、项目根层级**。全部读 SSOT：
     允许多点位              → `guard.pos_allow_multi`
     全局忽略目录            → `guard.exclude`（含 rk/ 软考资料站）
-  组卡数实测源 = **全站自动识别**「含 qa-card 的文件」，不指定任何文件名。
+    真源声明                → `guard.sources`（由被委托的真源引擎消费）
+  卡片实测源 = **全站自动识别**「含 qa-card 的文件」，不指定任何文件名。
 
-四条链路互证：宿主页实际 qa-card 数 → SSOT 键值 → DOM 取值 → position 全局唯一且全部已登记。
+链路：结构性一致（本脚本）→ 真值正确（`audit_truth_source.py`）→ 覆盖完整（`audit_l1_counts.py`）。
 
 用法：
   python3 scripts/audit_count_drift.py [项目根] [--only <glob>] [--quiet]
@@ -31,17 +37,13 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402
 
-def find_root(start):
-    """不写死项目根层级：从起点向上找「同时含 AGENTS.md 与 index.html」的目录。"""
-    d = os.path.abspath(start)
-    while d != "/":
-        if os.path.isfile(os.path.join(d, "AGENTS.md")) and os.path.isfile(os.path.join(d, "index.html")):
-            return d
-        d = os.path.dirname(d)
-    return None
+
 
 
 ap = argparse.ArgumentParser(description="计数漂移反向审计（数据驱动 · 全域）")
@@ -64,13 +66,10 @@ if not os.path.isfile(SSOT):
 cfg = json.load(io.open(SSOT, encoding="utf-8"))
 S, C, POS = cfg["struct"], cfg["counts"], cfg["positions"]
 G = cfg.get("guard") or {}
-LAYERS = G.get("layers") or []
-SINGLE = G.get("single_source") or {}
 ALLOW_MULTI = set(G.get("pos_allow_multi") or [])
 EXCLUDE = G.get("exclude") or ["tmp/", "node_modules/", "rk/"]
 
 errs = []
-warns = []
 
 
 def excluded(rel):
@@ -119,96 +118,20 @@ if not args.quiet:
     print("      %s" % "  ".join("%s=%d" % (k, actual[k]) for k in sorted(actual)))
 
 
-def chk(key, val, hint, scope=None):
-    """比对 struct 键（key 无 struct. 前缀）与实测值。"""
-    cur = S.get(key)
-    if cur == val:
-        return
-    if isinstance(cur, int) and isinstance(val, int):
-        errs.append('%-46s 当前=%-5s 应为=%-5s  →  sync_counts.py bump %s%s=%+d'
-                    % (scope + "." + key if scope else key, cur, val,
-                       scope + "." if scope else "", key, val - cur))
-    else:
-        errs.append("%-46s 当前=%s 应为=%s（%s）" % (key, cur, val, hint))
+# ---------------- 2) 真值校验：委托真源引擎（单一真源） ----------------
+# 「某个键的真值应该是几」只由 `audit_truth_source.py` + SSOT `guard.sources` 决定。
+# 本脚本**不再自行推导**——历史上 `guard.layers` / `guard.derived` / `guard.single_source`
+# 的真值语义被两个脚本各解读一遍，改一处就会分叉（2026-09-21 统一）。
+# 这里只做「调用 + 汇总」：把真源引擎的 FAIL 行原样并入本脚本的 errs。
+TRUTH_ENGINE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "audit_truth_source.py")
+_tp = subprocess.run([sys.executable, TRUTH_ENGINE, ROOT],
+                     capture_output=True, text=True)
+for _ln in (_tp.stdout + _tp.stderr).split("\n"):
+    if _ln.startswith("FAIL "):
+        errs.append("[真源] " + _ln[len("FAIL "):])
 
-
-# 2) 组卡数键：通用正则识别 meth.group_<n> —— 不写死组号范围
-for k in S:
-    m = re.fullmatch(r"meth\.group_(\d+)", k)
-    if m:
-        chk(k, actual.get("M%02d" % int(m.group(1)), 0), "组卡数")
-
-# 3) 层合计键：range + sum_keys 全部来自 SSOT guard.layers
-for L in LAYERS:
-    a, b = L["range"]
-    val = sum(actual.get("M%02d" % g, 0) for g in range(a, b + 1))
-    for k in L.get("sum_keys") or []:
-        chk(k, val, "%s层合计（组 %d–%d）" % (L.get("label", L.get("id")), a, b))
-
-# 4) 组卡数对照表键：通用正则 meth.table_<n>
-for k in S:
-    m = re.fullmatch(r"meth\.table_(\d+)", k)
-    if m:
-        chk(k, actual.get("M%02d" % int(m.group(1)), 0), "组卡数对照表")
-
-# 5) 单值键（来源由 SSOT guard.single_source 声明，脚本不写死键名）
-#    键可写成 `meth.x`（落 struct）或 `counts.x`；脚本按存在性自动判归属。
-for k, kind in SINGLE.items():
-    val = {"group_count": GN, "card_total": TOTAL}.get(kind)
-    if val is None:
-        errs.append("guard.single_source 声明了未知来源类型 «%s»（键 %s）" % (kind, k))
-        continue
-    sk = k[len("struct."):] if k.startswith("struct.") else k
-    ck = k[len("counts."):] if k.startswith("counts.") else k
-    if sk in S:
-        chk(sk, val, "单值键(%s)" % kind)
-    elif ck in C:
-        if C.get(ck) != val:
-            errs.append("%-46s 当前=%s 应为=%s  →  sync_counts.py bump counts.%s=%+d"
-                        % (ck, C.get(ck), val, ck, val - (C.get(ck) or 0)))
-    else:
-        errs.append("guard.single_source 声明的键 «%s» 在 SSOT 中不存在" % k)
-
-# 6) 总卡数
-if C.get("methodology") != TOTAL:
-    errs.append("counts.methodology 当前=%s 应为=%s  →  sync_counts.py bump methodology=%+d"
-                % (C.get("methodology"), TOTAL, TOTAL - (C.get("methodology") or 0)))
-
-# ---------------- 6b) 结构性派生计数（真源 = 宿主页 DOM 可见元素数） ----------------
-# 这类数字不是「卡片数」（如 layer-hang 下挂 chip 数），真源无法由 qa-card 推出，
-# 故由 SSOT `guard.derived` 声明：region 取块 → count 计数 = 真值。
-# 脚本内不写死任何文件名 / 区块名 / 元素类名。
-DERIVED = (G.get("derived") or {}).get("items") or []
-derived_keys = set()
-for item in DERIVED:
-    key = item.get("key") or ""
-    relf = item.get("file") or ""
-    fp = os.path.join(ROOT, relf)
-    if not os.path.isfile(fp):
-        errs.append("guard.derived 条目 %s 的宿主文件不存在：%s" % (key or "?", relf))
-        continue
-    t = io.open(fp, encoding="utf-8", errors="ignore").read()
-    hits = list(re.finditer(item["region"], t, re.S))
-    if len(hits) != 1:
-        errs.append("guard.derived 条目 %s 的 region 在 %s 命中 %d 次（须恰好 1 次）"
-                    % (key, relf, len(hits)))
-        continue
-    n = len(re.findall(item["count"], hits[0].group(0)))
-    derived_keys.add(key)
-    if key.startswith("struct."):
-        sk, cur = key[len("struct."):], S.get(key[len("struct."):])
-    elif key.startswith("counts."):
-        sk, cur = key, C.get(key[len("counts."):])
-    else:
-        errs.append("guard.derived 键 «%s» 须以 struct. / counts. 前缀声明" % key)
-        continue
-    if cur is None:
-        errs.append("guard.derived 声明的键 «%s» 在 SSOT 中不存在" % key)
-    elif cur != n:
-        errs.append("%-46s 当前=%-5s 应为=%-5s（DOM 派生：%s @ %s）"
-                    % (key, cur, n, item.get("desc") or item.get("count"), relf))
-
-# ---------------- 7) DOM <-> SSOT（全域遍历） ----------------
+# ---------------- 3) DOM <-> SSOT（全域遍历） ----------------
 dom = collections.defaultdict(list)          # pos -> [(rel, value)]
 count_keys = collections.Counter()           # data-kb-count 键 -> 出现次数
 for rel, p in scan_files(["html", "md"]):
@@ -245,13 +168,7 @@ for pid, pos in registered.items():
             errs.append("position %s（%s，登记 file=%s）DOM=%s ≠ SSOT %s=%s"
                         % (pid, rf, pos["file"], val, key, want))
 
-# 7a2) guard.derived 声明的键必须有已注册 position（否则「真源」无展示位可证）
-_pos_keys = {(p.get("key") or "") for p in POS}
-for key in sorted(derived_keys):
-    if key not in _pos_keys:
-        errs.append("guard.derived 键 «%s» 没有对应的已注册 position" % key)
-
-# 7b) 反向：页面上出现但未登记的 position（全局盲区，本次新增）
+# 7b) 反向：页面上出现但未登记的 position（全局盲区）
 for pid in sorted(dom):
     if pid not in registered:
         errs.append("position %s 出现在 %s，但未在 SSOT positions 登记"
@@ -282,11 +199,11 @@ if errs:
     for e in errs:
         print("  ✗ " + e)
     print("\n修复一律走 sync_counts.py bump 唯一入口，勿手改数字；"
-          "position 重复/未登记须改用空闲号（先全站 grep 确认）并补登记。")
+          "position 重复/未登记须改用空闲号（先全站 grep 确认）并补登记；"
+          "「真源」前缀项由 audit_truth_source.py 报出，须先查内容再改 SSOT。")
     sys.exit(1)
 
 print("✅ 计数无漂移：实测 %d 卡 = SSOT 键值 = DOM 取值；%d 个 position 全部已登记且全局唯一"
-      "（豁免 %s）；%d 项结构性派生计数（guard.derived）与 DOM 元素数一致；"
-      "data-kb-count 键全部有效。"
-      % (TOTAL, len(registered), sorted(ALLOW_MULTI) or "无", len(derived_keys)))
+      "（豁免 %s）；真值由 audit_truth_source.py 独立复核通过；data-kb-count 键全部有效。"
+      % (TOTAL, len(registered), sorted(ALLOW_MULTI) or "无"))
 sys.exit(0)

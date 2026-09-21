@@ -22,7 +22,10 @@ java-kb-expand · 权威计数同步工具（单一真源驱动）
 """
 import json, os, re, sys, shutil, datetime, argparse
 
-BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+BASE = find_root(__file__)
+
 COUNTS_JSON = f"{BASE}/docs/kb-counts.json"
 BACKUP_ROOT = f"{BASE}/tmp/counts_apply_backup"
 
@@ -216,21 +219,35 @@ def cmd_apply(cfg):
     return cmd_check(cfg, verbose=False)
 
 
-def cmd_bump(cfg, assigns):
+def cmd_bump(cfg, assigns, allow_new=False):
+    """改计数键值。
+
+    `allow_new=True`（CLI `--add`）时，键不存在则以 0 为基数新建 —— 用于新增此前**无键**的
+    展示计数（如「篇章页数」「分组页数」，例：`bump --add chapters_pages=15`）。
+    默认 `False` 仍严格校验键名，防止拼错键名静默造出垃圾键。
+    """
     c = cfg["counts"]
     struct = cfg.setdefault("struct", {})
     # snapshot for rollback
     snap_c = dict(c)
     snap_s = dict(struct)
+    created = []
     for a in assigns:
         k, v = a.split("=", 1)
         if k.startswith("struct."):
             sk = k[len("struct.") :]
-            assert sk in struct, f"未知 struct 键：{sk}"
+            if sk not in struct:
+                assert allow_new, f"未知 struct 键：{sk}（如需新建请加 --add）"
+                struct[sk] = 0
+                created.append(k)
             cur = struct[sk]
             struct[sk] = cur + int(v) if v[0] in "+-" else int(v)
         else:
-            assert k in c, f"未知计数键：{k}（可选：{', '.join(c)} 或 struct.*）"
+            if k not in c:
+                assert allow_new, (f"未知计数键：{k}（如需新建请加 --add；"
+                                   f"可选：{', '.join(c)} 或 struct.*）")
+                c[k] = 0
+                created.append(k)
             cur = c[k]
             c[k] = cur + int(v) if v[0] in "+-" else int(v)
     ok = True
@@ -244,7 +261,8 @@ def cmd_bump(cfg, assigns):
         cfg["struct"] = snap_s
         return 1
     save(cfg)
-    print(f"真源已更新：{' '.join(assigns)}")
+    print(f"真源已更新：{' '.join(assigns)}"
+          + (f"（新建键 {len(created)} 个：{', '.join(created)}）" if created else ""))
     rc = cmd_apply(cfg)
     print()
     cmd_render(cfg)   # 同步刷新四份文档的 COUNTS 锚点块
@@ -315,6 +333,8 @@ def main():
     ap = argparse.ArgumentParser(description="权威计数同步工具")
     ap.add_argument("cmd", choices=["show", "check", "apply", "bump", "render"])
     ap.add_argument("assigns", nargs="*", help="bump 用：key=+N / key=-N / key=N")
+    ap.add_argument("--add", action="store_true",
+                    help="bump 时允许新建计数键（此前无键的展示计数，例：--add chapters_pages=15）")
     a = ap.parse_args()
     cfg = load()
     if a.cmd == "show":
@@ -327,7 +347,7 @@ def main():
         if not a.assigns:
             print("bump 需要参数，例：bump methodology=+1 total=+1")
             sys.exit(1)
-        sys.exit(cmd_bump(cfg, a.assigns))
+        sys.exit(cmd_bump(cfg, a.assigns, allow_new=a.add))
     if a.cmd == "render":
         sys.exit(cmd_render(cfg))
 

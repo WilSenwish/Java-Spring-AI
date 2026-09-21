@@ -29,7 +29,10 @@ import shutil
 import sys
 import tempfile
 
-B = '/Users/chenjunbing/Develop/Project/Personal/Java Spring AI'
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+B = find_root(__file__)
+
 GATE = B + '/.workbuddy/skills/java-kb-expand/scripts/check_mind_mermaid.py'
 SRC_PAGE = B + '/java-architect-interview-mind/mind-14-databases.html'
 PAGE = 'mind-14-databases.html'

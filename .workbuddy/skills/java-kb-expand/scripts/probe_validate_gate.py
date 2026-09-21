@@ -1,47 +1,83 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""正向验证 1g 横向溢出兜底门禁：临时注入缺陷 -> 跑校验 -> 必须 FAIL -> 自动还原"""
-import os, re, shutil, subprocess, sys, hashlib
+"""正向验证 1g「横向溢出兜底」门禁：临时注入缺陷 → 跑校验 → 必须 FAIL → 自动还原
 
-B = '/Users/chenjunbing/Develop/Project/Personal/Java Spring AI'
-PY = '/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3'
-CSS = B + '/java-architect-interview/assets/design-system.css'
-PAGE = B + '/java-architect-interview/nav-server-security-checkpoint.html'
-KEEP = B + '/tmp/probe_keep'
+两处缺陷（都从**当前文件**派生，不依赖任何 `tmp/` 历史夹具）：
+  ① design-system.css 摘掉 `body{overflow-wrap:anywhere}` 全局兜底
+  ② 安全检查页把一个 `.code-block` 拆开，制造未被包裹的裸 `<pre>`
+
+**2026-09-21 加固**：此前 ② 直接 `shutil.copy(tmp/bare_pre_backup/...)`——
+夹具随 `tmp/` 清理而消失，脚本抛 FileNotFoundError（被误读成「门禁失效」），
+且若夹具是旧版本还会把页面还原成旧内容。现在改为「就地派生注入 + finally 还原 + MD5 核验」。
+
+退出码：0=双向验证通过（两条缺陷都被拦下且还原一致）；1=门禁失效；2=定位失败。
+"""
+import hashlib
+import io
+import os
+import re
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+
+B = find_root(__file__) or sys.exit(2)
+PY = sys.executable
+GATE = os.path.join(HERE, "validate_kb.py")
+CSS = os.path.join(B, "java-architect-interview/assets/design-system.css")
+PAGE = os.path.join(B, "java-architect-interview/nav-server-security-checkpoint.html")
+
+
+def read(p):
+    return io.open(p, encoding="utf-8").read()
+
+
+def write(p, t):
+    io.open(p, "w", encoding="utf-8").write(t)
 
 
 def md5(p):
-    return hashlib.md5(open(p, 'rb').read()).hexdigest()
+    return hashlib.md5(io.open(p, "rb").read()).hexdigest()
 
 
-os.makedirs(KEEP, exist_ok=True)
-shutil.copy(CSS, KEEP + '/design-system.css')
-shutil.copy(PAGE, KEEP + '/page.html')
-css_md5, page_md5 = md5(CSS), md5(PAGE)
+orig = {p: read(p) for p in (CSS, PAGE)}
+before = {p: md5(p) for p in (CSS, PAGE)}
+ok = True
 
 try:
-    # 缺陷 1：摘掉全局换行兜底
-    t = open(CSS, encoding='utf-8').read()
-    assert '  overflow-wrap: anywhere;' in t
-    t2 = t.replace('  overflow-wrap: anywhere;', '  /* probe-removed */', 1)
-    assert t2 != t
-    open(CSS, 'w', encoding='utf-8').write(t2)
+    # ---- 缺陷 ①：摘掉 CSS 全局换行兜底（只动 body 规则内的那一条，全站共 10 处同名声明） ----
+    t = orig[CSS]
+    pat = re.compile(r"(^\s*body\s*\{[^}]*?)overflow-wrap:\s*anywhere", re.M)
+    assert len(pat.findall(t)) == 1, "body 规则内 overflow-wrap 命中 %d 次" % len(pat.findall(t))
+    write(CSS, pat.sub(r"\1/* probe-removed */", t, count=1))
 
-    # 缺陷 2：把 19 处已包裹的 pre 还原成裸挂
-    shutil.copy(B + '/tmp/bare_pre_backup/nav-server-security-checkpoint.html', PAGE)
+    # ---- 缺陷 ②：派生裸 pre（拆掉一个 .code-block 包裹） ----
+    p0 = orig[PAGE]
+    m = re.search(r'<div class="code-block">(\s*)<pre', p0)
+    assert m, "未找到 .code-block 包裹的 <pre> 锚点"
+    write(PAGE, p0[:m.start()] + "<pre" + p0[m.end():])
 
-    r = subprocess.run([PY, B + '/.workbuddy/skills/java-kb-expand/scripts/validate_kb.py'],
-                       capture_output=True, text=True, cwd=B)
-    fails = [l for l in r.stdout.splitlines() if 'FAIL' in l and '溢出' in l]
-    print('=== 注入缺陷后的校验输出 ===')
+    r = subprocess.run([PY, GATE], capture_output=True, text=True, cwd=B)
+    out = (r.stdout or "") + (r.stderr or "")
+    fails = [l for l in out.split("\n") if "FAIL" in l and "溢出" in l]
+    print("=== 注入缺陷后的校验输出 ===")
     for l in fails:
-        print('  ', l)
-    print(f'\n命中溢出类 FAIL: {len(fails)} 条（预期 2 条：CSS 兜底 + 裸 pre）')
-    print('校验总退出码:', r.returncode, '(非 0 = 已拦住)')
+        print("  " + l.strip()[:150])
+    hit_ok = len(fails) >= 2 and r.returncode != 0
+    print("\n命中「溢出」类 FAIL %d 条（期望 ≥2：CSS 兜底 + 裸 pre）；校验退出码 %d %s"
+          % (len(fails), r.returncode, "✅" if hit_ok else "❌"))
+    ok &= hit_ok
 finally:
-    shutil.copy(KEEP + '/design-system.css', CSS)
-    shutil.copy(KEEP + '/page.html', PAGE)
-    ok_css = md5(CSS) == css_md5
-    ok_page = md5(PAGE) == page_md5
-    print(f'\n=== 还原校验 ===\ndesign-system.css MD5 一致: {ok_css}\ncheckpoint 页 MD5 一致: {ok_page}')
-    print('还原状态:', 'OK' if (ok_css and ok_page) else '!! 还原失败')
+    for p, t in orig.items():
+        if read(p) != t:
+            write(p, t)
+    same = all(md5(p) == before[p] for p in orig)
+    print("=== 还原核验 ===\n  CSS MD5 一致: %s\n  页面 MD5 一致: %s"
+          % (md5(CSS) == before[CSS], md5(PAGE) == before[PAGE]))
+    print("  还原状态:", "✅ OK（逐字节一致）" if same else "❌ 还原失败")
+    ok &= same
+
+print("\nPROBE_EXIT=%s" % ("0 双向验证通过 ✅" if ok else "1 门禁失效 ❌"))
+sys.exit(0 if ok else 1)

@@ -14,6 +14,8 @@ java-kb-expand · 全量校验脚本（通用版）
   0) **散文/SSOT 计数位**：子进程调用 sync_counts.py check（含 P01–P89，防页头「本页 N 道」漂移）
   0b) **计数标记**：每个 position 须含 `data-kb-pos="Pxx"`（ov_series=P07×len(ov_stat_order)）；场景 `group-count` / 根 `dir-group` 抽检 `data-kb-count-local`
   0c) **L1 聚合 UI**：页头/footer/desc/meta/subtitle/map-note/tagline/stat 等容器内「N题|卡|道|组」不得裸数字（见 conventions §5.1.4）
+  0c2) **真源审计**：已在 SSOT `positions` 登记的键，其真值（独立重算）须 = SSOT 值 = DOM 显示值（反向完备性：声明了 ⇒ 必须正确）
+  0c3) **未登记计数扫描**：全站正文里出现的每个计数锚点（data-kb-count + data-kb-pos）都必须已在 SSOT `positions` 登记（正向完备性：正文有 ⇒ 必须登记；与 0c2 双向闭合，漏登记的计数门禁零覆盖）
   0d) **页头难度分布**：chapter-meta 的「题目数 / 高级×N / 架构×N / 专家×N」须与本页实体卡片逐项一致（2026-09-15 补，防新增卡漏同步页头）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   1b) 手机小屏强制：design-system.css / 根·导图 index / 导图页含 MOBILE-MANDATORY；全站 HTML 含 viewport
@@ -51,7 +53,10 @@ java-kb-expand · 全量校验脚本（通用版）
 import re, sys, os, glob, json
 from html.parser import HTMLParser
 
-BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+BASE = find_root(__file__)
+
 CHAPTER_DIR = f"{BASE}/java-architect-interview"
 MIND_DIR = f"{BASE}/java-architect-interview-mind"
 # 2026-09-15：docs/ 已由 java-architect-interview/docs 迁至项目根 docs/，
@@ -139,6 +144,68 @@ def run_sync_counts_check():
         for ln in fails[:12]:
             print(ln)
         check(False, f"[散文计数/SSOT] sync_counts.py check 失败 exit={r.returncode} fail行={len(fails)}")
+
+
+def run_truth_source_check():
+    """真源审计（audit_truth_source.py，2026-09-21 新增）。
+
+    补上「值本身对不对」这最后一环 —— 此前四重门禁（覆盖 / 一致 / 真值 / 豁免台账）
+    全在证明「站内自洽」（position ↔ SSOT ↔ DOM 互相对齐）：若某值一开始就写错、
+    或页面内容变了而 SSOT 没跟，门禁照样全绿。本步按 SSOT `guard.sources` 声明的真源
+    独立求出真值，与 SSOT 键值、DOM 显示值三方比对，并校验 `sources.invariants` 不变式。
+
+    实测战果（首次接入即抓到）：根 index `dir_group_1` 显示 16 而实际 17 项；
+    9 篇章节索引页「高级」难度计数陈旧；核心原理/场景卡片难度计数各差 1。
+    """
+    script = os.path.join(os.path.dirname(__file__), "audit_truth_source.py")
+    if not os.path.isfile(script):
+        check(False, f"[真源审计] 未找到 audit_truth_source.py: {script}")
+        return
+    import subprocess
+    r = subprocess.run([sys.executable, script, BASE], cwd=BASE,
+                       capture_output=True, text=True)
+    out = (r.stdout or "") + (r.stderr or "")
+    fails = [ln for ln in out.splitlines() if ln.startswith("FAIL ")]
+    head = [ln for ln in out.splitlines() if "规则" in ln and "不变式" in ln]
+    if r.returncode == 0 and not fails:
+        check(True, "[真源审计] " + (head[-1] if head else "全部通过")
+              + "；SSOT 值 = 真源实测值 = DOM 显示值")
+    else:
+        for ln in fails[:24]:
+            print(ln)
+        check(False, f"[真源审计] audit_truth_source.py 失败 exit={r.returncode} fail行={len(fails)}")
+
+
+def run_undeclared_check():
+    """未登记计数扫描（scan_undeclared_counts.py，2026-09-21 新增）。
+
+    真源审计（0c2）只管「已声明」的键（反向完备性）。本步补**正向**完备性：
+    全站正文里出现的每一个计数锚点（data-kb-count + data-kb-pos）都必须已在
+    SSOT `positions` 登记——否则就是「页面上写了个计数、门禁却没管它」的未登记键。
+
+    反向（audit_truth_source）：声明了 ⇒ 必须正确。
+    正向（本步）          ：正文有 ⇒ 必须登记。
+    只做反向，漏登记的计数永远进不了 SSOT，门禁对它零覆盖、零校验（裸奔）。
+    """
+    script = os.path.join(os.path.dirname(__file__), "scan_undeclared_counts.py")
+    if not os.path.isfile(script):
+        check(False, f"[未登记计数] 未找到 scan_undeclared_counts.py: {script}")
+        return
+    import subprocess
+    r = subprocess.run([sys.executable, script, BASE], cwd=BASE,
+                       capture_output=True, text=True)
+    out = (r.stdout or "") + (r.stderr or "")
+    fails = [ln for ln in out.splitlines() if ln.startswith("FAIL ")]
+    if r.returncode == 0 and not fails:
+        head = [ln for ln in out.splitlines() if "未登记计数扫描通过" in ln]
+        check(True, "[未登记计数] " + (head[-1] if head else "全站正文锚点全部已登记"))
+    else:
+        for ln in fails[:24]:
+            print(ln)
+        for ln in out.splitlines():
+            if ln.startswith("WARN "):
+                print(ln)
+        check(False, f"[未登记计数] scan_undeclared_counts.py 失败 exit={r.returncode} fail行={len(fails)}")
 
 
 def run_chapter_meta_difficulty_check():
@@ -311,6 +378,32 @@ def guard_coverage():
     return g
 
 
+def truth_value_set():
+    """**语义真值集合 V** = `counts` 全部正整数值 ∪ 所有已注册 position 的键的当前值。
+
+    正文聚合计数门禁（D 段）的判据锚点：正文里的「数字+单位词」只有**恰好等于某个计数键
+    当前值**时才可能是本站聚合计数；技术叙述中的其他数字（如「325 张表」「2000 万行」）
+    天然不命中，无需逐一枚举容器或句式 —— 这是「配置数据化 + 真值锚定」，不是写死子集。
+    新增计数键后 V 自动扩展，无需改脚本。
+    """
+    vals = set()
+    C = _cfg.get("counts") or {}
+    S = _cfg.get("struct") or {}
+    for v in C.values():
+        if isinstance(v, int) and v > 0:
+            vals.add(v)
+    for p in _cfg.get("positions") or []:
+        k = p.get("key")
+        if not k:
+            continue
+        v = C.get(k)
+        if v is None and k.startswith("struct."):
+            v = S.get(k[len("struct."):])
+        if isinstance(v, int) and v > 0:
+            vals.add(v)
+    return vals
+
+
 def run_l1_container_scan():
     """计数保护覆盖门禁（全域，数据驱动）。
 
@@ -319,8 +412,12 @@ def run_l1_container_scan():
     C) **通用兜底**：按 `block_tags` 切块，块「可见文本」长度 ≤ `max_block_chars` 者视为
        元数据/标签块，其内任何未受保护的「数字+单位词」即 FAIL —— **不依赖容器类名白名单**，
        新增容器样式自动被覆盖（A 是精确网，C 是防漏网）。
+    D) **正文聚合计数**（2026-09-21 长官指令「应管尽严，正文也要管」）：数字 ∈ 语义真值集合 V
+       （`truth_value_set()` = counts 全部值 ∪ 已注册 position 键的当前值）且后接单位 ∈
+       `prose.units`，且**未被 data-kb-pos span 精确包裹**，且未命中 `prose.exempt` → FAIL。
+       与 C 的分工：C 管「短元数据块」，D 管「长正文段落」；D 是**真值锚定**而非容器/句式枚举。
 
-    扫描范围 / 容器 / 单位 / inline / 兜底参数 / 豁免 全部来自 SSOT `guard.coverage`，
+    扫描范围 / 容器 / 单位 / inline / 兜底参数 / 正文参数 / 豁免 全部来自 SSOT `guard.coverage`，
     函数内不写死任何组号与文件名 —— 杜绝「写死子集 → 漏网」。口径见 conventions.md §5.1.4。
     """
     cfg = guard_coverage()
@@ -341,11 +438,26 @@ def run_l1_container_scan():
     fb_max = int(fb.get("max_block_chars", 100))
     fb_win = int(fb.get("exempt_window", 20))
     fb_digit = re.compile(r"(?<![\w.])(\d+)\s*(%s)" % "|".join(cfg["units"]))
+    # D) 正文聚合计数参数（全部取自 SSOT `guard.coverage.prose`）
+    pr = cfg.get("prose") or {}
+    pr_on = bool(pr.get("enabled", True))
+    pr_units = list(pr.get("units") or cfg["units"])
+    pr_exs = [(re.compile(_norm_exempt(e)[0], re.S), _norm_exempt(e)[1])
+              for e in (pr.get("exempt") or [])]
+    pr_win = int(pr.get("exempt_window", 40))
+    pr_digit = re.compile(r"(?<![\w.\-/])(\d+)\s*(%s)" % "|".join(pr_units))
+    pr_masks = [re.compile(p, re.S) for p in
+                (pr.get("mask") or fb.get("mask")
+                 or _COVERAGE_DEFAULTS["fallback"]["mask"])]
+    V = truth_value_set()
 
-    def visible_mask(t):
-        """可见性掩码：屏蔽非可见区（注释/script/style/pre/code/svg/mermaid/标签本身）。"""
+    def visible_mask(t, masks=None):
+        """可见性掩码：屏蔽非可见区（注释/script/style/pre/code/svg/mermaid/标签本身）。
+
+        `masks` 缺省用兜底段的 `fb_masks`；正文段（D）传入自己的 `pr_masks`。
+        """
         vis = bytearray(b"\x01" * len(t))
-        for mp in fb_masks:
+        for mp in (fb_masks if masks is None else masks):
             for m in mp.finditer(t):
                 for i in range(m.start(), m.end()):
                     vis[i] = 0
@@ -417,6 +529,28 @@ def run_l1_container_scan():
                         continue
                     misses.append(
                         f"{rel} [兜底·短块] «{dm.group(0)}» 块=«{vtext[:44]}»")
+        # D) 正文聚合计数（真值锚定；**不依赖容器类名与句式枚举**）
+        if pr_on:
+            vis_p = visible_mask(t, pr_masks)
+            spans = [(m.start(), m.end()) for m in re.finditer(
+                r'<span[^>]*data-kb-pos="P\d+"[^>]*>\s*\d+\s*</span>', t, re.S)]
+            for dm in pr_digit.finditer(t):
+                ap = dm.start(1)
+                if not vis_p[ap]:
+                    continue
+                num = dm.group(1)
+                if len(num) > 1 and num[0] == "0":       # 前导零 = 编号（第 09 篇）
+                    continue
+                if int(num) not in V:                    # 非计数键真值 → 技术叙述数字
+                    continue
+                if any(s <= ap < e for s, e in spans):   # 已被 kb-count span 精确包裹
+                    continue
+                win = t[max(0, ap - pr_win): dm.end() + pr_win]
+                if any(e.search(win) for e, _ in pr_exs):
+                    continue
+                ctx = re.sub(r"\s+", " ",
+                             re.sub(r"<[^>]*>", "", t[max(0, ap - 48): dm.end() + 28]))
+                misses.append(f"{rel} [正文聚合] «{dm.group(0)}» …{ctx}…")
     if misses:
         for x in dict.fromkeys(misses[:24]):
             print("FAIL [计数覆盖]", x)
@@ -425,7 +559,8 @@ def run_l1_container_scan():
     else:
         check(True, f"[计数覆盖] {len(targets)} 个文件：聚合容器无裸「N+单位词」，"
                     f"inline 模式（{len(inlines)} 类）+ 短块兜底（≤{fb_max} 字，"
-                    f"{len(fb_exempts)} 类豁免）全部受 data-kb-pos 保护")
+                    f"{len(fb_exempts)} 类豁免）+ 正文聚合（真值集 {len(V)} 值 / "
+                    f"{len(pr_exs)} 类豁免）全部受 data-kb-pos 保护")
 
 
 _VOID_TAGS = {"br", "img", "meta", "link", "input", "hr", "area", "base",
@@ -585,6 +720,10 @@ def main():
     run_sync_counts_check()
     run_kb_count_markup_check()
     run_l1_container_scan()
+    # 0c2) 真源审计（值本身对不对）——2026-09-21 新增
+    run_truth_source_check()
+    # 0c3) 未登记计数扫描（正文有 ⇒ 必须登记；与 0c2 构成反向/正向双向完备性）——2026-09-21 新增
+    run_undeclared_check()
     # 0d) 篇章页/E/S 页头难度分布 vs 实体卡片（2026-09-15 新增，防 12 页漂移复发）
     run_chapter_meta_difficulty_check()
     # 0e/1i) 卡片层级：qa-card / map-card 不得互相嵌套（2026-09-16 新增，防缺 </div> 卡片套卡片）

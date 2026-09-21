@@ -174,7 +174,7 @@
 ##### 硬约定
 
 1. **新增展示题量/卡量**：必须新增/复用 `kb-counts.json` 键 + `positions` + HTML `data-kb-pos`；**禁止**本地计数。
-2. **零裸计数（全域覆盖）**：展示计数一律受门禁保护——**要么带 `data-kb-pos`，要么在 SSOT 显式豁免**。聚合 UI 容器内不得留裸「N 题/卡/道/组/项」；全域 `inline` 模式（如「M## 名（N）」）命中的数字同样不得裸奔；**通用兜底**再按「短块」结构性判据网住白名单外的一切裸计数。**不允许存在"门禁看不见的计数"**（详见下「计数保护全覆盖」）。
+2. **零裸计数（全域覆盖，含正文）**：展示计数一律受门禁保护——**要么带 `data-kb-pos`，要么在 SSOT 显式豁免**。聚合 UI 容器内不得留裸「N 题/卡/道/组/项」；全域 `inline` 模式（如「M## 名（N）」）命中的数字同样不得裸奔；**通用兜底**按「短块」结构性判据网住白名单外的一切裸计数；**正文聚合（D 段）**再按「数字 ∈ 真值集 V 且紧邻单位词」网住**长正文段落**里的计数。**不允许存在"门禁看不见的计数"**（详见下「计数保护全覆盖」）。
 3. **禁止**在页面用自然语言声明口径（例如宣称某类卡与 `total` 的包含关系）；口径只写在本规约 + `validate_kb.py` / `sync_counts.py`。
 4. **改题后三件套 + 审计**：`sync_counts check` → `validate_kb.py` → `audit_count_drift.py`（新增 / 重编号卡后**必跑**第三者）。
 5. overview 类型三级、方法论统计表、Mermaid 旁注：见下补充条。
@@ -189,19 +189,40 @@
 ##### 计数保护全覆盖（2026-09-21 长官指令：所有计数必须设门禁保护）
 
 **原则**：页面上的每一个展示计数都必须受门禁保护——**要么带 `data-kb-pos`，要么在 SSOT 显式豁免**。
-**不允许存在「门禁看不见的计数」**。反例：mind 页 `map-col` 的 14 个组数长期是纯文本，
-原有门禁的容器白名单与「数字+单位词」两个维度都不匹配 `（16）` 这类括号式写法，
-直到 2026-09-21 人工探针才暴露；该批数字此后已全部升格为 L0 并注册独立 position。
+**不允许存在「门禁看不见的计数」**，**包括埋在长正文段落里的聚合计数**（2026-09-21 长官追加指令）。
+反例一：mind 页 `map-col` 的 14 个组数长期是纯文本，原有门禁的容器白名单与「数字+单位词」
+两个维度都不匹配 `（16）` 这类括号式写法，直到人工探针才暴露。反例二：mind 势页正文
+「M16 单列"势定律"（11 张）」「M17（附，4 张）」与方法论页「本库不是 15 篇平行说明书」——
+**长段落**写法绕过了短块兜底，且其中两个数字（11 / 14 以外的）此前**连 SSOT 键都没有**。
+该批数字此后已全部升格为 L0 并注册独立 position（新增键 `chapters_pages`）。
 
-**三重门禁（互补，缺一即假绿）**
+**六重门禁（互补，缺一即假绿）**
 
 | 脚本 | 职责 | 单独使用时的盲区 |
 |---|---|---|
-| `validate_kb.py` 0c 步 `run_l1_container_scan`（=`audit_l1_counts.py`） | **覆盖**：A 聚合容器 / B 全域 inline 模式 / **C 通用兜底（短块）**，「疑似计数」未受保护即 FAIL | 只知「有没有漏标」，不知「标的值对不对」 |
+| `validate_kb.py` 0c 步 `run_l1_container_scan`（=`audit_l1_counts.py`） | **覆盖**：A 聚合容器 / B 全域 inline / **C 通用兜底（短块）** / **D 正文聚合（真值锚定）**，「疑似计数」未受保护即 FAIL | 只知「有没有漏标」，不知「标的值对不对」 |
 | `sync_counts.py check` | **一致**：SSOT 键 ↔ DOM 取值逐位一致 | 键与 DOM 同为旧值时全绿 |
-| `audit_count_drift.py` | **真值**：宿主页实际卡数 / **DOM 派生元素数** → SSOT 键 → DOM 值 → position 全局唯一且全部已登记 | — |
+| `audit_count_drift.py` | **结构**：全站卡片普查（含重复定义）/ position 已登记 / 全局唯一 / `data-kb-count` 键有效 | 不管「键值是几才对」 |
+| `audit_truth_source.py`（= `validate_kb` 0c2 步） | **真值**：按 SSOT `guard.sources` 逐键**独立求值**，与 SSOT 值、DOM 显示值三方比对；真源完备性 + 不变式 | 只覆盖已声明真源的键（未声明者由「未声明真源」检查抓） |
+| `audit_prose_exempt.py` | **台账**：D 段全部候选及**豁免归属**逐条可见（**豁免本身不得成为盲区**） | 只读审计，不阻塞；不判对错 |
+| `scan_undeclared_counts.py`（= `validate_kb` 0c3 步） | **正向完备**：全站正文每个计数锚点（`data-kb-count` + `data-kb-pos`）必须已在 SSOT `positions` 登记；漏登记即 FAIL | 只知「正文冒出来的数有没有登记」，不核「登记的值对不对」（后者由 0c2 真源管） |
 
-链路：覆盖（有没有漏标）→ 一致（标的值对不对）→ 真值（键值本身对不对）。
+链路：覆盖（有没有漏标）→ 一致（标的值对不对）→ 结构（位有没有登记、有没有重）→
+**真值（反向：声明了 ⇒ 必须对）** → **正向（正文有 ⇒ 必须登记）** → 台账（豁免有没有过宽）。
+
+> **反向 vs 正向（2026-09-21 长官指令「把未登记声明的键找出来」）**：
+> `audit_truth_source`（0c2）只覆盖**已声明**的键——这是**反向**完备性（每个已登记 position 必须有真源、值必须正确）。
+> 但「反向」天生看不见**从未登记**的计数：页面上偷偷加一个 `data-kb-count="X"`，只要 SSOT 里没有 `X`，
+> 所有旧门禁都**零覆盖、零校验**（裸奔）。`scan_undeclared_counts`（0c3）补上**正向**完备性：
+> 扫描全站正文，**凡是带 `data-kb-count` 锚点的键，都必须能在 SSOT `positions` 查到**；查不到即 FAIL「未登记计数」，
+> 逼着任何新计数先 `sync_counts bump --add` 登记、再在 `guard.sources` 声明真源。
+> 两道合起来才是**闭合**：声明了 ⇒ 必须对（0c2）；正文有 ⇒ 必须登记（0c3）。只做反向，
+> 漏登记的计数永远进不了 SSOT，门禁对它形同虚设。
+
+> **职责收敛（2026-09-21）**：`audit_count_drift.py` 原先自带一套真值推导
+> （`guard.layers` / `guard.derived` / `guard.single_source`），与新的真源引擎**逻辑重复**——
+> 同一语义两处解读，改一处必分叉。现真值**统一由 `audit_truth_source.py` 承担**，
+> `audit_count_drift.py` 只保留结构性校验，并**以子进程方式调用真源引擎**把其 FAIL 并入自身结论。
 
 **通用兜底（C 段，2026-09-21）—— 防「白名单枚举」漏网**
 
@@ -214,17 +235,124 @@
 - 误报**一律进 `fallback.exempt`**（数据），不改脚本。现有 3 类：`第 N 章`（章节序号引用）、`N 测中`（官方基准测项叙述）、`P0/P1`（优先级文案）。
 - 非可见区由 `fallback.mask` 屏蔽：注释 / `script` / `style` / `pre` / `code` / `svg` / `mermaid` 容器 / 标签本身。
 
-**结构性派生计数（`guard.derived`）—— 非卡片数的真源**
+**正文聚合计数（D 段，2026-09-21 长官指令「正文也要应管尽严」）—— 真值锚定，非句式枚举**
+
+C 段只覆盖「短元数据块」（可见文本 ≤ `max_block_chars`）；**埋在长正文段落里的聚合计数**
+（如「本库不是 15 篇平行说明书」「M16 单列"势定律"（11 张）」）此前完全失管。D 段补上这一段：
+
+判据 = 数字 **∈ 语义真值集合 V** 且后接单位 ∈ `prose.units`，且**未被 `data-kb-pos` span 精确包裹**，
+且未命中 `prose.exempt` → FAIL。
+
+- **V = `counts` 全部正整数值 ∪ 所有已注册 position 的键的当前值**（`validate_kb.truth_value_set()`）。
+  这是**语义真值锚定**：正文里的数字只有**恰好等于**某个计数键当前值时才可能是本站聚合计数；
+  技术叙述中的其他数字（「325 张表」「2000 万行」「8 亿行」）**天然不命中，无需逐一枚举句式**。
+  新增计数键后 V 自动扩展，**无需改脚本**。
+- **与 C 段的分工**：C 管「短元数据块」，D 管「长正文段落」；判据与豁免各自独立。
+- **爆炸半径**（2026-09-21 实测）：零豁免下 D 段候选 **124 处** —— 110 处是「第 N 篇」章节序号引用，
+  其余 14 处为技术叙述（B+ 树层数、调用链深度、项测试、核心表、比较阈值等），全部由 `prose.exempt`
+  **9 条**正则覆盖，**0 处未豁免**。
+- **误报一律进 `prose.exempt`**（**每条须带 `name` 写明理由**），**禁调 `prose.units` / 禁关 `prose.enabled`**。
+- **豁免可见性（红线）**：`python3 scripts/audit_prose_exempt.py` 打印**豁免台账**（每条豁免放过哪些位置、
+  共几处），用于复核豁免是否过宽 —— **豁免本身是新的盲区来源**，必须可见、可审。
+- **边界（须知晓，不是缺陷）**：
+  ① 技术叙述数字若**恰好等于**某键值（如 149 ∈ V →「149 项测试」）会命中 → 走 `prose.exempt` 台账豁免；
+  ② 正文若写了与**所有**键值都不等的错误数字（如误写「163 张卡」）**不命中** —— 属**内容正确性**范畴，
+     由人审负责，非本门禁职责（门禁管「有没有受保护」，不管「写得对不对」）；
+  ③ 无单位词的展示位（如 mind index 算式 `1+1+1+15+1` 中的 15）：D 段要求「数字紧邻单位词」，抓不到，
+     仍**须注册 position**（例 P433）并由一致性 / 真值链路保障。
+
+**真源完备性（2026-09-21 长官指令「门禁得管写得对不对」）—— 登记了位置点，位上的数就必须有正确性校验**
+
+前三重门禁（覆盖 / 一致 / 结构）**全部是内部自洽**：position ↔ SSOT ↔ DOM 三方对齐，但
+**没有一条链路去核对「那个值本身对不对」**。后果是**实测到的真实内容错误长期潜伏**：
+
+| 缺陷 | 事实 | 为何所有旧门禁全绿 |
+|---|---|---|
+| 根 index 组 1「权威（与章节同构）」显示 16 | 实际列了 **17** 个节点（M01–M17） | DOM 与 SSOT 同为陈旧的 16，`check` 逐位一致；不同链路（`dir_count_1`）也一致 |
+| mind 势页正文「（11 张）/（4 张）」 | 键 `meth.group_16/17` 早已存在，但**该文件没注册 position** | 一致检查按 position 的 `file` 过滤，未登记的位不看 |
+| 6 篇章节 index 的「高级」计数 | 比正文 `difficulty-senior` 实际数**少 1–3** | 同上：DOM ↔ SSOT 一致，但都错 |
+| 核心原理「高级」39 / 场景「架构」49 | 实际 40 / 50 | 同上 |
+| SSOT 里 `mind-foot-c_11` 有**两份**（扁平点分键 = 30 ✓ / 嵌套键 = 28 ✗） | 同一逻辑键双写、值不同 | 解析只认扁平键，嵌套那份**谁也看不见** |
+
+**真源规则（`guard.sources.rules`）**——每条 = 「一类键的真值怎么算」的**唯一**声明：
+
+| `type` | 语义 | 关键字段 |
+|---|---|---|
+| `dom_scan` | 单文件内按块切分，**块内元素数 == 块内声明的计数值**（万能恒等式） | `file` / `block_re` / `end_re` / `count_re` / `key_re` |
+| `cards_by_link` | 索引页的链接列表 → 逐个宿主页数元素 | `index_file` / `link_re` / `count_re` 或 `count{...}` / `key_re` |
+| `block_count_same_file` | 同一文件内按「第 n 个块」定键（`%02d` 可格式化） | `file` / `block_re` / `next_re` / `count_re` |
+| `host_page_cards` | 键 ↔ 宿主页元素数（键名与文件名**都要显式声明**，不靠猜） | `items[{key,file,count_re}]` |
+| `dom_count` | 单值 = 某文件内某正则的命中数 | `items[{key,file,count_re}]` |
+| `sum` | 分组键求和 == 合计键 | `items[{key,terms,desc}]` |
+| `file_count` | 键 = 匹配 glob 的文件数 | `items[{key,glob}]` |
+| `page_diff` | 页内难度分布（`prefix` + 宿主页） | `items[{prefix,file}]` |
+| `layer_sum` | 层卡数 = Σ 该层 M 组卡数（层归属读 `guard.layers`） | `from:"layers"` |
+| `derived` | 结构性派生（`region` 取块 → `count` 计数） | `from:"derived"` |
+
+**不变式（`guard.sources.invariants`）**：分组分项之和 == 合计。分项取**展示值**、合计取**真值**——
+若两边都用重算真值就退化成 `truth == truth` 的**恒真空检查**（2026-09-21 probe 用例 C 实测的假绿，
+已修正）。同时这条不变式天然能抓「整项缺展示位」（SSOT 里没有该分项键 → 记「缺展示位」）。
+
+**人工锚定（`guard.sources.manual`）**：真源不可自动推导的少数位（站名/slogan 类文案数字、
+`shi_axis`、`methodology*`）显式登记 `key_re` + `desc`（**须写明为什么不能自动求值**）。
+未登记 `manual` 又无规则覆盖的键 → FAIL「未声明真源」。
+
+**真源引擎的五类 FAIL（全部点名，默认不截断）**
+
+| 关键字 | 含义 |
+|---|---|
+| `[真源配置]` | 规则 `type` 未实现 / 块找不到 / `region` 命中 ≠ 1 次 |
+| `[键路径冲突]` | 同一逻辑键在 SSOT 写了**两份表示**（扁平点分键 + 嵌套键），展平后互相覆盖 |
+| `[真源冲突]` | 同一键被多条声明求出**不同值**（双写，须合并为单一声明） |
+| `[不变式]` | 分项（展示值）之和 ≠ 合计（真值） |
+| `[未声明真源]` / `[声明未生效]` | 键没有任何声明覆盖 / 被规则正则覆盖却求不出真值 |
+| `[无展示位]` | 求出了真值却没有已注册 position（「声明了却没人看得见的计数」） |
+| `[真值不符]` | SSOT 值 ≠ 真值实测值（**这一条就是「写得对不对」**） |
+
+**新增计数位的真源义务（与「先加 `data-kb-pos`」同级的硬要求）**：
+新计数注册 position 后，**必须**能在 `guard.sources` 里被某条规则或 `manual` 覆盖，
+否则 0c2 步直接 FAIL「未声明真源」。真源不是卡片数的（层下挂元素数等）走 `derived`。
+
+**禁止的绕开姿势**：① 为让门禁过而改 `guard.sources.rules` 的口径（把真值算成当前值）；
+② 把 `[真值不符]` 的内容问题「先改 SSOT 再改 DOM」对齐了事——必须**先查内容真相**（读原文 / 数元素），
+再同时改 DOM 与 SSOT（`sync_counts.py bump`）；③ 用嵌套键绕过扁平键（`[键路径冲突]` 会抓）。
+
+**边界（须知晓）**：真源引擎只能核对**已被声明真源**的键；正文里与所有键值都不等的手写数字
+（如误写「163 张卡」）仍是**内容正确性**范畴，由人审负责（同 D 段边界②）。
+
+**正向完备性（未登记计数扫描，2026-09-21 长官指令「过滤全站正文，把未登记声明的键找出来」）—— 正文有 ⇒ 必须登记**
+
+反向（0c2 真源）管「已声明的键值对不对」；这道正向（0c3）管「正文冒出来的计数有没有登记」。
+`scan_undeclared_counts.py` 扫描全站 HTML + Markdown（排除目录取自 SSOT `guard.exclude`，默认 `tmp/` `node_modules/` `rk/`），抽取形如
+`<... data-kb-count="KEY" data-kb-pos="Pnn" ...>VALUE</span>` 的锚点（两种属性先后顺序都支持），
+与 SSOT `positions` 的**键集合** + **position 编号集合**比对：
+
+- **未登记键**（`data-kb-count` 的 KEY 不在 `positions` 键集合）→ FAIL「未登记计数」。
+  这是门禁的**真正盲区**：该计数无任何覆盖/一致/真值/豁免链路管得到，等于裸奔。
+- **未登记编号**（`data-kb-pos` 的 P 编号不在 `positions` 编号集合）→ FAIL「未登记计数」（孤儿锚点）。
+- **已登记但正文缺位**（SSOT 有键、全站正文无锚点）→ WARN（不阻塞）：可能是派生/汇总键无需锚点，
+  或登记了却没落地，请人工确认（当前仅 `methodology_with_priority` 一条，值为 0，疑似未落地的占位键）。
+
+**产物闭环**：发现未登记键 ⇒ 必须 `sync_counts.py bump --add <key>=<值>` 登记进 `positions`
+（新建键加 `--add`），并在 `guard.sources` 声明真源（否则 0c2 步 `[未声明真源]` 会接力 FAIL）。
+两步缺一不可，否则门禁对它就零覆盖。
+
+**结构性派生计数（`guard.derived`）—— 真源不是卡片数的那一类**
 
 某些展示计数的真源**不是卡片数**，无法由 `qa-card` 推出。例：`chapter-core-methodology.html`
 的 5 个 `layer-count`（道 12 / 法 11 / 术 16 / 器 16 / 势 15 项）实际是各层 `layer-hang` 下挂
 `layer-chip` 的**元素个数**（2026-09-21 实测：展示值与 DOM 元素数完全吻合，但此前无任何门禁保护）。
 这类计数在 `guard.derived.items` 声明：`region` 取块 → `count` 计数 = 真值，与 SSOT 键值、
-已注册 position **三方互证**；且每个派生键**必须**有已注册 position（如实性要求）。
+已注册 position **三方互证**；且每个派生键**必须**有已注册 position（由真源引擎 `[无展示位]` 把关）。
 
-**配置数据化（红线，2026-09-21）**：门禁脚本内**禁止写死组号区间 / 文件名 / 容器名 / 单位词 / 白名单**——
+**配置数据化（红线，2026-09-21）**：门禁脚本内**禁止写死组号区间 / 文件名 / 容器名 / 单位词 / 白名单 / 项目根层级 / 忽略目录**——
 写死一个子集就必然遗漏集合外的一切（历史事故：`audit_count_drift.py` 初版写死层边界、只审计 3 个文件、
-白名单硬编码单一位号）。全部配置集中到 SSOT `guard` 块：
+白名单硬编码单一位号；另有 **9 个脚本硬编码「某用户家目录 + 项目名」的绝对路径**，
+换机器 / 换目录即全崩——现统一走 `scripts/_kbroot.py::find_root`，**全脚本唯一实现**）。
+忽略目录（`tmp/ node_modules/ rk/`）**统一取自 SSOT `guard.exclude`**，由各扫描脚本运行时 `G.get("exclude") or DEF_EXCLUDE` 读取
+（`audit_truth_source` / `audit_count_drift` / `scan_undeclared_counts` 同此一处来源，**杜绝脚本内写死**，
+否则 tmp 清理或忽略集调整时脚本与配置脱节、逐渐过时）。
+全部配置集中到 SSOT `guard` 块：
 
 | 键 | 用途 | 消费方 |
 |---|---|---|
@@ -233,11 +361,13 @@
 | `guard.coverage.units` | 受管单位词（题 / 卡 / 组 / 道 / 页 / 章 / 张 / **项**） | 同上 |
 | `guard.coverage.inline` | 全域通用模式（如「M## 名（N）」括号式组数） | 同上 |
 | `guard.coverage.fallback` | **通用兜底**：`max_block_chars` / `block_tags` / `mask` / `exempt` / `exempt_window` —— 短块内裸计数即 FAIL，**不依赖容器枚举** | 同上 |
+| `guard.coverage.prose` | **正文聚合计数**：`enabled` / `units` / `mask` / `exempt`（含 `name` 理由）/ `exempt_window` —— 数字 ∈ V 且紧邻单位词、未受 span 包裹即 FAIL，**真值锚定** | 同上 + `audit_prose_exempt` |
 | `guard.coverage.exempt` | 豁免正则（按整行匹配则跳过，服务 A/B 段） | 同上 |
-| `guard.layers` | 层归属 `range` + 合计 `sum_keys` | `audit_count_drift` |
-| `guard.single_source` | 单值键（组数 / 总卡数）来源声明 | 同上 |
-| `guard.derived` | **结构性派生计数**：`key` / `file` / `region` / `count`（真源 = DOM 元素数） | 同上 |
-| `guard.pos_allow_multi` | 允许多点位白名单 | 同上 |
+| **`guard.sources`** | **真源声明**：`types`（类型说明）/ `rules`（怎么求真值）/ `manual`（人工锚定）/ `invariants`（不变式） | **`audit_truth_source`** |
+| `guard.layers` | 层归属 `range` + 合计 `sum_keys`（真值随 `range` 变化 → probe D 用例） | `audit_truth_source`（`layer_sum` 规则） |
+| `guard.single_source` | 单值键（组数 / 总卡数）来源声明 | 同上（`dom_count` 规则 + `manual`） |
+| `guard.derived` | **结构性派生计数**：`key` / `file` / `region` / `count`（真源 = DOM 元素数） | 同上（`derived` 规则） |
+| `guard.pos_allow_multi` | 允许多点位白名单 | `audit_count_drift` |
 | `guard.exclude` | **全局忽略目录**：`tmp/`、`node_modules/`、**`rk/`** | 全部脚本 |
 
 **`rk/` 全局忽略（2026-09-21 长官指令）**：`rk/` 是软考资料站，**不属于 KB 站群**；
@@ -247,34 +377,82 @@
 登记进 `guard.coverage`（容器 / inline 模式 / **兜底豁免**）即全域生效；若某新计数的真源不是卡片数，
 登记进 `guard.derived` + 注册 position。
 
-**禁止的"绕开姿势"**：① 为让门禁过而把阈值调大 / 把兜底关掉（`fallback.enabled=false`）；
-② 把误报内容直接塞进 `exempt` 而不确认它确实**不是**计数；③ 新增展示计数却不注册 position
-（`audit_count_drift` 的「未登记 position」检查会抓，但**只在它带 `data-kb-pos` 时**才看得见——
-所以「先加 `data-kb-pos`」是本规约的第一步，不是最后一步）。
+**禁止的"绕开姿势"**：① 为让门禁过而把阈值调大 / 把兜底关掉（`fallback.enabled=false`）/
+把正文段关掉（`prose.enabled=false`）/ **把真值改写成当前值（`guard.sources` 口径作弊）**；
+② 把误报内容直接塞进 `exempt` 而不确认它确实**不是**计数（每条豁免须写 `name` 理由，
+并用 `audit_prose_exempt.py` 复核台账）；
+③ 新增展示计数却不注册 position（`audit_count_drift` 的「未登记 position」检查会抓，
+但**只在它带 `data-kb-pos` 时**才看得见 —— 所以「先加 `data-kb-pos`」是本规约的第一步，不是最后一步）；
+④ 注册了 position 却不声明真源（0c2 步 `[未声明真源]` 会抓）；
+⑤ 发现 `[真值不符]` 后**只把 SSOT 与 DOM 互相对齐**（两边一起错也还是错）——
+必须先读原文 / 数元素查清**内容真相**，再走 `sync_counts.py bump` 修正。
 
 **反向验证（改门禁必跑）**
 
-- `python3 scripts/probe_count_coverage_gate.py` — 覆盖门禁 4 用例：A inline 去保护 / B 容器裸计数 /
-  **C 白名单外的全新容器样式内裸计数** / **D 短块兜底（layer-count 去保护）**
+- `python3 scripts/probe_count_coverage_gate.py` — 覆盖门禁 **6 用例**：A inline 去保护 / B 容器裸计数 /
+  **C 白名单外的全新容器样式内裸计数** / **D 短块兜底（layer-count 去保护）** /
+  **E 正文长段落「15 篇」去保护** / **F 长正文注入全新裸计数（400 道 / 149 张）**
 - `python3 scripts/probe_count_drift_gate.py` — 漂移审计 8 用例：键值漂移 / position 未登记 / position 重复 /
   数据驱动（改 `guard.layers` range）/ **derived 真源漂移** / **derived 独占检出（多插 chip）** /
   **derived region 失效** / **derived 无展示位**
+- `python3 scripts/probe_truth_gate.py` — 真源门禁 **6 用例**：A **值错但四处自洽**
+  （同时改 DOM + SSOT，`sync_counts check` 依然 425/425 全绿 → **只有真源审计能发现**，本门禁存在的唯一理由）/
+  B 未声明真源 / C 不变式破损 / D 键路径冲突（扁平 + 嵌套双写） / E 真源配置写错 / F 声明未生效
+- `python3 scripts/probe_undeclared_gate.py` — 未登记计数门禁 **2 轮**：轮 1 在根 index.html 正文
+  **就地注入一个未登记键**（用已登记的 P01 编号、隔离「键未登记」路径）→ 断言 scan 脚本 FAIL 且命中该键；
+  轮 2 还原后再跑 → 断言 PASS（无误杀）。**自包含**（从当前文件派生注入态，不依赖 tmp 历史快照）；
+  `try/finally` 保证根 index.html **字节级还原**；夹具/环境缺失退 3。
+- `python3 scripts/audit_prose_exempt.py` — **豁免台账**（只读，非 probe）：列出 D 段全部候选与豁免归属，
+  「未被豁免」应为 0 处。改 `prose.exempt` 后必看。
+
+**徽标结构 / 小屏留白 / 页内对齐门禁（check_index_badges.py，2026-09-16）—— 聚合 UI 的「视觉合规」层**
+
+与「计数对不对」互补的另一类门禁：根 index + overview 的**徽标结构**（聚合 UI 分类计数徽标是否成组、
+是否缺 `margin-left:auto`）、**小屏留白**（`.dir-group`/`.q-list`/`.q-item` 在 768/480 断点下的内缩是否单层化）、
+**页内对齐**（桌面 `.dir-group` 横向间距是否统一）三项不得退化。对应 `validate_kb` 的「聚合 UI 禁裸数字」同族，
+但校验的是**视觉结构**而非数字本身。
+
+- 入口：`scripts/check_index_badges.py`（**独立运行** `python3 check_index_badges.py <项目根>`；
+  `validate_kb.py` 未直接调用它，但其内联的 `[小屏]`/`[列表]` 检查与本门禁互补——二者口径须一致）。
+- 正向验证：`scripts/probe_index_badge_gate.py` —— **自包含**（2026-09-21 改写，摆脱对 tmp/ 历史快照的依赖）：
+  从当前项目的 `index.html` + `nav-overview-priority.html` 复制进**系统临时沙箱**，分别注入三类缺陷
+  （删 `.dir-container` 规则→留白、删 `.dir-count` 规则→对齐、剥 `ov-badges` 包裹→徽标），
+  断言门禁 FAIL 且命中该类签名串，最后跑干净树断言 PASS；沙箱用完即清，**不碰项目真实文件、不依赖 tmp/**。
+  与 `probe_truth_gate` / `probe_undeclared_gate` 同构（从当前文件派生注入态）。
+- **关联落位（长官指令「有价值的脚本得落 skills」）**：`check_index_badges.py` 与 `probe_index_badge_gate.py`
+  均已在 `.workbuddy/skills/java-kb-expand/scripts/`；本段即其「关联文档」，补齐此前漏写的说明。
 
 注入必须 FAIL、还原必须 PASS，否则门禁是「假绿」。
-C/D 用例是「兜底不可被关掉」的证据：若有人把兜底改回容器枚举，probe 立即变红。
+C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_gate 的 A / probe_count_drift_gate 的 D、F
+是「真值与数据驱动不可被绕过」的证据——谁改回枚举或写死口径，probe 立即变红。
+
+**验证脚本自身的纪律（2026-09-21 事故后固化）**
+
+- **还原一律走 `try/finally`**：`probe_diff_label_gate.py` 曾因「锚点不存在」直接 `return 1`，
+  绕过轮 5 的还原，把 `chapter-01` 一枚徽标留成「高级开发」，随后 `validate_kb` FAIL ——
+  **会污染被测对象的验证脚本，其结论不可信**。
+- **注入锚点动态取，不写死文本**（用当前文件里真实存在的结构定位）。
+- **不依赖 `tmp/` 历史夹具**：夹具随沙箱清理即消失，脚本会抛 `FileNotFoundError`，
+  被误读成「门禁失效」。注入态一律**从当前文件派生**；确需夹具而缺失时，
+  以**退出码 3** 明确报「夹具缺失待重建」，**不得**抛异常、**不得**静默退出 0。
+- 退出码约定：`0` 通过 / `1` 门禁失效 / `2` 定位失败 / `3` 环境缺失（当前 `probe_index_badge_gate.py`
+  已自包含，正常跑为 `0`；仅当 `index.html` 或 `nav-overview-priority.html` 缺失才退 `3`）。
 ### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
 - **Hero 统计块**（`.dir-hero` 内两行，共 10 项；改数走 `sync_counts.py`，勿手改）：
   - 首行 `.dir-stats`（4 项，无 `stat-tag`）：编号体系 `6`（`struct.misc.index.site-meta_1`，P108）/ 页面篇章 `20`（`site-meta_2`，P109）/ **思维导图 `19`（`mind_pages`，P37）** / 题目总数 `total`（P36）。
   - 次行 `.dir-stats.dir-stats-sub`（6 项，各带 `stat-tag`）：M 核心方法论 / G 工程化要点 / K 生产踩坑 / C 深度 Q&A / E 核心原理速查 / S 真实场景题。
   - 口径：M/G/K 为专篇键，**各自单独计数，禁止「题数+M+G+K」式合计**；「全站 N 题」仅指 `total`（C+E+S）。禁止 `kb-count-local`。
   - **`mind_pages` 是全站唯一的导图页数键**（19 = 15 篇章导图 + 方法论 + 工程化 + 踩坑 + 安全），三处展示：根 index P37 / 章节导航 index P222 / 导图站 P351；文案一律「思维导图」/「思维导图页」。（章节导航 hero 原有第 7 格 P221，2026-09-16 长官移除其「思维导图」统计卡后该位作废并已从 `positions` 删除。**删展示位必须同步删 position**：残留 position 会让 `sync_counts.py check` 与 `validate_kb.py` 的「kb-count 标记」项双双 FAIL。）
+  - **`chapters_pages` = 篇章页数**（**15** = `第 01 篇`~`第 15 篇`，2026-09-21 新建键）：与 `counts.chapters`（**252** = 篇章**题数**）**语义不同，切勿混用**。此前「15 篇 / 15 篇章 / 15 章」在全站 **5 处**副标题与正文中是**裸数字、且 SSOT 里连键都没有**（2026-09-21 由正文聚合门禁 D 段探针暴露）。展示位 **P429–P433**：章节 index 方法论卡 footer / overview 页头副标题 / overview 页脚 / mind index 副标题 / 方法论页正文；另有 mind index 的**算式位** `1+1+1+15+1`（P433，无单位词，由 `sync_counts check` 与 `audit_count_drift` 保障）。
+  - **`site-meta_2` = 页面篇章 20**（页面口径，含非篇章页），与 `chapters_pages`（15 篇）/ `chapters`（252 题）三者**互不相同**，勿互相换算。
   - 小屏列数（**按块定列，使列数与项数整除**）：≤768px 首行 `.dir-stats` **4 列**（4 项＝1 行）、次行 `.dir-stats-sub` **3 列**（6 项＝2 行）；≤480px 两行统一 **2 列**（4 项＝2 行、6 项＝3 行）。**加计数项须让两行项数各自能被当前列数整除**，否则末行出现半空格子（历史：首行 3 项时 375px 下「题目总数」独占一行、右侧整格留白；首行 4 项而用 3 列时 481~768px 也会「3+1」留白）。
 - 每题一个 `<li class="q-item">…，<span class="q-id">ID</span>…，<span class="q-tags"><span class="difficulty">…</span><span class="priority priority-pX">PX</span></span></li>`；新增题须在对应 ID 的 li 后插入。
   - **结构完整性**：`q-tags` 必须闭合、`<a>` 不得顶格（须与同级 li 内缩进一致）。历史新增题曾出现「顶格 `<a>` + `q-tags` 未闭合」（2026-09-16 实测 7 条：C11.28/29/30、S12.08/09 顶格+未闭合，G07.08/09 仅未闭合），渲染上表现为徽标错位、层级断开。门禁 `scripts/check_index_badges.py`（顶格 `<a href=…>` 与未闭合 `q-tags` 均为 FAIL）。
   - **优先级补齐口径**：缺失徽标按**镜像源页**判定——源页有优先级则补（C11.28/29/30、S12.08/09 补 `P1`），源页无优先级则**不补，仅修结构**（G/K 块源页本无优先级，`validate_kb` 亦不强制）。**M/G/K 三类卡一律不呈现等级与优先级徽标**（2026-09-16 长官决策，两次下达：先三专篇页、再三处导航位）——根 index M/G/K 区块 220 条 `.q-tags` 已整块移除，全文口径见 §2 例外条。**长尾提醒**：删徽标会连带**孤立计数位**（本轮 6 个：P74/P75/P76/P103/P104/P105 随章节导航 `card-tags` 一并作废），必须同步从 `kb-counts.json` 的 `positions` 删除并跑 `sync_counts.py render`。
 - per-chapter / per-group `dir-count` / `dir-group-count`：**必须等于**紧随其后的 `ul.q-list` 内卡片数；各篇章 `dir-count` 求和 = 篇章总数（见 COUNTS）。
-  - **新增卡片七步（漏任一步都会「假绿」，2026-09-20 / 2026-09-21 血泪）**：① 章节页正文卡 + TOC + Mermaid 组图节点；② 对应 mind 导图页（卡 + mindmap 节点 + 列表节点）；③ **根 index 对应 `dir-group` 的 `ul.q-list` 内按序插入 `<li class="q-item">`**——只改 `dir-count` 计数而不补 li，会直接触发 `validate_kb` 的 `[根index dir-count] 计数≠列表` FAIL；同时组的 `dir-group-count` 须 `sync_counts.py bump struct.root.dir_group_N=+1`（否则补 li 后又触发 `[根index dir-group]` FAIL）；④ **把新 ID 登记进 `validate_kb.py` 顶部 `NEW_IDS`（第 85 行「待填：本轮新增/改动题号」，手工维护）——未登记则该卡的「落位 + 双编码」检查被静默跳过、不报错，门禁显示 ALL PASS 实为假绿**。计数一律走 `sync_counts.py bump` 唯一入口，勿手改数字。 ⑤ **跑一次独立反向审计 `scripts/audit_count_drift.py`**——`sync_counts.py check` 只比对「键 ↔ DOM」的**逐位一致性**，查不出两类缺陷：**(a) 键值本身漂移**（键与 DOM 同为旧值，check 全绿却 ≠ 真实卡数；2026-09-21 实测 10 处：`meta_1/2/4` 22→29、`theme_1/2/4` 45→50、`table_1/2/3` 15/7/3→16/13/7、`meth-groups_1` 与 `mind-foot-meta_1` 16→17）；**(b) `data-kb-pos` 跨文件重复**（check 按 position 的 `file` 字段过滤，重复位在**非登记文件**里完全不校验；2026-09-21 实测 mind 页误复用章节页 `P405`/`P404`）。脚本**完全数据驱动**（层归属 / 单值键 / 白名单 / 排除目录全读 SSOT `guard`，宿主页自动识别，**不写死任何组号与文件名**），以「宿主页实际 `qa-card` 数 → SSOT 键 → DOM 取值 → position 全局唯一且全部已登记」四条独立链路互证；另含「未登记 position」「无效 `data-kb-count` 键」「卡片重复定义」三项全局反向检查。有漂移即 exit 1 并给出 `bump` 命令。 ⑥ **改完门禁必跑两个 probe**：`scripts/probe_count_coverage_gate.py`（覆盖门禁 **4 用例**，含「白名单外全新容器样式」与「短块兜底」）与 `scripts/probe_count_drift_gate.py`（漂移审计 **8 用例**，含 4 类 `guard.derived` 注入）——注入缺陷必须 FAIL、还原必须 PASS，否则为「假绿」。
+  - **新增卡片八步（漏任一步都会「假绿」，2026-09-20 / 2026-09-21 血泪）**：① 章节页正文卡 + TOC + Mermaid 组图节点；② 对应 mind 导图页（卡 + mindmap 节点 + 列表节点）；③ **根 index 对应 `dir-group` 的 `ul.q-list` 内按序插入 `<li class="q-item">`**——只改 `dir-count` 计数而不补 li，会直接触发 `validate_kb` 的 `[根index dir-count] 计数≠列表` FAIL；同时组的 `dir-group-count` 须 `sync_counts.py bump struct.root.dir_group_N=+1`（否则补 li 后又触发 `[根index dir-group]` FAIL）；④ **把新 ID 登记进 `validate_kb.py` 顶部 `NEW_IDS`（第 85 行「待填：本轮新增/改动题号」，手工维护）——未登记则该卡的「落位 + 双编码」检查被静默跳过、不报错，门禁显示 ALL PASS 实为假绿**。计数一律走 `sync_counts.py bump` 唯一入口，勿手改数字。 ⑤ **跑一次独立反向审计 `scripts/audit_count_drift.py`**——`sync_counts.py check` 只比对「键 ↔ DOM」的**逐位一致性**，查不出两类缺陷：**(a) 键值本身漂移**（键与 DOM 同为旧值，check 全绿却 ≠ 真实卡数；2026-09-21 实测 10 处：`meta_1/2/4` 22→29、`theme_1/2/4` 45→50、`table_1/2/3` 15/7/3→16/13/7、`meth-groups_1` 与 `mind-foot-meta_1` 16→17）；**(b) `data-kb-pos` 跨文件重复**（check 按 position 的 `file` 字段过滤，重复位在**非登记文件**里完全不校验；2026-09-21 实测 mind 页误复用章节页 `P405`/`P404`）。脚本**完全数据驱动**（层归属 / 单值键 / 白名单 / 排除目录全读 SSOT `guard`，宿主页自动识别，**不写死任何组号与文件名**），以「宿主页实际 `qa-card` 数 → SSOT 键 → DOM 取值 → position 全局唯一且全部已登记」四条独立链路互证；另含「未登记 position」「无效 `data-kb-count` 键」「卡片重复定义」三项全局反向检查。有漂移即 exit 1 并给出 `bump` 命令。 ⑥ **改完门禁必跑两个 probe**：`scripts/probe_count_coverage_gate.py`（覆盖门禁 **6 用例**，含「白名单外全新容器样式」「短块兜底」「正文长段落去保护」「长正文注入新裸计数」）与 `scripts/probe_count_drift_gate.py`（漂移审计 **8 用例**，含 4 类 `guard.derived` 注入）——注入缺陷必须 FAIL、还原必须 PASS，否则为「假绿」；改 `prose.exempt` 后另跑 `scripts/audit_prose_exempt.py` 复核**豁免台账**。
  ⑦ **若新计数的真源不是卡片数**（如某层下挂元素个数）：须在 SSOT `guard.derived.items` 声明 `region` + `count`，并注册 position；否则 `audit_count_drift` 报「没有对应的已注册 position」。
+ ⑧ **正文里的聚合计数同样受管**（2026-09-21 长官指令）：页头 / 正文段落 / 旁注等**任何位置**，数字 ∈ V 且紧邻单位词即须带 `data-kb-pos`，否则 D 段 FAIL（实测历史漏网：mind 势页「（11 张）」「（4 张）」、方法论页「本库不是 15 篇平行说明书」）。新增「此前**无键**」的展示计数（如篇章页数）用 `sync_counts.py bump --add <key>=<N>` 建键（`--add` 是新建键的唯一入口；不带 `--add` 时键名拼错仍会报错），再注册 position。
 - 方法论目录结构（平级 `dir-group`，禁止嵌套）：序章①~⑤ → **⑥ 生产与领域思维速查（M12，16 卡）** → 一~五主题（M06~M10）→ 附录（M11）。**禁止**把 M12 嵌进「一、高并发」。
 - **小屏（≤768px）横向 gutter 归一口径（2026-09-16 固化）**：全页横向留白**唯一来源 = `.dir-container` 的 `12px`**，与 `.dir-hero` / `.dir-legend` / `.dir-toolbar` 一致。`.dir-section` **不得**再叠加留边——既要清掉页面内联的 `margin-left/right: 12px`，也要显式覆盖**共享 `design-system.css` 的 `.dir-toolbar,.dir-legend,.dir-section,.dir-stats { padding-left/right: max(12px, env(safe-area-inset-*)) }`**（该规则位于共享表的 ≤768 段，页面 `<style>` 后加载，同特异度下页面胜出，故须写 `padding-left: 0` 显式归零）。列表横向内缩由 **`.dir-body` 单层**承担 `4px`（桌面为 `--dir-pad-panel` = 1rem）——`.dir-group` / `.q-list` 横向必须为 `0`，`.q-item` **仅左侧**为 `0`（右侧内缩有意保留，hover 背景不贴死行尾）。**内缩层必须唯一**：曾把内缩放在 `.dir-group` 上，导致「有分组」与「无分组」（深度 Q&A 15 篇章）两类区块分叉 —— 题号左缘 1px vs 17px，视觉上像两个页面。
   - 修复前每侧累计 **68px**（容器 24 + section margin 12 + 共享 CSS padding 12 + 边框 1 + 8+8+8），375px 下列表可用宽仅 **229px（视口 61%）**，页高 62066px；修复后每侧 **25px**、可用宽 **325px（87%）**、页高 52570px（展开态 −15.3%）。复测/回归用 `scripts/probe_root_index_whitespace.js`。
@@ -544,13 +722,13 @@ C/D 用例是「兜底不可被关掉」的证据：若有人把兜底改回容�
 | P219 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_25 |
 | P220 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_26 |
 | P222 | `java-architect-interview/index.html` | 升格 local:mind-pages → mind_pages |
-| P223 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_1 |
-| P224 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_1 |
-| P225 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_2 |
-| P226 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_3 |
-| P227 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_4 |
-| P228 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_5 |
-| P229 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_6 |
+| P223 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_1（2026-09-21 真值修正 16→17） |
+| P224 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「专家」数 → chapter-questions-eight-part.html 内 difficulty-expert 数 |
+| P225 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「架构」数 → 该页内 difficulty-architect 数 |
+| P226 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「高级」数 → 该页内 difficulty-senior 数（2026-09-21 真值修正 39→40） |
+| P227 | `java-architect-interview/index.html` | 章节索引页「场景」卡「专家」数 → chapter-questions-scenario.html 内 difficulty-expert 数 |
+| P228 | `java-architect-interview/index.html` | 章节索引页「场景」卡「架构」数 → 该页内 difficulty-architect 数（2026-09-21 真值修正 49→50） |
+| P229 | `java-architect-interview/index.html` | 章节索引页「场景」卡「高级」数 → 该页内 difficulty-senior 数 |
 | P230 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c01.n |
 | P231 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.expert |
 | P232 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.architect |
@@ -574,15 +752,15 @@ C/D 用例是「兜底不可被关掉」的证据：若有人把兜底改回容�
 | P250 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c06.n |
 | P251 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.expert |
 | P252 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.architect |
-| P253 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.senior |
+| P253 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.senior（2026-09-21 真值修正 8→9） |
 | P254 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c07.n |
 | P255 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.expert |
 | P256 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.architect |
-| P257 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.senior |
+| P257 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.senior（2026-09-21 真值修正 10→11） |
 | P258 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c08.n |
 | P259 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.expert |
 | P260 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.architect |
-| P261 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.senior |
+| P261 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.senior（2026-09-21 真值修正 7→8） |
 | P262 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c09.n |
 | P263 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.expert |
 | P264 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.architect |
@@ -590,28 +768,28 @@ C/D 用例是「兜底不可被关掉」的证据：若有人把兜底改回容�
 | P266 | `java-architect-interview/index.html` | 升格 local:chap-desc-local → struct.misc.chap_index.chap-desc-local_1 |
 | P267 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c10.n |
 | P268 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c10.expert |
-| P269 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_7 |
-| P270 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_8 |
+| P269 | `java-architect-interview/index.html` | 章节索引页第 10 篇「架构」数 → chapter-10-microservice-cloud.html 内 difficulty-architect 数 |
+| P270 | `java-architect-interview/index.html` | 章节索引页第 10 篇「高级」数 → 该篇内 difficulty-senior 数（2026-09-21 真值修正 7→9） |
 | P271 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c11.n |
 | P272 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.expert |
 | P273 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.architect |
-| P274 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_9 |
+| P274 | `java-architect-interview/index.html` | 章节索引页第 11 篇「高级」数 → chapter-11-middleware-engineering.html 内 difficulty-senior 数（2026-09-21 真值修正 7→10） |
 | P275 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c12.n |
 | P276 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.expert |
 | P277 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.architect |
-| P278 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.senior |
+| P278 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.senior（2026-09-21 真值修正 1→4） |
 | P279 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c13.n |
 | P280 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.expert |
 | P281 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.architect |
-| P282 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.senior |
+| P282 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.senior（2026-09-21 真值修正 4→5） |
 | P283 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c14.n |
 | P284 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.expert |
 | P285 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.architect |
-| P286 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.diff_misc_10 |
+| P286 | `java-architect-interview/index.html` | 章节索引页第 14 篇「高级」数 → chapter-14-databases.html 内 difficulty-senior 数（2026-09-21 真值修正 3→4） |
 | P287 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c15.n |
 | P288 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.expert |
 | P289 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.architect |
-| P290 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.senior |
+| P290 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.senior（2026-09-21 真值修正 3→4） |
 | P291 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_2 |
 | P292 | `java-architect-interview/chapter-engineering-practices.html` | 升格 local:eng-groups → engineering_groups |
 | P293 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_1 |
@@ -656,7 +834,7 @@ C/D 用例是「兜底不可被关掉」的证据：若有人把兜底改回容�
 | P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16（势定律）组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
 | P333 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
 | P334 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 卡数（原键 theme_count_5，改为复用 canonical group_13） |
-| P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（原键 theme_count_6，改为复用 canonical engineering_groups） |
+| P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（与工程化页同源 canonical 键 engineering_groups；2026-09-21 统一键形） |
 | P336 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_1 |
 | P337 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_2 |
 | P338 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_3 |
@@ -750,6 +928,14 @@ C/D 用例是「兜底不可被关掉」的证据：若有人把兜底改回容�
 | P426 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 术层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
 | P427 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 器层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
 | P428 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 势层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
+| P429 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer「15 篇」篇章页数（2026-09-21 由正文裸数字升格） |
+| P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
+| P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
+| P432 | `java-architect-interview-mind/index.html` | mind index 副标题「15 篇知识篇章」篇章页数（2026-09-21 升格） |
+| P433 | `java-architect-interview-mind/index.html` | mind index idx-meta 算式「1+1+1+15+1」中的篇章项（2026-09-21 升格；无单位词，由一致性链路保障） |
+| P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
+| P435 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M16 单列势定律（11 张）」组卡数（2026-09-21 升格；同键既有位 P332 在 chapter-core-methodology） |
+| P436 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M17 表达与对齐（4 张）」组卡数（2026-09-21 升格；同键既有位 P406） |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）

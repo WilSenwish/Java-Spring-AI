@@ -16,7 +16,10 @@ java-kb-expand · 新增卡片 7 文件同步脚本骨架
 """
 import os, re, shutil, sys, datetime, json
 
-BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+BASE = find_root(__file__)
+
 TASK = "optx"  # TODO: 改成本轮任务标识，如 optc / opta_c13
 BACKUP = f"{BASE}/tmp/kb_{TASK}_backup"
 os.makedirs(BACKUP, exist_ok=True)

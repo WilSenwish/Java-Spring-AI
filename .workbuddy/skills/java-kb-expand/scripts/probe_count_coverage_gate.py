@@ -11,18 +11,26 @@
   C. **通用兜底（核心）** —— 注入一个**不在 containers 白名单里的全新容器样式**，
                           内放裸「N 卡」；容器枚举必然漏，只有兜底能抓
   D. **短块兜底**     —— 把 chapter-core-methodology 的 layer-count 去保护（裸「12 项」）
+  E. **正文聚合（核心）** —— 把正文长段落里已保护的「15 篇」去保护；**短块兜底抓不到长段落**，
+                          只有真值锚定的 D 段能抓
+  F. **正文新增裸计数** —— 往页面注入一段**长正文**（可见文本 > 100 字，绕开短块兜底），
+                          内写裸「400 道 / 149 张」；证明 D 段不是只认既有位置
 
-C/D 是 2026-09-21 长官指令「所有计数必须设置门禁保护 + 门禁不得写死编码子集」的
-反向证据：若哪天有人把兜底关掉或改回容器枚举，本 probe 立即变红。
+C/D/E/F 是 2026-09-21 长官指令「所有计数必须设置门禁保护 + 门禁不得写死编码子集 +
+**正文聚合计数也要应管尽严**」的反向证据：若哪天有人把兜底关掉、改回容器枚举，
+或把正文段（prose）停用，本 probe 立即变红。
 
 任一用例未如期检出 → 退出码 1（**假绿**，门禁不可信）。
 退出码：0=双向验证通过；1=门禁失效；2=定位失败。
 """
 import io, os, re, subprocess, sys, glob
 
-BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+BASE = find_root(__file__)
+
 SCRIPT = os.path.join(BASE, ".workbuddy/skills/java-kb-expand/scripts/audit_l1_counts.py")
-PY3 = "/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+PY3 = sys.executable
 MIND = os.path.join(BASE, "java-architect-interview-mind/mind-core-methodology.html")
 CORE = os.path.join(BASE, "java-architect-interview/chapter-core-methodology.html")
 
@@ -113,12 +121,34 @@ _d2 = re.sub(
 assert _d2 != _d, "layer-count 注入锚点未命中"
 inject(CORE, _d2, "兜底·短块", "D layer-count 去保护（裸「12 项」）")
 
+# ---------- E：正文聚合计数去保护（长段落；短块兜底抓不到） ----------
+_e = io.open(CORE, encoding="utf-8").read()
+_e2 = re.sub(
+    r'<span class="kb-count"[^>]*data-kb-pos="P434"[^>]*>(\d+)</span>',
+    r"\1", _e, count=1)
+assert _e2 != _e, "P434 正文位注入锚点未命中"
+inject(CORE, _e2, "正文聚合", "E 正文长段落「15 篇」去保护",
+       note="← 短块兜底只覆盖 ≤100 字块，长正文只有真值锚定的 D 段能抓")
+
+# ---------- F：注入一段长正文里的全新裸计数（绕开短块兜底） ----------
+_f = io.open(CORE, encoding="utf-8").read()
+_patch = re.sub(
+    r"(</body>)",
+    r'<p data-probe="1">本库共 400 道知识点，覆盖 JVM 内存与类加载、并发编程、MySQL 索引与事务、'
+    r'Redis 缓存治理、消息队列、微服务治理与可观测性等领域；另附 149 张方法论卡片，'
+    r'按道法术器势五层组织，供架构决策、故障排查与跨团队表达时快速检索与对照使用。</p>\1',
+    _f, count=1)
+assert _patch != _f, "长正文注入锚点 </body> 未命中"
+inject(CORE, _patch, "400道", "F 长正文注入裸「400 道 / 149 张」",
+       note="← 证明 D 段对**新增**正文计数同样生效，不是只认既有位置")
+
 # ---------- 收尾复跑 ----------
 print("\n== 还原后复跑（应 PASS）==")
 rc2, out2 = run_gate()
 print("  exit=%d %s" % (rc2, out2.strip().split("\n")[-1][:120]))
 ok &= rc2 == 0
 
-print("\n%s" % ("✅ 双向验证通过：4 类未保护计数（含白名单外容器 / 短块）全部如期检出，还原后复绿"
+print("\n%s" % ("✅ 双向验证通过：6 类未保护计数（含白名单外容器 / 短块 / 正文长段落 / 新增正文计数）"
+                "全部如期检出，还原后复绿"
                 if ok else "❌ 双向验证失败：门禁存在假绿风险"))
 sys.exit(0 if ok else 1)

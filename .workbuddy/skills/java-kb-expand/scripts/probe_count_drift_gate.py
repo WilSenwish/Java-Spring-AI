@@ -25,10 +25,20 @@ import re
 import subprocess
 import sys
 
-BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
-SCRIPT = os.path.join(BASE, ".workbuddy/skills/java-kb-expand/scripts/audit_count_drift.py")
-PY3 = "/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
-SSOT = os.path.join(BASE, "docs/kb-counts.json")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SCRIPT = os.path.join(HERE, "audit_count_drift.py")
+
+
+
+BASE = find_root(sys.argv[1] if len(sys.argv) > 1 else HERE)
+if not BASE:
+    print("定位失败：未找到同时含 AGENTS.md 与 index.html 的祖先目录")
+    sys.exit(2)
+PY3 = sys.executable
+SSOT = os.path.join(BASE, "docs", "kb-counts.json")
 MIND = os.path.join(BASE, "java-architect-interview-mind/mind-core-methodology.html")
 CORE = os.path.join(BASE, "java-architect-interview/chapter-core-methodology.html")
 DK = "misc.chap_chapter_core_methodology.layer_hang_dao"      # 道层 chip 数（该层真有 layer-chip）
@@ -42,7 +52,7 @@ ORIG = {p: io.open(p, encoding="utf-8").read() for p in (SSOT, MIND, CORE)}
 
 
 def run():
-    p = subprocess.run([PY3, SCRIPT], capture_output=True, text=True, cwd=BASE)
+    p = subprocess.run([PY3, SCRIPT, BASE], capture_output=True, text=True, cwd=BASE)
     return p.returncode, p.stdout + p.stderr
 
 
@@ -136,9 +146,9 @@ def _orphan(c):
         "desc": "probe：无展示位的派生计数",
     })
 
-case("H derived 无展示位：声明键但未注册 position",
+case("H derived 无展示位：声明键但未注册 position（真源引擎反向完备性）",
      {SSOT: ssot_patched(_orphan)},
-     "没有对应的已注册 position")
+     "无展示位")
 
 print("\n== 还原后复跑（应 PASS）==")
 rc, out = run()

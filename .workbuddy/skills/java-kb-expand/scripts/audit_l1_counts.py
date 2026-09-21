@@ -4,7 +4,10 @@
 inline 模式（如「M## 名（N）」）未受 data-kb-pos 保护即 FAIL。配置全部读 SSOT `guard.coverage`
 （scan / containers / units / inline / exempt），脚本内不写死容器名与编码。口径见 conventions §5.1.4。"""
 import os, re, sys
-BASE = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+BASE = find_root(__file__)
+
 CHAPTER_DIR = f"{BASE}/java-architect-interview"
 MIND_DIR = f"{BASE}/java-architect-interview-mind"
 
