@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script src="../../java-architect-interview/assets/theme-init.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>软件设计原则：26 条写给开发者的设计准则</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<!-- 顶部吸顶工具条（导航参考 Laws-Theories-Principles-and-Patterns：sticky + 毛玻璃 + 品牌/工具区） -->
+<div class="toolbar">
+  <div class="wrap">
+    <span class="brand">软件设计原则 · 26 条设计准则 · 七组分类</span>
+    <span class="tools">
+      <button class="tbtn" id="themeBtn" type="button" title="切换颜色主题">◐ 系统</button>
+      <button class="tbtn" id="topBtn" type="button" title="平滑回到顶部">↑ 顶部</button>
+    </span>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Java Design Patterns · Principles</div>
+    <h1>软件设计原则：26 条写给开发者的设计准则</h1>
+    <p class="sub">把 <strong>java-design-patterns.com</strong> 的「编程原则」页整理成一份中文速览：按<strong>简洁、解耦、内聚、扩展、契约、质量、定律</strong>七组归类，每条给出<strong>核心</strong>、<strong>为什么</strong>与<strong>怎么做</strong>，并保留原文出处便于回溯。它们不是教条，而是判断设计取舍时的常用透镜。</p>
+    <div class="meta">
+      <span class="pill">来源：<b>java-design-patterns.com/zh/principles</b></span>
+      <span class="pill">条目：<b>26 条</b></span>
+      <span class="pill">分组：<b>7 类</b></span>
+      <span class="pill">整理：<b>2026-09-21</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#intro">导读与分组</a>
+    <a href="#g1">一、简洁与直接</a>
+    <a href="#g2">二、分离与解耦</a>
+    <a href="#g3">三、内聚与职责</a>
+    <a href="#g4">四、扩展与替换</a>
+    <a href="#g5">五、契约与协作</a>
+    <a href="#g6">六、质量与维护</a>
+    <a href="#g7">七、工程定律</a>
+    <a href="#quickref">速查表</a>
+  </div>
+</nav>
+
+<!-- ============ 导读 ============ -->
+<section id="intro">
+  <div class="wrap">
+    <h2><span class="idx">00</span>导读与分组</h2>
+    <p class="lead">本文整理自 <a href="https://java-design-patterns.com/zh/principles/">java-design-patterns.com/zh/principles/</a>（其材料源自 <a href="https://github.com/webpro/programming-principles">webpro/programming-principles</a>）。原页按字母顺序平铺了 26 条原则，本文按<strong>主题</strong>重新归为七组，便于成体系地阅读与检索。</p>
+
+    <div class="note key">
+      <b>阅读立场：</b>原则之间存在张力，且几乎都有代价。例如「DRY」要求消除重复，但盲目抽象会把<em>巧合的重复</em>焊死成错误耦合；「鲁棒性」要求宽容接收，但过度宽容会掩盖调用方的错误（与<em>隐式接口定律</em>冲突）。请把它们当作<strong>权衡的起点</strong>，而不是必须遵守的规则。
+    </div>
+
+    <h3>七组分类（共 26 条）</h3>
+    <div class="chart">
+      <svg viewBox="0 0 680 290" role="img" aria-label="26 条设计原则的七组分布条形图">
+        <g font-family="inherit">
+          <text x="0" y="43" class="svg-t" font-size="12.5">简洁与直接</text>
+          <rect x="150" y="29" width="228" height="20" rx="5" class="fill-dao-soft stroke-dao" stroke-width="1.2"/>
+          <text x="388" y="44" class="svg-m" font-size="12">3 条</text>
+
+          <text x="0" y="79" class="svg-t" font-size="12.5">分离与解耦</text>
+          <rect x="150" y="65" width="456" height="20" rx="5" class="fill-fa-soft stroke-fa" stroke-width="1.2"/>
+          <text x="616" y="80" class="svg-m" font-size="12">6 条</text>
+
+          <text x="0" y="115" class="svg-t" font-size="12.5">内聚与职责</text>
+          <rect x="150" y="101" width="304" height="20" rx="5" class="fill-shu-soft stroke-shu" stroke-width="1.2"/>
+          <text x="464" y="116" class="svg-m" font-size="12">4 条</text>
+
+          <text x="0" y="151" class="svg-t" font-size="12.5">扩展与替换</text>
+          <rect x="150" y="137" width="228" height="20" rx="5" class="fill-qi-soft stroke-qi" stroke-width="1.2"/>
+          <text x="388" y="152" class="svg-m" font-size="12">3 条</text>
+
+          <text x="0" y="187" class="svg-t" font-size="12.5">契约与协作</text>
+          <rect x="150" y="173" width="228" height="20" rx="5" class="fill-shi-soft stroke-shi" stroke-width="1.2"/>
+          <text x="388" y="188" class="svg-m" font-size="12">3 条</text>
+
+          <text x="0" y="223" class="svg-t" font-size="12.5">质量与维护</text>
+          <rect x="150" y="209" width="304" height="20" rx="5" class="fill-dao-soft stroke-dao" stroke-width="1.2"/>
+          <text x="464" y="224" class="svg-m" font-size="12">4 条</text>
+
+          <text x="0" y="259" class="svg-t" font-size="12.5">工程定律</text>
+          <rect x="150" y="245" width="228" height="20" rx="5" class="fill-fa-soft stroke-fa" stroke-width="1.2"/>
+          <text x="388" y="260" class="svg-m" font-size="12">3 条</text>
+        </g>
+      </svg>
+      <div class="chart-cap">图 1 · 七组分布。可见该页重心在<strong>「分离与解耦」</strong>（6 条）——降低模块间的相互依赖，是这批判则最集中的主题。</div>
+    </div>
+
+    <table>
+      <thead><tr><th>组</th><th>主题</th><th>条数</th><th>包含</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag t-dao">一</span></td><td>简洁与直接</td><td>3</td><td>KISS · YAGNI · 做最简单可行之事</td></tr>
+        <tr><td><span class="tag t-fa">二</span></td><td>分离与解耦</td><td>6</td><td>关注点分离 · 最小化耦合 · 得墨忒耳 · 组合优于继承 · 正交性 · 隐藏实现细节</td></tr>
+        <tr><td><span class="tag t-shu">三</span></td><td>内聚与职责</td><td>4</td><td>最大化内聚 · 单一职责 · 柯里定律 · 接口隔离</td></tr>
+        <tr><td><span class="tag t-qi">四</span></td><td>扩展与替换</td><td>3</td><td>开闭原则 · 里氏替换 · 封装变化</td></tr>
+        <tr><td><span class="tag t-shi">五</span></td><td>契约与协作</td><td>3</td><td>鲁棒性原则 · 控制反转 · 命令查询分离</td></tr>
+        <tr><td><span class="tag t-dao">六</span></td><td>质量与维护</td><td>4</td><td>避免过早优化 · DRY · 为维护者编码 · 童子军规则</td></tr>
+        <tr><td><span class="tag t-fa">七</span></td><td>工程定律</td><td>3</td><td>墨菲定律 · 布鲁克斯法则 · 林纳斯定律</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 一 ============ -->
+<section id="g1">
+  <div class="wrap">
+    <h2><span class="idx">01</span>简洁与直接</h2>
+    <p class="lead">用最少的机制表达最直接的意图——复杂度是成本，不是能力证明。</p>
+
+    <div class="p-item" id="p01">
+      <h3><span class="no">P01</span>保持简单<span class="en">KISS — Keep It Simple, Stupid</span></h3>
+      <p class="core">大多数系统，在保持简单而非刻意复杂时，运行得最好。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>更少的代码：写得更快、缺陷更少、更容易修改。</li>
+          <li>简单本身即终极的精致。</li>
+          <li>完美不在于无可增添，而在于无可删减。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#kiss">KISS</a> · 参见 <a href="https://en.wikipedia.org/wiki/KISS_principle">Wikipedia</a></p>
+    </div>
+
+    <div class="p-item" id="p02">
+      <h3><span class="no">P02</span>你不会需要它<span class="en">YAGNI — You Aren't Gonna Need It</span></h3>
+      <p class="core">在确有必要之前，不要实现任何功能。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>为「明天才需要的功能」投入，等于挤占当前迭代真正该做的功能的时间。</li>
+          <li>它会带来代码膨胀，软件变得更大、更复杂。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul><li>只在实际需要时实现，绝不在「预见可能需要」时就实现。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#yagni">YAGNI</a> · 参见 <a href="https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it">Wikipedia</a></p>
+    </div>
+
+    <div class="p-item" id="p03">
+      <h3><span class="no">P03</span>做最简单可行之事<span class="en">Do The Simplest Thing That Could Possibly Work</span></h3>
+      <p class="core">只做真正解决问题所需要的最简方案——来自极限编程（XP）的传统准则。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>只有直面真正的问题本身，针对真实问题的进展才会最大化。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul><li>问自己：「能行的最简单做法是什么？」</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#do-the-simplest-thing-that-could-possibly-work">Do The Simplest Thing…</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 二 ============ -->
+<section id="g2">
+  <div class="wrap">
+    <h2><span class="idx">02</span>分离与解耦</h2>
+    <p class="lead">本组是原页的重心（6 条）。核心只有一个：让「不该相互影响的东西」彼此无关，使变更的影响面可控。</p>
+
+    <div class="p-item" id="p04">
+      <h3><span class="no">P04</span>关注点分离<span class="en">Separation of Concerns</span></h3>
+      <p class="core">把程序拆成各司其职的部分，每一部分只处理一个关注点——例如「业务逻辑」与「用户界面」是两个关注点：改界面不应要求改业务逻辑，反之亦然。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>简化软件的开发与维护。</li>
+          <li>当关注点分离良好时，各部分可被独立复用、独立开发与更新。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul><li>把程序功能拆分进彼此重叠尽可能少的模块。</li></ul>
+      </div>
+      <p class="refs">Dijkstra（1974）称之为「有效组织思维的唯一切实手段」。原文：<a href="https://java-design-patterns.com/zh/principles/#separation-of-concerns">Separation of Concerns</a></p>
+    </div>
+
+    <div class="p-item" id="p05">
+      <h3><span class="no">P05</span>最小化耦合<span class="en">Minimise Coupling</span></h3>
+      <p class="core">耦合是模块之间相互依赖的程度——代码单元 A 变更后，代码单元 B「坏掉」的概率高低。耦合越低越好。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>一个模块的改动往往引发其他模块的连锁修改。</li>
+          <li>模块组装因依赖增多而更费力、更耗时。</li>
+          <li>某个模块更难复用、更难测试（必须把依赖的模块一并带上）。</li>
+          <li>开发者不敢改代码，因为不确定会波及什么。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>消除、减少必要关系的复杂度。</li>
+          <li>通过隐藏实现细节来降低耦合。</li>
+          <li>应用得墨忒耳定律（见 P06）。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#minimise-coupling">Minimise Coupling</a></p>
+    </div>
+
+    <div class="p-item" id="p06">
+      <h3><span class="no">P06</span>得墨忒耳定律<span class="en">Law of Demeter — Don't Talk to Strangers</span></h3>
+      <p class="core">「别和陌生人说话。」一个对象只应与直接协作方交互，避免 <code>a.b.c.d</code> 式的链式调用。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>链式调用通常收紧耦合。</li>
+          <li>它可能暴露过多实现细节。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>对象的方法只可调用以下四类对象的方法：① 对象自身；② 方法的入参；③ 方法内创建的对象；④ 对象的直接属性/字段。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#law-of-demeter">Law of Demeter</a></p>
+    </div>
+
+    <div class="p-item" id="p07">
+      <h3><span class="no">P07</span>组合优于继承<span class="en">Composition Over Inheritance</span></h3>
+      <p class="core">优先用组合（持有并委托）表达复用，而非继承。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>类之间耦合更少。</li>
+          <li>使用继承时，子类容易做出错误假设，从而破坏里氏替换原则（LSP）。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>用 LSP（可替换性）测试来决定是否该继承。</li>
+          <li>「有一个/用一个（has-a / uses-a）」关系用组合；「是一个（is-a）」关系才用继承。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#composition-over-inheritance">Composition Over Inheritance</a></p>
+    </div>
+
+    <div class="p-item" id="p08">
+      <h3><span class="no">P08</span>正交性<span class="en">Orthogonality</span></h3>
+      <p class="core">概念上不相关的事物，在系统中也不应彼此相关。</p>
+      <div class="kv"><b>说明</b>
+        <ul>
+          <li>正交性与简单性相关：设计越正交，例外越少，程序越易学、易读、易写。</li>
+          <li>正交特性的含义与上下文无关，其关键参数是<strong>对称与一致</strong>。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#orthogonality">Orthogonality</a></p>
+    </div>
+
+    <div class="p-item" id="p09">
+      <h3><span class="no">P09</span>隐藏实现细节<span class="en">Hide Implementation Details</span></h3>
+      <p class="core">模块通过提供接口来隐藏信息（实现细节），不泄露任何不必要的信息。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>当实现变化时，客户端所依赖的接口无需随之改变。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>尽量缩小类与成员的可访问性。</li>
+          <li>不要把成员数据公开。</li>
+          <li>不要把私有实现细节放进类的接口。</li>
+          <li>通过降低耦合，来隐藏更多实现细节。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#hide-implementation-details">Hide Implementation Details</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 三 ============ -->
+<section id="g3">
+  <div class="wrap">
+    <h2><span class="idx">03</span>内聚与职责</h2>
+    <p class="lead">与「解耦」相对的另一半：让「本就该在一起的东西」牢牢聚在一处，并让它<strong>只有一个变更理由</strong>。</p>
+
+    <div class="p-item" id="p10">
+      <h3><span class="no">P10</span>最大化内聚<span class="en">Maximise Cohesion</span></h3>
+      <p class="core">模块的内聚，是其各项职责构成一个有意义的整体的程度。内聚越高越好。</p>
+      <div class="kv"><b>为什么（低内聚的代价）</b>
+        <ul>
+          <li>模块更难被理解。</li>
+          <li>系统更难维护：领域逻辑变更会牵动多个模块，一个模块的改动又牵连相关模块。</li>
+          <li>模块更难复用：多数应用并不需要它提供的那些杂乱无章的操作集合。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul><li>把共享同一职责的相关功能归入一处（例如同一个类）。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#maximise-cohesion">Maximise Cohesion</a></p>
+    </div>
+
+    <div class="p-item" id="p11">
+      <h3><span class="no">P11</span>单一职责原则<span class="en">SRP — Single Responsibility Principle</span></h3>
+      <p class="core">一个类永远不应有超过一个变更理由。</p>
+      <div class="kv"><b>展开</b>
+        <ul><li>每个类应只有一个职责，且该职责应被这个类完整封装。所谓「职责」，可定义为「一个变更理由」——因此一个类或模块应当有且仅有一个变更理由。</li></ul>
+      </div>
+      <div class="kv"><b>为什么</b>
+        <ul><li>可维护性：变更只需发生在一个模块或类之中。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul><li>应用柯里定律（见 P12）。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#single-responsibility-principle">Single Responsibility Principle</a></p>
+    </div>
+
+    <div class="p-item" id="p12">
+      <h3><span class="no">P12</span>柯里定律<span class="en">Curly's Law — Do One Thing</span></h3>
+      <p class="core">为任何一段代码选定<strong>唯一、清晰的目标</strong>：只做一件事（Do One Thing）。</p>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#curly-s-law">Curly's Law</a></p>
+    </div>
+
+    <div class="p-item" id="p13">
+      <h3><span class="no">P13</span>接口隔离原则<span class="en">ISP — Interface Segregation Principle</span></h3>
+      <p class="core">把「胖接口」拆成多个更小、更贴近具体客户端的接口。接口应更依赖「调用它的代码」，而非「实现它的代码」。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>如果一个类实现了根本用不到的方法，调用方就不得不了解该方法的实现（例如某方法只是抛异常，调用方还得额外知道「它不该被调用」）。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul><li>避免胖接口；类永远不应被迫实现违反单一职责原则的方法。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#interface-segregation-principle">Interface Segregation Principle</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 四 ============ -->
+<section id="g4">
+  <div class="wrap">
+    <h2><span class="idx">04</span>扩展与替换</h2>
+    <p class="lead">如何在不改坏既有代码的前提下延展系统：对扩展开放、让子类型可替换、把变化点封装起来。</p>
+
+    <div class="p-item" id="p14">
+      <h3><span class="no">P14</span>开闭原则<span class="en">OCP — Open/Closed Principle</span></h3>
+      <p class="core">软件实体（如类）应当<strong>对扩展开放、对修改关闭</strong>——无需改动源码，即可修改其行为。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>通过最小化对既有代码的改动，提升可维护性与稳定性。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>写出「可被扩展」的类，而不是「可被修改」的类。</li>
+          <li>只暴露需要变化的部分，其余一律隐藏。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#open-closed-principle">Open/Closed Principle</a></p>
+    </div>
+
+    <div class="p-item" id="p15">
+      <h3><span class="no">P15</span>里氏替换原则<span class="en">LSP — Liskov Substitution Principle</span></h3>
+      <p class="core">程序中的对象，应能被其子类型的实例替换，而不改变该程序的正确性。</p>
+      <div class="kv"><b>说明</b>
+        <ul><li>LSP 讨论的是对象的<strong>预期行为</strong>：子类可以改变实现，但不能破坏父类向调用方承诺的语义（因此「正方形继承长方形」是典型反例）。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#liskov-substitution-principle">Liskov Substitution Principle</a></p>
+    </div>
+
+    <div class="p-item" id="p16">
+      <h3><span class="no">P16</span>封装变化<span class="en">Encapsulate What Changes</span></h3>
+      <p class="core">好的设计能识别出最可能变化的热点，并把它们封装在 API 之后；当预期的变化发生时，修改被限制在局部。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>最小化变化发生时所需要做的修改。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>把「会变化的概念」封装在 API 之后。</li>
+          <li>必要时，把该变化的概念拆分为独立模块。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#encapsulate-what-changes">Encapsulate What Changes</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 五 ============ -->
+<section id="g5">
+  <div class="wrap">
+    <h2><span class="idx">05</span>契约与协作</h2>
+    <p class="lead">模块之间如何「打交道」：接收输入与发送输出的宽严尺度、控制权归属、以及方法与副作用的界限。</p>
+
+    <div class="p-item" id="p17">
+      <h3><span class="no">P17</span>鲁棒性原则<span class="en">Robustness Principle — Postel's Law</span></h3>
+      <p class="core">对自己所做的要保守，对他人所给的要宽容。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>接口需要演进，接收方常会拿到未按规格发送的数据。要让服务能够演进，就必须保证提供方在支持新需求时，对既有客户端的破坏最小。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul><li>发送命令/数据的代码应<strong>完全符合规范</strong>；接收输入的代码只要含义清晰，就应<strong>接受不完全符合规范的输入</strong>。</li></ul>
+      </div>
+      <div class="kv"><b>边界提示</b>
+        <ul><li>宽容需有度：无原则地接受非法输入，会掩盖发送方的错误（与「隐式接口定律」相冲突）。现代实践更强调「对非法输入明确拒绝」。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#robustness-principle">Robustness Principle</a></p>
+    </div>
+
+    <div class="p-item" id="p18">
+      <h3><span class="no">P18</span>控制反转<span class="en">Inversion of Control — Hollywood Principle</span></h3>
+      <p class="core">又称「好莱坞原则」——<strong>别找我们，我们会找你</strong>。定制代码从通用框架那里获取控制流；可复用代码与问题特定代码即使协同工作，也各自独立开发。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>提升程序的模块化与可扩展性。</li>
+          <li>把「任务的执行」与「具体实现」解耦。</li>
+          <li>让模块聚焦于它被设计来做的事。</li>
+          <li>让模块摆脱「其他系统如何做」的假设，转而依赖契约。</li>
+          <li>替换某个模块时避免副作用。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做（常见实现手段）</b>
+        <ul>
+          <li>工厂模式（Factory）· 服务定位器（Service Locator）· 依赖注入（DI）</li>
+          <li>上下文查找（contextualized lookup）· 模板方法（Template Method）· 策略模式（Strategy）</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#inversion-of-control">Inversion of Control</a></p>
+    </div>
+
+    <div class="p-item" id="p19">
+      <h3><span class="no">P19</span>命令查询分离<span class="en">CQS — Command Query Separation</span></h3>
+      <p class="core">每个方法要么是执行动作的<strong>命令</strong>，要么是返回数据的<strong>查询</strong>，二者不可兼得——<strong>提问不应改变答案</strong>。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>把方法明确分成查询与命令后，程序员无需了解每个方法的实现细节，也能更有把握地编写调用代码：查询可任意顺序、任意位置调用（不改状态），命令则需更谨慎。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>把每个方法实现为查询或命令，二者只居其一。</li>
+          <li>用命名约定暗示该方法究竟是查询还是命令。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#command-query-separation">Command Query Separation</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 六 ============ -->
+<section id="g6">
+  <div class="wrap">
+    <h2><span class="idx">06</span>质量与维护</h2>
+    <p class="lead">代码会被读的次数远多于被写的次数——本组四条都指向同一个现实：<strong>维护才是主战场</strong>。</p>
+
+    <div class="p-item" id="p20">
+      <h3><span class="no">P20</span>避免过早优化<span class="en">Avoid Premature Optimization</span></h3>
+      <p class="core">在知道瓶颈之前就优化，是浪费甚至有害的。高德纳：约 97% 的情况下，「过早优化是万恶之源」。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>一开始根本不知道瓶颈在哪里。</li>
+          <li>优化之后的代码可能更难读，因而更难维护。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>先让它能工作，再让它正确，最后才让它快（Make It Work → Make It Right → Make It Fast）。</li>
+          <li>不到必要时不优化；只有在性能剖析（profiling）发现瓶颈后，才针对该瓶颈优化。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#avoid-premature-optimization">Avoid Premature Optimization</a></p>
+    </div>
+
+    <div class="p-item" id="p21">
+      <h3><span class="no">P21</span>不要重复自己<span class="en">DRY — Don't Repeat Yourself</span></h3>
+      <p class="core">系统中每一处知识，都应有<strong>唯一、无歧义、权威</strong>的表达。</p>
+      <div class="kv"><b>为什么</b>
+        <ul>
+          <li>重复（无论有意还是无意）会导致维护噩梦、糟糕的分解与逻辑矛盾。</li>
+          <li>修改系统中任一元素时，无需改动其他逻辑上无关的元素。</li>
+          <li>逻辑相关的元素会一致、可预期地共同变化，从而保持同步。</li>
+        </ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>业务规则、长表达式、<code>if</code> 语句、数学公式、元数据等，只放一处。</li>
+          <li>找出系统中每处知识的唯一定义源，再由它生成相应的实例（代码、文档、测试……）。</li>
+          <li>应用「三次法则」（Rule of Three）：重复到第三次时才抽象。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#keep-things-dry">Keep things DRY</a></p>
+    </div>
+
+    <div class="p-item" id="p22">
+      <h3><span class="no">P22</span>为维护者编码<span class="en">Code For The Maintainer</span></h3>
+      <p class="core">维护是任何项目中最昂贵的阶段——所以代码要<strong>为后来接手的人</strong>而写。</p>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>去<em>成为</em>那个维护者（换位思考）。</li>
+          <li>「始终假设最终维护你代码的人，是一个知道你家在哪儿的暴力精神病。」</li>
+          <li>以「比你低几级的同事也能愉悦地阅读并从中学习」的方式编写代码与注释。</li>
+          <li>别让接手者思考（Don't make me think）。</li>
+          <li>遵循「最小惊讶原则」（Principle of Least Astonishment）。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#code-for-the-maintainer">Code For The Maintainer</a></p>
+    </div>
+
+    <div class="p-item" id="p23">
+      <h3><span class="no">P23</span>童子军规则<span class="en">Boy-Scout Rule</span></h3>
+      <p class="core">「离开营地时，让它比你来时更干净。」——每次改动，都应让代码比被发现时更干净。</p>
+      <div class="kv"><b>为什么</b>
+        <ul><li>改动既有代码库时，代码质量天然会退化、累积技术债。遵循童子军规则，就是每次提交都留意质量；靠持续重构（无论多小）来抵抗技术债。</li></ul>
+      </div>
+      <div class="kv"><b>怎么做</b>
+        <ul>
+          <li>每次提交都确保它不降低代码库质量。</li>
+          <li>任何时候看到不够清晰的代码，就顺手把它改好。</li>
+        </ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#boy-scout-rule">Boy-Scout Rule</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 七 ============ -->
+<section id="g7">
+  <div class="wrap">
+    <h2><span class="idx">07</span>工程定律</h2>
+    <p class="lead">三条跨越具体技术、描述「人与项目」客观规律的法则。原页把它们列在原则页中，本质上是不可违背的经验规律。</p>
+
+    <div class="p-item" id="p24">
+      <h3><span class="no">P24</span>墨菲定律<span class="en">Murphy's Law</span></h3>
+      <p class="core">凡可能出错的，终将出错。</p>
+      <div class="kv"><b>说明</b>
+        <ul><li>只要存在哪怕最微小的出错可能，最终它就会出错——若把无穷多次试验与概率放在一起看，这完全说得通。该定律同样适用于软件开发：把「异常路径」当作一等公民来设计。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#murphy-s-law">Murphy's Law</a></p>
+    </div>
+
+    <div class="p-item" id="p25">
+      <h3><span class="no">P25</span>布鲁克斯法则<span class="en">Brooks's Law</span></h3>
+      <p class="core">向一个已经延期的软件项目增加人手，只会让它更晚完成。</p>
+      <div class="kv"><b>说明</b>
+        <ul><li>出自 Fred Brooks《人月神话》。要点在于：新增开发者不会立即可用、立即产出，反而因沟通开销占用团队其他成员的时间。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#brooks-s-law">Brooks's Law</a></p>
+    </div>
+
+    <div class="p-item" id="p26">
+      <h3><span class="no">P26</span>林纳斯定律<span class="en">Linus's Law</span></h3>
+      <p class="core">足够多的眼睛，就能让所有缺陷都变得浅显。</p>
+      <div class="kv"><b>说明</b>
+        <ul><li>出自 Eric S. Raymond《大教堂与集市》，以 Linux 之父命名。它是对<strong>代码评审</strong>过程的赞誉：在代码被接纳合并之前，由多位开发者共同审查。前提是代码可读——与「柯林汉定律」互为约束。</li></ul>
+      </div>
+      <p class="refs">原文：<a href="https://java-design-patterns.com/zh/principles/#linus-s-law">Linus's Law</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 速查表 ============ -->
+<section id="quickref">
+  <div class="wrap">
+    <h2><span class="idx">08</span>速查表</h2>
+    <p class="lead">26 条一句话速览，按分组排列。</p>
+    <table>
+      <thead><tr><th>编号</th><th>中文名</th><th>英文名</th><th>一句话</th></tr></thead>
+      <tbody>
+        <tr><td>P01</td><td>保持简单</td><td>KISS</td><td>系统在保持简单时运行得最好。</td></tr>
+        <tr><td>P02</td><td>你不会需要它</td><td>YAGNI</td><td>必要之前不要实现。</td></tr>
+        <tr><td>P03</td><td>做最简单可行之事</td><td>Do The Simplest Thing</td><td>只做真正解决问题的最简方案。</td></tr>
+        <tr><td>P04</td><td>关注点分离</td><td>Separation of Concerns</td><td>每个部分只处理一个关注点。</td></tr>
+        <tr><td>P05</td><td>最小化耦合</td><td>Minimise Coupling</td><td>模块间相互依赖越低越好。</td></tr>
+        <tr><td>P06</td><td>得墨忒耳定律</td><td>Law of Demeter</td><td>别和陌生人说话，避免链式调用。</td></tr>
+        <tr><td>P07</td><td>组合优于继承</td><td>Composition Over Inheritance</td><td>用组合复用，少用继承。</td></tr>
+        <tr><td>P08</td><td>正交性</td><td>Orthogonality</td><td>不相关的事物在系统中也不应相关。</td></tr>
+        <tr><td>P09</td><td>隐藏实现细节</td><td>Hide Implementation Details</td><td>只暴露接口，不泄露实现。</td></tr>
+        <tr><td>P10</td><td>最大化内聚</td><td>Maximise Cohesion</td><td>模块职责应构成有意义的整体。</td></tr>
+        <tr><td>P11</td><td>单一职责原则</td><td>SRP</td><td>一个类只有一个变更理由。</td></tr>
+        <tr><td>P12</td><td>柯里定律</td><td>Curly's Law</td><td>每段代码只做一件事。</td></tr>
+        <tr><td>P13</td><td>接口隔离原则</td><td>ISP</td><td>拆胖接口，不强迫依赖无用方法。</td></tr>
+        <tr><td>P14</td><td>开闭原则</td><td>OCP</td><td>对扩展开放，对修改关闭。</td></tr>
+        <tr><td>P15</td><td>里氏替换原则</td><td>LSP</td><td>子类型可替换基类型而不破坏正确性。</td></tr>
+        <tr><td>P16</td><td>封装变化</td><td>Encapsulate What Changes</td><td>把易变点封装在 API 之后。</td></tr>
+        <tr><td>P17</td><td>鲁棒性原则</td><td>Postel's Law</td><td>发送保守，接收宽容。</td></tr>
+        <tr><td>P18</td><td>控制反转</td><td>Inversion of Control</td><td>别找我们，我们会找你。</td></tr>
+        <tr><td>P19</td><td>命令查询分离</td><td>CQS</td><td>方法非命令即查询，不可兼得。</td></tr>
+        <tr><td>P20</td><td>避免过早优化</td><td>Avoid Premature Optimization</td><td>先跑通，profiling 后再优化。</td></tr>
+        <tr><td>P21</td><td>不要重复自己</td><td>DRY</td><td>每处知识只有一个权威表达。</td></tr>
+        <tr><td>P22</td><td>为维护者编码</td><td>Code For The Maintainer</td><td>维护是最贵阶段，为接手者写。</td></tr>
+        <tr><td>P23</td><td>童子军规则</td><td>Boy-Scout Rule</td><td>每次提交让代码更干净一点。</td></tr>
+        <tr><td>P24</td><td>墨菲定律</td><td>Murphy's Law</td><td>凡可能出错的终将出错。</td></tr>
+        <tr><td>P25</td><td>布鲁克斯法则</td><td>Brooks's Law</td><td>给延期项目加人只会更晚。</td></tr>
+        <tr><td>P26</td><td>林纳斯定律</td><td>Linus's Law</td><td>足够多的眼睛，缺陷皆浅显。</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="src">
+      <strong>资料来源</strong><br>
+      ① <a href="https://java-design-patterns.com/zh/principles/">java-design-patterns.com/zh/principles/</a> — 26 条设计原则（材料源自 <a href="https://github.com/webpro/programming-principles">webpro/programming-principles</a>）。<br>
+      ② 导航与样式参考：<a href="../../Laws-Theories-Principles-and-Patterns/index.html">Laws-Theories-Principles-and-Patterns/index.html</a>（同一套 toolbar / 目录 / 主题切换机制）。<br>
+      ③ 关联材料：<a href="../../Laws-Theories-Principles-and-Patterns/docs/README.md">Laws「定律 / 理论 / 原则 / 模式」归纳</a>（53 条，与本文互补）。
+    </div>
+    <p>本文为原页内容的中文整理与主题重排，条目定义忠于原文（Why / How 逐条对应）；分组归类为本次整理的分析性视角，具体条目的边界可跨组。</p>
+  </div>
+</footer>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>
