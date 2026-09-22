@@ -9,7 +9,7 @@
   /* ---------- 主题切换（浅色 / 深色 / 跟随系统 三态） ---------- */
   var root = document.documentElement;
   var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-  var MODE_KEY = "tcppam-theme";
+  var MODE_KEY = "cppam-theme";
   var MODES = ["light", "dark", "system"];
   function readMode() {
     var s = null;

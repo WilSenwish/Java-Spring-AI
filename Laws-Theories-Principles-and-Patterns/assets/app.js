@@ -9,7 +9,7 @@
   var b = document.getElementById('topBtn');
   if (b) b.addEventListener('click', function(){ window.scrollTo({ top:0, behavior:'smooth' }); });
 
-  // 顶部 toolbar 主题切换按钮：与 tcppam 保持一致（位置/图标+文字）；
+  // 顶部 toolbar 主题切换按钮：与 cppam 保持一致（位置/图标+文字）；
   // 复用 theme-init.js 暴露的 window.kbTheme.cycle()（浅→深→系统 三态，单一状态源）
   var tbtn = document.getElementById('themeBtn');
   var LABELS = { light:{i:'☀',t:'浅色'}, dark:{i:'☾',t:'深色'}, system:{i:'◐',t:'系统'} };
