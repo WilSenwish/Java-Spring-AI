@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script src="../../java-architect-interview/assets/theme-init.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计模式：从 23 到 192 的工程语言演进 · 中文综述</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<!-- 顶部吸顶工具条（导航参考 Laws 与 principles 页：sticky + 毛玻璃 + 品牌/工具区） -->
+<div class="toolbar">
+  <span class="brand">设计模式 · 从 23 到 192 · 工程语言的演进</span>
+  <span class="tools">
+    <button class="btn" id="themeBtn" type="button" title="切换颜色主题">◐ 系统</button>
+    <button class="btn" id="topBtn" type="button" title="平滑回到顶部">↑ 顶部</button>
+  </span>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Design Patterns · 23 → 192</div>
+    <h1>设计模式：从 23 到 192 的工程语言演进</h1>
+    <p class="sub">1994 年 GoF 写下 23 个面向对象模式；2026 年 <code>iluwatar/java-design-patterns</code> 仓库收录了 <strong>192 个</strong>。三倍多的差距，不是堆砌，而是软件世界在 30 年里「要解决的问题」发生了根本迁移——从单线程桌面对象，走向并发、分布、微服务与云原生。本文以仓库为经（真实可查源码），以 GoF 三族为纬（经典骨架），串起模式、原则与定律之间的互文。</p>
+    <div class="meta">
+      <span class="pill">主线：<b>iluwatar/java-design-patterns</b></span>
+      <span class="pill">站点：<b>java-design-patterns.com/zh/patterns</b></span>
+      <span class="pill">对照：<b>refactoring.guru 设计模式</b></span>
+      <span class="pill">模式：<b>192 个</b></span>
+      <span class="pill">整理：<b>2026-09-22</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#intro">开篇：模式的疆域</a>
+    <a href="#map">分类地图</a>
+    <a href="#creational">创建型</a>
+    <a href="#structural">结构型</a>
+    <a href="#behavioral">行为型</a>
+    <a href="#beyond">超越 GoF</a>
+    <a href="#tao">模式的「道」</a>
+    <a href="#antipattern">何时不用</a>
+    <a href="#practice">实践清单</a>
+    <a href="#catalog">192 全景索引</a>
+    <a href="#epilogue">结语与资源</a>
+    <a href="beyond-gof-23.html">配套 · 169 模式逐介 ↗</a>
+  </div>
+</nav>
+
+<!-- ============ 开篇 ============ -->
+<section id="intro">
+  <div class="wrap">
+    <h2><span class="idx">00</span>开篇：模式的疆域</h2>
+    <p class="lead">模式不是「工具箱里的工具」，而是一种<strong>被命名的共享词汇</strong>。一旦团队能用名字沟通，设计讨论就从「我给你讲一遍这段代码」降级为「这里用个装饰器就行」。</p>
+
+    <p>设计模式的概念并非软件独创。建筑学家 Christopher Alexander 在《建筑模式语言》中第一次提出：城市设计可以拆成一套可复用的「模式」——窗户该多高、街区该多大。1994 年，Erich Gamma、Richard Helm、Ralph Johnson、John Vlissides（即「四人组」GoF）把这套思想搬进面向对象编程，出版了《设计模式：可复用面向对象软件的基础》，给出 23 个模式。此后又有几十种模式被陆续发现，并蔓延到面向对象之外的领域。</p>
+
+    <p>但模式从诞生起就伴随争议。<a href="https://refactoringguru.cn/design-patterns#intro-criticism">Refactoring.Guru</a> 归纳了三点：① Paul Graham 的「锤子论」——模式常常是为<strong>缺失的语言特性</strong>打的补丁（典型如 Strategy，在现代 Java 里一个 <code>lambda</code> 就能替代）；② 模式容易沦为教条，被「全心全意」套用而不顾项目实际；③ 不当使用——「手里只有一把锤子，看什么都像钉子」。这恰恰提醒我们：<strong>模式是权衡，不是银弹。</strong></p>
+
+    <div class="note key">
+      <b>本文立场：</b>以 <code>iluwatar/java-design-patterns</code> 仓库的 192 个真实模式为素材（每个都有可运行的 Java 实现），以 GoF 三族（创建 / 结构 / 行为）为逻辑骨架，向上延伸出并发与架构的长尾。同时把它与已经整理的「26 条设计原则」「53 条定律」连成一张知识地图——原则是<strong>为什么</strong>，模式是<strong>怎么做</strong>；除 GoF 23 外的 169 个模式另有 <a href="beyond-gof-23.html">《超越 GoF 的 169 个模式 · 详细介绍》</a> 逐模式展开。
+    </div>
+  </div>
+</section>
+
+<!-- ============ 分类地图 ============ -->
+<section id="map">
+  <div class="wrap">
+    <h2><span class="idx">01</span>分类地图与抽象层级</h2>
+    <p class="lead">所有模式可按<strong>意图</strong>归为三大经典族（GoF），但仓库的真正价值在于三大族之外那条长长的「尾巴」——并发、企业集成与架构。</p>
+
+    <div class="chart">
+      <svg viewBox="0 0 680 310" role="img" aria-label="设计模式的抽象层级演进：从对象级到架构级">
+        <g font-family="inherit">
+          <text x="14" y="20" class="svg-t" font-size="12.5" font-weight="700">抽象层级 ↑（模式所「解决」的问题，从「一个对象」放大到「整个系统」）</text>
+
+          <rect x="10" y="34" width="660" height="54" rx="8" class="fill-dao-soft stroke-dao" stroke-width="1.4"/>
+          <text x="24" y="56" class="fill-dao" font-size="13" font-weight="700">① 对象级 · GoF 23</text>
+          <text x="24" y="78" class="svg-m" font-size="12">Factory · Builder · Adapter · Decorator · Observer · Strategy · State · Command · Iterator …</text>
+
+          <rect x="10" y="96" width="660" height="54" rx="8" class="fill-fa-soft stroke-fa" stroke-width="1.4"/>
+          <text x="24" y="118" class="fill-fa" font-size="13" font-weight="700">② 并发与线程级 · ~20</text>
+          <text x="24" y="140" class="svg-m" font-size="12">Producer-Consumer · Thread Pool · Double-Checked Locking · Reactor · Leader/Followers · Balking …</text>
+
+          <rect x="10" y="158" width="660" height="54" rx="8" class="fill-shu-soft stroke-shu" stroke-width="1.4"/>
+          <text x="24" y="180" class="fill-shu" font-size="13" font-weight="700">③ 企业集成与数据级 · ~30</text>
+          <text x="24" y="202" class="svg-m" font-size="12">DAO · DTO · Repository · Unit of Work · Data Mapper · Specification · Transaction Script …</text>
+
+          <rect x="10" y="220" width="660" height="54" rx="8" class="fill-qi-soft stroke-qi" stroke-width="1.4"/>
+          <text x="24" y="242" class="fill-qi" font-size="13" font-weight="700">④ 架构级 · ~40</text>
+          <text x="24" y="264" class="svg-m" font-size="12">MVC/MVP/MVVM · 微服务家族 · 六边形/整洁/洋葱 · CQRS · Saga · Event Sourcing · API Gateway …</text>
+
+          <text x="24" y="296" class="svg-d" font-size="11.5">越往上，模式约束的范围越大、越「软」、越依赖组织与运维；越往下，越贴近语法与单对象。</text>
+        </g>
+      </svg>
+      <div class="chart-cap">图 1 · 抽象层级演进。GoF 诞生于 1994 年单线程桌面时代，它的 23 个没有一个是真正用来解决「多线程」或「分布式」的；仓库里多出来的 169 个，几乎都长在这条向上的尾巴上。</div>
+    </div>
+
+    <h3>四条主线的张力</h3>
+    <table>
+      <thead><tr><th>主线</th><th>回答的根本问题</th><th>典型模式</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag t-dao">创建</span></td><td>「谁来决定对象怎么生、何时生」——解耦实例化与使用方</td><td>Factory Method · Abstract Factory · Builder · Prototype · Singleton</td></tr>
+        <tr><td><span class="tag t-fa">结构</span></td><td>「对象如何组合成更大结构，却仍保持灵活」——用组合对抗继承僵化</td><td>Adapter · Bridge · Composite · Decorator · Facade · Flyweight · Proxy</td></tr>
+        <tr><td><span class="tag t-shu">行为</span></td><td>「职责与沟通归谁」——一个动作该由谁负责、状态归谁管</td><td>Strategy · Observer · State · Command · Template · Iterator · Mediator · Visitor</td></tr>
+        <tr><td><span class="tag t-qi">并发/架构</span></td><td>「多执行流 / 多服务如何协作且不崩」——超出单对象的系统级问题</td><td>CQRS · Saga · Circuit Breaker · 六边形 · 微服务 · Reactor</td></tr>
+      </tbody>
+    </table>
+
+    <div class="chart">
+      <svg viewBox="0 0 680 130" role="img" aria-label="GoF 23 的经典三族构成：创建 5 / 结构 7 / 行为 11">
+        <g font-family="inherit">
+          <text x="14" y="20" class="svg-t" font-size="12.5" font-weight="700">GoF 23 的三族构成（1994）</text>
+          <text x="14" y="52" class="svg-m" font-size="12.5">创建型</text>
+          <rect x="86" y="40" width="150" height="20" rx="5" class="fill-dao-soft stroke-dao" stroke-width="1.2"/>
+          <text x="244" y="55" class="svg-m" font-size="12">5</text>
+          <text x="14" y="82" class="svg-m" font-size="12.5">结构型</text>
+          <rect x="86" y="70" width="210" height="20" rx="5" class="fill-fa-soft stroke-fa" stroke-width="1.2"/>
+          <text x="304" y="85" class="svg-m" font-size="12">7</text>
+          <text x="14" y="112" class="svg-m" font-size="12.5">行为型</text>
+          <rect x="86" y="100" width="330" height="20" rx="5" class="fill-shu-soft stroke-shu" stroke-width="1.2"/>
+          <text x="424" y="115" class="svg-m" font-size="12">11</text>
+        </g>
+      </svg>
+      <div class="chart-cap">图 1b · GoF 的 23 个全部落在「对象级」，且只覆盖创建 / 结构 / 行为三族。后续所有的「长尾」模式，都出现在这些族之外。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 创建型 ============ -->
+<section id="creational">
+  <div class="wrap">
+    <h2><span class="idx">02</span>创建型：谁来决定「生」</h2>
+    <p class="lead">创建型解决的是同一处张力——<strong>把「实例化逻辑」从「使用方」手里夺回来</strong>。一旦调用方写死 <code>new ConcreteA()</code>，它就被钉死在这个类上；创建型把「生」的决定权上移，让使用方只依赖抽象。</p>
+
+    <div class="p-item">
+      <h3><span class="no">C1</span>工厂方法 Factory Method<span class="en">让子类决定实例化哪一个类</span></h3>
+      <p class="core">定义一个创建对象的接口，但把「具体造哪个」留给子类。调用方依赖的是「工厂方法」而非具体类。</p>
+      <p>这是解耦实例化最常用的起点：框架提供骨架，应用方注入具体产品。它与依赖倒置（DIP）天然契合——高层模块只认抽象工厂与抽象产品。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">C2</span>抽象工厂 Abstract Factory<span class="en">创建一组相互关联的产品族</span></h3>
+      <p class="core">当系统需要「一套配套的对象」（如跨平台的 UI 控件、一套天地鬼神的 DAO 实现），用一个工厂把整族产品一次性造齐，保证它们之间兼容。</p>
+      <p>关键是「产品族」概念：它约束了一组对象必须配套出现，避免混搭出错。代价是新增一个产品种类要改动所有工厂接口——这也是开闭原则在此处的真实代价。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">C3</span>建造者 Builder / Step Builder<span class="en">分步骤构造复杂对象</span></h3>
+      <p class="core">当构造参数爆炸（十几个可选字段），用 Builder 把「构造过程」与「最终表示」分离；Step Builder 进一步用流式 API 把每一步变成类型安全的链式调用。</p>
+      <p>现代演化：Java 17 的 <code>record</code> + 具名构造参数在一定程度上削弱了 Builder 的必要性，但对「多步、可校验、部分必填」的构造，Builder 依然清晰。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">C4</span>原型 Prototype<span class="en">通过克隆已有实例来创建新实例</span></h3>
+      <p class="core">当「从零 new」成本高、或要复制的对象构造逻辑复杂，直接克隆一个已配置好的原型更高效。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">C5</span>单例 Singleton<span class="en">全局唯一实例——也是最易被滥用的一个</span></h3>
+      <p class="core">保证一个类只有一个实例，并提供一个全局访问点。仓库里还衍生出 <code>multiton</code>（按 key 多实例）、<code>monostate</code>（多实例共享同一状态）。</p>
+      <div class="note warn">
+        <b>现代反思：</b>手写单例（尤其是 <code>double-checked locking</code> 版）在测试中是灾难——隐式全局依赖让单测无法隔离。今天的答案几乎总是<strong>依赖注入容器</strong>：让容器以「单例作用域」来管理生命周期，代码里不再出现 <code>getInstance()</code>。单例从「自己实现」退化成了「框架配置」。
+      </div>
+    </div>
+
+    <p class="lead" style="margin-top:24px">这条家族的现代终点是<strong>依赖注入 Dependency Injection</strong>：它把「谁负责装配所有对象」这个最难的创建问题，彻底交给容器。仓库中 <code>dependency-injection</code>、<code>factory</code>、<code>factory-kit</code>、<code>abstract-document</code>、<code>object-pool</code>、<code>lazy-loading</code> 都属于同一条脉络。</p>
+  </div>
+</section>
+
+<!-- ============ 结构型 ============ -->
+<section id="structural">
+  <div class="wrap">
+    <h2><span class="idx">03</span>结构型：如何让「合」而不「僵」</h2>
+    <p class="lead">结构型的核心是<strong>组合优于继承</strong>的工程落地：在运行时把对象拼成更大的结构，却不让结构变成一整块改不动的石头。</p>
+
+    <div class="p-item">
+      <h3><span class="no">S1</span>适配器 Adapter<span class="en">把一个接口「翻译」成另一个</span></h3>
+      <p class="core">旧系统、第三方库、不同版本的 API 往往接口不兼容。Adapter 在不改双方源码的前提下做接口转换——它是老旧系统接入新世界的「接生婆」。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">S2</span>装饰器 Decorator<span class="en">运行时给对象叠加能力，而非继承爆炸</span></h3>
+      <p class="core">要给一个对象加日志、加缓存、加事务、加权限，如果用继承，组合数会指数爆炸（LogCachedSecureXxx）。Decorator 用「包裹」在运行时层层叠加，每个装饰只关心自己那一件事。</p>
+      <p>现代演化：Spring 的 AOP + 注解，本质就是把 Decorator 变得近乎透明——你写 <code>@Transactional</code>，框架替你包了一层代理。这与「不可见代理」是同一思路。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">S3</span>代理 Proxy<span class="en">控制对原对象的访问</span></h3>
+      <p class="core">远程代理、虚拟代理（lazy loading）、保护代理、动态代理——都是在「访问」这件事上做文章。仓库中 <code>virtual-proxy</code>、<code>dynamic-proxy</code> 是它最实用的两个分支。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">S4</span>桥接 Bridge<span class="en">把「抽象」与「实现」彻底脱钩</span></h3>
+      <p class="core">当一个类有两个独立变化的维度（如「形状」×「颜色」、「消息」×「发送渠道」），Bridge 用组合替代多层继承，让两个维度各自演化、互不牵制。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">S5</span>外观 Facade / 组合 Composite<span class="en">降维复杂度 / 树形递归统一处理</span></h3>
+      <p class="core"><strong>Facade</strong> 为复杂子系统提供一个简单入口，把「调用方要懂 10 个类」降成「调用方只懂 1 个门面」。<strong>Composite</strong> 让「单个对象」与「对象容器」对调用方一视同仁，递归结构（菜单、DOM、文件系统）因此可以统一遍历。</p>
+    </div>
+
+    <p class="lead" style="margin-top:24px">同族还有 <code>flyweight</code>（共享细粒度对象，以空间换性能）、<code>private-class-data</code>、<code>twin</code>、<code>front-controller</code>、<code>composite-view</code>、<code>composite-entity</code>、<code>delegation</code>、<code>converter</code>、<code>marker-interface</code>。它们的共同点：都在重塑「对象之间的拼法」。</p>
+  </div>
+</section>
+
+<!-- ============ 行为型 ============ -->
+<section id="behavioral">
+  <div class="wrap">
+    <h2><span class="idx">04</span>行为型：职责与沟通的归属</h2>
+    <p class="lead">行为型回答的是「一个动作该由谁负责、状态归谁管、对象间怎么说话」。GoF 11 个行为模式里，有一半在解决同一类问题：<strong>把「if-else 的硬分支」换成「可替换的对象」。</strong></p>
+
+    <div class="p-item">
+      <h3><span class="no">B1</span>策略 Strategy<span class="en">把算法族做成可互换的对象</span></h3>
+      <p class="core">排序、压缩、计费、校验……同一意图下的多种算法，抽成统一接口，运行时切换。</p>
+      <div class="note warn">
+        <b>对照 Graham 的批评：</b>在支持一等函数的现代语言里，Strategy 常常退化成「传一个 lambda」。<code>list.sort(comparator)</code> 就是策略模式，只是没了那个 interface。这恰恰是「模式是对缺失语言特性的补丁」的最佳例证——它没消失，只是被语言吸收进了语法。
+      </div>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">B2</span>观察者 Observer / 事件驱动<span class="en">一对多的状态通知</span></h3>
+      <p class="core">一个对象状态变化，自动通知所有关心者。这是 GUI、消息总线、响应式编程的共同祖先。仓库中 <code>observer</code>、<code>publish-subscribe</code>、<code>event-aggregator</code>、<code>event-based-asynchronous</code> 都是它的变体。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">B3</span>状态 State<span class="en">把「状态」变成对象，消除状态分支</span></h3>
+      <p class="core">订单的「待支付/已支付/已发货/已完成」如果全写在一个类里，就是一长串 <code>if (state == ...)</code>。State 模式让每个状态成为独立对象，行为随状态切换而自然迁移——本质是一个隐式状态机。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">B4</span>命令 Command<span class="en">把「请求」封装成对象</span></h3>
+      <p class="core">一旦「做什么」成了对象，它就可以被排队、撤销、重放、记录日志、跨网络传输。这是 undo/redo、任务队列、事务性消息（<code>transactional-outbox</code>）的共同基础。它与 CQRS、Saga 在架构层是一脉相承的。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">B5</span>模板方法 / 迭代器 / 中介者 / 访问者<span class="en">骨架、遍历、调度、双分派</span></h3>
+      <p class="core"><strong>Template Method</strong> 定好算法骨架、留钩子给子类；<strong>Iterator</strong> 把「怎么遍历」与「遍历什么」解耦（现代 for-each 已内置）；<strong>Mediator</strong> 用一个人集中调度，切断对象间的网状依赖；<strong>Visitor</strong> 用双分派把「稳定的结构」与「易变的操作」分开，新增操作不必改结构类。</p>
+    </div>
+
+    <p class="lead" style="margin-top:24px">行为族在仓库中长得最茂密：<code>chain-of-responsibility</code>、<code>command</code>、<code>commander</code>、<code>interpreter</code>、<code>memento</code>、<code>null-object</code>（用空对象消除 null 判断）、<code>servant</code>、<code>specification</code>、<code>callback</code>、<code>collection-pipeline</code>、<code>combinator</code>、<code>fluent-interface</code> 等都在此列。</p>
+  </div>
+</section>
+
+<!-- ============ 超越 GoF ============ -->
+<section id="beyond">
+  <div class="wrap">
+    <h2><span class="idx">05</span>超越 GoF：并发与架构的长尾</h2>
+    <p class="lead">如果说 GoF 是「对象级别的手艺」，那么仓库多出来的那 169 个模式，几乎都在回答一个 1994 年没人认真问的问题：        <strong>当系统里有多个执行流、多台机器时，怎么办？</strong>这就是模式的疆域从「对象」放大到「系统」的过程。</p>
+
+    <div class="note tip">下面每个分支只列名字与归组。<a href="beyond-gof-23.html">《超越 GoF 的 169 个模式 · 详细介绍》</a> 对每个模式给出「核心意图 + 适用场景 + 关联」三段式卡片与主线配图。</div>
+
+    <div class="chart">
+      <svg viewBox="0 0 680 230" role="img" aria-label="从 GoF 23 到仓库 192：增长来自长尾">
+        <g font-family="inherit">
+          <text x="14" y="22" class="svg-t" font-size="12.5" font-weight="700">1994 → 2026：模式数量 23 → 192，新增 169 几乎全在「长尾」</text>
+          <!-- GoF 23（对象级）：左标签与条分处 y=44/58，互不重叠 -->
+          <text x="16" y="58" class="svg-m" font-size="12.5">GoF 23（对象级）</text>
+          <rect x="210" y="44" width="80" height="22" rx="5" class="fill-dao-soft stroke-dao" stroke-width="1.2"/>
+          <text x="300" y="60" class="svg-m" font-size="12">23</text>
+          <!-- 长尾 169：小标题置于条形上方，避免长标签压住图形 -->
+          <text x="16" y="100" class="svg-m" font-size="12.5" font-weight="700">长尾 169（按主线拆分，部分为约数）</text>
+          <rect x="16"  y="112" width="100" height="26" rx="3" class="fill-fa-soft stroke-fa" stroke-width="1"/>
+          <rect x="122" y="112" width="140" height="26" rx="3" class="fill-qi-soft stroke-qi" stroke-width="1"/>
+          <rect x="268" y="112" width="101" height="26" rx="3" class="fill-shu-soft stroke-shu" stroke-width="1"/>
+          <rect x="378" y="112" width="104" height="26" rx="3" class="fill-dao-soft stroke-dao" stroke-width="1"/>
+          <rect x="488" y="112" width="181" height="26" rx="3" class="fill-shi-soft stroke-shi" stroke-width="1"/>
+          <text x="66"  y="129" class="svg-m" font-size="10.5" text-anchor="middle">并发 21</text>
+          <text x="192" y="129" class="svg-m" font-size="10.5" text-anchor="middle">架构 40</text>
+          <text x="320" y="129" class="svg-m" font-size="10.5" text-anchor="middle">企业数据 29</text>
+          <text x="430" y="129" class="svg-m" font-size="10.5" text-anchor="middle">函数式 23</text>
+          <text x="580" y="129" class="svg-m" font-size="10.5" text-anchor="middle">其他 56</text>
+          <text x="16" y="172" class="svg-d" font-size="11.5">注：五主线宏观约数，少量模式跨类，合计 = 169 非 GoF（=192−23）。</text>
+        </g>
+      </svg>
+      <div class="chart-cap">图 3 · GoF 的 23 是「对象级别的手艺」；真正让数量翻到 192 的，是并发、架构、企业集成与函数式这几条 1994 年还不存在（或未被命名）的尾巴。</div>
+    </div>
+
+    <h3>并发与线程级：让多执行流不互相踩踏</h3>
+    <p>这一支里有一整套「线程协作」的词汇：<code>producer-consumer</code>（用队列解耦生产与消费）、<code>thread-pool-executor</code>（复用线程、限流）、<code>double-checked-locking</code>（懒加载单例的并发安全写法）、<code>active-object</code>（把方法调用变成消息，串行化到专用线程）、<code>reactor</code>（事件循环、非阻塞）、<code>leader-followers</code>、<code>balking</code>、<code>guarded-suspension</code>、<code>backpressure</code>、<code>fork-join</code>、<code>map-reduce</code>、<code>poison-pill</code>。它们对应着现代高并发框架（Netty、Reactor、线程池）的底层心智模型。</p>
+
+    <div class="p-item">
+      <h3><span class="no">X1</span>断路器 Circuit Breaker<span class="en">故障时的「快速失败」，而非盲目重试</span></h3>
+      <p class="core">下游反复超时，若还傻傻重试，会把调用方自己也拖死。断路器在失败率超阈值时「跳闸」，直接拒绝请求并进入半开探测。它是对<strong>墨菲定律</strong>（凡可能出错的终将出错）的工程回应：把异常路径当成一等公民。</p>
+    </div>
+
+    <div class="p-item">
+      <h3><span class="no">X2</span>Saga / 事务性发件箱<span class="en">分布式下的一致性妥协</span></h3>
+      <p class="core">跨多个微服务的「事务」无法用数据库 2PC（性能与可用性代价太高）。Saga 把大事务拆成一串本地事务，失败时按相反顺序执行<strong>补偿</strong>；<code>transactional-outbox</code> 则保证「写库」与「发消息」的最终一致。它们是对「强一致不可得」的务实承认。</p>
+    </div>
+
+    <h3>架构级：把系统本身当成设计对象</h3>
+    <p>这一支直接决定「代码怎么分层、服务怎么切」：<code>model-view-controller</code> / <code>model-view-presenter</code> / <code>model-view-viewmodel</code> / <code>model-view-intent</code>（UI 架构四兄弟）、<code>layered-architecture</code>、<code>hexagonal-architecture</code>（端口与适配器）、<code>clean-architecture</code>、<code>onion-architecture</code>、以及庞大的微服务家族（<code>microservices-api-gateway</code>、<code>backends-for-frontends</code>、<code>microservices-bulkhead</code>、<code>microservices-distributed-tracing</code> 等）。</p>
+
+    <div class="p-item">
+      <h3><span class="no">X3</span>CQRS + 六边形架构<span class="en">读写分离 / 端口与适配器</span></h3>
+      <p class="core"><strong>CQRS</strong>（命令查询职责分离）把「写模型」与「读模型」拆开，各自优化——这正是原则页里「命令查询分离（CQS）」在架构层的放大。<strong>六边形架构</strong>用「端口 + 适配器」把业务逻辑围在中心、把数据库/UI/消息都变成可替换的外围，与依赖倒置（DIP）、接口隔离（ISP）是同一哲学的不同尺度表达。</p>
+    </div>
+
+    <div class="note">
+      <b>升华：</b>把 GoF 的 23 个与这 169 个并排放，会看见一条清晰的「抽象层级爬升曲线」——模式所解决的问题，从「一个对象的职责」，一步步上升到「一个服务的边界」，再到「一群服务的协作」。模式不是在变多，而是<strong>软件要操心的事变大了</strong>。
+    </div>
+  </div>
+</section>
+
+<!-- ============ 模式的道 ============ -->
+<section id="tao">
+  <div class="wrap">
+    <h2><span class="idx">06</span>模式的「道」：与原则、定律的互文</h2>
+    <p class="lead">模式不该被孤立阅读。把本系列已经梳理的两份材料拼进来，会浮现一张完整的认知地图：<strong>原则是「道」（为什么），模式是「法」（怎么做），重构手法是「术」，工具与框架是「器」。</strong>五层叠合，才是一个工程师真正可用的全景。</p>
+
+    <div class="chart">
+      <svg viewBox="0 0 680 250" role="img" aria-label="道法术器势 × 内容来源 映射">
+        <g font-family="inherit">
+          <rect x="10" y="14" width="660" height="40" rx="8" class="fill-dao-soft stroke-dao" stroke-width="1.4"/>
+          <text x="24" y="39" class="fill-dao" font-size="13" font-weight="700">道 · 为什么</text>
+          <text x="150" y="39" class="svg-m" font-size="12.5">26 条设计原则（SOLID/DRY/KISS/…） · 53 条定律与理论（康威/墨菲/布鲁克斯/奥卡姆…）</text>
+
+          <rect x="10" y="62" width="660" height="40" rx="8" class="fill-fa-soft stroke-fa" stroke-width="1.4"/>
+          <text x="24" y="87" class="fill-fa" font-size="13" font-weight="700">法 · 怎么做</text>
+          <text x="150" y="87" class="svg-m" font-size="12.5">192 个设计模式（本文） · 原则与模式在「法」层重叠：OCP↔装饰器/策略，DIP↔工厂/六边形</text>
+
+          <rect x="10" y="110" width="660" height="40" rx="8" class="fill-shu-soft stroke-shu" stroke-width="1.4"/>
+          <text x="24" y="135" class="fill-shu" font-size="13" font-weight="700">术 · 落到手</text>
+          <text x="150" y="135" class="svg-m" font-size="12.5">重构手法（提取方法/以多态替分支/引入参数对象…） · 识别「异味→模式」的实操</text>
+
+          <rect x="10" y="158" width="660" height="40" rx="8" class="fill-qi-soft stroke-qi" stroke-width="1.4"/>
+          <text x="24" y="183" class="fill-qi" font-size="13" font-weight="700">器 · 用什么</text>
+          <text x="150" y="183" class="svg-m" font-size="12.5">Spring / Redis / K8s / Maven / IDE 重构工具——定律集与原则集都缺「器」，由工程实践补全</text>
+
+          <rect x="10" y="206" width="660" height="32" rx="8" fill="none" class="stroke-shi" stroke-width="1.4" stroke-dasharray="6 5"/>
+          <text x="24" y="227" class="fill-shi" font-size="12.5" font-weight="700">势 · 横贯</text>
+          <text x="150" y="227" class="svg-m" font-size="12">摩尔/技术成熟度曲线/康威——客观规律，决定模式在什么「势」下才划算</text>
+        </g>
+      </svg>
+      <div class="chart-cap">图 2 · 道法术器势 × 内容来源。五层各自回答「为什么 / 怎么做 / 落到手 / 用什么」，而「势」横贯全程——这正是之前《53 条定律》一文里的同一框架，此处把模式填进了「法」层。</div>
+    </div>
+
+    <h3>具体的互文线索</h3>
+    <table>
+      <thead><tr><th>设计原则（道）</th><th>对应模式（法）</th><th>背后的定律（势）</th></tr></thead>
+      <tbody>
+        <tr><td>开闭原则 OCP</td><td>策略 / 装饰器 / 观察者</td><td>复杂性守恒——改一处不波及其他</td></tr>
+        <tr><td>依赖倒置 DIP / 接口隔离 ISP</td><td>工厂方法 / 适配器 / 六边形架构</td><td>得墨忒耳定律——只依赖需要依赖的</td></tr>
+        <tr><td>单一职责 SRP</td><td>中介者 / 命令 / 服务层</td><td>康威定律——模块边界≈团队边界</td></tr>
+        <tr><td>命令查询分离 CQS</td><td>CQRS / Command 模式</td><td>墨菲定律——读写混在一起更易出错</td></tr>
+        <tr><td>组合优于继承</td><td>装饰器 / 组合</td><td>里氏替换 LSP——继承是强耦合赌注</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>几条定律如何「框定」模式：</b>① <strong>康威定律</strong>——你的微服务切分，最终会长得像你的组织架构；这是架构模式无法回避的外部约束。② <strong>墨菲定律</strong>——解释为什么需要断路器、重试、幂等（<code>microservices-idempotent-consumer</code>）、容错模式。③ <strong>林纳斯定律</strong>——「足够多的眼睛让缺陷浅显」，模式作为共享词汇，正是降低阅读门槛、让评审有效的工具；但 <strong>布鲁克斯法则</strong> 提醒：加人不能加速，过度模式化反而抬高沟通成本。
+    </div>
+  </div>
+</section>
+
+<!-- ============ 何时不用 ============ -->
+<section id="antipattern">
+  <div class="wrap">
+    <h2><span class="idx">07</span>何时不用模式</h2>
+    <p class="lead">知道一个模式，和知道<strong>何时收手</strong>，是两件事。模式是权衡，引入它的成本（理解成本、间接层、改动成本）必须被它的收益覆盖。</p>
+
+    <div class="note warn">
+      <b>三类典型反模式：</b>
+      <ul>
+        <li><strong>单例当全局变量</strong>：把隐式依赖藏进 <code>getInstance()</code>，单测无法隔离、调用链不可见。能用 DI 就不要手写单例。</li>
+        <li><strong>为「未来可能」提前上模式</strong>：违反 YAGNI——抽象的代价在它还不需要时就已支付（对应「过早优化」定律）。</li>
+        <li><strong>硬套「是一个」而忽略组合</strong>：强行继承破坏里氏替换（LSP），导致子类背着父类的契约包袱。</li>
+        <li><strong>过度分层</strong>：一个请求穿过 8 层才到 DB，可读性与性能双输——与「简单」「快速」直接冲突。</li>
+      </ul>
+    </div>
+
+    <h3>引入一个模式前的三问</h3>
+    <table>
+      <thead><tr><th>#</th><th>问题</th><th>若答「否」</th></tr></thead>
+      <tbody>
+        <tr><td>①</td><td>这里真的存在「反复出现的问题」吗？</td><td>只是一次性的特例，直接写清楚就好</td></tr>
+        <tr><td>②</td><td>模式是否<strong>恰好</strong>匹配意图，还是「手里只有锤子」？</td><td>退一步，先用最简单可行的写法</td></tr>
+        <tr><td>③</td><td>引入后，增删一个变化点的成本是否真的下降？</td><td>若间接层反而让改动更难，撤掉它</td></tr>
+      </tbody>
+    </table>
+    <p>一句话：模式是「被命名的最佳实践」，不是「必须打卡的 KPI」。当它让代码更简单、变更更局部，才配得上这个名字。</p>
+  </div>
+</section>
+
+<!-- ============ 实践清单 ============ -->
+<section id="practice">
+  <div class="wrap">
+    <h2><span class="idx">08</span>实践清单：从代码异味到模式</h2>
+    <p class="lead">把抽象落成直觉。下面是评审代码时最常见的「异味 → 对应模式」对照，以及一份可直接用的评审清单。</p>
+
+    <table>
+      <thead><tr><th>代码异味</th><th>值得考虑的模式</th></tr></thead>
+      <tbody>
+        <tr><td>满屏 <code>new ConcreteX()</code>，且具体类常变</td><td>Factory / Abstract Factory / Dependency Injection</td></tr>
+        <tr><td>构造函数的参数长到离谱</td><td>Builder / Step Builder</td></tr>
+        <tr><td>大量 <code>if (type == A) … else if (type == B)</code></td><td>Strategy / State / Visitor</td></tr>
+        <tr><td>日志 / 事务 / 鉴权等横切逻辑反复粘贴</td><td>Decorator / Proxy / AOP</td></tr>
+        <tr><td>一个对象变化要通知一堆其他对象</td><td>Observer / Publish-Subscribe / EventBus</td></tr>
+        <tr><td>复杂的条件组合查询</td><td>Specification</td></tr>
+        <tr><td>多步、可撤销的操作</td><td>Command（配合 Memento）</td></tr>
+        <tr><td>大对象图的统一遍历</td><td>Iterator / Composite</td></tr>
+        <tr><td>跨服务的一致性</td><td>Saga / Transactional Outbox / CQRS</td></tr>
+        <tr><td>下游不稳定，反复重试拖垮自己</td><td>Circuit Breaker / Bulkhead / Retry</td></tr>
+      </tbody>
+    </table>
+
+    <h3>评审清单（五条）</h3>
+    <ol>
+      <li><strong>意图先行</strong>：这段代码要解决的「反复出现的问题」是什么？能一句话说清吗？</li>
+      <li><strong>耦合检查</strong>：改动一个变化点，会不会牵动不相关的模块？（用得墨忒耳 / 隐藏实现细节审视）</li>
+      <li><strong>可替换性</strong>：子类型能否无缝替换基类？（里氏替换 LSP）</li>
+      <li><strong>对扩展开放</strong>：新增一种情况，是「加一个类」还是「改一堆 switch」？（开闭 OCP）</li>
+      <li><strong>收手意识</strong>：这个模式带来的间接层，真的被它的收益覆盖了吗？（YAGNI / KISS 兜底）</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ 192 全景索引 ============ -->
+<section id="catalog">
+  <div class="wrap">
+    <h2><span class="idx">09</span>192 模式全景索引</h2>
+    <p class="lead">以下按意图归类，列出仓库中的主要模式（每个链接到 <a href="https://java-design-patterns.com/zh/patterns/">java-design-patterns.com</a> 对应页面）。部分模式跨类，此处按其主要意图归置；分组口径为本次整理的分析视角。</p>
+
+    <div class="note key"><b>逐模式详介：</b>上面仅为列名与归组。<a href="beyond-gof-23.html">《超越 GoF 的 169 个模式 · 详细介绍》</a> 对除 GoF 23 外的全部 169 个模式，给出「核心意图 + 适用场景 + 关联」三段式卡片，并配主线示意图（并发协作 / 架构谱系 / 数据持久 / 函数组合）。</div>
+
+    <h3>创建型 Creational</h3>
+    <p class="core"><code>abstract-factory</code> · <code>abstract-document</code> · <code>builder</code> · <code>factory</code> · <code>factory-kit</code> · <code>factory-method</code> · <code>lazy-loading</code> · <code>multiton</code> · <code>monostate</code> · <code>object-pool</code> · <code>prototype</code> · <code>singleton</code> · <code>step-builder</code> · <code>dependency-injection</code></p>
+
+    <h3>结构型 Structural</h3>
+    <p class="core"><code>adapter</code> · <code>bridge</code> · <code>composite</code> · <code>composite-view</code> · <code>composite-entity</code> · <code>converter</code> · <code>decorator</code> · <code>delegation</code> · <code>facade</code> · <code>flyweight</code> · <code>front-controller</code> · <code>marker-interface</code> · <code>private-class-data</code> · <code>proxy</code> · <code>twin</code> · <code>virtual-proxy</code> · <code>dynamic-proxy</code></p>
+
+    <h3>行为型 Behavioral</h3>
+    <p class="core"><code>callback</code> · <code>chain-of-responsibility</code> · <code>collection-pipeline</code> · <code>command</code> · <code>commander</code> · <code>combinator</code> · <code>currying</code> · <code>fluent-interface</code> · <code>function-composition</code> · <code>interpreter</code> · <code>iterator</code> · <code>mediator</code> · <code>memento</code> · <code>null-object</code> · <code>observer</code> · <code>servant</code> · <code>specification</code> · <code>state</code> · <code>strategy</code> · <code>template-method</code> · <code>trampoline</code> · <code>visitor</code></p>
+
+    <h3>并发与线程级 Concurrency</h3>
+    <p class="core"><code>active-object</code> · <code>async-method-invocation</code> · <code>backpressure</code> · <code>balking</code> · <code>double-checked-locking</code> · <code>fork-join</code> · <code>guarded-suspension</code> · <code>half-sync-half-async</code> · <code>leader-election</code> · <code>leader-followers</code> · <code>lockable-object</code> · <code>map-reduce</code> · <code>monitor</code> · <code>optimistic-offline-lock</code> · <code>poison-pill</code> · <code>polling-publisher</code> · <code>producer-consumer</code> · <code>promise</code> · <code>reactor</code> · <code>thread-pool-executor</code> · <code>thread-specific-storage</code></p>
+
+    <h3>架构级 Architectural</h3>
+    <p class="core"><code>model-view-controller</code> · <code>model-view-presenter</code> · <code>model-view-viewmodel</code> · <code>model-view-intent</code> · <code>layered-architecture</code> · <code>hexagonal-architecture</code> · <code>clean-architecture</code> · <code>onion-architecture</code> · <code>monolithic-architecture</code> · <code>event-driven-architecture</code> · <code>event-sourcing</code> · <code>command-query-responsibility-segregation</code> · <code>saga</code> · <code>api-gateway</code> · <code>backends-for-frontends</code> · <code>circuit-breaker</code> · <code>client-session</code> · <code>service-locator</code> · <code>service-layer</code> · <code>business-delegate</code> · <code>gateway</code> · <code>ambassador</code> · <code>strangler</code> · <code>anti-corruption-layer</code> · <code>separated-interface</code> · <code>page-controller</code> · <code>service-to-worker</code> · <code>presentation-model</code> · <code>templateview</code> · <code>view-helper</code> · <code>intercepting-filter</code> · 以及 <code>microservices-*</code> 系列（aggregrator / api-gateway / bulkhead / client-side-ui-composition / distributed-tracing / idempotent-consumer / load-shedding / log-aggregation / messaging / self-registration）</p>
+
+    <h3>企业集成与数据 Enterprise &amp; Data</h3>
+    <p class="core"><code>data-access-object</code> · <code>data-bus</code> · <code>data-locality</code> · <code>data-mapper</code> · <code>data-transfer-object</code> · <code>domain-model</code> · <code>dirty-flag</code> · <code>identity-map</code> · <code>metadata-mapping</code> · <code>object-mother</code> · <code>parameter-object</code> · <code>partial-response</code> · <code>registry</code> · <code>repository</code> · <code>serialized-entity</code> · <code>serialized-lob</code> · <code>server-session</code> · <code>service-stub</code> · <code>session-facade</code> · <code>single-table-inheritance</code> · <code>special-case</code> · <code>table-inheritance</code> · <code>table-module</code> · <code>transaction-script</code> · <code>transactional-outbox</code> · <code>unit-of-work</code> · <code>value-object</code> · <code>version-number</code></p>
+
+    <h3>函数式与基础 Fundamentals &amp; Functional</h3>
+    <p class="core"><code>immutable</code> · <code>mute-idiom</code> · <code>type-object</code> · <code>role-object</code> · <code>extension-objects</code> · <code>monad</code> · <code>money</code> · <code>property</code> · <code>context-object</code> · <code>localization</code> · <code>event-aggregator</code> · <code>event-queue</code> · <code>event-based-asynchronous</code> · <code>publish-subscribe</code> · <code>notification</code> · <code>execute-around</code> · <code>filterer</code> · <code>curiously-recurring-template-pattern</code> · <code>bytecode</code> · <code>resource-acquisition-is-initialization</code> · <code>double-dispatch</code> · <code>update-method</code> · <code>game-loop</code></p>
+  </div>
+</section>
+
+<!-- ============ 结语 ============ -->
+<section id="epilogue">
+  <div class="wrap">
+    <h2><span class="idx">10</span>结语与资源</h2>
+    <p class="lead">模式从不承诺「写出更好的代码」，它只承诺「当我们用同一个名字说话时，误解会少一点」。</p>
+    <p>从 GoF 的 23 到今天的 192，数字增长的背后是软件所操心的事越来越大：从「一个对象怎么生、怎么合、怎么说话」，一路爬升到「一群服务怎么协作、怎么在故障中存活」。模式不是知识的终点，它是一张<strong>共享词汇表</strong>——让你在评审会上说「这里用装饰器就够」，而不必解释装饰器是什么。</p>
+    <p>但请记住那条贯穿本文的底线：<strong>模式是权衡，不是银弹。</strong>把它放进「道（为什么）—法（怎么做）—术（落到手）—器（用什么）—势（横贯的客观规律）」的全景里，它才有意义。脱离上下文地套用，只会收获更厚的间接层与更慢的团队。</p>
+
+    <div class="src">
+      <strong>资料来源与延伸阅读</strong><br>
+      ① 主线仓库：<a href="https://github.com/iluwatar/java-design-patterns">github.com/iluwatar/java-design-patterns</a>（本地检出在 <code>Open/java-design-patterns</code>，192 个模式均含可运行 Java 实现）。<br>
+      ② 模式目录站：<a href="https://java-design-patterns.com/zh/patterns/">java-design-patterns.com/zh/patterns/</a>（每个模式的中文详解）。<br>
+      ③ 经典分类与争议：<a href="https://refactoringguru.cn/design-patterns">refactoring.guru 设计模式</a>（创建/结构/行为三族，及「模式的争议」一节）。<br>
+      ④ 本系列互文：<a href="../../java-design-patterns-principles/principles/index.html">26 条软件设计原则</a> · <a href="../../Laws-Theories-Principles-and-Patterns/docs/README.md">53 条定律 / 理论 / 原则 / 模式归纳</a>。<br>
+      ⑤ 非 GoF 详介：<a href="beyond-gof-23.html">超越 GoF 的 169 个模式 · 详细介绍</a>（本文配套，除 GoF 23 外逐模式三段式卡片 + 配图）。<br>
+      ⑤ 导航与样式参考：<a href="../../Laws-Theories-Principles-and-Patterns/index.html">Laws-Theories-Principles-and-Patterns/index.html</a>（同一套 toolbar / 目录 / 三态主题机制）。
+    </div>
+    <p>本文以仓库真实模式为骨架、以两站点为权威印证，对 GoF 三族做了深度剖析并向上延伸到并发与架构的长尾；分组与「道法术器势」映射为本次整理的增值视角，具体模式归属可跨类讨论。</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="src">
+      <strong>说明</strong><br>
+      本文为基于开源仓库与公开站点整理的中文综述，模式定义与分类参考 <a href="https://java-design-patterns.com/zh/patterns/">java-design-patterns.com</a> 与 <a href="https://refactoringguru.cn/design-patterns">refactoring.guru</a>，深度剖析与抽象升华（抽象层级、道法术器势互文、何时不用）为本次写作的分析性视角。
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>
