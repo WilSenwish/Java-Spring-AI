@@ -40,6 +40,7 @@ java-kb-expand · 全量校验脚本（通用版）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
   3b2) overview 类型三级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题），`ov-type-count`=块内 ov-item 且前缀一致
   3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item；mind card-foot=篇章C/summary E·S
+  3d) **mind 根节点红线**：所有 mind 页 Mermaid `root["..."]` 字符串内不得出现「章节/原理/场景 + 数字」裸串（历史曾手写 N·M·K 计数后被手动删除；validate_kb 从未覆盖 → 结构性盲区，2026-09-15 固化为长期防回潮红线）
   4) 根 index / 章节 index 统计数字与 overview 一致
   5) 新卡双编码一致（data-priority 属性 + 可见 priority-pX 徽标）
   6) 新卡在 overview / 根 index / 宿主章节页 / 对应 mind 页落位
@@ -1147,6 +1148,23 @@ def main():
         if (not _s) and _sm2:
             _mf_fail += 1
     check(_mf_fail == 0, f"[mind card-foot] 与篇章/summary 不一致数={_mf_fail}（须 0）")
+
+    # 3d) mind 根节点红线：root["..."] 字符串内禁止「章节/原理/场景 + 数字」裸串
+    # 历史背景（2026-09-15）：mind 根节点曾手写"章节N · 原理M · 场景K"，后因 commit
+    # 909e027 清理格式化时一并删掉；此前 validate_kb 从未覆盖 → 结构性盲区。
+    # 固化为长期红线，防止未来手写漂移再漏网。
+    _root_bad = re.compile(
+        r'(?:章节|原理|场景)\s*\d+|(?:\d+)\s*(?:章节|原理|场景)'
+    )
+    _root_fail = 0
+    for _mp in mind_files:
+        _mt = read(_mp)
+        for _rm in re.finditer(r'root\[".*?"\]', _mt):
+            _seg = _rm.group(0)
+            if _root_bad.search(_seg):
+                print(f"FAIL [mind root红线] {os.path.basename(_mp)}: {_seg}")
+                _root_fail += 1
+    check(_root_fail == 0, f"[mind root红线] 裸「章节/原理/场景+数字」={_root_fail}（须 0；禁止手写 mind 根节点计数）")
 
     # 4) 根 index 统计（数字在前、label 在后；兼容内层 kb-count span）
     def stat(pat, t):
