@@ -94,9 +94,9 @@
 
 ### 3.2 全站难度 / 优先级分布（按卡片）
 
-- 难度三级：`senior`(高级) / `expert`(专家) / `architect`(架构)。**仅覆盖 C/E/S 的 398 题**：专家 46 / 架构师 191 / 高级开发 161。**文案双轨**：标签位一律短表 **专家 / 架构 / 高级**，正文用 **专家 / 架构师 / 高级开发**（见 `format-shared.md` §3.1）。
+- 难度三级：`senior`(高级) / `expert`(专家) / `architect`(架构)。**仅覆盖 C/E/S 的 472 题**：专家 55 / 架构师 221 / 高级开发 196。**文案双轨**：标签位一律短表 **专家 / 架构 / 高级**，正文用 **专家 / 架构师 / 高级开发**（见 `format-shared.md` §3.1）。
 - **M/G/K 三专篇不分难度等级**（2026-09-16 长官决策）：无 `data-difficulty`、无 `methodology_*`/`engineering_*`/`pitfalls_senior` 难度计数键、无「方法论难度三级求和」不变式。方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P11">149</span> 卡另计，不与题目难度加总。
-- 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 94/246/58 = 398）；方法论卡片不携带优先级（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P12">0</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P13">149</span>）；安全手册**不含**优先级。
+- 优先级：`P0`–`P2`；标准 QA、核心原理速查、场景题三类**全部携带**（合计 108/289/75 = 472）；方法论卡片不携带优先级（<span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P12">0</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P13">149</span>）；安全手册**不含**优先级。
 
 ## 4. 规则文档索引
 
