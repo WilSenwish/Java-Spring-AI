@@ -38,7 +38,7 @@ java-kb-expand · 全量校验脚本（通用版）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
-  3b2) overview 类型三级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题），`ov-type-count`=块内 ov-item 且前缀一致
+  3b2) overview 类型四级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题/垂直领域），`ov-type-count`=块内 ov-item 且前缀一致
   3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item；mind card-foot=篇章C/summary E·S
   3d) **mind 根节点红线**：所有 mind 页 Mermaid `root["..."]` 字符串内不得出现「章节/原理/场景 + 数字」裸串（历史曾手写 N·M·K 计数后被手动删除；validate_kb 从未覆盖 → 结构性盲区，2026-09-15 固化为长期防回潮红线）
   4) 根 index / 章节 index 统计数字与 overview 一致
@@ -81,8 +81,9 @@ if not os.path.isfile(COUNTS_JSON):
 _cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
 EXPECT = {k: _cfg["counts"][k] for k in
           ("total", "p0", "p1", "p2", "expert", "architect", "senior",
-           "methodology", "chapters", "basics", "scenarios")}
-# 跨大篇章/聚合口径仅 total=篇章+原理+场景；M/G/K 单独计数，不设全站合计
+           "methodology", "chapters", "basics", "scenarios", "domain_questions")}
+# 跨大篇章/聚合口径 total=篇章+核心原理+场景+垂直领域（2026-10-24 D 篇入总站，四级口径与 SSOT invariant 对齐）；
+# M/G/K 单独计数，不设全站合计
 ENGINEERING = _cfg["counts"].get("engineering", 0)
 PITFALLS = _cfg["counts"].get("pitfalls", 0)
 # 内部一致性：章节站卡片 id 总数（不对外展示为「全站合计」）
@@ -90,7 +91,20 @@ CARDS_IN_CHAPTERS = EXPECT["total"] + EXPECT["methodology"] + ENGINEERING + PITF
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 # 注意：方法论/工程化卡默认不进 overview；含 M/G 时跳过 overview 落位检查
-NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.27","C11.28","C11.29","C11.30","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","G01.04","G02.04","G03.04","G04.04","G05.04","G06.04","G07.04","G07.09","G08.04","K01.01","K01.02","K02.01","K02.02","K03.01","K03.02","K04.01","K04.02","K05.01","K05.02","K06.01","K06.02","K07.01","K07.02","K07.09","K08.01","K08.02","S12.09","M01.07","M01.08","M01.09","M01.10","M02.04","M02.09","M02.10","M02.11","M02.12","M02.13","M03.04","M03.05","M03.06","M03.07","M07.04","M16.01","M16.02","M16.03","M16.04","M16.05","M16.06","M16.07","M16.08","M16.09","M16.10","M16.11","M17.01","M17.02","M17.03","M17.04"]
+NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.27","C11.28","C11.29","C11.30","C12.33","C12.34","C12.35","C13.14","C14.13","C15.12","G01.04","G02.04","G03.04","G04.04","G05.04","G06.04","G07.04","G07.09","G08.04","K01.01","K01.02","K02.01","K02.02","K03.01","K03.02","K04.01","K04.02","K05.01","K05.02","K06.01","K06.02","K07.01","K07.02","K07.09","K08.01","K08.02","S12.09","M01.07","M01.08","M01.09","M01.10","M02.04","M02.09","M02.10","M02.11","M02.12","M02.13","M03.04","M03.05","M03.06","M03.07","M07.04","M16.01","M16.02","M16.03","M16.04","M16.05","M16.06","M16.07","M16.08","M16.09","M16.10","M16.11","M17.01","M17.02","M17.03","M17.04",
+           # D 篇垂直领域题（2026-10-25 共 72 题：D01-D12 十二组，每组 6 题）
+           "D01.01","D01.02","D01.03","D01.04","D01.05","D01.06",
+           "D02.01","D02.02","D02.03","D02.04","D02.05","D02.06",
+           "D03.01","D03.02","D03.03","D03.04","D03.05","D03.06",
+           "D04.01","D04.02","D04.03","D04.04","D04.05","D04.06",
+           "D05.01","D05.02","D05.03","D05.04","D05.05","D05.06",
+           "D06.01","D06.02","D06.03","D06.04","D06.05","D06.06",
+           "D07.01","D07.02","D07.03","D07.04","D07.05","D07.06",
+           "D08.01","D08.02","D08.03","D08.04","D08.05","D08.06",
+           "D09.01","D09.02","D09.03","D09.04","D09.05","D09.06",
+           "D10.01","D10.02","D10.03","D10.04","D10.05","D10.06",
+           "D11.01","D11.02","D11.03","D11.04","D11.05","D11.06",
+           "D12.01","D12.02","D12.03","D12.04","D12.05","D12.06"]
 
 # 4 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
 AGG_FILES = {
@@ -464,6 +478,29 @@ def run_l1_container_scan():
                     vis[i] = 0
         return vis
 
+    def plain_window(t, a, b, win):
+        """**去标签**的 exempt 匹配窗口（2026-10-24 修复）：exempt 正则全部是「可见文本语义」
+        （第 N 篇 / ≥ 50 题 / ×3 层 …），但旧实现用**原始 HTML 窗口**匹配，字符类
+        `[≥≤<>＞＜≦≧]` 里的 `>` 会误中标签结束符 —— `class="layer-count">12 项` 被当成
+        「>12 项」比较阈值而系统性漏报。改为先剥 `<[^>]*>` 再压缩空白，标签边界不再参与匹配。
+        窗口两端先**对齐到标签边界**（否则起点切在 `<span class=` 中会留下 `class="...">`
+        残片，其中的 `>` 依然误中 exempt 4）。已验证：真实页面 0 新增漏报。
+        """
+        s, e = max(0, a - win), min(len(t), b + win)
+        # 起点落在标签内部（s 与下一个 '>' 之间无 '<'）→ 回退到该标签的 '<'
+        ngt, nlt = t.find(">", s), t.find("<", s)
+        if ngt != -1 and (nlt == -1 or nlt > ngt):
+            lt = t.rfind("<", 0, s)
+            if lt != -1:
+                s = lt
+        # 终点落在标签内部（最后一个 '<' 在最后一个 '>' 之后）→ 前进到该标签结束
+        plt, pgt = t.rfind("<", 0, e), t.rfind(">", 0, e)
+        if plt != -1 and plt > pgt:
+            gt = t.find(">", plt)
+            if gt != -1:
+                e = gt + 1
+        return re.sub(r"\s+", " ", re.sub(r"<[^>]*>", "", t[s:e]))
+
     def tagged_at(t, pos):
         w = t[max(0, pos - 180) : pos]
         # 仅承认 L0：data-kb-pos（已废除 kb-count-local）
@@ -525,7 +562,7 @@ def run_l1_container_scan():
                     ap = a + dm.start(1)
                     if not vis[ap] or tagged_at(t, ap):
                         continue
-                    win = t[max(0, ap - fb_win) : ap + fb_win]
+                    win = plain_window(t, ap, ap, fb_win)
                     if any(e.search(win) for e, _ in fb_exempts):
                         continue
                     misses.append(
@@ -546,7 +583,7 @@ def run_l1_container_scan():
                     continue
                 if any(s <= ap < e for s, e in spans):   # 已被 kb-count span 精确包裹
                     continue
-                win = t[max(0, ap - pr_win): dm.end() + pr_win]
+                win = plain_window(t, ap, dm.end(), pr_win)
                 if any(e.search(win) for e, _ in pr_exs):
                     continue
                 ctx = re.sub(r"\s+", " ",
@@ -1002,10 +1039,10 @@ def main():
     check(_ov_title_fail == 0,
           f"[overview子组题数] 标题 N ≠ 实际 ov-item 的子组数={_ov_title_fail}（须 0）")
 
-    # 3b2) overview 类型三级（篇章/核心原理/场景题）ov-type-count = 该块 ov-item 数
+    # 3b2) overview 类型四级（篇章/核心原理/场景题/垂直领域）ov-type-count = 该块 ov-item 数
     _ov_type_fail = 0
     _ov_type_missing = 0
-    _type_pref = {"篇章": "C", "核心原理": "E", "场景题": "S"}
+    _type_pref = {"篇章": "C", "核心原理": "E", "场景题": "S", "垂直领域": "D"}
     for _gm in re.finditer(
         r'<section class="ov-group"[^>]*id="(group-p\d)"[^>]*>(.*?)</section>',
         texts["overview"],
@@ -1024,7 +1061,7 @@ def main():
             for _tb in _type_blocks:
                 _tbody = _tb.group(1)
                 _thm = re.search(
-                    rf'<h4 class="ov-type-title">\s*(篇章|核心原理|场景题)'
+                    rf'<h4 class="ov-type-title">\s*(篇章|核心原理|场景题|垂直领域)'
                     rf'<span class="ov-type-count">\s*{_KB_NUM}\s*题</span>\s*</h4>',
                     _tbody,
                 )
@@ -1172,13 +1209,13 @@ def main():
         return int(m.group(1)) if m else None
     _STAT_N = rf'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
     root_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
-    root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 「全站 N 题」= total（C+E+S），非 M/G/K 加总
+    root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 「全站 N 题」= total（C+E+S+D），非 M/G/K 加总
     check(root_ch == EXPECT["chapters"], f"[根index] 深度Q&A={root_ch} 期望 {EXPECT['chapters']}")
     # 禁止「题目+方法论+工程化+踩坑」式合计 UI
     root_sum = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">合计', texts["root"])
     check(root_sum is None, f"[根index] 不应存在跨域「合计」统计卡（实际={root_sum}）")
     if root_all is not None:
-        check(root_all == EXPECT["total"], f"[根index] 全站题量={root_all} 期望 {EXPECT['total']}（仅 C+E+S）")
+        check(root_all == EXPECT["total"], f"[根index] 全站题量={root_all} 期望 {EXPECT['total']}（C+E+S+D）")
     if ENGINEERING:
         root_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
         if root_eng is None:
@@ -1240,10 +1277,10 @@ def main():
     # 7) 求和自洽
     check(EXPECT["p0"]+EXPECT["p1"]+EXPECT["p2"] == EXPECT["total"], "[自洽] P0+P1+P2=总量")
     check(EXPECT["expert"]+EXPECT["architect"]+EXPECT["senior"] == EXPECT["total"], "[自洽] 难度三级=总量")
-    check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"] == EXPECT["total"], "[自洽] 类型三级=总量（跨大篇章口径）")
+    check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"]+EXPECT["domain_questions"] == EXPECT["total"], "[自洽] 类型四级=总量（篇章+核心原理+场景+垂直领域）")
 
     # 8) 卡片 id 三方一致性：章节正文 ↔ 章节 TOC ↔ 导图引用；id 总数=各域分计之和（非对外「全站合计」）
-    IDPAT = r"((?:M|C|E|S|G|K)\d{2}\.\d{2})"
+    IDPAT = r"((?:M|C|E|S|D|G|K)\d{2}\.\d{2})"
     body_ids, toc_ids, mind_ids = set(), set(), set()
     for p in chap_files:
         t = read(p)

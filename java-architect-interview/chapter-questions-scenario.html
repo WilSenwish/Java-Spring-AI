@@ -790,6 +790,7 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>经典防超卖 + 削峰，需求是"绝不超卖 + P99&lt;200ms + 100 倍洪峰"，首答先复述这三条约束。</div>
                 <div class="insight-method"><strong>破题主线：</strong>漏斗模型（CDN→网关限流→Redis Lua 预扣→MQ 削峰→DB 乐观锁），把流量与库存分离、读与写分离。分层落地：接入限流、应用原子扣减、数据异步落库 + 分桶打散热点。</div>
                 <div class="insight-method"><strong>易错点：</strong>先查后扣的并发窗口（必用 Lua 原子）；Redis 预热与 DB 不一致；MQ 单线程消费导致堆积；库存分桶后桶间借调。答完主动补"本地消息表对账 + 余额兜底"证明能扛故障。</div>
+                <div class="insight-method"><strong>→ D 篇深化：</strong><a href="chapter-questions-domain.html#D03.02">D03.02 库存中心：三态库存、预扣释放与仓间调拨</a></div>
               </div>
             </div>
           </div>
@@ -1362,6 +1363,8 @@ graph TD
                 <div class="insight-method">
                   <strong>相关卡片：</strong><a href="chapter-core-methodology.html#M08.08">M08.08 热点治理方法论</a> ·
                   <a href="chapter-11-middleware-engineering.html#C11.22">C11.22 延时任务</a>
+                  ·
+                  <a href="chapter-questions-domain.html#D01.04">D01.04 热点账户扣款：余额防超扣与串行化设计</a>
                 </div>
               </div>
             </div>
@@ -6623,6 +6626,7 @@ sequenceDiagram
                 <div class="insight-method"><strong>一眼定位：</strong>电商全链路=下单支付库存物流一致性，核心是“同步最小化+幂等优先”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>CAP/BASE权衡：核心链强一致预扣，非核心AP异步化，分层设计+削峰填谷+隔离熔断，三段式库存。</div>
                 <div class="insight-method"><strong>易错点：</strong>行锁扣库存雪崩(Redis预扣)；支付回调不幂等(幂等键+唯一索引)；MQ消费失败直接丢(死信)；全链强一致误用Seata AT。</div>
+                <div class="insight-method"><strong>→ D 篇深化：</strong><a href="chapter-questions-domain.html#D03.01">D03.01 订单中心：领域建模、状态机与逆向流程设计</a></div>
               </div>
             </div>
           </div>
@@ -6791,6 +6795,7 @@ sequenceDiagram
                 <div class="insight-method"><strong>一眼定位：</strong>金融风控=实时计算+规则+模型，核心是“100ms决策+口径一致”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>Kappa流批一体，特征分层(实时Redis/近线HBase/离线Hive)，规则优先短路+模型并行+仲裁合并，图谱查团伙。</div>
                 <div class="insight-method"><strong>易错点：</strong>实时离线特征口径漂移(特征平台统一)；规则硬编码(配置化热更新)；黑盒无解释性(SHAP/LIME)；特征服务无降级。</div>
+                <div class="insight-method"><strong>→ D 篇深化：</strong><a href="chapter-questions-domain.html#D02.01">D02.01 实时风控引擎：规则 + 模型 + 名单的百毫秒决策链路</a></div>
               </div>
             </div>
           </div>
@@ -7365,6 +7370,7 @@ sequenceDiagram
                 <div class="insight-method"><strong>一眼定位：</strong>支付链路=最终一致+对账，核心是“三层保障守护资金安全”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>分布式事务(Saga/TCC)+本地消息表(MQ不丢不重)+定时对账(全量+差异+实时)三层，抄底保障“慢对账不错一分”。</div>
                 <div class="insight-method"><strong>易错点：</strong>忽略超时重试重复支付(Token+状态机+锁)；只对总账不对明细(逐笔)；幂等只Token不状态机(CAS状态机兜底)。</div>
+                <div class="insight-method"><strong>→ D 篇深化：</strong><a href="chapter-questions-domain.html#D01.01">D01.01 支付核心系统：收单、退款、关单全链路与幂等设计</a></div>
               </div>
             </div>
           </div>
@@ -9764,6 +9770,7 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>Netty长连接=C10M+心跳+有序+漂移，约束“千万在线”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>事件驱动+内存池(池化ByteBuf)+水平扩展，Boss/Worker线程分工，一致性哈希分片，故障推送新映射漂移。</div>
                 <div class="insight-method"><strong>易错点：</strong>未关TCP_NODELAY小消息延迟40ms；心跳过频/过疏；ChannelHandler状态未清理内存泄漏；EventLoop里执行业务假死。</div>
+                <div class="insight-method"><strong>→ D 篇深化：</strong><a href="chapter-questions-domain.html#D07.01">D07.01 设备接入网关：百万长连接、MQTT 与接入鉴权</a></div>
               </div>
             </div>
           </div>
@@ -10115,6 +10122,7 @@ graph TD
                 <div class="insight-method"><strong>一眼定位：</strong>WebSocket=无状态集群+热点广播，约束“百万并发行情”。</div>
                 <div class="insight-method"><strong>破题主线：</strong>接入(Netty/WebSocket集群无状态)→消息(Kafka/Redis PubSub广播)→分级(用户标签路由分档topic→tick/1s/5s)。</div>
                 <div class="insight-method"><strong>易错点：</strong>不做连接数限流单节点崩；订阅全量行情通道浪费带宽；Nginx代理超时与心跳冲突(30s心90s超)；断连资源清理。</div>
+                <div class="insight-method"><strong>→ D 篇深化：</strong><a href="chapter-questions-domain.html#D11.01">D11.01 游戏网关：长连接管理、协议设计与广播扇出</a></div>
               </div>
             </div>
           </div>

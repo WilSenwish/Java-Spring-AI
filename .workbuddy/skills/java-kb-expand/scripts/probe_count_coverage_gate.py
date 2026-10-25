@@ -131,15 +131,24 @@ inject(CORE, _e2, "正文聚合", "E 正文长段落「15 篇」去保护",
        note="← 短块兜底只覆盖 ≤100 字块，长正文只有真值锚定的 D 段能抓")
 
 # ---------- F：注入一段长正文里的全新裸计数（绕开短块兜底） ----------
+# 注入值必须**动态取 V 中的真值**（禁写死）：旧版写死「400 道」锚定彼时 total=400，
+# 计数演进后 400 ∉ V，D 段（真值锚定）按设计放行非 V 数字 → 探针假绿。改从 SSOT 取 total。
+import json as _json  # noqa: E402
+_TOTAL = (_json.load(io.open(os.path.join(BASE, "docs/kb-counts.json"), encoding="utf-8"))
+          .get("counts", {}).get("total"))
+assert isinstance(_TOTAL, int) and _TOTAL > 0, "SSOT counts.total 缺失，无法构造 F 用例"
+_METH = (_json.load(io.open(os.path.join(BASE, "docs/kb-counts.json"), encoding="utf-8"))
+         .get("counts", {}).get("methodology"))
 _f = io.open(CORE, encoding="utf-8").read()
 _patch = re.sub(
     r"(</body>)",
-    r'<p data-probe="1">本库共 400 道知识点，覆盖 JVM 内存与类加载、并发编程、MySQL 索引与事务、'
-    r'Redis 缓存治理、消息队列、微服务治理与可观测性等领域；另附 149 张方法论卡片，'
-    r'按道法术器势五层组织，供架构决策、故障排查与跨团队表达时快速检索与对照使用。</p>\1',
+    ('<p data-probe="1">本库共 %d 道知识点，覆盖 JVM 内存与类加载、并发编程、MySQL 索引与事务、'
+     'Redis 缓存治理、消息队列、微服务治理与可观测性等领域；另附 %d 张方法论卡片，'
+     '按道法术器势五层组织，供架构决策、故障排查与跨团队表达时快速检索与对照使用。</p>\\1'
+     % (_TOTAL, _METH)),
     _f, count=1)
 assert _patch != _f, "长正文注入锚点 </body> 未命中"
-inject(CORE, _patch, "400道", "F 长正文注入裸「400 道 / 149 张」",
+inject(CORE, _patch, "%d道" % _TOTAL, "F 长正文注入裸「%d 道 / %d 张」（值取自 SSOT）" % (_TOTAL, _METH),
        note="← 证明 D 段对**新增**正文计数同样生效，不是只认既有位置")
 
 # ---------- 收尾复跑 ----------

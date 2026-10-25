@@ -82,7 +82,9 @@ def main():
         blob = '|'.join(labels)
         bad = []
         n = 0
-        for m in re.finditer(r'<summary>\s*([CESGKM]\d{2}\.\d{2})\s*([^<]*)<', t):
+        # 2026-10-24：D 篇（垂直领域）入站，前缀类补 D —— 与 validate_kb 的 IDPAT 同步放宽，
+        # 保证将来若出现逐卡式 <summary>DXX.YY …</summary> 的导图页同样受「卡↔图节点」门禁覆盖
+        for m in re.finditer(r'<summary>\s*([CESGKMD]\d{2}\.\d{2})\s*([^<]*)<', t):
             cid, title = m.group(1), norm(m.group(2))
             if not title:
                 continue

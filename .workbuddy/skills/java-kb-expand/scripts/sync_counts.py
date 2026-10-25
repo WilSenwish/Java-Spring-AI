@@ -149,7 +149,7 @@ def apply_one(t, pos, new_vals):
 def cmd_show(cfg):
     c = cfg["counts"]
     print(f"真源：{COUNTS_JSON}  (updated {cfg['updated']})")
-    print(f"  题目总量 {c['total']} = 篇章 {c['chapters']} + 核心原理 {c['basics']} + 场景 {c['scenarios']}")
+    print(f"  题目总量 {c['total']} = 篇章 {c['chapters']} + 核心原理 {c['basics']} + 场景 {c['scenarios']} + 垂直领域 {c.get('domain_questions', 0)}")
     print(f"  优先级    P0={c['p0']} / P1={c['p1']} / P2={c['p2']}")
     print(f"  难度      专家={c['expert']} / 架构师={c['architect']} / 高级开发={c['senior']}  (仅 C/E/S)")
     print(f"  方法论    {c['methodology']} 卡（带优先级 {c['methodology_with_priority']}；不分难度等级）")
@@ -273,13 +273,13 @@ def render_block(cfg, compact=False):
     c = cfg["counts"]
     lines = [
         BEGIN,
-        f"- 题目总量 **{c['total']}** = 篇章 {c['chapters']} + 核心原理 {c['basics']} + 场景 {c['scenarios']}",
+        f"- 题目总量 **{c['total']}** = 篇章 {c['chapters']} + 核心原理 {c['basics']} + 场景 {c['scenarios']} + 垂直领域 {c.get('domain_questions', 0)}",
         f"- 优先级 **P0={c['p0']} / P1={c['p1']} / P2={c['p2']}**（求和 = {c['total']}）",
         f"- 难度 **专家 {c['expert']} / 架构师 {c['architect']} / 高级开发 {c['senior']}**（求和 = {c['total']}；仅覆盖 C/E/S，M/G/K 不分级）",
         f"- 方法论 **{c['methodology']} 卡**（M01~M17：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16 / 附 M17，专篇键 methodology；**不分难度等级**）",
         f"- 工程化 **{c.get('engineering', 0)} 卡**（G01~G08，专篇键 engineering；**不分难度等级**）",
         f"- 生产踩坑 **{c.get('pitfalls', 0)} 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）",
-        f"- 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**",
+        f"- 口径（程序约束）：题目总量 total=篇章+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**",
         f"- 方法论细分：带优先级 {c['methodology_with_priority']}/{c['methodology']}（2026-09-16 起 M/G/K 不设难度计数）",
     ]
     if compact:

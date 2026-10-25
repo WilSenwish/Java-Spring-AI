@@ -214,6 +214,7 @@
           <a href="#dim-methodology" class="sticky-dim-link" style="--nav-color: #2563eb">方法论</a>
           <a href="#dim-engineering" class="sticky-dim-link" style="--nav-color: #059669">工程化</a>
           <a href="#dim-scenario" class="sticky-dim-link" style="--nav-color: #7c3aed">场景</a>
+          <a href="#dim-domain" class="sticky-dim-link" style="--nav-color: #d97706">垂直领域</a>
           <a href="#dim-techstack" class="sticky-dim-link" style="--nav-color: #ea580c">技术栈</a>
           <a href="#dim-security" class="sticky-dim-link" style="--nav-color: #dc2626">安全</a>
         </nav>
@@ -843,8 +844,146 @@
           </div>
         </section>
 
+        <section class="dimension-section" id="dim-domain" style="--dim-color: #d97706">
+          <div class="dimension-header">四、垂直领域范式（D01-D12）</div>
+          <div class="dimension-intro">
+            <p class="intro-lead"><strong>领域题破题四步：复述业务闭环 → 立领域模型 → 讲关键范式 → 端到端场景 + 合规兜底。第一失分点是说错业务语言，不是技术。</strong></p>
+            <div class="intro-line"><strong>领域模型</strong>：限界上下文划边界、聚合根守不变量、状态机驱动流程、领域事件解耦——先立模型再谈架构</div>
+            <div class="intro-line"><strong>资金安全</strong>：复式记账有收必有付；分录不可变（红字冲正禁改删）；对账是最后兜底</div>
+            <div class="intro-line"><strong>幂等处</strong>：支付/核销/扣款全靠幂等键（业务单号）+ 状态机前置校验 + 唯一索引</div>
+            <div class="intro-line"><strong>库存守恒</strong>：现货 = 预扣 + 占用 + 可用，任何转移可对账；防超卖 Redis Lua + DB 乐观锁兜底</div>
+            <div class="intro-line"><strong>合规红线</strong>：KYC/名单筛查/监管报送时效/等保三级/审计不可篡改——合规是设计输入不是补丁</div>
+            <div class="intro-line"><strong>与 S 篇关系</strong>：S 篇技术范式（防超卖/事务/热点/长连接）是共用积木，领域题考的是把积木装进行业骨架</div>
+          </div>
+          <div class="card-anchor-row"><a href="#card-d01" class="card-anchor-link">D01</a><a href="#card-d02" class="card-anchor-link">D02</a><a href="#card-d03" class="card-anchor-link">D03</a><a href="#card-d04" class="card-anchor-link">D04</a><a href="#card-d05" class="card-anchor-link">D05</a><a href="#card-d06" class="card-anchor-link">D06</a><a href="#card-d07" class="card-anchor-link">D07</a><a href="#card-d08" class="card-anchor-link">D08</a><a href="#card-d09" class="card-anchor-link">D09</a><a href="#card-d10" class="card-anchor-link">D10</a><a href="#card-d11" class="card-anchor-link">D11</a><a href="#card-d12" class="card-anchor-link">D12</a></div>
+
+          <div class="cheat-card" id="card-d01" style="--card-color: #d97706">
+            <div class="cheat-card-header">D01 金融 · 支付与清结算（<span class="kb-count" data-kb-count="struct.domain.group_1" data-kb-pos="P467">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>支付状态机</strong>：待支付→已支付→已关单/已退款，转移表驱动，异常流（超时未付/渠道掉单）靠关单+轮询补偿</div>
+            <div class="cheat-bullet"><strong>幂等三件套</strong>：幂等键取业务单号、状态机前置校验（已支付禁重复支付）、DB 唯一索引兜底</div>
+            <div class="cheat-bullet"><strong>复式记账</strong>：每笔交易借贷双腿且收付相等；余额由流水汇总而非直接改字段；分录只增不改</div>
+            <div class="cheat-bullet"><strong>清结算 T+1</strong>：日切切断在途，清分按渠道汇总、结算按账户出款；长款挂账、短款催收，差异不过夜</div>
+            <div class="cheat-bullet"><strong>热点账户</strong>：只写流水表，100ms 窗口聚合净额后批量 UPDATE 余额，队列化保序</div>
+            <div class="cheat-bullet"><strong>渠道路由</strong>：成功率/成本双目标动态权重；单渠道故障熔断切换，对账任务兜底资金安全</div>
+            <div class="cheat-bullet"><strong>跨境支付</strong>：多币种记账+汇率快照，原路原币退款，汇兑损益独立科目，牌照与监管报送先行</div>
+          </div>
+
+          <div class="cheat-card" id="card-d02" style="--card-color: #d97706">
+            <div class="cheat-card-header">D02 金融 · 风控与合规（<span class="kb-count" data-kb-count="struct.domain.group_2" data-kb-pos="P468">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>决策链路</strong>：特征服务→规则引擎/模型→决策（通过/挑战/拒绝）→处置→反馈闭环，全程百毫秒级</div>
+            <div class="cheat-bullet"><strong>规则引擎</strong>：DSL 化规则配置热更新；名单本地缓存+定时同步；实时与批量两条链路分离</div>
+            <div class="cheat-bullet"><strong>误杀与召回</strong>：权衡误杀率与召回率；模型可解释、每次决策留痕可回放</div>
+            <div class="cheat-bullet"><strong>反欺诈</strong>：设备指纹 + 关系图谱识别团伙；异常聚类（同设备多账户/共享WiFi）</div>
+            <div class="cheat-bullet"><strong>AML</strong>：KYC 分级准入、名单筛查（实时+批量）、可疑交易评分模型、监管报送时效 SLA</div>
+            <div class="cheat-bullet"><strong>合规四件套</strong>：数据分类分级、敏感字段脱敏（查询/导出/日志三处）、审计不可篡改、等保三级</div>
+            <div class="cheat-bullet"><strong>贷后催收</strong>：DPD 推进案件状态机；动作策略化 + 通信合规前置（时段/频次/禁呼）；还款按费用→利息→本金分配留痕</div>
+          </div>
+
+          <div class="cheat-card" id="card-d03" style="--card-color: #d97706">
+            <div class="cheat-card-header">D03 电商 · 交易与履约（<span class="kb-count" data-kb-count="struct.domain.group_3" data-kb-pos="P469">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>订单状态机</strong>：正向（待支付→已支付→已发货→已完成）与逆向（退款/退货/换货/取消）同一张转移图，逆向流程先行设计</div>
+            <div class="cheat-bullet"><strong>库存三态</strong>：可用/预扣/占用守恒，预扣设超时释放；防超卖 Redis Lua 原子扣 + DB WHERE num&gt;0 兜底 + 对账</div>
+            <div class="cheat-bullet"><strong>仓间调拨</strong>：缺仓触发调拨或拆单，就近履约与成本权衡；调拨单也是状态机</div>
+            <div class="cheat-bullet"><strong>价格时效</strong>：下单生成报价快照（商品+券+运费），活动改价不影响在途订单</div>
+            <div class="cheat-bullet"><strong>商品模型</strong>：SPU 统一定义、SKU 定义交易；类目属性与价格分离，错价防控靠改价审批+监控</div>
+            <div class="cheat-bullet"><strong>购物车试算</strong>：试算与下单分离，试算不一致以下单页实时计算为准；事务边界到「扣库存+建单」为止</div>
+            <div class="cheat-bullet"><strong>商家结算</strong>：三户模型（待结算/可提现/保证金）；明细级复式记账；结算单驱动打款；逆向冲抵可见</div>
+          </div>
+
+          <div class="cheat-card" id="card-d04" style="--card-color: #d97706">
+            <div class="cheat-card-header">D04 电商 · 营销与定价（<span class="kb-count" data-kb-count="struct.domain.group_4" data-kb-pos="P470">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>券生命周期</strong>：模板→批次→领取→核销→过期回收；领取限领（用户级）、核销幂等（核销单号唯一）</div>
+            <div class="cheat-bullet"><strong>防超领</strong>：券库存原子扣减（Redis Lua + DB 兜底），防刷靠频率限制+黑名单</div>
+            <div class="cheat-bullet"><strong>价格引擎</strong>：满减/折扣/券按优先级栈式叠加，取最优价；试算接口与下单同源保证一致性</div>
+            <div class="cheat-bullet"><strong>积分账务</strong>：与资金账务同源（流水驱动余额），过期走批处理任务，冻结/解冻双分录</div>
+            <div class="cheat-bullet"><strong>价保差价</strong>：规则匹配生成价保单，差价原路退回，与退款流程共用幂等键</div>
+            <div class="cheat-bullet"><strong>投放治理</strong>：预算可控（先扣预算再发券）、限速发放（令牌桶）、过期自动回收、ROI 归因闭环</div>
+            <div class="cheat-bullet"><strong>消息触达</strong>：Push 优先失败降级短信；疲劳度前置拦截；末次点击归因口径统一；大促错峰限速</div>
+          </div>
+
+          <div class="cheat-card" id="card-d05" style="--card-color: #d97706">
+            <div class="cheat-card-header">D05 企业级 · SaaS 多租户（<span class="kb-count" data-kb-count="struct.domain.group_5" data-kb-pos="P494">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>隔离模型</strong>：共享 DB（tenant_id 行级）/ 独立 Schema / 独立 DB 三档，按租户规模与合规要求选，路由层统一收口</div>
+            <div class="cheat-bullet"><strong>租户上下文</strong>：ThreadLocal + 过滤器强制注入，禁无租户查询（防串租户）；大租户物理分库</div>
+            <div class="cheat-bullet"><strong>计费订阅</strong>：计量事件幂等去重 + 窗口聚合；订阅状态机（试用→生效→欠费冻结→恢复），欠费停服不停数据</div>
+            <div class="cheat-bullet"><strong>IAM 行级权限</strong>：查询强制追加数据范围条件（ALL/ORG/SELF/自定义谓词）；SSO 先绑定后授权</div>
+            <div class="cheat-bullet"><strong>配置分层</strong>：默认值→套餐→租户覆盖逐层深合并；插件沙箱加载 + 版本矩阵校验</div>
+            <div class="cheat-bullet"><strong>私有化交付</strong>：一套代码多形态；灰度按批次推进，健康检查失败即熔断回滚本批</div>
+            <div class="cheat-bullet"><strong>数据生命周期</strong>：迁移五阶段（拷/追/校/切/观）可回切；PITR = 全量+binlog；销毁四步留证</div>
+          </div>
+
+          <div class="cheat-card" id="card-d06" style="--card-color: #d97706">
+            <div class="cheat-card-header">D06 本地生活 · 派单与 LBS（<span class="kb-count" data-kb-count="struct.domain.group_6" data-kb-pos="P495">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>派单评分</strong>：距离 + 顺路度 + 压力 + 公平性权重取最优；乐观锁抢占防双重派单，失败转下一候选</div>
+            <div class="cheat-bullet"><strong>LBS 网格</strong>：GeoHash 精度 6 查九宫格；ETA 用实测中位数衰减校准，承诺 = 预测 + 安全余量</div>
+            <div class="cheat-bullet"><strong>计价引擎</strong>：规则按优先级顺序求值、每步留痕可解释；溢价上限是合规红线</div>
+            <div class="cheat-bullet"><strong>供需均衡</strong>：热区预测→奖励杠杆 + 调度单引流；预约单时间盒分配运力，不与实时单抢骑手</div>
+            <div class="cheat-bullet"><strong>骑手风控</strong>：轨迹瞬移/悬浮/绕路三类特征打分；处置分级（观察/限单/封禁）+ 全程留痕供申诉</div>
+            <div class="cheat-bullet"><strong>运力预测</strong>：网格×时间片预测；供需比分层；引导提优先级不承诺；激励挂缺口防套利</div>
+          </div>
+
+          <div class="cheat-card" id="card-d07" style="--card-color: #d97706">
+            <div class="cheat-card-header">D07 物联网与车联网（<span class="kb-count" data-kb-count="struct.domain.group_7" data-kb-pos="P496">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>接入网关</strong>：百万长连接按租户/设备限流；一机一密（HMAC + 时间戳防重放），密钥存 KMS</div>
+            <div class="cheat-bullet"><strong>消息总线</strong>：规则引擎热更新路由；广播按租户分片 + 令牌桶，防一条指令打爆所有连接</div>
+            <div class="cheat-bullet"><strong>设备影子</strong>：desired/reported 分离，离线也能下发；命令 ACK 超时指数退避重发，上限转人工</div>
+            <div class="cheat-bullet"><strong>OTA 升级</strong>：差分包 + 按批次灰度（1%→5%→25%→100%），失败率超阈即全量回滚；双分区防断电变砖</div>
+            <div class="cheat-bullet"><strong>时序数据</strong>：按设备 + 时间分片批量写；抽样 + 关键帧补偿回放；冷热分层控成本</div>
+            <div class="cheat-bullet"><strong>设备生命周期</strong>：注册激活绑定车辆；影子追平配置；批量灰度熔断；自愈设退出；退役吊销</div>
+          </div>
+
+          <div class="cheat-card" id="card-d08" style="--card-color: #d97706">
+            <div class="cheat-card-header">D08 内容社区与 UGC（<span class="kb-count" data-kb-count="struct.domain.group_8" data-kb-pos="P497">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>Feed 推拉结合</strong>：大V 写扩散（推），普通用户读扩散（拉）；热度分时间衰减防老内容霸屏</div>
+            <div class="cheat-bullet"><strong>内容审核</strong>：先机审后发，疑点/高危类目进人审先审后发；申诉插队优先审（误杀成本高）</div>
+            <div class="cheat-bullet"><strong>计数一致性</strong>：本地累加 + 定时合并落库，禁每赞一次一次写；弹幕按视频分片房间广播</div>
+            <div class="cheat-bullet"><strong>创作者生态</strong>：可结算 = 已确认 − 已提现 − 冻结；信用分多维衰减，低分降权 + 禁提现</div>
+            <div class="cheat-bullet"><strong>版权安全</strong>：感知哈希 + 帧间差分指纹抗压缩匹配；通知-删除 + 反通知 + 留痕（避风港）</div>
+            <div class="cheat-bullet"><strong>推荐系统</strong>：多路召回动态配额；粗排双塔/精排深度；重排打散+负反馈；新内容保底曝光</div>
+          </div>
+
+          <div class="cheat-card" id="card-d09" style="--card-color: #d97706">
+            <div class="cheat-card-header">D09 物流与供应链（<span class="kb-count" data-kb-count="struct.domain.group_9" data-kb-pos="P498">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>履约寻源</strong>：候选仓按库存覆盖 + 距离过滤，成本函数 = 运费 + 时效惩罚 + 拆单惩罚</div>
+            <div class="cheat-bullet"><strong>TMS 调度</strong>：离线 VRP 启发式带时间盒（超时出可行解）；动态插单算边际成本；装载重不压轻、后送先装</div>
+            <div class="cheat-bullet"><strong>面单轨迹</strong>：号段发号 + 校验位 + 随机步长防遍历；隐私面单虚拟号；静默检测主动告知异常</div>
+            <div class="cheat-bullet"><strong>补货计划</strong>：安全库存 = z × √(提前期×需求方差 + 提前期方差×均值²)；可售 + 在途低于阈值触发采购</div>
+            <div class="cheat-bullet"><strong>逆向理赔</strong>：定损标准件自动 + 疑件人工；赔付幂等（claimId 唯一）；状态机全程留痕防骗保</div>
+            <div class="cheat-bullet"><strong>供应链协同</strong>：分层预测偏差周内纠偏；ATP = 在库+在途+在制-安全-承诺；S&amp;OP 变更单</div>
+          </div>
+
+          <div class="cheat-card" id="card-d10" style="--card-color: #d97706">
+            <div class="cheat-card-header">D10 广告与商业化（<span class="kb-count" data-kb-count="struct.domain.group_10" data-kb-pos="P499">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>检索投放</strong>：倒排 + 位图混合索引，人群包位图求交毫秒过滤；频控按用户 × 广告 × 时间窗</div>
+            <div class="cheat-bullet"><strong>竞价计费</strong>：GSP 二价（下一名竞价 + 最小增量）；pacing = 剩余预算/剩余时长比动态调价</div>
+            <div class="cheat-bullet"><strong>归因回传</strong>：归因窗口内末次点击归因；回传幂等（convertId 去重），防广告主侧重复计数</div>
+            <div class="cheat-bullet"><strong>结算报表</strong>：Kafka 流式聚合 + 分钟级宽表；平台 vs 客户口径 diff，容差内抹平、差异挂账</div>
+            <div class="cheat-bullet"><strong>反作弊</strong>：GIVT 已知库 + SIVT 行为模型双层；设备/IP/账号聚类识别刷量团伙整簇降权</div>
+            <div class="cheat-bullet"><strong>创意优化</strong>：bandit 探索利用；素材模板化生成；落地页价格结构化比对；衰退相对基线监测</div>
+          </div>
+
+          <div class="cheat-card" id="card-d11" style="--card-color: #d97706">
+            <div class="cheat-card-header">D11 游戏与实时互动（<span class="kb-count" data-kb-count="struct.domain.group_11" data-kb-pos="P500">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>游戏网关</strong>：无状态连接层 + 可靠/不可靠双通道；广播本地扇出优先，跨网关按 roomId 分区保序</div>
+            <div class="cheat-bullet"><strong>帧同步</strong>：定点数 + 固定步长 + 输入全集同序执行 + 逐帧哈希校验；只存输入流即可回放</div>
+            <div class="cheat-bullet"><strong>房间匹配</strong>：评分 = 实力差 + 等待惩罚 + 延迟惩罚，超时逐级放宽；房间状态机 + 超时踢出</div>
+            <div class="cheat-bullet"><strong>经济系统</strong>：货币账务三件套（条件更新 + 流水 + 幂等）；ZSet 分赛季分桶；交易行价格区间防洗钱</div>
+            <div class="cheat-bullet"><strong>战斗结算</strong>：公式参数化版本化；BUFF 互斥组 + 堆叠 + 帧事件；结算 Saga 幂等 + 对账补偿</div>
+            <div class="cheat-bullet"><strong>游戏内社交</strong>：seq 消息流；世界频道读扩散抗峰；私聊信箱兜底；先审后发/后审分频道</div>
+          </div>
+
+          <div class="cheat-card" id="card-d12" style="--card-color: #d97706">
+            <div class="cheat-card-header">D12 强合规行业（<span class="kb-count" data-kb-count="struct.domain.group_12" data-kb-pos="P501">6</span> 题）</div>
+            <div class="cheat-bullet"><strong>医疗</strong>：集成引擎星型收敛异构协议；EMPI 患者主索引；病历版本链留痕；调阅授权 + 审计</div>
+            <div class="cheat-bullet"><strong>教育</strong>：大小流分离（CDN 扛规模 + RTC 保互动）；白板 op 流保序重演；旁路录制双流打标</div>
+            <div class="cheat-bullet"><strong>信创</strong>：方言适配层 + native 能力矩阵；国密三层（传输 SM2 / 存储 SM4 / 签名 SM2）；CI 合规门禁</div>
+            <div class="cheat-bullet"><strong>数据合规</strong>：数据地图为索引；删除编排全链路（备份标记到期）；跨境网关路由；同意版本化</div>
+            <div class="cheat-bullet"><strong>审计追溯</strong>：四层采集（应用/网关/数据库/堡垒机）；WORM + 哈希链防篡改；血缘影响分析；口径 SSOT 报送</div>
+          </div>
+        </section>
+
         <section class="dimension-section" id="dim-techstack" style="--dim-color: #ea580c">
-          <div class="dimension-header">四、技术栈深度（C01-C15）</div>
+          <div class="dimension-header">五、技术栈深度（C01-C15）</div>
           <div class="dimension-intro">
             <p class="intro-lead"><strong>每篇先记两类「硬结论」，再记机制原理：参数硬规则与版本锚点是排障与选型最先要用、最不能记错的部分。</strong></p>
             <div class="intro-line"><strong>JVM</strong>：-Xms=-Xmx；生产必配 ExitOnOutOfMemoryError；堆≥32G 压缩指针失效，单实例建议 31g</div>
@@ -859,6 +998,7 @@
             <div class="intro-line"><strong>网络 IO</strong>：TIME_WAIT 2MSL；零拷贝 sendfile/mmap 减少态间拷贝</div>
             <div class="intro-line"><strong>响应式</strong>：Reactor 背压四策略；IO 密集可被虚拟线程替代，CPU 密集才选它</div>
           </div>
+          <div class="cheat-bullet"><strong>一网通办</strong>：共享目录分级治理；授权链网关；隐私计算不出域；流程时限看板不默认放行</div>
           <div class="card-anchor-row"><a href="#card-c01" class="card-anchor-link">C01</a><a href="#card-c02" class="card-anchor-link">C02</a><a href="#card-c03" class="card-anchor-link">C03</a><a href="#card-c04" class="card-anchor-link">C04</a><a href="#card-c05" class="card-anchor-link">C05</a><a href="#card-c06" class="card-anchor-link">C06</a><a href="#card-c07" class="card-anchor-link">C07</a><a href="#card-c08" class="card-anchor-link">C08</a><a href="#card-c09" class="card-anchor-link">C09</a><a href="#card-c10" class="card-anchor-link">C10</a><a href="#card-c11" class="card-anchor-link">C11</a><a href="#card-c12" class="card-anchor-link">C12</a><a href="#card-c13" class="card-anchor-link">C13</a><a href="#card-c14" class="card-anchor-link">C14</a><a href="#card-c15" class="card-anchor-link">C15</a></div>
 
           <div class="cheat-card" id="card-c01" style="--card-color: #ea580c">
@@ -1042,7 +1182,7 @@
         </section>
 
         <section class="dimension-section" id="dim-security" style="--dim-color: #dc2626">
-          <div class="dimension-header">五、服务端安全检查（OWASP Top 10:2025）</div>
+          <div class="dimension-header">六、服务端安全检查（OWASP Top 10:2025）</div>
           <div class="dimension-intro">
             <p class="intro-lead"><strong>一条总纲统领全部检查点：默认不信任——输入走白名单校验、权限最小化、密钥不出 KMS、出口一律加密与脱敏。</strong></p>
             <div class="intro-line"><strong>口令与令牌</strong>：Argon2id/scrypt 慢哈希禁 MD5/SHA1；JWT 用 RS256 禁 none</div>

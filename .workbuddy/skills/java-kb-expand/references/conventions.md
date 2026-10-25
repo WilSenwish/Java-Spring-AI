@@ -248,6 +248,10 @@ C 段只覆盖「短元数据块」（可见文本 ≤ `max_block_chars`）；**
   技术叙述中的其他数字（「325 张表」「2000 万行」「8 亿行」）**天然不命中，无需逐一枚举句式**。
   新增计数键后 V 自动扩展，**无需改脚本**。
 - **与 C 段的分工**：C 管「短元数据块」，D 管「长正文段落」；判据与豁免各自独立。
+- **exempt 匹配窗口 = 去标签可见文本**（2026-10-24 修复，`validate_kb.plain_window`）：exempt 正则全部是
+  「可见文本语义」，但旧实现用**原始 HTML 窗口**匹配 —— 字符类 `[≥≤<>＞＜≦≧]` 里的 `>` 会误中标签结束符，
+  `class="layer-count">12 项` 被当成「>12 项」比较阈值而**系统性漏报**。改为先剥 `<[^>]*>` 再匹配，
+  且窗口两端**对齐到标签边界**（防 `class="...">` 残片）。真实页面 0 新增漏报（probe 双向验证 6/6）。
 - **爆炸半径**（2026-09-21 实测）：零豁免下 D 段候选 **124 处** —— 110 处是「第 N 篇」章节序号引用，
   其余 14 处为技术叙述（B+ 树层数、调用链深度、项测试、核心表、比较阈值等），全部由 `prose.exempt`
   **9 条**正则覆盖，**0 处未豁免**。
@@ -260,6 +264,8 @@ C 段只覆盖「短元数据块」（可见文本 ≤ `max_block_chars`）；**
      由人审负责，非本门禁职责（门禁管「有没有受保护」，不管「写得对不对」）；
   ③ 无单位词的展示位（如 mind index 算式 `1+1+1+15+1` 中的 15）：D 段要求「数字紧邻单位词」，抓不到，
      仍**须注册 position**（例 P433）并由一致性 / 真值链路保障。
+  ④ **probe 注入值禁写死**：`probe_count_coverage_gate` 用例 F 曾写死「400 道」锚定彼时 `total=400`；
+     计数演进后 400 ∉ V，D 段按设计放行 → **探针假绿**。注入值必须**动态取自 SSOT**（见探针源码）。
 
 **真源完备性（2026-09-21 长官指令「门禁得管写得对不对」）—— 登记了位置点，位上的数就必须有正确性校验**
 
@@ -498,13 +504,13 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **400** = 篇章 252 + 核心原理 74 + 场景 74
-- 优先级 **P0=94 / P1=248 / P2=58**（求和 = 400）
-- 难度 **专家 46 / 架构师 192 / 高级开发 162**（求和 = 400；仅覆盖 C/E/S，M/G/K 不分级）
+- 题目总量 **472** = 篇章 252 + 核心原理 74 + 场景 74 + 垂直领域 72
+- 优先级 **P0=108 / P1=289 / P2=75**（求和 = 472）
+- 难度 **专家 55 / 架构师 221 / 高级开发 196**（求和 = 472；仅覆盖 C/E/S，M/G/K 不分级）
 - 方法论 **149 卡**（M01~M17：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16 / 附 M17，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
-- 口径（程序约束）：题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
+- 口径（程序约束）：题目总量 total=篇章+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
 - 方法论细分：带优先级 0/149（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
@@ -942,6 +948,65 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P440 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M14 |
 | P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M15 |
 | P442 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M16 |
+| P443 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页副标题题数 |
+| P444 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页开篇散文题数（防漂移） |
+| P445 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_1 |
+| P446 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_2 |
+| P447 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_3 |
+| P448 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_4 |
+| P449 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_27（垂直领域 P0 专家） |
+| P450 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_28（垂直领域 P0 架构） |
+| P451 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_29（垂直领域 P1 专家） |
+| P452 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_30（垂直领域 P1 架构） |
+| P453 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_31（垂直领域 P1 高级） |
+| P454 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_32（垂直领域 P2 专家） |
+| P455 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_33（垂直领域 P2 高级） |
+| P456 | `index.html` | 升格 local:dir-count → struct.root.dir_count_20（垂直领域题） |
+| P457 | `index.html` | 升格 local:dir-group → struct.root.dir_group_61 |
+| P458 | `index.html` | 升格 local:dir-group → struct.root.dir_group_62 |
+| P459 | `index.html` | 升格 local:dir-group → struct.root.dir_group_63 |
+| P460 | `index.html` | 升格 local:dir-group → struct.root.dir_group_64 |
+| P461 | `index.html` | 根 index 统计卡「垂直领域题」题数 |
+| P462 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片 desc 题数 |
+| P463 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片 footer 题数 |
+| P464 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 expert |
+| P465 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 architect |
+| P466 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 senior |
+| P467 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D01  cheat-card 组计数（支付与清结算） |
+| P468 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D02 cheat-card 组计数（风控与合规） |
+| P469 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D03 cheat-card 组计数（交易与履约） |
+| P470 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D04 cheat-card 组计数（营销与定价） |
+| P471 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 5 组（垂直领域）组计数 |
+| P472 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 6 组（垂直领域）组计数 |
+| P473 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 7 组（垂直领域）组计数 |
+| P474 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 8 组（垂直领域）组计数 |
+| P475 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 9 组（垂直领域）组计数 |
+| P476 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 10 组（垂直领域）组计数 |
+| P477 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 11 组（垂直领域）组计数 |
+| P478 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 12 组（垂直领域）组计数 |
+| P479 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_34（垂直领域 P0 专家） |
+| P480 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_35（垂直领域 P0 架构） |
+| P481 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_36（垂直领域 P0 高级） |
+| P482 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_37（垂直领域 P1 专家） |
+| P483 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_38（垂直领域 P1 架构） |
+| P484 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_39（垂直领域 P1 高级） |
+| P485 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_40（垂直领域 P2 高级） |
+| P486 | `index.html` | 升格 local:dir-group → struct.root.dir_group_65 |
+| P487 | `index.html` | 升格 local:dir-group → struct.root.dir_group_66 |
+| P488 | `index.html` | 升格 local:dir-group → struct.root.dir_group_67 |
+| P489 | `index.html` | 升格 local:dir-group → struct.root.dir_group_68 |
+| P490 | `index.html` | 升格 local:dir-group → struct.root.dir_group_69 |
+| P491 | `index.html` | 升格 local:dir-group → struct.root.dir_group_70 |
+| P492 | `index.html` | 升格 local:dir-group → struct.root.dir_group_71 |
+| P493 | `index.html` | 升格 local:dir-group → struct.root.dir_group_72 |
+| P494 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D05 cheat-card 组计数 |
+| P495 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D06 cheat-card 组计数 |
+| P496 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D07 cheat-card 组计数 |
+| P497 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D08 cheat-card 组计数 |
+| P498 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D09 cheat-card 组计数 |
+| P499 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D10 cheat-card 组计数 |
+| P500 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D11 cheat-card 组计数 |
+| P501 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D12 cheat-card 组计数 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
