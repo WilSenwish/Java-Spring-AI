@@ -1,17 +1,17 @@
 {
   "schema": "kb-counts/v1",
-  "updated": "2026-10-25",
+  "updated": "2026-10-26",
   "note": "权威计数唯一真源（SSOT）。全局键 counts；结构/分组键 struct。全站展示计数必须 data-kb-pos + 本文件；禁止 kb-count-local；禁止页面用自然语言声明口径。题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键（三者不分难度等级，故无 *_expert/_architect/_senior 键）；不设全站合计。难度等级仅覆盖 C/E/S（counts.expert/architect/senior）。",
   "base_note": "file 字段为相对项目根（Java Spring AI/）的路径；pattern 为 Python re 语法，捕获组即待同步数字。",
   "counts": {
-    "total": 472,
-    "p0": 108,
-    "p1": 289,
-    "p2": 75,
-    "expert": 55,
-    "architect": 221,
-    "senior": 196,
-    "chapters": 252,
+    "total": 546,
+    "p0": 124,
+    "p1": 337,
+    "p2": 85,
+    "expert": 65,
+    "architect": 260,
+    "senior": 221,
+    "chapters": 326,
     "basics": 74,
     "scenarios": 74,
     "methodology": 149,
@@ -527,7 +527,7 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "p0",
+      "key": "struct.ov.group_p0_base",
       "desc": "overview P0 组标题题数"
     },
     {
@@ -537,7 +537,7 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "p1",
+      "key": "struct.ov.group_p1_base",
       "desc": "overview P1 组标题题数"
     },
     {
@@ -547,7 +547,7 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "p2",
+      "key": "struct.ov.group_p2_base",
       "desc": "overview P2 组标题题数"
     },
     {
@@ -4899,6 +4899,56 @@
       "nth": 1,
       "key": "domain_questions",
       "desc": "mind index idx-meta 垂直领域题统计"
+    },
+    {
+      "id": "P510_idx_a_n",
+      "file": "java-architect-interview/index.html",
+      "pattern": "data-kb-pos=\"P510\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.chap.idx.ca.n",
+      "desc": "章节索引 A 篇章卡片题数"
+    },
+    {
+      "id": "P511_idx_a_expert",
+      "file": "java-architect-interview/index.html",
+      "pattern": "data-kb-pos=\"P511\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.chap.idx.ca.expert",
+      "desc": "章节索引 A 篇章卡片难度分布 expert"
+    },
+    {
+      "id": "P512_idx_a_architect",
+      "file": "java-architect-interview/index.html",
+      "pattern": "data-kb-pos=\"P512\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.chap.idx.ca.architect",
+      "desc": "章节索引 A 篇章卡片难度分布 architect"
+    },
+    {
+      "id": "P513_idx_a_senior",
+      "file": "java-architect-interview/index.html",
+      "pattern": "data-kb-pos=\"P513\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.chap.idx.ca.senior",
+      "desc": "章节索引 A 篇章卡片难度分布 senior"
+    },
+    {
+      "id": "P514_idx_a_n_footer",
+      "file": "java-architect-interview/index.html",
+      "pattern": "data-kb-pos=\"P514\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "struct.chap.idx.ca.n",
+      "desc": "章节索引 A 篇章卡片 footer 题数"
     }
   ],
   "guard": {
@@ -5032,8 +5082,8 @@
           "file": "java-architect-interview/nav-overview-priority.html",
           "block_re": "<section class=\"ov-group\"",
           "count_re": "class=\"ov-item\"",
-          "key_re": "^(p0|p1|p2)$",
-          "desc": "overview 每个优先级组的题数 = 块内 ov-item 数"
+          "key_re": "^struct\\.ov\\.group_(p0|p1|p2)_base$",
+          "desc": "overview 每个优先级组的题数（基准，不含 A 轴；A 轴优先级在 sum_key 中并加）"
         },
         {
           "id": "scenario_group",
@@ -5137,7 +5187,7 @@
           "items": [
             {
               "key": "chapters",
-              "terms": "^struct\\.chap\\.idx\\.c\\d\\d\\.n$",
+              "terms": "^struct\\.chap\\.idx\\.(c\\d\\d|ca)\\.n$",
               "desc": "篇章题数 = Σ 各篇题数"
             },
             {
@@ -5157,21 +5207,36 @@
             },
             {
               "key": "expert",
-              "terms": "^struct\\.ov\\.subgroup_(1|4|7)$",
+              "terms": "^struct\\.ov\\.subgroup_(1|4|7)$|^struct\\.chap\\.idx\\.ca\\.expert$",
               "desc": "专家题数 = 三个优先级组的「专家」难度列之和（矩阵列坐标 1/4/7）"
             },
             {
               "key": "architect",
-              "terms": "^struct\\.ov\\.subgroup_(2|5|8)$",
+              "terms": "^struct\\.ov\\.subgroup_(2|5|8)$|^struct\\.chap\\.idx\\.ca\\.architect$",
               "desc": "架构题数 = 三个优先级组的「架构」难度列之和（列坐标 2/5/8）"
             },
             {
               "key": "senior",
-              "terms": "^struct\\.ov\\.subgroup_(3|6|9)$",
+              "terms": "^struct\\.ov\\.subgroup_(3|6|9)$|^struct\\.chap\\.idx\\.ca\\.senior$",
               "desc": "高级题数 = 三个优先级组的「高级」难度列之和（列坐标 3/6/9）"
+            },
+            {
+              "key": "p0",
+              "terms": "^struct\\.ov\\.group_p0_base$|^struct\\.chap\\.idx\\.ca\\.p0$",
+              "desc": "P0 题数 = overview 基准 + A 轴 P0"
+            },
+            {
+              "key": "p1",
+              "terms": "^struct\\.ov\\.group_p1_base$|^struct\\.chap\\.idx\\.ca\\.p1$",
+              "desc": "P1 题数 = overview 基准 + A 轴 P1"
+            },
+            {
+              "key": "p2",
+              "terms": "^struct\\.ov\\.group_p2_base$|^struct\\.chap\\.idx\\.ca\\.p2$",
+              "desc": "P2 题数 = overview 基准 + A 轴 P2"
             }
           ],
-          "key_re": "^(chapters|scenarios|domain_questions|total|expert|architect|senior)$",
+          "key_re": "^(chapters|scenarios|domain_questions|total|expert|architect|senior|p0|p1|p2)$",
           "desc": "语义键 = 若干从属键之和（恒等式）"
         },
         {
@@ -5345,6 +5410,10 @@
         {
           "key_re": "^(counts\\.)?methodology_with_priority$",
           "evidence": "与优先级交叠的方法论卡数（0）——当前无卡片带 data-priority，属白名单值，无展示计数意义"
+        },
+        {
+          "key_re": "^struct\\.chap\\.idx\\.ca\\.(n|expert|architect|senior)$",
+          "evidence": "A 轴（AI 工程纵深独立轴）章节索引卡片计数——结构键，值等于 chapter-question-ai-engineering-deep.html 实体卡数（题数 74 / 专家 10 / 架构 39 / 高级 25）；A 卡豁免 overview 落位，故不进 ov.subgroup 求和，仅在 sum_key 中补加 ca 专项键以闭合「章节题数」与「难度三级」恒等式"
         }
       ],
       "invariants": [
@@ -5671,6 +5740,10 @@
     "chap.idx.c15.expert": 1,
     "chap.idx.c15.n": 12,
     "chap.idx.c15.senior": 4,
+    "chap.idx.ca.n": 74,
+    "chap.idx.ca.expert": 10,
+    "chap.idx.ca.architect": 39,
+    "chap.idx.ca.senior": 25,
     "chap.idx.special.basics.expert": 3,
     "chap.idx.c14.senior": 4,
     "chap.idx.special.basics.architect": 31,
@@ -5951,6 +6024,12 @@
     "root.dir_group_70": 6,
     "root.dir_group_71": 6,
     "root.dir_group_72": 6,
-    "ov.type_36": 1
+    "ov.type_36": 1,
+    "chap.idx.ca.p0": 16,
+    "chap.idx.ca.p1": 48,
+    "chap.idx.ca.p2": 10,
+    "ov.group_p0_base": 108,
+    "ov.group_p1_base": 289,
+    "ov.group_p2_base": 75
   }
 }

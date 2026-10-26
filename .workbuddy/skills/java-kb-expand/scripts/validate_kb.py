@@ -1280,7 +1280,7 @@ def main():
     check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"]+EXPECT["domain_questions"] == EXPECT["total"], "[自洽] 类型四级=总量（篇章+核心原理+场景+垂直领域）")
 
     # 8) 卡片 id 三方一致性：章节正文 ↔ 章节 TOC ↔ 导图引用；id 总数=各域分计之和（非对外「全站合计」）
-    IDPAT = r"((?:M|C|E|S|D|G|K)\d{2}\.\d{2})"
+    IDPAT = r"((?:M|C|E|S|D|G|K|A)\d{2}\.\d{2})"
     body_ids, toc_ids, mind_ids = set(), set(), set()
     for p in chap_files:
         t = read(p)

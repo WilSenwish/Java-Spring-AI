@@ -167,6 +167,7 @@ index.html                         # 首页
 | `G##.##` | 工程化要点条目 | `G01.01` | chapter-engineering-practices |
 | `E##.##` | 核心原理速查条目 | `E01.01` | chapter-questions-eight-part |
 | `S##.##` | 场景题条目 | `S01.01` | chapter-questions-scenario |
+| `A##.##` | AI 工程纵深独立轴题号 | `A01.01` | chapter-question-ai-engineering-deep |
 
 约定：前缀字母 >= 该页内容类型；两位数字为「主题组 . 题序」。首页与大盘、安全手册按章节锚点 `href="#其题号"` 引用。
 锚点入口均以 `#ID` 形式被 `../../index.html`、`nav-overview-priority.html` 等转发。

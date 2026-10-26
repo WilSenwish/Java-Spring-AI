@@ -1,0 +1,2375 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 工程纵深：理论 · 前沿 · 规模化生产 | Java 工程能力知识库</title>
+    <script src="assets/theme-init.js"></script>
+    <link rel="stylesheet" href="assets/design-system.css" />
+  </head>
+  <body>
+    <div class="site-page-nav site-page-nav--top">
+      <nav class="chapter-nav-top">
+        <a href="chapter-questions-scenario.html" class="nav-prev">← 真实场景题</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-a-ai-engineering-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-questions-domain.html" class="nav-next">垂直领域架构范式 →</a>
+      </nav>
+    </div>
+
+    <div class="page-wrapper">
+      <aside class="sidebar-toc">
+        <h3>本篇目录</h3>
+        <ol>
+          <li><a href="#A01.01"><span class="toc-number">A01.01</span>Agent 的本质：Model + Harness 二分模型</a></li>
+          <li><a href="#A01.02"><span class="toc-number">A01.02</span>Agent 核心范式谱系（ReAct / Plan-Execute / Reflection / Multi-Agent）</a></li>
+          <li><a href="#A01.03"><span class="toc-number">A01.03</span>Workflow 与自主 Agent 的边界与选型（1:4 判定）</a></li>
+          <li><a href="#A02.01"><span class="toc-number">A02.01</span>上下文工程本质：Context Assembler 与 Token 预算</a></li>
+          <li><a href="#A02.02"><span class="toc-number">A02.02</span>Context Rot 与上下文压缩策略</a></li>
+          <li><a href="#A02.03"><span class="toc-number">A02.03</span>记忆工程：分层 / 生命周期 / 存储三态</a></li>
+          <li><a href="#A03.01"><span class="toc-number">A03.01</span>RAG 两阶段范式与"RAG vs 微调"决策</a></li>
+          <li><a href="#A03.02"><span class="toc-number">A03.02</span>RAG 进阶：切分 + 精排 + 多路召回</a></li>
+          <li><a href="#A03.03"><span class="toc-number">A03.03</span>GraphRAG 与 LightRAG：图增强检索的边界</a></li>
+          <li><a href="#A04.01"><span class="toc-number">A04.01</span>工具调用分层：FC / MCP / Skills / A2A</a></li>
+          <li><a href="#A04.02"><span class="toc-number">A04.02</span>MCP 的本质：N×M → N+M 的连接协议</a></li>
+          <li><a href="#A04.03"><span class="toc-number">A04.03</span>生产级工具接入 Checklist 与 Skills 渐进披露</a></li>
+          <li><a href="#A05.01"><span class="toc-number">A05.01</span>多 Agent 协作四要素与 Graph Engineering</a></li>
+          <li><a href="#A05.02"><span class="toc-number">A05.02</span>三种编排范式对比：Workflow / Graph / Loop</a></li>
+          <li><a href="#A05.03"><span class="toc-number">A05.03</span>九种编排模式与 AgentTask 契约 / Checkpoint</a></li>
+          <li><a href="#A06.01"><span class="toc-number">A06.01</span>评测 vs 监控：四类评测与设计</a></li>
+          <li><a href="#A06.02"><span class="toc-number">A06.02</span>Golden Set + CI 门禁与 LLM-as-Judge 防偏差</a></li>
+          <li><a href="#A06.03"><span class="toc-number">A06.03</span>灰度发布非劣效界值与 Java 落地 EvalRecord</a></li>
+          <li><a href="#A07.01"><span class="toc-number">A07.01</span>AI 系统四大风险面与分层防护</a></li>
+          <li><a href="#A07.02"><span class="toc-number">A07.02</span>合规要求与 Java/Spring 落地（ExecutionContext / ToolAuditEvent）</a></li>
+          <li><a href="#A07.03"><span class="toc-number">A07.03</span>Spring AI 安全层与大模型网关</a></li>
+          <li><a href="#A08.01"><span class="toc-number">A08.01</span>Agent 四组件与三层结构设计</a></li>
+          <li><a href="#A08.02"><span class="toc-number">A08.02</span>任务拆分与 DAG 并行执行</a></li>
+          <li><a href="#A08.03"><span class="toc-number">A08.03</span>记忆系统选型：Mem0 / Letta / Zep-Graphiti</a></li>
+          <li><a href="#A08.04"><span class="toc-number">A08.04</span>上下文压缩阈值（70–80%）与状态管理四层</a></li>
+          <li><a href="#A08.05"><span class="toc-number">A08.05</span>反思 / Multi-Agent Handoff / 容错（fencing token）</a></li>
+          <li><a href="#A09.01"><span class="toc-number">A09.01</span>Chunking 五级策略与父子块</a></li>
+          <li><a href="#A09.02"><span class="toc-number">A09.02</span>两阶段 Re-rank 与混合检索（BM25 + RRF）</a></li>
+          <li><a href="#A09.03"><span class="toc-number">A09.03</span>Query Rewrite 四法与四代 RAG 范式</a></li>
+          <li><a href="#A09.04"><span class="toc-number">A09.04</span>图增强与 Agentic RAG</a></li>
+          <li><a href="#A09.05"><span class="toc-number">A09.05</span>幻觉四层防线 / 知识更新先删后增 / 知识冲突裁决</a></li>
+          <li><a href="#A10.01"><span class="toc-number">A10.01</span>Function Calling 本质与训练（SFT + RLHF）</a></li>
+          <li><a href="#A10.02"><span class="toc-number">A10.02</span>MCP 三角色 / 版本 / 传输（stdio vs Streamable HTTP）</a></li>
+          <li><a href="#A10.03"><span class="toc-number">A10.03</span>A2A Agent Card 与 Task 状态机</a></li>
+          <li><a href="#A10.04"><span class="toc-number">A10.04</span>工具容错五阶段 / 沙箱隔离 / Skill 三层加载</a></li>
+          <li><a href="#A11.01"><span class="toc-number">A11.01</span>AI 编程三模式与需求描述规范（Vibe vs Spec）</a></li>
+          <li><a href="#A11.02"><span class="toc-number">A11.02</span>任务拆分（tasks.md）与代码质量 Oracle 独立审 Diff</a></li>
+          <li><a href="#A11.03"><span class="toc-number">A11.03</span>AI 排障：报错位置 ≠ 根因 / 测试覆盖变异测试</a></li>
+          <li><a href="#A11.04"><span class="toc-number">A11.04</span>Coding Agent 六件设施与 SDD 规约驱动</a></li>
+          <li><a href="#A12.01"><span class="toc-number">A12.01</span>四代演进：Prompt → Context → Harness → Loop → Graph</a></li>
+          <li><a href="#A12.02"><span class="toc-number">A12.02</span>Harness 六层 / Loop 五大件 / Graph 节点状态</a></li>
+          <li><a href="#A13.01"><span class="toc-number">A13.01</span>RuoYi AI vs JEECG AI 双平台对照与选型</a></li>
+          <li><a href="#A13.02"><span class="toc-number">A13.02</span>平台 vs 自研决策树与 Ragent/Nexus 模块划分</a></li>
+          <li><a href="#A14.01"><span class="toc-number">A14.01</span>RuoYi ruoyi-chat vs JEECG airag 逐包对照</a></li>
+          <li><a href="#A14.02"><span class="toc-number">A14.02</span>产品化 vs 自研差异（公平排队 / 事务 / 证据短路 / 11 种设计模式）</a></li>
+          <li><a href="#A15.01"><span class="toc-number">A15.01</span>ChatClient 多模型路由与 BeanOutputConverter 结构化输出</a></li>
+          <li><a href="#A15.02"><span class="toc-number">A15.02</span>记忆四实现与 Tool Calling 生产范式</a></li>
+          <li><a href="#A15.03"><span class="toc-number">A15.03</span>RAG 流变（Sequential/Branching/Conditional）与 Guardrails</a></li>
+          <li><a href="#A16.01"><span class="toc-number">A16.01</span>Ragent 双链路 v1/v2 与 Nexus 三层执行器</a></li>
+          <li><a href="#A16.02"><span class="toc-number">A16.02</span>检索融合 RRF 与模型容错三态熔断</a></li>
+          <li><a href="#A16.03"><span class="toc-number">A16.03</span>Redis ZSET 公平排队与 RocketMQ 事务一致</a></li>
+          <li><a href="#A16.04"><span class="toc-number">A16.04</span>11 种设计模式与"调 API ≠ 生产级 Agent"</a></li>
+          <li><a href="#A17.01"><span class="toc-number">A17.01</span>非确定性断言与 Golden Set + RAGAS/DeepEval + CI</a></li>
+          <li><a href="#A17.02"><span class="toc-number">A17.02</span>工具契约 / 防死循环 / 并发压测 + 故障注入</a></li>
+          <li><a href="#A18.01"><span class="toc-number">A18.01</span>GraalVM / K8s + HPA 与 Java×Python 推理 Sidecar</a></li>
+          <li><a href="#A18.02"><span class="toc-number">A18.02</span>入库流水线（Kafka/RocketMQ）与 Agent 六种部署形态</a></li>
+          <li><a href="#A19.01"><span class="toc-number">A19.01</span>三支柱：Micrometer+Prometheus / ELK / OTel+SkyWalking+LangFuse</a></li>
+          <li><a href="#A19.02"><span class="toc-number">A19.02</span>Run/Node 级 Trace、影子路由与告警 + Bad Case 闭环</a></li>
+          <li><a href="#A20.01"><span class="toc-number">A20.01</span>Sa-Token/Spring Security SSO 与输入净化 / 工具白名单</a></li>
+          <li><a href="#A20.02"><span class="toc-number">A20.02</span>AOP 审计 / 多租户隔离 + 被遗忘权 / 网关治理</a></li>
+          <li><a href="#A21.01"><span class="toc-number">A21.01</span>知识库 ETL 管线：切分 / 富化与 Embedding 选型版本治理</a></li>
+          <li><a href="#A21.02"><span class="toc-number">A21.02</span>向量索引生命周期与混合检索（BM25 + RRF）运维</a></li>
+          <li><a href="#A21.03"><span class="toc-number">A21.03</span>知识更新"先删后增"与知识冲突裁决</a></li>
+          <li><a href="#A22.01"><span class="toc-number">A22.01</span>Token 预算 / 语义缓存命中率 / 按成本模型路由</a></li>
+          <li><a href="#A22.02"><span class="toc-number">A22.02</span>按租户计费配额与 ROI 度量模型 + 成本异常告警</a></li>
+          <li><a href="#A23.01"><span class="toc-number">A23.01</span>模型 / Prompt 版本管理与回滚</a></li>
+          <li><a href="#A23.02"><span class="toc-number">A23.02</span>A-B / 灰度非劣效界值与发布门禁</a></li>
+          <li><a href="#A23.03"><span class="toc-number">A23.03</span>生产漂移监测与幻觉缓解运营闭环</a></li>
+          <li><a href="#A24.01"><span class="toc-number">A24.01</span>水平扩展 / 会话亲和 / 限流排队 / 多租户配额 QoS</a></li>
+          <li><a href="#A24.02"><span class="toc-number">A24.02</span>流式保活 / 续传 / 中断恢复与 TTFT 优化</a></li>
+          <li><a href="#A25.01"><span class="toc-number">A25.01</span>内部开发者平台 IDP / 脚手架 / Starter 化标准化交付</a></li>
+          <li><a href="#A25.02"><span class="toc-number">A25.02</span>裸线程池 vs Starter 动态线程池 vs 虚拟线程选型 + SDD</a></li>
+          <li><a href="#A26.01"><span class="toc-number">A26.01</span>场景选型决策树与价值度量（北极星指标）</a></li>
+          <li><a href="#A26.02"><span class="toc-number">A26.02</span>失败案例避坑与组织 adoption 路径</a></li>
+        </ol>
+      </aside>
+
+      <main class="content-main">
+      <div class="chapter-header">
+        <div class="chapter-number">CHAPTER A / AI ENGINEERING DEEP-DIVE</div>
+        <h1 class="chapter-title">AI 工程纵深：理论 · 前沿 · 规模化生产</h1>
+        <p class="chapter-subtitle">从理论底座到企业级规模化生产实践，多维立体覆盖 AI 工程化全栈能力。</p>
+        <div class="chapter-meta">
+          <span>题目数：74</span> <span class="meta-divider">|</span>
+          <span>高级 ×25</span> <span class="meta-divider">|</span>
+          <span>架构 ×39</span> <span class="meta-divider">|</span>
+          <span>专家 ×10</span> <span class="meta-divider">|</span>
+          <span>预计复习：420 分钟</span>
+        </div>
+        <div class="chapter-lead">
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">核心知识链</div>
+            <div class="chapter-lead-chain">
+            <p>以「理论底座 → 前沿题解 → 规模化生产」为主链，构建 AI 工程纵深能力。</p>
+            <ol>
+              <li><strong>理论纵深</strong>：Agent 本质、上下文记忆、RAG、工具协议、多 Agent、评估、治理，奠定认知地基。</li>
+              <li><strong>AI 前沿</strong>：工程化、RAG 全链路、MCP、Coding Agent、方法论，覆盖最新题解。</li>
+              <li><strong>规模化生产</strong>：平台选型到十一维立体生产实践，落地企业级能力。</li>
+            </ol>
+            </div>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">工程化要点</div>
+            <ul class="chapter-lead-points">
+              <li>生产实践沿全生命周期、技术栈、数据与知识、MLOps、成本、并发、平台工程、业务价值等多维立体展开。</li>
+              <li>与 C12 AI 工程化视角不同：本篇从理论 / 前沿 / 生产纵深切入，互为补充不重复。</li>
+            </ul>
+          </div>
+          <div class="chapter-lead-block">
+            <div class="chapter-lead-label">本篇思维模式</div>
+            <ul class="chapter-lead-mind">
+              <li><strong>分层落地</strong>：理论讲原理、前沿讲题解、生产讲工程化，避免跨篇复制。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="qa-card" id="A01.01" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A01.01</div>
+          <div class="qa-question">Agent 的本质：Model + Harness 二分模型<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A01.02" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A01.02</div>
+          <div class="qa-question">Agent 核心范式谱系（ReAct / Plan-Execute / Reflection / Multi-Agent）<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A01.03" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A01.03</div>
+          <div class="qa-question">Workflow 与自主 Agent 的边界与选型（1:4 判定）<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A02.01" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A02.01</div>
+          <div class="qa-question">上下文工程本质：Context Assembler 与 Token 预算<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A02.02" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A02.02</div>
+          <div class="qa-question">Context Rot 与上下文压缩策略<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A02.03" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A02.03</div>
+          <div class="qa-question">记忆工程：分层 / 生命周期 / 存储三态<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A03.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A03.01</div>
+          <div class="qa-question">RAG 两阶段范式与"RAG vs 微调"决策<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A03.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A03.02</div>
+          <div class="qa-question">RAG 进阶：切分 + 精排 + 多路召回<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A03.03" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A03.03</div>
+          <div class="qa-question">GraphRAG 与 LightRAG：图增强检索的边界<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A04.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A04.01</div>
+          <div class="qa-question">工具调用分层：FC / MCP / Skills / A2A<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A04.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A04.02</div>
+          <div class="qa-question">MCP 的本质：N×M → N+M 的连接协议<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A04.03" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A04.03</div>
+          <div class="qa-question">生产级工具接入 Checklist 与 Skills 渐进披露<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A05.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A05.01</div>
+          <div class="qa-question">多 Agent 协作四要素与 Graph Engineering<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A05.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A05.02</div>
+          <div class="qa-question">三种编排范式对比：Workflow / Graph / Loop<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A05.03" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A05.03</div>
+          <div class="qa-question">九种编排模式与 AgentTask 契约 / Checkpoint<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A06.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A06.01</div>
+          <div class="qa-question">评测 vs 监控：四类评测与设计<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A06.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A06.02</div>
+          <div class="qa-question">Golden Set + CI 门禁与 LLM-as-Judge 防偏差<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A06.03" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A06.03</div>
+          <div class="qa-question">灰度发布非劣效界值与 Java 落地 EvalRecord<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A07.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A07.01</div>
+          <div class="qa-question">AI 系统四大风险面与分层防护<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A07.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A07.02</div>
+          <div class="qa-question">合规要求与 Java/Spring 落地（ExecutionContext / ToolAuditEvent）<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A07.03" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A07.03</div>
+          <div class="qa-question">Spring AI 安全层与大模型网关<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A08.01" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A08.01</div>
+          <div class="qa-question">Agent 四组件与三层结构设计<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A08.02" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A08.02</div>
+          <div class="qa-question">任务拆分与 DAG 并行执行<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A08.03" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A08.03</div>
+          <div class="qa-question">记忆系统选型：Mem0 / Letta / Zep-Graphiti<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A08.04" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A08.04</div>
+          <div class="qa-question">上下文压缩阈值（70–80%）与状态管理四层<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A08.05" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A08.05</div>
+          <div class="qa-question">反思 / Multi-Agent Handoff / 容错（fencing token）<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A09.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A09.01</div>
+          <div class="qa-question">Chunking 五级策略与父子块<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A09.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A09.02</div>
+          <div class="qa-question">两阶段 Re-rank 与混合检索（BM25 + RRF）<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A09.03" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A09.03</div>
+          <div class="qa-question">Query Rewrite 四法与四代 RAG 范式<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A09.04" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A09.04</div>
+          <div class="qa-question">图增强与 Agentic RAG<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A09.05" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A09.05</div>
+          <div class="qa-question">幻觉四层防线 / 知识更新先删后增 / 知识冲突裁决<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A10.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A10.01</div>
+          <div class="qa-question">Function Calling 本质与训练（SFT + RLHF）<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A10.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A10.02</div>
+          <div class="qa-question">MCP 三角色 / 版本 / 传输（stdio vs Streamable HTTP）<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A10.03" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A10.03</div>
+          <div class="qa-question">A2A Agent Card 与 Task 状态机<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A10.04" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A10.04</div>
+          <div class="qa-question">工具容错五阶段 / 沙箱隔离 / Skill 三层加载<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A11.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A11.01</div>
+          <div class="qa-question">AI 编程三模式与需求描述规范（Vibe vs Spec）<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A11.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A11.02</div>
+          <div class="qa-question">任务拆分（tasks.md）与代码质量 Oracle 独立审 Diff<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A11.03" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A11.03</div>
+          <div class="qa-question">AI 排障：报错位置 ≠ 根因 / 测试覆盖变异测试<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A11.04" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A11.04</div>
+          <div class="qa-question">Coding Agent 六件设施与 SDD 规约驱动<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A12.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A12.01</div>
+          <div class="qa-question">四代演进：Prompt → Context → Harness → Loop → Graph<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A12.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A12.02</div>
+          <div class="qa-question">Harness 六层 / Loop 五大件 / Graph 节点状态<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A13.01" data-difficulty="expert">
+        <div class="qa-header">
+          <div class="qa-badge">A13.01</div>
+          <div class="qa-question">RuoYi AI vs JEECG AI 双平台对照与选型<span class="difficulty difficulty-expert">专家</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A13.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A13.02</div>
+          <div class="qa-question">平台 vs 自研决策树与 Ragent/Nexus 模块划分<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A14.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A14.01</div>
+          <div class="qa-question">RuoYi ruoyi-chat vs JEECG airag 逐包对照<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A14.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A14.02</div>
+          <div class="qa-question">产品化 vs 自研差异（公平排队 / 事务 / 证据短路 / 11 种设计模式）<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A15.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A15.01</div>
+          <div class="qa-question">ChatClient 多模型路由与 BeanOutputConverter 结构化输出<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A15.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A15.02</div>
+          <div class="qa-question">记忆四实现与 Tool Calling 生产范式<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A15.03" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A15.03</div>
+          <div class="qa-question">RAG 流变（Sequential/Branching/Conditional）与 Guardrails<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A16.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A16.01</div>
+          <div class="qa-question">Ragent 双链路 v1/v2 与 Nexus 三层执行器<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A16.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A16.02</div>
+          <div class="qa-question">检索融合 RRF 与模型容错三态熔断<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A16.03" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A16.03</div>
+          <div class="qa-question">Redis ZSET 公平排队与 RocketMQ 事务一致<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A16.04" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A16.04</div>
+          <div class="qa-question">11 种设计模式与"调 API ≠ 生产级 Agent"<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A17.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A17.01</div>
+          <div class="qa-question">非确定性断言与 Golden Set + RAGAS/DeepEval + CI<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A17.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A17.02</div>
+          <div class="qa-question">工具契约 / 防死循环 / 并发压测 + 故障注入<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A18.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A18.01</div>
+          <div class="qa-question">GraalVM / K8s + HPA 与 Java×Python 推理 Sidecar<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A18.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A18.02</div>
+          <div class="qa-question">入库流水线（Kafka/RocketMQ）与 Agent 六种部署形态<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A19.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A19.01</div>
+          <div class="qa-question">三支柱：Micrometer+Prometheus / ELK / OTel+SkyWalking+LangFuse<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A19.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A19.02</div>
+          <div class="qa-question">Run/Node 级 Trace、影子路由与告警 + Bad Case 闭环<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A20.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A20.01</div>
+          <div class="qa-question">Sa-Token/Spring Security SSO 与输入净化 / 工具白名单<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A20.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A20.02</div>
+          <div class="qa-question">AOP 审计 / 多租户隔离 + 被遗忘权 / 网关治理<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A21.01" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A21.01</div>
+          <div class="qa-question">知识库 ETL 管线：切分 / 富化与 Embedding 选型版本治理<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A21.02" data-difficulty="architect">
+        <div class="qa-header">
+          <div class="qa-badge">A21.02</div>
+          <div class="qa-question">向量索引生命周期与混合检索（BM25 + RRF）运维<span class="difficulty difficulty-architect">架构</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A21.03" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A21.03</div>
+          <div class="qa-question">知识更新"先删后增"与知识冲突裁决<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A22.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A22.01</div>
+          <div class="qa-question">Token 预算 / 语义缓存命中率 / 按成本模型路由<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A22.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A22.02</div>
+          <div class="qa-question">按租户计费配额与 ROI 度量模型 + 成本异常告警<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A23.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A23.01</div>
+          <div class="qa-question">模型 / Prompt 版本管理与回滚<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A23.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A23.02</div>
+          <div class="qa-question">A-B / 灰度非劣效界值与发布门禁<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A23.03" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A23.03</div>
+          <div class="qa-question">生产漂移监测与幻觉缓解运营闭环<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A24.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A24.01</div>
+          <div class="qa-question">水平扩展 / 会话亲和 / 限流排队 / 多租户配额 QoS<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A24.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A24.02</div>
+          <div class="qa-question">流式保活 / 续传 / 中断恢复与 TTFT 优化<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A25.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A25.01</div>
+          <div class="qa-question">内部开发者平台 IDP / 脚手架 / Starter 化标准化交付<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A25.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A25.02</div>
+          <div class="qa-question">裸线程池 vs Starter 动态线程池 vs 虚拟线程选型 + SDD<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A26.01" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A26.01</div>
+          <div class="qa-question">场景选型决策树与价值度量（北极星指标）<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+      <div class="qa-card" id="A26.02" data-difficulty="senior">
+        <div class="qa-header">
+          <div class="qa-badge">A26.02</div>
+          <div class="qa-question">失败案例避坑与组织 adoption 路径<span class="difficulty difficulty-senior">高级</span></div>
+        </div>
+        <div class="qa-layer" data-layer="essence">
+          <div class="qa-layer-title">本质问题</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="evolution">
+          <div class="qa-layer-title">演进脉络</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="principle">
+          <div class="qa-layer-title">第一性原理</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="practice">
+          <div class="qa-layer-title">工程实践</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="deep">
+          <div class="qa-layer-title">深度追问</div>
+          <div class="qa-layer-body"></div>
+        </div>
+        <div class="qa-layer" data-layer="pitfall">
+          <div class="qa-layer-title">常见陷阱</div>
+          <div class="qa-layer-body"></div>
+        </div>
+      </div>
+
+        <h2 id="references">参考资料</h2>
+        <p>本篇内容综合自 AI-Engineering-Knowledge（AIE）与 Java-Engineering-Knowledge（JEE）相关章节，按标准六层 QA 格式重构；正文编写阶段将逐卡补齐六层内容与引用来源。</p>
+      </main>
+    </div>
+    <div class="site-page-nav site-page-nav--bottom">
+      <nav class="chapter-nav">
+        <a href="chapter-questions-scenario.html" class="nav-prev">← 真实场景题</a>
+        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-a-ai-engineering-deep.html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <a href="chapter-questions-domain.html" class="nav-next">垂直领域架构范式 →</a>
+      </nav>
+    </div>
+
+    <script src="assets/nav.js"></script>
+  </body>
+</html>

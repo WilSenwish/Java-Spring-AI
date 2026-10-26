@@ -45,9 +45,9 @@
 分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / mind `card-foot`）须与实际卡片数一致；细则见 `docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **472** = 篇章 252 + 核心原理 74 + 场景 74 + 垂直领域 72
-- 优先级 **P0=108 / P1=289 / P2=75**（求和 = 472）
-- 难度 **专家 55 / 架构师 221 / 高级开发 196**（求和 = 472；仅覆盖 C/E/S，M/G/K 不分级）
+- 题目总量 **546** = 篇章 326 + 核心原理 74 + 场景 74 + 垂直领域 72
+- 优先级 **P0=124 / P1=337 / P2=85**（求和 = 546）
+- 难度 **专家 65 / 架构师 260 / 高级开发 221**（求和 = 546；仅覆盖 C/E/S，M/G/K 不分级）
 - 方法论 **149 卡**（M01~M17：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16 / 附 M17，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
@@ -479,7 +479,6 @@
 | P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
 | P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
 | P432 | `java-architect-interview-mind/index.html` | mind index 副标题「15 篇知识篇章」篇章页数（2026-09-21 升格） |
-| P433 | `java-architect-interview-mind/index.html` | mind index idx-meta 算式「1+1+1+15+1」中的篇章项（2026-09-21 升格；无单位词，由一致性链路保障） |
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
 | P435 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M16 单列势定律（11 张）」组卡数（2026-09-21 升格；同键既有位 P332 在 chapter-core-methodology） |
 | P436 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M17 表达与对齐（4 张）」组卡数（2026-09-21 升格；同键既有位 P406） |
@@ -525,13 +524,7 @@
 | P476 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 10 组（垂直领域）组计数 |
 | P477 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 11 组（垂直领域）组计数 |
 | P478 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 12 组（垂直领域）组计数 |
-| P479 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_34（垂直领域 P0 专家） |
-| P480 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_35（垂直领域 P0 架构） |
 | P481 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_36（垂直领域 P0 高级） |
-| P482 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_37（垂直领域 P1 专家） |
-| P483 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_38（垂直领域 P1 架构） |
-| P484 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_39（垂直领域 P1 高级） |
-| P485 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_40（垂直领域 P2 高级） |
 | P486 | `index.html` | 升格 local:dir-group → struct.root.dir_group_65 |
 | P487 | `index.html` | 升格 local:dir-group → struct.root.dir_group_66 |
 | P488 | `index.html` | 升格 local:dir-group → struct.root.dir_group_67 |
@@ -548,6 +541,12 @@
 | P499 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D10 cheat-card 组计数 |
 | P500 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D11 cheat-card 组计数 |
 | P501 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D12 cheat-card 组计数 |
+| P502 | `java-architect-interview/index.html` | 章节 index meta-stats 垂直领域统计卡 |
+| P503 | `java-architect-interview-mind/index.html` | mind index idx-meta 垂直领域题统计 |
+| P510 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片题数 |
+| P511 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 expert |
+| P512 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 architect |
+| P513 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 senior |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 
