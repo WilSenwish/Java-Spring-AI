@@ -438,6 +438,35 @@ agent_created: true
 | P521 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·专家 题数 |
 | P522 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·架构 题数 |
 | P523 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·高级 题数 |
+| P525 | `index.html` | 根 index 统计卡「AI 工程纵深」题数 |
+| P526 | `index.html` | 根 index AI 工程纵深 dir-count |
+| P524 | `java-architect-interview/index.html` | 章节 index meta-stats AI 工程纵深统计卡 |
+| P527 | `index.html` | 升格 local:dir-group → struct.root.dir_group_73 |
+| P528 | `index.html` | 升格 local:dir-group → struct.root.dir_group_74 |
+| P529 | `index.html` | 升格 local:dir-group → struct.root.dir_group_75 |
+| P530 | `index.html` | 升格 local:dir-group → struct.root.dir_group_76 |
+| P531 | `index.html` | 升格 local:dir-group → struct.root.dir_group_77 |
+| P532 | `index.html` | 升格 local:dir-group → struct.root.dir_group_78 |
+| P533 | `index.html` | 升格 local:dir-group → struct.root.dir_group_79 |
+| P534 | `index.html` | 升格 local:dir-group → struct.root.dir_group_80 |
+| P535 | `index.html` | 升格 local:dir-group → struct.root.dir_group_81 |
+| P536 | `index.html` | 升格 local:dir-group → struct.root.dir_group_82 |
+| P537 | `index.html` | 升格 local:dir-group → struct.root.dir_group_83 |
+| P538 | `index.html` | 升格 local:dir-group → struct.root.dir_group_84 |
+| P539 | `index.html` | 升格 local:dir-group → struct.root.dir_group_85 |
+| P540 | `index.html` | 升格 local:dir-group → struct.root.dir_group_86 |
+| P541 | `index.html` | 升格 local:dir-group → struct.root.dir_group_87 |
+| P542 | `index.html` | 升格 local:dir-group → struct.root.dir_group_88 |
+| P543 | `index.html` | 升格 local:dir-group → struct.root.dir_group_89 |
+| P544 | `index.html` | 升格 local:dir-group → struct.root.dir_group_90 |
+| P545 | `index.html` | 升格 local:dir-group → struct.root.dir_group_91 |
+| P546 | `index.html` | 升格 local:dir-group → struct.root.dir_group_92 |
+| P547 | `index.html` | 升格 local:dir-group → struct.root.dir_group_93 |
+| P548 | `index.html` | 升格 local:dir-group → struct.root.dir_group_94 |
+| P549 | `index.html` | 升格 local:dir-group → struct.root.dir_group_95 |
+| P550 | `index.html` | 升格 local:dir-group → struct.root.dir_group_96 |
+| P551 | `index.html` | 升格 local:dir-group → struct.root.dir_group_97 |
+| P552 | `index.html` | 升格 local:dir-group → struct.root.dir_group_98 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
