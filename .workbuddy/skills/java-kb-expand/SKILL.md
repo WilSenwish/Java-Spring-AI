@@ -40,11 +40,11 @@ agent_created: true
 - 题目总量 **546** = 篇章 326 + 核心原理 74 + 场景 74 + 垂直领域 72
 - 优先级 **P0=124 / P1=337 / P2=85**（求和 = 546）
 - 难度 **专家 65 / 架构师 260 / 高级开发 221**（求和 = 546；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **149 卡**（M01~M17：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16 / 附 M17，专篇键 methodology；**不分难度等级**）
+- 方法论 **145 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 0/149（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 0/145（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -128,10 +128,6 @@ agent_created: true
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |
 | P109 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_2 |
-| P110 | `index.html` | 升格 local:dir-count → struct.root.dir_count_1 |
-| P111 | `index.html` | 升格 local:dir-group → struct.root.dir_group_1 |
-| P112 | `index.html` | 升格 local:dir-group → struct.root.dir_group_2 |
-| P113 | `index.html` | 升格 local:dir-group → struct.root.dir_group_3 |
 | P114 | `index.html` | 升格 local:dir-group → struct.root.dir_group_4 |
 | P115 | `index.html` | 升格 local:dir-group → struct.root.dir_group_5 |
 | P116 | `index.html` | 升格 local:dir-group → struct.root.dir_group_6 |
@@ -367,17 +363,13 @@ agent_created: true
 | P400 | `index.html` | 根 index 方法论 M14 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
 | P402 | `index.html` | 根 index 方法论 M16(势) 组卡数 |
-| P407 | `index.html` | 根 index 方法论 M17(附) 组卡数 |
-| P404 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 附(M17) 卡数 |
 | P405 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
-| P406 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
 | P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
 | P429 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer「15 篇」篇章页数（2026-09-21 由正文裸数字升格） |
 | P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
 | P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
 | P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
-| P438 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 附卡数 |
 | P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M13 |
 | P440 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M14 |
 | P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M15 |

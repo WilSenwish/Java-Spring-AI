@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>技术沟通方法论 | Java 工程能力知识库</title>
+    <script src="java-architect-interview/assets/theme-init.js"></script>
+    <link rel="stylesheet" href="java-architect-interview/assets/design-system.css" />
+    <style>
+        /* 方法论专属样式 */
+        .qa-layer[data-layer="insight"] .qa-layer-title::before {
+          background: var(--accent);
+        }
+        .qa-layer[data-layer="principle"] .qa-layer-title::before {
+          background: var(--success);
+        }
+        .qa-layer[data-layer="application"] .qa-layer-title::before {
+          background: var(--accent2);
+        }
+
+        /* 对照表（表头高亮/斑马纹/横向溢出） */
+        .compare-table {
+          margin: var(--space-md) 0;
+          overflow-x: auto;
+          border: 1px solid var(--rule, #e2e8f0);
+          border-radius: 8px;
+        }
+        .compare-table table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.9rem;
+          min-width: 560px;
+        }
+        .compare-table thead th {
+          background: var(--accent, #4f46e5);
+          color: #fff;
+          text-align: left;
+          padding: 10px 14px;
+          font-weight: 600;
+        }
+        .compare-table tbody td {
+          padding: 10px 14px;
+          border-top: 1px solid var(--rule, #e2e8f0);
+          vertical-align: top;
+        }
+        .compare-table tbody tr:nth-child(even) td {
+          background: var(--bg2, #f8fafc);
+        }
+        .dimension-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--ink);
+          margin-bottom: var(--space-md);
+          padding-bottom: var(--space-xs);
+          border-bottom: 2px solid var(--theme-color, var(--accent2));
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+        }
+        .dimension-title .dim-number {
+          font-family: var(--font-mono);
+          font-size: 0.85rem;
+          color: #fff;
+          background: linear-gradient(135deg, var(--theme-color, var(--accent)), var(--accent2));
+          padding: 4px 12px;
+          border-radius: 20px;
+        }
+        .dimension-title .dim-subtitle {
+          font-size: 0.85rem;
+          color: var(--muted);
+          font-weight: 400;
+          margin-left: auto;
+        }
+
+        /* M01 子分组标题 */
+        .m-subgroup {
+          margin: var(--space-lg) 0 var(--space-md);
+        }
+        .m-subgroup-title {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: var(--ink);
+          margin-bottom: var(--space-md);
+          padding: var(--space-xs) var(--space-sm);
+          border-left: 4px solid var(--theme-color, var(--accent2));
+          border-radius: 0 8px 8px 0;
+          background: var(--bg2, #f8fafc);
+        }
+        .m-subgroup-title .m-sub-num {
+          font-family: var(--font-mono);
+          font-size: 0.8rem;
+          color: #fff;
+          background: linear-gradient(135deg, var(--theme-color, var(--accent)), var(--accent2));
+          padding: 3px 11px;
+          border-radius: 16px;
+        }
+        .m-subgroup-title .m-sub-count {
+          margin-left: auto;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--muted);
+          font-family: var(--font-mono);
+        }
+
+        /* 主题色映射 */
+        .theme-hc {
+          --theme-color: var(--accent);
+        }
+        .theme-ha {
+          --theme-color: var(--success);
+        }
+        .theme-hp {
+          --theme-color: var(--warn);
+        }
+        .theme-ir {
+          --theme-color: #dc2626;
+        }
+        .theme-sec {
+          --theme-color: #7c3aed;
+        }
+        /* 哲学引言区 */
+        .prologue-quote {
+          font-size: 1.15rem;
+          font-style: italic;
+          color: var(--accent2);
+          border-left: 4px solid var(--accent2);
+          padding-left: var(--space-md);
+          margin: var(--space-md) 0;
+          line-height: 1.8;
+        }
+
+        /* 侧边栏分组 */
+        .sidebar-toc .toc-group {
+          margin-bottom: var(--space-md);
+        }
+        .sidebar-toc .toc-group-title,
+        .sidebar-toc a.toc-group-title {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--accent2);
+          margin-bottom: var(--space-xs);
+          padding-bottom: 4px;
+          border-bottom: 1px solid var(--rule);
+          text-decoration: none;
+          display: block;
+          text-transform: none;
+          letter-spacing: normal;
+          padding-left: 0;
+        }
+        .sidebar-toc a.toc-group-title:hover {
+          color: var(--accent);
+          background: rgba(124, 58, 237, 0.06);
+        }
+        .sidebar-toc a.toc-group-title.active {
+          color: var(--accent);
+          background: rgba(124, 58, 237, 0.1);
+        }
+        .sidebar-toc ol {
+          list-style: none;
+          padding-left: 0;
+        }
+        .sidebar-toc li {
+          margin-bottom: 4px;
+        }
+        .sidebar-toc a {
+          display: block;
+          font-size: 0.82rem;
+          color: var(--muted);
+          text-decoration: none;
+          padding: 3px 8px;
+          border-radius: var(--radius-sm);
+          transition: all 0.15s;
+        }
+        .sidebar-toc a:hover {
+          background: var(--bg2);
+          color: var(--accent);
+        }
+        .sidebar-toc a.active {
+          background: rgba(37, 99, 235, 0.08);
+          color: var(--accent);
+          font-weight: 600;
+        }
+        .sidebar-toc .toc-number {
+          font-family: var(--font-mono);
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: var(--accent);
+          background: rgba(37, 99, 235, 0.08);
+          border: 1px solid rgba(37, 99, 235, 0.15);
+          border-radius: 5px;
+          padding: 1px 5px;
+          margin-right: 4px;
+          white-space: nowrap;
+          display: inline-block;
+          vertical-align: 1px;
+        }
+        .sidebar-toc .toc-layer-tag {
+          font-size: 0.7rem;
+          color: var(--muted);
+          font-weight: 400;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+          .sidebar-toc {
+            display: none;
+          }
+        }
+
+        .theme-dao { --theme-color: var(--accent); }
+        .theme-fa { --theme-color: var(--success); }
+        .theme-shu { --theme-color: var(--warn); }
+        .theme-comm { --theme-color: #475569; }
+        .theme-shi { --theme-color: #e11d48; }
+        .mod-lead { color: var(--muted); font-size: 0.92rem; line-height: 1.65; margin: 0 0 var(--space-md); }
+        .map-switch a { margin-right: 0.5rem; }
+        /* MOBILE-MANDATORY */
+        @media (max-width: 768px) {
+          .dimension-title { flex-wrap: wrap; font-size: 1.25rem; }
+          .dimension-title .dim-subtitle { margin-left: 0; flex: 1 1 100%; }
+          .chapter-subtitle, .mod-lead { overflow-wrap: anywhere; }
+          .map-switch { overflow-wrap: anywhere; }
+        }
+        .cross-ex { margin: var(--space-md) 0; }
+        .cross-ex h3 {
+          font-size: 1.05rem;
+          margin: var(--space-md) 0 var(--space-sm);
+        }
+        .cross-ex ol { margin: 0.4rem 0 0.8rem 1.25rem; }
+        @media (max-width: 480px) {
+          .cross-ex h3 { font-size: 0.98rem; }
+        }
+        @media (max-width: 480px) {
+          .dimension-title { font-size: 1.1rem; }
+        }
+              </style>
+  </head>
+  <body>
+    <div class="site-page-nav site-page-nav--top">
+      <nav class="chapter-nav-top">
+        <a href="index.html" class="nav-home">← 返回目录</a>
+        <span class="nav-center"></span>
+        <a href="java-architect-interview/index.html" class="nav-next">章节站 →</a>
+      </nav>
+    </div>
+    <div class="page-wrapper">
+      <aside class="sidebar-toc">
+        <div class="toc-group">
+          <a class="toc-group-title" href="#i-group-01">技术沟通方法论</a>
+          <ol>
+            <li>
+              <a href="#I01.01"><span class="toc-number">I01.01</span>主导技术沟通节奏</a>
+            </li>
+            <li>
+              <a href="#I01.02"><span class="toc-number">I01.02</span>反推能力矩阵</a>
+            </li>
+            <li>
+              <a href="#I01.03"><span class="toc-number">I01.03</span>展现架构思维</a>
+            </li>
+            <li>
+              <a href="#I01.04"><span class="toc-number">I01.04</span>结构化表达</a>
+            </li>
+          </ol>
+        </div>
+      </aside>
+      <main class="content-main">
+        <div class="chapter-header">
+          <div class="chapter-number">TECH COMMUNICATION / 技术沟通方法论</div>
+          <h1 class="chapter-title">技术沟通方法论</h1>
+          <p class="chapter-subtitle">独立专篇：把工程判断说成可检验结构——主导节奏、反推矩阵、架构思维、结构化表达。不计入核心方法论卡数，也不挂站内真源计数。</p>
+          <div class="chapter-meta">
+            <span>独立专篇</span>
+            <span class="meta-divider">|</span>
+            <span>可与 <a href="java-architect-interview/chapter-core-methodology.html">核心方法论</a> 对照阅读</span>
+          </div>
+        </div>
+        <section id="i-group-01" class="dimension-section theme-comm" data-group-distinct="expression">
+          <div class="dimension-title">
+            <span class="dim-number">I01</span>技术沟通四卡
+            <span class="dim-subtitle">独立专篇</span>
+          </div>
+          <p class="mod-lead">四卡专管技术沟通的可检验结构：谁定议程、如何展开知识面、三维架构落点是否齐全、信息如何成形。目标是共构决策，不是堆话术。</p>
+          <div class="mermaid-container">
+            <!-- prettier-ignore -->
+            <div class="mermaid">
+flowchart TB
+  GI01["I01 技术沟通四卡"]
+  GI01 --> NI0101["I01.01 主导技术沟通节奏"]
+  GI01 --> NI0102["I01.02 反推能力矩阵"]
+  GI01 --> NI0103["I01.03 展现架构思维"]
+  GI01 --> NI0104["I01.04 结构化表达"]
+  style GI01 fill:#e2e8f0,stroke:#475569
+  style NI0101 fill:#e2e8f0,stroke:#475569
+  style NI0102 fill:#e2e8f0,stroke:#475569
+  style NI0103 fill:#e2e8f0,stroke:#475569
+  style NI0104 fill:#e2e8f0,stroke:#475569
+            </div>
+            <div class="chart-caption">图 I01 技术沟通四卡概要。</div>
+          </div>
+          <div class="qa-card" id="I01.01">
+            <div class="qa-header">
+              <div class="qa-badge">I01.01</div>
+              <div class="qa-question">主导技术沟通节奏</div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body">
+                <p>设计讨论不要直接抛方案。先澄清约束（量级、一致、预算、失败容忍），再给分阶段路径——把交流从「问答」变成「共构」。不问场景就给终态方案，是复杂度失察。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body">
+                <p>节奏卡专管<strong>谁定议程</strong>：先约束后方案、先退路后功能。与矩阵展开（I01.02）、三维思维落点（I01.03）、三段式结构（I01.04）分工，本卡不写模板全文。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body">
+                <p>模板：「这取决于约束。量级 A 用方案甲，量级 B 演进到乙，核心取舍是…。当前 QPS/一致性要求是？」把关键变量拉上台面。</p>
+              </div>
+            </div>
+          </div>
+          <div class="qa-card" id="I01.02">
+            <div class="qa-header">
+              <div class="qa-badge">I01.02</div>
+              <div class="qa-question">反推能力矩阵</div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body">
+                <p>每个技术议题背后有一张<strong>能力矩阵</strong>：概念约束 × 主流打法 × 工程后果。评审或技术沟通时，先反推对方要验的矩阵，再主动展开取舍，而不是等追问才补洞。被追问常说明只答了名词，没答到决策结构。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body">
+                <p>本卡专管<strong>知识面展开</strong>：把 CAP/锁/缓存等议题映射到稳定卡号（C/E/M）。节奏见 I01.01；三维落点见 I01.03。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body">
+                <p>议题「分布式锁」→ 矩阵 = 互斥语义 × 续期/过期 × CP/AP（挂 C09/C03/C08）。主动展开：看门狗续期、RedLock 争议、Redis AP vs ZK CP；按「偶发锁失效可接受否」选型。</p>
+              </div>
+            </div>
+          </div>
+          <div class="qa-card" id="I01.03">
+            <div class="qa-header">
+              <div class="qa-badge">I01.03</div>
+              <div class="qa-question">展现架构思维</div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body">
+                <p>架构表达 = <strong>系统思维 + 取舍思维 + 演进思维</strong>。看全局瓶颈、讲代价、给演进路径——在当前约束下用最小复杂度解决最大问题，并预留下一阶。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body">
+                <p>本卡专管<strong>三维落点</strong>是否齐全；结构句式见 I01.04；道层定义见核心方法论 M01.03/M01.04/M01.05。缺任一维，听起来像堆方案。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body">
+                <p>三要素：① 系统——瓶颈在哪一层；② 取舍——换来什么、放弃什么；③ 演进——量级×10 时下一步。例：缓存换延迟、付一致窗口；破阈值再 Cluster/本地缓存。</p>
+              </div>
+            </div>
+          </div>
+          <div class="qa-card" id="I01.04">
+            <div class="qa-header">
+              <div class="qa-badge">I01.04</div>
+              <div class="qa-question">结构化表达</div>
+            </div>
+            <div class="qa-layer" data-layer="insight">
+              <div class="qa-layer-title">核心洞察</div>
+              <div class="qa-layer-body">
+                <p>技术表达 = 先总后分 + 先框架后细节 + 先结论后论据。三段式：结论 → 2–3 个支撑点 → 取舍收束。流水账式叙述让人抓不住决策。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="principle">
+              <div class="qa-layer-title">原理映射</div>
+              <div class="qa-layer-body">
+                <p>本卡专管<strong>信息形状</strong>。层级自检：换行业仍成立→道；能画阶段表→法；要调参→术；能安装替换→器；阻力来自人/时机→势。四种错位见核心方法论开篇。节奏/矩阵/三维分别见 I01.01–I01.03，避免四卡 principle 同句复制。</p>
+              </div>
+            </div>
+            <div class="qa-layer" data-layer="application">
+              <div class="qa-layer-title">工程表达</div>
+              <div class="qa-layer-body">
+                <p>模板：「方案是 X。原因：①…②…③…。代价 Y，可接受因为 Z。量级×10 演进到 W。」30 秒内可被判断是否具备结构。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="site-page-nav site-page-nav--bottom">
+      <nav class="chapter-nav">
+        <a href="index.html" class="nav-home">← 返回目录</a>
+        <span class="nav-center"></span>
+        <a href="java-architect-interview/index.html" class="nav-next">章节站 →</a>
+      </nav>
+    </div>
+    <script defer src="java-architect-interview/shared/js/mermaid.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || { startOnLoad: true, theme: "base", securityLevel: "loose", flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" }, sequence: { useMaxWidth: true, mirrorActors: false } });
+      });
+    </script>
+    <script src="java-architect-interview/assets/nav.js"></script>
+  </body>
+</html>

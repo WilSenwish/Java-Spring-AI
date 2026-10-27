@@ -59,7 +59,7 @@ Java-Spring-AI/
 
 | 域 | 编号 | 数量 | 组数 |
 |---|---|---|---|
-| 方法论 | `M01.01 ~ Mxx.xx` | 149 | — |
+| 方法论 | `M01.01 ~ Mxx.xx` | 145 | — |
 | 工程化要点 | `G01.01 ~ G08.xx` | 65 | 8 |
 | 生产踩坑 | `K01.01 ~ K08.xx` | 65 | 8 |
 
@@ -81,7 +81,7 @@ Java-Spring-AI/
 | 章节索引 | `java-architect-interview/index.html` | 15 篇章 + 方法论 + 工程化 + 踩坑 + 核心原理 + 场景 |
 | 优先级聚合 | `java-architect-interview/nav-overview-priority.html` | P0 → P1 → P2 三级分组，内按难度 / 类型再拆 |
 | 安全检查点 | `java-architect-interview/nav-server-security-checkpoint.html` | 服务端开发安全速查 |
-| 方法论 | `java-architect-interview/chapter-core-methodology.html` | 思维六组 + 五大主题 + 附录（149 卡） |
+| 方法论 | `java-architect-interview/chapter-core-methodology.html` | 道法术势十六组（145 卡） |
 | 工程化要点 | `java-architect-interview/chapter-engineering-practices.html` | 8 组工程化实践（65 卡） |
 | 生产踩坑 | `java-architect-interview/chapter-production-pitfalls.html` | 8 组真实故障复盘（65 卡） |
 | 设计原则 & GoF 23 | `java-design-patterns-principles/` | 设计原则 + 超越 GoF 23 |

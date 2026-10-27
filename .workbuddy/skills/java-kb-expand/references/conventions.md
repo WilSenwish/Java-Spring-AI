@@ -4,7 +4,7 @@
 
 ## 1. 题号前缀与三级目录
 
-- 篇章页：`chapter-core-methodology.html` 用 **M**（分组 M01~M17，共 149 卡，如 `M01.02` / `M16.04`；道 M01–M02，法 M03–M07，术 M08–M15，势 M16（11 张势定律），附 M17（4 张表达与对齐）且 M12 在 TOC 收口、R2 仍标法），`chapter-engineering-practices.html` 用 **G**（G01~G08，卡数见 `engineering`，方法论同款三层 insight/principle/application，专篇键），`chapter-01~15` 用 **C**（如 `C10.26`）。
+- 篇章页：`chapter-core-methodology.html` 用 **M**（分组 M01~M16，共 145 卡，如 `M01.02` / `M16.04`；道 M01–M02，法 M03–M07，术 M08–M15，势 M16（11 张势定律）；且 M12 在 TOC 收口、R2 仍标法），`chapter-engineering-practices.html` 用 **G**（G01~G08，卡数见 `engineering`，方法论同款三层 insight/principle/application，专篇键），`chapter-01~15` 用 **C**（如 `C10.26`）。
 - 核心原理页：`E`（如 `E07.02`）。
 - 场景页：`S`（如 `S04.06`），按 `group-N` 归组（微服务架构 / 并发 / 数据库 …）。
 - 目录层级：页面篇章 / 分组 / 题号。
@@ -190,7 +190,7 @@
 **不允许存在「门禁看不见的计数」**，**包括埋在长正文段落里的聚合计数**（2026-09-21 长官追加指令）。
 反例一：mind 页 `map-col` 的 14 个组数长期是纯文本，原有门禁的容器白名单与「数字+单位词」
 两个维度都不匹配 `（16）` 这类括号式写法，直到人工探针才暴露。反例二：mind 势页正文
-「M16 单列"势定律"（11 张）」「M17（附，4 张）」与方法论页「本库不是 15 篇平行说明书」——
+「M16 单列"势定律"（11 张）」方法论页「本库不是 15 篇平行说明书」——
 **长段落**写法绕过了短块兜底，且其中两个数字（11 / 14 以外的）此前**连 SSOT 键都没有**。
 该批数字此后已全部升格为 L0 并注册独立 position（新增键 `chapters_pages`）。
 
@@ -272,7 +272,7 @@ C 段只覆盖「短元数据块」（可见文本 ≤ `max_block_chars`）；**
 
 | 缺陷 | 事实 | 为何所有旧门禁全绿 |
 |---|---|---|
-| 根 index 组 1「权威（与章节同构）」显示 16 | 实际列了 **17** 个节点（M01–M17） | DOM 与 SSOT 同为陈旧的 16，`check` 逐位一致；不同链路（`dir_count_1`）也一致 |
+| 根 index「权威 · R2 · R3 · R4」空壳节（仅 layer-tag、无链接） | 已于 2026-10-27 整段删除；原 P110–P113 / `dir_count_1`·`dir_group_1..3` 同步作废 | 删除后以真源审计 + `sync_counts check` 复核 |
 | mind 势页正文「（11 张）/（4 张）」 | 键 `meth.group_16/17` 早已存在，但**该文件没注册 position** | 一致检查按 position 的 `file` 过滤，未登记的位不看 |
 | 6 篇章节 index 的「高级」计数 | 比正文 `difficulty-senior` 实际数**少 1–3** | 同上：DOM ↔ SSOT 一致，但都错 |
 | 核心原理「高级」39 / 场景「架构」49 | 实际 40 / 50 | 同上 |
@@ -486,7 +486,7 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
   6. `N+N+N` — Q&A · 原理 · 场景（取值见 COUNTS / P57–P59）
 - 每张卡片底部 `card-foot` 计数口径（改题后必须同步）：
   - **篇章卡 mind-01~15**：`章节 N` = 对应 `chapter-NN` 的 C 卡数；`原理 N` / `场景 N` = 该 mind 页 `<summary>` 中实际列出的 E / S 卡数（无则省略该 chip）。
-  - **方法论卡**：`149 卡 · 17 组`（M01~M17）。
+  - **方法论卡**：`145 卡 · 16 组`（M01~M16）。
   - **工程化卡**：`65 卡 · 8 组`（G01~G08）。
   - **安全手册卡**：`手册 7 章` + 该 mind 页并入的原理/场景数。
 - `idx-meta` 题量表达式形如 `篇章+原理+场景`（取值见 COUNTS，勿写死旧数）。
@@ -501,11 +501,11 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 - 题目总量 **546** = 篇章 326 + 核心原理 74 + 场景 74 + 垂直领域 72
 - 优先级 **P0=124 / P1=337 / P2=85**（求和 = 546）
 - 难度 **专家 65 / 架构师 260 / 高级开发 221**（求和 = 546；仅覆盖 C/E/S，M/G/K 不分级）
-- 方法论 **149 卡**（M01~M17：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16 / 附 M17，专篇键 methodology；**不分难度等级**）
+- 方法论 **145 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 0/149（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 0/145（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -589,10 +589,6 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |
 | P109 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_2 |
-| P110 | `index.html` | 升格 local:dir-count → struct.root.dir_count_1 |
-| P111 | `index.html` | 升格 local:dir-group → struct.root.dir_group_1 |
-| P112 | `index.html` | 升格 local:dir-group → struct.root.dir_group_2 |
-| P113 | `index.html` | 升格 local:dir-group → struct.root.dir_group_3 |
 | P114 | `index.html` | 升格 local:dir-group → struct.root.dir_group_4 |
 | P115 | `index.html` | 升格 local:dir-group → struct.root.dir_group_5 |
 | P116 | `index.html` | 升格 local:dir-group → struct.root.dir_group_6 |
@@ -828,17 +824,13 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P400 | `index.html` | 根 index 方法论 M14 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
 | P402 | `index.html` | 根 index 方法论 M16(势) 组卡数 |
-| P407 | `index.html` | 根 index 方法论 M17(附) 组卡数 |
-| P404 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 附(M17) 卡数 |
 | P405 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
-| P406 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
 | P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
 | P429 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer「15 篇」篇章页数（2026-09-21 由正文裸数字升格） |
 | P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
 | P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
 | P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
-| P438 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 附卡数 |
 | P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M13 |
 | P440 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M14 |
 | P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M15 |
