@@ -10,7 +10,7 @@ strip_page_node_id.py — 清除 HTML 中意外注入的 data-page-node-id 属�
     python3 strip_page_node_id.py --check [路径...]   # 只统计每文件 data-page-node-id 计数，不改写
     python3 strip_page_node_id.py --fix   [路径...]   # 对计数>0 的文件执行三步归一并回写
 
-路径缺省：扫描站点全部目标 HTML（根 index.html + java-architect-interview/*.html + java-architect-interview-mind/*.html）
+路径缺省：扫描站点全部目标 HTML（根 index.html + java-architect-interview/*.html）
 基准目录：脚本所在仓库向上三级（scripts -> java-kb-expand -> .workbuddy -> 项目根）。非标准位置运行时显式传路径。
 
 三步归一（仅动 `<...>` 标签内、不动文本节点，保护 <pre> 缩进）：
@@ -29,7 +29,7 @@ def target_files(paths):
         return paths
     files = [os.path.join(BASE, "index.html")]
     files += glob.glob(os.path.join(BASE, "java-architect-interview", "*.html"))
-    files += glob.glob(os.path.join(BASE, "java-architect-interview-mind", "*.html"))
+
     return [f for f in files if os.path.isfile(f)]
 
 

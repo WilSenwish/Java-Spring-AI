@@ -30,7 +30,7 @@ MERMAID_OPEN = re.compile(r"^([ \t]*)<div class=\"mermaid\">")
 def site_html_files() -> list[Path]:
     files = [BASE / "index.html"]
     files += sorted((BASE / "java-architect-interview").glob("*.html"))
-    files += sorted((BASE / "java-architect-interview-mind").glob("*.html"))
+
     return [p for p in files if p.is_file()]
 
 

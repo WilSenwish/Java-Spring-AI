@@ -55,7 +55,6 @@
 │   ├── nav-server-security-checkpoint.html # 特殊章节：安全 Checkpoint 手册
 │   ├── assets/                             # design-system.css, nav.js
 │   └── shared/                             # fonts, js（echarts/mermaid）
-└── java-architect-interview-mind/          # 思维导图版（mind-* 对应篇章）
 ```
 
 ## 3. 章节内容与归属规则矩阵

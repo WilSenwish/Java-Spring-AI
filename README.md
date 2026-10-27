@@ -6,12 +6,12 @@
 
 ---
 
-## 目录结构（5 子站 + 2 索引 + 工具链 + rk/ 随笔）
+## 目录结构（4 子站 + 2 索引 + 工具链 + rk/ 随笔）
 
 ```
 Java-Spring-AI/
 ├── index.html                              # 根索引（全站聚合，三权威源之一）
-├── java-architect-interview/              # ① 章节主站 · 23 页
+├── java-architect-interview/              # ① 章节主站 · 22 页
 │   ├── chapter-01~15-*.html                # 15 篇章（JVM / GC / 并发 / Spring / MySQL / Redis / 分布式 / 微服务 / 中间件 / AI 工程 / 网络 / 数据库 / 响应式 …）
 │   ├── chapter-core-methodology.html       #   方法论专篇（思维六组 + 五大主题 + 附录）
 │   ├── chapter-engineering-practices.html  #   工程化要点专篇（8 组）
@@ -20,18 +20,11 @@ Java-Spring-AI/
 │   ├── chapter-questions-scenario.html     #   场景题全集（74 题）
 │   ├── nav-overview-priority.html          #   优先级·难度·类型 三级聚合导航
 │   ├── nav-server-security-checkpoint.html #   服务端开发安全检查点
-│   ├── assets/                             #   design-system.css · nav.js · theme-init.js（与导图站共享）
+│   ├── assets/                             #   design-system.css · nav.js · theme-init.js
 │   └── index.html                          # 章节索引
-├── java-architect-interview-mind/         # ② 导图站 · 22 页 Mermaid 心智地图
-│   ├── mind-01~15-*.html                   # 与章节主站一一对应互链
-│   ├── mind-core-methodology*.html         #   方法论导图（含道法术器/场景两扩展版）
-│   ├── mind-engineering-practices.html     #   工程化要点导图
-│   ├── mind-production-pitfalls.html       #   生产踩坑导图
-│   ├── mind-server-security-checkpoint.html#   安全检查点导图
-│   └── index.html                          # 导图索引（含 C/E/S 卡脚）
-├── java-design-patterns-principles/       # ③ 设计原则 & 超越 GoF 23
-├── Laws-Theories-Principles-and-Patterns/ # ④ 软件工程 定律 / 理论 / 原则 / 模式 索引
-├── cppam-of-software-engineering/        # ⑤ 软件工程「道—法—术—器—势」核心哲学原理
+├── java-design-patterns-principles/       # ② 设计原则 & 超越 GoF 23
+├── Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
+├── cppam-of-software-engineering/        # ④ 软件工程「道—法—术—器—势」核心哲学原理
 ├── rk/                                     # 两篇随笔（高项 / 系规），见 rk/README.md
 ├── .workbuddy/skills/java-kb-expand/       # 工具链 · java-kb-expand Skill
 │   └── scripts/
@@ -86,7 +79,6 @@ Java-Spring-AI/
 |---|---|---|
 | 根索引（全站） | `index.html` | 聚合所有子站，三权威源之一 |
 | 章节索引 | `java-architect-interview/index.html` | 15 篇章 + 方法论 + 工程化 + 踩坑 + 核心原理 + 场景 |
-| 导图索引 | `java-architect-interview-mind/index.html` | 22 张 Mermaid 心智地图，与章节页互链 |
 | 优先级聚合 | `java-architect-interview/nav-overview-priority.html` | P0 → P1 → P2 三级分组，内按难度 / 类型再拆 |
 | 安全检查点 | `java-architect-interview/nav-server-security-checkpoint.html` | 服务端开发安全速查 |
 | 方法论 | `java-architect-interview/chapter-core-methodology.html` | 思维六组 + 五大主题 + 附录（149 卡） |
@@ -101,8 +93,8 @@ Java-Spring-AI/
 ## 技术栈
 
 - **纯静态 HTML** · 无后端 · 无构建步骤 · 直接由 GitHub Pages 渲染
-- **共享样式系统**：`java-architect-interview/assets/design-system.css`（章节站 / 导图站 / 各随笔站共享）
-- **Mermaid 心智地图**：22 张根节点 + 各层级 summary，自动互链章节页
+- **共享样式系统**：`java-architect-interview/assets/design-system.css`（章节站 / 各随笔站共享）
+- **Mermaid 可视化**：章节页内嵌 Mermaid 渲染方法论地图、领域关系图等
 - **主题与字体**：`theme-init.js`（深色/浅色切换）、JetBrainsMono + WorkSans
 - **GitHub Pages 专用**：`.nojekyll` 防止 Liquid 解析 Spring AI 模板占位符（`{{it}}` 等）
 
@@ -123,7 +115,7 @@ Java-Spring-AI/
 | 脚本 | 作用 |
 |---|---|
 | `.workbuddy/skills/java-kb-expand/scripts/sync_counts.py` | 改数唯一入口：`python3 sync_counts.py bump 键=增量`，自动写回全部计数位并复核 |
-| `.workbuddy/skills/java-kb-expand/scripts/validate_kb.py` | 全量校验：红线 / SSOT / 计数覆盖 / 落位 / 结构 / 思维导图根节点 / overview 排序 … |
+| `.workbuddy/skills/java-kb-expand/scripts/validate_kb.py` | 全量校验：红线 / SSOT / 计数覆盖 / 落位 / 结构 / overview 排序 … |
 | `.workbuddy/skills/java-kb-expand/` | Skill：`java-kb-expand`，固化「抓取外部链接 → 归属判定 → 用户确认 → 7 文件同步 → 全量校验」五步入库流程 |
 
 ### 常规工作流
@@ -134,7 +126,7 @@ python3 .workbuddy/skills/java-kb-expand/scripts/validate_kb.py
 
 # 新增一张卡后改计数（示例：C06.15 新增，属篇章，全局 total +1、chapters +1）
 python3 .workbuddy/skills/java-kb-expand/scripts/sync_counts.py bump \
-  total=+1 chapters=+1 struct.chap.idx.c06.n=+1 struct.mind.idx.mind-foot-c_6=+1
+  total=+1 chapters=+1 struct.chap.idx.c06.n=+1
 
 # 入库外部链接（豆包/知乎/技术博客等）——走 Skill 固化流程
 # 必须经过"覆盖度核查 → OPT 候选 → 用户确认"三步，禁止直接写

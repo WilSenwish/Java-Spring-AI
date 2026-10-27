@@ -93,11 +93,6 @@ def main():
         return out
     FLAT = flat_struct()
 
-    # ---------- 键路径冲突：扁平点分键 vs 嵌套键「双写」 ----------
-    # 2026-09-21 实测：SSOT 同时存在 `struct["mind.idx.mind-foot-c_11"] = 30`（扁平）
-    # 与 `struct["mind"]["idx"]["mind-foot-c_11"] = 28`（嵌套），展平后同路径、值不同。
-    # `sync_counts.resolve_key` 只认扁平键，故嵌套那份是「看不见的第二写源」——
-    # 谁来都查不出，直到真源审计把它当「双写」暴露出来。
     def _dup_paths(node, path=""):
         out = []
         if not isinstance(node, dict):
@@ -195,13 +190,14 @@ def main():
             for typ, items in seq.items():
                 for i, (nn, href, pid, shown) in enumerate(items, 1):
                     if nn != i:
-                        errs.append("mind_foot 编号断裂：%s 第 %d 个 chip 编号为 %d" % (typ, i, nn))
+                        errs.append("chip_present 编号断裂：%s 第 %d 个 chip 编号为 %d" % (typ, i, nn))
                     tgt = os.path.join(root, os.path.dirname(r["index_file"]), href)
                     if not os.path.isfile(tgt):
-                        errs.append("mind_foot 目标页不存在：%s" % href)
+                        errs.append("chip_present 目标页不存在：%s" % href)
                         continue
                     cnt = len(re.findall(r["count"][typ], read(tgt)))
-                    key = "struct.mind.idx.mind-foot-%s_%d" % (typ, nn)
+                    # key_re 前缀决定完整键（chip_present 规则的 key_re 须含 typ 占位）
+                    key = "struct.chip.%s_%d" % (typ, nn)
                     kbcount[key] = (pid, shown)
                     put(key, cnt, "%s 的 %s 类卡数" % (href, typ))
             return errs
@@ -299,7 +295,9 @@ def main():
         """结构性派生计数：真源是 guard.derived.items 里声明的 region + count。"""
         items = (G.get(r.get("from") or "derived") or {}).get("items") or []
         if not items:
-            return ["derived 规则 %s：guard.derived.items 为空" % r["id"]]
+            # 允许空清单：无结构性派生计数时不应强制留假数据；
+            # 若仍挂着 derived 规则，视为无工作项（probe 注入时再填 items）。
+            return []
         errs = []
         for it in items:
             p = os.path.join(root, it["file"])

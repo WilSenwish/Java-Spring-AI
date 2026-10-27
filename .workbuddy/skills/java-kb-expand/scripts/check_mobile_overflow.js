@@ -131,7 +131,7 @@ if (argv[0] === '--path') {
     'java-architect-interview/chapter-11-middleware-engineering.html',
     'java-architect-interview/chapter-questions-scenario.html',
     'java-architect-interview/nav-server-security-checkpoint.html',
-    'java-architect-interview-mind/mind-05-spring-core.html'
+    'java-architect-interview/chapter-05-spring-core.html'
   ];
   cfg = { viewports: [[320, 720], [375, 812], [414, 896]], urls: pages.map(toFileUrl) };
 }

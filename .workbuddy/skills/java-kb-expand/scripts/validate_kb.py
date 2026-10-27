@@ -18,7 +18,7 @@ java-kb-expand · 全量校验脚本（通用版）
   0c3) **未登记计数扫描**：全站正文里出现的每个计数锚点（data-kb-count + data-kb-pos）都必须已在 SSOT `positions` 登记（正向完备性：正文有 ⇒ 必须登记；与 0c2 双向闭合，漏登记的计数门禁零覆盖）
   0d) **页头难度分布**：chapter-meta 的「题目数 / 高级×N / 架构×N / 专家×N」须与本页实体卡片逐项一致（2026-09-15 补，防新增卡漏同步页头）
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
-  1b) 手机小屏强制：design-system.css / 根·导图 index / 导图页含 MOBILE-MANDATORY；全站 HTML 含 viewport
+  1b) 手机小屏强制：design-system.css / 根·章节 index 含 MOBILE-MANDATORY；全站 HTML 含 viewport
   1c) 主题 / 暗黑模式：站点 HTML 含 theme-init.js；design-system.css 含 data-theme="dark" 令牌块
   1d) Mermaid：每个 class="mermaid" 上一行 prettier-ignore；图源码未塌缩（换行≥2）
   1e) 顶/底导航壳：根/章节 index 无导航；其余页 top 贴 body 首、bottom 在 script 前
@@ -39,16 +39,14 @@ java-kb-expand · 全量校验脚本（通用版）
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
   3b2) overview 类型五级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题/AI 纵深/垂直领域），`ov-type-count`=块内 ov-item 且前缀一致
-  3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item；mind card-foot=篇章C/summary E·S
-  3d) **mind 根节点红线**：所有 mind 页 Mermaid `root["..."]` 字符串内不得出现「章节/原理/场景 + 数字」裸串（历史曾手写 N·M·K 计数后被手动删除；validate_kb 从未覆盖 → 结构性盲区，2026-09-15 固化为长期防回潮红线）
+  3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item
   4) 根 index / 章节 index 统计数字与 overview 一致
   5) 新卡双编码一致（data-priority 属性 + 可见 priority-pX 徽标）
-  6) 新卡在 overview / 根 index / 宿主章节页 / 对应 mind 页落位
+  6) 新卡在 overview / 根 index / 宿主章节页落位
 
 设计要点（来自实战坑位）：
   - 章节导航页（java-architect-interview/index.html）不枚举单题 ID，落位检查跳过它。
   - 宿主章节页按题号前缀自动扫描：Cxx/Sxx/Mxx -> 其所在 chapter-*.html（grep 全站定位，不写死文件）。
-  - 导图落位扫描全部 mind-*.html，命中任一即 PASS。
   - 文件夹路径如有变动，仅改 BASE 一处即可。
 """
 import re, sys, os, glob, json
@@ -59,7 +57,8 @@ from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死�
 BASE = find_root(__file__)
 
 CHAPTER_DIR = f"{BASE}/java-architect-interview"
-MIND_DIR = f"{BASE}/java-architect-interview-mind"
+# 2026-09-21：导图站（java-architect-interview-mind/）已整体下线，不再扫描。
+# 真源计数 / 互链 / 落位校验均已同步清理。
 # 2026-09-15：docs/ 已由 java-architect-interview/docs 迁至项目根 docs/，
 # 此处写死旧路径会导致脚本启动即 FileNotFoundError（全量校验护栏失效）。优先新路径，兼容旧布局。
 COUNTS_JSON = f"{BASE}/docs/kb-counts.json"
@@ -106,12 +105,12 @@ NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.2
            "D11.01","D11.02","D11.03","D11.04","D11.05","D11.06",
            "D12.01","D12.02","D12.03","D12.04","D12.05","D12.06"]
 
-# 4 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
+# 3 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
+# 三权威源已降为二：根 index + 章节 index + overview（导图站已于 2026-09-21 下线）
 AGG_FILES = {
     "overview": f"{CHAPTER_DIR}/nav-overview-priority.html",
     "root":     f"{BASE}/index.html",
     "chap_idx": f"{CHAPTER_DIR}/index.html",
-    "mind_idx": f"{MIND_DIR}/index.html",
 }
 
 def read(p): return open(p, encoding="utf-8").read()
@@ -130,10 +129,6 @@ def all_chapter_files():
             continue
         fs.append(p)
     return fs
-
-def all_mind_files():
-    return [p for p in glob.glob(f"{MIND_DIR}/mind-*.html")
-            if os.path.basename(p) != "index.html"]
 
 def run_sync_counts_check():
     """散文计数位（P01–P89）与全部 positions 必须与 kb-counts.json 一致。
@@ -296,10 +291,9 @@ def run_kb_count_markup_check():
         if n != expect:
             miss.append(f"{pid} 期望 data-kb-pos×{expect}，实际 {n} @ {pos['file']}")
     # 禁止本地计数（一律升格进 kb-counts.json counts|struct）
-    for path in all_chapter_files() + all_mind_files() + [
+    for path in all_chapter_files() + [
         os.path.join(BASE, "index.html"),
         os.path.join(BASE, "java-architect-interview/index.html"),
-        os.path.join(BASE, "java-architect-interview-mind/index.html"),
         os.path.join(BASE, "java-architect-interview/nav-overview-priority.html"),
         os.path.join(BASE, "java-architect-interview/nav-server-security-checkpoint.html"),
     ]:
@@ -327,7 +321,6 @@ _COVERAGE_DEFAULTS = {
     "scan": [
         "index.html",
         "java-architect-interview/*.html",
-        "java-architect-interview-mind/*.html",
     ],
     "containers": [
         [r'<div class="card-footer">(.*?)</div>', "card-footer"],
@@ -688,9 +681,9 @@ def scan_card_nesting(html):
 
 
 def run_card_nesting_check():
-    """1i) 卡片层级：章节/导图页的 qa-card / map-card 不得互相嵌套。"""
+    """1i) 卡片层级：章节页的 qa-card / map-card 不得互相嵌套。"""
     bad, n = [], 0
-    for p in all_chapter_files() + all_mind_files():
+    for p in all_chapter_files():
         bn = os.path.basename(p)
         bad += [(bn,) + x for x in scan_card_nesting(read(p))]
         n += 1
@@ -699,7 +692,7 @@ def run_card_nesting_check():
             print("FAIL [卡片嵌套]", f"{x[0]}: {x[1]}@行{x[2]} 被嵌进 {x[3]}@行{x[4]}（缺 </div>）")
         check(False, f"[卡片嵌套] {len(bad)} 张卡被嵌进上一张卡（须 0；见 conventions §2）")
     else:
-        check(True, f"[卡片嵌套] {n} 个章节/导图页的卡片层级无嵌套")
+        check(True, f"[卡片嵌套] {n} 个章节页的卡片层级无嵌套")
 
 
 # 难度标签唯一合法文案（2026-09-16 长官口径：标签限定为「专家 / 架构 / 高级」）
@@ -715,8 +708,7 @@ def run_difficulty_label_check():
     pat = re.compile(r'<span class="difficulty difficulty-(expert|architect|senior)">(.*?)</span>',
                      re.S)
     files = ([os.path.join(BASE, "index.html")]
-             + sorted(glob.glob(f"{CHAPTER_DIR}/*.html"))
-             + sorted(glob.glob(f"{MIND_DIR}/*.html")))
+             + sorted(glob.glob(f"{CHAPTER_DIR}/*.html")))
     bad, total = [], 0
     for p in files:
         s = read(p)
@@ -769,11 +761,10 @@ def main():
     run_difficulty_label_check()
     run_special_no_difficulty_check()
 
-    # 4 聚合页 + 全部章节 + 全部导图（红线校验覆盖全站）
+    # 3 聚合页 + 全部章节（红线校验覆盖全站；导图站已于 2026-09-21 下线）
     texts = {k: read(v) for k, v in AGG_FILES.items()}
     chap_files = all_chapter_files()
-    mind_files = all_mind_files()
-    for p in chap_files + mind_files:
+    for p in chap_files:
         texts[f"file:{os.path.basename(p)}"] = read(p)
 
     # 1) data-page-node-id 红线（全站所有目标 HTML）
@@ -798,8 +789,8 @@ def main():
           "[小屏] design-system.css 须含 768/480 断点")
     _vp = re.compile(r'<meta[^>]+name=["\']viewport["\'][^>]*>', re.I)
     _site_html = (
-        [AGG_FILES["root"], AGG_FILES["chap_idx"], AGG_FILES["mind_idx"], AGG_FILES["overview"]]
-        + chap_files + mind_files
+        [AGG_FILES["root"], AGG_FILES["chap_idx"], AGG_FILES["overview"]]
+        + chap_files
         + [os.path.join(CHAPTER_DIR, "nav-server-security-checkpoint.html")]
     )
     # nav-overview already in overview; avoid dup noise
@@ -814,8 +805,6 @@ def main():
     check(not _vp_miss, f"[小屏] 缺 viewport 的页面: {_vp_miss[:8]}")
     check("MOBILE-MANDATORY" in texts["root"] and "@media (max-width: 768px)" in texts["root"],
           "[小屏] 根 index 须含 MOBILE-MANDATORY 小屏媒体查询")
-    check("MOBILE-MANDATORY" in texts["mind_idx"] and "@media (max-width: 760px)" in texts["mind_idx"],
-          "[小屏] 导图 index 须含 MOBILE-MANDATORY 小屏媒体查询")
 
     # 1g) 移动端横向溢出兜底（2026-09-15 实测：核心原理页 375px 视口溢出 248px / 18 处越界）
     #     ① CSS 层：body 全局 overflow-wrap（长英文标识符/路径/签名可断行）
@@ -848,13 +837,6 @@ def main():
           "[列表] design-system.css 须含零特异度缩进兜底 :where(ul, ol) { padding-inline-start: … }")
     check(not re.search(r"^\s*ul\s*,\s*ol\s*\{[^}]*padding-inline-start", css_txt, re.M),
           "[列表] 列表缩进兜底不得用裸选择器 ul, ol { … }（特异度 0,0,1 会顶掉自定义列表的 padding:0）")
-
-    _mind_media_miss = []
-    for p in mind_files:
-        mt = read(p)
-        if "MOBILE-MANDATORY" not in mt or "@media (max-width: 760px)" not in mt:
-            _mind_media_miss.append(os.path.basename(p))
-    check(not _mind_media_miss, f"[小屏] 导图页缺 MOBILE-MANDATORY: {_mind_media_miss[:8]}")
 
     # 1c) 主题 / 暗黑模式（format-shared §9）
     check('data-theme="dark"' in css_txt or "data-theme='dark'" in css_txt,
@@ -1140,69 +1122,6 @@ def main():
             _ds_fail += 1
     check(_ds_fail == 0, f"[根index dir-count] 计数≠列表 段数={_ds_fail}（须 0）")
 
-    # --- mind index card-foot ↔ 篇章 C 数 / 导图 summary 内 E·S 数 ---
-    _mf_fail = 0
-    for _mp in mind_files:
-        _bn = os.path.basename(_mp)
-        _mm = re.match(r"mind-(\d{2})-", _bn)
-        if not _mm:
-            continue
-        _num = _mm.group(1)
-        _mt = read(_mp)
-        _e = set()
-        _s = set()
-        for _sum in re.findall(r"<summary>([^<]*)</summary>", _mt):
-            _e.update(re.findall(r"\bE\d{2}\.\d{2}\b", _sum))
-            _s.update(re.findall(r"\bS\d{2}\.\d{2}\b", _sum))
-        _c_act = len(
-            set(
-                re.findall(
-                    rf'id="(C{_num}\.\d+)"',
-                    read(glob.glob(f"{CHAPTER_DIR}/chapter-{_num}-*.html")[0]),
-                )
-            )
-        )
-        _fm = re.search(
-            rf'href="{re.escape(_bn)}"[^>]*>.*?class="card-foot">(.*?)</div>',
-            texts["mind_idx"],
-            re.S,
-        )
-        if not _fm:
-            _mf_fail += 1
-            continue
-        _foot = _fm.group(1)
-        _cm = re.search(rf"章节\s*{_KB_NUM}", _foot)
-        _em = re.search(rf"原理\s*{_KB_NUM}", _foot)
-        _sm2 = re.search(rf"场景\s*{_KB_NUM}", _foot)
-        if not _cm or int(_cm.group(1)) != _c_act:
-            _mf_fail += 1
-        if _e and (not _em or int(_em.group(1)) != len(_e)):
-            _mf_fail += 1
-        if (not _e) and _em:
-            _mf_fail += 1
-        if _s and (not _sm2 or int(_sm2.group(1)) != len(_s)):
-            _mf_fail += 1
-        if (not _s) and _sm2:
-            _mf_fail += 1
-    check(_mf_fail == 0, f"[mind card-foot] 与篇章/summary 不一致数={_mf_fail}（须 0）")
-
-    # 3d) mind 根节点红线：root["..."] 字符串内禁止「章节/原理/场景 + 数字」裸串
-    # 历史背景（2026-09-15）：mind 根节点曾手写"章节N · 原理M · 场景K"，后因 commit
-    # 909e027 清理格式化时一并删掉；此前 validate_kb 从未覆盖 → 结构性盲区。
-    # 固化为长期红线，防止未来手写漂移再漏网。
-    _root_bad = re.compile(
-        r'(?:章节|原理|场景)\s*\d+|(?:\d+)\s*(?:章节|原理|场景)'
-    )
-    _root_fail = 0
-    for _mp in mind_files:
-        _mt = read(_mp)
-        for _rm in re.finditer(r'root\[".*?"\]', _mt):
-            _seg = _rm.group(0)
-            if _root_bad.search(_seg):
-                print(f"FAIL [mind root红线] {os.path.basename(_mp)}: {_seg}")
-                _root_fail += 1
-    check(_root_fail == 0, f"[mind root红线] 裸「章节/原理/场景+数字」={_root_fail}（须 0；禁止手写 mind 根节点计数）")
-
     # 4) 根 index 统计（数字在前、label 在后；兼容内层 kb-count span）
     def stat(pat, t):
         m = re.search(pat, t)
@@ -1241,8 +1160,6 @@ def main():
         check(root_m == EXPECT["methodology"], f"[根index] 方法论={root_m} 期望 {EXPECT['methodology']}")
 
     # 6) 新卡双编码 + 落位（按题号前缀自动定位宿主章节页）
-    chap_text_all = "\n@@@\n".join(read(p) for p in chap_files)
-    mind_text_all = "\n@@@\n".join(read(p) for p in mind_files)
     for nid in NEW_IDS:
         # 双编码：在宿主章节页（含该 ID 的 chapter 文件）找 data-priority 属性 + 可见 priority-pX
         # 工程化卡可能无优先级双编码，仅校验卡片存在
@@ -1271,35 +1188,30 @@ def main():
             check(nid in texts["overview"], f"[落位] {nid} 在 overview")
         # 根 index 落位（q-id）
         check(nid in texts["root"], f"[落位] {nid} 在 根index")
-        # mind 落位（扫描全部 mind 文件，命中任一即 PASS）
-        check(nid in mind_text_all, f"[落位] {nid} 在 mind 站（任一导图页）")
 
     # 7) 求和自洽
     check(EXPECT["p0"]+EXPECT["p1"]+EXPECT["p2"] == EXPECT["total"], "[自洽] P0+P1+P2=总量")
     check(EXPECT["expert"]+EXPECT["architect"]+EXPECT["senior"] == EXPECT["total"], "[自洽] 难度三级=总量")
     check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"]+EXPECT["domain_questions"] == EXPECT["total"], "[自洽] 类型四级=总量（篇章+核心原理+场景+垂直领域）")
 
-    # 8) 卡片 id 三方一致性：章节正文 ↔ 章节 TOC ↔ 导图引用；id 总数=各域分计之和（非对外「全站合计」）
+    # 8) 卡片 id 二方一致性：章节正文 ↔ 章节 TOC；id 总数=各域分计之和（非对外「全站合计」）
+    #    导图站已于 2026-09-21 下线，不再做导图引用悬空检查
     IDPAT = r"((?:M|C|E|S|D|G|K|A)\d{2}\.\d{2})"
-    body_ids, toc_ids, mind_ids = set(), set(), set()
+    body_ids, toc_ids = set(), set()
     for p in chap_files:
         t = read(p)
         body_ids |= set(re.findall(rf'id="{IDPAT}"', t))
         toc_ids |= set(re.findall(rf'href="#{IDPAT}"', t))
-    for p in mind_files:
-        mind_ids |= set(re.findall(IDPAT, read(p)))
     check(len(body_ids) == CARDS_IN_CHAPTERS,
           f"[id总数] 章节页卡片 {len(body_ids)} 期望 {CARDS_IN_CHAPTERS}（total+methodology+engineering+pitfalls，分域加总仅作一致性校验）")
     check(not (body_ids - toc_ids),
           f"[TOC缺失] 正文有但目录无：{sorted(body_ids - toc_ids)[:10]}")
     check(not (toc_ids - body_ids),
           f"[TOC死链] 目录有但正文无：{sorted(toc_ids - body_ids)[:10]}")
-    check(not (mind_ids - body_ids),
-          f"[导图悬空] 导图引用但正文无：{sorted(mind_ids - body_ids)[:10]}")
 
     print("\n==== 校验结果 ====")
     if check.failed == 0:
-        print("ALL PASS ✅ 三权威源一致，data-page-node-id=0，小屏/主题/导航壳/Mermaid-ignore 就位，新卡落位且双编码一致。")
+        print("ALL PASS ✅ 二权威源一致，data-page-node-id=0，小屏/主题/导航壳/Mermaid-ignore 就位，新卡落位且双编码一致。")
         sys.exit(0)
     else:
         print(f"存在 {check.failed} 项 FAIL ❌，请复查。")

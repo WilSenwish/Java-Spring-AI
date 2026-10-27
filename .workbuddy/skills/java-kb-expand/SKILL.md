@@ -17,12 +17,9 @@ agent_created: true
 题库为**纯静态 HTML 双站**，两站经导航互链：
 
 - **章节站** `java-architect-interview/`：15 个编号篇章页 `chapter-01~15-*.html` + 方法论页 `chapter-core-methodology.html`（M 前缀）+ 工程化要点页 `chapter-engineering-practices.html`（G 前缀）+ 生产踩坑页 `chapter-production-pitfalls.html`（K）+ 安全卡 `nav-server-security-checkpoint.html` + 核心原理页 `chapter-questions-eight-part.html`（E 前缀）+ 场景页 `chapter-questions-scenario.html`（S 前缀）+ 章节导航 `index.html`。
-- **导图站** `java-architect-interview-mind/`：对应 `mind-01~15-*.html` + `mind-core-methodology.html`（M） + `mind-core-methodology-dao-fa-shu.html`（R2 道法器势） + `mind-core-methodology-scenario.html`（R3 场景六桶） + `mind-engineering-practices.html`（G） + `mind-production-pitfalls.html`（K） + `mind-server-security-checkpoint.html` + 导图导航 `index.html`（**21 个导图页**，与 `counts.mind_pages` 一致；线性链顺序见 `references/conventions.md` §7）。
 - **项目根** `Java Spring AI/index.html`：全部题目的扁平全量快照（每题一个 `q-item` li，C/E/S 带难度徽标 + `priority-pX` 徽标；**M/G/K 区块无任何徽标**，2026-09-16）。
 
 题号前缀：方法论页用 **M**，工程化要点页用 **G**，`chapter-01~15` 用 **C**，`E` 核心原理、`S` 场景。卡片三级目录为 `页面篇章 / 分组 / 题号`。
-
-聚合统计页共 **4 份**，任何题目数/优先级的增删改都必须联动（详见 `references/conventions.md` §4）：① 项目根 `index.html`；② `java-architect-interview/index.html`；③ `java-architect-interview-mind/index.html`（题量表达式 `N篇章+N核心原理+N场景`）；④ `nav-overview-priority.html`（`ov-stat-num` 10 项 + 9 子组标题，按**优先级×难度**组织；不含 M/G/K）。
 
 **绝对红线：**
 1. **禁止用 `present_files` 预览任何 HTML**（含在预览面板点击链接）。实测预览服务会持有文件并在外部变更时重新序列化、注入 `data-page-node-id` 属性。交付方式只有「绝对路径 + 文字结论」。
@@ -60,8 +57,6 @@ agent_created: true
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 10 项（顺序见 ov_stat_order；不含方法论） |
-| P08 | `java-architect-interview-mind/index.html` | mind index idx-meta 方法论卡片 |
-| P09 | `java-architect-interview-mind/mind-core-methodology.html` | mind-core-methodology 尾注 |
 | P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
 | P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
@@ -78,7 +73,6 @@ agent_created: true
 | P23 | `index.html` | 根 index 工程化统计卡 |
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
 | P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 meta 卡数 |
-| P26 | `java-architect-interview-mind/index.html` | mind index idx-meta 工程化要点卡片 |
 | P27 | `java-architect-interview/chapter-questions-scenario.html` | 场景页开篇散文题数（防漂移） |
 | P28 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段篇章题数 |
 | P29 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段场景题数 |
@@ -87,7 +81,6 @@ agent_created: true
 | P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
 | P35 | `index.html` | 根 index 核心原理 dir-count |
 | P36 | `index.html` | 根 index 题目总数 |
-| P37 | `index.html` | 根 index 思维导图页数统计卡 |
 | P38 | `index.html` | 根 index 核心原理统计 |
 | P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
 | P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
@@ -100,16 +93,13 @@ agent_created: true
 | P47 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P0 题数 |
 | P48 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P1 题数 |
 | P49 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P2 题数 |
-| P50 | `java-architect-interview/nav-overview-priority.html` | overview P0 组标题题数 |
-| P51 | `java-architect-interview/nav-overview-priority.html` | overview P1 组标题题数 |
-| P52 | `java-architect-interview/nav-overview-priority.html` | overview P2 组标题题数 |
+| P50 | `java-architect-interview/nav-overview-priority.html` | overview P0 组标题题数（含 A 轴） |
+| P51 | `java-architect-interview/nav-overview-priority.html` | overview P1 组标题题数（含 A 轴） |
+| P52 | `java-architect-interview/nav-overview-priority.html` | overview P2 组标题题数（含 A 轴） |
 | P53 | `index.html` | 根 index 深度 Q&A 统计 |
 | P54 | `index.html` | 根 index 场景题统计 |
 | P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A 统计 |
 | P56 | `java-architect-interview/index.html` | 章节 index 场景题统计 |
-| P57 | `java-architect-interview-mind/index.html` | mind index 题量表达式篇章 |
-| P58 | `java-architect-interview-mind/index.html` | mind index 题量表达式核心原理 |
-| P59 | `java-architect-interview-mind/index.html` | mind index 题量表达式场景 |
 | P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章题数 |
 | P61 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文篇章题数 |
 | P62 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页副标题卡数 |
@@ -121,32 +111,18 @@ agent_created: true
 | P68 | `java-architect-interview/index.html` | 章节 index 场景卡 desc 题数 |
 | P69 | `java-architect-interview/index.html` | 章节 index 核心原理卡 footer 题数 |
 | P70 | `java-architect-interview/index.html` | 章节 index 场景卡 footer 题数 |
-| P71 | `java-architect-interview-mind/index.html` | mind index 方法论卡 footer 卡数 |
-| P72 | `java-architect-interview-mind/index.html` | mind index 工程化卡 footer 卡数 |
-| P73 | `java-architect-interview-mind/index.html` | mind index 工程化卡 desc 卡数 |
-| P77 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页副标题卡数 |
-| P78 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注卡数 |
-| P79 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注题目总量 |
-| P80 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页尾注方法论卡数 |
 | P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 题目总量（C+E+S）参照 |
-| P83 | `java-architect-interview-mind/mind-engineering-practices.html` | mind 工程化页 Mermaid 旁注卡数 |
 | P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
 | P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
 | P86 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc 篇章题数 |
 | P87 | `java-architect-interview/index.html` | 章节 index 工程化卡 desc 卡数 |
 | P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
-| P89 | `java-architect-interview-mind/mind-01-jvm-memory-classloading.html` | mind-01 尾注核心原理总量 |
 | P90 | `index.html` | 根 index 踩坑统计卡 |
 | P91 | `java-architect-interview/index.html` | 章节 index 踩坑统计卡 |
 | P92 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
-| P93 | `java-architect-interview-mind/index.html` | mind index idx-meta 踩坑卡片 |
 | P94 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
 | P95 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 卡数 |
-| P96 | `java-architect-interview-mind/index.html` | mind index 踩坑卡 footer 卡数 |
-| P97 | `java-architect-interview-mind/index.html` | mind index 踩坑卡 desc 卡数 |
 | P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 题目总量（C+E+S）参照 |
-| P99 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页副标题卡数 |
-| P100 | `java-architect-interview-mind/mind-production-pitfalls.html` | mind 踩坑页尾注卡数 |
 | P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
 | P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
@@ -226,7 +202,7 @@ agent_created: true
 | P181 | `index.html` | 升格 local:dir-count → struct.root.dir_count_17 |
 | P182 | `index.html` | 升格 local:dir-count → struct.root.dir_count_18 |
 | P183 | `index.html` | 升格 local:dir-count → struct.root.dir_count_19 |
-| P184 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_3 |
+| P184 | `index.html` | 安全手册章节数（7 章）——升格 local:site-meta → struct.misc.index.site-meta_3 |
 | P185 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_4 |
 | P186 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_1 |
 | P187 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_1 |
@@ -263,8 +239,6 @@ agent_created: true
 | P218 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_24 |
 | P219 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_25 |
 | P220 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_26 |
-| P222 | `java-architect-interview/index.html` | 升格 local:mind-pages → mind_pages |
-| P223 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_1（2026-09-21 真值修正 16→17） |
 | P224 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「专家」数 → chapter-questions-eight-part.html 内 difficulty-expert 数 |
 | P225 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「架构」数 → 该页内 difficulty-architect 数 |
 | P226 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「高级」数 → 该页内 difficulty-senior 数（2026-09-21 真值修正 39→40） |
@@ -332,12 +306,11 @@ agent_created: true
 | P288 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.expert |
 | P289 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.architect |
 | P290 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.senior（2026-09-21 真值修正 3→4） |
-| P291 | `java-architect-interview/index.html` | 升格 local:chap-footer-meta → struct.chap.idx.meta_2 |
+| P291 | `java-architect-interview/index.html` | 安全手册章节数（7 章）——升格 local:chap-index-meta → struct.chap.idx.meta_2 |
 | P292 | `java-architect-interview/chapter-engineering-practices.html` | 升格 local:eng-groups → engineering_groups |
 | P293 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_1 |
 | P294 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_1 |
 | P295 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_1 |
-| P296 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-groups → struct.misc.chap_chapter_core_methodology.meth-groups_1 |
 | P297 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_2 |
 | P298 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_2 |
 | P299 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_2 |
@@ -390,56 +363,6 @@ agent_created: true
 | P346 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_11 |
 | P347 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_12 |
 | P348 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 组数（pitfalls_groups） |
-| P349 | `java-architect-interview-mind/mind-01-jvm-memory-classloading.html` | 升格 local:mind-note-local → struct.mind.mind-01-jvm-memory-classloading.mind-note-local_1 |
-| P350 | `java-architect-interview-mind/mind-01-jvm-memory-classloading.html` | 升格 local:mind-note-local → struct.mind.mind-01-jvm-memory-classloading.mind-note-local_2 |
-| P351 | `java-architect-interview-mind/index.html` | 升格 local:mind-pages → mind_pages |
-| P352 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-meta → struct.mind.idx.mind-foot-meta_1 |
-| P353 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-meta → struct.mind.idx.mind-foot-meta_2 |
-| P354 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-meta → struct.mind.idx.mind-foot-meta_3 |
-| P355 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_1 |
-| P356 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_1 |
-| P357 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_2 |
-| P358 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_2 |
-| P359 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_1 |
-| P360 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_3 |
-| P361 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_3 |
-| P362 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_4 |
-| P363 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_4 |
-| P364 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_2 |
-| P365 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_5 |
-| P366 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_5 |
-| P367 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_6 |
-| P368 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_6 |
-| P369 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_3 |
-| P370 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_7 |
-| P371 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_7 |
-| P372 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_4 |
-| P373 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_8 |
-| P374 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_8 |
-| P375 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_5 |
-| P376 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_9 |
-| P377 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_9 |
-| P378 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_6 |
-| P379 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_10 |
-| P380 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_10 |
-| P381 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_7 |
-| P382 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_11 |
-| P383 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_11 |
-| P384 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_8 |
-| P385 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_12 |
-| P386 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_12 |
-| P387 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_9 |
-| P388 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_13 |
-| P389 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_13 |
-| P390 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_10 |
-| P391 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_14 |
-| P392 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_11 |
-| P393 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-c → struct.mind.idx.mind-foot-c_15 |
-| P394 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-meta → struct.mind.idx.mind-foot-meta_4 |
-| P395 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-e → struct.mind.idx.mind-foot-e_14 |
-| P396 | `java-architect-interview-mind/index.html` | 升格 local:mind-foot-s → struct.mind.idx.mind-foot-s_12 |
-| P397 | `java-architect-interview-mind/mind-server-security-checkpoint.html` | 升格 local:mind-note-local → struct.mind.mind-server-security-checkpoint.mind-note-local_1 |
-| P398 | `java-architect-interview-mind/mind-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_13 |
 | P399 | `index.html` | 根 index 方法论 M13 组卡数 |
 | P400 | `index.html` | 根 index 方法论 M14 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
@@ -449,34 +372,10 @@ agent_created: true
 | P405 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
 | P406 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
 | P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
-| P408 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 M16 势定律组数（原误复用章节页 P405，2026-09-21 独立注册） |
-| P409 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 M17 表达与对齐组数（原误复用章节页 P404，2026-09-21 独立注册） |
-| P410 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M1 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P411 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M2 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P412 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M3 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P413 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M4 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P414 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M5 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P415 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M6 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P416 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M7 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P417 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M8 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P418 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M9 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P419 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M10 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P420 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M11 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P421 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M12 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P422 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M14 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P423 | `java-architect-interview-mind/mind-core-methodology.html` | mind 导图页 map-col M15 组数（2026-09-21 由纯文本升格为受保护计数位） |
-| P424 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 道层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
-| P425 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 法层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
-| P426 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 术层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
-| P427 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 器层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
-| P428 | `java-architect-interview/chapter-core-methodology.html` | chapter-core-methodology 势层 layer-hang 下挂 chip 数（2026-09-21 由纯文本升格为受保护计数位） |
 | P429 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer「15 篇」篇章页数（2026-09-21 由正文裸数字升格） |
 | P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
 | P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
-| P432 | `java-architect-interview-mind/index.html` | mind index 副标题「15 篇知识篇章」篇章页数（2026-09-21 升格） |
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
-| P435 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M16 单列势定律（11 张）」组卡数（2026-09-21 升格；同键既有位 P332 在 chapter-core-methodology） |
-| P436 | `java-architect-interview-mind/mind-core-methodology-dao-fa-shu.html` | mind 势页正文「M17 表达与对齐（4 张）」组卡数（2026-09-21 升格；同键既有位 P406） |
 | P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
 | P438 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 附卡数 |
 | P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M13 |
@@ -507,10 +406,6 @@ agent_created: true
 | P464 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 expert |
 | P465 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 architect |
 | P466 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 senior |
-| P467 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D01  cheat-card 组计数（支付与清结算） |
-| P468 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D02 cheat-card 组计数（风控与合规） |
-| P469 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D03 cheat-card 组计数（交易与履约） |
-| P470 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D04 cheat-card 组计数（营销与定价） |
 | P471 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 5 组（垂直领域）组计数 |
 | P472 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 6 组（垂直领域）组计数 |
 | P473 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 7 组（垂直领域）组计数 |
@@ -528,20 +423,21 @@ agent_created: true
 | P491 | `index.html` | 升格 local:dir-group → struct.root.dir_group_70 |
 | P492 | `index.html` | 升格 local:dir-group → struct.root.dir_group_71 |
 | P493 | `index.html` | 升格 local:dir-group → struct.root.dir_group_72 |
-| P494 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D05 cheat-card 组计数 |
-| P495 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D06 cheat-card 组计数 |
-| P496 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D07 cheat-card 组计数 |
-| P497 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D08 cheat-card 组计数 |
-| P498 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D09 cheat-card 组计数 |
-| P499 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D10 cheat-card 组计数 |
-| P500 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D11 cheat-card 组计数 |
-| P501 | `java-architect-interview/overview-quick-list.html` | 速查手册第四维度 D12 cheat-card 组计数 |
 | P502 | `java-architect-interview/index.html` | 章节 index meta-stats 垂直领域统计卡 |
-| P503 | `java-architect-interview-mind/index.html` | mind index idx-meta 垂直领域题统计 |
 | P510 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片题数 |
 | P511 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 expert |
 | P512 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 architect |
 | P513 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 senior |
+| P514 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片 footer 题数 |
+| P515 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·专家 题数 |
+| P516 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·架构 题数 |
+| P517 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·高级 题数 |
+| P518 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P1·专家 题数 |
+| P519 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P1·架构 题数 |
+| P520 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P1·高级 题数 |
+| P521 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·专家 题数 |
+| P522 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·架构 题数 |
+| P523 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·高级 题数 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -652,10 +548,7 @@ agent_created: true
 - **overview 类型三级计数（2026-09-13）**：每个难度子组内须有 `ov-type`（篇章/核心原理/场景题）分块；禁止只挂一个「篇章」标题却混入 E/S。`ov-type-count` 必须=块内题数。见 `conventions.md` §5.1.3/§5.1.4；`validate_kb` 3b2。
 - **overview `ov-stat-num` 共 10 项全要改**：题目总数/P0/P1/P2/专家/架构/高级/章节题/核心原理/场景题（顺序见 `ov_stat_order`；**不含方法论**——方法论只在专篇页与各 index 呈现）。最易漏的是「章节题」（篇章数）与「核心原理」（紧随「章节题」），漏改会导致 overview 与根 index、章节 index 的计数不一致。另须同步组标题/`ov-nav-cnt`/页头副标题「全站 N 道（篇章+原理+场景）」。
 - **禁止全站合计**：跨大篇章/聚合只动 total（C+E+S）；加 M/G/K 只 bump 对应键，**不要**再维护 sum_all（已废除）。
-- **mind 导图页数 21 与题量无关**（`mind_pages` = mind-01~15 + mind-core-methodology + **mind-core-methodology-dao-fa-shu（R2 道法器势）** + **mind-core-methodology-scenario（R3 场景六桶）** + mind-engineering-practices + **mind-production-pitfalls** + mind-server-security-checkpoint；**勿漏踩坑页与 R2/R3**，本处曾误记为 18 → 19）；`idx-meta` 五格含方法论/工程化卡数与 `N+N+N`；改题同步对应 `card-foot`。
 - **`dir-group-count` / `group-count` / 篇章 `dir-count` 必须等于实际卡片数**；M12 禁止嵌套进「一、高并发」。
-- **M 卡（方法论）的跨文件同步面 = 5 文件，且不含 overview（2026-09-18 实测，方法论重构 97→127 卡；2026-09-20 M01.17 并入 M01.05 后为 126 卡）**：M 卡新增/重编号须同步 ① `chapter-core-methodology.html`（卡本体三层 + 侧栏 TOC + 本组 mermaid 节点与 `style` + 本组 mod-hang 下挂矩阵 + 全库挂网总表行 + 页内 `methodology` 计数 span）② 根 `index.html`（对应 M 组内的 `li.q-item` + `struct.root.dir_group_N`）③ `mind-core-methodology.html`（`<details class="map-card">`，其中 **`map-body-text` = 该卡 insight 层首段纯文本**，实测与存量 70/97 精确一致；**另有 mindmap 块的逐卡文本行 `      MXX.YY 标题`，必须与 map-card 成对增删**）④ `mind-core-methodology-dao-fa-shu.html`（**R2**，各模块 `details` 内 `ul.map-id-list` + mindmap 逐卡行）⑤ `mind-core-methodology-scenario.html`（**R3**，六桶 `details` 内 `ul.map-id-list` + 桶 `summary` 的 `（N）` 计数 + mindmap 逐卡行）。**`nav-overview-priority.html` 全文 0 个 M 卡号、0 个 `methodology` 计数位 → M 卡不需要同步 overview**（与 C/E/S 卡不同，勿照搬其 9 项清单）。
-- **M 卡删除 / 并入的同步面（2026-09-20 实测：M01.17「加减思维」并入 M01.05）**：反向操作比新增多 5 类易漏点，皆有实测。① **章节页 mermaid 要删两行**——节点行 `G --> NM0117["…"]` **和** `style NM0117 …` 行（只删前者会留下孤儿 style）；② **"并入"必须移植内容**：把待删卡的 `insight` / `principle` / `application` 要点写进目标卡（本例把"加减"的完整表述、`M02.01`/`M02.02` 落点与「先加能力后减熵」话术移入 M01.05），**门禁查不出内容静默丢失**，只能人工比对；③ **`mind` 三页各有两处**——`map-card` / `ul.map-id-list` 条目 **＋** mindmap 的逐卡文本行 `      MXX.YY 标题`，漏删后者会让 `check_mind_mermaid` 的图-卡对应悬空；④ **计数要 bump 9 个键**：`methodology`（卡数）＋ **`methodology_with_priority`（卡带 `data-priority` 时同步 -1，本例 75→74）**＋ `struct.meth.group_N`（组头）＋ `struct.meth.table_N`（组对照表）＋ **`struct.meth.meta_N`（道/法/术 段合计，本组属"道"故 `meta_1..4` 全 -1，23→22）**＋ `struct.root.dir_group_N`；⑤ **"组数"键勿误伤**：`struct.misc…meth-groups_1`、`struct.mind.idx.mind-foot-meta_1`、`struct.chap.idx.meta_1` 承载的都是**组数 16**（M01~M16），本例 M01 卡数 16→15 而这三个键**保持 16 不变**。
 - **散文裸值不受 `sync_counts` 管辖（2026-09-20 实测）**：`docs/format-special.md` 与 `references/conventions.md` 各有一处**写死的 `75/127`**（不在标记位内、`positions` 未登记）——真源改数后 `sync_counts.py apply` 与 `check` 均**不会**触及，`check` 仍全绿而文档已陈旧。**改任何 `methodology*` 计数后，须手改这两处**。同类风险：`Laws-Theories-Principles-and-Patterns/index.html` 有 `127 卡 / 127 方法论` 的引用文案（外部子站，不在校验范围）。
 - **M 卡批量同步的三个坑（2026-09-18 实测）**：① **卡清单容器类名不统一**——根 `index.html` 用 `ul.q-list`，mind/R2/R3 用 `ul.map-id-list`，批量脚本的容器定位不可写死；② **两道门禁都覆盖不到 M 卡清单**：`sync_counts.py check` 只校验「已登记计数位」（`struct.root.dir_group_N` 登记在内，故真源与站点同为旧值时 check 全绿而内容陈旧）、`validate_kb.py` 也不逐卡校验 M 卡落位（新卡 0 条记录）——**章节 +N 卡而某导图页漏补时两者都不报错**，必须自行逐卡断言「四文件各 N/N 命中」；③ **改根 index 的 M 组计数即须 bump 真源**（`struct.root.dir_group_4/8/9` 是已登记键），否则 `check` 会从 393/393 掉到 390/393。
 - **多文件批量写盘一律「先算后写」（2026-09-18 实测）**：把各文件的替换与断言全部在内存跑完（`[(path, new_text, msg), …]`），**全部通过后才逐个 `open(...,'w')`**。本轮 4 文件同步首版按「算一个写一个」，`sync_root` 已写盘、`sync_mind` 断言失败，留下半写状态；改「先算后写」后同类失败零副作用。
@@ -663,27 +556,24 @@ agent_created: true
 - **Mermaid 节点 ID 禁含 `.`（2026-09-18 实测，方法论重构遗留）**：M 卡节点 ID 规约为 **`NM` + 卡号去点**（`NM0101` / `NM0505` / `NM0611`），即 `'NM' + cid[1:].replace('.','')`。误用 `cid.replace('M','')` 会生成 `NM05.15` / `NM06.11` 这类**含点 ID** —— `.` 在 Mermaid 中被解析为 class 选择器，节点与 `style` 行双双失效。本轮 M05.15–M05.25 + M06.11 共 **12 节点 × 2（节点定义 + style）= 24 处** 因此遗留，后经 `NM(\d{2})\.(\d{2})` → `NM\1\2` 全量归位。**核查**：全站每个 `<div class="mermaid">` 块内 `NM\d{2}\.\d{2}` 须为 0；同图节点数应等于该组卡数（如 M05 图 25、M06 图 11），`style` 数亦然。
 - **Mermaid `mindmap` 用法与约束（2026-09-18 实测）**：本地 `shared/js/mermaid.min.js` 为 **11.16.1**，已内置 mindmap，无需额外引入。规约与坑：
   - **缩进**：`mindmap` → `  root((根))`（2 空格）→ 一级分支（4 空格）→ 叶（6 空格）→ 更深分支（8 空格）。**只能用空格、严格 2 递增**；禁 tab / 空行 / 行尾空白。
-  - **不支持连线**：mindmap 只有父子层级，**无法表达跨节点关系**（下挂 / 势 等）。把「关系图」改成 mindmap 时，原连线语义必须**转移到同页表格**并**改写 caption**，否则信息静默丢失（本轮图 0d：64 实线 + 16 虚线 → 归「全库挂网总表」承载）。
+  - **不支持连线**：mindmap 只有父子层级，**无法表达跨节点关系**（下挂 / 势 等）。把「关系图」改成 mindmap 时，原连线语义必须**转移到同页可读结构**并**改写 caption**，否则信息静默丢失（历史：图 0d 曾以挂网总表承接连线；**2026-10-27 总表 / 组挂 / 0d 已清除**，跨层读法改看开篇 `#hang-cross` / `#hang-misalign` + TOC）。
   - **特殊字符**：`[ ] ( ) { } "` 会被当形状语法。含这些字符的节点须写**具名形式** `x1["文本"]`（id 顺序编号、图内唯一）；纯文本节点则须先扫描确认 0 敏感字符（本轮 21 页仅 3 处命中：`C07.12 …(DDL)…`、`C07.14 …#{ } vs ${ }`、`C10.05 Service Mesh(Istio)…`）。
   - **`classDef` / `:::` 慎用**：mindmap 的类应用无法在本地无预览环境中验证，宁缺勿错，默认不加配色。
   - **校验脚本易误报点**：`root((…))` 是**合法形状语法**，逐行扫描「裸敏感字符」时必须跳过该行，否则 21/21 页全假阳性。
-- **图表形态选型（2026-09-18 实测，见图 0d 三变形 flowchart LR → mindmap → 层带）**：**节点数 ≥40、标题长、需分层配色、需表达横向关系时不要用 Mermaid，改用 HTML/CSS**。
+- **图表形态选型（2026-09-18 实测；图 0d 层带方案已于 2026-10-27 随挂网 UI 清除）**：**节点数 ≥40、标题长、需分层配色、需表达横向关系时不要用 Mermaid，改用 HTML/CSS**（或直接用开篇竖切 / 表格 / TOC，避免再引入全库挂网总表）。
   - Mermaid 上限：`flowchart` 在页面容器（约 900–1100px）内节点数 >30 必然横向溢出或被缩放挤压；`mindmap` 不能配色（`classDef` 无法本地验证）也不能表达节点间关系。
-  - 正解形状：**层带**用 `.layer-hang` > `.layer-band`（flex + `border-left` 色条 + `--lc` 变量注入色），层间关系用独立 `.layer-link` 元素；**矩阵**用 CSS grid（列头按层色）。均自适应，且子项可加真链接（mindmap 纯文本做不到）。
-  - 分层配色**复用页面既有令牌** —— `.mod-hang-cell.dao/.fa/.shu/.qi/.shi` 即 `#2563eb/#059669/#d97706/#475569/#e11d48`，**不要新造色板**。
-  - 决策口诀：**关系少且节点少 → Mermaid；节点多 / 要配色 / 要自适应 → HTML**。
-  - **跨带关系用「角标」而非连线（2026-09-18 实测）**：层带是 flex 流式布局，跨带画线需 SVG 覆盖层 + 硬坐标，窗口一变即错位。正解是在 chip 上挂角标 —— 下游 `<span class="chip-hang dao|fa">挂 X</span>`（角标色＝上游层色）、上游 `<span class="chip-down">↓N</span>`（下挂计数）；**双向计数必须一致**，用脚本做交叉断言（本轮首版漏了分叉上游 M05.01 的 ↓N，被断言抓出）。
-  - **关系数据只从既有权威源取**：页内已发布的示范图（如图 0c 竖切链）+ 总表列值；**不要自行推断卡与卡的关系**。必须推导的部分单列为「B 组」，在交付说明里交长官复核。
+  - 历史正解（层带，**已废止，勿再加回**）：曾用 `.layer-hang` > `.layer-band` + chip 角标；现以 `#hang-cross` / `#hang-misalign` + 侧栏 TOC 承担跨层读法。
+  - 分层配色若仍需五层语义，复用既有令牌色 `#2563eb/#059669/#d97706/#475569/#e11d48`（道/法/术/器/势），**不要新造色板**。
+  - 决策口诀：**关系少且节点少 → Mermaid；节点多 / 要配色 / 要自适应 → HTML；全库索引级挂网 → 不要做（已证明维护成本 > 收益）**。
+  - **关系数据只从既有权威源取**：页内已发布的示范图（如图 0c 竖切链）；**不要自行推断卡与卡的关系**。必须推导的部分单列为「B 组」，在交付说明里交长官复核。
   - **`validate_kb.py` 单跑约 2m10s（2026-09-18 实测）**：链式执行（`cmd && validate_kb.py`）会撞上 120s 默认超时而 **SIGTERM（exit 137、无任何输出）**，须**单独调用或 `run_in_background`**；把它接在多个脚本后用 `&&` 串起来会误判为「脚本坏了」。
-  - **删除类改动的连带面**：删一个组的痕迹时须同时改（a）各层带 `.layer-count` 文案、（b）写死总数的断言、（c）复核脚本里的正则以适配新增 `<span>` 子标签（本轮 chip 正则因角标 span 而少算 17 个，属假阳性）。
+  - **删除类改动的连带面**：删挂网 / 层带时须同步注销 SSOT `positions`（曾用 P424–P428）、`struct…layer_hang_*`、`guard.derived.items` 与 `sources.rules[id=derived]`，并改写 `probe_count_drift_gate` 的 derived 夹具，否则真源 / probe 假绿或基线红。
 - **历史设计/登记文档的重编号残留不要机械替换（2026-09-18 实测）**：`docs/plans/*.md`、`方法论篇章重构建议.md`、`方法论篇章落地追踪.md` 中的旧卡号属**规划期编号与映射记录**，且规划期编号与最终编号**并不同构**（如 id-map 的 `M01.07` 指「稳态与闭环反馈」、建议文档 §元认知层指「定性定量」，落地后才是「技术债管理」）；机械替换会制造语义错误并摧毁可追溯性。**这类残留应保留**，只清站点（HTML）内的悬空引用。散文里的「原 M01.07」「（升法）」类批注才属须清除的内部标记。
 - **`</spa` 误判**：截断检测用负向前瞻排除合法 `</span>`（正则 `</spa(?!n>)`）。
 - **路径双层**：`Java Spring AI/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
 - **Bash 内置 `grep` 受 `_zshz` 干扰**：交叉验证用 `Grep` 工具或 `git grep`。
 - **校验提取正则必须覆盖新编号空间（2026-09-04 实测）**：升层重编号后若用旧模式（如 `M0[1-7]\.\d{2}`）提取 after 集合做多重集断言，会"看不见" M08+ 的新号而误报不一致（替换其实已成功）；after 一律用宽模式 `M\d{2}\.\d{2}`。
 - **Mermaid 被格式化压成一行（2026-09-15）**：每个 `<div class="mermaid">` 必须带上一行 `<!-- prettier-ignore -->`；统一用 `npm run format:html`。缺 ignore 时 Prettier 会塌缩图源码，`validate_kb` 会拦。
-- **导图 Mermaid 节点未随新增卡补齐（2026-09-15 实测，validate_kb 查不出）**：同步导图时最易「补了 `<summary>` 主题卡、忘了 `<div class="mermaid">` 图节点」。实测新增 4 卡（C11.29/C11.30/G07.09/S12.09）时漏掉该步，致 mind-11 缺 2 节点、mind-engineering-practices 缺 1 节点（mind-12 因惯例带 ID 前缀反而被注意到）。**导图 Mermaid 是「本篇章卡的全量列点」**——章节 +N 张卡，图里必须 +N 个节点，插在交叉卡（E/S）节点之前以对齐原卡序；节点 id 在分支内递增，需插队时把后续 id 顺延（节点 id 不被别处引用，重编安全）。校验用 `scripts/check_mind_mermaid.py`。
-- **`check_mind_mermaid` 曾因只认方括号标签而整页误判（2026-09-20 已修）**：Mermaid `mindmap` 用**裸文本**声明节点（`C14.13 慢 SQL 值班动作`），方括号 `["…"]` 标签数为 **0**；原实现只抽 `["…"]` 故凡「flowchart 走组级概览、mindmap 走逐卡」的页会整页判缺失——实测 `mind-core-methodology.html`（flowchart 仅 17 个组级节点 vs **127** 张 map-card）恒报 **126 条 FAIL**，长期亮红灯。**修法**：`mermaid_blocks()` + `block_labels()` 逐块取标签＝方括号标签 **+** mindmap 裸文本行（`root((…))` 取内层文案）。全站复跑 **508/508 PASS**。**重要副作用**：判定放宽为「**任一**图块有该卡即命中」，故**两块彼此不一致它已查不出来**——新增卡「两图都改」从门禁兜底降级为**人工纪律**。正向验证见 `scripts/probe_mind_mermaid_gate.py`（5 轮：标题替换 / 新增幽灵卡 / 只抹 flowchart / 两图都抹 / 原样基线，应 FAIL 者均 FAIL）。
 - **mind `<summary>` 的 ID 对齐 ≠ 标题对齐（2026-09-15 发现并已修复）**：`validate_kb` 只比对 mind 与章节的 **ID 集合**，两者 ID 集合相同但**标题错位**时不会报错。实测已修 6 处：mind-11 `C11.12/C11.13/C11.14`（导图把「调度」标成 .12、「ES」标成 .13，并有 1 条章节页不存在的幽灵卡「分布式任务调度与搜索整合」→ 现改为 C11.12=API 网关 / C11.13=调度 / C11.14=ES，幽灵卡消除）、mind-12 `C12.16/C12.17`（互换编号）、`C12.22`（原误用 C12.21 的标题「十亿级向量库」，正文实为「Embedding 模型升级迁移」）。**改导图卡编号时，同步改三处**：① `map-body-text` 正文（须与新标题同题）；② Mermaid 节点（mind-11/12 的 C 卡节点不带 ID，须按**内容**改标签；mind-12 的 S 卡节点带 ID）；③ 全站交叉引用「与 Cxx.yy 印证」——实测 mind-11 有 4 处、mind-12 有 4 处引用这些 ID，编号一改即须跟着改。
 - **内部编辑字眼会漏进正文（2026-09-15 实测，已纳入硬门禁）**：内容补写轮次留下的占位/批注词（`<strong>再加厚：</strong>`）曾残留在 10 个章节页 / 15 处，**任何校验都拦不住**（`validate_kb` 原无此检查）。已全部清除，并在 `validate_kb.py` 新增 **1f) 内部编辑字眼**检查（`EDITORIAL_WORDS = ["再加厚","补厚","占位段落","待补写"]`，全站须 0）。**教训：替换占位段落时，连包裹它的 `<strong>标签</strong>` 一并处理**，只换正文会留下标签壳。
 - **顶底导航位置（2026-09-15）**：顶栏必须是 `body` 第一个壳；底栏在 footer 后、script 前；根/章节 index 无导航。勿再把导航塞进 `content-main` 中部。
@@ -698,8 +588,6 @@ agent_created: true
 - **卡片缺 `</div>` → 后续卡片被「吞进」上一张卡（2026-09-16 长官实测，已纳入硬门禁 1i）**：`chapter-11-middleware-engineering.html` 的 C11.28（行 4620）少一个闭合 `</div>`，C11.29/C11.30 于是成为 C11.28 的 DOM 子节点，页面渲染为**卡片套卡片**（内层卡片整块落进上一张卡的框里）。**当时 `validate_kb` 全绿** —— 校验面完全不覆盖 DOM 层级（`data-page-node-id` / 裸计数 / `</spa` 截断都查不出），而 div 不平衡恰是「手工粘贴新卡片」最易引入的缺陷。**判定口径**：用 HTML 解析栈（`html.parser`，浏览器不会自动闭合 `<div>`）记录每张 `qa-card` / `map-card` 入栈时栈中是否已有同类卡，有即被嵌套。**修法**：在上一张卡最后一个 `.qa-layer` 之后、下一张 `<div class="qa-card">` 之前补 `        </div>`（8 空格，与相邻卡一致）。**门禁**：`validate_kb.py` 1i（`run_card_nesting_check`，全站 43 文件 / 1181 张卡）；正向验证 `scripts/probe_card_nesting_gate.py`（注入缺陷 → FAIL 2 张 → 还原后 MD5 一致 → PASS）。
 - **根 index 小屏「空白占比大」：横向 gutter 有 4 个来源在叠加（2026-09-16 实测）**：375px 下列表可用宽只有 **229px（视口的 61%）**，每侧被吃掉 **68px** —— `.dir-container` 桌面 `1.5rem`(24) + 页面内联 `.dir-section { margin: 0 12px }`(12) + **共享 `design-system.css` ≤768 段的 `.dir-section { padding-left/right: max(12px, env(safe-area-inset-*)) }`**(12) + 1px 边框 + `.dir-group/.q-list/.q-item` 各 8px。**归一化口径：全页横向留白唯一来源 = `.dir-container` 的 12px**（与 hero/legend/toolbar 一致），`.dir-section` 的 margin 与共享 CSS 的 padding 都要**显式归零**（共享规则与页面同特异度、页面后加载故页面胜出，但**必须写 `padding-left: 0` 才生效**），列表层级内缩各 4px。修复后可用宽 **325px（87%）**、展开态页高 −15.3%、折叠态 3413→2692px。**陷阱**：`.dir-section { overflow: hidden }` 会把「`.dir-header` 的 `.dir-count` 胶囊撑破容器」**裁掉而不报错**，`check_mobile_overflow.js` 也因祖先 `overflow:hidden` 放行 —— 这类缺陷只有**宽度实测 + 截图**才能发现。复测：`scripts/probe_root_index_whitespace.js`。
 - **第二行内容（`.q-tags` 等）的缩进要用题号列宽推导（2026-09-16）**：≤768px 为 `5.1rem`（q-id 4.5rem + `.q-item a` 的 gap 0.6rem），≤480px 题号收窄到 3.8rem 后须同步改 `4.4rem`；原先在 ≤480px 写 `padding-left: 0`，与宽断点口径不一致导致标签行错位。**跨断点改任何「列宽 + gap」组合时，都要同步所有依赖它的缩进。**
-- **统计块（`.dir-stats`）加计数项须让每行项数为偶（2026-09-16）**：≤480px 为两列，根 index 首行原 3 项 → 「题目总数」独占一行、右侧整格留白（长官反馈的「空白位置占比大」之一）；补入「思维导图 19」后首行 4 项、次行 6 项，375px 下两行均整除无空格。新增展示位须同时登记 `positions`（本轮用空位 **P37**，键 `mind_pages`，首次展示该键于根 index）。
-- **聚合计数格「只删 DOM」会留下孤儿 position（2026-09-16 固化）**：hero 统计格增删必须**三处同步** —— ① 该页 DOM 的 `.stat-item`；② `design-system.css` 中该 hero 的 `grid-template-columns`（**每个断点的列数都须整除项数**，与上条同口径）；③ `docs/kb-counts.json` 的 `positions`。**只删 DOM 不删 position，`sync_counts.py check` 与 `validate_kb.py` 的「kb-count 标记」项会双双 FAIL**（校验按「每个 position 必须命中 1 处 `data-kb-pos=…`」判定，命中 0 处即报缺失）。实测：章节导航 index 移除「思维导图」格（`mind_pages`，**P221**）后 `positions` **396 → 395**、`check` 恢复全绿；同时须同步 `conventions.md` §5.2/§5.3 口径（`counts.mind_pages = 19` 键本身保留，仅删展示位）。新增格子同理（根 index 加 P37 已验证），**改完必跑 `sync_counts.py render`** 刷新 AGENTS.md / SKILL.md / conventions.md 的计数位表。
 - **反向孤儿：`struct` 键存在但无 `position` → 两道门禁全绿也查不出（2026-09-20 固化）**：`sync_counts.py check` 只遍历**已登记的 positions**（未被任何 position 引用的 key 根本不进循环），`validate_kb.py` 的「kb-count 标记」项也只按「每个 position 须命中 1 处 DOM」判定。因此**页面漏掉一个计数展示位**时：positions 里没该项 → `check` 全绿；DOM 里没该 span → 也无从 FAIL。实测：`chapter-core-methodology.html` 的 M13 组头 `<span class="dim-subtitle">术 · 专篇收口</span>` **无数字**（M01–M12 组头均有），而真源里 `struct.meth.group_13 = 5` 是**孤儿键**（0 处引用）；更隐蔽的是同页正文自证「M13 安全 5 卡**已在组头**」→ 文档内部自相矛盾，却全门禁通过。**检测手法**：`set(struct 键) − set(positions[*].key)`。**补位流程**：① `docs/kb-counts.json` 的 `positions` 追加项（新号取现存 max+1；注意 `kind="number"` 时 **`group` 字段是正则捕获组号**、`nth` 是第几个匹配，别误当分组 id）；② HTML 补 `data-kb-pos` + `data-kb-count` span；③ `sync_counts.py check`；④ `sync_counts.py render`。实测补 P403 后 positions 391→392、`check 392/392`、五道门禁全绿。**推论：组头/统计位的「键值正确」不等于「展示到位」，改完组头务必人眼核一遍数字是否真的渲染出来。**
 - **给页面内联 `<style>` 追加 CSS 后 `check_html_format` 必 FAIL（2026-09-20 实测）**：Prettier 会按嵌套深度重排缩进（`<style>` 顶层规则 4 空格、`@media` 内 6 空格），手写的缩进/空行必被判定为非稳态。修法＝用**与校验脚本完全相同的调用方式**写回：`node_modules/.bin/prettier --stdin-filepath <相对路径>` 管道输入，再跑 `normalize_html_closers`（等价于 `npm run format:html`）。可直接复用 `tmp/do_format_core.py` 模式——它带**结构守恒守卫**（qa-card / data-kb-pos / mermaid / M 卡 id / NM 节点数逐项比对，任一变化则拒绝写盘），改完复跑 `check_html_format` 应回 `OK (46 HTML)`。
 - **组级特殊标识的落点与写法（2026-09-20 固化）**：给「某组与其他组不一样」加标识时——① 先**实测该组与其余组是否结构同构**（逐组比对 卡数/导语/导图/组概要/下挂格 五项），多数情况差异在**语义层**而非结构，标识文案要据此定；② 胶囊**复用既有非难度类 `.layer-tag`**，不要为标识新造配色（新色相极可能与难度三色 蓝/紫/青绿 或优先级三色 红/琥珀/蓝 撞车）；③ 组级样式用**属性选择器**挂载（如 `<section … data-group-distinct="expression">` + `.dimension-section[data-group-distinct="expression"] { … }`），不改 `class="dimension-section theme-shu"` 以免波及同维度的其他组；④ **三面同步**：章节页组头（胶囊，可加整组样式）、根 index 的该组 `q-tags`（`<span class="layer-tag">…</span>`）、mind 站权威树 `<li>`；⑤ **mindmap 是裸文本行，放不了 HTML 胶囊**——R2/R3 聚合页只列逐卡链接、无组条目，这两类面加不了，属预期而非遗漏，交付时要说明。⑥ 佐证指标：`check_mobile_overflow.js --path <页> 320 640` 与 `check_list_indent.js --only <页> --viewport 375` 必须 PASS（胶囊会改变行宽/缩进）。
@@ -757,5 +645,4 @@ agent_created: true
 - `scripts/probe_index_badge_gate.py` — 上条门禁的**正向验证**（**自包含**，2026-09-21 改写摆脱对 tmp/ 历史快照的依赖；**不写项目真实文件**，只用系统临时沙箱）：从当前项目复制 `index.html` + `nav-overview-priority.html` 进沙箱，① 徽标缺陷（剥一个 `ov-item` 的 `class="ov-badges"`）→ 断言 gate exit 1 且命中「缺 .ov-badges 包裹」；② 留白缺陷（删 ≤768 段 `.dir-container {…}` 规则）→ 断言命中「≤768 段缺 .dir-container 规则」；③ 对齐缺陷（删 `.dir-count {…}` 规则）→ 断言命中「缺 .dir-count 规则」；④ 干净树 → `exit=0`。**每轮断言该类的签名串**，防止「缺陷换了类别但总数没变」造成假通过；前几轮不 FAIL ⇒ 门禁恒真、④ FAIL ⇒ 误杀。任一轮不符即 exit 1。沙箱用完即清。
 - `scripts/probe_root_index_whitespace.js` — 根 index 小屏几何**实测**（CDP，零依赖）：逐级打印 `.dir-container/.dir-section/.dir-group/.q-list/.q-item` 的 padding/margin 与 left 留白、列表可用宽、页高，并支持 `--url <file>`（对改前备份做对照）、`--expand N`（展开前 N 个面板）、`--shot-section --clip <选择器> --pad-top N --height N --tag X`（按元素裁图）。**页面总高极大时不要整页截图**（曾因 62066px 挂死，已加高度护栏）。
 - `scripts/probe_section_style.js` — 根 index **逐 section 结构与计算样式**导出（CDP，零依赖）：对全部 `.dir-section` 输出「是否含 `.dir-group`」+ 边框/头部底色/各层横向内缩/题号左缘/计数胶囊左右缘与装饰线，用于**按分支分类比对**。**它专为抓「同一页面两类区块风格分叉」而写**：只看单个样本会漏掉另一类（实测 `{17}` vs `{1}` 的题号左缘分叉被漏测两轮）。`node probe_section_style.js [1200,375] [--url <file>]`。
-- `scripts/strip_page_node_id.py` — 红线兜底：清除全站 HTML 的 `data-page-node-id` 属性（预览服务注入污染时用）。`--check` 只读扫描（报告计数与命中文件）、`--fix` 回写；覆盖根 `index.html` + `java-architect-interview/*.html` + `java-architect-interview-mind/*.html`。三步归一：删属性 → 标签内空白归一 → 属性与 `>` 间去空格。**改完勿用预览确认**（会再次注入）。
 - 仓库根：`npm run format:html` / `format:html:check`；规范正文见 `docs/format-shared.md` §4.2 / §10。

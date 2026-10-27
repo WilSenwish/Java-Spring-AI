@@ -198,18 +198,20 @@ inject(
 )
 
 # ---------------------------------------------------------------- D 键路径冲突
-dup_flat = "mind.idx.mind-foot-c_1"
+# _dup_paths 检出条件：同一 dict 下同时存在点分扁平键「dup.probe_1」与嵌套「dup」对象。
+# 旧写法只塞了嵌套、没有扁平兄弟键 → 永远检不出（假绿）。
 
 
 def d_mut(d):
-    d["struct"]["mind"] = {"idx": {dup_flat.split("mind.idx.")[1]: 999}}
+    d["struct"]["dup.probe_1"] = 1
+    d["struct"]["dup"] = {"probe_1": 999}
 
 
 inject(
     "D 键路径冲突（同一逻辑键写了扁平 + 嵌套两份）",
     ["键路径冲突"],
     ssot_mutate=d_mut,
-    note="← 2026-09-21 实测缺陷（struct.mind 陈旧重复）",
+    note="← 防「扁平点分键 vs 嵌套键双写」静默覆盖",
 )
 
 # ---------------------------------------------------------------- E 真源配置写错
@@ -228,11 +230,13 @@ inject(
 )
 
 # ---------------------------------------------------------------- F 声明未生效
-old_block = rule(ssot, "meth_group")["block_re"]
+# meth_group 规则已废除；改打 scenario_group 的 block_re（dom_scan 同类）。
+old_block = rule(ssot, "scenario_group")["block_re"]
 
 
 def f_mut(d):
-    rule(d, "meth_group")["block_re"] = "<h2 id=\"m-groupZZZ-%02d\""
+    rule(d, "scenario_group")["block_re"] = old_block.replace(
+        "scenario-group", "scenario-groupZZZ", 1)
 
 
 inject(

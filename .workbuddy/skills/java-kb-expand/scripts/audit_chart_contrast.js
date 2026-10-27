@@ -165,7 +165,7 @@ function collectPages(dirs) {
 (async () => {
   const argv = process.argv.slice(2);
   const mode = argv[0] || 'dark';
-  let dirs = ['java-architect-interview', 'java-architect-interview-mind'];
+  let dirs = ['java-architect-interview'];
   let limit = 0, jsonOut = null;
   for (let i = 1; i < argv.length; i++) {
     if (argv[i] === '--dirs') dirs = argv[++i].split(',');
@@ -215,7 +215,7 @@ function collectPages(dirs) {
       try {
         const r = await send('Runtime.evaluate', { expression: MEASURE, returnByValue: true });
         const v = r.result && r.result.value;
-        if (v && v.ok) { v.page = path.basename(p); v.dir = p.startsWith('java-architect-interview-mind') ? 'mind' : 'chap'; results.push(v); }
+        if (v && v.ok) { v.page = path.basename(p); v.dir = 'chap'; results.push(v); }
         else results.push({ page: path.basename(p), err: 'no-measure' });
       } catch (e) { results.push({ page: path.basename(p), err: String(e.message || e).slice(0, 120) }); }
     }

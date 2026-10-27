@@ -47,7 +47,7 @@ const ROOT = path.resolve(__dirname, '../../../..');   // 项目根
 
 function allPages() {
   const out = [];
-  for (const dir of ['java-architect-interview', 'java-architect-interview-mind']) {
+  for (const dir of ['java-architect-interview']) {
     const d = path.join(ROOT, dir);
     if (!fs.existsSync(d)) continue;
     for (const f of fs.readdirSync(d)) if (f.endsWith('.html')) out.push(dir + '/' + f);

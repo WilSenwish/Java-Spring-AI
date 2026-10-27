@@ -9,7 +9,6 @@ from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死�
 BASE = find_root(__file__)
 
 CHAPTER_DIR = f"{BASE}/java-architect-interview"
-MIND_DIR = f"{BASE}/java-architect-interview-mind"
 
 # Import check by reusing validate module path
 sys.path.insert(0, os.path.dirname(__file__))

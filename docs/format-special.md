@@ -18,7 +18,7 @@
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：全库框。C/E/S 是领域细枝，G 是门禁化的器，K 是器失效的反例；本篇提供可挂载的道/法/术/势（器**不单列** Module）。势已独立为 **M16 维度**（势定律 11 卡），表达与对齐另立 **M17（附）**。开篇含五层定义、同一词跨层三例、全组×五层挂网总表与四种错位；**每组必有** `.mod-hang` 五列下挂。<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">149</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 **`M01~M17` 共 17 组**分层侧边目录。
+- **定位**：全库框。C/E/S 是领域细枝，G 是门禁化的器，K 是器失效的反例；本篇提供可挂载的道/法/术/势（器**不单列** Module）。势已独立为 **M16 维度**（势定律 11 卡），表达与对齐另立 **M17（附）**。开篇含五层定义、同一词跨层三例（`#hang-cross`）与四种错位（`#hang-misalign`）；**不再维护**全库挂网总表（`#hang-master`）、组级 `.mod-hang` 五列下挂、图 0d 层带（`.layer-hang`）——导航以侧栏 TOC / 卡号锚点 / 开篇竖切为准（2026-10-27 清除）。<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">149</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 **`M01~M17` 共 17 组**分层侧边目录。
 - **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -33,7 +33,7 @@
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
   - 十六组 → `#m-group-01`～`#m-group-16`（与 Module 编号一致）
   - 条目锚点仍为 `M##.##`
-- **导航**：顶/底 `chapter-nav-top` / `chapter-nav` 内容一致；左 `nav-home`「← 返回目录」、右 `nav-next`「工程化要点 →」；中间 `nav-center` 为「全部章节 → 本章思维导图」（勿与左右重复链工程化）。
+- **导航**：顶/底 `chapter-nav-top` / `chapter-nav` 内容一致；左 `nav-home`「← 返回目录」、右 `nav-next`「工程化要点 →」；中间 `nav-center` 为「全部章节」（勿与左右重复链工程化）。
 - 单条新增规则：`id = M{模块}.{序}`；`insight → principle → application` 三层层序固定。
 
 ## <a id="2"></a>2. 优先级大盘 chapter-overview-priority（ov 组件）
@@ -105,7 +105,7 @@
 
 ## <a id="5"></a>5. 安全 Checkpoint chapter-server-security-checkpoint（独立单页）
 
-- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无 `qa-card`**；顶/底导航与篇章页一致（`chapter-nav-top` / `chapter-nav`：上一篇 / 核心方法论 / 全部章节 / 思维导图 / 返回目录），并**引入 `nav.js`**。
+- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无 `qa-card`**；顶/底导航与篇章页一致（`chapter-nav-top` / `chapter-nav`：上一篇 / 核心方法论 / 全部章节 / 返回目录），并**引入 `nav.js`**。
 - **布局 / 目录**：与篇章页一致，使用 `page-wrapper` + 左侧 `sidebar-toc`（「本篇目录」）+ `content-main`；禁止正文中置目录或浅蓝 `.toc` / `.doc-toc` 盒子。
 - **样式**：仅引入 `assets/design-system.css`，页面内联 `<style>` 仅定义少量独占令牌与正文排版覆盖（如 `--quote-bg`、`--quote-border`、`--th-bg`、`--zebra`），其余取值自全局令牌。
 - **内容结构**：传统「文档章节」式，标题层级清晰：
@@ -122,15 +122,13 @@
 - **卡片**：与方法论相同三层（`insight` / `principle` / `application`）。
 - **分组**：G01～G08 八组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全）；每组正文载体为 `<section class="eng-group" id="G0N">`。
 - **目录**：侧栏分组标题必须为 `<a class="toc-group-title" href="#G0N">`（禁止 `div`），与组 `id` 一一对应。
-- **导图**：`mind-engineering-practices.html`。
-- **导航**：顶/底一致；左 `nav-prev`「← 核心方法论」、右 `nav-next`「优先级总览 →」；中间 `nav-center` 为「全部章节 → 本章思维导图」（勿再重复链核心方法论）。
+- **导航**：顶/底一致；左 `nav-prev`「← 核心方法论」、右 `nav-next`「优先级总览 →」；中间 `nav-center` 为「全部章节」（勿再重复链核心方法论）。
 
 ## <a id="7"></a>7. 首页 index.html
 
 
 - **定位**：全站入口导航页（`java-architect-interview/index.html`）。卡片顺序**允许人工编排**，不以文件名自然序强制重排；Agent 改卡时**保持现有 DOM 顺序**，除非用户明确要求调整位置。
 - **当前卡片顺序**（手工编排，改动须同步本条）：
-  1. 思维导图站入口（通栏）
   2. 核心方法论（通栏）
   3. 工程化要点（通栏）
   4. 核心原理速查（通栏）
@@ -145,7 +143,7 @@
 - **难度徽标（`card-tags`）约定**：
   - **统一顺序**：有计数时按 **专家 → 架构 → 高级**；某档为 0 则省略该档（不写 `×0`）。
   - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心原理、场景、优先级总览（总览口径 = 篇章+核心原理+场景 = `total`）。**M/G/K 三张专篇卡不写 `card-tags`** —— 方法论/工程化/生产踩坑一律不呈现等级与优先级徽标（2026-09-16 长官决策，`data-difficulty` 属性仍保留），原 6 个计数位 P74/P75/P76/P103/P104/P105 随之作废并已从 `kb-counts.json` 删除。
-  - **无法实计的卡**（思维导图站入口、安全 Checkpoint 等无 `data-difficulty` 题卡）：只标档位文案，不写 ×N。
+  - **无法实计的卡**（安全 Checkpoint 等无 `data-difficulty` 题卡）：只标档位文案，不写 ×N。
   - 数字须与目标页 `data-difficulty` 实计一致；改题难度后同步本页对应卡徽标。
 - 每张章节卡片须链接到对应目标页；`card-number / card-title` 应与目标页一致；`card-footer` 题数须与目标页实卡数一致。
 - 引用更新规则：任何章节文件改名，须同步根 `index.html` 与本目录 `index.html`（路径写法不同）。

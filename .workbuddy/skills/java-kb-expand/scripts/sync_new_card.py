@@ -56,29 +56,6 @@ os.makedirs(BACKUP, exist_ok=True)
 #       （ov-type 为每个难度子组内的「篇章/核心原理/场景题」三分块，易被整体忽略）
 # 章节 index（java-architect-interview/index.html）
 #   [8] c{NN}.n / c{NN}.expert / c{NN}.architect（struct.chap.idx.*）；不枚举单题 ID
-# mind 站（一处漏改即「导图与正文不同步」，validate_kb 查不出，必须人工双改）
-#   [9] 对应 mind-NN 页须改【四处】，缺任一即不同步：
-#       (a) 主干范围句（如「主干 C11.01–C11.28」→ C11.30）
-#       (b) 主题卡 <details class="map-card"><summary>ID 简称</summary>…（体例对齐同组兄弟卡）
-#       (c) ⚠ Mermaid 图节点：<div class="mermaid"> 内的 `tN --> nNNN["简称"]`。
-#           实测 2026-09-15：新增 4 卡时只补了 (a)(b)，漏 (c)，
-#           导致 mind-11 缺 C11.29/C11.30、mind-engineering-practices 缺 G07.09。
-#           导图 Mermaid 是「本篇章卡的全量列点」——章节 +N 张卡，图里就必须 +N 个节点。
-#           节点 id 保持在分支内递增；插在交叉卡（E/S）节点之前，与原卡序一致；
-#           若需插队在既有 id 之前，把后续节点 id 顺延（如 n113 → n115），
-#           mermaid 节点 id 不被其它位置引用，重编安全。
-#       (d) mind index 的 card-foot（struct.mind.idx.mind-foot-c_N / -e_N / -s_N）
-#       ⚠ S 场景卡并入其所属篇章的 mind 页（如 S12.x → mind-12-ai-engineering.html），
-#         不存在独立的 mind 场景页
-#       ⚠⚠ E 核心原理卡同样并入「其所属篇章」的 mind 页（2026-09-20 实测）：
-#         如 E03.09 → mind-03-concurrency-locks.html。E 卡不是只进 eight-part 页——
-#         mind-foot-e_N 校验 = 该 mind 页 <summary> 里的 E 号集合数，漏补则
-#         validate_kb「[mind card-foot] 与篇章/summary 不一致」FAIL。
-#       ⚠⚠ 一个 mind 页有【两个】<div class="mermaid">：block0=flowchart（`tN --> nNNN["简称"]`）、
-#         block1=mindmap（纯文本行 `C14.13 慢 SQL…`）。新卡【两处都要加节点】。
-#         （2026-09-20 更新）check_mind_mermaid 已改为**逐块取标签**（flowchart 方括号标签
-#         + mindmap 裸文本行），故它只能判「两块都缺该卡」——**两块彼此不一致它查不出来**
-#         （任一图有即 PASS）。因此「两处都改」属人工纪律，不可再依赖该门禁兜底。
 # 收尾
 #   [10] sync_counts.py bump（counts 与 struct.* 一并传参）→ check 全 PASS
 #   [11] validate_kb.py 的 NEW_IDS 补入本轮新题号 → 全量校验 ALL PASS
@@ -92,13 +69,11 @@ os.makedirs(BACKUP, exist_ok=True)
 #   [R2] 「并入」必须移植内容：把待删卡的 insight / principle / application 要点写进目标卡。
 #        本例：加减的完整表述 + M02.01/M02.02 落点 + 「先加能力后减熵」话术 → 移入 M01.05。
 #        ⚠ 门禁查不出内容丢失，只能人工比对三层要点是否都落地。
-#   [R3] mind 三页各有【两处】：map-card（R2/R3 视角页为 ul.map-id-list 条目）＋ mindmap 逐卡
-#        文本行 `      MXX.YY 标题`。漏删 mindmap 行会让图-卡对应悬空。
 #   [R4] 计数 bump 共 9 键：methodology（卡数）、methodology_with_priority（卡带 data-priority 时同步 -1）、
 #        struct.meth.group_N（组头）、struct.meth.table_N（组对照表）、
 #        struct.meth.meta_N（道/法/术 段合计；本组属「道」故 meta_1..4 全 -1）、
 #        struct.root.dir_group_N
-#   [R5] ⚠ 「组数」键勿误伤：struct.misc…meth-groups_1 / struct.mind.idx.mind-foot-meta_1 /
+#   [R5] ⚠ 「组数」键勿误伤：struct.misc…meth-groups_1 /
 #        struct.chap.idx.meta_1 承载的都是【组数 16】（M01~M16），M01 卡数 16→15 时这三个键【不变】。
 #   [R6] ⚠ 散文裸值不受 sync_counts 管辖：docs/format-special.md 与 references/conventions.md
 #        各有一处写死的 `75/127`（未登记 positions）→ 改数后必须手改为 `74/126`；check 全绿也查不出。
@@ -108,14 +83,11 @@ os.makedirs(BACKUP, exist_ok=True)
 # 已知真实文件名（避免猜错）：
 #   篇章页 chapter-01~15-*.html / 方法论 chapter-core-methodology.html / 安全卡 nav-server-security-checkpoint.html
 #   核心原理页 chapter-questions-eight-part.html / 场景页 chapter-questions-scenario.html
-#   导图页 mind-01~15-*.html / mind-core-methodology.html / mind-server-security-checkpoint.html
-# 场景题 Sxx 的宿主章节页 = 其 group-N 对应的篇章（如 group-4 微服务架构 -> chapter-10-microservice-cloud.html / mind-10）
+# 场景题 Sxx 的宿主章节页 = 其 group-N 对应的篇章（如 group-4 微服务架构 -> chapter-10-microservice-cloud.html）
 NEW_ID = "C13.13"          # 新增题号
 NEW_CARD_HTML = """<!-- TODO: 完整卡片 HTML（含双编码 data-priority + 可见徽标）-->"""
 CHAPTER_FILE = f"{BASE}/java-architect-interview/chapter-13-network-io.html"
-MIND_FILE = f"{BASE}/java-architect-interview-mind/mind-13-network-io.html"
 ANCHOR_INSERT_CARD = "<!-- ============ 章节间导航 ============ -->"  # TODO: 卡片插在此锚点前
-ANCHOR_INSERT_MAPCARD = "</details>\n    <h3 class=\"theme-h\">②"      # TODO: map-card 插此前
 
 # 计数增量（形式1/2/3 新增卡时填；形式4 补增量时全 0）
 DELTA = {"total": 1, "p1": 1, "architect": 1, "chapters": 1}
@@ -131,8 +103,6 @@ FILES = {
     "overview": f"{BASE}/java-architect-interview/nav-overview-priority.html",
     "root": f"{BASE}/index.html",   # 注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
     "chap_idx": f"{BASE}/java-architect-interview/index.html",
-    "mind": MIND_FILE,
-    "mind_idx": f"{BASE}/java-architect-interview-mind/index.html",
 }
 
 def read(p): return open(p, encoding="utf-8").read()
@@ -178,26 +148,18 @@ def patch_overview(t):
     # TODO: 对应 优先级×难度 子组标题 +N（先算真实 9 宫格再对齐）
     return t
 
-# ---------- Step C: 根 index + 章节 index + mind ----------
+# ---------- Step C: 根 index + 章节 index ----------
 def patch_root(t):
     # TODO: 类型计数/全站(=total)/dir-count +N（禁跨域合计）；新增 q-item li（在对应 ID li 后）
     return t
 def patch_chap_idx(t):
     # TODO: stat-number +N；全站(=total)+N；章节 card-footer +N（不枚举单题 ID）
     return t
-def patch_mind(t):
-    # TODO: 主干范围扩尾；插 map-card（summary/body/tags）；meta +N
-    t = replace_once(t, ANCHOR_INSERT_MAPCARD, "<!-- TODO: map-card -->\n    " + ANCHOR_INSERT_MAPCARD, "mind-insert-mapcard")
-    return t
-def patch_mind_idx(t):
-    # TODO: 题量表达式 N+N+N 同步（方法论/工程化不计入该表达式）
-    return t
-
 def main():
     backup_all()
     patches = {
         "chapter": patch_chapter, "overview": patch_overview, "root": patch_root,
-        "chap_idx": patch_chap_idx, "mind": patch_mind, "mind_idx": patch_mind_idx,
+        "chap_idx": patch_chap_idx,
     }
     for k, fn in patches.items():
         t = read(FILES[k])

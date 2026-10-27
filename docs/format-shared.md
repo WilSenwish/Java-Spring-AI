@@ -23,7 +23,7 @@
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">…</nav>
     </div>
-    <div class="page-wrapper">   <!-- 或 body 直接承载（导图/总览等） -->
+    <div class="page-wrapper">   <!-- 或 body 直接承载 -->
       … 页面内容 …
     </div>
     <!-- 底栏在正文/footer 之后、所有 <script> 之前 -->
@@ -35,7 +35,7 @@
   </html>
   ```
   例外：根 `index.html`、章节站 `java-architect-interview/index.html` **不**放顶/底章节导航。
-- 任何新页都必须引入 `assets/theme-init.js`（在 CSS 前）与 `assets/design-system.css`，不得另起一整套全局样式；页面特有样式以内联 `<style>` 覆盖。相对路径：根 `index.html` → `java-architect-interview/assets/…`；章节站 → `assets/…`；导图站 → `../java-architect-interview/assets/…`。
+- 任何新页都必须引入 `assets/theme-init.js`（在 CSS 前）与 `assets/design-system.css`，不得另起一整套全局样式；页面特有样式以内联 `<style>` 覆盖。相对路径：根 `index.html` → `java-architect-interview/assets/…`；章节站 → `assets/…`。
 
 ## 2. 设计系统 · 设计令牌（CSS 变量）
 
@@ -98,7 +98,7 @@
 ## 4. 资源按需载入规则
 
 - `assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部**（见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
-- `assets/nav.js`：全站导航交互脚本（章节站均引入；导图/根 index 可依赖 `theme-init.js` 的浮动控件）；职责含：
+- `assets/nav.js`：全站导航交互脚本；职责含：
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）。
   2. 阅读进度条；主题切换 / 回顶 / 去底由 `theme-init.js` 负责（本脚本仅兜底防漏）。
   3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
@@ -127,8 +127,8 @@
   - **无导航页**：仅根 `index.html`、章节站 `java-architect-interview/index.html`；导图 `index.html` 与其余内容页均须有顶底导航。
 - **顶底内容必须一致**：`.chapter-nav-top` 与 `.chapter-nav` 的内侧 HTML（链接集合与文案）须相同，仅外层 class 不同。
 - **顶底高度与间距对称**：壳层 `.site-page-nav--top` / `--bottom` 使用相同的上下 `padding`；内层导航条相同 `min-height` / `padding`；**内容 ↔ 导航块**的间隔只由壳层承担（正文首屏如 `.map-hero` / `.ov-hero` 勿再叠加大 `padding-top`）。样式以 `assets/design-system.css` 为准，小屏断点亦须对称。
-- **箭头**：统一字面量 `←` / `→`（禁止 `&#8592;` / `&#8594;`）；思维导图外链箭头仍用 `&#8599;`。
-- **回目录文案**：统一「返回目录」（禁止「返回首页」）；导图站首/末用「导图总览」/「返回导图总览」。
+- **箭头**：统一字面量 `←` / `→`（禁止 `&#8592;` / `&#8594;`）；外链箭头仍用 `&#8599;`。
+- **回目录文案**：统一「返回目录」（禁止「返回首页」）；。
 - **结构**（三槽）：
   - 左：`nav-prev`（上一篇）或首篇 `nav-home`
   - 中：`nav-center` 内 `nav-mind` 快捷链（见下）
@@ -138,7 +138,6 @@
   `核心方法论 → 工程化要点 → 生产踩坑 → C01…C15 → 服务端安全 → 核心原理速查 → 高频场景题`  
   首篇左「返回目录」、末篇右「返回目录」。**`nav-overview-priority.html` 使用标准三槽顶底导航**（左返回目录；中：核心方法论 / 核心原理 / 场景；右进 C01），顶底同文，外包 `.site-page-nav`。
 - **篇章页居中组**（C01–C15 / 安全）：**核心方法论 → 全部章节 → 本章思维导图**；方法论页居中仅「本章思维导图」（左已是返回目录）；工程化/踩坑居中为「全部章节 + 本章思维导图」；核心原理/场景无导图链。
-- **导图站阅读链路**：与章节站同序的 `mind-*`；居中组为 **全部章节 → 导图总览 → 本导图对应的章节**（首篇左已是导图总览时，居中去掉「导图总览」）。
 - **小屏**：≤900px 左右槽各半行、居中整行；≤768px 按钮固定行高 + 省略号，禁止顶底栏因换行导致高度不一致。
 
 ## 5. 通用内容元素
@@ -189,7 +188,7 @@ index.html                         # 首页
 - **侧栏分组标题禁止用 div**：`<div class="toc-group-title">` 无法被 `nav.js` 高亮；必须用 `<a class="toc-group-title" href="#…">`，且正文有对应 `id`（方法论 / 工程化曾踩坑）。
 - **顶底导航须同文**：改 `chapter-nav-top` 时同步 `chapter-nav`；箭头与「返回目录」文案见 §4.2。
 - **权威/结构计数点标记**：展示题量/卡量一律 L0（`.kb-count` + `data-kb-pos` + `data-kb-count`，键在 `kb-counts.json` 的 `counts`/`struct`）；样式在 `assets/design-system.css`；细则见 skills `conventions.md` **§5.1.4**。禁止聚合 UI 留裸数字；禁止 `kb-count-local`。
-- **禁止写死日历年的营销/考察语气**：用户可见文案（副标题、开篇、卡片摘要、题干、导图注）勿写「2026 工程能力要求 / 2026 技术趋势 / 2026 高频 / 2026 选型」等会随年份过期的表述，改用「最新 / 当前 / 近年」。**例外**：技术演进迭代、产品版本、标准发布日、证据复核日、示例日期、页脚「最后更新」、changelog 日期可保留具体年月日。
+- **禁止写死日历年的营销/考察语气**：用户可见文案（副标题、开篇、卡片摘要、题干、）勿写「2026 工程能力要求 / 2026 技术趋势 / 2026 高频 / 2026 选型」等会随年份过期的表述，改用「最新 / 当前 / 近年」。**例外**：技术演进迭代、产品版本、标准发布日、证据复核日、示例日期、页脚「最后更新」、changelog 日期可保留具体年月日。
 
 ## 8. 手机小屏强制规范（MOBILE-MANDATORY）
 
@@ -199,8 +198,6 @@ index.html                         # 首页
 
 - 根目录 `index.html`
 - 章节站全部页面（`java-architect-interview/**/*.html`，含 index / chapter-* / nav-*）
-- 导图站全部页面（`java-architect-interview-mind/**/*.html`）
-- 共享样式：`assets/design-system.css`（导图站相对路径引用同一文件）
 
 ### 8.2 断点约定
 
@@ -219,7 +216,7 @@ index.html                         # 首页
 
 ### 8.3 实现归属
 
-1. **共享基线**：写在 `assets/design-system.css`，段注释标记为 `MOBILE-MANDATORY`（禁止删除该标记）。覆盖 `page-wrapper` / `chapter-*` / `qa-*` / `code-block` / `chapter-grid` / `index-hero`，并对导图/根目录常见类（`map-*` / `idx-*` / `dir-*` / `epq-*`）提供小屏兜底。
+1. **共享基线**：写在 `assets/design-system.css`，段注释标记为 `MOBILE-MANDATORY`（禁止删除该标记）。覆盖 `page-wrapper` / `chapter-*` / `qa-*` / `code-block` / `chapter-grid` / `index-hero`，并对根目录常见类（`map-*` / `idx-*` / `dir-*` / `epq-*`）提供小屏兜底。
 2. **页面内联样式**：若在 `<style>` 里写了桌面专用布局（如 `grid-template-columns: repeat(3, 1fr)`、固定 `minmax(320px,…)`、大字号 hero），**同一文件必须**提供对应 `@media (max-width: 768px)`（建议再补 `480px`）覆盖；否则桌面规则会压过共享 CSS（同特异度、页面样式后加载）。
 3. **禁止**：固定宽表格/代码块不横滑；卡片页脚与标签不换行导致横向溢出；仅桌面 `hover` 位移作为唯一可发现性（触控设备须可直接点击）。
 4. **长 token 换行兜底（2026-09-15 补，实测事故）**：`body` 必须声明 `overflow-wrap: anywhere`——它是可继承属性，一条声明覆盖全站所有文本容器。缺此声明时，`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`、`-Djdk.tracePinnedThreads=full|short` 这类长英文标识符/路径/方法签名不换行，横向撑破卡片：实测 375px 视口下核心原理页（`chapter-questions-eight-part.html`）文档溢出 **248px**、**18 处**元素越界（`@media` 内的逐选择器兜底不可靠，`.epq-kp-list li` / `.epq-fu-list li` / `ol>li` / `.callout p` 全被漏掉）。

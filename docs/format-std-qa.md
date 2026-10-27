@@ -39,7 +39,7 @@
       <nav class="chapter-nav-top">
         <a href="chapter-NN-prev.html" class="nav-prev">← 第 NN 篇 …</a>
         <!-- 首篇可用：<a href="index.html" class="nav-home">← 返回目录</a> -->
-        <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">全部章节 &#8599;</a><a href="../java-architect-interview-mind/mind-NN-….html" class="nav-mind">查看本章思维导图 &#8599;</a></span>
+        <span class="nav-center"><a href="chapter-core-methodology.html">核心方法论 &#8599;</a><a href="index.html">全部章节 &#8599;</a></span>
         <a href="chapter-NN-next.html" class="nav-next">第 NN 篇 … →</a>
       </nav>
 
