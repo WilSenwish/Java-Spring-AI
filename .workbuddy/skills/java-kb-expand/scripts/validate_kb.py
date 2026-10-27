@@ -38,7 +38,7 @@ java-kb-expand · 全量校验脚本（通用版）
   2) 无 </spa(?!n>) 标签截断残留
   3) overview ov-stat-num 三源一致（项数=ov_stat_order：总量/优先级/难度/类型；不含 M/G/K）
   3b) overview 子组内排序：C→E→S 且题号升序；item 的 priority/difficulty 与所在组一致；子组标题题数=实际 ov-item 数
-  3b2) overview 类型四级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题/垂直领域），`ov-type-count`=块内 ov-item 且前缀一致
+  3b2) overview 类型五级：每难度子组须拆 `ov-type`（篇章/核心原理/场景题/AI 纵深/垂直领域），`ov-type-count`=块内 ov-item 且前缀一致
   3c) 全站分组/页头页尾：场景 section 无孤儿 S 卡且 group-count=卡数；根 index dir-group/dir-count=q-item；mind card-foot=篇章C/summary E·S
   3d) **mind 根节点红线**：所有 mind 页 Mermaid `root["..."]` 字符串内不得出现「章节/原理/场景 + 数字」裸串（历史曾手写 N·M·K 计数后被手动删除；validate_kb 从未覆盖 → 结构性盲区，2026-09-15 固化为长期防回潮红线）
   4) 根 index / 章节 index 统计数字与 overview 一致
@@ -1039,10 +1039,10 @@ def main():
     check(_ov_title_fail == 0,
           f"[overview子组题数] 标题 N ≠ 实际 ov-item 的子组数={_ov_title_fail}（须 0）")
 
-    # 3b2) overview 类型四级（篇章/核心原理/场景题/垂直领域）ov-type-count = 该块 ov-item 数
+    # 3b2) overview 类型五级（篇章/核心原理/场景题/AI 纵深/垂直领域）ov-type-count = 该块 ov-item 数
     _ov_type_fail = 0
     _ov_type_missing = 0
-    _type_pref = {"篇章": "C", "核心原理": "E", "场景题": "S", "垂直领域": "D"}
+    _type_pref = {"篇章": "C", "核心原理": "E", "场景题": "S", "AI 纵深": "A", "垂直领域": "D"}
     for _gm in re.finditer(
         r'<section class="ov-group"[^>]*id="(group-p\d)"[^>]*>(.*?)</section>',
         texts["overview"],
@@ -1061,7 +1061,7 @@ def main():
             for _tb in _type_blocks:
                 _tbody = _tb.group(1)
                 _thm = re.search(
-                    rf'<h4 class="ov-type-title">\s*(篇章|核心原理|场景题|垂直领域)'
+                    rf'<h4 class="ov-type-title">\s*(篇章|核心原理|场景题|AI 纵深|垂直领域)'
                     rf'<span class="ov-type-count">\s*{_KB_NUM}\s*题</span>\s*</h4>',
                     _tbody,
                 )
