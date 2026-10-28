@@ -9,9 +9,9 @@
 - **语言 / 字符**：`<html lang="zh-CN">`，`<meta charset="UTF-8">`。
 - **单文件**：每个页面把结构、内容、所需的 `<style>` 内联样式全部封装在一个 `.html` 文件中；仅在多处复用的全局样式抽到 `assets/design-system.css`，页面复用功能抽到 `assets/nav.js`。
 - **资源目录**：
-  - `assets/`：`design-system.css`（全站设计系统 / 设计令牌）、`nav.js`（全站导航交互脚本）。
-  - `shared/js/`：`echarts.min.js`、`mermaid.min.js`（按需引入）。
-  - `shared/fonts/`：JetBrainsMono、WorkSans。
+  - `java-architect-interview/assets/`：`design-system.css`（全站设计系统 / 设计令牌）、`nav.js` / `theme-init.js`。
+  - `docs/shared/js/`：`echarts.min.js`、`mermaid.min.js`（及 d3 / three 等，按需引入）；章节页路径为 `../docs/shared/js/…`。
+  - `docs/shared/fonts/`：JetBrainsMono、WorkSans（`design-system.css` 经 `../../docs/shared/fonts/` 引用）。
 - **按需载入原则**：某页面若不含图表则不引入 `mermaid.min.js` / `echarts.min.js`；避免无关资源加载（见 `format-shared.md` 第 4 节）。每个 Mermaid 节点须带 `<!-- prettier-ignore -->`（§10）。
 - **手机小屏强制**：全站页面必须适配 ≤768px / ≤480px；共享基线见 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段，规范见 `format-shared.md` §8（与 `AGENTS.md` 硬红线同级）。
 - **HTML 格式化**：仓库根 `npm run format:html`（Prettier 3）；配置与 Mermaid 保护见 `format-shared.md` §10。
@@ -28,6 +28,7 @@
 │   ├── format-special.md                   # 特殊章节独享规则
 │   ├── README.md                           # 本文件
 │   ├── kb-counts.json                      # 权威计数唯一真源（勿手改）
+│   ├── shared/                             # 全站共用 fonts · js（echarts/mermaid 等，按需）
 │   └── facts/                              # 官方参考文档归档（只读）
 ├── tmp/                                    # 临时文件/备份（已 gitignore；有 git 时勿长期堆备份）
 ├── java-architect-interview/               # 主知识库（标准 QA + 特殊章节 + nav 聚合）
@@ -43,8 +44,7 @@
 │   ├── nav-overview-priority.html          # 优先级×难度×类型大盘（ov-*）
 │   ├── nav-overview-quick-list.html        # 知识点速查清单
 │   ├── nav-server-security-checkpoint.html # 安全 Checkpoint
-│   ├── assets/                             # design-system.css · nav.js · theme-init.js
-│   └── shared/                             # fonts · js（echarts/mermaid，按需）
+│   └── assets/                             # design-system.css · nav.js · theme-init.js
 ```
 
 ## 3. 章节内容与归属规则矩阵

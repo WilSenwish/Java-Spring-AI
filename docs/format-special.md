@@ -83,7 +83,7 @@
   │    └─ epq-fu-list       延伸追问列表
   ```
 
-- 每条目携带难度 / 优先级徽标（全覆盖；分布以宿主页 `data-*` 实计与 SSOT 为准）。页面引入 `shared/js/` 需按需。
+- 每条目携带难度 / 优先级徽标（全覆盖；分布以宿主页 `data-*` 实计与 SSOT 为准）。页面引入 `docs/shared/js/` 需按需（章节页相对路径 `../docs/shared/js/`）。
 
 ## <a id="4"></a>4. 场景题 chapter-questions-scenario（S 系列场景卡片）
 

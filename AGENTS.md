@@ -14,7 +14,7 @@
   - 题集：`chapter-questions-eight-part.html`（E）、`chapter-questions-scenario.html`（S）、`chapter-question-ai-engineering-deep.html`（A）、`chapter-questions-domain.html`（D）
   - 导航聚合（`nav-` 前缀=非篇章题宿主）：`nav-overview-priority.html`、`nav-overview-quick-list.html`、`nav-server-security-checkpoint.html`
   - 索引：`index.html`
-- 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`；按需图表/字体在 `java-architect-interview/shared/`
+- 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`；按需图表/字体在 `docs/shared/`（章节页相对路径 `../docs/shared/`）
 
 **卡片编号**：`M##.##` / `G##.##` / `K##.##` / `C##.##` / `E##.##` / `S##.##` / `A##.##`（AI 工程纵深）/ `D##.##`（垂直领域）。**题目总量 `total` = C + A + E + S + D**；M/G/K 为专篇键、不进 total。**各体系卡数以 §3 权威计数（SSOT `docs/kb-counts.json`）为准——规则文档中禁止写死数字**。
 

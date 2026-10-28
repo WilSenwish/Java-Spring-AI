@@ -159,7 +159,7 @@
 
 ## 4. 图表与代码
 
-- Mermaid 图：仅在需要的卡片内嵌入；对应页头部或底部引入 `shared/js/mermaid.min.js` 并初始化。
+- Mermaid 图：仅在需要的卡片内嵌入；对应页头部或底部引入 `../docs/shared/js/mermaid.min.js` 并初始化。
 - 表格：统一 `<table class="compare-table">`（详见 `format-shared.md` 第 5 节）；禁止裸 `<table>`。
 - 行内代码：`<code class="inline-code">`；参数名 / 关键字使用等宽强调。
 - 代码块：`<pre><code>` 内的 `<` / `>` 必须转义为 `&lt;` / `&gt;`（泛型、比较符、注解等），见 `format-shared.md` 第 7 节。

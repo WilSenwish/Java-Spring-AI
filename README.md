@@ -24,7 +24,6 @@ Java-Spring-AI/
 │   ├── nav-overview-quick-list.html        #   知识点速查清单
 │   ├── nav-server-security-checkpoint.html #   服务端安全检查点
 │   ├── assets/                             #   design-system.css · nav.js · theme-init.js
-│   ├── shared/                             #   fonts / js（按需）
 │   └── index.html                          # 章节索引
 ├── java-design-patterns-principles/       # ② 设计原则 & 超越 GoF 23
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
@@ -38,6 +37,7 @@ Java-Spring-AI/
 │       └── audit_*.py / probe_*.py / scan_*.py   # 辅助审计与门禁脚本
 ├── docs/
 │   ├── kb-counts.json         # 单一真源（counts + struct，驱动全站 299 个计数位）
+│   ├── shared/                # 全站共用 fonts / js（mermaid · echarts · d3 · three，按需）
 │   ├── facts/                 # 官方参考文档归档（只读）
 │   ├── format-shared/special/std-qa.md  # 内容格式规范
 │   └── README.md

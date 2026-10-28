@@ -102,9 +102,9 @@
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）；小屏下调用 `kbToc.syncExpandedFromActive` 展开当前组。
   2. **阅读进度 / 主题切换 / 回顶 / 去底兜底**（主注入在 `theme-init.js`；本脚本以 `__kbReadingProgressBound` 等标记防双重绑定）。
   3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
-- `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || {…})`（偏蓝 `base` 主题）；禁止写死 `"neutral"` / `"default"`。换肤重绘由 `theme-init.js` 缓存 `data-kb-mermaid-src` 后 `mermaid.run`，勿在页面重复监听重绘。**每个** `<div class="mermaid">` 的上一行必须是 `<!-- prettier-ignore -->`（防止 HTML 格式化把图源码压成一行）；见 §10。
-- `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
-- 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。
+- `docs/shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。章节页相对路径为 `../docs/shared/js/mermaid.min.js`；根级页用 `docs/shared/js/mermaid.min.js`。初始化须用 `mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || {…})`（偏蓝 `base` 主题）；禁止写死 `"neutral"` / `"default"`。换肤重绘由 `theme-init.js` 缓存 `data-kb-mermaid-src` 后 `mermaid.run`，勿在页面重复监听重绘。**每个** `<div class="mermaid">` 的上一行必须是 `<!-- prettier-ignore -->`（防止 HTML 格式化把图源码压成一行）；见 §10。
+- `docs/shared/js/echarts.min.js`：仅在含 ECharts 图表时引入（章节页 `../docs/shared/js/echarts.min.js`）。
+- 字体：`docs/shared/fonts/`（WorkSans、JetBrainsMono），由 `design-system.css` 经 `../../docs/shared/fonts/` 引用。
 
 ### 4.1 侧栏 TOC（`sidebar-toc`）与分组标题（`toc-group-title`）
 
