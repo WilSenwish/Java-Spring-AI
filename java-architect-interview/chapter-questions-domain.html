@@ -559,7 +559,7 @@
               道领域题，与 S 篇按技术域分组不同，这里按<strong>垂直行业</strong>重组：先建立领域概念与模型，再谈架构取舍。破解路径是「<strong>复述业务闭环 → 立领域模型 → 讲关键范式 → 端到端场景 + 合规兜底</strong>」：<span class="guide-tag g-dao">道</span><span class="guide-tag g-fa">法</span><span class="guide-tag g-shu">术</span><span class="guide-tag g-trick">劝说</span>
             </p>
             <p><span class="guide-tag g-dao">道 · 先懂业务再谈架构</span>——领域题的第一失分点不是技术，是<strong>说错业务语言</strong>：把「清结算」答成转账、把「复式记账」答成记流水。每张卡的「场景背景」都给了硬指标（TPS、成功率、时效、资损红线），先复述并量化，再指出该领域的核心不变量——支付是幂等与对账、账务是借贷平衡、库存是三态守恒、券是库存与限领。</p>
-            <p><span class="guide-tag g-fa">法 · 范式复用</span>——领域方案不是从零发明：秒杀防超卖（S01.01）、分布式事务（S02.02）、热点治理（S01.05）、长连接（S10.01）这些 S 篇技术范式是共用积木；领域题考的是<strong>把积木装进行业骨架</strong>——状态机定义、领域事件、合规红线、资损兜底。部分卡片（如 D02.06 等新增 .06 卡）已标注「← 技术范式引用」回链到对应 S 篇技术范式，答题时显式关联可证知识迁移能力。</p>
+            <p><span class="guide-tag g-fa">法 · 范式复用</span>——领域方案不是从零发明：秒杀防超卖（S01.01）、分布式事务（S02.02）、热点治理（S01.05）、长连接（S10.01）这些 S 篇技术范式是共用积木；领域题考的是<strong>把积木装进行业骨架</strong>——状态机定义、领域事件、合规红线、资损兜底。与 S 篇技术范式同构的卡片已标注「← 技术范式引用」回链到对应 S 篇技术范式，答题时显式关联可证知识迁移能力。</p>
             <p><span class="guide-tag g-shu">术 · 合规与代码落地</span>——收尾必须补三件事：① <strong>合规红线</strong>（资金零资损、分录不可变、监管报送时效、审计留痕）② <strong>对账兜底</strong>（渠道不可信、缓存与 DB 不一致靠补偿）③ <strong>代码落地</strong>（状态机转移表、Lua 原子扣减、双分录写入）——证明你能把领域模型执行到代码级，而不只会画领域模型图。</p>
             <ul>
               <li><strong>通用作答技巧（适用全部题）</strong>：开场先<strong>澄清业务口径</strong>（「T+1 是自然日还是工作日？可退余额含不含在途？」），展现领域严谨度；答技术前先用一句话<strong>给出该领域的第一性原理</strong>（如「支付的核心是一笔钱全程可证」）；讲方案按<strong>领域模型 → 关键范式 → 端到端链路</strong>分层；收尾主动补<strong>合规与对账</strong>。切勿只背技术名词而无领域判断。</li>
@@ -652,7 +652,7 @@
             <div class="qa-layer" data-layer="domain">
               <div class="qa-layer-title">领域模型</div>
               <div class="qa-layer-body">
-                <p><strong>聚合根</strong>：支付单（PaymentOrder）——支付单号、商户号、渠道、金额、币种、状态、幂等键、渠道交互记录列表。<strong>实体</strong>：渠道交互记录（ChannelInteraction，请求/响应/异常码/耗时）。<strong>值对象</strong>：金额（分）、币种、渠道账号。<strong>状态机</strong>：CREATED → PAYING → SUCCESS / FAILED / CLOSED；SUCCESS → REFUNDING → REFUNDED（可多次部分退款）。<strong>领域事件</strong>：PaymentSucceeded、RefundSucceeded、OrderClosed——驱动订单状态与账务分录，支付单自己不直接改别人。</p>
+                <p><strong>聚合根</strong>：支付单（PaymentOrder）——支付单号、商户号、渠道、金额、币种、状态、幂等键、渠道交互记录列表。<strong>实体</strong>：渠道交互记录（ChannelInteraction，请求/响应/异常码/耗时）。<strong>值对象</strong>：金额（分）、币种、渠道账号。<strong>不变量</strong>：① 同一幂等键至多一笔成功支付；② 渠道成功与内部 SUCCESS 必须可对账，对不上不得对外报成功；③ 退款累计不超过原支付金额。<strong>状态机</strong>：CREATED → PAYING → SUCCESS / FAILED / CLOSED；SUCCESS → REFUNDING → REFUNDED（可多次部分退款）。<strong>领域事件</strong>：PaymentSucceeded、RefundSucceeded、OrderClosed——驱动订单状态与账务分录，支付单自己不直接改别人。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="practice">
@@ -779,6 +779,10 @@ graph LR
                 <div class="insight-method"><strong>破题主线：</strong>收单四步（幂等创建→下发→双通道校准→终态落账）→ 逆向状态机（退款/关单）→ 对账兜底。</div>
                 <div class="insight-method"><strong>易错点：</strong>订单推导支付；自增 ID 当幂等键；关单前不查渠道；回调不验签不判重。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
             </div>
           </div>
 
@@ -1098,6 +1102,10 @@ BigDecimal settle = net.<span class="fn">subtract</span>(fee).<span class="fn">s
                 <div class="insight-method"><strong>易错点：</strong>多账期口径；总额对账；差异阻塞；结算单可改。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
+            </div>
           </div>
 
           <!-- D01.04 热点账户扣款防超扣 -->
@@ -1256,6 +1264,10 @@ flowRepo.<span class="fn">insert</span>(FundFlow.<span class="fn">freeze</span>(
                 <div class="insight-method"><strong>易错点：</strong>先查后扣；总额只更一边；无解冻超时；幂等无 DB 兜底。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S01.05">S01.05 热点账户高并发扣款</a>
+            </div>
           </div>
 
           <!-- D01.05 渠道路由与熔断 -->
@@ -1413,6 +1425,10 @@ graph TD
                 <div class="insight-method"><strong>破题主线：</strong>硬约束候选集 → 双目标打分 → 熔断自愈 → 影子灰度发布 → 本地缓存兜底。</div>
                 <div class="insight-method"><strong>易错点：</strong>阈值一刀切；规则硬编码；无影子灰度；路由服务无兜底。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S08.02">S08.02 全链路限流熔断降级体系：200+ 微服务如何防御大促级联雪崩</a>
             </div>
           </div>
 
@@ -1768,6 +1784,10 @@ graph TD
                 <div class="insight-method"><strong>破题主线：</strong>并行特征 → 名单硬命中优先 → 规则模型并行 → 优先级融合 → 流水留痕可重放。</div>
                 <div class="insight-method"><strong>易错点：</strong>串行特征；无留痕；默认放行式降级；名单硬扫内存。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S07.02">S07.02 金融风控系统设计：实时计算 + 规则引擎 + 模型决策的百毫秒级风控大脑</a>
             </div>
           </div>
 
@@ -2199,6 +2219,10 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>一刀切脱敏；服务自行脱敏；审计可删；导出无审批。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S09.05">S09.05 敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</a>
+            </div>
           </div>
 
           <!-- D02.05 信贷额度中心 -->
@@ -2322,6 +2346,10 @@ BigDecimal debtSum = loanClient.<span class="fn">outstanding</span>(custId);
                 <div class="insight-method"><strong>破题主线：</strong>授信流水线 → 原子占用 → 终态释放 → 调整单生效时间 → 逾期冻结可解 → 日终对账。</div>
                 <div class="insight-method"><strong>易错点：</strong>只占不放；占用不幂等；冻结不可解；与放款不对账。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S02.02">S02.02 跨服务分布式事务方案</a>
             </div>
           </div>
           <!-- D02.06 贷后催收管理 -->
@@ -2667,6 +2695,10 @@ stateDiagram-v2
                 <div class="insight-method"><strong>易错点：</strong>if-else 状态机；逆向后补；父子单不同步；消费者不幂等。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S07.01">S07.01 电商订单全链路设计：高并发下的下单、支付、库存、物流一致性方案</a>
+            </div>
           </div>
 
           <!-- D03.02 库存中心 -->
@@ -2828,6 +2860,10 @@ graph TD
                 <div class="insight-method"><strong>破题主线：</strong>预扣（Lua）→ 实扣（条件 UPDATE）→ 释放（幂等 + 延迟扫描）→ 在途调拨 → 盘点校准。</div>
                 <div class="insight-method"><strong>易错点：</strong>先查后扣；漏释放；多仓不预检；双写不对账。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S01.01">S01.01 百万 QPS 秒杀系统设计</a>
             </div>
           </div>
 
@@ -3245,6 +3281,10 @@ graph TD
                 <div class="insight-method"><strong>易错点：</strong>存价格；无锁定；顺序不定；失效阻断。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S02.02">S02.02 跨服务分布式事务方案</a>
+            </div>
           </div>
           <!-- D03.06 商家结算中心 -->
           <div class="qa-card" id="D03.06" data-difficulty="architect" data-priority="p0">
@@ -3588,6 +3628,10 @@ stateDiagram-v2
                 <div class="insight-method"><strong>易错点：</strong>非原子扣库存；核销不幂等；退款不退券；过期不清。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S01.01">S01.01 百万 QPS 秒杀系统设计</a>
+            </div>
           </div>
 
           <!-- D04.02 促销价格引擎 -->
@@ -3901,7 +3945,7 @@ graph TD
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>价保服务日申请五十万。规则：同店同品 N 天内降价退差价（排除秒杀、限购等特殊活动）。硬指标：差价计算准确（含用券订单）、退款原路一致、防套利（先买再退再买）、申请处理时效可承诺。</p>
+                <p>价保服务日申请五十万。规则：同店同品 N 天内降价退差价（排除秒杀、限购等特殊活动）。硬指标：差价计算准确（含用券订单）、退款原路一致、防套利（先买再退再买）、申请处理时效可承诺。用券订单按行实付重算差价；部分退只覆盖剩余行；跨店不并单。防套利：同一用户同一 SKU 在价保窗口内限制「退了再买」。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -4038,7 +4082,7 @@ graph TD
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
-                <p>投放四件套：<strong>人群 → 权益 → 渠道 → 度量</strong>。人群走标签平台圈选（D09 内容域同源能力）；权益调券系统（D04.01）按用户逐个发，走限速队列；渠道发送同样限速 + 模板审核；预算引擎对「权益成本 + 渠道成本」实时累计，超限自动停投。归因用「投放批次 → 券批次 → 核销订单」链路：券的唯一批次 ID 是天然归因键，核销时带上即可算 ROI。治理看沉睡率（未领取）、核销率，低效投放自动降权。</p>
+                <p>投放四件套：<strong>人群 → 权益 → 渠道 → 度量</strong>。人群走标签平台圈选（内容画像能力，见 D08；D09 是物流供应链，不是内容域）；权益调券系统（D04.01）按用户逐个发，走限速队列；渠道发送同样限速 + 模板审核；预算引擎对「权益成本 + 渠道成本」实时累计，超限自动停投。归因用「投放批次 → 券批次 → 核销订单」链路：券的唯一批次 ID 是天然归因键，核销时带上即可算 ROI。治理看沉睡率（未领取）、核销率，低效投放自动降权。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="domain">
@@ -4509,6 +4553,10 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>租户条件漏写；缓存不带租户；全局/租户唯一混用；双写不校验。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S07.05">S07.05 跨境电商平台全球多租户架构：数据合规与区域化部署设计</a>
+            </div>
           </div>
 
           <!-- D05.02 计量计费与订阅 -->
@@ -4699,7 +4747,7 @@ sequenceDiagram
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>租户内部的组织权限诉求：多部门树（集团-事业部-小组）、角色（管理员/部门经理/普通成员/审计员）、数据范围（仅自己/本部门/本部门及以下/全部）、以及企业客户要求的 SSO（对接客户 IdP，OIDC/SAML 单点登录 + 离职自动禁用）。硬指标：越权零发生（水平越权看他人数据比功能越权更常见）、权限变更分钟级生效、SSO 对接不逐个客户定制开发、全程可审计。</p>
+                <p>租户内部的组织权限诉求：多部门树（集团-事业部-小组）、角色（管理员/部门经理/普通成员/审计员）、数据范围（仅自己/本部门/本部门及以下/全部）、以及企业客户要求的 SSO（对接客户 IdP，OIDC/SAML 单点登录 + 离职自动禁用）。硬指标：越权零发生（水平越权看他人数据比功能越权更常见）、权限变更分钟级生效、SSO 对接不逐个客户定制开发、全程可审计。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -4829,6 +4877,10 @@ flowchart TD
                 <div class="insight-method"><strong>破题主线：</strong>两层授权模型 → 策略缓存 → 统一注入（租户 + 范围）→ SSO 多协议 + JIT → 审计兜底。</div>
                 <div class="insight-method"><strong>易错点：</strong>前端鉴权；详情/导出旁路；JIT 不验域；离职不失效。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S09.04">S09.04 越权访问与权限控制体系：百万用户 SaaS 平台的 RBAC + 数据权限双层模型</a>
             </div>
           </div>
 
@@ -4987,6 +5039,10 @@ flowchart TD
                 <div class="insight-method"><strong>破题主线：</strong>诉求分流（配置/低代码/插件）→ schema 校验 → 灰度 → 快照回滚 → 可解释。</div>
                 <div class="insight-method"><strong>易错点：</strong>tenantId 硬编码；配置无 schema；插件无隔离；定制不可解释。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S04.06">S04.06 配置中心热更新引发线上事故排障（双实例 / 线程池 OOM / 定时任务重复）</a>
             </div>
           </div>
 
@@ -5149,7 +5205,7 @@ flowchart LR
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>SaaS 多租户平台演进到中期：大租户要从共享库迁到独立库（隔离与性能）、共享集群要拆库分片、备份要支持任意时间点恢复（PITR）、退订租户数据要合规销毁。硬指标：迁移期间租户业务不中断（或分钟级）、数据零丢失、PITR 精度（分钟级）、销毁可出具证明。</p>
+                <p>SaaS 多租户平台演进到中期：大租户要从共享库迁到独立库（隔离与性能）、共享集群要拆库分片、备份要支持任意时间点恢复（PITR）、退订租户数据要合规销毁。硬指标：迁移期间租户业务不中断（或分钟级）、数据零丢失、PITR 精度（分钟级）、销毁可出具证明。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -5724,7 +5780,7 @@ flowchart LR
               <div class="qa-layer-title">关键代码</div>
               <div class="qa-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 计价规则：规则集按优先级顺序求值，首个命中即返回（可解释）</span>
+                  <pre><code><span class="com">// 计价规则：按优先级逐项累加；只有 terminal 规则才停止后续（可解释）</span>
 <span class="kw">public</span> Price <span class="fn">quote</span>(QuoteCtx ctx, List&lt;Rule&gt; rules) {
     Price p = basePrice(ctx);                                 <span class="com">// 起步价 + 里程 + 时长</span>
     <span class="kw">for</span> (Rule r : rules.<span class="fn">stream</span>().<span class="fn">sorted</span>(byPriority).<span class="fn">toList</span>()) {
@@ -5816,6 +5872,7 @@ flowchart LR
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
+              <p><strong>与 D06.06 的边界</strong>：本卡是调度杠杆（定价微调、奖励、预约预留）；需求预测与听单引导的执行见 D06.06。</p>
                 <p>调度是<strong>预测驱动的干预闭环</strong>：需求/供给预测（网格 × 时段，含天气事件特征）→ 缺口计算（需求 − 可运力）→ 干预策略（按缺口等级选杠杆：轻微靠定价微调、中等靠奖励引导、严重靠跨区调度 + 预约限制）→ 执行（奖励触达骑手、派单偏好调整、用户端时效管理）→ 效果回收（实际缺口 vs 预测、干预 ROI）。预约单走「运力预留」：按时段 × 网格预留运力池，预约单占用池容量，池不足时限制新预约或引导时段迁移。一切干预带预算约束与熔断（奖励超支自动停）。</p>
               </div>
             </div>
@@ -5937,7 +5994,7 @@ flowchart TD
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>骑手侧黑产与风险：模拟器刷单、虚拟定位（人在家单在跑）、恶意索赔（餐损骗保）、账号买卖、交通安全事故。硬指标：作弊识别准（不误伤正常骑手）、处置可申诉、保险理赔自动化（摔伤/交通事故快速定损）、轨迹隐私合规。</p>
+                <p>骑手侧黑产与风险：模拟器刷单、虚拟定位（人在家单在跑）、恶意索赔（餐损骗保）、账号买卖、交通安全事故。硬指标：作弊识别准（不误伤正常骑手）、处置可申诉、保险理赔自动化（摔伤/交通事故快速定损）、轨迹隐私合规。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -6087,6 +6144,7 @@ flowchart LR
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
+              <p><strong>与 D06.04 的边界</strong>：本卡是预测与听单引导的执行层；缺口等级上的奖励和预约杠杆见 D06.04，此处不重复。</p>
                 <p>预测分层：<strong>基线预测（历史周期 + 天气特征）+ 实时修正（当前订单流入速率）</strong>，基线给趋势、实时纠偏差。供需比 = 未来时间片预测需求 / 当前可用运力，按比值分层（紧缺/平衡/过剩）。引导策略按分层触发：紧缺区域发定向听单奖励（向该区域行驶的司机优先派单）；引导不承诺单，只提升优先级——避免「引导了必须给单」的信任陷阱。激励预算按缺口大小动态分配，单个司机单位时间奖励上限防套利。</p>
               </div>
             </div>
@@ -6193,7 +6251,7 @@ graph TD
             </div>
             <div class="qa-crossref">
               <span class="qa-crossref-label">← 技术范式引用</span>
-              <a href="chapter-questions-scenario.html#S12.03">S12.03 Agent 工具调用死循环导致资损的应急与防护</a>
+              <a href="chapter-questions-scenario.html#S08.05">S08.05 SLA 保障与容量规划：如何从 99.8% 提升到承诺的 99.95%</a>
             </div>
           </div>
         </section>
@@ -6406,6 +6464,10 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>全局密钥；Topic 裸奔；客户端自称在线；无风暴防护。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S10.01">S10.01 Netty 百万级长连接网关设计：千万在线用户的即时通讯接入层架构</a>
+            </div>
           </div>
 
           <!-- D07.02 消息总线与规则引擎 -->
@@ -6554,6 +6616,10 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>路由硬编码；广播全量同发；上下行共通道；假设有序。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S05.04">S05.04 消息可靠性保障：订单消息不丢、不重、不积压的全链路设计</a>
+            </div>
           </div>
 
           <!-- D07.03 设备影子与命令管理 -->
@@ -6571,7 +6637,7 @@ flowchart TD
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>App 要「随时查看/控制设备」，但设备大量时间离线（电池设备休眠、车载熄火）。命令下发时设备可能不在线。硬指标：App 读设备状态毫秒级（不依赖设备在线）、离线指令设备上线后必达、命令执行结果可确认（ACK）、重复下发不重复执行（幂等）、指令状态全程可查（已下发/已送达/已执行/失败）。</p>
+                <p>App 要「随时查看/控制设备」，但设备大量时间离线（电池设备休眠、车载熄火）。命令下发时设备可能不在线。硬指标：App 读设备状态毫秒级（不依赖设备在线）、离线指令设备上线后必达、命令执行结果可确认（ACK）、重复下发不重复执行（幂等）、指令状态全程可查（已下发/已送达/已执行/失败）。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -6734,6 +6800,7 @@ mqtt.<span class="fn">publish</span>(ackTopic, <span class="str">"{\"id\":\""</s
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
+              <p><strong>与 D07.06 的边界</strong>：本卡只讲升级专属的差分、验签、灰度熔断与分区回滚；注册到退役的状态机见 D07.06。</p>
                 <p>OTA 四件套：<strong>差分包</strong>（bsdiff 类算法，新旧固件二进制差，通常压到十分之一体积）+ <strong>签名验签</strong>（平台私钥签，设备公钥验，验签失败拒绝升级）+ <strong>灰度批次</strong>（按设备分组逐批推进，批次间设观察期，核心指标——升级成功率、功能异常率、崩溃率——异常即熔断）+ <strong>A/B 双分区</strong>（固件写备份分区，启动失败或功能异常回切旧分区，即「失败回滚」）。升级流程状态机：通知 → 下载（差分包 + 校验）→ 验签 → 写入备份分区 → 切换启动 → 健康检查（心跳 + 功能自检）→ 确认升级（超时未确认自动回滚）。</p>
               </div>
             </div>
@@ -6868,6 +6935,10 @@ flowchart TD
                 <div class="insight-method"><strong>破题主线：</strong>版本矩阵差分包 → 条件门槛 → 下载验签 → 备份分区 → 健康确认 → 灰度熔断 → 可回滚。</div>
                 <div class="insight-method"><strong>易错点：</strong>无灰度；不验签；单分区；无健康确认。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S04.04">S04.04 灰度发布与流量染色</a>
             </div>
           </div>
 
@@ -7030,6 +7101,7 @@ flowchart LR
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
+              <p><strong>与 D07.04 的边界</strong>：本卡管生命周期与批量运维；差分包、验签和分区回滚见 D07.04，此处不展开。</p>
                 <p>设备状态机：<strong>注册 → 激活 → 在线 ⇄ 离线 → 退役</strong>，每次流转留事件。身份分层：产线烧录凭证（不可改）+ 激活时下发业务身份（设备-车辆绑定）。配置管理用影子设备（desired/reported 双状态）：云侧改 desired，设备上线后拉取并回 acknowledged，差异即「待追平」。批量任务铁律：灰度（按批次/地域/车型）+ 版本回滚 + 失败率熔断（超阈值自动停推），任何推送可回退。自愈按告警类型路由（重启类自动执行、硬件类转人工工单）。</p>
               </div>
             </div>
@@ -7139,7 +7211,7 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
             </div>
             <div class="qa-crossref">
               <span class="qa-crossref-label">← 技术范式引用</span>
-              <a href="chapter-questions-scenario.html#S11.01">S11.01 亿级数据 Elasticsearch 集群设计与优化：电商商品搜索高可用架构</a>
+              <a href="chapter-questions-scenario.html#S08.04">S08.04 服务故障自愈与切流恢复：如何实现故障秒级发现、分钟级自愈</a>
             </div>
           </div>
         </section>
@@ -7222,7 +7294,7 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
-                <p>经典<strong>推拉结合（hybrid）</strong>：普通作者（粉丝 < 阈值）走推——发帖时写粉丝收件箱（收件箱 = Redis ZSet，按时间戳排序，容量上限淘汰）；大 V 走拉——不发收件箱，用户读时实时拉取大 V 最新帖与本地收件箱合并。合并策略「时间线归并排序 + 已读过滤 + 分页游标」。一致性兜底：发帖事件带全局序列号，收件箱写入幂等（作者 ID + 帖子 ID），用户按游标翻页不重不漏。推荐流走独立召回-排序-重排链路（D10.01 检索思路复用），最终与关注流按「穿插规则」融合（如每 N 条插一条推荐，重试降权）。</p>
+                <p>经典<strong>推拉结合（hybrid）</strong>：普通作者（粉丝 &lt; 阈值）走推——发帖时写粉丝收件箱（收件箱 = Redis ZSet，按时间戳排序，容量上限淘汰）；大 V 走拉——不发收件箱，用户读时实时拉取大 V 最新帖与本地收件箱合并。合并策略「时间线归并排序 + 已读过滤 + 分页游标」。一致性兜底：发帖事件带全局序列号，收件箱写入幂等（作者 ID + 帖子 ID），用户按游标翻页不重不漏。推荐流走独立召回-排序-重排链路（D10.01 检索思路复用），最终与关注流按「穿插规则」融合（如每 N 条插一条推荐，重试降权）。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="domain">
@@ -7294,12 +7366,12 @@ flowchart TD
               <div class="qa-layer-title">关键代码</div>
               <div class="qa-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// Feed 推拉结合：大V 推（写扩散），普通用户拉（读扩散）</span>
+                  <pre><code><span class="com">// Feed 推拉结合：普通作者推（写扩散进收件箱），大 V 拉（读时现拉，不写收件箱）</span>
 <span class="kw">public</span> List&lt;PostId&gt; <span class="fn">timeline</span>(UserId me, Cursor cursor) {
-    Set&lt;UserId&gt; bigVs = follows.<span class="fn">bigVs</span>(me);                   <span class="com">// 粉丝量大者走推模式</span>
-    List&lt;PostId&gt; pushed = inbox.<span class="fn">range</span>(me, cursor, LIMIT);      <span class="com">// 我的收件箱（大V 内容已写入）</span>
-    List&lt;PostId&gt; pulled = follows.<span class="fn">normal</span>(me).<span class="fn">stream</span>()
-        .<span class="fn">flatMap</span>(u -&gt; outbox.<span class="fn">latest</span>(u, LIMIT).<span class="fn">stream</span>())       <span class="com">// 普通关注者现拉</span>
+    Set&lt;UserId&gt; bigVs = follows.<span class="fn">bigVs</span>(me);                   <span class="com">// 粉丝量超过阈值者走拉</span>
+    List&lt;PostId&gt; pushed = inbox.<span class="fn">range</span>(me, cursor, LIMIT);      <span class="com">// 普通关注者已写扩散进收件箱</span>
+    List&lt;PostId&gt; pulled = bigVs.<span class="fn">stream</span>()
+        .<span class="fn">flatMap</span>(u -&gt; outbox.<span class="fn">latest</span>(u, LIMIT).<span class="fn">stream</span>())       <span class="com">// 大 V 现拉，不进收件箱</span>
         .<span class="fn">sorted</span>(byTimeDesc)
         .<span class="fn">limit</span>(LIMIT)
         .<span class="fn">toList</span>();
@@ -8037,7 +8109,7 @@ lanes.<span class="fn">put</span>(<span class="str">"fresh"</span>,    explore.<
             </div>
             <div class="qa-crossref">
               <span class="qa-crossref-label">← 技术范式引用</span>
-              <a href="chapter-questions-scenario.html#S12.02">S12.02 LLM 网关 Token 成本单月翻倍的排查与治理</a>
+              <a href="chapter-questions-scenario.html#S11.02">S11.02 电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</a>
             </div>
           </div>
         </section>
@@ -8225,6 +8297,10 @@ flowchart TD
                 <div class="insight-method"><strong>破题主线：</strong>候选仓过滤 → 成本函数 → 拆单决策 → 库存预占 → 波次倒排 → 大促降级。</div>
                 <div class="insight-method"><strong>易错点：</strong>寻源不看库存；拆单无预告；库存不锁定；大促不截单。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S07.01">S07.01 电商订单全链路设计：高并发下的下单、支付、库存、物流一致性方案</a>
             </div>
           </div>
 
@@ -8517,6 +8593,7 @@ flowchart LR
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
+              <p><strong>与 D09.06 的边界</strong>：本卡是单仓补货公式（再订货点、安全库存）；ATP、牛鞭与产销协同见 D09.06。</p>
                 <p>补货是<strong>预测驱动的库存策略</strong>：需求预测（时间序列 + 促销事件特征，输出区间）→ 库存策略（分层：ABC 分类定策略——A 类高频精确预测，C 类长尾用「双箱/定期」简化）→ 补货计算（再订货点 = 提前期需求 + 安全库存；补货量 = 目标库存 − 在途 − 可用）→ 采购/调拨执行。安全库存按「需求波动 × 供应波动 × 服务水平」公式化（Z 值法），不是拍脑袋。多仓：中心仓兜底 + 区域仓按预测分布 + 调拨规则（区域低于下限从中心补）。呆滞：库龄分层 + 临期预警 + 清仓建议（价格协同走 D04.02 引擎）。预测效果按 SKU 分层评估（WAPE/偏差），持续迭代。</p>
               </div>
             </div>
@@ -8793,6 +8870,7 @@ flowchart TD
             <div class="qa-layer" data-layer="principle">
               <div class="qa-layer-title">分析框架</div>
               <div class="qa-layer-body">
+              <p><strong>与 D09.04 的边界</strong>：本卡是计划协同层；再订货点与安全库存公式见 D09.04，此处不重复推导。</p>
                 <p>计划滚动闭环：<strong>预测（统计基线 + 促销修正）→ 补货计划（安全库存 + 补货点）→ ATP 承诺（在库/在途/在制三源）→ 采购生产执行 → 实际回流纠偏</strong>，按周/月滚动刷新，不是一定了之。ATP = 可承诺量 = 可用库存 + 在途（已下单未到）+ 在制（已排产未完工）- 安全库存 - 已承诺未发。牛鞭效应对策：需求信息共享（下游销售数据给上游）、批量透明（促销计划提前同步）、按需补货（拉式而非推式）。协同靠机制 + 系统：S&OP 例会 + 计划变更单（影响范围可视化）落到采购与生产系统。</p>
               </div>
             </div>
@@ -8902,7 +8980,7 @@ graph TD
             </div>
             <div class="qa-crossref">
               <span class="qa-crossref-label">← 技术范式引用</span>
-              <a href="chapter-questions-scenario.html#S12.03">S12.03 Agent 工具调用死循环导致资损的应急与防护</a>
+              <a href="chapter-questions-scenario.html#S11.03">S11.03 Spark/Flink 海量数据实时计算架构：日均百亿级日志实时处理与风控</a>
             </div>
           </div>
         </section>
@@ -9083,6 +9161,10 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>全量重建；频控旁路；无截断；无探索。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S11.02">S11.02 电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</a>
+            </div>
           </div>
 
           <!-- D10.02 竞价与计费 -->
@@ -9245,6 +9327,10 @@ sequenceDiagram
                 <div class="insight-method"><strong>易错点：</strong>一价直扣；无 pacing；记录不落；超预算不停。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S01.05">S01.05 热点账户高并发扣款</a>
+            </div>
           </div>
 
           <!-- D10.03 归因与转化 -->
@@ -9262,7 +9348,7 @@ sequenceDiagram
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>广告主要在自家 App/落地页埋点上报转化（下载、注册、付费）。平台要把转化归到广告上：用户先看了 A 广告、后点了 B 广告、再转化，功劳算谁的？归因结果驱动 oCPC 出价（D10.02）与广告主报表。硬指标：归因规则明确（广告主可理解）、回传链路可靠（丢了转化模型就瞎）、延迟可控（实时回传秒级、批量分钟级）、反作弊（假转化骗模型）。</p>
+                <p>广告主要在自家 App/落地页埋点上报转化（下载、注册、付费）。平台要把转化归到广告上：用户先看了 A 广告、后点了 B 广告、再转化，功劳算谁的？归因结果驱动 oCPC 出价（D10.02）与广告主报表。硬指标：归因规则明确（广告主可理解）、回传链路可靠（丢了转化模型就瞎）、延迟可控（实时回传秒级、批量分钟级）、反作弊（假转化骗模型）。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -9515,6 +9601,10 @@ flowchart TD
                 <div class="insight-method"><strong>易错点：</strong>余额可变状态；单口径；IVT 时点不清；发票脱钩。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S07.06">S07.06 支付链路一致性保障与对账系统设计：日亿级交易额的支付平台架构</a>
+            </div>
           </div>
 
           <!-- D10.05 反作弊 -->
@@ -9532,7 +9622,7 @@ flowchart TD
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>无效流量（IVT）类型：机器人点击、点击农场（人机混合）、恶意重复点击（竞争对手耗预算）、曝光作伪（隐藏/堆叠展示）、归因作弊（假转化）。硬指标：IVT 识别率（过滤）、误判率（不误伤真实流量，那是资损 + 客诉）、处置时效（实时拦截）、对抗能力（黑产升级快）。</p>
+                <p>无效流量（IVT）类型：机器人点击、点击农场（人机混合）、恶意重复点击（竞争对手耗预算）、曝光作伪（隐藏/堆叠展示）、归因作弊（假转化）。硬指标：IVT 识别率（过滤）、误判率（不误伤真实流量，那是资损 + 客诉）、处置时效（实时拦截）、对抗能力（黑产升级快）。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -9777,7 +9867,7 @@ graph TD
             </div>
             <div class="qa-crossref">
               <span class="qa-crossref-label">← 技术范式引用</span>
-              <a href="chapter-questions-scenario.html#S12.02">S12.02 LLM 网关 Token 成本单月翻倍的排查与治理</a>
+              <a href="chapter-questions-scenario.html#S11.02">S11.02 电商全站搜索与推荐一体化架构： query 理解、召回、排序全链路设计</a>
             </div>
           </div>
         </section>
@@ -9962,6 +10052,10 @@ flowchart LR
                 <div class="insight-method"><strong>破题主线：</strong>网关只管转发 → 可靠/不可靠双通道 → 本地扇出优先、MQ 按 roomId 分区 → 重连快照补齐。</div>
                 <div class="insight-method"><strong>易错点：</strong>全服广播同通道；心跳过频；网关注销状态；分区键选错。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S10.01">S10.01 Netty 百万级长连接网关设计：千万在线用户的即时通讯接入层架构</a>
             </div>
           </div>
 
@@ -10714,7 +10808,7 @@ mailbox.<span class="fn">save</span>(toUserId, msg, <span class="type">Retention
             <div class="qa-layer" data-layer="scenario">
               <div class="qa-layer-title">场景背景</div>
               <div class="qa-layer-body">
-                <p>医院核心系统群：HIS（挂号/收费/药品）、EMR（电子病历）、LIS（检验）、PACS（影像）、手麻/重症，各自厂商不同、年代不同、接口标准不同。患者就医动线：挂号 → 就诊 → 开医嘱 → 检验检查 → 报告回传 → 处方 → 取药/住院。互联网医院还要支持在线问诊、电子处方流转到院外药房。影像数据动辄 PB 级，病历修改必须留痕，患者隐私调阅要授权。系统可用性要求极高——诊疗活动不能停。</p>
+                <p>医院核心系统群：HIS（挂号/收费/药品）、EMR（电子病历）、LIS（检验）、PACS（影像）、手麻/重症，各自厂商不同、年代不同、接口标准不同。患者就医动线：挂号 → 就诊 → 开医嘱 → 检验检查 → 报告回传 → 处方 → 取药/住院。互联网医院还要支持在线问诊、电子处方流转到院外药房。影像数据动辄 PB 级，病历修改必须留痕，患者隐私调阅要授权。系统可用性要求极高——诊疗活动不能停。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
               </div>
             </div>
             <div class="qa-layer" data-layer="challenge">
@@ -10828,6 +10922,10 @@ flowchart LR
                 <div class="insight-method"><strong>破题主线：</strong>异构协议收敛引擎 → FHIR 内部模型 → EMPI 合并身份 → 病历留痕 → 调阅授权审计 → 处方 CA 全链。</div>
                 <div class="insight-method"><strong>易错点：</strong>点对点对接；病历覆盖；调阅无审计；处方无签名。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S09.05">S09.05 敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</a>
             </div>
           </div>
 
@@ -11111,6 +11209,10 @@ flowchart LR
                 <div class="insight-method"><strong>易错点：</strong>裸写方言；native 散落；密钥硬编码；合规事后补。</div>
               </div>
             </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S09.03">S09.03 数据加密与密钥管理：3 亿用户敏感数据加密存储与密钥全生命周期管理</a>
+            </div>
           </div>
 
           <!-- D12.04 数据合规通用范式 -->
@@ -11250,6 +11352,10 @@ flowchart LR
                 <div class="insight-method"><strong>破题主线：</strong>扫描建地图 → 分级/法源/保留期台账 → 删除全链编排（备份标记到期）→ 跨境网关路由 → 同意版本化分发。</div>
                 <div class="insight-method"><strong>易错点：</strong>只删主库；无地图；同意无版本；假名化当匿名化。</div>
               </div>
+            </div>
+            <div class="qa-crossref">
+              <span class="qa-crossref-label">← 技术范式引用</span>
+              <a href="chapter-questions-scenario.html#S09.05">S09.05 敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</a>
             </div>
           </div>
 
@@ -11533,7 +11639,7 @@ engine.<span class="fn">start</span>(item.<span class="fn">flow</span>(), contex
             </div>
             <div class="qa-crossref">
               <span class="qa-crossref-label">← 技术范式引用</span>
-              <a href="chapter-questions-scenario.html#S10.02">S10.02 TCP 粘包拆包与自定义协议设计：物联网百万设备上行数据解析</a>
+              <a href="chapter-questions-scenario.html#S09.05">S09.05 敏感数据保护与合规：5 亿用户数据下的 PIPL/GDPR 合规治理体系</a>
             </div>
           </div>
         </section>
