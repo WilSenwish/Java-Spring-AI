@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""检查 44 个站点 HTML 是否已处于 format:html 稳态。
+"""检查站点 HTML 是否已处于 format:html 稳态。
 
 稳态 = Prettier(printWidth=10000) + normalize_html_closers 后再写回与原文一致，
 且不存在被拆开的闭合标签 </tag\\n>。
+
+范围见 `_site_html.site_html_files`（根 2 + 章节站 + 三子站）。
 """
 from __future__ import annotations
 
@@ -12,23 +14,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve()
-for _ in range(8):
-    if (BASE / "java-architect-interview").is_dir() and (BASE / "index.html").is_file():
-        break
-    BASE = BASE.parent
-else:
-    raise SystemExit("cannot locate repo root")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _kbroot import require_root  # noqa: E402
+from _site_html import site_html_files  # noqa: E402
+
+BASE = Path(require_root(__file__))
 
 CLOSER = re.compile(r"</([A-Za-z][\w:-]*)\s*\n\s*>")
 PRETTIER = BASE / "node_modules" / ".bin" / "prettier"
-
-
-def site_html_files() -> list[Path]:
-    files = [BASE / "index.html"]
-    files += sorted((BASE / "java-architect-interview").glob("*.html"))
-
-    return [p for p in files if p.is_file()]
 
 
 def normalize(text: str) -> str:
@@ -47,29 +40,31 @@ def prettier_format(path: Path, text: str) -> str:
     )
     if r.returncode != 0:
         sys.stderr.write(r.stderr)
-        raise SystemExit(f"prettier failed on {path.name}")
+        raise SystemExit(f"prettier failed on {path.relative_to(BASE)}")
     return r.stdout
 
 
 def main() -> int:
+    files = site_html_files(BASE)
     bad_split = []
     bad_drift = []
-    for p in site_html_files():
+    for p in files:
         raw = p.read_text(encoding="utf-8")
+        rel = str(p.relative_to(BASE))
         if CLOSER.search(raw):
-            bad_split.append(str(p.relative_to(BASE)))
+            bad_split.append(rel)
             continue
         formatted = normalize(prettier_format(p, raw))
         if formatted != raw:
-            bad_drift.append(str(p.relative_to(BASE)))
+            bad_drift.append(rel)
     if bad_split:
-        print("FAIL split closers:", bad_split[:8])
+        print("FAIL split closers:", bad_split[:12])
     if bad_drift:
-        print("FAIL not at format steady-state:", bad_drift[:8])
+        print("FAIL not at format steady-state:", bad_drift[:12])
     if bad_split or bad_drift:
         print("Run: npm run format:html")
         return 1
-    print(f"OK format steady-state ({len(site_html_files())} HTML)")
+    print(f"OK format steady-state ({len(files)} HTML)")
     return 0
 
 

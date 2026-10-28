@@ -415,16 +415,23 @@ index.html                                # 章节索引
 
 ## 10. HTML 格式化（Prettier）与 Mermaid 保护
 
-站点无构建步骤，但仍用 **Prettier 3** 统一 44 个用户可见 HTML 的缩进与标签换行（根 `index.html` + 章节站 `*.html` + 导图站 `*.html`）。`docs/facts/`、备份目录、压缩资源不在格式化范围。
+站点无构建步骤，但仍用 **Prettier 3** 统一用户可见 HTML 的缩进与标签换行。覆盖范围（清单真源：`scripts/_site_html.py`）：
+
+- 根：`index.html`、`interview.html`
+- 章节主站：`java-architect-interview/*.html`
+- 三子站（递归）：`java-design-patterns-principles/**`、`Software-Engineering-Core-Philosophical-Principles-and-Methodologies/**`、`Software-Engineering-Laws-Theories-Principles-and-Patterns/**`
+
+`docs/facts/`、`tmp/`、压缩资源、`rk/` 不在格式化范围。导图站已下线。
 
 | 项 | 约定 |
 |---|---|
 | 配置 | 仓库根 `.prettierrc.json` / `.prettierignore` / `package.json`（仅 `prettier` devDependency） |
-| 命令 | `npm run format:html`（Prettier 写入 + 闭合标签归一） / `npm run format:html:check`（稳态检查） |
+| 命令 | `npm run format:html:prepare`（补 Mermaid ignore）→ `npm run format:html`（Prettier 写入 + 闭合标签归一）→ `npm run format:html:check`（稳态检查） |
 | 关键选项 | `printWidth: 10000`（避免 `</span>` 被拆行破坏计数锚点）、`htmlWhitespaceSensitivity: "css"`、`embeddedLanguageFormatting: "off"`、`endOfLine: "lf"` |
 | 后处理 | `scripts/normalize_html_closers.py`：把 Prettier 偶发产出的 `</tag\\n>` 压回 `</tag>`（kb-count / `validate_kb` 依赖同行闭合） |
-| Mermaid | 每个 `<div class="mermaid">` **正上方**一行 `<!-- prettier-ignore -->`；忽略该节点整棵子树，图源码保持多行 |
+| Mermaid | 每个 `<div class="mermaid">` **正上方**一行 `<!-- prettier-ignore -->`；忽略该节点整棵子树，图源码保持多行（**跳过 mermaid 图**） |
 | 新增图 | 插入 mermaid 容器时同步加 ignore（或跑 `ensure_mermaid_prettier_ignore.py`）；再 `format:html` → `validate_kb.py` |
+| 三子站门禁 | `npm run validate:satellites`（或由 `validate_kb.py` 0s 步自动调用）：`data-page-node-id` / 禁用词 / viewport / charset / Mermaid-ignore |
 | 语法 | Prettier 遇非法 HTML（未闭合 / 嵌套错误的 `p`/`a` 等）会失败——先修标签再格式化 |
 
 标准写法：

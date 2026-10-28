@@ -11,23 +11,14 @@ import re
 import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve()
-for _ in range(8):
-    if (BASE / "java-architect-interview").is_dir() and (BASE / "index.html").is_file():
-        break
-    BASE = BASE.parent
-else:
-    raise SystemExit("cannot locate repo root")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _kbroot import require_root  # noqa: E402
+from _site_html import site_html_files  # noqa: E402
+
+BASE = require_root(__file__)
 
 # </span\n          >  → </span>
 CLOSER = re.compile(r"</([A-Za-z][\w:-]*)\s*\n\s*>")
-
-
-def site_html_files() -> list[Path]:
-    files = [BASE / "index.html"]
-    files += sorted((BASE / "java-architect-interview").glob("*.html"))
-
-    return [p for p in files if p.is_file()]
 
 
 def normalize(text: str) -> tuple[str, int]:
@@ -44,14 +35,14 @@ def normalize(text: str) -> tuple[str, int]:
 def main() -> int:
     total = 0
     touched = 0
-    for p in site_html_files():
+    for p in site_html_files(BASE):
         raw = p.read_text(encoding="utf-8")
         fixed, n = normalize(raw)
         if n:
             p.write_text(fixed, encoding="utf-8")
             touched += 1
             total += n
-    print(f"normalized closers={total} files={touched}")
+    print(f"normalized closers={total} files={touched} scanned={len(site_html_files(BASE))}")
     return 0
 
 

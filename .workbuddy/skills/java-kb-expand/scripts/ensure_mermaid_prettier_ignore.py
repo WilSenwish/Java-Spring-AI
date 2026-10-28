@@ -16,22 +16,13 @@ import re
 import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve()
-for _ in range(8):
-    if (BASE / "java-architect-interview").is_dir() and (BASE / "index.html").is_file():
-        break
-    BASE = BASE.parent
-else:
-    raise SystemExit("cannot locate repo root (need index.html + java-architect-interview/)")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _kbroot import require_root  # noqa: E402
+from _site_html import site_html_files  # noqa: E402
+
+BASE = Path(require_root(__file__))
 
 MERMAID_OPEN = re.compile(r"^([ \t]*)<div class=\"mermaid\">")
-
-
-def site_html_files() -> list[Path]:
-    files = [BASE / "index.html"]
-    files += sorted((BASE / "java-architect-interview").glob("*.html"))
-
-    return [p for p in files if p.is_file()]
 
 
 def ensure_file(path: Path, check_only: bool) -> tuple[int, int]:
@@ -68,15 +59,17 @@ def main() -> int:
     args = ap.parse_args()
     total_m = total_a = 0
     touched = []
-    for p in site_html_files():
+    files = site_html_files(BASE)
+    for p in files:
         n, a = ensure_file(p, args.check)
         total_m += n
         total_a += a
         if a:
-            touched.append(f"{p.relative_to(BASE)} (+{a})" if not args.check else f"{p.relative_to(BASE)} missing={a}")
+            rel = p.relative_to(BASE)
+            touched.append(f"{rel} (+{a})" if not args.check else f"{rel} missing={a}")
     mode = "check" if args.check else "write"
-    print(f"[{mode}] mermaid={total_m} {'missing' if args.check else 'added'}={total_a}")
-    for t in touched[:20]:
+    print(f"[{mode}] mermaid={total_m} {'missing' if args.check else 'added'}={total_a} scanned={len(files)}")
+    for t in touched[:30]:
         print(" ", t)
     if args.check and total_a:
         return 1
