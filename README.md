@@ -23,7 +23,7 @@ Java-Spring-AI/
 │   ├── assets/                             #   design-system.css · nav.js · theme-init.js
 │   └── index.html                          # 章节索引
 ├── java-design-patterns-principles/       # ② 设计原则 & 超越 GoF 23
-├── Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
+├── Software-Engineering-Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
 ├── Software-Engineering-Core-Philosophical-Principles-and-Methodologies/  # ④ 软件工程「道—法—术—器—势」核心哲学原理
 ├── rk/                                     # 两篇随笔（高项 / 系规），见 rk/README.md
 ├── .workbuddy/skills/java-kb-expand/       # 工具链 · java-kb-expand Skill
@@ -85,7 +85,7 @@ Java-Spring-AI/
 | 工程化要点 | `java-architect-interview/chapter-engineering-practices.html` | 8 组工程化实践（65 卡） |
 | 生产踩坑 | `java-architect-interview/chapter-production-pitfalls.html` | 8 组真实故障复盘（65 卡） |
 | 设计原则 & GoF 23 | `java-design-patterns-principles/` | 设计原则 + 超越 GoF 23 |
-| 软件定律 / 理论 / 原则 / 模式 | `Laws-Theories-Principles-and-Patterns/` | 24 条 + 7 类 + 13 类 + 6 类索引 |
+| 软件定律 / 理论 / 原则 / 模式 | `Software-Engineering-Laws-Theories-Principles-and-Patterns/` | 24 条 + 7 类 + 13 类 + 6 类索引 |
 | 软件工程「道法术器势」| `Software-Engineering-Core-Philosophical-Principles-and-Methodologies/` | 核心哲学原理完整篇 |
 
 ---

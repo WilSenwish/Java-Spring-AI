@@ -1,5 +1,5 @@
 /* java-design-patterns-principles/assets/app.js
-   复用自 Laws-Theories-Principles-and-Patterns/assets/app.js（长官要求「导航参考 Laws」）。
+   复用自 Software-Engineering-Laws-Theories-Principles-and-Patterns/assets/app.js（长官要求「导航参考 Laws」）。
    职责：
    1) 绑定顶部 toolbar 的「↑ 顶部」按钮 → 平滑回顶；
    2) 绑定顶部 toolbar 的「主题切换」按钮 → 复用 theme-init.js 暴露的 window.kbTheme.cycle()

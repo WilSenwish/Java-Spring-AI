@@ -1,4 +1,4 @@
-/* Laws-Theories-Principles-and-Patterns/assets/app.js
+/* Software-Engineering-Laws-Theories-Principles-and-Patterns/assets/app.js
    提取自 index.html 末尾 <script> 块（原第 563–582 行）。
    职责：
    1) 绑定顶部 toolbar 的「↑ 顶部」按钮 → 平滑回顶；
