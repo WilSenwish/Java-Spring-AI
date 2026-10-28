@@ -97,7 +97,7 @@
 
 ## 4. 资源按需载入规则
 
-- `assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部** + **阅读进度**（顶栏细条 + 浮动环，方案 A；见 §9）+ **小屏本篇目录抽屉**（左下 `.toc-fab` + 复用 `.sidebar-toc`；见 §4.1 / §8）+ **听本页**（左下 `.kb-listen`，样式随脚本注入，见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
+- `assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部** + **阅读进度**（顶栏细条 + 浮动环，方案 A；见 §9）+ **小屏本篇目录抽屉**（左下 `.toc-fab` + 复用 `.sidebar-toc`；见 §4.1 / §8）+ **听本页**（左下 `.kb-listen`，样式随脚本注入，见 §9）+ **全站搜索**（无顶栏时右上「搜索」按钮；三子站 `.toolbar` 内直接放搜索框；索引为仓库根 `search-index.json`，改纳入范围的正文后运行 `python3 scripts/build_search_index.py`，见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
 - `assets/nav.js`：全站导航交互脚本；职责含：
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）；小屏下调用 `kbToc.syncExpandedFromActive` 展开当前组。
   2. **阅读进度 / 主题切换 / 回顶 / 去底兜底**（主注入在 `theme-init.js`；本脚本以 `__kbReadingProgressBound` 等标记防双重绑定）。
@@ -393,8 +393,9 @@ index.html                                # 章节索引
 | 默认 | `system` |
 | 持久化 | `localStorage['kb-color-theme']` = `light` \| `dark` \| `system` |
 | 防闪白 | `<head>` 在 CSS **之前**引入 `assets/theme-init.js` |
-| 切换 UI | 由 `theme-init.js` 注入 `.theme-toggle`（浅色 → 深色 → 跟随系统）、`.reading-progress`（顶栏 3px 细条，次要）+ `.reading-progress-fab`（浮动进度环，主反馈，叠在主题切换**上方**）以及 `.back-to-top` / `.go-to-bottom` 成对浮动按钮；`nav.js` 仅兜底防漏（`__kbReadingProgressBound` 防双重 rAF）；页面**不得**手写第二套。右下栈序（自下而上）：去底 → 回顶 → 主题 → **进度环**。主站样式在 `design-system.css`；三子站同一套 DOM，样式在 `assets/satellite-base.css`（进度环叠在去底之上，`bottom: 182px`；≤480px 整列右移到 `16px`） |
+| 切换 UI | 由 `theme-init.js` 注入 `.theme-toggle`（浅色 → 深色 → 跟随系统）、`.reading-progress`（顶栏 3px 细条，次要）+ `.reading-progress-fab`（浮动进度环，主反馈，叠在主题切换**上方**）以及 `.back-to-top` / `.go-to-bottom` 成对浮动按钮；`nav.js` 仅兜底防漏（`__kbReadingProgressBound` 防双重 rAF）；页面**不得**手写第二套。右下栈序（自下而上）：去底 → 回顶 → 主题 → **进度环**。主站样式在 `design-system.css`；三子站同一套 DOM 与栈距，样式在 `assets/satellite-base.css`（去底/回顶为 44×44 强调色圆钮，`display:none` 直至 `.visible`；≤480px 右移到 `16px`，底边 24 / 78 / 132 / 186） |
 | 朗读 | `theme-init.js` 注入左下 `.kb-listen`（样式写在脚本内，子站不加载 `design-system.css` 也能用）。默认关。点一次后 `localStorage['kb-listen-auto']=1`，之后开页尝试续读；系统拦下则按钮进入待点击（再点一下才出声）。播放中面板为「暂停 / 继续 / 语速 / 停止」：暂停立刻停声并停在当前句，继续从该句开头重读（不调用不可靠的 `speechSynthesis.pause`）。「停止」或 Esc 写回 `0`。语速记在 `kb-listen-rate`。朗读跳过导航、侧栏、代码块、Mermaid；当前块加 `.kb-listening`。有 `.sidebar-toc` 时，≤1024px 按钮上移到目录 FAB 之上（≤480px 与目录同为 `left: 16px`） |
+| 搜索 | `theme-init.js` 注入「搜索」。无顶栏的页为右上固定按钮，点开后再输入。三子站 `.toolbar` 里直接放搜索框，输入后在框下展开结果。首次打开拉取仓库根 `search-index.json`（由 `scripts/build_search_index.py` 生成，`--check` 比对 `source_hash` 与条目）。匹配标题与正文：无空格为子串，有空格则各段都要命中；标题命中排在正文命中前，最多 40 条。根 `index.html` 与章节站 `index.html` 只挂界面、不入库。改卡片或三个子站正文后须重建索引 |
 | Mermaid | `mermaid.initialize(kbTheme.mermaidConfig({ startOnLoad: true }))`（偏蓝 `base` + themeVariables）；换肤时 `theme-init.js` 用 `data-kb-mermaid-src` 还原源码再 `mermaid.run` |
 | 图内配色 | ①**分支配色**（思维导图/饼图）由 `cScale*` / `cScaleInv*` / `cScaleLabel*` / `git0` 显式接管（浅深各一套）；②**图内内联色**（`style X fill:#dbeafe`）由 `theme-init.js` 在渲染后**重着色**（`RETINT_*_DARK` 映射 + `MutationObserver`），源码不动 |
 
