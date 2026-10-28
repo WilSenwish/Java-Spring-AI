@@ -29,6 +29,7 @@ Java-Spring-AI/
 ├── java-design-patterns-principles/       # ② 设计原则 & 超越 GoF 23
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
 ├── Software-Engineering-Core-Philosophical-Principles-and-Methodologies/  # ④ 软件工程「道—法—术—器—势」核心哲学原理
+├── assets/satellite-base.css              # ②③④ 三子站共用基础样式（各站 assets/style.css @import）
 ├── rk/                                     # 两篇随笔（高项 / 系规），见 rk/README.md
 ├── .workbuddy/skills/java-kb-expand/       # 工具链 · java-kb-expand Skill
 │   └── scripts/

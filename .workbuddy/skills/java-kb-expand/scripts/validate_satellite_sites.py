@@ -14,6 +14,7 @@
   4. 须声明 UTF-8 charset
   5. 若含 Mermaid：每个 <div class="mermaid"> 上一行为 prettier-ignore，且图源未塌缩（换行≥2）
   6. 无 Prettier 拆开的闭合标签 </tag\\n>
+  7. 基础样式复用：各站 `assets/style.css` 须 `@import` / 引用仓库根 `assets/satellite-base.css`
 
 用法：
   python3 validate_satellite_sites.py
@@ -84,6 +85,24 @@ def check_file(path: Path, rel: str) -> list[str]:
     return fails
 
 
+def check_shared_base_css(dirs: tuple[str, ...]) -> list[str]:
+    """各子站 assets/style.css 必须引用仓库根 assets/satellite-base.css。"""
+    fails: list[str] = []
+    shared = BASE / "assets" / "satellite-base.css"
+    if not shared.is_file():
+        fails.append("[样式复用] 缺少仓库根 assets/satellite-base.css")
+        return fails
+    for d in dirs:
+        style = BASE / d / "assets" / "style.css"
+        if not style.is_file():
+            fails.append(f"[样式复用] {d}/assets/style.css 缺失")
+            continue
+        css = style.read_text(encoding="utf-8")
+        if "satellite-base.css" not in css:
+            fails.append(f"[样式复用] {d}/assets/style.css 须 @import / 引用 satellite-base.css")
+    return fails
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
@@ -107,6 +126,8 @@ def main() -> int:
         return 1
 
     all_fails: list[str] = []
+    dirs = (args.only,) if args.only else SATELLITE_DIRS
+    all_fails.extend(check_shared_base_css(dirs))
     for p in files:
         rel = str(p.relative_to(BASE))
         all_fails.extend(check_file(p, rel))
