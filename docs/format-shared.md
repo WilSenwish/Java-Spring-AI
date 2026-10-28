@@ -97,10 +97,10 @@
 
 ## 4. 资源按需载入规则
 
-- `assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部**（见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
+- `assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部** + **阅读进度**（顶栏细条 + 浮动环，方案 A；见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
 - `assets/nav.js`：全站导航交互脚本；职责含：
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）。
-  2. 阅读进度条；主题切换 / 回顶 / 去底由 `theme-init.js` 负责（本脚本仅兜底防漏）。
+  2. **阅读进度 / 主题切换 / 回顶 / 去底兜底**（主注入在 `theme-init.js`；本脚本以 `__kbReadingProgressBound` 等标记防双重绑定）。
   3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
 - `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || {…})`（偏蓝 `base` 主题）；禁止写死 `"neutral"` / `"default"`。换肤重绘由 `theme-init.js` 缓存 `data-kb-mermaid-src` 后 `mermaid.run`，勿在页面重复监听重绘。**每个** `<div class="mermaid">` 的上一行必须是 `<!-- prettier-ignore -->`（防止 HTML 格式化把图源码压成一行）；见 §10。
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
@@ -378,7 +378,7 @@ index.html                         # 首页
 | 默认 | `system` |
 | 持久化 | `localStorage['kb-color-theme']` = `light` \| `dark` \| `system` |
 | 防闪白 | `<head>` 在 CSS **之前**引入 `assets/theme-init.js` |
-| 切换 UI | 由 `theme-init.js` 注入 `.theme-toggle`（浅色 → 深色 → 跟随系统）以及 `.back-to-top` / `.go-to-bottom` 成对浮动按钮；`nav.js` 仅兜底防漏；页面**不得**手写第二套 |
+| 切换 UI | 由 `theme-init.js` 注入 `.theme-toggle`（浅色 → 深色 → 跟随系统）、`.reading-progress`（顶栏 3px 细条，次要）+ `.reading-progress-fab`（浮动进度环，主反馈，叠在主题切换**上方**）以及 `.back-to-top` / `.go-to-bottom` 成对浮动按钮；`nav.js` 仅兜底防漏（`__kbReadingProgressBound` 防双重 rAF）；页面**不得**手写第二套。右下栈序（自下而上）：去底 → 回顶 → 主题 → **进度环** |
 | Mermaid | `mermaid.initialize(kbTheme.mermaidConfig({ startOnLoad: true }))`（偏蓝 `base` + themeVariables）；换肤时 `theme-init.js` 用 `data-kb-mermaid-src` 还原源码再 `mermaid.run` |
 | 图内配色 | ①**分支配色**（思维导图/饼图）由 `cScale*` / `cScaleInv*` / `cScaleLabel*` / `git0` 显式接管（浅深各一套）；②**图内内联色**（`style X fill:#dbeafe`）由 `theme-init.js` 在渲染后**重着色**（`RETINT_*_DARK` 映射 + `MutationObserver`），源码不动 |
 

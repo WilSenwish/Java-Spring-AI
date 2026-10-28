@@ -203,8 +203,9 @@
   <body>
     <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
-        <a href="index.html" class="nav-prev">← 返回首页</a>
-        <span class="nav-center"><a href="nav-overview-priority.html" class="nav-next">优先级总览 →</a></span>
+        <a href="../index.html" class="nav-home">← 返回总目录</a>
+        <span class="nav-center"></span>
+        <a href="index.html" class="nav-next">知识库导航 →</a>
       </nav>
     </div>
 
@@ -212,11 +213,12 @@
       <div class="content-main" style="display: block; max-width: 100%;">
         <nav class="sticky-dim-nav" aria-label="维度导航">
           <a href="#dim-methodology" class="sticky-dim-link" style="--nav-color: #2563eb">方法论</a>
-          <a href="#dim-engineering" class="sticky-dim-link" style="--nav-color: #059669">工程化</a>
+          <a href="#dim-techstack" class="sticky-dim-link" style="--nav-color: #ea580c">技术栈</a>
+          <a href="#dim-essence" class="sticky-dim-link" style="--nav-color: #0891b2">核心原理</a>
           <a href="#dim-scenario" class="sticky-dim-link" style="--nav-color: #7c3aed">场景</a>
           <a href="#dim-aideep" class="sticky-dim-link" style="--nav-color: #0f766e">AI 纵深</a>
+          <a href="#dim-engineering" class="sticky-dim-link" style="--nav-color: #059669">工程化</a>
           <a href="#dim-domain" class="sticky-dim-link" style="--nav-color: #d97706">垂直领域</a>
-          <a href="#dim-techstack" class="sticky-dim-link" style="--nav-color: #ea580c">技术栈</a>
           <a href="#dim-security" class="sticky-dim-link" style="--nav-color: #dc2626">安全</a>
         </nav>
 
@@ -439,8 +441,671 @@
           </div>
         </section>
 
+        <section class="dimension-section" id="dim-techstack" style="--dim-color: #ea580c">
+          <div class="dimension-header">二、技术栈深度（C01-C15）</div>
+          <div class="dimension-intro">
+            <p class="intro-lead"><strong>每篇先记两类「硬结论」，再记机制原理：参数硬规则与版本锚点是排障与选型最先要用、最不能记错的部分。</strong></p>
+            <div class="intro-line"><strong>JVM</strong>：-Xms=-Xmx；生产必配 ExitOnOutOfMemoryError；堆≥32G 压缩指针失效，单实例建议 31g</div>
+            <div class="intro-line"><strong>GC</strong>：CMS 已移除、G1 默认（暂停 200ms/IHOP 45%）、分代 ZGC 需 JDK21</div>
+            <div class="intro-line"><strong>并发</strong>：volatile 不保证原子性；偏向锁已废弃；DCL 单例必须 volatile</div>
+            <div class="intro-line"><strong>MySQL</strong>：双 1 配置；Next-Key Lock 防幻读；B+ 树三层约 2189 万行是容量参照</div>
+            <div class="intro-line"><strong>Redis</strong>：主从→哨兵→Cluster 三级演进；大 key 治理优先于扩容</div>
+            <div class="intro-line"><strong>消息队列</strong>：Kafka 拼吞吐、RocketMQ 拼功能（事务/延迟消息）、RabbitMQ 灵活路由</div>
+            <div class="intro-line"><strong>微服务</strong>：Ribbon 已废弃；注册中心 AP/CP 按业务场景选</div>
+            <div class="intro-line"><strong>AI 工程</strong>：Spring AI 1.0 GA→2.0 GA（Boot 4.x/Java 21+）；chunk 512/overlap 64 起步</div>
+            <div class="intro-line"><strong>Spring</strong>：事务传播 7 种/隔离 4 级；循环依赖三级缓存只解 setter 注入</div>
+            <div class="intro-line"><strong>网络 IO</strong>：TIME_WAIT 2MSL；零拷贝 sendfile/mmap 减少态间拷贝</div>
+            <div class="intro-line"><strong>响应式</strong>：Reactor 背压四策略；IO 密集可被虚拟线程替代，CPU 密集才选它</div>
+          </div>
+          <div class="cheat-bullet"><strong>一网通办</strong>：共享目录分级治理；授权链网关；隐私计算不出域；流程时限看板不默认放行</div>
+          <div class="card-anchor-row"><a href="#card-c01" class="card-anchor-link">C01</a><a href="#card-c02" class="card-anchor-link">C02</a><a href="#card-c03" class="card-anchor-link">C03</a><a href="#card-c04" class="card-anchor-link">C04</a><a href="#card-c05" class="card-anchor-link">C05</a><a href="#card-c06" class="card-anchor-link">C06</a><a href="#card-c07" class="card-anchor-link">C07</a><a href="#card-c08" class="card-anchor-link">C08</a><a href="#card-c09" class="card-anchor-link">C09</a><a href="#card-c10" class="card-anchor-link">C10</a><a href="#card-c11" class="card-anchor-link">C11</a><a href="#card-c12" class="card-anchor-link">C12</a><a href="#card-c13" class="card-anchor-link">C13</a><a href="#card-c14" class="card-anchor-link">C14</a><a href="#card-c15" class="card-anchor-link">C15</a></div>
+
+          <div class="cheat-card" id="card-c01" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C01 JVM 内存与类加载</div>
+            <div class="cheat-bullet"><strong>运行时数据区</strong>：线程私有=栈/程序计数器；共享=堆/元空间/直接内存；OOM 类型按区域对应</div>
+            <div class="cheat-bullet"><strong>Metaspace</strong>：MaxMetaspaceSize 必须显式设（256-512m），否则无限增长吃本地内存</div>
+            <div class="cheat-bullet"><strong>容器参数</strong>：UseContainerSupport+MaxRAMPercentage=70-75 代替固定 -Xmx</div>
+            <div class="cheat-bullet"><strong>对象内存</strong>：压缩指针下对象头 12B；堆≥32G 压缩指针失效，单实例建议 -Xmx31g</div>
+            <div class="cheat-bullet"><strong>类加载五阶段</strong>：加载→验证→准备→解析→初始化；双亲委派=安全+类唯一性</div>
+            <div class="cheat-bullet"><strong>打破委派场景</strong>：SPI 线程上下文加载器、Tomcat 隔离、OSGi</div>
+            <div class="cheat-bullet"><strong>类卸载三条件</strong>：实例全回收+ClassLoader 回收+Class 无引用；加载器泄漏是 Metaspace OOM 主因</div>
+            <div class="cheat-bullet"><strong>版本锚点</strong>：17/21/25 LTS；Boot3 强制 jakarta.*；分代 ZGC JDK21 需 ZGenerational</div>
+          </div>
+
+          <div class="cheat-card" id="card-c02" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C02 GC 与性能调优</div>
+            <div class="cheat-bullet"><strong>GC Roots</strong>：栈引用/静态变量/常量/JNI/活跃线程/锁持有对象</div>
+            <div class="cheat-bullet"><strong>分代算法</strong>：新生代复制（Eden:S0:S1=8:1:1）；老年代标记整理；卡表 512B 维护跨代引用</div>
+            <div class="cheat-bullet"><strong>收集器里程碑</strong>：CMS JDK14 移除；G1 JDK9 默认（2048 Region、暂停 200ms、IHOP 45%）；ZGC JDK15 转正/21 分代</div>
+            <div class="cheat-bullet"><strong>参数硬规则</strong>：-Xms=-Xmx；生产必配 ExitOnOutOfMemoryError</div>
+            <div class="cheat-bullet"><strong>CPU 100% 五步法</strong>：top→top -Hp→printf %x→jstack→grep nid；Arthas thread -n 3</div>
+            <div class="cheat-bullet"><strong>FullGC 七大原因</strong>：老年代不足/元空间不足/大对象直入/System.gc/泄漏/浮动垃圾/晋升失败</div>
+            <div class="cheat-bullet"><strong>泄漏 vs 不足</strong>：FullGC 后老年代能回落=容量不足，不能=泄漏；jmap -histo:live 触发 FullGC 慎用</div>
+          </div>
+
+          <div class="cheat-card" id="card-c03" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C03 并发与锁</div>
+            <div class="cheat-bullet"><strong>volatile</strong>：可见性+有序性不保证原子性；写后 StoreLoad 屏障最贵；底层 MESI</div>
+            <div class="cheat-bullet"><strong>happens-before</strong>：8 条规则是 JMM 判断准绳</div>
+            <div class="cheat-bullet"><strong>DCL 单例</strong>：实例必须 volatile，防 new 重排序拿到半成品</div>
+            <div class="cheat-bullet"><strong>锁升级</strong>：无锁→轻量级（CAS 自旋）→重量级；偏向锁 JDK15 已废弃</div>
+            <div class="cheat-bullet"><strong>AQS 底座</strong>：volatile state+CLH 变体队列+CAS 入队+park 挂起；非公平锁吞吐更高</div>
+            <div class="cheat-bullet"><strong>CHM 演进</strong>：JDK7 Segment→JDK8 CAS+桶头 synchronized；树化=链表≥8 且数组≥64</div>
+            <div class="cheat-bullet"><strong>CHM size()</strong>：baseCount+CounterCell[] 分散计数，返回近似值</div>
+            <div class="cheat-bullet"><strong>computeIfAbsent 陷阱</strong>：回调内禁阻塞与递归同 key，否则死锁</div>
+          </div>
+
+          <div class="cheat-card" id="card-c04" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C04 线程池与虚拟线程</div>
+            <div class="cheat-bullet"><strong>execute 流程</strong>：核心→队列→最大→拒绝；无界队列时 max 永不生效</div>
+            <div class="cheat-bullet"><strong>ctl 字段</strong>：高 3 位状态+低 29 位线程数；五状态机 RUNNING→SHUTDOWN→STOP→TIDYING→TERMINATED</div>
+            <div class="cheat-bullet"><strong>Tomcat 反转载体</strong>：定制 TaskQueue 让 offer 返回 false，变核心→最大→队列；maxThreads 默认 200</div>
+            <div class="cheat-bullet"><strong>虚拟线程本质</strong>：N:M 调度栈存堆上；创建 ~1μs vs 平台线程 ~1ms；不池化</div>
+            <div class="cheat-bullet"><strong>Pinning 陷阱</strong>：synchronized 内阻塞/JNI 固定载体线程；JDK24 JEP 491 修复</div>
+            <div class="cheat-bullet"><strong>无时间片抢占</strong>：CPU 密集任务会饿死其他 VT，不适合</div>
+            <div class="cheat-bullet">ThreadLocal→ScopedValue：JDK25 GA，不可变作用域传递</div>
+          </div>
+
+          <div class="cheat-card" id="card-c05" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C05 Spring 核心</div>
+            <div class="cheat-bullet"><strong>refresh() 13 步锚点</strong>：第 5 步 BFPP 改图纸；第 11 步实例化非懒加载单例</div>
+            <div class="cheat-bullet"><strong>Bean 生命周期</strong>：实例化→属性填充→初始化（Aware→@PostConstruct→afterPropertiesSet→init→BPP/AOP 代理）</div>
+            <div class="cheat-bullet"><strong>三级缓存</strong>：一级成品/二级早期引用/三级 ObjectFactory；AOP 代理只创建一次；Boot 2.6+ 默认禁循环依赖</div>
+            <div class="cheat-bullet"><strong>传播三剑客</strong>：REQUIRED 共用；REQUIRES_NEW 独立连接；NESTED savepoint 子事务</div>
+            <div class="cheat-bullet"><strong>默认回滚</strong>：只对 RuntimeException+Error 回滚，受检异常不回滚</div>
+            <div class="cheat-bullet"><strong>事务失效 7 场景</strong>：自调用/非 public/catch 吞异常/受检异常/非 Bean/MyISAM/传播配错</div>
+            <div class="cheat-bullet"><strong>rollback-only 连锁</strong>：内层标记后外层 catch 住仍抛 UnexpectedRollbackException</div>
+            <div class="cheat-bullet"><strong>afterCommit 陷阱</strong>：提交后 ThreadLocal 已清，资源需闭包传参</div>
+          </div>
+
+          <div class="cheat-card" id="card-c06" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C06 Spring Boot 现代化</div>
+            <div class="cheat-bullet"><strong>自动配置</strong>：Boot3 起 spring.factories→AutoConfiguration.imports；@ConditionalOn* 条件装配</div>
+            <div class="cheat-bullet"><strong>AOT/Native</strong>：JIT 启动 2-10s/内存 200MB+ vs Native 10-100ms/20-50MB，构建分钟级</div>
+            <div class="cheat-bullet"><strong>Security6</strong>：删 WebSecurityConfigurerAdapter→@Bean SecurityFilterChain</div>
+            <div class="cheat-bullet"><strong>配置优先级</strong>：命令行>SPRING_APPLICATION_JSON>JNDI>系统属性>环境变量>jar 内 application.yml</div>
+            <div class="cheat-bullet"><strong>graceful shutdown</strong>：Boot 3.4+ 默认开启；超时必须小于 K8s terminationGracePeriodSeconds</div>
+            <div class="cheat-bullet"><strong>K8s 下线时序</strong>：preStop 与 Endpoint 摘除并发→SIGTERM→宽限期强杀；preStop 里 sleep 等摘除传播</div>
+            <div class="cheat-bullet"><strong>探针分离</strong>：liveness（重启）与 readiness（摘流量）必须分开定义</div>
+          </div>
+
+          <div class="cheat-card" id="card-c07" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C07 MySQL 深度</div>
+            <div class="cheat-bullet"><strong>B+ 树容量</strong>：16KB 页×1170 扇出×3 层≈2189 万行；非叶只存键、叶子双向链表</div>
+            <div class="cheat-bullet"><strong>回表与覆盖</strong>：二级索引存主键→回表；Extra 出现 Using index 即覆盖索引</div>
+            <div class="cheat-bullet"><strong>MVCC</strong>：DB_TRX_ID+DB_ROLL_PTR+undo 版本链+ReadView；RC 每次新建，RR 首次复用</div>
+            <div class="cheat-bullet"><strong>锁规则</strong>：RR 当前读靠 Next-Key Lock；唯一索引命中退化 Record Lock；无索引 UPDATE 锁全表</div>
+            <div class="cheat-bullet"><strong>日志与 2PC</strong>：Redo+Undo+Binlog；redo prepare→写 binlog→redo commit；双 1 配置</div>
+            <div class="cheat-bullet"><strong>EXPLAIN 阶梯</strong>：system>const>eq_ref>ref>range>index>ALL；索引失效 8 场景（函数/隐式转换/最左前缀/左模糊等）</div>
+            <div class="cheat-bullet"><strong>深分页</strong>：延迟关联或游标分页；pt-query-digest 按总耗时排序</div>
+            <div class="cheat-bullet"><strong>分库分表</strong>：>1000 万行或 50GB、QPS>5000；分片数取 2 的幂；迁移双写 5 步</div>
+            <div class="cheat-bullet"><strong>复制</strong>：三线程 Dump→IO→Relay；8.0 WRITESET 并行复制（8.4 起默认）</div>
+          </div>
+
+          <div class="cheat-card" id="card-c08" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C08 Redis 与缓存</div>
+            <div class="cheat-bullet"><strong>类型与编码</strong>：5+4 类型；Redis7 ziplist→listpack 消除连锁更新；embstr≤44 字节</div>
+            <div class="cheat-bullet"><strong>HLL</strong>：固定 12KB，基数误差 0.81%</div>
+            <div class="cheat-bullet"><strong>三大问题</strong>：穿透→布隆+空值；击穿→互斥/逻辑过期；雪崩→随机 TTL±20%+多级；命中率 95%+</div>
+            <div class="cheat-bullet"><strong>持久化</strong>：RDB fork+COW；AOF everysec 最多丢 1s；4.0+ 混合持久化</div>
+            <div class="cheat-bullet"><strong>Cache Aside</strong>：先更 DB 再删缓存（反序并发窗口更高）；进阶延迟双删/Canal</div>
+            <div class="cheat-bullet"><strong>Redisson 锁</strong>：Hash{threadId:重入数}+Lua+WatchDog 续期；RedLock 有争议慎用</div>
+            <div class="cheat-bullet"><strong>Cluster</strong>：16384 槽 CRC16；gossip 2KB 位图建议≤1000 节点；PFAIL→FAIL→选举</div>
+            <div class="cheat-bullet"><strong>淘汰策略</strong>：默认 noeviction 危险；推荐 allkeys-lfu（4.0+）；近似 LRU 采样 5 个</div>
+          </div>
+
+          <div class="cheat-card" id="card-c09" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C09 分布式系统</div>
+            <div class="cheat-bullet"><strong>Kafka 高吞吐四机制</strong>：分区并行/顺序写（600MB/s vs 100KB/s）/Page Cache/sendfile 零拷贝</div>
+            <div class="cheat-bullet"><strong>可靠性配置</strong>：acks=all+min.insync.replicas=2+unclean.leader.election=false</div>
+            <div class="cheat-bullet"><strong>幂等与事务</strong>：幂等=PID+seq（单分区）；事务=transactional.id+read_committed；Kafka 4.0 KRaft 唯一</div>
+            <div class="cheat-bullet"><strong>一致性哈希</strong>：普通取模迁移全部数据 vs 一致性哈希 1/(N+1)；虚拟节点防倾斜</div>
+            <div class="cheat-bullet"><strong>时钟与因果</strong>：Lamport 偏序；向量时钟检测并发；HLC 混合时钟；nanoTime 仅同 JVM</div>
+            <div class="cheat-bullet"><strong>事务演进</strong>：2PC→TCC→Seata AT→SAGA→可靠消息</div>
+            <div class="cheat-bullet"><strong>幂等方案</strong>：唯一索引/Token/乐观锁/状态机/防重表——分布式锁不是幂等事实来源</div>
+            <div class="cheat-bullet"><strong>Snowflake</strong>：1+41+10+12 位，4096/ms；必须处理时钟回拨</div>
+          </div>
+
+          <div class="cheat-card" id="card-c10" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C10 微服务与云</div>
+            <div class="cheat-bullet"><strong>注册中心 CAP</strong>：选 AP；Eureka 自我保护=15min 失败>85% 停剔除；Nacos Distro/Raft 双模</div>
+            <div class="cheat-bullet"><strong>配置推送</strong>：Nacos 长轮询 29.5s；ZK Watch 毫秒级</div>
+            <div class="cheat-bullet"><strong>事务吞吐量级</strong>：TCC ~3 万 TPS>本地消息表 ~2 万>Seata AT ~1 万（全局锁瓶颈）；现代默认=Outbox+CDC</div>
+            <div class="cheat-bullet"><strong>负载均衡链路</strong>：@LoadBalanced→LoadBalancerInterceptor→choose→URL 重写；Ribbon 已移除</div>
+            <div class="cheat-bullet"><strong>限流四算法</strong>：固定窗口（临界双倍）/滑动窗口/漏桶（恒速）/令牌桶（突发）</div>
+            <div class="cheat-bullet"><strong>熔断三态</strong>：Closed→Open→Half-Open；Hystrix 维护模式→Resilience4j 或 Sentinel</div>
+          </div>
+
+          <div class="cheat-card" id="card-c11" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C11 中间件工程</div>
+            <div class="cheat-bullet"><strong>Kafka EOS 三要素</strong>：幂等生产者+事务协调器+位移事务提交；跨外部系统退化=业务幂等+Outbox</div>
+            <div class="cheat-bullet"><strong>副本一致性</strong>：leader epoch 防误导截断；ISR 滞后阈值 30s</div>
+            <div class="cheat-bullet"><strong>副本三件套</strong>：replication.factor=3+min.insync.replicas≥2+unclean=false 缺一不可</div>
+            <div class="cheat-bullet"><strong>定时任务公理</strong>：触发可以重复，处理必须幂等</div>
+            <div class="cheat-bullet"><strong>幂等三件套</strong>：唯一索引+幂等表+分布式锁</div>
+            <div class="cheat-bullet"><strong>分片任务</strong>：动态分片按 id%分片数；故障转移=心跳超时重派+补跑入口</div>
+            <div class="cheat-bullet"><strong>分片数变更</strong>：重算后需补偿扫描防漏跑（区间边界漂移）</div>
+          </div>
+
+          <div class="cheat-card" id="card-c12" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C12 AI 工程</div>
+            <div class="cheat-bullet"><strong>Spring AI 定位</strong>：统一抽象+可插拔+Starter（2025 GA）；ChatClient（Fluent+Advisor）vs ChatModel；2.0 硬约束 Java21+Boot4</div>
+            <div class="cheat-bullet"><strong>Embedding 数学</strong>：归一化后余弦=点积=1−L2²/2 等价，实践中点积最快；检索演进暴力→LSH→IVF→HNSW</div>
+            <div class="cheat-bullet"><strong>Function Calling</strong>：@Tool 生成 Schema→LLM 输出意图（不执行）→宿主反射执行→结果回填→循环；必设最大轮次</div>
+            <div class="cheat-bullet"><strong>RAG 召回治理链</strong>：查询改写→混合检索 BM25+稠密（0.3:0.7，RRF）→Rerank top20→top5→引用溯源；chunk=512/overlap=64</div>
+            <div class="cheat-bullet"><strong>幻觉三道防线</strong>：Grounding 强约束+引用溯源+LLM-as-a-Judge；RAGAS 四指标进 CI</div>
+            <div class="cheat-bullet"><strong>LLM 稳定性</strong>：慢比错常见→慢调用比例熔断（RT>8s 占 50% 熔断）；限流按 TOKEN/s；降级链大→小→语义缓存→规则</div>
+            <div class="cheat-bullet"><strong>Prompt 注入</strong>：OWASP LLM01 本质=指令与数据未分离；最大威胁=间接注入；外部内容 untrusted 标签隔离</div>
+            <div class="cheat-bullet"><strong>十亿级向量</strong>：1024 维×10 亿≈4TB；HNSW 千万级召回>98%；IVF_PQ 亿级压缩 8-32 倍；DiskANN 落盘</div>
+            <div class="cheat-bullet"><strong>Agent 安全笼</strong>：失败上限 3 次/死循环状态去重/预算四维硬熔断/危险操作人工在环</div>
+          </div>
+
+          <div class="cheat-card" id="card-c13" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C13 网络与高性能 IO</div>
+            <div class="cheat-bullet"><strong>TCP 状态机</strong>：TIME_WAIT=2MSL 只在主动关闭方；CLOSE_WAIT 堆积 100% 是应用未 close</div>
+            <div class="cheat-bullet"><strong>TIME_WAIT 参数</strong>：tcp_tw_reuse 仅客户端出站；SO_REUSEPORT 多进程监听；tcp_tw_recycle 已移除</div>
+            <div class="cheat-bullet"><strong>拥塞控制</strong>：Reno→CUBIC（Linux 默认）→BBR（带宽×MinRTT）；发送窗口=min(cwnd, rwnd)</div>
+            <div class="cheat-bullet"><strong>HTTP 演进</strong>：1.1 队头阻塞→2 多路复用（TCP 层丢包阻塞）→3 QUIC 流独立恢复+0-RTT</div>
+            <div class="cheat-bullet"><strong>TLS 1.3</strong>：握手 2-RTT→1-RTT/0-RTT；只留 ECDHE 前向安全；0-RTT 有重放风险非幂等禁用</div>
+            <div class="cheat-bullet"><strong>NIO 核心</strong>：Selector 封装 epoll；Buffer 四属性 flip/clear；selectedKeys 必须 remove</div>
+            <div class="cheat-bullet"><strong>Reactor 三模式</strong>：单线程→单 Reactor 多线程→主从（Nginx/Netty 默认）</div>
+            <div class="cheat-bullet"><strong>Netty 内存</strong>：PooledByteBufAllocator jemalloc 分档；引用计数成对；泄漏检测 advanced</div>
+            <div class="cheat-bullet"><strong>零拷贝阶梯</strong>：传统 4 拷贝→mmap 2 拷贝→sendfile 2 拷贝 2 切换→DMA gather 0 CPU 拷贝；TLS 让零拷贝失效</div>
+          </div>
+
+          <div class="cheat-card" id="card-c14" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C14 数据库与存储</div>
+            <div class="cheat-bullet"><strong>MongoDB 向量</strong>：文档+向量同库免双写；numCandidates=limit×10-20；百万-千万级，上亿迁专用库</div>
+            <div class="cheat-bullet"><strong>Milvus 存算分离</strong>：数据全存对象存储，QueryNode 无状态；Growing→Sealed 建索引</div>
+            <div class="cheat-bullet"><strong>三大向量索引</strong>：IVF 省内存亿级/HNSW 召回 95%+ 千万级/DiskANN 落盘十亿级</div>
+            <div class="cheat-bullet"><strong>TiDB HTAP</strong>：TiKV 行存（Region 96MB）+TiFlash 列存（Learner 异步）；Percolator 2PC；主键禁自增</div>
+            <div class="cheat-bullet"><strong>PG vs MySQL</strong>：MVCC=堆多版本+VACUUM；必须把 autovacuum/长事务纳入 SRE；必须 PgBouncer</div>
+            <div class="cheat-bullet"><strong>OLAP 选型</strong>：日志宽表极致吞吐→ClickHouse；实时数仓+JOIN+高并发→Doris/StarRocks；都不是 OLTP 替代</div>
+            <div class="cheat-bullet"><strong>CDC 四要素</strong>：位点可信+分区保序+下游幂等+延迟对账可观测；Exactly-Once=至少一次+下游幂等</div>
+            <div class="cheat-bullet"><strong>Outbox vs CDC</strong>：领域事件走 Outbox，行级镜像走 CDC，勿一种管道扛两种语义</div>
+          </div>
+
+          <div class="cheat-card" id="card-c15" style="--card-color: #ea580c">
+            <div class="cheat-card-header">C15 响应式编程</div>
+            <div class="cheat-bullet">Reactive Streams 契约：Subscriber 主动 request(n) 拉取，Pull 模型背压是协议级约定（JDK9 Flow）</div>
+            <div class="cheat-bullet"><strong>Mono vs Flux</strong>：0..1 vs 0..N；基数语义编码进类型</div>
+            <div class="cheat-bullet"><strong>Cold/Hot</strong>：Cold 每订阅独立执行；Hot 用 Sinks；复用需 cache() 否则放大下游 QPS</div>
+            <div class="cheat-bullet"><strong>背压四策略</strong>：BUFFER（OOM 风险）/DROP/LATEST/ERROR；无限流必设</div>
+            <div class="cheat-bullet"><strong>线程模型</strong>：publishOn 影响下游、subscribeOn 只影响源；boundedElastic=IO（10×核数）；block() 只许边界</div>
+            <div class="cheat-bullet">Context 替代 ThreadLocal：随流传递；contextWrite 影响上游、deferContextual 见下游</div>
+            <div class="cheat-bullet"><strong>WebFlux 前提</strong>：全栈非阻塞才有收益，任一环节阻塞=假响应式；迁移事务用 TransactionalOperator</div>
+            <div class="cheat-bullet"><strong>R2DBC</strong>：背压可传导到 DB socket；连接池 r2dbc-pool，HikariCP 不适用</div>
+            <div class="cheat-bullet"><strong>操作符选型</strong>：1-to-1 map；1-to-n flatMap（不保序）；保序 concatMap；最新 switchMap</div>
+            <div class="cheat-bullet"><strong>VT vs Reactive</strong>：VT 无背压——SSE/流式背压 Reactive 仍是唯一解</div>
+          </div>
+        </section>
+
+        <section class="dimension-section" id="dim-essence" style="--dim-color: #0891b2">
+          <div class="dimension-header">三、核心原理速查（E01-E12）</div>
+          <div class="dimension-intro">
+            <p class="intro-lead"><strong><span class="kb-count" data-kb-count="basics">74</span> 张核心原理卡按 12 个技术轴归并——覆盖 E01 Java 基础 到 E12 数据结构算法，每轴 4-10 卡不等。</strong></p>
+            <div class="intro-line"><strong>用法</strong>：速查 Java/Spring/分布式/云原生底层原理锚点，回链 chapter-questions-eight-part.html 看完整上下文与深度 Q&amp;A</div>
+            <div class="intro-line"><strong>定位</strong>：与 C（技术栈深度）互补——C 是工程实践层，E 是底层原理层</div>
+          </div>
+
+          <div class="cheat-card" id="card-e01" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E01 Java 基础与集合</div>
+            <div class="cheat-bullet">String/Integer 缓存</div>
+            <div class="cheat-bullet">HashMap 扰动与红黑树</div>
+            <div class="cheat-bullet">SynchronizedQueue</div>
+            <div class="cheat-bullet">Sequenced Collections</div>
+            <div class="cheat-bullet">Records/Sealed</div>
+          </div>
+          <div class="cheat-card" id="card-e02" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E02 JVM 与内存</div>
+            <div class="cheat-bullet">运行时数据区</div>
+            <div class="cheat-bullet">GC 算法与 Generational ZGC</div>
+            <div class="cheat-bullet">类加载与双亲委派</div>
+            <div class="cheat-bullet">JIT C1/C2/GraalVM</div>
+            <div class="cheat-bullet">Metaspace/OOM 场景</div>
+          </div>
+          <div class="cheat-card" id="card-e03" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E03 并发编程</div>
+            <div class="cheat-bullet">volatile 内存屏障</div>
+            <div class="cheat-bullet">AQS 原理</div>
+            <div class="cheat-bullet">线程池核心参数</div>
+            <div class="cheat-bullet">Virtual Threads 落地</div>
+            <div class="cheat-bullet">CompletableFuture 编排</div>
+            <div class="cheat-bullet">锁升级与消除</div>
+          </div>
+          <div class="cheat-card" id="card-e04" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E04 Spring 生态</div>
+            <div class="cheat-bullet">IOC 循环依赖三级缓存</div>
+            <div class="cheat-bullet">BeanPostProcessor</div>
+            <div class="cheat-bullet">AOP JDK/CGLIB</div>
+            <div class="cheat-bullet">@Transactional 失效边界</div>
+            <div class="cheat-bullet">Spring Boot 自动装配</div>
+          </div>
+          <div class="cheat-card" id="card-e05" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E05 MySQL 与数据库</div>
+            <div class="cheat-bullet">MVCC/Read View</div>
+            <div class="cheat-bullet">B+ 树索引覆盖</div>
+            <div class="cheat-bullet">Buffer Pool 命中率</div>
+            <div class="cheat-bullet">慢查询优化</div>
+            <div class="cheat-bullet">事务隔离级别与锁</div>
+          </div>
+          <div class="cheat-card" id="card-e06" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E06 Redis 与缓存</div>
+            <div class="cheat-bullet">单线程模型</div>
+            <div class="cheat-bullet">IO 多路复用</div>
+            <div class="cheat-bullet">缓存三大误判</div>
+            <div class="cheat-bullet">分布式锁 Redlock 争议</div>
+            <div class="cheat-bullet">大 key 治理</div>
+            <div class="cheat-bullet">Cluster vs Sentinel</div>
+          </div>
+          <div class="cheat-card" id="card-e07" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E07 分布式与微服务</div>
+            <div class="cheat-bullet">CAP/Paxos/Raft</div>
+            <div class="cheat-bullet">Dubbo/Spring Cloud Gateway</div>
+            <div class="cheat-bullet">服务发现</div>
+            <div class="cheat-bullet">配置中心</div>
+            <div class="cheat-bullet">限流熔断降级</div>
+            <div class="cheat-bullet">Sleuth→OTel</div>
+            <div class="cheat-bullet">微服务拆分原则</div>
+          </div>
+          <div class="cheat-card" id="card-e08" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E08 消息队列</div>
+            <div class="cheat-bullet">Kafka 分区有序</div>
+            <div class="cheat-bullet">ACK 语义</div>
+            <div class="cheat-bullet">RocketMQ 事务消息</div>
+            <div class="cheat-bullet">重复消费幂等</div>
+            <div class="cheat-bullet">消息积压处理</div>
+            <div class="cheat-bullet">死信队列策略</div>
+          </div>
+          <div class="cheat-card" id="card-e09" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E09 网络 IO 与安全</div>
+            <div class="cheat-bullet">BIO/NIO/AIO</div>
+            <div class="cheat-bullet">Epoll 水平/边缘触发</div>
+            <div class="cheat-bullet">TCP 三次握手与 TIME_WAIT</div>
+            <div class="cheat-bullet">SSL/TLS 握手</div>
+            <div class="cheat-bullet">OWASP Top 10</div>
+            <div class="cheat-bullet">JWT 签名与密钥轮换</div>
+          </div>
+          <div class="cheat-card" id="card-e10" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E10 搜索与 AI</div>
+            <div class="cheat-bullet">ES 倒排索引</div>
+            <div class="cheat-bullet">向量检索 HNSW</div>
+            <div class="cheat-bullet">BM25 混合检索</div>
+            <div class="cheat-bullet">RAG 架构</div>
+            <div class="cheat-bullet">Prompt 工程黄金法则</div>
+            <div class="cheat-bullet">AI 制品门禁与评测集</div>
+          </div>
+          <div class="cheat-card" id="card-e11" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E11 云原生与运维</div>
+            <div class="cheat-bullet">K8s Pod 调度</div>
+            <div class="cheat-bullet">Service 发现</div>
+            <div class="cheat-bullet">Ingress 路由</div>
+            <div class="cheat-bullet">DevOps 流水线</div>
+            <div class="cheat-bullet">可观测性三件套 Log/Metric/Trace</div>
+          </div>
+          <div class="cheat-card" id="card-e12" style="--card-color: #0891b2">
+            <div class="cheat-card-header">E12 数据结构与算法</div>
+            <div class="cheat-bullet">红黑树旋转</div>
+            <div class="cheat-bullet">跳表 O(log n)</div>
+            <div class="cheat-bullet">一致性哈希</div>
+            <div class="cheat-bullet">布隆过滤器</div>
+            <div class="cheat-bullet">LRU/LFU 缓存</div>
+            <div class="cheat-bullet">TopK 大根堆</div>
+            <div class="cheat-bullet">Trie 字典树</div>
+            <div class="cheat-bullet">线段树/树状数组</div>
+          </div>
+        </section>
+
+
+        <section class="dimension-section" id="dim-scenario" style="--dim-color: #7c3aed">
+          <div class="dimension-header">四、场景设计框架（S01-S12）</div>
+          <div class="dimension-intro">
+            <p class="intro-lead"><strong>所有场景共用一个骨架：漏斗思维——流量逐层拦截衰减，DB 永远只接最后一层；量化阈值——每个方案必答「当前量级用什么、超过什么阈值演进什么」。</strong></p>
+            <div class="intro-line"><strong>漏斗分层数字</strong>：CDN/Nginx 拦大头→网关限流→Redis+MQ 削峰→DB 只接最后一层</div>
+            <div class="intro-line"><strong>防超卖</strong>：Redis Lua 原子扣减，DB UPDATE...WHERE num&gt;0 兜底</div>
+            <div class="intro-line"><strong>热点治理</strong>：库存分桶打散 key、推送聚合批播、记账分离只写流水表</div>
+            <div class="intro-line"><strong>缓存一致性</strong>：先 DB 后删缓存、延迟双删/binlog 订阅、对账任务兜底</div>
+            <div class="intro-line"><strong>高可用四件套</strong>：限流、熔断（Closed→Open→Half-Open）、降级、隔离</div>
+            <div class="intro-line"><strong>分布式事务</strong>：本地消息表/SAGA 优先，2PC 性能差是反面教材</div>
+            <div class="intro-line"><strong>分布式锁选型</strong>：Redis AP 高性能、ZooKeeper CP 强一致，按场景定</div>
+            <div class="intro-line"><strong>全链路压测</strong>：影子库表隔离+流量标记透传，找出瓶颈定安全水位</div>
+            <div class="intro-line"><strong>AI 场景</strong>：RAG=切分+向量检索+重排+引用溯源；评测集必须版本管理</div>
+            <div class="intro-line"><strong>表达顺序</strong>：先给数字与漏斗，再谈组件选型，最后给演进路径</div>
+          </div>
+          <div class="card-anchor-row"><a href="#card-s01" class="card-anchor-link">S01</a><a href="#card-s02" class="card-anchor-link">S02</a><a href="#card-s03" class="card-anchor-link">S03</a><a href="#card-s04" class="card-anchor-link">S04</a><a href="#card-s05" class="card-anchor-link">S05</a><a href="#card-s06" class="card-anchor-link">S06</a><a href="#card-s07" class="card-anchor-link">S07</a><a href="#card-s08" class="card-anchor-link">S08</a><a href="#card-s09" class="card-anchor-link">S09</a><a href="#card-s10" class="card-anchor-link">S10</a><a href="#card-s11" class="card-anchor-link">S11</a><a href="#card-s12" class="card-anchor-link">S12</a></div>
+
+          <div class="cheat-card" id="card-s01" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S01 高并发系统设计</div>
+            <div class="cheat-bullet"><strong>漏斗模型</strong>：120 万 QPS 按 CDN/Nginx 拦 70%→网关限流拦 20%→Redis+MQ 削峰 9%→DB 仅放行 1%</div>
+            <div class="cheat-bullet"><strong>防超卖</strong>：Redis Lua 原子脚本一次完成去重+扣减，禁先查后扣；DB UPDATE...WHERE num>0 兜底</div>
+            <div class="cheat-bullet"><strong>库存分桶</strong>：1000 件拆 10 桶打散热点 key，单桶压力降 10 倍；Redis vs DB 定时对账</div>
+            <div class="cheat-bullet"><strong>短链架构</strong>：发号器号段双 buffer+62 进制转码；BloomFilter(误判 0.01%)→Redis→DB 三级拦截 99% 穿透</div>
+            <div class="cheat-bullet"><strong>短链存储</strong>：1024 库×4 表=4096 分片；防删除误判用 CuckooFilter</div>
+            <div class="cheat-bullet"><strong>红包拆分</strong>：二倍均值法预拆存 Redis List，LPOP O(1) 原子弹出+MQ 异步入账</div>
+            <div class="cheat-bullet"><strong>弹幕聚合</strong>：每 200ms 聚合一批（≤50 条）批量广播，推送量降 50 倍</div>
+            <div class="cheat-bullet"><strong>在线统计</strong>：HyperLogLog 12KB 算亿级基数误差<1%，禁 SET；心跳 60s 随机抖动</div>
+            <div class="cheat-bullet"><strong>热点账户</strong>：记账分离只写流水表，100ms 窗口聚合净额批量 UPDATE（3 万 TPS→约 10）</div>
+          </div>
+
+          <div class="cheat-card" id="card-s02" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S02 分布式系统</div>
+            <div class="cheat-bullet"><strong>分布式锁选型</strong>：性能优先 Redis（SET NX PX+Lua 释放+看门狗）；强一致选 ZK/etcd（fencing token）；Redlock 慎用</div>
+            <div class="cheat-bullet"><strong>锁三要素</strong>：互斥、防死锁（必须持有时间）、可重入（Hash 记 threadId）；释放 Lua 比对 value 防误删</div>
+            <div class="cheat-bullet"><strong>事务选型</strong>：强一致 TCC/XA；最终一致 Seata AT/本地消息表/事务消息；TCC 防空回滚与悬挂</div>
+            <div class="cheat-bullet"><strong>Seata 坑</strong>：RPC 未传 XID 回滚失效；TCC 未幂等重复扣</div>
+            <div class="cheat-bullet"><strong>分布式 ID</strong>：雪花处理时钟回拨与 workerId 分配；号段双 buffer 防断供</div>
+            <div class="cheat-bullet"><strong>雪崩三道防线</strong>：熔断降级+线程池隔离（舱壁）+入口限流；链路追踪定位最慢节点</div>
+            <div class="cheat-bullet"><strong>缓存一致性</strong>：Cache Aside 写库后删缓存（非更新）；延迟双删+Canal 订阅 binlog</div>
+            <div class="cheat-bullet"><strong>幽灵通知</strong>：事务内禁直接发通知，用 afterCommit 提交后才发；强可靠上本地消息表</div>
+            <div class="cheat-bullet"><strong>通知口诀</strong>：提交才发、回滚不发、参数闭包、强可靠上消息表</div>
+          </div>
+
+          <div class="cheat-card" id="card-s03" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S03 数据库与存储</div>
+            <div class="cheat-bullet"><strong>分库分表六步</strong>：容量评估（3 年量、2 的幂）→选分片键（user_id 基因法）→倍增扩容→影子双写→diff 校验→灰度切读</div>
+            <div class="cheat-bullet"><strong>分片键红线</strong>：表数必须 2 的幂（否则扩容全量重分布）；先单机挖尽再拆</div>
+            <div class="cheat-bullet"><strong>慢 SQL 闭环</strong>：慢日志+APM 抓 Top10→EXPLAIN→优化优先级 SQL 重写>索引>表结构>架构</div>
+            <div class="cheat-bullet"><strong>深分页</strong>：延迟关联或游标分页；LIKE 前导 % 失索引</div>
+            <div class="cheat-bullet"><strong>主从延迟</strong>：区分 IO/SQL 线程延迟；强一致读走主库；8.0 WRITESET 并行复制</div>
+            <div class="cheat-bullet"><strong>缓存三问题</strong>：穿透→布隆+空值；击穿→互斥+逻辑过期+预热；雪崩→TTL 随机+多级+降级</div>
+            <div class="cheat-bullet"><strong>海量小文件</strong>：对象存储替代 HDFS；日志 128MB 合并 Parquet 入湖；生命周期分层</div>
+            <div class="cheat-bullet"><strong>对象存储红线</strong>：公网直连有费用+安全风险须走网关收口</div>
+          </div>
+
+          <div class="cheat-card" id="card-s04" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S04 微服务架构</div>
+            <div class="cheat-bullet"><strong>拆分方法论</strong>：事件风暴识别限界上下文，按领域拆；绞杀者渐进+网关切流；同步链路不超 3 跳</div>
+            <div class="cheat-bullet"><strong>拆分陷阱</strong>：共享 DB 未做访问隔离；拆完必须灰度切流不直接全量</div>
+            <div class="cheat-bullet"><strong>网关选型</strong>：SCG（WebFlux 异步）+责任链+Sentinel+Nacos 动态路由；网关只做接入不做业务</div>
+            <div class="cheat-bullet"><strong>MQ 积压四步</strong>：扩容（消费者≤分区数）→批量/异步化→应急跳过+扩分区→治理（手动 ACK）</div>
+            <div class="cheat-bullet"><strong>灰度发布</strong>：X-Gray-Tag 全链路透传+Nacos metadata 路由+影子库隔离；回滚靠路由 30 秒切换</div>
+            <div class="cheat-bullet"><strong>Service Mesh</strong>：Istio+Envoy；与 Spring Cloud 双注册共存渐进迁移</div>
+            <div class="cheat-bullet"><strong>配置热更新事故</strong>：@RefreshScope 懒重建旧 target，单例强引用导致双实例/泄漏/定时任务重复</div>
+            <div class="cheat-bullet"><strong>配置口诀</strong>：配置用 POJO、字段实时取、@RefreshScope 只救 @Value；线程池先 shutdown 旧再建新</div>
+          </div>
+
+          <div class="cheat-card" id="card-s05" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S05 性能与稳定性</div>
+            <div class="cheat-bullet"><strong>OOM 五步</strong>：现象→归因（泄漏 vs 溢出看 GC 斜率）→证据（Arthas）→根因（MAT Dominator Tree）→JFR 观测 24h</div>
+            <div class="cheat-bullet"><strong>OOM 红线</strong>：预配 HeapDumpOnOutOfMemoryError；不摘流量直接 dump 触发长 STW</div>
+            <div class="cheat-bullet"><strong>CPU 100% 四层下钻</strong>：top→top -Hp→线程 ID 转 16 进制→jstack 3 次快照 grep</div>
+            <div class="cheat-bullet"><strong>接口优化 200ms→20ms</strong>：画链路找 Top3 瓶颈；缓存>并发>批量>索引；CompletableFuture 并行+超时</div>
+            <div class="cheat-bullet"><strong>消息可靠性三段</strong>：生产本地消息表；Broker 同步刷盘+复制+分区保序；消费幂等表+手动 ACK</div>
+            <div class="cheat-bullet"><strong>幂等坑</strong>：先删标记再执行业务会重复；幂等键禁易变参数；全局有序是伪需求</div>
+            <div class="cheat-bullet"><strong>全链路压测</strong>：流量染色影子库+Mock 挡板；Little's Law+排队论；梯度加压+自动熔断</div>
+            <div class="cheat-bullet"><strong>线程池选型</strong>：动态调参池做内核+Spring Bean 暴露；快慢任务分池；虚拟线程仍要背压</div>
+          </div>
+
+          <div class="cheat-card" id="card-s06" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S06 云原生与 AI</div>
+            <div class="cheat-bullet"><strong>虚拟线程落地</strong>：用户态调度只适合 IO 密集；synchronized 换 ReentrantLock 防 pinning；ThreadLocal 改 ScopedValue</div>
+            <div class="cheat-bullet"><strong>LLM 网关</strong>：统一接入+每供应商独立熔断+回退链（主→备→小模型→语义缓存→兜底）</div>
+            <div class="cheat-bullet"><strong>RAG 全链路</strong>：离线索引+在线（改写→混合检索→RRF 融合→Rerank→引用回答）；分块禁一刀切</div>
+            <div class="cheat-bullet"><strong>K8s+JVM</strong>：UseContainerSupport+MaxRAMPercentage；三探针分工不可混用；HPA+Cluster Autoscaler 两级弹性</div>
+            <div class="cheat-bullet"><strong>向量库精排</strong>：差异化切分→BGE 编码→HNSW；混合召回→Cross-Encoder 重排→Top5 送 LLM</div>
+            <div class="cheat-bullet"><strong>Boot 4 迁移</strong>：BOM 锁基线→边缘到核心波次推进→契约测试→CDS/Leyden/AOT 启动分档</div>
+          </div>
+
+          <div class="cheat-card" id="card-s07" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S07 综合场景</div>
+            <div class="cheat-bullet"><strong>订单全链路</strong>：核心强一致、非核心异步；三段式库存（预扣/确认/回补）；支付回调用幂等键+唯一索引</div>
+            <div class="cheat-bullet"><strong>金融风控</strong>：Kappa 流批一体；特征三层统一口径；规则短路+模型并行+仲裁合并，100ms 级决策</div>
+            <div class="cheat-bullet"><strong>千万级推送</strong>：Netty 接入→Redis 路由→MQ 削峰扇出→多通道；推拉结合+读写扩散混合</div>
+            <div class="cheat-bullet"><strong>零停机迁移</strong>：全量→双写（CDC 兜底）→灰度切流→旧库只读 N 天；校验用内容哈希非条数</div>
+            <div class="cheat-bullet"><strong>跨境多租户</strong>：区域独立集群数据本地化+tenant_id 行级隔离+异步联邦结算</div>
+            <div class="cheat-bullet"><strong>支付对账三层</strong>：Saga/TCC+本地消息表+定时对账；逐笔不能只对总账</div>
+            <div class="cheat-bullet"><strong>订单超时关闭</strong>：ZSET/延时消息唤醒→CAS 状态机关单（防与支付回调竞态）→Outbox 回补库存</div>
+          </div>
+
+          <div class="cheat-card" id="card-s08" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S08 高可用架构</div>
+            <div class="cheat-bullet"><strong>异地多活</strong>：单元化按 userId 固定落单元+binlog 闭环+Fencing 租约防脑裂；RTO<1min、RPO=0</div>
+            <div class="cheat-bullet"><strong>限流熔断体系</strong>：入口限流+链路熔断+依赖隔离（舱壁）+降级兜底；线程池配额按 Little's Law</div>
+            <div class="cheat-bullet"><strong>混沌工程五原则</strong>：稳态假设/贴近真实/持续/自动化/最小爆炸半径</div>
+            <div class="cheat-bullet"><strong>故障自愈</strong>：感知→决策→执行→恢复；宁可慢摘不可误摘；保留人工一键熔断</div>
+            <div class="cheat-bullet"><strong>容量水线四级</strong>：安全 60%/预警 70%/限流 85%/熔断 95%；链路可用性是乘积</div>
+            <div class="cheat-bullet"><strong>可观测三支柱</strong>：OTel 统一埋点→全程透传→关联分析→告警分级聚合（目标误报 -80%）</div>
+            <div class="cheat-bullet"><strong>TraceId 断裂治理</strong>：W3C Trace Context+边界补全（线程池 TTL 装饰/MQ）；头部+尾部采样</div>
+          </div>
+
+          <div class="cheat-card" id="card-s09" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S09 安全架构</div>
+            <div class="cheat-bullet"><strong>纵深防御四层</strong>：WAF→Nginx→应用层→数据层；仅靠 WAF 可绕过，应用层必须兜底</div>
+            <div class="cheat-bullet"><strong>注入坑</strong>：MyBatis ${} 即使 ORDER BY 也可注入（白名单映射）；富文本按字段差异化净化</div>
+            <div class="cheat-bullet"><strong>API 安全</strong>：OAuth2+PKCE+refresh 轮换+JWT RS256+HMAC 签名+timestamp/nonce 防重放</div>
+            <div class="cheat-bullet"><strong>信封加密</strong>：DEK/KEK 双层，KEK 存 KMS 永不离开；等值查询用确定性加密</div>
+            <div class="cheat-bullet"><strong>权限双层</strong>：RBAC 功能权限+数据权限（拦截器自动注入 WHERE）；默认拒绝</div>
+            <div class="cheat-bullet"><strong>越权双防</strong>：垂直+水平都要防；禁信任前端 userId</div>
+            <div class="cheat-bullet"><strong>数据合规</strong>：Privacy by Design 全生命周期；删除覆盖 ES/Redis/备份；测试禁生产快照</div>
+          </div>
+
+          <div class="cheat-card" id="card-s10" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S10 网络 IO</div>
+            <div class="cheat-bullet"><strong>Netty 网关</strong>：池化 ByteBuf+Boss/Worker 分工+一致性哈希分片；单机 10 万连接</div>
+            <div class="cheat-bullet"><strong>Netty 坑</strong>：不关 TCP_NODELAY 延迟 40ms（Nagle）；EventLoop 里执行业务逻辑假死</div>
+            <div class="cheat-bullet"><strong>TCP 粘包</strong>：自描述帧（Magic+LengthField+CRC）；LengthFieldBasedFrameDecoder；非法长度帧关连接</div>
+            <div class="cheat-bullet"><strong>协议选型</strong>：HTTP/2（浏览器）→gRPC（内部）→QUIC（弱网试点）；protobuf 字段号只增不改</div>
+            <div class="cheat-bullet"><strong>WebSocket 推送</strong>：无状态集群+Kafka 广播+分级路由（tick/1s/5s）；心跳 30s 与 Nginx 超时 90s 错开</div>
+            <div class="cheat-bullet"><strong>连接池调优</strong>：三级超时分级、各下游独立配置；maxTotal 过大致下游连接暴涨</div>
+          </div>
+
+          <div class="cheat-card" id="card-s11" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S11 搜索与大数据</div>
+            <div class="cheat-bullet"><strong>ES 集群</strong>：时间拆索引+热温冷分层+Bulk 批量；深分页 search_after 替代 from+size</div>
+            <div class="cheat-bullet"><strong>搜索推荐五层漏斗</strong>：意图识别→多路召回→粗排→精排→重排；防特征穿越</div>
+            <div class="cheat-bullet"><strong>Flink 风控</strong>：按 userId 分区 KeyedState+规则热加载；Event Time+Watermark 乱序；State 必须设 TTL</div>
+            <div class="cheat-bullet"><strong>ClickHouse</strong>：MergeTree+物化视图预聚合+RoaringBitmap 算 UV；TTL 必设；分区粒度不宜过细</div>
+            <div class="cheat-bullet"><strong>湖仓一体</strong>：Iceberg+对象存储 Parquet+Trino ad-hoc；只建湖不治理=数据沼泽</div>
+            <div class="cheat-bullet"><strong>FinOps</strong>：可见→优化→运营；统一标签归因；无标签先砍机器是错序</div>
+          </div>
+
+          <div class="cheat-card" id="card-s12" style="--card-color: #7c3aed">
+            <div class="cheat-card-header">S12 AI 生产级场景</div>
+            <div class="cheat-bullet"><strong>RAG 幻觉治理</strong>：止血（转人工+收紧）→诊断→根治（混合检索+Rerank+引用溯源+拒答）→长效（版本化+反馈回流）</div>
+            <div class="cheat-bullet"><strong>Token 成本治理</strong>：网关 Token 级埋点+标签归因；优化=Prompt 瘦身+模型分级+缓存；限流须含 Token</div>
+            <div class="cheat-bullet"><strong>Agent 死循环防护</strong>：总步数上限+单工具次数上限+循环检测+工具幂等+高危二次确认+沙箱</div>
+            <div class="cheat-bullet"><strong>向量库迁移五步</strong>：存量导入→增量双写→一致性校验→灰度切流→旧集群热备 7 天；HNSW 建完才切</div>
+            <div class="cheat-bullet"><strong>多模型高可用</strong>：主动探针+被动错误率双检测，健康分加权路由；禁全切打爆备选配额</div>
+            <div class="cheat-bullet"><strong>RAG 投毒</strong>：输入检测（注入识别+入库审核）→输出过滤→系统指令与用户内容严格隔离</div>
+            <div class="cheat-bullet"><strong>流式背压</strong>：按 GPU 并发槽位信号量限流；慢时丢中间 Token；短请求优先调度</div>
+            <div class="cheat-bullet"><strong>MCP/多 Agent</strong>：工具供给+权限边界+协作编排三角；MCP 不是 Exactly-Once</div>
+          </div>
+        </section>
+
+        <section class="dimension-section" id="dim-aideep" style="--dim-color: #0f766e">
+          <div class="dimension-header">五、AI 工程纵深（A01-A26）</div>
+          <div class="dimension-intro">
+            <p class="intro-lead"><strong>AI 应用工程化的本质是把「不确定的概率系统」当作「确定性的传统服务」来治理：评估门禁先于发布、上下文与工具界定能力边界、检索与多 Agent 是规模化的两条主线、可观测与成本闭环是长期复利。</strong></p>
+            <div class="intro-line"><strong>能力边界</strong>：Agent = LLM + 工具 + 记忆的闭环；上下文工程决定上限，工具/MCP 决定能做什么，而非模型越大越聪明</div>
+            <div class="intro-line"><strong>检索主线</strong>：RAG 切割→召回→精排→融合，先删后增防污染；图增强（GraphRAG/LightRAG）补关系推理，成本差可达两个数量级</div>
+            <div class="intro-line"><strong>编排主线</strong>：多 Agent 按职责拆、单 Agent 上下文收敛优先于加人；Workflow 与自主 Agent 按是否需要动态决策选型</div>
+            <div class="intro-line"><strong>生产四件套</strong>：非确定性断言 + Golden Set、影子路由 + Bad Case 闭环、配额/限流公平排队、本地限流失效后切集中式</div>
+            <div class="intro-line"><strong>治理闭环</strong>：Prompt 版本化 + 非劣效发布门禁 + 漂移监控 + 幻觉兜底，知识库作为长期资产持续运维</div>
+            <div class="intro-line"><strong>组织规模化</strong>：复用率与平台化（SDK/Starter）对抗熵增，采纳以可观测指标驱动而非运动式推广</div>
+          </div>
+          <div class="card-anchor-row"><a href="#card-a01" class="card-anchor-link">A01</a><a href="#card-a02" class="card-anchor-link">A02</a><a href="#card-a03" class="card-anchor-link">A03</a><a href="#card-a04" class="card-anchor-link">A04</a><a href="#card-a05" class="card-anchor-link">A05</a><a href="#card-a06" class="card-anchor-link">A06</a><a href="#card-a07" class="card-anchor-link">A07</a><a href="#card-a08" class="card-anchor-link">A08</a><a href="#card-a09" class="card-anchor-link">A09</a><a href="#card-a10" class="card-anchor-link">A10</a><a href="#card-a11" class="card-anchor-link">A11</a><a href="#card-a12" class="card-anchor-link">A12</a><a href="#card-a13" class="card-anchor-link">A13</a><a href="#card-a14" class="card-anchor-link">A14</a><a href="#card-a15" class="card-anchor-link">A15</a><a href="#card-a16" class="card-anchor-link">A16</a><a href="#card-a17" class="card-anchor-link">A17</a><a href="#card-a18" class="card-anchor-link">A18</a><a href="#card-a19" class="card-anchor-link">A19</a><a href="#card-a20" class="card-anchor-link">A20</a><a href="#card-a21" class="card-anchor-link">A21</a><a href="#card-a22" class="card-anchor-link">A22</a><a href="#card-a23" class="card-anchor-link">A23</a><a href="#card-a24" class="card-anchor-link">A24</a><a href="#card-a25" class="card-anchor-link">A25</a><a href="#card-a26" class="card-anchor-link">A26</a></div>
+
+          <div class="cheat-card" id="card-a01" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A01 Agent 本质与范式谱系</div>
+            <div class="cheat-bullet"><strong>Agent 的本质：Model + Harness 二分模型</strong> 核心不在复述「Agent 是能自主干活的 AI」，而在回答：模型（Model）与驾驭环境（Harness）的职责边界在哪？</div>
+            <div class="cheat-bullet"><strong>Agent 核心范式谱系（ReAct / Plan-Execute / Reflection / Multi-Agent）</strong> 能否给出「从最简单方案起步、明确需要才加复杂度」的选型纪律，并说明生产中为何多为混合架构。</div>
+            <div class="cheat-bullet"><strong>Workflow 与自主 Agent 的边界与选型（1:4 判定）</strong> 这是 AI 应用架构选型的最高频决策点。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a02" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A02 上下文工程与记忆</div>
+            <div class="cheat-bullet"><strong>上下文工程本质：Context Assembler 与 Token 预算</strong> 核心是能否讲清统一组装顺序（约束 → 目标 → 证据 → 记忆 → 工具 → 历史）、rank 与 Token 预算两步走，以及为什么「窗口越大 ≠ Agent 越聪明」。</div>
+            <div class="cheat-bullet"><strong>Context Rot 与上下文压缩策略</strong> 压缩策略（滑动窗口 / 摘要 / 卸载 / 隔离）各自适用边界是什么？</div>
+            <div class="cheat-bullet"><strong>记忆工程：分层 / 生命周期 / 存储三态</strong> 「编码 → 存储 → 提取 → 巩固 → 反思 → 遗忘」生命周期各环节的工程实现是什么？</div>
+          </div>
+
+          <div class="cheat-card" id="card-a03" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A03 RAG 基础与图增强</div>
+            <div class="cheat-bullet"><strong>RAG 两阶段范式与&quot;RAG vs 微调&quot;决策</strong> 「RAG vs 微调」的决策依据是什么（解决「不知」还是「不会」）？</div>
+            <div class="cheat-bullet"><strong>RAG 进阶：切分 + 精排 + 多路召回</strong> 核心是建立「答非所问多在召回阶段」的排查直觉。</div>
+            <div class="cheat-bullet"><strong>GraphRAG 与 LightRAG：图增强检索的边界</strong> GraphRAG（社区摘要 + 图遍历）与 LightRAG（去社区层 + 双层检索）的机制与成本差异为何高达两个数量级（Token 成本约 $20–50 vs $0.15）？</div>
+          </div>
+
+          <div class="cheat-card" id="card-a04" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A04 工具调用与 MCP 协议</div>
+            <div class="cheat-bullet"><strong>工具调用分层：FC / MCP / Skills / A2A</strong> 能否用「打电话 / 通讯录 / 岗位手册 / 横向协作」的比喻体系讲清四者关系。</div>
+            <div class="cheat-bullet"><strong>MCP 的本质：N×M → N+M 的连接协议</strong> 三类能力（Tools / Resources / Prompts）与三项进阶能力（Roots / Sampling / Elicitation）各自解决什么问题。</div>
+            <div class="cheat-bullet"><strong>生产级工具接入 Checklist 与 Skills 渐进披露</strong> 三层渐进披露（广告层 → 指令层 → 资源层）如何解决「跨会话规则复用 + 上下文腐化」两大问题。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a05" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A05 多 Agent 编排</div>
+            <div class="cheat-bullet"><strong>多 Agent 协作四要素与 Graph Engineering</strong> Graph 的 Node / Edge / State 三要素各自的设计原则是什么（好节点：只干一件事、可单测、可替换；边：能写死尽量写死；状态：字段固定的 JSON 存档）？</div>
+            <div class="cheat-bullet"><strong>三种编排范式对比：Workflow / Graph / Loop</strong> 核心是能按任务形态（固定流程 / 多节点复杂分工 / 单点反复迭代）对号入座。</div>
+            <div class="cheat-bullet"><strong>九种编排模式与 AgentTask 契约 / Checkpoint</strong> AgentTask 契约（子目标 / 依赖 / allowedTools / outputSchema / maxIters / deadline）如何把「约定俗成」变为「运行时强制」？</div>
+          </div>
+
+          <div class="cheat-card" id="card-a06" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A06 AI 评测与发布门禁</div>
+            <div class="cheat-bullet"><strong>评测 vs 监控：四类评测与设计</strong> 离线评测 / Trace 回放 / 线上灰度 / 回归 CI 四类评测各自解决什么盲区。</div>
+            <div class="cheat-bullet"><strong>Golden Set + CI 门禁与 LLM-as-Judge 防偏差</strong> Judge 的打分体系（规则拦硬错误 + LLM 评开放语义 + 人工复核高风险）如何设计？</div>
+            <div class="cheat-bullet"><strong>灰度发布非劣效界值与 Java 落地 EvalRecord</strong> 评测 Harness 的职责边界与环境隔离要求是什么。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a07" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A07 AI 安全风险与合规</div>
+            <div class="cheat-bullet"><strong>AI 系统四大风险面与分层防护</strong> 核心认知是：模型输出不可信、一切外部输入不可信，安全是「执行侧」问题——靠 Harness 硬边界与后端强控制，而非靠提示词礼貌请求。</div>
+            <div class="cheat-bullet"><strong>合规要求与 Java/Spring 落地（ExecutionContext / ToolAuditEvent）</strong> 核心是「合规不是文档，是可执行的代码结构」。</div>
+            <div class="cheat-bullet"><strong>Spring AI 安全层与大模型网关</strong> 其六项核心能力与自研组件清单、演进顺序（先工程治理再智能路由）是什么。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a08" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A08 Agent 工程化架构</div>
+            <div class="cheat-bullet"><strong>Agent 四组件与三层结构设计</strong> Tools / Agent / Workflow 三层的本质区别为什么是「控制流由谁掌握」而非节点类型？</div>
+            <div class="cheat-bullet"><strong>任务拆分与 DAG 并行执行</strong> 依赖分析画 DAG 后「并行降低的是关键路径总时间而非每步时间」如何理解（端到端延迟降 40%–60% 的前提是什么）？</div>
+            <div class="cheat-bullet"><strong>记忆系统选型：Mem0 / Letta / Zep-Graphiti</strong> 以及知识图谱增强记忆如何补向量检索的短板（多跳推理）、「记忆整合」四步（去重 / 冲突消解 / 抽象提炼）如何从碎片到知识。</div>
+            <div class="cheat-bullet"><strong>上下文压缩阈值（70–80%）与状态管理四层</strong> 对话历史 / 业务状态 / 任务状态 / 长期记忆四层为何不能混放（「这次报告用英文」是业务约束不是用户永久偏好）？</div>
+            <div class="cheat-bullet"><strong>反思 / Multi-Agent Handoff / 容错（fencing token）</strong> Multi-Agent 容错为何必须分层（通信层：心跳 / 租约 / fencing token；一致性层：所有权 / worktree / 唯一 Integrator）。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a09" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A09 RAG 全链路工程</div>
+            <div class="cheat-bullet"><strong>Chunking 五级策略与父子块</strong> 「语义截断」的本质为什么是「信息被拆散后每一半都不够强，检索全军覆没」而非「信息丢失」？</div>
+            <div class="cheat-bullet"><strong>两阶段 Re-rank 与混合检索（BM25 + RRF）</strong> 精排的量化收益（多跳 +40–50%、模糊 +30–40%、简单事实 +18%、幻觉率降约 35%）与候选集控制（Top-50~100 → Top-5~10）如何设定？</div>
+            <div class="cheat-bullet"><strong>Query Rewrite 四法与四代 RAG 范式</strong> 核心是「Query 质量决定后续所有环节的天花板」。</div>
+            <div class="cheat-bullet"><strong>图增强与 Agentic RAG</strong> 组合工作流（向量入口定位实体 → 图接力遍历 → 合并上下文）怎么搭。</div>
+            <div class="cheat-bullet"><strong>幻觉四层防线 / 知识更新先删后增 / 知识冲突裁决</strong> 这三题合起来是规模化 RAG 运维的核心。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a10" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A10 MCP/A2A 协议与工具容错</div>
+            <div class="cheat-bullet"><strong>Function Calling 本质与训练（SFT + RLHF）</strong> 为什么预训练学不会 FC、必须 SFT 教「怎么调」+ RLHF 教「什么时候调」，SFT 数据必须覆盖哪五个场景。</div>
+            <div class="cheat-bullet"><strong>MCP 三角色 / 版本 / 传输（stdio vs Streamable HTTP）</strong> 协议从 2024-11 双端点 HTTP+SSE → 2025-03 单端点 → 2026-07-28 无状态化的演进脉络与动机？</div>
+            <div class="cheat-bullet"><strong>A2A Agent Card 与 Task 状态机</strong> Task 状态机（submitted → working → completed / failed / canceled，支持异步长任务与 Artifact 回传）如何治理超时 / 取消 / 重试？</div>
+            <div class="cheat-bullet"><strong>工具容错五阶段 / 沙箱隔离 / Skill 三层加载</strong> 沙箱为什么必须「代码按不可信处理」——访问边界（三区）/ 资源预算（cgroup 归组）/ 运行器管理三层如何设防？</div>
+          </div>
+
+          <div class="cheat-card" id="card-a11" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A11 AI 编程与 Coding Agent</div>
+            <div class="cheat-bullet"><strong>AI 编程三模式与需求描述规范（Vibe vs Spec）</strong> 需求五段式（目标 / 现状 / 输入输出边界 / 约束 / 验收）为什么比角色扮演和「写得健壮一点」有效？</div>
+            <div class="cheat-bullet"><strong>任务拆分（tasks.md）与代码质量 Oracle 独立审 Diff</strong> 验收 Checklist 五步（逐 hunk 看 diff / 先红后绿 / 回归 / 边界异常 / 安全规范）如何防「删断言让结果变绿」。</div>
+            <div class="cheat-bullet"><strong>AI 排障：报错位置 ≠ 根因 / 测试覆盖变异测试</strong> 测试覆盖为什么「业务覆盖 ≠ 测试数量 ≠ 代码覆盖率」（实现漏权限检查则无代码可覆盖）？</div>
+            <div class="cheat-bullet"><strong>Coding Agent 六件设施与 SDD 规约驱动</strong> 以及源码级认知（grep 而非 RAG 检索、文件而非向量库记忆）背后的设计取舍。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a12" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A12 AI 工程范式演进</div>
+            <div class="cheat-bullet"><strong>四代演进：Prompt → Context → Harness → Loop → Graph</strong> 为什么四者是「层层包含」关系而非替代关系（Prompt ⊂ Context ⊂ Harness；loop 是最小 graph）？</div>
+            <div class="cheat-bullet"><strong>Harness 六层 / Loop 五大件 / Graph 节点状态</strong> Graph 的节点（只干一件事可单测可替换）/ 边（能写死尽量写死）/ 状态（字段固定 JSON 存档）三要素的设计纪律。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a13" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A13 开源平台选型与对照</div>
+            <div class="cheat-bullet"><strong>RuoYi AI vs JEECG AI 双平台对照与选型</strong> 核心在于把「平台路线」与「自研路线」放进同一条光谱，而非当作非此即彼。</div>
+            <div class="cheat-bullet"><strong>平台 vs 自研决策树与 Ragent/Nexus 模块划分</strong> Ragent 7 模块与 Nexus 6 模块的分层意图是什么——为什么「切换模型 / 向量库 / 对象存储时核心问答流程不重写」是架构的第一验收标准。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a14" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A14 平台落地与产品化差异</div>
+            <div class="cheat-bullet"><strong>RuoYi ruoyi-chat vs JEECG airag 逐包对照</strong> 核心结论：平台包结构 ≈ 自研分层表的产品化。</div>
+            <div class="cheat-bullet"><strong>产品化 vs 自研差异（公平排队 / 事务 / 证据短路 / 11 种设计模式）</strong> 核心命题：「调 API ≠ 生产级 Agent」。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a15" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A15 Spring AI 工程实践</div>
+            <div class="cheat-bullet"><strong>ChatClient 多模型路由与 BeanOutputConverter 结构化输出</strong> BeanOutputConverter 如何把自由文本收敛为「可校验的 I/O 契约」？</div>
+            <div class="cheat-bullet"><strong>记忆四实现与 Tool Calling 生产范式</strong> 把 Java 方法暴露为 LLM 工具（Mistral / Ollama / OpenAI 三套实现）的生产要点是什么？</div>
+            <div class="cheat-bullet"><strong>RAG 流变（Sequential/Branching/Conditional）与 Guardrails</strong> 文档入库侧的 splitters（分块）与 metadata 富化（摘要 / 关键词）如何共同决定召回质量？</div>
+          </div>
+
+          <div class="cheat-card" id="card-a16" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A16 生产级 Agent 中间件</div>
+            <div class="cheat-bullet"><strong>Ragent 双链路 v1/v2 与 Nexus 三层执行器</strong> MCP 边界为什么「客户端仅在 agent 模块装配、Workflow 不连 MCP」？</div>
+            <div class="cheat-bullet"><strong>检索融合 RRF 与模型容错三态熔断</strong> 模型容错的「首包探测 + 三态熔断 + 多候选切换」如何设计？</div>
+            <div class="cheat-bullet"><strong>Redis ZSET 公平排队与 RocketMQ 事务一致</strong> 海量文档分块入库为什么必须 RocketMQ 事务消息（半消息 + 本地事务 + 回查）+ 幂等 + 分布式锁状态机。</div>
+            <div class="cheat-bullet"><strong>11 种设计模式与&quot;调 API ≠ 生产级 Agent&quot;</strong> 以及中间件 / 基础组件的 Starter 化交付范式（防重 Starter：AOP + 注解复用）如何提升工程复用度。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a17" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A17 AI 系统测试</div>
+            <div class="cheat-bullet"><strong>非确定性断言与 Golden Set + RAGAS/DeepEval + CI</strong> 核心在于回答：哪些测试仍用传统手段、哪些必须换范式、回归门禁卡在哪一层。</div>
+            <div class="cheat-bullet"><strong>工具契约 / 防死循环 / 并发压测 + 故障注入</strong> 核心在于：AI 系统的「异常路径」比「正常路径」更需要测试资产。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a18" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A18 部署与运行时</div>
+            <div class="cheat-bullet"><strong>GraalVM / K8s + HPA 与 Java×Python 推理 Sidecar</strong> 核心在于回答：每种部署决策背后的约束是什么。</div>
+            <div class="cheat-bullet"><strong>入库流水线（Kafka/RocketMQ）与 Agent 六种部署形态</strong> 核心在于回答：不同形态各自的技术载体、Java 工程能力复用度与选型原则。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a19" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A19 AI 可观测性</div>
+            <div class="cheat-bullet"><strong>三支柱：Micrometer+Prometheus / ELK / OTel+SkyWalking+LangFuse</strong> 核心在于回答：AI 应用可观测的重点为什么是链路质量——模型答得好不好、工具调没调对、检索是否召回——而非仅系统健康。</div>
+            <div class="cheat-bullet"><strong>Run/Node 级 Trace、影子路由与告警 + Bad Case 闭环</strong> 观测、评测、修复三者由此串成环。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a20" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A20 AI 安全治理</div>
+            <div class="cheat-bullet"><strong>Sa-Token/Spring Security SSO 与输入净化 / 工具白名单</strong> 核心在于回答：AI 服务的安全不是另起炉灶，而是把权限 / 校验 / 最小权限原则延伸到模型与工具这一新增攻击面。</div>
+            <div class="cheat-bullet"><strong>AOP 审计 / 多租户隔离 + 被遗忘权 / 网关治理</strong> 核心在于回答：治理如何从「有功能」变成「可追溯、可隔离、可计量」。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a21" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A21 知识工程与 RAG 运维</div>
+            <div class="cheat-bullet"><strong>知识库 ETL 管线：切分 / 富化与 Embedding 选型版本治理</strong> Embedding 选型为什么必须用业务数据自测而非信通用榜单？</div>
+            <div class="cheat-bullet"><strong>向量索引生命周期与混合检索（BM25 + RRF）运维</strong> 混合检索互补的第一性：BM25 词频 × 稀缺度（精确强同义词弱——「退货 / 申请售后」零重叠检索不到）；向量语义强精确词弱（「M4 Pro」被拉向「苹果最新处理器」反而找不到字面）。</div>
+            <div class="cheat-bullet"><strong>知识更新&quot;先删后增&quot;与知识冲突裁决</strong> 「先删后增」的必要性证明：文档与 chunk 是一对多——文档改一句，切分边界可能整体位移，旧 chunk 集与新 chunk 集之间不存在逐条映射关系；任何「增量替换」方案都在边界位移场景下产生孤儿 chunk 或漏更新。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a22" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A22 成本工程与 ROI</div>
+            <div class="cheat-bullet"><strong>Token 预算 / 语义缓存命中率 / 按成本模型路由</strong> 核心在于回答：降本的第一杠杆是「少用贵模型」，第二杠杆才是「少传 Token」——排序错则事倍功半。</div>
+            <div class="cheat-bullet"><strong>按租户计费配额与 ROI 度量模型 + 成本异常告警</strong> 核心在于回答：配额是「防失控」的闸，ROI 是「证明值」的尺——二者共同让 AI 项目从「烧钱实验」变成「可经营的业务」。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a23" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A23 模型与 Prompt 版本治理</div>
+            <div class="cheat-bullet"><strong>模型 / Prompt 版本管理与回滚</strong> 核心在于回答：Prompt 与模型配置是一等资产，必须获得与代码同级的工程待遇。</div>
+            <div class="cheat-bullet"><strong>A-B / 灰度非劣效界值与发布门禁</strong> 核心在于回答：AI 发布的风险不是「崩溃」而是「悄悄变差」——发布机制必须能感知渐变劣化并自动刹车。</div>
+            <div class="cheat-bullet"><strong>生产漂移监测与幻觉缓解运营闭环</strong> 核心在于回答：上线不是终点，质量是运营出来的。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a24" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A24 规模化并发与流式</div>
+            <div class="cheat-bullet"><strong>水平扩展 / 会话亲和 / 限流排队 / 多租户配额 QoS</strong> QoS 分级第一性：多租户下「先到先得」会被大客户突发挤占——配额按租户分级（付费 / 免费），排队按公平原则（ZSET 按入队时间），超限按租户策略分流（降级 / 排队 / 拒绝）。</div>
+            <div class="cheat-bullet"><strong>流式保活 / 续传 / 中断恢复与 TTFT 优化</strong> 核心在于回答：流式体验的工程难点不在「能流」，而在「流得稳、断得起、等得不焦虑」。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a25" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A25 平台工程与交付</div>
+            <div class="cheat-bullet"><strong>内部开发者平台 IDP / 脚手架 / Starter 化标准化交付</strong> 核心在于回答：对使用者隐藏复杂度，对运维者暴露可控性。</div>
+            <div class="cheat-bullet"><strong>裸线程池 vs Starter 动态线程池 vs 虚拟线程选型 + SDD</strong> 核心在于回答：AI 服务是 IO 密集型负载，执行基建的选型直接影响成本与稳定性。</div>
+          </div>
+
+          <div class="cheat-card" id="card-a26" style="--card-color: #0f766e">
+            <div class="cheat-card-header">A26 业务价值与组织 adoption</div>
+            <div class="cheat-bullet"><strong>场景选型决策树与价值度量（北极星指标）</strong> ）筛选值得做的场景；价值度量（北极星指标）让项目价值可量化可追踪；Workflow vs Agent、v1/v2 双引擎按场景路由的落地对应。</div>
+            <div class="cheat-bullet"><strong>失败案例避坑与组织 adoption 路径</strong> 核心在于回答：决定 AI 项目存活的不是单点技术亮度，而是工程完整度与组织可复制性。</div>
+          </div>
+        </section>
+
         <section class="dimension-section" id="dim-engineering" style="--dim-color: #059669">
-          <div class="dimension-header">二、工程化要点 + 生产踩坑（G01-G08 / K01-K08）</div>
+          <div class="dimension-header">六、工程化要点 + 生产踩坑（G01-G08 / K01-K08）</div>
           <div class="dimension-intro">
             <p class="intro-lead"><strong>两条主轴贯穿全部门禁：卡点指标分层——L1 用户可感 &gt; L2 依赖饱和 &gt; L3 资源，L3 不能单独放行；回滚三维——镜像+配置+流量，任一不可退则整体不可退。</strong></p>
             <div class="intro-line"><strong>发布三要素缺一不合格</strong>：灰度比例表+卡点指标阈值+一键回滚命令</div>
@@ -679,355 +1344,8 @@
           </div>
         </section>
 
-        <section class="dimension-section" id="dim-scenario" style="--dim-color: #7c3aed">
-          <div class="dimension-header">三、场景设计框架（S01-S12）</div>
-          <div class="dimension-intro">
-            <p class="intro-lead"><strong>所有场景共用一个骨架：漏斗思维——流量逐层拦截衰减，DB 永远只接最后一层；量化阈值——每个方案必答「当前量级用什么、超过什么阈值演进什么」。</strong></p>
-            <div class="intro-line"><strong>漏斗分层数字</strong>：CDN/Nginx 拦大头→网关限流→Redis+MQ 削峰→DB 只接最后一层</div>
-            <div class="intro-line"><strong>防超卖</strong>：Redis Lua 原子扣减，DB UPDATE...WHERE num&gt;0 兜底</div>
-            <div class="intro-line"><strong>热点治理</strong>：库存分桶打散 key、推送聚合批播、记账分离只写流水表</div>
-            <div class="intro-line"><strong>缓存一致性</strong>：先 DB 后删缓存、延迟双删/binlog 订阅、对账任务兜底</div>
-            <div class="intro-line"><strong>高可用四件套</strong>：限流、熔断（Closed→Open→Half-Open）、降级、隔离</div>
-            <div class="intro-line"><strong>分布式事务</strong>：本地消息表/SAGA 优先，2PC 性能差是反面教材</div>
-            <div class="intro-line"><strong>分布式锁选型</strong>：Redis AP 高性能、ZooKeeper CP 强一致，按场景定</div>
-            <div class="intro-line"><strong>全链路压测</strong>：影子库表隔离+流量标记透传，找出瓶颈定安全水位</div>
-            <div class="intro-line"><strong>AI 场景</strong>：RAG=切分+向量检索+重排+引用溯源；评测集必须版本管理</div>
-            <div class="intro-line"><strong>表达顺序</strong>：先给数字与漏斗，再谈组件选型，最后给演进路径</div>
-          </div>
-          <div class="card-anchor-row"><a href="#card-s01" class="card-anchor-link">S01</a><a href="#card-s02" class="card-anchor-link">S02</a><a href="#card-s03" class="card-anchor-link">S03</a><a href="#card-s04" class="card-anchor-link">S04</a><a href="#card-s05" class="card-anchor-link">S05</a><a href="#card-s06" class="card-anchor-link">S06</a><a href="#card-s07" class="card-anchor-link">S07</a><a href="#card-s08" class="card-anchor-link">S08</a><a href="#card-s09" class="card-anchor-link">S09</a><a href="#card-s10" class="card-anchor-link">S10</a><a href="#card-s11" class="card-anchor-link">S11</a><a href="#card-s12" class="card-anchor-link">S12</a></div>
-
-          <div class="cheat-card" id="card-s01" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S01 高并发系统设计</div>
-            <div class="cheat-bullet"><strong>漏斗模型</strong>：120 万 QPS 按 CDN/Nginx 拦 70%→网关限流拦 20%→Redis+MQ 削峰 9%→DB 仅放行 1%</div>
-            <div class="cheat-bullet"><strong>防超卖</strong>：Redis Lua 原子脚本一次完成去重+扣减，禁先查后扣；DB UPDATE...WHERE num>0 兜底</div>
-            <div class="cheat-bullet"><strong>库存分桶</strong>：1000 件拆 10 桶打散热点 key，单桶压力降 10 倍；Redis vs DB 定时对账</div>
-            <div class="cheat-bullet"><strong>短链架构</strong>：发号器号段双 buffer+62 进制转码；BloomFilter(误判 0.01%)→Redis→DB 三级拦截 99% 穿透</div>
-            <div class="cheat-bullet"><strong>短链存储</strong>：1024 库×4 表=4096 分片；防删除误判用 CuckooFilter</div>
-            <div class="cheat-bullet"><strong>红包拆分</strong>：二倍均值法预拆存 Redis List，LPOP O(1) 原子弹出+MQ 异步入账</div>
-            <div class="cheat-bullet"><strong>弹幕聚合</strong>：每 200ms 聚合一批（≤50 条）批量广播，推送量降 50 倍</div>
-            <div class="cheat-bullet"><strong>在线统计</strong>：HyperLogLog 12KB 算亿级基数误差<1%，禁 SET；心跳 60s 随机抖动</div>
-            <div class="cheat-bullet"><strong>热点账户</strong>：记账分离只写流水表，100ms 窗口聚合净额批量 UPDATE（3 万 TPS→约 10）</div>
-          </div>
-
-          <div class="cheat-card" id="card-s02" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S02 分布式系统</div>
-            <div class="cheat-bullet"><strong>分布式锁选型</strong>：性能优先 Redis（SET NX PX+Lua 释放+看门狗）；强一致选 ZK/etcd（fencing token）；Redlock 慎用</div>
-            <div class="cheat-bullet"><strong>锁三要素</strong>：互斥、防死锁（必须持有时间）、可重入（Hash 记 threadId）；释放 Lua 比对 value 防误删</div>
-            <div class="cheat-bullet"><strong>事务选型</strong>：强一致 TCC/XA；最终一致 Seata AT/本地消息表/事务消息；TCC 防空回滚与悬挂</div>
-            <div class="cheat-bullet"><strong>Seata 坑</strong>：RPC 未传 XID 回滚失效；TCC 未幂等重复扣</div>
-            <div class="cheat-bullet"><strong>分布式 ID</strong>：雪花处理时钟回拨与 workerId 分配；号段双 buffer 防断供</div>
-            <div class="cheat-bullet"><strong>雪崩三道防线</strong>：熔断降级+线程池隔离（舱壁）+入口限流；链路追踪定位最慢节点</div>
-            <div class="cheat-bullet"><strong>缓存一致性</strong>：Cache Aside 写库后删缓存（非更新）；延迟双删+Canal 订阅 binlog</div>
-            <div class="cheat-bullet"><strong>幽灵通知</strong>：事务内禁直接发通知，用 afterCommit 提交后才发；强可靠上本地消息表</div>
-            <div class="cheat-bullet"><strong>通知口诀</strong>：提交才发、回滚不发、参数闭包、强可靠上消息表</div>
-          </div>
-
-          <div class="cheat-card" id="card-s03" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S03 数据库与存储</div>
-            <div class="cheat-bullet"><strong>分库分表六步</strong>：容量评估（3 年量、2 的幂）→选分片键（user_id 基因法）→倍增扩容→影子双写→diff 校验→灰度切读</div>
-            <div class="cheat-bullet"><strong>分片键红线</strong>：表数必须 2 的幂（否则扩容全量重分布）；先单机挖尽再拆</div>
-            <div class="cheat-bullet"><strong>慢 SQL 闭环</strong>：慢日志+APM 抓 Top10→EXPLAIN→优化优先级 SQL 重写>索引>表结构>架构</div>
-            <div class="cheat-bullet"><strong>深分页</strong>：延迟关联或游标分页；LIKE 前导 % 失索引</div>
-            <div class="cheat-bullet"><strong>主从延迟</strong>：区分 IO/SQL 线程延迟；强一致读走主库；8.0 WRITESET 并行复制</div>
-            <div class="cheat-bullet"><strong>缓存三问题</strong>：穿透→布隆+空值；击穿→互斥+逻辑过期+预热；雪崩→TTL 随机+多级+降级</div>
-            <div class="cheat-bullet"><strong>海量小文件</strong>：对象存储替代 HDFS；日志 128MB 合并 Parquet 入湖；生命周期分层</div>
-            <div class="cheat-bullet"><strong>对象存储红线</strong>：公网直连有费用+安全风险须走网关收口</div>
-          </div>
-
-          <div class="cheat-card" id="card-s04" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S04 微服务架构</div>
-            <div class="cheat-bullet"><strong>拆分方法论</strong>：事件风暴识别限界上下文，按领域拆；绞杀者渐进+网关切流；同步链路不超 3 跳</div>
-            <div class="cheat-bullet"><strong>拆分陷阱</strong>：共享 DB 未做访问隔离；拆完必须灰度切流不直接全量</div>
-            <div class="cheat-bullet"><strong>网关选型</strong>：SCG（WebFlux 异步）+责任链+Sentinel+Nacos 动态路由；网关只做接入不做业务</div>
-            <div class="cheat-bullet"><strong>MQ 积压四步</strong>：扩容（消费者≤分区数）→批量/异步化→应急跳过+扩分区→治理（手动 ACK）</div>
-            <div class="cheat-bullet"><strong>灰度发布</strong>：X-Gray-Tag 全链路透传+Nacos metadata 路由+影子库隔离；回滚靠路由 30 秒切换</div>
-            <div class="cheat-bullet"><strong>Service Mesh</strong>：Istio+Envoy；与 Spring Cloud 双注册共存渐进迁移</div>
-            <div class="cheat-bullet"><strong>配置热更新事故</strong>：@RefreshScope 懒重建旧 target，单例强引用导致双实例/泄漏/定时任务重复</div>
-            <div class="cheat-bullet"><strong>配置口诀</strong>：配置用 POJO、字段实时取、@RefreshScope 只救 @Value；线程池先 shutdown 旧再建新</div>
-          </div>
-
-          <div class="cheat-card" id="card-s05" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S05 性能与稳定性</div>
-            <div class="cheat-bullet"><strong>OOM 五步</strong>：现象→归因（泄漏 vs 溢出看 GC 斜率）→证据（Arthas）→根因（MAT Dominator Tree）→JFR 观测 24h</div>
-            <div class="cheat-bullet"><strong>OOM 红线</strong>：预配 HeapDumpOnOutOfMemoryError；不摘流量直接 dump 触发长 STW</div>
-            <div class="cheat-bullet"><strong>CPU 100% 四层下钻</strong>：top→top -Hp→线程 ID 转 16 进制→jstack 3 次快照 grep</div>
-            <div class="cheat-bullet"><strong>接口优化 200ms→20ms</strong>：画链路找 Top3 瓶颈；缓存>并发>批量>索引；CompletableFuture 并行+超时</div>
-            <div class="cheat-bullet"><strong>消息可靠性三段</strong>：生产本地消息表；Broker 同步刷盘+复制+分区保序；消费幂等表+手动 ACK</div>
-            <div class="cheat-bullet"><strong>幂等坑</strong>：先删标记再执行业务会重复；幂等键禁易变参数；全局有序是伪需求</div>
-            <div class="cheat-bullet"><strong>全链路压测</strong>：流量染色影子库+Mock 挡板；Little's Law+排队论；梯度加压+自动熔断</div>
-            <div class="cheat-bullet"><strong>线程池选型</strong>：动态调参池做内核+Spring Bean 暴露；快慢任务分池；虚拟线程仍要背压</div>
-          </div>
-
-          <div class="cheat-card" id="card-s06" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S06 云原生与 AI</div>
-            <div class="cheat-bullet"><strong>虚拟线程落地</strong>：用户态调度只适合 IO 密集；synchronized 换 ReentrantLock 防 pinning；ThreadLocal 改 ScopedValue</div>
-            <div class="cheat-bullet"><strong>LLM 网关</strong>：统一接入+每供应商独立熔断+回退链（主→备→小模型→语义缓存→兜底）</div>
-            <div class="cheat-bullet"><strong>RAG 全链路</strong>：离线索引+在线（改写→混合检索→RRF 融合→Rerank→引用回答）；分块禁一刀切</div>
-            <div class="cheat-bullet"><strong>K8s+JVM</strong>：UseContainerSupport+MaxRAMPercentage；三探针分工不可混用；HPA+Cluster Autoscaler 两级弹性</div>
-            <div class="cheat-bullet"><strong>向量库精排</strong>：差异化切分→BGE 编码→HNSW；混合召回→Cross-Encoder 重排→Top5 送 LLM</div>
-            <div class="cheat-bullet"><strong>Boot 4 迁移</strong>：BOM 锁基线→边缘到核心波次推进→契约测试→CDS/Leyden/AOT 启动分档</div>
-          </div>
-
-          <div class="cheat-card" id="card-s07" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S07 综合场景</div>
-            <div class="cheat-bullet"><strong>订单全链路</strong>：核心强一致、非核心异步；三段式库存（预扣/确认/回补）；支付回调用幂等键+唯一索引</div>
-            <div class="cheat-bullet"><strong>金融风控</strong>：Kappa 流批一体；特征三层统一口径；规则短路+模型并行+仲裁合并，100ms 级决策</div>
-            <div class="cheat-bullet"><strong>千万级推送</strong>：Netty 接入→Redis 路由→MQ 削峰扇出→多通道；推拉结合+读写扩散混合</div>
-            <div class="cheat-bullet"><strong>零停机迁移</strong>：全量→双写（CDC 兜底）→灰度切流→旧库只读 N 天；校验用内容哈希非条数</div>
-            <div class="cheat-bullet"><strong>跨境多租户</strong>：区域独立集群数据本地化+tenant_id 行级隔离+异步联邦结算</div>
-            <div class="cheat-bullet"><strong>支付对账三层</strong>：Saga/TCC+本地消息表+定时对账；逐笔不能只对总账</div>
-            <div class="cheat-bullet"><strong>订单超时关闭</strong>：ZSET/延时消息唤醒→CAS 状态机关单（防与支付回调竞态）→Outbox 回补库存</div>
-          </div>
-
-          <div class="cheat-card" id="card-s08" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S08 高可用架构</div>
-            <div class="cheat-bullet"><strong>异地多活</strong>：单元化按 userId 固定落单元+binlog 闭环+Fencing 租约防脑裂；RTO<1min、RPO=0</div>
-            <div class="cheat-bullet"><strong>限流熔断体系</strong>：入口限流+链路熔断+依赖隔离（舱壁）+降级兜底；线程池配额按 Little's Law</div>
-            <div class="cheat-bullet"><strong>混沌工程五原则</strong>：稳态假设/贴近真实/持续/自动化/最小爆炸半径</div>
-            <div class="cheat-bullet"><strong>故障自愈</strong>：感知→决策→执行→恢复；宁可慢摘不可误摘；保留人工一键熔断</div>
-            <div class="cheat-bullet"><strong>容量水线四级</strong>：安全 60%/预警 70%/限流 85%/熔断 95%；链路可用性是乘积</div>
-            <div class="cheat-bullet"><strong>可观测三支柱</strong>：OTel 统一埋点→全程透传→关联分析→告警分级聚合（目标误报 -80%）</div>
-            <div class="cheat-bullet"><strong>TraceId 断裂治理</strong>：W3C Trace Context+边界补全（线程池 TTL 装饰/MQ）；头部+尾部采样</div>
-          </div>
-
-          <div class="cheat-card" id="card-s09" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S09 安全架构</div>
-            <div class="cheat-bullet"><strong>纵深防御四层</strong>：WAF→Nginx→应用层→数据层；仅靠 WAF 可绕过，应用层必须兜底</div>
-            <div class="cheat-bullet"><strong>注入坑</strong>：MyBatis ${} 即使 ORDER BY 也可注入（白名单映射）；富文本按字段差异化净化</div>
-            <div class="cheat-bullet"><strong>API 安全</strong>：OAuth2+PKCE+refresh 轮换+JWT RS256+HMAC 签名+timestamp/nonce 防重放</div>
-            <div class="cheat-bullet"><strong>信封加密</strong>：DEK/KEK 双层，KEK 存 KMS 永不离开；等值查询用确定性加密</div>
-            <div class="cheat-bullet"><strong>权限双层</strong>：RBAC 功能权限+数据权限（拦截器自动注入 WHERE）；默认拒绝</div>
-            <div class="cheat-bullet"><strong>越权双防</strong>：垂直+水平都要防；禁信任前端 userId</div>
-            <div class="cheat-bullet"><strong>数据合规</strong>：Privacy by Design 全生命周期；删除覆盖 ES/Redis/备份；测试禁生产快照</div>
-          </div>
-
-          <div class="cheat-card" id="card-s10" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S10 网络 IO</div>
-            <div class="cheat-bullet"><strong>Netty 网关</strong>：池化 ByteBuf+Boss/Worker 分工+一致性哈希分片；单机 10 万连接</div>
-            <div class="cheat-bullet"><strong>Netty 坑</strong>：不关 TCP_NODELAY 延迟 40ms（Nagle）；EventLoop 里执行业务逻辑假死</div>
-            <div class="cheat-bullet"><strong>TCP 粘包</strong>：自描述帧（Magic+LengthField+CRC）；LengthFieldBasedFrameDecoder；非法长度帧关连接</div>
-            <div class="cheat-bullet"><strong>协议选型</strong>：HTTP/2（浏览器）→gRPC（内部）→QUIC（弱网试点）；protobuf 字段号只增不改</div>
-            <div class="cheat-bullet"><strong>WebSocket 推送</strong>：无状态集群+Kafka 广播+分级路由（tick/1s/5s）；心跳 30s 与 Nginx 超时 90s 错开</div>
-            <div class="cheat-bullet"><strong>连接池调优</strong>：三级超时分级、各下游独立配置；maxTotal 过大致下游连接暴涨</div>
-          </div>
-
-          <div class="cheat-card" id="card-s11" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S11 搜索与大数据</div>
-            <div class="cheat-bullet"><strong>ES 集群</strong>：时间拆索引+热温冷分层+Bulk 批量；深分页 search_after 替代 from+size</div>
-            <div class="cheat-bullet"><strong>搜索推荐五层漏斗</strong>：意图识别→多路召回→粗排→精排→重排；防特征穿越</div>
-            <div class="cheat-bullet"><strong>Flink 风控</strong>：按 userId 分区 KeyedState+规则热加载；Event Time+Watermark 乱序；State 必须设 TTL</div>
-            <div class="cheat-bullet"><strong>ClickHouse</strong>：MergeTree+物化视图预聚合+RoaringBitmap 算 UV；TTL 必设；分区粒度不宜过细</div>
-            <div class="cheat-bullet"><strong>湖仓一体</strong>：Iceberg+对象存储 Parquet+Trino ad-hoc；只建湖不治理=数据沼泽</div>
-            <div class="cheat-bullet"><strong>FinOps</strong>：可见→优化→运营；统一标签归因；无标签先砍机器是错序</div>
-          </div>
-
-          <div class="cheat-card" id="card-s12" style="--card-color: #7c3aed">
-            <div class="cheat-card-header">S12 AI 生产级场景</div>
-            <div class="cheat-bullet"><strong>RAG 幻觉治理</strong>：止血（转人工+收紧）→诊断→根治（混合检索+Rerank+引用溯源+拒答）→长效（版本化+反馈回流）</div>
-            <div class="cheat-bullet"><strong>Token 成本治理</strong>：网关 Token 级埋点+标签归因；优化=Prompt 瘦身+模型分级+缓存；限流须含 Token</div>
-            <div class="cheat-bullet"><strong>Agent 死循环防护</strong>：总步数上限+单工具次数上限+循环检测+工具幂等+高危二次确认+沙箱</div>
-            <div class="cheat-bullet"><strong>向量库迁移五步</strong>：存量导入→增量双写→一致性校验→灰度切流→旧集群热备 7 天；HNSW 建完才切</div>
-            <div class="cheat-bullet"><strong>多模型高可用</strong>：主动探针+被动错误率双检测，健康分加权路由；禁全切打爆备选配额</div>
-            <div class="cheat-bullet"><strong>RAG 投毒</strong>：输入检测（注入识别+入库审核）→输出过滤→系统指令与用户内容严格隔离</div>
-            <div class="cheat-bullet"><strong>流式背压</strong>：按 GPU 并发槽位信号量限流；慢时丢中间 Token；短请求优先调度</div>
-            <div class="cheat-bullet"><strong>MCP/多 Agent</strong>：工具供给+权限边界+协作编排三角；MCP 不是 Exactly-Once</div>
-          </div>
-        </section>
-
-        <section class="dimension-section" id="dim-aideep" style="--dim-color: #0f766e">
-          <div class="dimension-header">四、AI 工程纵深（A01-A26）</div>
-          <div class="dimension-intro">
-            <p class="intro-lead"><strong>AI 应用工程化的本质是把「不确定的概率系统」当作「确定性的传统服务」来治理：评估门禁先于发布、上下文与工具界定能力边界、检索与多 Agent 是规模化的两条主线、可观测与成本闭环是长期复利。</strong></p>
-            <div class="intro-line"><strong>能力边界</strong>：Agent = LLM + 工具 + 记忆的闭环；上下文工程决定上限，工具/MCP 决定能做什么，而非模型越大越聪明</div>
-            <div class="intro-line"><strong>检索主线</strong>：RAG 切割→召回→精排→融合，先删后增防污染；图增强（GraphRAG/LightRAG）补关系推理，成本差可达两个数量级</div>
-            <div class="intro-line"><strong>编排主线</strong>：多 Agent 按职责拆、单 Agent 上下文收敛优先于加人；Workflow 与自主 Agent 按是否需要动态决策选型</div>
-            <div class="intro-line"><strong>生产四件套</strong>：非确定性断言 + Golden Set、影子路由 + Bad Case 闭环、配额/限流公平排队、本地限流失效后切集中式</div>
-            <div class="intro-line"><strong>治理闭环</strong>：Prompt 版本化 + 非劣效发布门禁 + 漂移监控 + 幻觉兜底，知识库作为长期资产持续运维</div>
-            <div class="intro-line"><strong>组织规模化</strong>：复用率与平台化（SDK/Starter）对抗熵增，采纳以可观测指标驱动而非运动式推广</div>
-          </div>
-          <div class="card-anchor-row"><a href="#card-a01" class="card-anchor-link">A01</a><a href="#card-a02" class="card-anchor-link">A02</a><a href="#card-a03" class="card-anchor-link">A03</a><a href="#card-a04" class="card-anchor-link">A04</a><a href="#card-a05" class="card-anchor-link">A05</a><a href="#card-a06" class="card-anchor-link">A06</a><a href="#card-a07" class="card-anchor-link">A07</a><a href="#card-a08" class="card-anchor-link">A08</a><a href="#card-a09" class="card-anchor-link">A09</a><a href="#card-a10" class="card-anchor-link">A10</a><a href="#card-a11" class="card-anchor-link">A11</a><a href="#card-a12" class="card-anchor-link">A12</a><a href="#card-a13" class="card-anchor-link">A13</a><a href="#card-a14" class="card-anchor-link">A14</a><a href="#card-a15" class="card-anchor-link">A15</a><a href="#card-a16" class="card-anchor-link">A16</a><a href="#card-a17" class="card-anchor-link">A17</a><a href="#card-a18" class="card-anchor-link">A18</a><a href="#card-a19" class="card-anchor-link">A19</a><a href="#card-a20" class="card-anchor-link">A20</a><a href="#card-a21" class="card-anchor-link">A21</a><a href="#card-a22" class="card-anchor-link">A22</a><a href="#card-a23" class="card-anchor-link">A23</a><a href="#card-a24" class="card-anchor-link">A24</a><a href="#card-a25" class="card-anchor-link">A25</a><a href="#card-a26" class="card-anchor-link">A26</a></div>
-
-          <div class="cheat-card" id="card-a01" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A01 Agent 本质与范式谱系</div>
-            <div class="cheat-bullet"><strong>Agent 的本质：Model + Harness 二分模型</strong> 核心不在复述「Agent 是能自主干活的 AI」，而在回答：模型（Model）与驾驭环境（Harness）的职责边界在哪？</div>
-            <div class="cheat-bullet"><strong>Agent 核心范式谱系（ReAct / Plan-Execute / Reflection / Multi-Agent）</strong> 能否给出「从最简单方案起步、明确需要才加复杂度」的选型纪律，并说明生产中为何多为混合架构。</div>
-            <div class="cheat-bullet"><strong>Workflow 与自主 Agent 的边界与选型（1:4 判定）</strong> 这是 AI 应用架构选型的最高频决策点。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a02" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A02 上下文工程与记忆</div>
-            <div class="cheat-bullet"><strong>上下文工程本质：Context Assembler 与 Token 预算</strong> 核心是能否讲清统一组装顺序（约束 → 目标 → 证据 → 记忆 → 工具 → 历史）、rank 与 Token 预算两步走，以及为什么「窗口越大 ≠ Agent 越聪明」。</div>
-            <div class="cheat-bullet"><strong>Context Rot 与上下文压缩策略</strong> 压缩策略（滑动窗口 / 摘要 / 卸载 / 隔离）各自适用边界是什么？</div>
-            <div class="cheat-bullet"><strong>记忆工程：分层 / 生命周期 / 存储三态</strong> 「编码 → 存储 → 提取 → 巩固 → 反思 → 遗忘」生命周期各环节的工程实现是什么？</div>
-          </div>
-
-          <div class="cheat-card" id="card-a03" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A03 RAG 基础与图增强</div>
-            <div class="cheat-bullet"><strong>RAG 两阶段范式与&quot;RAG vs 微调&quot;决策</strong> 「RAG vs 微调」的决策依据是什么（解决「不知」还是「不会」）？</div>
-            <div class="cheat-bullet"><strong>RAG 进阶：切分 + 精排 + 多路召回</strong> 核心是建立「答非所问多在召回阶段」的排查直觉。</div>
-            <div class="cheat-bullet"><strong>GraphRAG 与 LightRAG：图增强检索的边界</strong> GraphRAG（社区摘要 + 图遍历）与 LightRAG（去社区层 + 双层检索）的机制与成本差异为何高达两个数量级（Token 成本约 $20–50 vs $0.15）？</div>
-          </div>
-
-          <div class="cheat-card" id="card-a04" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A04 工具调用与 MCP 协议</div>
-            <div class="cheat-bullet"><strong>工具调用分层：FC / MCP / Skills / A2A</strong> 能否用「打电话 / 通讯录 / 岗位手册 / 横向协作」的比喻体系讲清四者关系。</div>
-            <div class="cheat-bullet"><strong>MCP 的本质：N×M → N+M 的连接协议</strong> 三类能力（Tools / Resources / Prompts）与三项进阶能力（Roots / Sampling / Elicitation）各自解决什么问题。</div>
-            <div class="cheat-bullet"><strong>生产级工具接入 Checklist 与 Skills 渐进披露</strong> 三层渐进披露（广告层 → 指令层 → 资源层）如何解决「跨会话规则复用 + 上下文腐化」两大问题。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a05" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A05 多 Agent 编排</div>
-            <div class="cheat-bullet"><strong>多 Agent 协作四要素与 Graph Engineering</strong> Graph 的 Node / Edge / State 三要素各自的设计原则是什么（好节点：只干一件事、可单测、可替换；边：能写死尽量写死；状态：字段固定的 JSON 存档）？</div>
-            <div class="cheat-bullet"><strong>三种编排范式对比：Workflow / Graph / Loop</strong> 核心是能按任务形态（固定流程 / 多节点复杂分工 / 单点反复迭代）对号入座。</div>
-            <div class="cheat-bullet"><strong>九种编排模式与 AgentTask 契约 / Checkpoint</strong> AgentTask 契约（子目标 / 依赖 / allowedTools / outputSchema / maxIters / deadline）如何把「约定俗成」变为「运行时强制」？</div>
-          </div>
-
-          <div class="cheat-card" id="card-a06" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A06 AI 评测与发布门禁</div>
-            <div class="cheat-bullet"><strong>评测 vs 监控：四类评测与设计</strong> 离线评测 / Trace 回放 / 线上灰度 / 回归 CI 四类评测各自解决什么盲区。</div>
-            <div class="cheat-bullet"><strong>Golden Set + CI 门禁与 LLM-as-Judge 防偏差</strong> Judge 的打分体系（规则拦硬错误 + LLM 评开放语义 + 人工复核高风险）如何设计？</div>
-            <div class="cheat-bullet"><strong>灰度发布非劣效界值与 Java 落地 EvalRecord</strong> 评测 Harness 的职责边界与环境隔离要求是什么。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a07" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A07 AI 安全风险与合规</div>
-            <div class="cheat-bullet"><strong>AI 系统四大风险面与分层防护</strong> 核心认知是：模型输出不可信、一切外部输入不可信，安全是「执行侧」问题——靠 Harness 硬边界与后端强控制，而非靠提示词礼貌请求。</div>
-            <div class="cheat-bullet"><strong>合规要求与 Java/Spring 落地（ExecutionContext / ToolAuditEvent）</strong> 核心是「合规不是文档，是可执行的代码结构」。</div>
-            <div class="cheat-bullet"><strong>Spring AI 安全层与大模型网关</strong> 其六项核心能力与自研组件清单、演进顺序（先工程治理再智能路由）是什么。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a08" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A08 Agent 工程化架构</div>
-            <div class="cheat-bullet"><strong>Agent 四组件与三层结构设计</strong> Tools / Agent / Workflow 三层的本质区别为什么是「控制流由谁掌握」而非节点类型？</div>
-            <div class="cheat-bullet"><strong>任务拆分与 DAG 并行执行</strong> 依赖分析画 DAG 后「并行降低的是关键路径总时间而非每步时间」如何理解（端到端延迟降 40%–60% 的前提是什么）？</div>
-            <div class="cheat-bullet"><strong>记忆系统选型：Mem0 / Letta / Zep-Graphiti</strong> 以及知识图谱增强记忆如何补向量检索的短板（多跳推理）、「记忆整合」四步（去重 / 冲突消解 / 抽象提炼）如何从碎片到知识。</div>
-            <div class="cheat-bullet"><strong>上下文压缩阈值（70–80%）与状态管理四层</strong> 对话历史 / 业务状态 / 任务状态 / 长期记忆四层为何不能混放（「这次报告用英文」是业务约束不是用户永久偏好）？</div>
-            <div class="cheat-bullet"><strong>反思 / Multi-Agent Handoff / 容错（fencing token）</strong> Multi-Agent 容错为何必须分层（通信层：心跳 / 租约 / fencing token；一致性层：所有权 / worktree / 唯一 Integrator）。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a09" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A09 RAG 全链路工程</div>
-            <div class="cheat-bullet"><strong>Chunking 五级策略与父子块</strong> 「语义截断」的本质为什么是「信息被拆散后每一半都不够强，检索全军覆没」而非「信息丢失」？</div>
-            <div class="cheat-bullet"><strong>两阶段 Re-rank 与混合检索（BM25 + RRF）</strong> 精排的量化收益（多跳 +40–50%、模糊 +30–40%、简单事实 +18%、幻觉率降约 35%）与候选集控制（Top-50~100 → Top-5~10）如何设定？</div>
-            <div class="cheat-bullet"><strong>Query Rewrite 四法与四代 RAG 范式</strong> 核心是「Query 质量决定后续所有环节的天花板」。</div>
-            <div class="cheat-bullet"><strong>图增强与 Agentic RAG</strong> 组合工作流（向量入口定位实体 → 图接力遍历 → 合并上下文）怎么搭。</div>
-            <div class="cheat-bullet"><strong>幻觉四层防线 / 知识更新先删后增 / 知识冲突裁决</strong> 这三题合起来是规模化 RAG 运维的核心。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a10" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A10 MCP/A2A 协议与工具容错</div>
-            <div class="cheat-bullet"><strong>Function Calling 本质与训练（SFT + RLHF）</strong> 为什么预训练学不会 FC、必须 SFT 教「怎么调」+ RLHF 教「什么时候调」，SFT 数据必须覆盖哪五个场景。</div>
-            <div class="cheat-bullet"><strong>MCP 三角色 / 版本 / 传输（stdio vs Streamable HTTP）</strong> 协议从 2024-11 双端点 HTTP+SSE → 2025-03 单端点 → 2026-07-28 无状态化的演进脉络与动机？</div>
-            <div class="cheat-bullet"><strong>A2A Agent Card 与 Task 状态机</strong> Task 状态机（submitted → working → completed / failed / canceled，支持异步长任务与 Artifact 回传）如何治理超时 / 取消 / 重试？</div>
-            <div class="cheat-bullet"><strong>工具容错五阶段 / 沙箱隔离 / Skill 三层加载</strong> 沙箱为什么必须「代码按不可信处理」——访问边界（三区）/ 资源预算（cgroup 归组）/ 运行器管理三层如何设防？</div>
-          </div>
-
-          <div class="cheat-card" id="card-a11" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A11 AI 编程与 Coding Agent</div>
-            <div class="cheat-bullet"><strong>AI 编程三模式与需求描述规范（Vibe vs Spec）</strong> 需求五段式（目标 / 现状 / 输入输出边界 / 约束 / 验收）为什么比角色扮演和「写得健壮一点」有效？</div>
-            <div class="cheat-bullet"><strong>任务拆分（tasks.md）与代码质量 Oracle 独立审 Diff</strong> 验收 Checklist 五步（逐 hunk 看 diff / 先红后绿 / 回归 / 边界异常 / 安全规范）如何防「删断言让结果变绿」。</div>
-            <div class="cheat-bullet"><strong>AI 排障：报错位置 ≠ 根因 / 测试覆盖变异测试</strong> 测试覆盖为什么「业务覆盖 ≠ 测试数量 ≠ 代码覆盖率」（实现漏权限检查则无代码可覆盖）？</div>
-            <div class="cheat-bullet"><strong>Coding Agent 六件设施与 SDD 规约驱动</strong> 以及源码级认知（grep 而非 RAG 检索、文件而非向量库记忆）背后的设计取舍。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a12" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A12 AI 工程范式演进</div>
-            <div class="cheat-bullet"><strong>四代演进：Prompt → Context → Harness → Loop → Graph</strong> 为什么四者是「层层包含」关系而非替代关系（Prompt ⊂ Context ⊂ Harness；loop 是最小 graph）？</div>
-            <div class="cheat-bullet"><strong>Harness 六层 / Loop 五大件 / Graph 节点状态</strong> Graph 的节点（只干一件事可单测可替换）/ 边（能写死尽量写死）/ 状态（字段固定 JSON 存档）三要素的设计纪律。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a13" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A13 开源平台选型与对照</div>
-            <div class="cheat-bullet"><strong>RuoYi AI vs JEECG AI 双平台对照与选型</strong> 核心在于把「平台路线」与「自研路线」放进同一条光谱，而非当作非此即彼。</div>
-            <div class="cheat-bullet"><strong>平台 vs 自研决策树与 Ragent/Nexus 模块划分</strong> Ragent 7 模块与 Nexus 6 模块的分层意图是什么——为什么「切换模型 / 向量库 / 对象存储时核心问答流程不重写」是架构的第一验收标准。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a14" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A14 平台落地与产品化差异</div>
-            <div class="cheat-bullet"><strong>RuoYi ruoyi-chat vs JEECG airag 逐包对照</strong> 核心结论：平台包结构 ≈ 自研分层表的产品化。</div>
-            <div class="cheat-bullet"><strong>产品化 vs 自研差异（公平排队 / 事务 / 证据短路 / 11 种设计模式）</strong> 核心命题：「调 API ≠ 生产级 Agent」。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a15" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A15 Spring AI 工程实践</div>
-            <div class="cheat-bullet"><strong>ChatClient 多模型路由与 BeanOutputConverter 结构化输出</strong> BeanOutputConverter 如何把自由文本收敛为「可校验的 I/O 契约」？</div>
-            <div class="cheat-bullet"><strong>记忆四实现与 Tool Calling 生产范式</strong> 把 Java 方法暴露为 LLM 工具（Mistral / Ollama / OpenAI 三套实现）的生产要点是什么？</div>
-            <div class="cheat-bullet"><strong>RAG 流变（Sequential/Branching/Conditional）与 Guardrails</strong> 文档入库侧的 splitters（分块）与 metadata 富化（摘要 / 关键词）如何共同决定召回质量？</div>
-          </div>
-
-          <div class="cheat-card" id="card-a16" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A16 生产级 Agent 中间件</div>
-            <div class="cheat-bullet"><strong>Ragent 双链路 v1/v2 与 Nexus 三层执行器</strong> MCP 边界为什么「客户端仅在 agent 模块装配、Workflow 不连 MCP」？</div>
-            <div class="cheat-bullet"><strong>检索融合 RRF 与模型容错三态熔断</strong> 模型容错的「首包探测 + 三态熔断 + 多候选切换」如何设计？</div>
-            <div class="cheat-bullet"><strong>Redis ZSET 公平排队与 RocketMQ 事务一致</strong> 海量文档分块入库为什么必须 RocketMQ 事务消息（半消息 + 本地事务 + 回查）+ 幂等 + 分布式锁状态机。</div>
-            <div class="cheat-bullet"><strong>11 种设计模式与&quot;调 API ≠ 生产级 Agent&quot;</strong> 以及中间件 / 基础组件的 Starter 化交付范式（防重 Starter：AOP + 注解复用）如何提升工程复用度。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a17" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A17 AI 系统测试</div>
-            <div class="cheat-bullet"><strong>非确定性断言与 Golden Set + RAGAS/DeepEval + CI</strong> 核心在于回答：哪些测试仍用传统手段、哪些必须换范式、回归门禁卡在哪一层。</div>
-            <div class="cheat-bullet"><strong>工具契约 / 防死循环 / 并发压测 + 故障注入</strong> 核心在于：AI 系统的「异常路径」比「正常路径」更需要测试资产。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a18" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A18 部署与运行时</div>
-            <div class="cheat-bullet"><strong>GraalVM / K8s + HPA 与 Java×Python 推理 Sidecar</strong> 核心在于回答：每种部署决策背后的约束是什么。</div>
-            <div class="cheat-bullet"><strong>入库流水线（Kafka/RocketMQ）与 Agent 六种部署形态</strong> 核心在于回答：不同形态各自的技术载体、Java 工程能力复用度与选型原则。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a19" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A19 AI 可观测性</div>
-            <div class="cheat-bullet"><strong>三支柱：Micrometer+Prometheus / ELK / OTel+SkyWalking+LangFuse</strong> 核心在于回答：AI 应用可观测的重点为什么是链路质量——模型答得好不好、工具调没调对、检索是否召回——而非仅系统健康。</div>
-            <div class="cheat-bullet"><strong>Run/Node 级 Trace、影子路由与告警 + Bad Case 闭环</strong> 观测、评测、修复三者由此串成环。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a20" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A20 AI 安全治理</div>
-            <div class="cheat-bullet"><strong>Sa-Token/Spring Security SSO 与输入净化 / 工具白名单</strong> 核心在于回答：AI 服务的安全不是另起炉灶，而是把权限 / 校验 / 最小权限原则延伸到模型与工具这一新增攻击面。</div>
-            <div class="cheat-bullet"><strong>AOP 审计 / 多租户隔离 + 被遗忘权 / 网关治理</strong> 核心在于回答：治理如何从「有功能」变成「可追溯、可隔离、可计量」。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a21" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A21 知识工程与 RAG 运维</div>
-            <div class="cheat-bullet"><strong>知识库 ETL 管线：切分 / 富化与 Embedding 选型版本治理</strong> Embedding 选型为什么必须用业务数据自测而非信通用榜单？</div>
-            <div class="cheat-bullet"><strong>向量索引生命周期与混合检索（BM25 + RRF）运维</strong> 混合检索互补的第一性：BM25 词频 × 稀缺度（精确强同义词弱——「退货 / 申请售后」零重叠检索不到）；向量语义强精确词弱（「M4 Pro」被拉向「苹果最新处理器」反而找不到字面）。</div>
-            <div class="cheat-bullet"><strong>知识更新&quot;先删后增&quot;与知识冲突裁决</strong> 「先删后增」的必要性证明：文档与 chunk 是一对多——文档改一句，切分边界可能整体位移，旧 chunk 集与新 chunk 集之间不存在逐条映射关系；任何「增量替换」方案都在边界位移场景下产生孤儿 chunk 或漏更新。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a22" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A22 成本工程与 ROI</div>
-            <div class="cheat-bullet"><strong>Token 预算 / 语义缓存命中率 / 按成本模型路由</strong> 核心在于回答：降本的第一杠杆是「少用贵模型」，第二杠杆才是「少传 Token」——排序错则事倍功半。</div>
-            <div class="cheat-bullet"><strong>按租户计费配额与 ROI 度量模型 + 成本异常告警</strong> 核心在于回答：配额是「防失控」的闸，ROI 是「证明值」的尺——二者共同让 AI 项目从「烧钱实验」变成「可经营的业务」。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a23" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A23 模型与 Prompt 版本治理</div>
-            <div class="cheat-bullet"><strong>模型 / Prompt 版本管理与回滚</strong> 核心在于回答：Prompt 与模型配置是一等资产，必须获得与代码同级的工程待遇。</div>
-            <div class="cheat-bullet"><strong>A-B / 灰度非劣效界值与发布门禁</strong> 核心在于回答：AI 发布的风险不是「崩溃」而是「悄悄变差」——发布机制必须能感知渐变劣化并自动刹车。</div>
-            <div class="cheat-bullet"><strong>生产漂移监测与幻觉缓解运营闭环</strong> 核心在于回答：上线不是终点，质量是运营出来的。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a24" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A24 规模化并发与流式</div>
-            <div class="cheat-bullet"><strong>水平扩展 / 会话亲和 / 限流排队 / 多租户配额 QoS</strong> QoS 分级第一性：多租户下「先到先得」会被大客户突发挤占——配额按租户分级（付费 / 免费），排队按公平原则（ZSET 按入队时间），超限按租户策略分流（降级 / 排队 / 拒绝）。</div>
-            <div class="cheat-bullet"><strong>流式保活 / 续传 / 中断恢复与 TTFT 优化</strong> 核心在于回答：流式体验的工程难点不在「能流」，而在「流得稳、断得起、等得不焦虑」。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a25" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A25 平台工程与交付</div>
-            <div class="cheat-bullet"><strong>内部开发者平台 IDP / 脚手架 / Starter 化标准化交付</strong> 核心在于回答：对使用者隐藏复杂度，对运维者暴露可控性。</div>
-            <div class="cheat-bullet"><strong>裸线程池 vs Starter 动态线程池 vs 虚拟线程选型 + SDD</strong> 核心在于回答：AI 服务是 IO 密集型负载，执行基建的选型直接影响成本与稳定性。</div>
-          </div>
-
-          <div class="cheat-card" id="card-a26" style="--card-color: #0f766e">
-            <div class="cheat-card-header">A26 业务价值与组织 adoption</div>
-            <div class="cheat-bullet"><strong>场景选型决策树与价值度量（北极星指标）</strong> ）筛选值得做的场景；价值度量（北极星指标）让项目价值可量化可追踪；Workflow vs Agent、v1/v2 双引擎按场景路由的落地对应。</div>
-            <div class="cheat-bullet"><strong>失败案例避坑与组织 adoption 路径</strong> 核心在于回答：决定 AI 项目存活的不是单点技术亮度，而是工程完整度与组织可复制性。</div>
-          </div>
-        </section>
-
         <section class="dimension-section" id="dim-domain" style="--dim-color: #d97706">
-          <div class="dimension-header">五、垂直领域范式（D01-D12）</div>
+          <div class="dimension-header">七、垂直领域范式（D01-D12）</div>
           <div class="dimension-intro">
             <p class="intro-lead"><strong>领域题破题四步：复述业务闭环 → 立领域模型 → 讲关键范式 → 端到端场景 + 合规兜底。第一失分点是说错业务语言，不是技术。</strong></p>
             <div class="intro-line"><strong>领域模型</strong>：限界上下文划边界、聚合根守不变量、状态机驱动流程、领域事件解耦——先立模型再谈架构</div>
@@ -1164,207 +1482,8 @@
           </div>
         </section>
 
-        <section class="dimension-section" id="dim-techstack" style="--dim-color: #ea580c">
-          <div class="dimension-header">六、技术栈深度（C01-C15）</div>
-          <div class="dimension-intro">
-            <p class="intro-lead"><strong>每篇先记两类「硬结论」，再记机制原理：参数硬规则与版本锚点是排障与选型最先要用、最不能记错的部分。</strong></p>
-            <div class="intro-line"><strong>JVM</strong>：-Xms=-Xmx；生产必配 ExitOnOutOfMemoryError；堆≥32G 压缩指针失效，单实例建议 31g</div>
-            <div class="intro-line"><strong>GC</strong>：CMS 已移除、G1 默认（暂停 200ms/IHOP 45%）、分代 ZGC 需 JDK21</div>
-            <div class="intro-line"><strong>并发</strong>：volatile 不保证原子性；偏向锁已废弃；DCL 单例必须 volatile</div>
-            <div class="intro-line"><strong>MySQL</strong>：双 1 配置；Next-Key Lock 防幻读；B+ 树三层约 2189 万行是容量参照</div>
-            <div class="intro-line"><strong>Redis</strong>：主从→哨兵→Cluster 三级演进；大 key 治理优先于扩容</div>
-            <div class="intro-line"><strong>消息队列</strong>：Kafka 拼吞吐、RocketMQ 拼功能（事务/延迟消息）、RabbitMQ 灵活路由</div>
-            <div class="intro-line"><strong>微服务</strong>：Ribbon 已废弃；注册中心 AP/CP 按业务场景选</div>
-            <div class="intro-line"><strong>AI 工程</strong>：Spring AI 1.0 GA→2.0 GA（Boot 4.x/Java 21+）；chunk 512/overlap 64 起步</div>
-            <div class="intro-line"><strong>Spring</strong>：事务传播 7 种/隔离 4 级；循环依赖三级缓存只解 setter 注入</div>
-            <div class="intro-line"><strong>网络 IO</strong>：TIME_WAIT 2MSL；零拷贝 sendfile/mmap 减少态间拷贝</div>
-            <div class="intro-line"><strong>响应式</strong>：Reactor 背压四策略；IO 密集可被虚拟线程替代，CPU 密集才选它</div>
-          </div>
-          <div class="cheat-bullet"><strong>一网通办</strong>：共享目录分级治理；授权链网关；隐私计算不出域；流程时限看板不默认放行</div>
-          <div class="card-anchor-row"><a href="#card-c01" class="card-anchor-link">C01</a><a href="#card-c02" class="card-anchor-link">C02</a><a href="#card-c03" class="card-anchor-link">C03</a><a href="#card-c04" class="card-anchor-link">C04</a><a href="#card-c05" class="card-anchor-link">C05</a><a href="#card-c06" class="card-anchor-link">C06</a><a href="#card-c07" class="card-anchor-link">C07</a><a href="#card-c08" class="card-anchor-link">C08</a><a href="#card-c09" class="card-anchor-link">C09</a><a href="#card-c10" class="card-anchor-link">C10</a><a href="#card-c11" class="card-anchor-link">C11</a><a href="#card-c12" class="card-anchor-link">C12</a><a href="#card-c13" class="card-anchor-link">C13</a><a href="#card-c14" class="card-anchor-link">C14</a><a href="#card-c15" class="card-anchor-link">C15</a></div>
-
-          <div class="cheat-card" id="card-c01" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C01 JVM 内存与类加载</div>
-            <div class="cheat-bullet"><strong>运行时数据区</strong>：线程私有=栈/程序计数器；共享=堆/元空间/直接内存；OOM 类型按区域对应</div>
-            <div class="cheat-bullet"><strong>Metaspace</strong>：MaxMetaspaceSize 必须显式设（256-512m），否则无限增长吃本地内存</div>
-            <div class="cheat-bullet"><strong>容器参数</strong>：UseContainerSupport+MaxRAMPercentage=70-75 代替固定 -Xmx</div>
-            <div class="cheat-bullet"><strong>对象内存</strong>：压缩指针下对象头 12B；堆≥32G 压缩指针失效，单实例建议 -Xmx31g</div>
-            <div class="cheat-bullet"><strong>类加载五阶段</strong>：加载→验证→准备→解析→初始化；双亲委派=安全+类唯一性</div>
-            <div class="cheat-bullet"><strong>打破委派场景</strong>：SPI 线程上下文加载器、Tomcat 隔离、OSGi</div>
-            <div class="cheat-bullet"><strong>类卸载三条件</strong>：实例全回收+ClassLoader 回收+Class 无引用；加载器泄漏是 Metaspace OOM 主因</div>
-            <div class="cheat-bullet"><strong>版本锚点</strong>：17/21/25 LTS；Boot3 强制 jakarta.*；分代 ZGC JDK21 需 ZGenerational</div>
-          </div>
-
-          <div class="cheat-card" id="card-c02" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C02 GC 与性能调优</div>
-            <div class="cheat-bullet"><strong>GC Roots</strong>：栈引用/静态变量/常量/JNI/活跃线程/锁持有对象</div>
-            <div class="cheat-bullet"><strong>分代算法</strong>：新生代复制（Eden:S0:S1=8:1:1）；老年代标记整理；卡表 512B 维护跨代引用</div>
-            <div class="cheat-bullet"><strong>收集器里程碑</strong>：CMS JDK14 移除；G1 JDK9 默认（2048 Region、暂停 200ms、IHOP 45%）；ZGC JDK15 转正/21 分代</div>
-            <div class="cheat-bullet"><strong>参数硬规则</strong>：-Xms=-Xmx；生产必配 ExitOnOutOfMemoryError</div>
-            <div class="cheat-bullet"><strong>CPU 100% 五步法</strong>：top→top -Hp→printf %x→jstack→grep nid；Arthas thread -n 3</div>
-            <div class="cheat-bullet"><strong>FullGC 七大原因</strong>：老年代不足/元空间不足/大对象直入/System.gc/泄漏/浮动垃圾/晋升失败</div>
-            <div class="cheat-bullet"><strong>泄漏 vs 不足</strong>：FullGC 后老年代能回落=容量不足，不能=泄漏；jmap -histo:live 触发 FullGC 慎用</div>
-          </div>
-
-          <div class="cheat-card" id="card-c03" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C03 并发与锁</div>
-            <div class="cheat-bullet"><strong>volatile</strong>：可见性+有序性不保证原子性；写后 StoreLoad 屏障最贵；底层 MESI</div>
-            <div class="cheat-bullet"><strong>happens-before</strong>：8 条规则是 JMM 判断准绳</div>
-            <div class="cheat-bullet"><strong>DCL 单例</strong>：实例必须 volatile，防 new 重排序拿到半成品</div>
-            <div class="cheat-bullet"><strong>锁升级</strong>：无锁→轻量级（CAS 自旋）→重量级；偏向锁 JDK15 已废弃</div>
-            <div class="cheat-bullet"><strong>AQS 底座</strong>：volatile state+CLH 变体队列+CAS 入队+park 挂起；非公平锁吞吐更高</div>
-            <div class="cheat-bullet"><strong>CHM 演进</strong>：JDK7 Segment→JDK8 CAS+桶头 synchronized；树化=链表≥8 且数组≥64</div>
-            <div class="cheat-bullet"><strong>CHM size()</strong>：baseCount+CounterCell[] 分散计数，返回近似值</div>
-            <div class="cheat-bullet"><strong>computeIfAbsent 陷阱</strong>：回调内禁阻塞与递归同 key，否则死锁</div>
-          </div>
-
-          <div class="cheat-card" id="card-c04" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C04 线程池与虚拟线程</div>
-            <div class="cheat-bullet"><strong>execute 流程</strong>：核心→队列→最大→拒绝；无界队列时 max 永不生效</div>
-            <div class="cheat-bullet"><strong>ctl 字段</strong>：高 3 位状态+低 29 位线程数；五状态机 RUNNING→SHUTDOWN→STOP→TIDYING→TERMINATED</div>
-            <div class="cheat-bullet"><strong>Tomcat 反转载体</strong>：定制 TaskQueue 让 offer 返回 false，变核心→最大→队列；maxThreads 默认 200</div>
-            <div class="cheat-bullet"><strong>虚拟线程本质</strong>：N:M 调度栈存堆上；创建 ~1μs vs 平台线程 ~1ms；不池化</div>
-            <div class="cheat-bullet"><strong>Pinning 陷阱</strong>：synchronized 内阻塞/JNI 固定载体线程；JDK24 JEP 491 修复</div>
-            <div class="cheat-bullet"><strong>无时间片抢占</strong>：CPU 密集任务会饿死其他 VT，不适合</div>
-            <div class="cheat-bullet">ThreadLocal→ScopedValue：JDK25 GA，不可变作用域传递</div>
-          </div>
-
-          <div class="cheat-card" id="card-c05" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C05 Spring 核心</div>
-            <div class="cheat-bullet"><strong>refresh() 13 步锚点</strong>：第 5 步 BFPP 改图纸；第 11 步实例化非懒加载单例</div>
-            <div class="cheat-bullet"><strong>Bean 生命周期</strong>：实例化→属性填充→初始化（Aware→@PostConstruct→afterPropertiesSet→init→BPP/AOP 代理）</div>
-            <div class="cheat-bullet"><strong>三级缓存</strong>：一级成品/二级早期引用/三级 ObjectFactory；AOP 代理只创建一次；Boot 2.6+ 默认禁循环依赖</div>
-            <div class="cheat-bullet"><strong>传播三剑客</strong>：REQUIRED 共用；REQUIRES_NEW 独立连接；NESTED savepoint 子事务</div>
-            <div class="cheat-bullet"><strong>默认回滚</strong>：只对 RuntimeException+Error 回滚，受检异常不回滚</div>
-            <div class="cheat-bullet"><strong>事务失效 7 场景</strong>：自调用/非 public/catch 吞异常/受检异常/非 Bean/MyISAM/传播配错</div>
-            <div class="cheat-bullet"><strong>rollback-only 连锁</strong>：内层标记后外层 catch 住仍抛 UnexpectedRollbackException</div>
-            <div class="cheat-bullet"><strong>afterCommit 陷阱</strong>：提交后 ThreadLocal 已清，资源需闭包传参</div>
-          </div>
-
-          <div class="cheat-card" id="card-c06" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C06 Spring Boot 现代化</div>
-            <div class="cheat-bullet"><strong>自动配置</strong>：Boot3 起 spring.factories→AutoConfiguration.imports；@ConditionalOn* 条件装配</div>
-            <div class="cheat-bullet"><strong>AOT/Native</strong>：JIT 启动 2-10s/内存 200MB+ vs Native 10-100ms/20-50MB，构建分钟级</div>
-            <div class="cheat-bullet"><strong>Security6</strong>：删 WebSecurityConfigurerAdapter→@Bean SecurityFilterChain</div>
-            <div class="cheat-bullet"><strong>配置优先级</strong>：命令行>SPRING_APPLICATION_JSON>JNDI>系统属性>环境变量>jar 内 application.yml</div>
-            <div class="cheat-bullet"><strong>graceful shutdown</strong>：Boot 3.4+ 默认开启；超时必须小于 K8s terminationGracePeriodSeconds</div>
-            <div class="cheat-bullet"><strong>K8s 下线时序</strong>：preStop 与 Endpoint 摘除并发→SIGTERM→宽限期强杀；preStop 里 sleep 等摘除传播</div>
-            <div class="cheat-bullet"><strong>探针分离</strong>：liveness（重启）与 readiness（摘流量）必须分开定义</div>
-          </div>
-
-          <div class="cheat-card" id="card-c07" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C07 MySQL 深度</div>
-            <div class="cheat-bullet"><strong>B+ 树容量</strong>：16KB 页×1170 扇出×3 层≈2189 万行；非叶只存键、叶子双向链表</div>
-            <div class="cheat-bullet"><strong>回表与覆盖</strong>：二级索引存主键→回表；Extra 出现 Using index 即覆盖索引</div>
-            <div class="cheat-bullet"><strong>MVCC</strong>：DB_TRX_ID+DB_ROLL_PTR+undo 版本链+ReadView；RC 每次新建，RR 首次复用</div>
-            <div class="cheat-bullet"><strong>锁规则</strong>：RR 当前读靠 Next-Key Lock；唯一索引命中退化 Record Lock；无索引 UPDATE 锁全表</div>
-            <div class="cheat-bullet"><strong>日志与 2PC</strong>：Redo+Undo+Binlog；redo prepare→写 binlog→redo commit；双 1 配置</div>
-            <div class="cheat-bullet"><strong>EXPLAIN 阶梯</strong>：system>const>eq_ref>ref>range>index>ALL；索引失效 8 场景（函数/隐式转换/最左前缀/左模糊等）</div>
-            <div class="cheat-bullet"><strong>深分页</strong>：延迟关联或游标分页；pt-query-digest 按总耗时排序</div>
-            <div class="cheat-bullet"><strong>分库分表</strong>：>1000 万行或 50GB、QPS>5000；分片数取 2 的幂；迁移双写 5 步</div>
-            <div class="cheat-bullet"><strong>复制</strong>：三线程 Dump→IO→Relay；8.0 WRITESET 并行复制（8.4 起默认）</div>
-          </div>
-
-          <div class="cheat-card" id="card-c08" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C08 Redis 与缓存</div>
-            <div class="cheat-bullet"><strong>类型与编码</strong>：5+4 类型；Redis7 ziplist→listpack 消除连锁更新；embstr≤44 字节</div>
-            <div class="cheat-bullet"><strong>HLL</strong>：固定 12KB，基数误差 0.81%</div>
-            <div class="cheat-bullet"><strong>三大问题</strong>：穿透→布隆+空值；击穿→互斥/逻辑过期；雪崩→随机 TTL±20%+多级；命中率 95%+</div>
-            <div class="cheat-bullet"><strong>持久化</strong>：RDB fork+COW；AOF everysec 最多丢 1s；4.0+ 混合持久化</div>
-            <div class="cheat-bullet"><strong>Cache Aside</strong>：先更 DB 再删缓存（反序并发窗口更高）；进阶延迟双删/Canal</div>
-            <div class="cheat-bullet"><strong>Redisson 锁</strong>：Hash{threadId:重入数}+Lua+WatchDog 续期；RedLock 有争议慎用</div>
-            <div class="cheat-bullet"><strong>Cluster</strong>：16384 槽 CRC16；gossip 2KB 位图建议≤1000 节点；PFAIL→FAIL→选举</div>
-            <div class="cheat-bullet"><strong>淘汰策略</strong>：默认 noeviction 危险；推荐 allkeys-lfu（4.0+）；近似 LRU 采样 5 个</div>
-          </div>
-
-          <div class="cheat-card" id="card-c09" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C09 分布式系统</div>
-            <div class="cheat-bullet"><strong>Kafka 高吞吐四机制</strong>：分区并行/顺序写（600MB/s vs 100KB/s）/Page Cache/sendfile 零拷贝</div>
-            <div class="cheat-bullet"><strong>可靠性配置</strong>：acks=all+min.insync.replicas=2+unclean.leader.election=false</div>
-            <div class="cheat-bullet"><strong>幂等与事务</strong>：幂等=PID+seq（单分区）；事务=transactional.id+read_committed；Kafka 4.0 KRaft 唯一</div>
-            <div class="cheat-bullet"><strong>一致性哈希</strong>：普通取模迁移全部数据 vs 一致性哈希 1/(N+1)；虚拟节点防倾斜</div>
-            <div class="cheat-bullet"><strong>时钟与因果</strong>：Lamport 偏序；向量时钟检测并发；HLC 混合时钟；nanoTime 仅同 JVM</div>
-            <div class="cheat-bullet"><strong>事务演进</strong>：2PC→TCC→Seata AT→SAGA→可靠消息</div>
-            <div class="cheat-bullet"><strong>幂等方案</strong>：唯一索引/Token/乐观锁/状态机/防重表——分布式锁不是幂等事实来源</div>
-            <div class="cheat-bullet"><strong>Snowflake</strong>：1+41+10+12 位，4096/ms；必须处理时钟回拨</div>
-          </div>
-
-          <div class="cheat-card" id="card-c10" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C10 微服务与云</div>
-            <div class="cheat-bullet"><strong>注册中心 CAP</strong>：选 AP；Eureka 自我保护=15min 失败>85% 停剔除；Nacos Distro/Raft 双模</div>
-            <div class="cheat-bullet"><strong>配置推送</strong>：Nacos 长轮询 29.5s；ZK Watch 毫秒级</div>
-            <div class="cheat-bullet"><strong>事务吞吐量级</strong>：TCC ~3 万 TPS>本地消息表 ~2 万>Seata AT ~1 万（全局锁瓶颈）；现代默认=Outbox+CDC</div>
-            <div class="cheat-bullet"><strong>负载均衡链路</strong>：@LoadBalanced→LoadBalancerInterceptor→choose→URL 重写；Ribbon 已移除</div>
-            <div class="cheat-bullet"><strong>限流四算法</strong>：固定窗口（临界双倍）/滑动窗口/漏桶（恒速）/令牌桶（突发）</div>
-            <div class="cheat-bullet"><strong>熔断三态</strong>：Closed→Open→Half-Open；Hystrix 维护模式→Resilience4j 或 Sentinel</div>
-          </div>
-
-          <div class="cheat-card" id="card-c11" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C11 中间件工程</div>
-            <div class="cheat-bullet"><strong>Kafka EOS 三要素</strong>：幂等生产者+事务协调器+位移事务提交；跨外部系统退化=业务幂等+Outbox</div>
-            <div class="cheat-bullet"><strong>副本一致性</strong>：leader epoch 防误导截断；ISR 滞后阈值 30s</div>
-            <div class="cheat-bullet"><strong>副本三件套</strong>：replication.factor=3+min.insync.replicas≥2+unclean=false 缺一不可</div>
-            <div class="cheat-bullet"><strong>定时任务公理</strong>：触发可以重复，处理必须幂等</div>
-            <div class="cheat-bullet"><strong>幂等三件套</strong>：唯一索引+幂等表+分布式锁</div>
-            <div class="cheat-bullet"><strong>分片任务</strong>：动态分片按 id%分片数；故障转移=心跳超时重派+补跑入口</div>
-            <div class="cheat-bullet"><strong>分片数变更</strong>：重算后需补偿扫描防漏跑（区间边界漂移）</div>
-          </div>
-
-          <div class="cheat-card" id="card-c12" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C12 AI 工程</div>
-            <div class="cheat-bullet"><strong>Spring AI 定位</strong>：统一抽象+可插拔+Starter（2025 GA）；ChatClient（Fluent+Advisor）vs ChatModel；2.0 硬约束 Java21+Boot4</div>
-            <div class="cheat-bullet"><strong>Embedding 数学</strong>：归一化后余弦=点积=1−L2²/2 等价，实践中点积最快；检索演进暴力→LSH→IVF→HNSW</div>
-            <div class="cheat-bullet"><strong>Function Calling</strong>：@Tool 生成 Schema→LLM 输出意图（不执行）→宿主反射执行→结果回填→循环；必设最大轮次</div>
-            <div class="cheat-bullet"><strong>RAG 召回治理链</strong>：查询改写→混合检索 BM25+稠密（0.3:0.7，RRF）→Rerank top20→top5→引用溯源；chunk=512/overlap=64</div>
-            <div class="cheat-bullet"><strong>幻觉三道防线</strong>：Grounding 强约束+引用溯源+LLM-as-a-Judge；RAGAS 四指标进 CI</div>
-            <div class="cheat-bullet"><strong>LLM 稳定性</strong>：慢比错常见→慢调用比例熔断（RT>8s 占 50% 熔断）；限流按 TOKEN/s；降级链大→小→语义缓存→规则</div>
-            <div class="cheat-bullet"><strong>Prompt 注入</strong>：OWASP LLM01 本质=指令与数据未分离；最大威胁=间接注入；外部内容 untrusted 标签隔离</div>
-            <div class="cheat-bullet"><strong>十亿级向量</strong>：1024 维×10 亿≈4TB；HNSW 千万级召回>98%；IVF_PQ 亿级压缩 8-32 倍；DiskANN 落盘</div>
-            <div class="cheat-bullet"><strong>Agent 安全笼</strong>：失败上限 3 次/死循环状态去重/预算四维硬熔断/危险操作人工在环</div>
-          </div>
-
-          <div class="cheat-card" id="card-c13" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C13 网络与高性能 IO</div>
-            <div class="cheat-bullet"><strong>TCP 状态机</strong>：TIME_WAIT=2MSL 只在主动关闭方；CLOSE_WAIT 堆积 100% 是应用未 close</div>
-            <div class="cheat-bullet"><strong>TIME_WAIT 参数</strong>：tcp_tw_reuse 仅客户端出站；SO_REUSEPORT 多进程监听；tcp_tw_recycle 已移除</div>
-            <div class="cheat-bullet"><strong>拥塞控制</strong>：Reno→CUBIC（Linux 默认）→BBR（带宽×MinRTT）；发送窗口=min(cwnd, rwnd)</div>
-            <div class="cheat-bullet"><strong>HTTP 演进</strong>：1.1 队头阻塞→2 多路复用（TCP 层丢包阻塞）→3 QUIC 流独立恢复+0-RTT</div>
-            <div class="cheat-bullet"><strong>TLS 1.3</strong>：握手 2-RTT→1-RTT/0-RTT；只留 ECDHE 前向安全；0-RTT 有重放风险非幂等禁用</div>
-            <div class="cheat-bullet"><strong>NIO 核心</strong>：Selector 封装 epoll；Buffer 四属性 flip/clear；selectedKeys 必须 remove</div>
-            <div class="cheat-bullet"><strong>Reactor 三模式</strong>：单线程→单 Reactor 多线程→主从（Nginx/Netty 默认）</div>
-            <div class="cheat-bullet"><strong>Netty 内存</strong>：PooledByteBufAllocator jemalloc 分档；引用计数成对；泄漏检测 advanced</div>
-            <div class="cheat-bullet"><strong>零拷贝阶梯</strong>：传统 4 拷贝→mmap 2 拷贝→sendfile 2 拷贝 2 切换→DMA gather 0 CPU 拷贝；TLS 让零拷贝失效</div>
-          </div>
-
-          <div class="cheat-card" id="card-c14" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C14 数据库与存储</div>
-            <div class="cheat-bullet"><strong>MongoDB 向量</strong>：文档+向量同库免双写；numCandidates=limit×10-20；百万-千万级，上亿迁专用库</div>
-            <div class="cheat-bullet"><strong>Milvus 存算分离</strong>：数据全存对象存储，QueryNode 无状态；Growing→Sealed 建索引</div>
-            <div class="cheat-bullet"><strong>三大向量索引</strong>：IVF 省内存亿级/HNSW 召回 95%+ 千万级/DiskANN 落盘十亿级</div>
-            <div class="cheat-bullet"><strong>TiDB HTAP</strong>：TiKV 行存（Region 96MB）+TiFlash 列存（Learner 异步）；Percolator 2PC；主键禁自增</div>
-            <div class="cheat-bullet"><strong>PG vs MySQL</strong>：MVCC=堆多版本+VACUUM；必须把 autovacuum/长事务纳入 SRE；必须 PgBouncer</div>
-            <div class="cheat-bullet"><strong>OLAP 选型</strong>：日志宽表极致吞吐→ClickHouse；实时数仓+JOIN+高并发→Doris/StarRocks；都不是 OLTP 替代</div>
-            <div class="cheat-bullet"><strong>CDC 四要素</strong>：位点可信+分区保序+下游幂等+延迟对账可观测；Exactly-Once=至少一次+下游幂等</div>
-            <div class="cheat-bullet"><strong>Outbox vs CDC</strong>：领域事件走 Outbox，行级镜像走 CDC，勿一种管道扛两种语义</div>
-          </div>
-
-          <div class="cheat-card" id="card-c15" style="--card-color: #ea580c">
-            <div class="cheat-card-header">C15 响应式编程</div>
-            <div class="cheat-bullet">Reactive Streams 契约：Subscriber 主动 request(n) 拉取，Pull 模型背压是协议级约定（JDK9 Flow）</div>
-            <div class="cheat-bullet"><strong>Mono vs Flux</strong>：0..1 vs 0..N；基数语义编码进类型</div>
-            <div class="cheat-bullet"><strong>Cold/Hot</strong>：Cold 每订阅独立执行；Hot 用 Sinks；复用需 cache() 否则放大下游 QPS</div>
-            <div class="cheat-bullet"><strong>背压四策略</strong>：BUFFER（OOM 风险）/DROP/LATEST/ERROR；无限流必设</div>
-            <div class="cheat-bullet"><strong>线程模型</strong>：publishOn 影响下游、subscribeOn 只影响源；boundedElastic=IO（10×核数）；block() 只许边界</div>
-            <div class="cheat-bullet">Context 替代 ThreadLocal：随流传递；contextWrite 影响上游、deferContextual 见下游</div>
-            <div class="cheat-bullet"><strong>WebFlux 前提</strong>：全栈非阻塞才有收益，任一环节阻塞=假响应式；迁移事务用 TransactionalOperator</div>
-            <div class="cheat-bullet"><strong>R2DBC</strong>：背压可传导到 DB socket；连接池 r2dbc-pool，HikariCP 不适用</div>
-            <div class="cheat-bullet"><strong>操作符选型</strong>：1-to-1 map；1-to-n flatMap（不保序）；保序 concatMap；最新 switchMap</div>
-            <div class="cheat-bullet"><strong>VT vs Reactive</strong>：VT 无背压——SSE/流式背压 Reactive 仍是唯一解</div>
-          </div>
-        </section>
-
         <section class="dimension-section" id="dim-security" style="--dim-color: #dc2626">
-          <div class="dimension-header">七、服务端安全检查（OWASP Top 10:2025）</div>
+          <div class="dimension-header">八、服务端安全检查（OWASP Top 10:2025）</div>
           <div class="dimension-intro">
             <p class="intro-lead"><strong>一条总纲统领全部检查点：默认不信任——输入走白名单校验、权限最小化、密钥不出 KMS、出口一律加密与脱敏。</strong></p>
             <div class="intro-line"><strong>口令与令牌</strong>：Argon2id/scrypt 慢哈希禁 MD5/SHA1；JWT 用 RS256 禁 none</div>
@@ -1474,13 +1593,15 @@
             <div class="cheat-bullet"><strong>四原则兜底</strong>：最小权限/纵深防御/Fail-Secure/零信任</div>
           </div>
         </section>
+
       </div>
     </div>
 
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav-top">
-        <a href="index.html" class="nav-prev">← 返回首页</a>
-        <span class="nav-center"><a href="nav-overview-priority.html" class="nav-next">优先级总览 →</a></span>
+        <a href="../index.html" class="nav-home">← 返回总目录</a>
+        <span class="nav-center"></span>
+        <a href="index.html" class="nav-next">知识库导航 →</a>
       </nav>
     </div>
   </body>
