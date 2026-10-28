@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
-        <div class="site-page-nav site-page-nav--top">
+    <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
         <a href="chapter-05-spring-core.html" class="nav-prev">← 第 05 篇 · Spring 核心原理</a>
         <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">知识库导航 &#8599;</a></span>
@@ -158,7 +158,8 @@
                 等条件注解体系成熟。问题浮现：spring.factories 被滥用——除自动配置外还塞了监听器、初始化器、环境后置处理器等十几种 key，<strong>启动期要加载上百个配置类做条件评估，拖慢启动</strong>。
               </p>
               <p>
-                <strong>Spring Boot 3.0（2022）</strong>：关键演进——<strong>自动配置从 spring.factories 迁移到 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong>，每行一个类名。spring.factories 中 <code class="inline-code">EnableAutoConfiguration</code> key <strong>不再生效</strong>（Boot 3.0 起写了也不会被加载）。新机制用 <code class="inline-code">ImportCandidates</code> 读取，去重 + 排序更高效，且<strong>为 AOT 处理铺路</strong>——AOT 阶段需要确定的、可静态分析的配置清单，spring.factories 的 Properties 格式不利于工具分析。
+                <strong>Spring Boot 3.0（2022）</strong>：关键演进——<strong>自动配置从 spring.factories 迁移到 <code class="inline-code">META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code></strong
+                >，每行一个类名。spring.factories 中 <code class="inline-code">EnableAutoConfiguration</code> key <strong>不再生效</strong>（Boot 3.0 起写了也不会被加载）。新机制用 <code class="inline-code">ImportCandidates</code> 读取，去重 + 排序更高效，且<strong>为 AOT 处理铺路</strong>——AOT 阶段需要确定的、可静态分析的配置清单，spring.factories 的 Properties 格式不利于工具分析。
               </p>
               <p><strong>趋势</strong>：自动配置正与 AOT/Native Image 深度融合，条件评估在构建期冻结；未来可能进一步向"声明式配置 + 构建期生成"演进，减少运行期反射与条件判断。</p>
             </div>
@@ -168,7 +169,8 @@
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
               <p>
-                <strong>触发入口：<code class="inline-code">@SpringBootApplication</code> = <code class="inline-code">@EnableAutoConfiguration</code> + <code class="inline-code">@ComponentScan</code> + <code class="inline-code">@SpringBootConfiguration</code></strong>。<code class="inline-code">@EnableAutoConfiguration</code> 通过
+                <strong>触发入口：<code class="inline-code">@SpringBootApplication</code> = <code class="inline-code">@EnableAutoConfiguration</code> + <code class="inline-code">@ComponentScan</code> + <code class="inline-code">@SpringBootConfiguration</code></strong
+                >。<code class="inline-code">@EnableAutoConfiguration</code> 通过
                 <code class="inline-code">@Import(AutoConfigurationImportSelector.class)</code>
                 导入选择器，这是自动装配的真正引擎。
               </p>
@@ -576,7 +578,8 @@ flowchart TD
               <p><strong>为何要拆两个模块</strong>：autoconfigure 模块可独立用于不想引入第三方库依赖的场景（如只想要配置类逻辑），starter 模块是"开箱即用"的依赖聚合点。官方所有 starter（如 <code class="inline-code">spring-boot-starter-data-redis</code>）都遵循此模式，第三方应保持一致以降低用户认知成本。</p>
 
               <p>
-                <strong>配置属性绑定：<code class="inline-code">@ConfigurationProperties</code> 而非 <code class="inline-code">@Value</code></strong>。<code class="inline-code">@Value</code> 是松散的属性占位符，<code class="inline-code">@ConfigurationProperties</code>
+                <strong>配置属性绑定：<code class="inline-code">@ConfigurationProperties</code> 而非 <code class="inline-code">@Value</code></strong
+                >。<code class="inline-code">@Value</code> 是松散的属性占位符，<code class="inline-code">@ConfigurationProperties</code>
                 提供结构化、可校验、可 IDE 提示的属性绑定：
               </p>
               <div class="code-block">
@@ -659,7 +662,8 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
                 <p>
-                  五个要点：① <strong>双模块拆分</strong>（autoconfigure + starter）；② <strong>所有默认 Bean 加 <code class="inline-code">@ConditionalOnMissingBean</code></strong>，让用户能替换；③ <strong>用 <code class="inline-code">@ConfigurationProperties</code> 暴露配置 + 配置元数据 JSON</strong>，IDE 友好；④ <strong>用 <code class="inline-code">@ConditionalOnClass</code> 守卫</strong>，缺依赖时不报错只跳过；⑤ <strong>提供 <code class="inline-code">AutoConfiguration.imports</code> 声明</strong>，3.x 不能漏。
+                  五个要点：① <strong>双模块拆分</strong>（autoconfigure + starter）；② <strong>所有默认 Bean 加 <code class="inline-code">@ConditionalOnMissingBean</code></strong
+                  >，让用户能替换；③ <strong>用 <code class="inline-code">@ConfigurationProperties</code> 暴露配置 + 配置元数据 JSON</strong>，IDE 友好；④ <strong>用 <code class="inline-code">@ConditionalOnClass</code> 守卫</strong>，缺依赖时不报错只跳过；⑤ <strong>提供 <code class="inline-code">AutoConfiguration.imports</code> 声明</strong>，3.x 不能漏。
                 </p>
               </div>
             </div>
@@ -740,7 +744,8 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
               <p><strong>Spring Security 4.x-5.x（DSL 时代）</strong>：引入 <code class="inline-code">@EnableWebSecurity</code> + <code class="inline-code">WebSecurityConfigurerAdapter</code>（已废弃：Spring Security 6.x 已删除该类，替代：@Bean SecurityFilterChain 链式配置），用 <code class="inline-code">configure(HttpSecurity)</code> 方法链式配置：<code class="inline-code">http.authorizeRequests().antMatchers("/admin").hasRole("ADMIN")</code>（antMatchers 已废弃，替代：requestMatchers）。配置可读性大幅提升，但仍是<strong>匿名内部类 + 方法链</strong>风格，且 <code class="inline-code">WebSecurityConfigurerAdapter</code> 是抽象类需继承，扩展受限。</p>
               <p><strong>Spring Security 5.2+（Lambda DSL）</strong>：DSL 全面支持 Lambda，<code class="inline-code">http.authorizeRequests(req -&gt; req.antMatchers("/admin").hasRole("ADMIN"))</code>，更简洁。同时 <code class="inline-code">antMatchers</code> 标记废弃，逐步用 <code class="inline-code">requestMatchers</code> 替代。</p>
               <p>
-                <strong>Spring Security 6.x / Boot 3.x（2022，无 Adapter 时代）</strong>：关键演进——<strong>废弃 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong>，改为 <code class="inline-code">@Bean</code> 声明 <code class="inline-code">SecurityFilterChain</code>：<code class="inline-code">http.securityMatcher("/api/**").authorizeHttpRequests(auth -&gt; auth.anyRequest().authenticated())</code>。原因：① 函数式配置更利于多链组合（一个应用可有多条 <code class="inline-code">SecurityFilterChain</code>）；② 去继承更符合组合优于继承原则；③ <code class="inline-code">authorizeRequests</code> 也被 <code class="inline-code">authorizeHttpRequests</code> 取代（新授权管理器 <code class="inline-code">AuthorizationManager</code> 替代 <code class="inline-code">AccessDecisionManager</code>，更灵活）。
+                <strong>Spring Security 6.x / Boot 3.x（2022，无 Adapter 时代）</strong>：关键演进——<strong>废弃 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong
+                >，改为 <code class="inline-code">@Bean</code> 声明 <code class="inline-code">SecurityFilterChain</code>：<code class="inline-code">http.securityMatcher("/api/**").authorizeHttpRequests(auth -&gt; auth.anyRequest().authenticated())</code>。原因：① 函数式配置更利于多链组合（一个应用可有多条 <code class="inline-code">SecurityFilterChain</code>）；② 去继承更符合组合优于继承原则；③ <code class="inline-code">authorizeRequests</code> 也被 <code class="inline-code">authorizeHttpRequests</code> 取代（新授权管理器 <code class="inline-code">AuthorizationManager</code> 替代 <code class="inline-code">AccessDecisionManager</code>，更灵活）。
               </p>
               <p><strong>趋势</strong>：向 One-Time Token 登录、Passkey/WebAuthn、OAuth 2.1 标准化靠拢；与 Spring Authorization Server 深度整合；DSL 继续简化。</p>
             </div>
@@ -750,7 +755,8 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
             <div class="qa-layer-title">第一性原理</div>
             <div class="qa-layer-body">
               <p>
-                <strong>过滤器链的入口：<code class="inline-code">DelegatingFilterProxy</code> → <code class="inline-code">FilterChainProxy</code></strong>。Servlet 容器不认识 Spring Bean，<code class="inline-code">DelegatingFilterProxy</code> 是个桥接 Filter，它通过 <code class="inline-code">findWebApplicationContext()</code> 拿到 Spring 容器，再委托给名为 <code class="inline-code">springSecurityFilterChain</code> 的 Bean（即 <code class="inline-code">FilterChainProxy</code>）。<code class="inline-code">FilterChainProxy</code> 内部持有多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">matches(request)</code> 选择第一条匹配的链执行。
+                <strong>过滤器链的入口：<code class="inline-code">DelegatingFilterProxy</code> → <code class="inline-code">FilterChainProxy</code></strong
+                >。Servlet 容器不认识 Spring Bean，<code class="inline-code">DelegatingFilterProxy</code> 是个桥接 Filter，它通过 <code class="inline-code">findWebApplicationContext()</code> 拿到 Spring 容器，再委托给名为 <code class="inline-code">springSecurityFilterChain</code> 的 Bean（即 <code class="inline-code">FilterChainProxy</code>）。<code class="inline-code">FilterChainProxy</code> 内部持有多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">matches(request)</code> 选择第一条匹配的链执行。
               </p>
 
               <div class="mermaid-container">
@@ -2054,7 +2060,8 @@ flowchart TD
               <p><strong>Spring Security 4（2014）</strong>：XML 配置为主，<code class="inline-code">&lt;http&gt;</code> 命名空间声明式配置，<code class="inline-code">WebSecurityConfigurerAdapter</code> 引入 Java Config 但仍需继承重写。功能完整但配置繁琐、扩展性差。</p>
               <p><strong>Spring Security 5（2017）</strong>：<code class="inline-code">WebSecurityConfigurerAdapter</code> 成为主流，<code class="inline-code">configure(HttpSecurity)</code> 重写成为标准姿势。5.0 引入 OAuth2 客户端支持（<code class="inline-code">spring-security-oauth2</code>，后废弃），5.2+ 重写为 <code class="inline-code">spring-security-oauth2-client</code>/<code class="inline-code">-resource-server</code>，引入 <code class="inline-code">oauth2Login()</code>。</p>
               <p>
-                <strong>Spring Security 6 / Spring Boot 3（2022）</strong>：<strong>强制移除 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong>，全面改为 <strong>Lambda DSL</strong>（<code class="inline-code">http.csrf(c -&gt; c.disable())</code>）；<code class="inline-code">SecurityFilterChain</code> 声明为 Bean；<code class="inline-code">WebSecurityCustomizer</code> 取代 <code class="inline-code">web.ignoring()</code>；包名 <code class="inline-code">javax.servlet</code> → <code class="inline-code">jakarta.servlet</code>。
+                <strong>Spring Security 6 / Spring Boot 3（2022）</strong>：<strong>强制移除 <code class="inline-code">WebSecurityConfigurerAdapter</code></strong
+                >，全面改为 <strong>Lambda DSL</strong>（<code class="inline-code">http.csrf(c -&gt; c.disable())</code>）；<code class="inline-code">SecurityFilterChain</code> 声明为 Bean；<code class="inline-code">WebSecurityCustomizer</code> 取代 <code class="inline-code">web.ignoring()</code>；包名 <code class="inline-code">javax.servlet</code> → <code class="inline-code">jakarta.servlet</code>。
               </p>
               <p><strong>OAuth2 Authorization Server（Spring 官方）</strong>：原 <code class="inline-code">spring-security-oauth</code>（社区版）停止维护，Spring 官方推出 <code class="inline-code">spring-authorization-server</code>（1.0 于 2022 GA），支持 Authorization Code/Client Credentials/Device Code/Refresh Token，PKCE 内置。</p>
               <p>
@@ -2592,7 +2599,7 @@ void domain_should_not_depend_on_adapters() {
       </div>
     </footer>
 
-        <div class="site-page-nav site-page-nav--bottom">
+    <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
         <a href="chapter-05-spring-core.html" class="nav-prev">← 第 05 篇 · Spring 核心原理</a>
         <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">知识库导航 &#8599;</a></span>

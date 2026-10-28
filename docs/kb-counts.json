@@ -12,6 +12,7 @@
     "architect": 260,
     "senior": 221,
     "chapters": 326,
+    "chapters_core": 252,
     "basics": 74,
     "scenarios": 74,
     "methodology": 145,
@@ -4021,6 +4022,16 @@
       "pattern": "data-kb-pos=\"P552\"[^>]*>(\\d+)</span>",
       "key": "struct.root.dir_group_98",
       "desc": "升格 local:dir-group → struct.root.dir_group_98"
+    },
+    {
+      "id": "P553_root_c_wrapper_dircount",
+      "file": "index.html",
+      "pattern": "data-kb-pos=\"P553\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "chapters_core",
+      "desc": "C wrapper section 级 dir-count（纯 C01~C15 平铺题数，不含 A 轴）"
     }
   ],
   "guard": {
@@ -4116,8 +4127,8 @@
           "file": "index.html",
           "block_re": "<section class=\"dir-section\">",
           "count_re": "<li class=\"q-item\"",
-          "key_re": "^(struct\\.root\\.dir_count_\\d+|methodology|basics)$",
-          "desc": "根 index 每个方向块的题数 = 该块内 li.q-item 数"
+          "key_re": "^(methodology|chapters|chapters_core|basics|struct\\.root\\.dir_count_(2|3|4|20|21))$",
+          "desc": "根 index 每个方向块的题数 = 该块内 li.q-item 数（section 级：8 个 section 各 1 个 dir-count）"
         },
         {
           "id": "ov_subgroup",
@@ -4217,6 +4228,11 @@
               "desc": "篇章题数 = Σ 各篇题数"
             },
             {
+              "key": "chapters_core",
+              "terms": "^struct\\.root\\.dir_count_([5-9]|1[0-9])$",
+              "desc": "C wrapper 内部各篇章题数之和（根 index C01~C15 平铺题数）"
+            },
+            {
               "key": "scenarios",
               "terms": "^struct\\.scenario\\.group_\\d+$",
               "desc": "场景题数 = Σ 各场景组题数"
@@ -4262,7 +4278,7 @@
               "desc": "P2 题数 = 三个难度组的 P2 行之和（行坐标 7/8/9）"
             }
           ],
-          "key_re": "^(chapters|scenarios|domain_questions|total|expert|architect|senior|p0|p1|p2)$",
+          "key_re": "^(chapters|chapters_core|scenarios|domain_questions|total|expert|architect|senior|p0|p1|p2)$",
           "desc": "语义键 = 若干从属键之和（恒等式）"
         },
         {
@@ -4329,6 +4345,16 @@
           ],
           "key_re": "^(engineering_groups|pitfalls_groups)$",
           "desc": "单值 DOM 计数：直接数宿主页内某结构元素个数（组块 / 章节卡）"
+        },
+        {
+          "id": "root_c_dir_group",
+          "type": "dom_scan",
+          "file": "index.html",
+          "block_re": "<div class=\"dir-group\">",
+          "end_re": "</ul>",
+          "count_re": "<li class=\"q-item\"",
+          "key_re": "^struct\\.root\\.dir_count_([5-9]|1[0-9])$",
+          "desc": "C wrapper 内每个 dir-group 的题数 = 该组内 li.q-item 数（dir-group 级：15 个组各 1 个 dir-count）"
         }
       ],
       "manual": [

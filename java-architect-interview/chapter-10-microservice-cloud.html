@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="assets/design-system.css" />
   </head>
   <body>
-        <div class="site-page-nav site-page-nav--top">
+    <div class="site-page-nav site-page-nav--top">
       <nav class="chapter-nav-top">
         <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 · 分布式系统</a>
         <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">知识库导航 &#8599;</a></span>
@@ -3835,7 +3835,8 @@ flowchart TD
                 </tbody>
               </table>
               <p>
-                核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong>（即 &lt; LOWEST_PRECEDENCE = 2147483647），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 位于链最末端，与 <code class="inline-code">ForwardRoutingFilter</code> 同处最低优先级区间（均 = LOWEST_PRECEDENCE）、前者负责外部转发、后者负责本地 forward，二者通过 <code class="inline-code">isAlreadyRouted</code> 标记避免重复转发；鉴权/限流等必须在它之前（order 更小）完成。它（NettyRoutingFilter）位于出站的最末端——前面的 Filter 改完请求、鉴权通过、限流通过，最后一步才由它真正转发。
+                核心结论：<strong>鉴权 GlobalFilter 的 order 必须 &lt; <code class="inline-code">NettyRoutingFilter.order()</code></strong
+                >（即 &lt; LOWEST_PRECEDENCE = 2147483647），否则请求先被路由到后端，鉴权根本没执行，等于裸奔。<code class="inline-code">NettyRoutingFilter</code> 位于链最末端，与 <code class="inline-code">ForwardRoutingFilter</code> 同处最低优先级区间（均 = LOWEST_PRECEDENCE）、前者负责外部转发、后者负责本地 forward，二者通过 <code class="inline-code">isAlreadyRouted</code> 标记避免重复转发；鉴权/限流等必须在它之前（order 更小）完成。它（NettyRoutingFilter）位于出站的最末端——前面的 Filter 改完请求、鉴权通过、限流通过，最后一步才由它真正转发。
               </p>
 
               <div class="mermaid-container">
@@ -3981,7 +3982,8 @@ flowchart LR
               <p>
                 Filter 链是"order 越小越先执行（pre 阶段）、响应时反向执行（post 阶段）"的双向链。<code class="inline-code">NettyRoutingFilter</code> 的 order = <code class="inline-code">Ordered.LOWEST_PRECEDENCE</code>（Integer.MAX_VALUE = 2147483647），与
                 <code class="inline-code">ForwardRoutingFilter</code>
-                同处最低优先级，位于<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong>，即 &lt; LOWEST_PRECEDENCE（&lt; 2147483647），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。
+                同处最低优先级，位于<strong>出站的最末端动作</strong>——请求必须先被前面所有 Filter 处理完（Body 缓存好、鉴权过、限流过、URL 改写好、Header 注入完），最后一步才真正发出去。如果它放最前面（order 最小），请求一发出去，后面的鉴权 Filter 根本没机会执行。鉴权 GlobalFilter 的 order 必须<strong>小于 <code class="inline-code">NettyRoutingFilter.getOrder()</code></strong
+                >，即 &lt; LOWEST_PRECEDENCE（&lt; 2147483647），通常推荐 -100 ~ 10000 之间，离 NettyRoutingFilter 越远越靠前，确保不会被意外跳过。经验值：越基础的能力（JWT 鉴权、TraceId 注入）order 越小（越先执行），越业务化的能力（灰度路由、限流、审计）order 可以稍大。
               </p>
               <p><strong>追问 2：堆外内存 OOM 与堆内 OOM 的现象与排查路径差异？</strong></p>
               <p>
@@ -4759,7 +4761,8 @@ flowchart TD
             <div class="qa-layer-title">第一性原理 + 7 坑详解（根因 + 修复代码）</div>
             <div class="qa-layer-body">
               <p>
-                <strong>坑 1：Feign 传 File / InputStream 报 <code class="inline-code">is not a type supported by this encoder</code></strong><br />
+                <strong>坑 1：Feign 传 File / InputStream 报 <code class="inline-code">is not a type supported by this encoder</code></strong
+                ><br />
                 <strong>根因</strong>：Feign 默认的 <code class="inline-code">SpringEncoder</code>（基于 Jackson）只处理 JSON / POJO，不处理 <code class="inline-code">MultipartFile</code> / <code class="inline-code">File</code> / <code class="inline-code">InputStream</code>。要传文件必须用 Feign 官方的 <code class="inline-code">feign-form</code> 扩展，它实现了 <code class="inline-code">multipart/form-data</code> 编码。<br />
                 <strong>修复代码</strong>：下面实践部分给出完整版。
               </p>
@@ -5820,7 +5823,7 @@ flowchart TD
       </div>
     </footer>
 
-        <div class="site-page-nav site-page-nav--bottom">
+    <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav">
         <a href="chapter-09-distributed-systems.html" class="nav-prev">← 第 09 篇 · 分布式系统</a>
         <span class="nav-center"><a href="chapter-core-methodology.html" class="nav-mind">核心方法论 &#8599;</a><a href="index.html" class="nav-mind">知识库导航 &#8599;</a></span>

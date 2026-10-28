@@ -106,18 +106,24 @@
 - `shared/js/echarts.min.js`：仅在含 ECharts 图表时引入。
 - 字体：`shared/fonts/`（WorkSans、JetBrainsMono），仅在有需要时通过 `@font-face` 引用。
 
-### 4.1 侧栏分组标题（`toc-group-title`）
+### 4.1 侧栏 TOC（`sidebar-toc`）与分组标题（`toc-group-title`）
 
+- **样式唯一真源**：侧栏视觉（`h3` / 链接 / `.toc-number` / `.toc-group` / `.toc-group-title` / `code-*` 着色）一律写在 `assets/design-system.css`。**禁止**在 chapter 页 `<style>` 再覆盖 `.sidebar-toc…`（专篇曾各自改字号/颜色/边框，导致 22 篇观感分裂）。
 - **必须**写成可点击锚点：`<a class="toc-group-title" href="#…">…</a>`。**禁止** `<div class="toc-group-title">`（`nav.js` 只高亮带 `href="#id"` 的链接，div 无法参与高亮同步）。
+- **体系色钩子**：分组标题加 `code-c|m|e|g|d|s|k|a|sec`（与卡号体系一致）；场景用 `code-s`、垂直领域用 `code-d`，勿误用 `code-g`。
 - 目标锚点须在正文存在对应 `id`（组导读 / `section` / `m-subgroup-title` 等），并建议带 `scroll-margin-top`（`design-system.css` 已覆盖 `.epq-group-head` / `.scenario-group` / `.eng-group` / `.m-subgroup-title[id]` / `.dimension-section[id]`）。
 - 有分组的页面一览：
 
-  | 页面 | 分组标题 `href` 目标 | 正文锚点载体 |
-  |------|----------------------|--------------|
-  | 核心原理八篇 | `#epq-group-NN` | `.epq-group-head` |
-  | 场景题 | `#group-N` | `.scenario-group` |
-  | 核心方法论 | `#m-group-01~06` / `#hc-section` 等 | `.m-subgroup-title[id]` / `.dimension-section[id]` |
-  | 工程化要点 | `#G01`～`#G08` | `.eng-group` |
+  | 页面 | 分组标题 `href` 目标 | 正文锚点载体 | `code-*` |
+  |------|----------------------|--------------|----------|
+  | 核心原理 | `#epq-group-NN` | `.epq-group-head` | `code-e` |
+  | 场景题 | `#group-N` | `.scenario-group` | `code-s` |
+  | 垂直领域 | `#group-N` | 组导读锚点 | `code-d` |
+  | 核心方法论 | `#m-group-01~` / `#prologue` 等 | `.m-subgroup-title[id]` 等 | `code-m` |
+  | 工程化要点 | `#G01`～`#G08` | `.eng-group` | `code-g` |
+  | 生产踩坑 | `#K01`～`#K08` | 组锚点 | `code-k` |
+  | AI 工程纵深 | `#a-group-NN`（A01–A26） | `.epq-group-head` | `code-a` |
+  | C01–C15 | （扁平 `ol`，无分组） | 卡片 `id` | — |
 
 ### 4.2 顶 / 底章节导航（`chapter-nav-top` / `chapter-nav`）
 
