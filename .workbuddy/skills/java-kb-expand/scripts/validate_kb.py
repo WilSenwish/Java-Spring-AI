@@ -80,8 +80,9 @@ if not os.path.isfile(COUNTS_JSON):
 _cfg = json.load(open(COUNTS_JSON, encoding="utf-8"))
 EXPECT = {k: _cfg["counts"][k] for k in
           ("total", "p0", "p1", "p2", "expert", "architect", "senior",
-           "methodology", "chapters", "basics", "scenarios", "domain_questions")}
-# 跨大篇章/聚合口径 total=篇章+核心原理+场景+垂直领域（2026-10-24 D 篇入总站，四级口径与 SSOT invariant 对齐）；
+           "methodology", "chapters", "chapters_core", "ai_engineering_deep",
+           "basics", "scenarios", "domain_questions")}
+# 跨大篇章/聚合口径 total=篇章C+AI纵深A+核心原理+场景+垂直领域（五级；chapters=C+A 合计）；
 # M/G/K 单独计数，不设全站合计
 ENGINEERING = _cfg["counts"].get("engineering", 0)
 PITFALLS = _cfg["counts"].get("pitfalls", 0)
@@ -1127,14 +1128,21 @@ def main():
         m = re.search(pat, t)
         return int(m.group(1)) if m else None
     _STAT_N = rf'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
+    # 「深度 Q&A」统计卡现口径 = 篇章 C（chapters_core）；AI 纵深 A 独立展示
     root_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
-    root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 「全站 N 题」= total（C+E+S+D），非 M/G/K 加总
-    check(root_ch == EXPECT["chapters"], f"[根index] 深度Q&A={root_ch} 期望 {EXPECT['chapters']}")
+    root_a = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">AI 工程纵深', texts["root"])
+    root_d = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">垂直领域题', texts["root"])
+    root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 「全站 N 题」= total（C+A+E+S+D），非 M/G/K 加总
+    check(root_ch == EXPECT["chapters_core"], f"[根index] 深度Q&A(篇章C)={root_ch} 期望 {EXPECT['chapters_core']}")
+    if root_a is not None and EXPECT.get("ai_engineering_deep") is not None:
+        check(root_a == EXPECT["ai_engineering_deep"], f"[根index] AI工程纵深={root_a} 期望 {EXPECT['ai_engineering_deep']}")
+    if root_d is not None and EXPECT.get("domain_questions") is not None:
+        check(root_d == EXPECT["domain_questions"], f"[根index] 垂直领域={root_d} 期望 {EXPECT['domain_questions']}")
     # 禁止「题目+方法论+工程化+踩坑」式合计 UI
     root_sum = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">合计', texts["root"])
     check(root_sum is None, f"[根index] 不应存在跨域「合计」统计卡（实际={root_sum}）")
     if root_all is not None:
-        check(root_all == EXPECT["total"], f"[根index] 全站题量={root_all} 期望 {EXPECT['total']}（C+E+S+D）")
+        check(root_all == EXPECT["total"], f"[根index] 全站题量={root_all} 期望 {EXPECT['total']}（C+A+E+S+D）")
     if ENGINEERING:
         root_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化要点</div>', texts["root"])
         if root_eng is None:
@@ -1143,8 +1151,14 @@ def main():
 
     # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站 N 道
     chap_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
+    chap_a = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">AI 工程纵深', texts["chap_idx"])
+    chap_d = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">垂直领域', texts["chap_idx"])
     chap_all = stat(rf'全站\s*{_STAT_N}\s*道', texts["chap_idx"])
-    check(chap_ch == EXPECT["chapters"], f"[章节index] 深度Q&A={chap_ch} 期望 {EXPECT['chapters']}")
+    check(chap_ch == EXPECT["chapters_core"], f"[章节index] 深度Q&A(篇章C)={chap_ch} 期望 {EXPECT['chapters_core']}")
+    if chap_a is not None and EXPECT.get("ai_engineering_deep") is not None:
+        check(chap_a == EXPECT["ai_engineering_deep"], f"[章节index] AI工程纵深={chap_a} 期望 {EXPECT['ai_engineering_deep']}")
+    if chap_d is not None and EXPECT.get("domain_questions") is not None:
+        check(chap_d == EXPECT["domain_questions"], f"[章节index] 垂直领域={chap_d} 期望 {EXPECT['domain_questions']}")
     check(chap_all == EXPECT["total"], f"[章节index] 全站={chap_all} 期望 {EXPECT['total']}")
     if ENGINEERING:
         chap_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化要点</div>', texts["chap_idx"])
@@ -1192,7 +1206,7 @@ def main():
     # 7) 求和自洽
     check(EXPECT["p0"]+EXPECT["p1"]+EXPECT["p2"] == EXPECT["total"], "[自洽] P0+P1+P2=总量")
     check(EXPECT["expert"]+EXPECT["architect"]+EXPECT["senior"] == EXPECT["total"], "[自洽] 难度三级=总量")
-    check(EXPECT["chapters"]+EXPECT["basics"]+EXPECT["scenarios"]+EXPECT["domain_questions"] == EXPECT["total"], "[自洽] 类型四级=总量（篇章+核心原理+场景+垂直领域）")
+    check(EXPECT["chapters_core"]+EXPECT["ai_engineering_deep"]+EXPECT["basics"]+EXPECT["scenarios"]+EXPECT["domain_questions"] == EXPECT["total"], "[自洽] 类型五级=总量（篇章C+AI纵深A+核心原理+场景+垂直领域）")
 
     # 8) 卡片 id 二方一致性：章节正文 ↔ 章节 TOC；id 总数=各域分计之和（非对外「全站合计」）
     #    导图站已于 2026-09-21 下线，不再做导图引用悬空检查

@@ -1,7 +1,7 @@
 {
   "schema": "kb-counts/v1",
   "updated": "2026-10-27",
-  "note": "权威计数唯一真源（SSOT）。全局键 counts；结构/分组键 struct。全站展示计数必须 data-kb-pos + 本文件；禁止 kb-count-local；禁止页面用自然语言声明口径。题目总量 total=篇章+核心原理+场景；M/G/K 为专篇键（三者不分难度等级，故无 *_expert/_architect/_senior 键）；不设全站合计。难度等级仅覆盖 C/E/S（counts.expert/architect/senior）。",
+  "note": "权威计数唯一真源（SSOT）。全局键 counts；结构/分组键 struct。全站展示计数必须 data-kb-pos + 本文件；禁止 kb-count-local；禁止页面用自然语言声明口径。题目总量 total=篇章C(chapters_core)+AI纵深A(ai_engineering_deep)+核心原理+场景+垂直领域；chapters=chapters_core+ai_engineering_deep（C+A 合计）；M/G/K 为专篇键（三者不分难度等级）；不设全站 M/G/K 合计。难度等级覆盖进入 total 的题型（C/E/S/A/D）。",
   "base_note": "file 字段为相对项目根（Java Spring AI/）的路径；pattern 为 Python re 语法，捕获组即待同步数字。",
   "counts": {
     "total": 546,
@@ -22,7 +22,8 @@
     "engineering_groups": 8,
     "pitfalls_groups": 8,
     "chapters_pages": 22,
-    "domain_questions": 72
+    "domain_questions": 72,
+    "ai_engineering_deep": 74
   },
   "invariants": [
     {
@@ -34,8 +35,12 @@
       "desc": "难度三级求和 = 总量"
     },
     {
-      "expr": "chapters+basics+scenarios+domain_questions==total",
-      "desc": "类型四级求和 = 总量（篇章 + 核心原理 + 场景 + 垂直领域）"
+      "expr": "chapters_core+ai_engineering_deep+basics+scenarios+domain_questions==total",
+      "desc": "类型五级求和 = 总量（篇章C + AI纵深A + 核心原理 + 场景 + 垂直领域）"
+    },
+    {
+      "expr": "chapters_core+ai_engineering_deep==chapters",
+      "desc": "篇章C + AI纵深A = chapters（深度Q&A合计）"
     }
   ],
   "ov_stat_order": [
@@ -46,7 +51,8 @@
     "expert",
     "architect",
     "senior",
-    "chapters",
+    "chapters_core",
+    "ai_engineering_deep",
     "basics",
     "scenarios",
     "domain_questions"
@@ -118,7 +124,7 @@
       "pattern": "data-kb-pos=\"P07\"[^>]*>(\\d+)</span>",
       "kind": "ov_series",
       "group": 1,
-      "desc": "overview ov-stat-num 10 项（顺序见 ov_stat_order；不含方法论）"
+      "desc": "overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论）"
     },
     {
       "id": "P10_docs_readme_table",
@@ -217,8 +223,8 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "chapters",
-      "desc": "overview 页脚 篇章题数"
+      "key": "chapters_core",
+      "desc": "overview 页脚 篇章 C 题数"
     },
     {
       "id": "P20_overview_footer_basics",
@@ -297,8 +303,8 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "chapters",
-      "desc": "方法论页来源段篇章题数"
+      "key": "chapters_core",
+      "desc": "方法论页来源段篇章 C 题数"
     },
     {
       "id": "P29_methodology_prose_scenarios",
@@ -417,8 +423,8 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "chapters",
-      "desc": "overview 页头副标题篇章数"
+      "key": "chapters_core",
+      "desc": "overview 页头副标题篇章 C 题数"
     },
     {
       "id": "P45_overview_subtitle_basics",
@@ -507,8 +513,8 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "chapters",
-      "desc": "根 index 深度 Q&A 统计"
+      "key": "chapters_core",
+      "desc": "根 index 深度 Q&A（篇章 C）统计"
     },
     {
       "id": "P54_root_scenarios_stat",
@@ -527,8 +533,8 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "chapters",
-      "desc": "章节 index 深度 Q&A 统计"
+      "key": "chapters_core",
+      "desc": "章节 index 深度 Q&A（篇章 C）统计卡"
     },
     {
       "id": "P56_chap_scenarios_stat",
@@ -547,8 +553,8 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "chapters",
-      "desc": "方法论页副标题篇章题数"
+      "key": "chapters_core",
+      "desc": "方法论页副标题篇章 C 题数"
     },
     {
       "id": "P61_methodology_body_chapters",
@@ -687,8 +693,8 @@
       "kind": "number",
       "group": 1,
       "nth": 1,
-      "key": "chapters",
-      "desc": "章节 index 方法论卡 desc 篇章题数"
+      "key": "chapters_core",
+      "desc": "章节 index 方法论卡 desc 篇章 C 题数"
     },
     {
       "id": "P87_chap_eng_desc_eng",
@@ -4032,6 +4038,96 @@
       "nth": 1,
       "key": "chapters_core",
       "desc": "C wrapper section 级 dir-count（纯 C01~C15 平铺题数，不含 A 轴）"
+    },
+    {
+      "id": "P554_ai_engineering_deep",
+      "file": "java-architect-interview/nav-overview-priority.html",
+      "pattern": "data-kb-pos=\"P554\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "ai_engineering_deep",
+      "desc": "overview 页头副标题 AI 纵深 A 题数"
+    },
+    {
+      "id": "P555_domain_questions",
+      "file": "java-architect-interview/nav-overview-priority.html",
+      "pattern": "data-kb-pos=\"P555\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "domain_questions",
+      "desc": "overview 页头副标题垂直领域 D 题数"
+    },
+    {
+      "id": "P556_ai_engineering_deep",
+      "file": "java-architect-interview/nav-overview-priority.html",
+      "pattern": "data-kb-pos=\"P556\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "ai_engineering_deep",
+      "desc": "overview 页脚 AI 纵深 A 题数"
+    },
+    {
+      "id": "P557_domain_questions",
+      "file": "java-architect-interview/nav-overview-priority.html",
+      "pattern": "data-kb-pos=\"P557\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "domain_questions",
+      "desc": "overview 页脚垂直领域 D 题数"
+    },
+    {
+      "id": "P558_ai_engineering_deep",
+      "file": "java-architect-interview/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P558\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "ai_engineering_deep",
+      "desc": "方法论页来源段 AI 纵深 A 题数"
+    },
+    {
+      "id": "P559_domain_questions",
+      "file": "java-architect-interview/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P559\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "domain_questions",
+      "desc": "方法论页来源段垂直领域 D 题数"
+    },
+    {
+      "id": "P560_total",
+      "file": "java-architect-interview/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P560\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "total",
+      "desc": "方法论页来源段题目总量"
+    },
+    {
+      "id": "P561_ai_engineering_deep",
+      "file": "java-architect-interview/chapter-core-methodology.html",
+      "pattern": "data-kb-pos=\"P561\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "ai_engineering_deep",
+      "desc": "方法论页副标题 AI 纵深 A 题数"
+    },
+    {
+      "id": "P562_ai_engineering_deep",
+      "file": "java-architect-interview/index.html",
+      "pattern": "data-kb-pos=\"P562\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "ai_engineering_deep",
+      "desc": "章节 index 方法论卡 desc AI 纵深 A 题数"
     }
   ],
   "guard": {
@@ -4225,7 +4321,7 @@
             {
               "key": "chapters",
               "terms": "^struct\\.chap\\.idx\\.(c\\d\\d|ca)\\.n$",
-              "desc": "篇章题数 = Σ 各篇题数"
+              "desc": "篇章题数(C+A) = Σ 各篇题数（含 ca）"
             },
             {
               "key": "chapters_core",
@@ -4244,8 +4340,8 @@
             },
             {
               "key": "total",
-              "terms": "^(chapters|basics|scenarios|domain_questions)$",
-              "desc": "总题数 = 篇章 + 核心原理 + 场景 + 垂直领域"
+              "terms": "^(chapters_core|ai_engineering_deep|basics|scenarios|domain_questions)$",
+              "desc": "总题数 = 篇章C + AI纵深A + 核心原理 + 场景 + 垂直领域"
             },
             {
               "key": "expert",
@@ -4276,9 +4372,14 @@
               "key": "p2",
               "terms": "^struct\\.ov\\.subgroup_(7|8|9)$",
               "desc": "P2 题数 = 三个难度组的 P2 行之和（行坐标 7/8/9）"
+            },
+            {
+              "key": "ai_engineering_deep",
+              "terms": "^struct\\.chap\\.idx\\.ca\\.n$",
+              "desc": "AI 纵深题数 = A 轴 ca.n"
             }
           ],
-          "key_re": "^(chapters|chapters_core|scenarios|domain_questions|total|expert|architect|senior|p0|p1|p2)$",
+          "key_re": "^(chapters|chapters_core|ai_engineering_deep|scenarios|domain_questions|total|expert|architect|senior|p0|p1|p2)$",
           "desc": "语义键 = 若干从属键之和（恒等式）"
         },
         {
@@ -4393,7 +4494,7 @@
         },
         {
           "key_re": "^struct\\.misc\\.index\\.site-meta_2$",
-          "evidence": "站点统计「页面篇章 21」——站点级页面总数口径（15 篇章 + 6 专题：核心方法论/工程化要点/生产踩坑/核心原理速查/真实场景题/垂直领域），见 chapters_pages；如需自动化须先固化「哪些页计入」的白名单，暂人工锚定"
+          "evidence": "站点统计「页面篇章」——与 chapters_pages 同口径（chapter-*.html 全量，含 C/A/D/E/S/M/G/K）；暂人工锚定"
         },
         {
           "key_re": "^(counts\\.)?methodology_with_priority$",
