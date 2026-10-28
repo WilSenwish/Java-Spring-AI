@@ -97,9 +97,9 @@
 
 ## 4. 资源按需载入规则
 
-- `assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部** + **阅读进度**（顶栏细条 + 浮动环，方案 A；见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
+- `assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部** + **阅读进度**（顶栏细条 + 浮动环，方案 A；见 §9）+ **小屏本篇目录抽屉**（左下 `.toc-fab` + 复用 `.sidebar-toc`；见 §4.1 / §8）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
 - `assets/nav.js`：全站导航交互脚本；职责含：
-  1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）。
+  1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）；小屏下调用 `kbToc.syncExpandedFromActive` 展开当前组。
   2. **阅读进度 / 主题切换 / 回顶 / 去底兜底**（主注入在 `theme-init.js`；本脚本以 `__kbReadingProgressBound` 等标记防双重绑定）。
   3. **表格纵向卡片化**（≤640px 时 `initTableCards()` 为结构规整的表注入 `td[data-label]` 并加 `table-cards` 类；含 `colspan/rowspan` 的表自动跳过）。
 - `shared/js/mermaid.min.js`：仅在页面含 Mermaid 图时引入，并配套初始化；无图的页面不得引入。初始化须用 `mermaid.initialize((window.kbTheme && window.kbTheme.mermaidConfig({ startOnLoad: true })) || {…})`（偏蓝 `base` 主题）；禁止写死 `"neutral"` / `"default"`。换肤重绘由 `theme-init.js` 缓存 `data-kb-mermaid-src` 后 `mermaid.run`，勿在页面重复监听重绘。**每个** `<div class="mermaid">` 的上一行必须是 `<!-- prettier-ignore -->`（防止 HTML 格式化把图源码压成一行）；见 §10。
@@ -109,6 +109,7 @@
 ### 4.1 侧栏 TOC（`sidebar-toc`）与分组标题（`toc-group-title`）
 
 - **样式唯一真源**：侧栏视觉（`h3` / 链接 / `.toc-number` / `.toc-group` / `.toc-group-title` / `code-*` 着色）一律写在 `assets/design-system.css`。**禁止**在 chapter 页 `<style>` 再覆盖 `.sidebar-toc…`（专篇曾各自改字号/颜色/边框，导致 22 篇观感分裂）。
+- **小屏（≤1024）**：不 `display:none` 砍目录；改为**左下「目录」FAB（`.toc-fab`）+ 左侧抽屉**（同一 `.sidebar-toc` off-canvas）+ `.toc-backdrop` 遮罩。`theme-init.js` 注入开关；点遮罩 / Esc / 条目锚点后关闭；`html.toc-drawer-open` 锁滚。有 `.toc-group` 时默认收起子列表，仅 `.is-expanded`（含当前高亮组）展开；分组标题首次点展开、已展开再点跳转并关闭。
 - **必须**写成可点击锚点：`<a class="toc-group-title" href="#…">…</a>`。**禁止** `<div class="toc-group-title">`（`nav.js` 只高亮带 `href="#id"` 的链接，div 无法参与高亮同步）。
 - **体系色钩子**：分组标题加 `code-c|m|e|g|d|s|k|a|sec`（与卡号体系一致）；场景用 `code-s`、垂直领域用 `code-d`，勿误用 `code-g`。
 - 目标锚点须在正文存在对应 `id`（组导读 / `section` / `m-subgroup-title` 等），并建议带 `scroll-margin-top`（`design-system.css` 已覆盖 `.epq-group-head` / `.scenario-group` / `.eng-group` / `.m-subgroup-title[id]` / `.dimension-section[id]`）。
@@ -286,6 +287,7 @@ index.html                         # 首页
 - [ ] 统计条/元信息为网格或可换行，不挤成单行溢出
 - [ ] 卡片 footer（题量 + 难度徽标）小屏可换行或上下堆叠
 - [ ] 顶/底 `chapter-nav` 可点、可辨（沿用既有 900/768/480 规则）
+- [ ] **本篇目录小屏可达**：≤1024 有左下目录 FAB；可开抽屉、内滚、点条目跳转并关闭；有分组页可展开/收起；遮罩与 Esc 可关；无整页横滑
 - [ ] Mermaid 容器可横滑，不撑破版心
 - [ ] 未用预览服务打开 HTML 做视觉确认（避免 `data-page-node-id` 注入）；交付写清改动文件绝对路径与适配结论
 

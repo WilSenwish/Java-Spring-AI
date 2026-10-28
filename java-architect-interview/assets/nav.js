@@ -199,6 +199,13 @@
             active.link.scrollIntoView({ block: 'nearest', inline: 'nearest' });
           }
         }
+        // 小屏抽屉：同步展开含当前条目的组
+        if (
+          window.kbToc &&
+          typeof window.kbToc.syncExpandedFromActive === 'function'
+        ) {
+          window.kbToc.syncExpandedFromActive();
+        }
       }
     }
 

@@ -1723,10 +1723,13 @@ html[data-theme="dark"] .sidebar-toc a:hover {
 }
 
 /* ---------- 响应式 ---------- */
+/* ≤1024：侧栏改左侧抽屉（由 .toc-fab 打开）；桌面仍为 sticky 列 */
+.toc-fab,
+.toc-backdrop {
+  display: none;
+}
+
 @media (max-width: 1024px) {
-  .sidebar-toc {
-    display: none;
-  }
   .page-wrapper {
     padding: 0 var(--space-sm);
   }
@@ -1734,6 +1737,110 @@ html[data-theme="dark"] .sidebar-toc a:hover {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     max-width: 36rem;
     margin: 0 auto;
+  }
+
+  .toc-fab {
+    position: fixed;
+    left: 30px;
+    bottom: 30px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--bg2);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+    z-index: 1000;
+    line-height: 1;
+  }
+  .toc-fab:hover,
+  .toc-fab[aria-expanded='true'] {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .toc-fab svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+
+  .toc-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1090;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  html.toc-drawer-open .toc-backdrop {
+    display: block;
+  }
+
+  .sidebar-toc {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 320px);
+    max-height: none;
+    align-self: auto;
+    z-index: 1100;
+    margin: 0;
+    padding: var(--space-md);
+    padding-top: max(var(--space-md), env(safe-area-inset-top));
+    padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-right: 1px solid var(--rule);
+    box-shadow: var(--shadow-md);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    overscroll-behavior: contain;
+  }
+  html.toc-drawer-open .sidebar-toc {
+    transform: translateX(0);
+  }
+  html.toc-drawer-open,
+  html.toc-drawer-open body {
+    overflow: hidden;
+  }
+
+  /* 有分组：默认收起；.is-expanded 展开子列表 */
+  .sidebar-toc .toc-group > ol {
+    display: none;
+  }
+  .sidebar-toc .toc-group.is-expanded > ol {
+    display: block;
+  }
+  .sidebar-toc a.toc-group-title {
+    position: relative;
+    padding-right: 1.6rem;
+  }
+  .sidebar-toc a.toc-group-title::after {
+    content: '▸';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    opacity: 0.7;
+  }
+  .sidebar-toc .toc-group.is-expanded a.toc-group-title::after {
+    content: '▾';
+  }
+}
+
+@media (max-width: 480px) {
+  .toc-fab {
+    left: 16px;
+    bottom: 24px;
   }
 }
 /* ---------- 导航按钮：中等屏提前换行（2026-09-04） ----------
@@ -2133,7 +2240,10 @@ html[data-theme="dark"] .sidebar-toc a:hover {
   .go-to-bottom,
   .theme-toggle,
   .reading-progress,
-  .reading-progress-fab {
+  .reading-progress-fab,
+  .toc-fab,
+  .toc-backdrop,
+  .sidebar-toc {
     display: none !important;
   }
   .qa-card {
