@@ -1,99 +1,29 @@
 /* =========================================================================
    软件工程的核心哲学原理与方法论 · 终篇
-   交互与图表组件（原生 JS，无外部依赖）
+   交互与图表组件（原生 JS）
+   顶栏主题复用 theme-init.js 的 window.kbTheme；阅读进度与听由该脚本注入。
    资源文件：app.js  |  配套 style.css
    ========================================================================= */
 (function () {
   "use strict";
 
-  /* ---------- 主题切换（浅色 / 深色 / 跟随系统 三态） ---------- */
-  var root = document.documentElement;
-  var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-  var MODE_KEY = "secppm-theme";
-  var LEGACY_MODE_KEY = "cppam-theme"; /* 目录重命名前的旧键，读一次后迁移 */
-  var MODES = ["light", "dark", "system"];
-  function readMode() {
-    var s = null;
-    try { s = localStorage.getItem(MODE_KEY); } catch (e) {}
-    if (s && MODES.indexOf(s) !== -1) return s;
-    try {
-      s = localStorage.getItem(LEGACY_MODE_KEY);
-      if (s && MODES.indexOf(s) !== -1) {
-        try { localStorage.setItem(MODE_KEY, s); localStorage.removeItem(LEGACY_MODE_KEY); } catch (e2) {}
-        return s;
-      }
-    } catch (e) {}
-    return "system"; /* 首屏默认跟随系统 */
-  }
-  function resolveMode(mode) {
-    if (mode === "system" && mq) return mq.matches ? "dark" : "light";
-    return mode;
-  }
-  function paintThemeButtons() {
-    var mode = readMode();
-    var label = mode === "dark" ? "☾ 深色" : mode === "system" ? "◐ 系统" : "☀ 浅色";
-    var tbtn = document.getElementById("themeBtn");
-    if (tbtn) tbtn.textContent = label;
-    if (typeof fTheme !== "undefined" && fTheme) {
-      var icon = mode === "dark" ? "☾" : mode === "system" ? "◐" : "☀";
-      var txt = mode === "dark" ? "深色" : mode === "system" ? "系统" : "浅色";
-      fTheme.innerHTML = '<span class="theme-toggle-icon" aria-hidden="true">' + icon + '</span><span>' + txt + "</span>";
-    }
-  }
-  function applyTheme() {
-    var mode = readMode();
-    root.setAttribute("data-theme", resolveMode(mode));
-    root.setAttribute("data-theme-mode", mode);
-    paintThemeButtons();
-  }
-  function toggleTheme() {
-    var mode = readMode();
-    var next = MODES[(MODES.indexOf(mode) + 1) % MODES.length]; /* light → dark → system → light */
-    try { localStorage.setItem(MODE_KEY, next); } catch (e) {}
-    applyTheme();
-  }
-  var tb = document.getElementById("themeBtn");
-  if (tb) tb.addEventListener("click", toggleTheme);
-  if (mq && mq.addEventListener) {
-    mq.addEventListener("change", function () { if (readMode() === "system") applyTheme(); });
-  }
-  applyTheme();
+  /* 顶栏：回顶 + 主题。悬浮进度环 / 听 / 回顶 / 去底 / 主题由 theme-init.js 注入。 */
   var top = document.getElementById("topBtn");
   if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
 
-  /* ---------- 悬浮控件：主题切换 / 回顶 / 去底（叠加 Laws 站点风格，固定右下角） ---------- */
-  function ensureFloatBtn(cls, html, title, onClick) {
-    var b = document.createElement("button");
-    b.className = cls;
-    b.type = "button";
-    b.innerHTML = html;
-    b.setAttribute("aria-label", title);
-    b.setAttribute("title", title);
-    b.addEventListener("click", onClick);
-    document.body.appendChild(b);
-    return b;
+  var tbtn = document.getElementById("themeBtn");
+  var LABELS = { light: { i: "☀", t: "浅色" }, dark: { i: "☾", t: "深色" }, system: { i: "◐", t: "系统" } };
+  function paintThemeBtn() {
+    if (!tbtn || !window.kbTheme) return;
+    var pref = window.kbTheme.readPref();
+    var m = LABELS[pref] || LABELS.system;
+    tbtn.innerHTML = m.i + " " + m.t;
   }
-  var fTop = ensureFloatBtn("back-to-top", "&#8593;", "返回顶部", function () {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-  var fBot = ensureFloatBtn("go-to-bottom", "&#8595;", "去到底部", function () {
-    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
-  });
-  function updateFloatScroll() {
-    var y = window.scrollY || window.pageYOffset || 0;
-    var remain = document.documentElement.scrollHeight - y - window.innerHeight;
-    if (y > 400) fTop.classList.add("visible"); else fTop.classList.remove("visible");
-    if (remain > 400) fBot.classList.add("visible"); else fBot.classList.remove("visible");
+  if (tbtn) {
+    tbtn.addEventListener("click", function () { if (window.kbTheme) window.kbTheme.cycle(); });
+    paintThemeBtn();
+    document.addEventListener("kb-theme-change", paintThemeBtn);
   }
-  window.addEventListener("scroll", updateFloatScroll, { passive: true });
-  window.addEventListener("resize", updateFloatScroll);
-  updateFloatScroll();
-
-  /* 悬浮主题切换：镜像同一套三态（浅色 / 深色 / 跟随系统），复用 toggleTheme 单一真源，与工具条按钮同步 */
-  var fTheme = ensureFloatBtn("theme-toggle", "", "切换颜色主题（浅色 / 深色 / 跟随系统）", function () {
-    if (tb) tb.click();
-  });
-  paintThemeButtons();
 
   /* ---------- Tabs（九种思路切换） ---------- */
   var tabEls = document.querySelectorAll(".tab");
