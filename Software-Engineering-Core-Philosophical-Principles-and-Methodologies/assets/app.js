@@ -9,12 +9,20 @@
   /* ---------- 主题切换（浅色 / 深色 / 跟随系统 三态） ---------- */
   var root = document.documentElement;
   var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-  var MODE_KEY = "cppam-theme";
+  var MODE_KEY = "secppm-theme";
+  var LEGACY_MODE_KEY = "cppam-theme"; /* 目录重命名前的旧键，读一次后迁移 */
   var MODES = ["light", "dark", "system"];
   function readMode() {
     var s = null;
     try { s = localStorage.getItem(MODE_KEY); } catch (e) {}
     if (s && MODES.indexOf(s) !== -1) return s;
+    try {
+      s = localStorage.getItem(LEGACY_MODE_KEY);
+      if (s && MODES.indexOf(s) !== -1) {
+        try { localStorage.setItem(MODE_KEY, s); localStorage.removeItem(LEGACY_MODE_KEY); } catch (e2) {}
+        return s;
+      }
+    } catch (e) {}
     return "system"; /* 首屏默认跟随系统 */
   }
   function resolveMode(mode) {
