@@ -11,16 +11,20 @@
 ```
 Java-Spring-AI/
 ├── index.html                              # 根索引（全站聚合，三权威源之一）
-├── java-architect-interview/              # ① 章节主站 · 22 页
-│   ├── chapter-01~15-*.html                # 15 篇章（JVM / GC / 并发 / Spring / MySQL / Redis / 分布式 / 微服务 / 中间件 / AI 工程 / 网络 / 数据库 / 响应式 …）
-│   ├── chapter-core-methodology.html       #   方法论专篇（思维六组 + 五大主题 + 附录）
-│   ├── chapter-engineering-practices.html  #   工程化要点专篇（8 组）
-│   ├── chapter-production-pitfalls.html    #   生产踩坑专篇（8 组）
-│   ├── chapter-questions-eight-part.html    #   核心原理全集（74 题）
-│   ├── chapter-questions-scenario.html     #   场景题全集（74 题）
-│   ├── nav-overview-priority.html          #   优先级·难度·类型 三级聚合导航
-│   ├── nav-server-security-checkpoint.html #   服务端开发安全检查点
+├── java-architect-interview/              # ① 章节主站 · 26 HTML
+│   ├── chapter-01~15-*.html                # 15 篇章（C）
+│   ├── chapter-core-methodology.html       #   方法论（M）
+│   ├── chapter-engineering-practices.html  #   工程化（G）
+│   ├── chapter-production-pitfalls.html    #   生产踩坑（K）
+│   ├── chapter-questions-eight-part.html   #   核心原理（E）
+│   ├── chapter-questions-scenario.html     #   场景题（S）
+│   ├── chapter-question-ai-engineering-deep.html  # AI 工程纵深（A）
+│   ├── chapter-questions-domain.html       #   垂直领域（D）
+│   ├── nav-overview-priority.html          #   优先级×难度×类型大盘
+│   ├── nav-overview-quick-list.html        #   知识点速查清单
+│   ├── nav-server-security-checkpoint.html #   服务端安全检查点
 │   ├── assets/                             #   design-system.css · nav.js · theme-init.js
+│   ├── shared/                             #   fonts / js（按需）
 │   └── index.html                          # 章节索引
 ├── java-design-patterns-principles/       # ② 设计原则 & 超越 GoF 23
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
@@ -44,32 +48,34 @@ Java-Spring-AI/
 
 ## 题库速览（2026-09-21 · `docs/kb-counts.json` 真源）
 
-### 对外总量（C + E + S）
+### 对外总量（C + A + E + S + D = `total`）
 
 | 域 | 编号 | 数量 |
 |---|---|---|
 | 篇章 | `C01.01 ~ C15.xx` | 252 |
-| 核心原理 | `E01.01 ~ E15.xx` | 74 |
-| 场景题 | `S01.01 ~ S15.xx` | 74 |
-| **合计** | | **400** |
+| AI 工程纵深 | `A01.01 ~ Axx.xx` | 74 |
+| 核心原理 | `E01.01 ~ Exx.xx` | 74 |
+| 场景题 | `S01.01 ~ Sxx.xx` | 74 |
+| 垂直领域 | `D01.01 ~ Dxx.xx` | 72 |
+| **合计** | | **546** |
 
-> **口径说明**：方法论 / 工程化要点 / 生产踩坑为**专篇卡**，独立计数、不进对外总量。跨聚合页、概览页、安全卡页的对外展示均使用 C+E+S 口径。
+> **口径说明**：方法论 / 工程化 / 踩坑为**专篇卡**，独立计数、不进 `total`。真源：`docs/kb-counts.json`（改数走 `sync_counts.py bump`）。
 
 ### 专篇卡
 
 | 域 | 编号 | 数量 | 组数 |
 |---|---|---|---|
-| 方法论 | `M01.01 ~ Mxx.xx` | 145 | — |
+| 方法论 | `M01.01 ~ M16.xx` | 145 | 16 |
 | 工程化要点 | `G01.01 ~ G08.xx` | 65 | 8 |
 | 生产踩坑 | `K01.01 ~ K08.xx` | 65 | 8 |
 
-### 优先级 × 难度（求和 = 对外总量）
+### 优先级 × 难度（求和 = `total`）
 
 | 优先级 | 题数 | | 难度 | 题数 |
 |---|---|---|---|---|
-| P0 | 94 | | 专家 | 46 |
-| P1 | 248 | | 架构 | 192 |
-| P2 | 58 | | 高级 | 162 |
+| P0 | 124 | | 专家 | 65 |
+| P1 | 337 | | 架构 | 260 |
+| P2 | 85 | | 高级 | 221 |
 
 ---
 

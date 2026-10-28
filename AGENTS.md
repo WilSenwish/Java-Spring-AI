@@ -8,15 +8,20 @@
 《Java 专家 · 架构师 · 高级开发 工程能力知识库》——**纯静态 HTML 站点**（GitHub Pages 发布），无后端、无构建步骤。
 
 - `index.html`：站点总目录（聚合统计页，三权威源之一）
-- `java-architect-interview/`：章节站。方法论页 `chapter-core-methodology.html`、工程化要点页 `chapter-engineering-practices.html`、生产踩坑页 `chapter-production-pitfalls.html`、`chapter-01~15-*`、`chapter-questions-eight-part.html`（核心原理）、`chapter-questions-scenario.html`（场景）、`nav-server-security-checkpoint.html`、`nav-overview-priority.html`（导航聚合页；前缀 nav- 表示非篇章题）
-- 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`
+- `java-architect-interview/`：章节站（26 个 HTML）。
+  - 专篇：`chapter-core-methodology.html`（M）、`chapter-engineering-practices.html`（G）、`chapter-production-pitfalls.html`（K）
+  - 篇章：`chapter-01~15-*.html`（C）
+  - 题集：`chapter-questions-eight-part.html`（E）、`chapter-questions-scenario.html`（S）、`chapter-question-ai-engineering-deep.html`（A）、`chapter-questions-domain.html`（D）
+  - 导航聚合（`nav-` 前缀=非篇章题宿主）：`nav-overview-priority.html`、`nav-overview-quick-list.html`、`nav-server-security-checkpoint.html`
+  - 索引：`index.html`
+- 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`；按需图表/字体在 `java-architect-interview/shared/`
 
-**卡片编号**：`M##.##`（方法论）/ `G##.##`（工程化）/ `K##.##`（踩坑）/ `C##.##`（篇章）/ `E##.##`（核心原理）/ `S##.##`（场景）。**各体系卡数以 §3 权威计数（SSOT `docs/kb-counts.json`）为准——规则文档中禁止写死数字**（写死必然滞后：本行曾写「M01~M16 共 94 卡」，实际已是 M01~M16）。
+**卡片编号**：`M##.##` / `G##.##` / `K##.##` / `C##.##` / `E##.##` / `S##.##` / `A##.##`（AI 工程纵深）/ `D##.##`（垂直领域）。**题目总量 `total` = C + A + E + S + D**；M/G/K 为专篇键、不进 total。**各体系卡数以 §3 权威计数（SSOT `docs/kb-counts.json`）为准——规则文档中禁止写死数字**。
 
 ## 2. 硬红线（违反即返工）
 
 1. **禁止预览/打开任何 HTML 做可视化确认**。预览服务会持有文件并回写注入 `data-page-node-id` 属性（历史上单文件被注入 6517 处）。交付方式：**绝对路径 + 文字结论**。
-2. **`data-page-node-id` 全站必须为 0**。改动后必须扫描确认（46 个 HTML 文件）。
+2. **`data-page-node-id` 全站必须为 0**。改动后必须扫描确认（章节站 26 个 HTML + 根 index 等；以扫描结果为准）。
 3. **禁用词**：`面试`、`面试官`、`八股`。全站已清除，新增内容一律不得出现。
    术语映射：面试→知识点/技术沟通；面试题→知识点；八股→核心原理；层名「面试应用」→「工程表达」（`data-layer="application"` 英文值不动）。
 4. **`docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
@@ -39,18 +44,18 @@
 **零裸计数 + 配置数据化（2026-09-21 长官指令）**：展示计数一律「带 `data-kb-pos` 或 SSOT 显式豁免」，**不允许存在门禁看不见的计数——包括埋在长正文段落里的聚合计数**；**五重门禁** `validate_kb` 0c（覆盖）→ `sync_counts check`（一致）→ `audit_count_drift`（结构：位已登记 / 全局唯一 / 键有效）→ **`audit_truth_source`（真值：键值本身对不对）** → `audit_prose_exempt`（**豁免台账**：豁免本身不得成为盲区）互证。扫描范围 / 容器白名单 / 单位词 / inline 模式 / **兜底参数（`guard.coverage.fallback`）** / **正文参数（`guard.coverage.prose`）** / **真源声明（`guard.sources`：rules / manual / invariants）** / 层归属 / 派生计数真源（`guard.derived`） / 白名单 / 忽略目录 / **项目根层级（统一 `scripts/_kbroot.py::find_root`）** 全部配置于 SSOT `guard` 块，**脚本内禁止写死任何编码子集或绝对路径**（写死一个子集必然遗漏集合外的一切；写死家目录换机器即全崩）。**容器枚举必漏 → 靠 C 段「短块」结构性兜底**（块可见文本 ≤ `max_block_chars` 即视为元数据块，块内裸计数 FAIL；误报只准进 `fallback.exempt`，**不准调阈值或关兜底**）；**短块兜底之外的正文段落 → 靠 D 段「真值锚定」**（数字 ∈ V = `counts` 全部值 ∪ 已注册 position 键的当前值，且紧邻单位词，且未被 `data-kb-pos` span 精确包裹 → FAIL；误报只准进 `prose.exempt` 且每条须写理由，**不准调 `prose.units`、不准关 `prose.enabled`**）。改门禁后必跑 `probe_count_coverage_gate.py`（**6 用例**）/ `probe_count_drift_gate.py`（8 用例）/ **`probe_truth_gate.py`（6 用例，含「值错但 DOM+SSOT 四处自洽」——只有真源审计能发现）** 双向验证，改 `prose.exempt` 后另跑 `audit_prose_exempt.py` 看豁免台账，否则视为假绿。
 
 统计口径（易错）：跨大篇章/聚合分组**只算「篇章 + 核心原理 + 场景」**（= `total`）；方法论 / 工程化 / 踩坑为**专篇键**，**不设全站合计**（已废除 `sum_all`）。概览页、安全卡页的题量口径亦为 `total`，不含 M/G/K。
-全文件扫到 C+E+S+M+G+K 张卡属正常，勿把分域加总当成对外「全站合计」。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
+全文件扫到 C+E+S+A+D+M+G+K 张卡属正常，勿把分域加总当成对外「全站合计」。卡片优先级**双编码**：`data-priority="p*"` + 可见徽标
 `<span class="priority priority-p*">P*</span>`，改级两处同步。
 分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / ）须与实际卡片数一致；细则见 `docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **546** = 篇章 326 + 核心原理 74 + 场景 74 + 垂直领域 72
+- 题目总量 **546** = 篇章C 252 + AI纵深A 74 + 核心原理 74 + 场景 74 + 垂直领域 72
 - 优先级 **P0=124 / P1=337 / P2=85**（求和 = 546）
-- 难度 **专家 65 / 架构师 260 / 高级开发 221**（求和 = 546；仅覆盖 C/E/S，M/G/K 不分级）
+- 难度 **专家 65 / 架构师 260 / 高级开发 221**（求和 = 546；覆盖 C/E/S/A/D，M/G/K 不分级）
 - 方法论 **145 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
-- 口径（程序约束）：题目总量 total=篇章+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
+- 口径（程序约束）：题目总量 total=篇章C+AI纵深A+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
 - 方法论细分：带优先级 0/145（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
@@ -63,7 +68,7 @@
 | P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
-| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 10 项（顺序见 ov_stat_order；不含方法论） |
+| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论） |
 | P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
 | P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
@@ -73,7 +78,7 @@
 | P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
 | P17 | `docs/format-special.md` | docs/format-special.md 专篇合计段 |
 | P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
-| P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章题数 |
+| P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章 C 题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
 | P22 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 题目总量 |
@@ -81,7 +86,7 @@
 | P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
 | P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 meta 卡数 |
 | P27 | `java-architect-interview/chapter-questions-scenario.html` | 场景页开篇散文题数（防漂移） |
-| P28 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段篇章题数 |
+| P28 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段篇章 C 题数 |
 | P29 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段场景题数 |
 | P30 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段核心原理数 |
 | P33 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 meta 题目数 |
@@ -92,9 +97,8 @@
 | P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
 | P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
 | P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
-| P42 | `index.html` | 根 index overview 区 tagline |
 | P43 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
-| P44 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题篇章数 |
+| P44 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题篇章 C 题数 |
 | P45 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题核心原理数 |
 | P46 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题场景题数 |
 | P47 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P0 题数 |
@@ -103,11 +107,11 @@
 | P50 | `java-architect-interview/nav-overview-priority.html` | overview P0 组标题题数（含 A 轴） |
 | P51 | `java-architect-interview/nav-overview-priority.html` | overview P1 组标题题数（含 A 轴） |
 | P52 | `java-architect-interview/nav-overview-priority.html` | overview P2 组标题题数（含 A 轴） |
-| P53 | `index.html` | 根 index 深度 Q&A 统计 |
+| P53 | `index.html` | 根 index 深度 Q&A（篇章 C）统计 |
 | P54 | `index.html` | 根 index 场景题统计 |
-| P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A 统计 |
+| P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A（篇章 C）统计卡 |
 | P56 | `java-architect-interview/index.html` | 章节 index 场景题统计 |
-| P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章题数 |
+| P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章 C 题数 |
 | P61 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文篇章题数 |
 | P62 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页副标题卡数 |
 | P63 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 卡数 |
@@ -118,10 +122,10 @@
 | P68 | `java-architect-interview/index.html` | 章节 index 场景卡 desc 题数 |
 | P69 | `java-architect-interview/index.html` | 章节 index 核心原理卡 footer 题数 |
 | P70 | `java-architect-interview/index.html` | 章节 index 场景卡 footer 题数 |
-| P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 题目总量（C+E+S）参照 |
+| P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 题目总量（C+A+E+S+D=total）参照 |
 | P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
 | P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
-| P86 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc 篇章题数 |
+| P86 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc 篇章 C 题数 |
 | P87 | `java-architect-interview/index.html` | 章节 index 工程化卡 desc 卡数 |
 | P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
 | P90 | `index.html` | 根 index 踩坑统计卡 |
@@ -129,7 +133,7 @@
 | P92 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
 | P94 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
 | P95 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 卡数 |
-| P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 题目总量（C+E+S）参照 |
+| P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 题目总量（C+A+E+S+D=total）参照 |
 | P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
 | P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
@@ -205,8 +209,6 @@
 | P181 | `index.html` | 升格 local:dir-count → struct.root.dir_count_17 |
 | P182 | `index.html` | 升格 local:dir-count → struct.root.dir_count_18 |
 | P183 | `index.html` | 升格 local:dir-count → struct.root.dir_count_19 |
-| P184 | `index.html` | 安全手册章节数（7 章）——升格 local:site-meta → struct.misc.index.site-meta_3 |
-| P185 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_4 |
 | P186 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_1 |
 | P187 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_1 |
 | P188 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_2 |
@@ -466,6 +468,16 @@
 | P550 | `index.html` | 升格 local:dir-group → struct.root.dir_group_96 |
 | P551 | `index.html` | 升格 local:dir-group → struct.root.dir_group_97 |
 | P552 | `index.html` | 升格 local:dir-group → struct.root.dir_group_98 |
+| P553 | `index.html` | C wrapper section 级 dir-count（纯 C01~C15 平铺题数，不含 A 轴） |
+| P554 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题 AI 纵深 A 题数 |
+| P555 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题垂直领域 D 题数 |
+| P556 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 AI 纵深 A 题数 |
+| P557 | `java-architect-interview/nav-overview-priority.html` | overview 页脚垂直领域 D 题数 |
+| P558 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段 AI 纵深 A 题数 |
+| P559 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段垂直领域 D 题数 |
+| P560 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段题目总量 |
+| P561 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题 AI 纵深 A 题数 |
+| P562 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc AI 纵深 A 题数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

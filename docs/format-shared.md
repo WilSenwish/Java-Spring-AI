@@ -142,7 +142,7 @@
   - 右：`nav-next`（下一篇）或末篇 `nav-home`
 - **去重**：若左侧已指向某 URL，中间 `nav-center` **不得再重复**同一目标。
 - **章节站阅读链路**（上一/下一）：  
-  `核心方法论 → 工程化要点 → 生产踩坑 → C01…C15 → 服务端安全 → 核心原理速查 → 高频场景题`  
+  `核心方法论 → 工程化要点 → 生产踩坑 → C01…C15 → 服务端安全 → 核心原理 → 场景 → AI 纵深 → 垂直领域`（以各页顶底导航实链为准）  
   首篇左「返回目录」、末篇右「返回目录」。**`nav-overview-priority.html` 使用标准三槽顶底导航**（左返回目录；中：核心方法论 / 核心原理 / 场景；右进 C01），顶底同文，外包 `.site-page-nav`。
 - **篇章页居中组**（C01–C15 / 安全）：**核心方法论 → 全部章节 → 本章思维导图**；方法论页居中仅「本章思维导图」（左已是返回目录）；工程化/踩坑居中为「全部章节 + 本章思维导图」；核心原理/场景无导图链。
 - **小屏**：≤900px 左右槽各半行、居中整行；≤768px 按钮固定行高 + 省略号，禁止顶底栏因换行导致高度不一致。
@@ -159,9 +159,15 @@
 ### 6.1 文件命名
 
 ```
-chapter-{NN}-{topic-slug}.html     # 标准 QA 章节（NN=01..15 编号）
-chapter-{topic-name}.html          # 特殊章节（core-methodology / overview-priority / questions-* / server-security-checkpoint）
-index.html                         # 首页
+chapter-{NN}-{topic-slug}.html              # 标准 QA 篇章（NN=01..15，C 前缀）
+chapter-core-methodology.html              # 方法论（M）
+chapter-engineering-practices.html         # 工程化（G）
+chapter-production-pitfalls.html           # 生产踩坑（K）
+chapter-questions-{eight-part|scenario|domain}.html  # E / S / D 题集
+chapter-question-ai-engineering-deep.html  # AI 工程纵深（A；单数 question-）
+nav-overview-{priority|quick-list}.html    # 导航聚合（nav- 前缀）
+nav-server-security-checkpoint.html       # 安全 Checkpoint（nav- 前缀）
+index.html                                # 章节索引
 ```
 
 ### 6.2 锚点 ID 前缀语义（跨章节唯一约定）
@@ -174,9 +180,10 @@ index.html                         # 首页
 | `E##.##` | 核心原理速查条目 | `E01.01` | chapter-questions-eight-part |
 | `S##.##` | 场景题条目 | `S01.01` | chapter-questions-scenario |
 | `A##.##` | AI 工程纵深独立轴题号 | `A01.01` | chapter-question-ai-engineering-deep |
+| `D##.##` | 垂直领域题号 | `D01.01` | chapter-questions-domain |
+| `K##.##` | 生产踩坑条目 | `K01.01` | chapter-production-pitfalls |
 
-约定：前缀字母 >= 该页内容类型；两位数字为「主题组 . 题序」。首页与大盘、安全手册按章节锚点 `href="#其题号"` 引用。
-锚点入口均以 `#ID` 形式被 `../../index.html`、`nav-overview-priority.html` 等转发。
+约定：前缀字母标识内容类型；两位数字为「主题组 . 题序」。首页 / `nav-overview-priority.html` / `nav-overview-quick-list.html` 按 `#题号` 转发。**`total` 口径 = C+A+E+S+D**（难度与 P0–P2 覆盖此五类）；M/G/K 专篇不进 total。
 
 ## 7. 通用注意事项（历史踩坑沉淀）
 
