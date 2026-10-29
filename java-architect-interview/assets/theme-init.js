@@ -1666,7 +1666,7 @@
     function ensureIndex() {
       if (records || loading) return loading || Promise.resolve(records);
       status.textContent = '正在加载索引';
-      loading = fetch(siteRoot() + 'search-index.json')
+      loading = fetch(siteRoot() + 'docs/search-index.json')
         .then(function (res) {
           if (!res.ok) throw new Error('status ' + res.status);
           return res.json();

@@ -14,7 +14,7 @@
   4. 须声明 UTF-8 charset
   5. 若含 Mermaid：每个 <div class="mermaid"> 上一行为 prettier-ignore，且图源未塌缩（换行≥2）
   6. 无 Prettier 拆开的闭合标签 </tag\\n>
-  7. 基础样式复用：各站 `assets/style.css` 须 `@import` / 引用仓库根 `assets/satellite-base.css`
+  7. 基础样式复用：各站 `assets/style.css` 须 `@import` / 引用 `docs/assets/satellite-base.css`
 
 用法：
   python3 validate_satellite_sites.py
@@ -86,11 +86,11 @@ def check_file(path: Path, rel: str) -> list[str]:
 
 
 def check_shared_base_css(dirs: tuple[str, ...]) -> list[str]:
-    """各子站 assets/style.css 必须引用仓库根 assets/satellite-base.css。"""
+    """各子站 assets/style.css 必须引用 docs/assets/satellite-base.css。"""
     fails: list[str] = []
-    shared = BASE / "assets" / "satellite-base.css"
+    shared = BASE / "docs" / "assets" / "satellite-base.css"
     if not shared.is_file():
-        fails.append("[样式复用] 缺少仓库根 assets/satellite-base.css")
+        fails.append("[样式复用] 缺少 docs/assets/satellite-base.css")
         return fails
     for d in dirs:
         style = BASE / d / "assets" / "style.css"
