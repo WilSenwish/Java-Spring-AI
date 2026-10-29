@@ -792,6 +792,11 @@
     var currentEl = null;
     var rate = readRate();
     var cachedVoice = null;
+    var chunkWatchdog = 0;
+    var primed = false;
+    var warnedNoVoice = false;
+    var listenHintEl = null;
+    var isChromium = (typeof window.chrome !== 'undefined');
     var reduceMotion = false;
     try {
       reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -823,7 +828,13 @@
         '@media (max-width:1024px){body:has(.sidebar-toc) .kb-listen{bottom:84px}}' +
         '@media (max-width:480px){.kb-listen{left:max(16px,env(safe-area-inset-left));bottom:24px}' +
         'body:has(.sidebar-toc) .kb-listen{bottom:78px}}' +
-        '@media print{.kb-listen{display:none !important}.kb-listening{box-shadow:none !important}}';
+        '@media print{.kb-listen{display:none !important}.kb-listening{box-shadow:none !important}}' +
+        '.kb-listen__hint{position:absolute;bottom:56px;left:0;max-width:260px;padding:8px 12px;' +
+        'border-radius:10px;font-size:12px;line-height:1.5;' +
+        'background:var(--bg2,#fff);color:var(--ink,var(--text,#1e293b));' +
+        'border:1px solid var(--rule,var(--line,#e2e8f0));' +
+        'box-shadow:var(--shadow-md,0 4px 12px rgba(15,23,42,.12));pointer-events:none;white-space:normal}' +
+        '.kb-listen__hint[hidden]{display:none !important}';
       document.head.appendChild(style);
     }
 
@@ -883,6 +894,33 @@
     function rateLabel(n) {
       if (Math.abs(n - 1) < 0.01) return '1×';
       return String(n) + '×';
+    }
+
+    function showListenHint(msg) {
+      if (!listenHintEl) {
+        listenHintEl = document.createElement('div');
+        listenHintEl.className = 'kb-listen__hint';
+        if (root) root.appendChild(listenHintEl);
+      }
+      listenHintEl.textContent = msg;
+      listenHintEl.hidden = false;
+      try {
+        window.clearTimeout(listenHintEl.__t);
+        listenHintEl.__t = window.setTimeout(function () {
+          if (listenHintEl) listenHintEl.hidden = true;
+        }, 6000);
+      } catch (e) {}
+    }
+
+    function primeOnce() {
+      if (primed) return;
+      primed = true;
+      try {
+        var p = new window.SpeechSynthesisUtterance(' ');
+        p.volume = 0;
+        p.lang = 'zh-CN';
+        window.speechSynthesis.speak(p);
+      } catch (e) {}
     }
 
     function autoOn() {
@@ -1042,6 +1080,10 @@
         }
       }
       cachedVoice = best;
+      if (!warnedNoVoice && voices.length && !best) {
+        warnedNoVoice = true;
+        showListenHint('本机未安装中文语音：设置 → 辅助功能 → 朗读内容 → 嗓音，下载“中文(中国)”后可正常朗读');
+      }
     }
 
     function paint() {
@@ -1074,6 +1116,7 @@
 
     function finish() {
       state = 'idle';
+      window.clearTimeout(chunkWatchdog);
       utteranceOpen = false;
       cursor = 0;
       retries = 0;
@@ -1083,6 +1126,7 @@
 
     function stop(user) {
       gen++;
+      window.clearTimeout(chunkWatchdog);
       state = 'idle';
       utteranceOpen = false;
       cursor = 0;
@@ -1101,6 +1145,7 @@
     function armBlocked() {
       stop(false);
       if (autoOn()) btn.classList.add('is-armed');
+      showListenHint('浏览器未允许自动朗读，点左下角“听本页”按钮即可开始');
       paint();
     }
 
@@ -1142,13 +1187,34 @@
       };
       try {
         window.speechSynthesis.speak(u);
+        armWatchdog(token, item.text.length);
       } catch (eSpeak) {
         utteranceOpen = false;
         armBlocked();
       }
     }
 
+    function armWatchdog(token, textLen, startAt) {
+      window.clearTimeout(chunkWatchdog);
+      var ms = Math.max(12000, (textLen * 340) / rate + 6000);
+      if (!startAt) startAt = Date.now();
+      chunkWatchdog = window.setTimeout(function () {
+        if (token !== gen || state !== 'playing' || !utteranceOpen) return;
+        if (Date.now() - startAt < ms) {
+          armWatchdog(token, textLen, startAt);
+          return;
+        }
+        // iOS 27: onend 可能永不触发，队列冻结；强制 cancel 并推进下一段。
+        utteranceOpen = false;
+        try { window.speechSynthesis.cancel(); } catch (eCancel) {}
+        cursor++;
+        retries = 0;
+        speakNext();
+      }, ms);
+    }
+
     function start(manual) {
+      primeOnce();
       queue = buildQueue();
       if (!queue.length) return;
       cursor = indexForStart(manual);
@@ -1230,6 +1296,7 @@
       if (state !== 'playing') return;
       state = 'paused';
       gen++;
+      window.clearTimeout(chunkWatchdog);
       utteranceOpen = false;
       try {
         window.speechSynthesis.cancel();
@@ -1295,6 +1362,7 @@
 
     var spokenMs = 0;
     window.setInterval(function () {
+      if (!isChromium) return; // Safari/iOS: 程序化 pause/resume 会弄坏 TTS，跳过
       if (state !== 'playing' || !window.speechSynthesis.speaking || window.speechSynthesis.paused) {
         if (state !== 'playing') spokenMs = 0;
         return;
