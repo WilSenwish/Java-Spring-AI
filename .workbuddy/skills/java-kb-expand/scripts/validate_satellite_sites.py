@@ -86,7 +86,7 @@ def check_file(path: Path, rel: str) -> list[str]:
 
 
 def check_shared_base_css(dirs: tuple[str, ...]) -> list[str]:
-    """各子站 assets/style.css 必须引用 docs/assets/satellite-base.css。"""
+    """各子站 assets/style.css 必须 @import 且能真实解析到 docs/assets/satellite-base.css。"""
     fails: list[str] = []
     shared = BASE / "docs" / "assets" / "satellite-base.css"
     if not shared.is_file():
@@ -100,6 +100,20 @@ def check_shared_base_css(dirs: tuple[str, ...]) -> list[str]:
         css = style.read_text(encoding="utf-8")
         if "satellite-base.css" not in css:
             fails.append(f"[样式复用] {d}/assets/style.css 须 @import / 引用 satellite-base.css")
+            continue
+        # 抽取 @import url(...) 中的相对路径并相对 style.css 所在目录解析，
+        # 必须能真实定位到 docs/assets/satellite-base.css（防止 ../ 层级写错导致 404）。
+        m = re.search(r'@import\s+url\(\s*["\']?([^"\')]+)["\']?\s*\)', css)
+        if not m:
+            fails.append(f"[样式复用] {d}/assets/style.css 未找到 @import url(...) 语法")
+            continue
+        import_path = m.group(1)
+        resolved = (style.parent / import_path).resolve()
+        if resolved != shared.resolve():
+            fails.append(
+                f"[样式复用] {d}/assets/style.css 的 @import 解析为 {resolved}，"
+                f"未指向 docs/assets/satellite-base.css（层级/路径错误）"
+            )
     return fails
 
 

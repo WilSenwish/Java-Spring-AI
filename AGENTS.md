@@ -31,12 +31,12 @@
 7. **主题 / 暗黑模式**：新页须在 CSS 前引入 `theme-init.js`；换肤只改 CSS 变量；切换器、阅读进度（顶栏细条 + 浮动环）、回顶/去底与**小屏目录抽屉**（左下 FAB + 复用 `.sidebar-toc`）由 `theme-init.js` 注入（进度环在主题切换上方；`nav.js` 仅兜底）。细则见 `docs/format-shared.md` §4.1 / §9。
 8. **顶/底章节导航**：仅根 `index.html` 与章节站 `index.html` 无导航；其余页顶栏为 `body` 首块（`.site-page-nav--top`），底栏在脚本前（`.site-page-nav--bottom`），顶底同文、壳层间距对称。细则见 `format-shared.md` §4.2。
 9. **HTML Prettier + Mermaid**：用户可见 HTML 用 `npm run format:html:prepare`（补 ignore）→ `npm run format:html`（根 2 HTML + 章节站 + 三子站；Mermaid 靠 prettier-ignore 跳过）；稳态检查 `npm run format:html:check`。每个 `<div class="mermaid">` 上一行必须 `<!-- prettier-ignore -->`。细则见 `format-shared.md` §10。
-    - **三子站基础门禁**：`java-design-patterns-principles` / `Software-Engineering-Core-Philosophical-Principles-and-Methodologies` / `Software-Engineering-Laws-Theories-Principles-and-Patterns` → `npm run validate:satellites`（亦由 `validate_kb.py` 0s 步调用）：`data-page-node-id` / 禁用词 / viewport / charset / Mermaid-ignore / **须 `@import` `docs/assets/satellite-base.css`**（各站 `assets/style.css` 用 `../../../docs/assets/satellite-base.css`）。
+    - **三子站基础门禁**：`java-design-patterns-principles` / `Software-Engineering-Core-Philosophical-Principles-and-Methodologies` / `Software-Engineering-Laws-Theories-Principles-and-Patterns` → `npm run validate:satellites`（亦由 `validate_kb.py` 0s 步调用）：`data-page-node-id` / 禁用词 / viewport / charset / Mermaid-ignore / **须 `@import` `docs/assets/satellite-base.css`**（各站 `assets/style.css` 用 `../../docs/assets/satellite-base.css`）。
     - **三子站基础样式复用**：共用令牌、toolbar、FAB、排版基线在 `docs/assets/satellite-base.css`；站内专属写在各站 `assets/style.css`。
 10. **`rk/` 目录全局忽略**（2026-09-21 长官指令）：`rk/` 是软考资料站，**不属于 KB 站群**；一切扫描 / 门禁 / 审计（含计数、禁用词、格式、链接）一律跳过，AI 亦不主动改动其中内容。忽略清单权威配置：SSOT `guard.exclude`。
 11. **计数位必须可校验，且校验口径必须来自 SSOT**（2026-09-21 长官指令「登记的位置点的计数得有正确性校验」）：注册 `data-kb-pos` 的每个键**必须**能在 `guard.sources` 被某条规则或 `manual` 覆盖，否则 0c2 步 FAIL；**门禁脚本内禁止写死**任何编码子集（组号区间 / 文件名 / 容器名 / 单位词 / 白名单 / 项目根层级 / 家目录绝对路径）——写死一个子集必然遗漏集合外的一切，全部配置归 SSOT `guard`，项目根唯一实现 `scripts/_kbroot.py::find_root`。**禁止**为让门禁过而调阈值、关兜底（`fallback.enabled` / `prose.enabled`）、或把真值口径改写成当前值。改门禁必跑对应 probe 双向验证（注入必 FAIL、还原必 PASS），否则视为假绿。
 12. **根目录保持整洁（2026-10-29 长官指令）**：仓库根**只允许**存放项目级约定/配置与内容站点目录，**不得**在根目录随意新增文件或目录；共享构建产物与支撑资源统一收纳于 `docs/`：
-    - 三子站共用基础样式 `docs/assets/satellite-base.css`（各站 `assets/style.css` 以 `@import "../../../docs/assets/satellite-base.css"` 引用）；
+    - 三子站共用基础样式 `docs/assets/satellite-base.css`（各站 `assets/style.css` 以 `@import "../../docs/assets/satellite-base.css"` 引用）；
     - 静态搜索索引 `docs/search-index.json`（由 `docs/scripts/build_search_index.py` 生成，`--check` 比对 `source_hash` 与条目）；
     - 站点构建/校验脚本置于 `docs/scripts/`。
     - 根目录允许保留：`README.md` / `AGENTS.md` / `index.html` / `interview.html` / 四个内容站点目录 / `rk/`（全局忽略）/ 配置类点文件（`.gitignore`、`.nojekyll`、`.prettierrc.json`、`.prettierignore`）/ `package.json` / `package-lock.json` / `.workbuddy/`；`node_modules/` 与 `tmp/` 属 gitignored 临时产物，不计入源树整洁约束。
