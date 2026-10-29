@@ -94,6 +94,34 @@ nav.toc{position:sticky;top:var(--toolbar-h);z-index:20;margin:24px 0}
 nav.toc .wrap{display:flex;gap:18px;flex-wrap:wrap;font-size:14px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 16px}
 nav.toc a{color:var(--muted)}
 nav.toc a:hover{color:var(--text);text-decoration:none}
+/* ---------- 目录增强：滚动高亮当前章节 + 折叠/展开（适配扁平目录，三站共享） ---------- */
+nav.toc a.is-current{color:var(--accent);font-weight:600}
+/* 横条站（design-patterns / Laws）：桌面药丸底色 */
+@media (min-width:1025px){
+  nav.toc:not(.reveal) .wrap a.is-current{
+    background:color-mix(in srgb,var(--accent) 14%,transparent);
+    border-radius:7px;padding:2px 8px;
+  }
+}
+/* Core 盒子：左侧强调（桌面与抽屉通用） */
+nav.toc ol a.is-current{
+  color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 12%,transparent);
+  border-left:3px solid var(--accent);
+  border-radius:0 6px 6px 0;
+  padding-left:11px;
+}
+/* 折叠开关：横条站注入按钮、Core 用 h3；统一「目录 ▾ / ▸」 */
+nav.toc:not(.reveal)::before{content:none} /* 避免与注入开关重复 */
+.toc-fold-toggle{
+  cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:6px;
+  color:var(--text);font-weight:700;background:none;border:none;font:inherit;padding:0;line-height:1.4;
+}
+.toc-fold-toggle::after{content:"▾";font-size:.8em;color:var(--muted);transition:transform .2s ease}
+nav.toc.is-collapsed .toc-fold-toggle::after{content:"▸"}
+/* 折叠态：隐藏列表，仅留开关 */
+nav.toc.is-collapsed ol{display:none}
+nav.toc.is-collapsed .wrap a:not(.toc-fold-toggle){display:none}
 section{padding:46px 0}
 h2{font-size:25px;font-weight:720;margin-bottom:8px;letter-spacing:-.01em}
 h2 .idx{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
@@ -218,4 +246,131 @@ footer a{color:var(--muted)}
   .cascade{flex-direction:column} .cstep+.cstep{border-left:1px solid var(--line);border-top:none}
   nav.toc .wrap{gap:12px;font-size:13px;padding:8px 12px}
   .toolbar{padding:8px 14px} .btn{padding:5px 10px}
+}
+
+/* ---------- 小屏目录导航：复用主站 java-architect-interview 的「左下 FAB + 左侧抽屉」机制（≤1024） ----------
+   桌面保留 satellite-base 的 sticky 横条 / Core 的盒子目录；小屏隐藏原地目录，改为可滑出的左侧抽屉。 */
+.toc-fab,
+.toc-backdrop { display: none; }
+
+.toc-fab {
+  position: fixed;
+  left: max(30px, env(safe-area-inset-left));
+  bottom: 84px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  z-index: 1001;
+  line-height: 1;
+}
+.toc-fab:hover,
+.toc-fab[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.toc-fab svg { width: 20px; height: 20px; display: block; }
+
+.toc-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1090;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: none;
+}
+html.toc-drawer-open .toc-backdrop { display: block; }
+
+@media (max-width: 1024px) {
+  /* 原地目录转为左侧抽屉 */
+  nav.toc {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 320px);
+    max-height: none;
+    margin: 0;
+    z-index: 1100;
+    padding: 1.25rem;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    background: var(--bg);
+    border: none;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: var(--shadow-md);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    overscroll-behavior: contain;
+  }
+  html.toc-drawer-open nav.toc { transform: translateX(0); }
+  html.toc-drawer-open,
+  html.toc-drawer-open body { overflow: hidden; }
+
+  /* 横条型（design-patterns / Laws）：抽屉内竖向堆叠（「目录」标题由注入的 .toc-fold-toggle 充当，见文件末尾媒体查询） */
+  nav.toc .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+  nav.toc .wrap a {
+    display: block;
+    padding: 9px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-size: 14px;
+    text-decoration: none;
+  }
+  nav.toc .wrap a:hover { background: var(--bg2); text-decoration: none; }
+
+  /* 盒子型（Core）：抽屉内单列 */
+  nav.toc ol { columns: 1 !important; }
+  nav.toc a { display: block; }
+  nav.toc h3 { margin: 0 0 0.6rem; }
+
+  /* 抵消 Core 的 .reveal 动效对抽屉定位/透明度的干扰 */
+  nav.toc.reveal { opacity: 1; transform: translateX(-105%); }
+  html.toc-drawer-open nav.toc.reveal { transform: translateX(0); }
+
+  .toc-fab { display: flex; }
+}
+
+@media (max-width: 480px) {
+  .toc-fab { left: 16px; bottom: 84px; }
+}
+
+/* 抽屉内：折叠开关充当目录标题（横条站注入的按钮） */
+@media (max-width: 1024px) {
+  nav.toc .toc-fold-toggle {
+    width: 100%;
+    justify-content: space-between;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: .75rem;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--line);
+  }
+  nav.toc ol a.is-current { border-left-width: 3px; }
 }
