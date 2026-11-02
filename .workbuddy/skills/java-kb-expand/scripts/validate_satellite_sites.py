@@ -14,7 +14,7 @@
   4. 须声明 UTF-8 charset
   5. 若含 Mermaid：每个 <div class="mermaid"> 上一行为 prettier-ignore，且图源未塌缩（换行≥2）
   6. 无 Prettier 拆开的闭合标签 </tag\\n>
-  7. 基础样式复用：各站 `assets/style.css` 须 `@import` / 引用 `docs/assets/satellite-base.css`
+  7. 基础样式复用：各站 `assets/style.css` 须 `@import` / 引用 `docs/shared/style/satellite-base.css`
 
 用法：
   python3 validate_satellite_sites.py
@@ -86,11 +86,11 @@ def check_file(path: Path, rel: str) -> list[str]:
 
 
 def check_shared_base_css(dirs: tuple[str, ...]) -> list[str]:
-    """各子站 assets/style.css 必须 @import 且能真实解析到 docs/assets/satellite-base.css。"""
+    """各子站 assets/style.css 必须 @import 且能真实解析到 docs/shared/style/satellite-base.css。"""
     fails: list[str] = []
-    shared = BASE / "docs" / "assets" / "satellite-base.css"
+    shared = BASE / "docs" / "shared" / "style" / "satellite-base.css"
     if not shared.is_file():
-        fails.append("[样式复用] 缺少 docs/assets/satellite-base.css")
+        fails.append("[样式复用] 缺少 docs/shared/style/satellite-base.css")
         return fails
     for d in dirs:
         style = BASE / d / "assets" / "style.css"
@@ -102,7 +102,7 @@ def check_shared_base_css(dirs: tuple[str, ...]) -> list[str]:
             fails.append(f"[样式复用] {d}/assets/style.css 须 @import / 引用 satellite-base.css")
             continue
         # 抽取 @import url(...) 中的相对路径并相对 style.css 所在目录解析，
-        # 必须能真实定位到 docs/assets/satellite-base.css（防止 ../ 层级写错导致 404）。
+        # 必须能真实定位到 docs/shared/style/satellite-base.css（防止 ../ 层级写错导致 404）。
         m = re.search(r'@import\s+url\(\s*["\']?([^"\')]+)["\']?\s*\)', css)
         if not m:
             fails.append(f"[样式复用] {d}/assets/style.css 未找到 @import url(...) 语法")
@@ -112,7 +112,7 @@ def check_shared_base_css(dirs: tuple[str, ...]) -> list[str]:
         if resolved != shared.resolve():
             fails.append(
                 f"[样式复用] {d}/assets/style.css 的 @import 解析为 {resolved}，"
-                f"未指向 docs/assets/satellite-base.css（层级/路径错误）"
+                f"未指向 docs/shared/style/satellite-base.css（层级/路径错误）"
             )
     return fails
 

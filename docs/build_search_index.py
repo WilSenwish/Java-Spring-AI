@@ -3,8 +3,8 @@
 """Build or check the static search index (titles + body text).
 
 Writes <project-root>/docs/search-index.json.
-  python3 docs/scripts/build_search_index.py          # write
-  python3 docs/scripts/build_search_index.py --check  # compare hash + records, exit 1 on drift
+  python3 docs/build_search_index.py          # write
+  python3 docs/build_search_index.py --check  # compare hash + records, exit 1 on drift
 
 Indexed:
   - interview.html and java-architect-interview/*.html that contain .qa-card

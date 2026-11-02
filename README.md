@@ -39,9 +39,9 @@ Java-Spring-AI/
 │   ├── shared/                # 全站共用 fonts / js（mermaid · echarts · d3 · three，按需）
 │   ├── facts/                 # 官方参考文档归档（只读）
 │   ├── format-shared/special/std-qa.md  # 内容格式规范
-│   ├── assets/satellite-base.css  # ②③④ 三子站共用基础样式（各站 @import ../../docs/assets/satellite-base.css）
+│   ├── assets/satellite-base.css  # ②③④ 三子站共用基础样式（各站 @import ../../docs/shared/style/satellite-base.css）
 │   ├── scripts/               # 站点构建/校验脚本（build_search_index.py 等）
-│   ├── search-index.json      # 静态搜索索引（docs/scripts/build_search_index.py 生成）
+│   ├── search-index.json      # 静态搜索索引（docs/build_search_index.py 生成）
 │   └── README.md
 ├── .nojekyll                  # GitHub Pages 防 Liquid 误伤 Spring AI 模板占位符
 └── AGENTS.md                  # 项目常驻硬约束（红线 / 禁用词 / 工具链约定）
