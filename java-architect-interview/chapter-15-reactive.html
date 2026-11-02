@@ -125,15 +125,15 @@
         <!-- ============================================================ -->
         <!-- C15.01 Project Reactor 核心原理与背压机制？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C15.01" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.01</div>
-            <div class="qa-question">Project Reactor 核心原理与背压机制？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C15.01" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.01</div>
+            <div class="content-question">Project Reactor 核心原理与背压机制？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对
                 <strong>"响应式编程如何用异步数据流抽象统一同步与异步、并解决生产消费速率不匹配"</strong>
@@ -142,9 +142,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Java 异步编程的五代演进</strong>，每一代都在解决上一代的"组合困难"与"回调污染"：</p>
 
               <div class="mermaid-container">
@@ -178,9 +178,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Reactive Streams 四接口契约</strong>：这是理解一切响应式框架的根基。<code class="inline-code">Publisher.subscribe(Subscriber)</code> 建立订阅 → <code class="inline-code">Subscriber.onSubscribe(Subscription)</code> 获得订阅凭证 → Subscriber 通过 <code class="inline-code">Subscription.request(n)</code> <strong>主动拉取</strong> n 个元素（背压核心）→ Publisher 按 <code class="inline-code">onNext(item)</code> 推送，不超过请求量 → 完成时 <code class="inline-code">onComplete()</code> 或出错 <code class="inline-code">onError(t)</code>。<strong>关键约束：request 调用必须是非阻塞的</strong>，且 Publisher 发送的元素数不得超过累计 request 量。</p>
 
               <p><strong>Mono vs Flux</strong>：<code class="inline-code">Mono&lt;T&gt;</code> 发射 0 或 1 个元素后完成（对应 Optional/Future 语义），<code class="inline-code">Flux&lt;T&gt;</code> 发射 0 到 N 个元素（对应 Stream/Collection 语义）。二者不可混用边界——HTTP 请求返回单个结果用 Mono，SSE 推送用 Flux。Mono 有额外优化：不维护队列、无并发计数开销。</p>
@@ -295,9 +295,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Reactor 链式操作与背压处理</strong>：以某租赁平台系统查询车辆列表为例，演示完整的响应式链——WebClient 并发调用库存服务、背压控制、线程切换、错误降级。</p>
               <div class="code-block">
                 <pre><code><span class="com">// Reactor 链式操作: 并发查询 + 背压处理 + 线程切换</span>
@@ -366,9 +366,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Cold Publisher 与 Hot Publisher 的本质区别是什么？如何转换？</strong></p>
               <p>本质区别在于<strong>数据生产与订阅的关系</strong>：Cold 是"每个订阅者独立触发一次数据生产"（类似 HTTP 请求——调用一次执行一次，各订阅者拿到独立结果），Hot 是"数据生产与订阅无关，先有流后有订阅者"（类似广播电台——迟到的听众听不到之前的内容）。Cold 转 Hot 的方式：<code class="inline-code">connect()</code>（手动控制开始时机）、<code class="inline-code">publish().autoConnect(n)</code>（n 个订阅者到达后自动开始）、<code class="inline-code">cache()</code>（缓存生产结果供后续订阅者，相当于 replay 到无限）、<code class="inline-code">replay(n)</code>（缓存最近 n 个元素供新订阅者）、<code class="inline-code">Sinks.many()</code>（手动 push 数据，最灵活的热源）。实战中 SSE 推送、WebSocket 消息用 Hot 流，HTTP 请求/数据库查询用 Cold 流。</p>
               <p><strong>追问 2：flatMap、concatMap、merge 的并发差异是什么？</strong></p>
@@ -379,9 +379,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -404,9 +404,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>核心原理之外，响应式落地最常见的工程痛点是"上下文丢失"——<code class="inline-code">ThreadLocal</code>（MDC、安全上下文、事务上下文）在线程切换后失效，需要用 Reactor Context 解决，这也是高频追问点。</p>
               <ul>
                 <li><strong>ContextView 与 ThreadLocal 的本质区别</strong>：ThreadLocal 绑定线程，Reactor 线程切换（<code class="inline-code">publishOn/subscribeOn</code>、EventLoop）后即丢失；Context 是响应式流的一部分，随数据流传递，不绑定线程。</li>
@@ -446,9 +446,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：背压与超时、Scheduler 隔离、block 禁区审查。表达提纲：信号语义→操作符链证据→线程模型。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -461,15 +461,15 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C15.02 Spring WebFlux vs Spring Web MVC 如何选型？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C15.02" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.02</div>
-            <div class="qa-question">Spring WebFlux vs Spring Web MVC 如何选型？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.02" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.02</div>
+            <div class="content-question">Spring WebFlux vs Spring Web MVC 如何选型？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对
                 <strong>"非阻塞 Web 框架为何能提升吞吐、以及它的代价与适用边界"</strong>
@@ -478,9 +478,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Java Web 并发模型的三代演进</strong>，核心是"如何用更少的线程承载更多并发"：</p>
 
               <div class="mermaid-container">
@@ -503,9 +503,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>WebFlux 的 EventLoop 模型</strong>：以 Netty 为底座，启动时创建 <code class="inline-code">BossEventLoopGroup</code>（接收连接）和 <code class="inline-code">WorkerEventLoopGroup</code>（处理 IO，默认 CPU 核数×2 线程）。每个连接绑定到一个 Worker 线程，该线程用 Selector 多路复用，<strong>同时管理数千个连接</strong>。当某连接 IO 就绪时线程处理，等待时立即切换处理其他连接——<strong>线程永不空闲等待</strong>。这与 WebMVC 的"一个请求独占一个线程直到响应完成"形成根本对比。</p>
 
               <p><strong>Handler 处理链</strong>：WebFlux 请求处理经过 <code class="inline-code">WebFilter</code>（前置过滤）→ <code class="inline-code">WebHandler</code>（DispatcherHandler）→ <code class="inline-code">HandlerMapping</code>（路由匹配）→ <code class="inline-code">HandlerAdapter</code>（调用 Controller）→ <code class="inline-code">HandlerResultHandler</code>（序列化响应）。全程返回 <code class="inline-code">Mono&lt;Void&gt;</code>，每一步都是非阻塞的——<strong>没有一步可以阻塞线程</strong>。</p>
@@ -644,9 +644,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>WebFlux RouterFunction + WebClient + R2DBC 全栈示例</strong>：以某租赁平台的响应式 API 为例，展示路由定义、非阻塞下游调用、响应式数据访问。</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. RouterFunction 路由定义 (替代 @RestController 注解式)</span>
@@ -706,9 +706,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：WebFlux 吞吐高，但为何单请求延迟不一定比 WebMVC 低？</strong></p>
               <p>吞吐与延迟是两个维度。<strong>吞吐高</strong>是因为少量 EventLoop 线程不阻塞，能同时处理更多并发请求（资源利用率高）；<strong>单请求延迟不一定低</strong>甚至略高，原因：① Reactor 链有操作符调度、回调编排开销，比同步直接调用多一层间接性；② 线程切换（<code class="inline-code">publishOn/subscribeOn</code>）有上下文切换成本；③ 非阻塞 IO 在低并发时无法摊销多路复用优势。WebFlux 的优势在<strong>高并发场景下的尾部延迟稳定性和吞吐上限</strong>——WebMVC 线程耗尽时请求排队延迟飙升，WebFlux 少量线程持续处理，尾部延迟更平稳。<strong>低并发场景 WebMVC 延迟反而更低</strong>。</p>
               <p><strong>追问 2：WebFlux 与 Spring WebMVC 能否在同一个应用混用？</strong></p>
@@ -719,9 +719,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -739,15 +739,15 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C15.03 R2DBC 响应式数据访问原理？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C15.03" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.03</div>
-            <div class="qa-question">R2DBC 响应式数据访问原理？与 JDBC 有何本质差异？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.03" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.03</div>
+            <div class="content-question">R2DBC 响应式数据访问原理？与 JDBC 有何本质差异？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对
                 <strong>"为什么 JDBC 的阻塞模型无法适配响应式架构、R2DBC 如何用非阻塞 SPI 重新定义关系数据库访问"</strong>
@@ -756,9 +756,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Java 关系数据库访问的响应式演进</strong>：</p>
 
               <div class="mermaid-container">
@@ -789,9 +789,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>R2DBC SPI 核心接口</strong>：<code class="inline-code">ConnectionFactory</code>（创建连接，类比 JDBC DriverManager）→ <code class="inline-code">Connection</code>（数据库连接，<code class="inline-code">createStatement()</code> 返回 <code class="inline-code">Statement</code>）→ <code class="inline-code">Statement</code>（执行 SQL，<code class="inline-code">execute()</code> 返回 <code class="inline-code">Publisher&lt;Result&gt;</code>）→ <code class="inline-code">Result</code>（结果集，<code class="inline-code">map((row, meta) -&gt; ...)</code> 逐行非阻塞消费）。<strong>所有方法返回 Publisher，无任何阻塞方法</strong>。</p>
 
               <p><strong>背压传导机制</strong>：当查询返回大结果集时，R2DBC 不会一次性把所有行加载到内存。Subscriber 通过 <code class="inline-code">request(n)</code> 拉取 n 行，驱动从数据库 socket 读取 n 行后回调 <code class="inline-code">onNext</code>，Subscriber 处理完再 request 下一批——<strong>背压从应用层一路传导到数据库网络层</strong>，避免大结果集 OOM。这是 JDBC <code class="inline-code">ResultSet.next()</code> 同步迭代无法做到的。</p>
@@ -860,9 +860,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Spring Data R2DBC 完整示例</strong>：实体定义、Repository、响应式事务、DatabaseClient 自定义查询。</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. R2DBC 实体 (类似 JPA @Entity, 但无懒加载/级联)</span>
@@ -931,9 +931,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：R2DBC 的成熟度与 JDBC 差距多大？生产可用吗？</strong></p>
               <p>
                 R2DBC 1.0 于 2022 年 GA，主流数据库（PostgreSQL/MySQL/MariaDB/H2/MSSQL/Oracle）均有驱动，核心 CRUD 和事务<strong>生产可用</strong>。但与 JDBC 25 年生态相比仍有差距：①
@@ -947,9 +947,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -966,9 +966,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>选用 R2DBC 的核心量化结论：少量连接（数十级）即可支撑高并发落库，连接数上限与资源占用远低于 JDBC 每请求一连接的线程模型，容量取决于事件循环与背压而非线程数。</strong>
               </p>
@@ -1018,15 +1018,15 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C15.04 响应式错误处理与重试策略？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C15.04" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.04</div>
-            <div class="qa-question">响应式错误处理与重试策略如何设计？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.04" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.04</div>
+            <div class="content-question">响应式错误处理与重试策略如何设计？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对
                 <strong>"响应式链中错误如何传播、如何设计健壮的重试与降级机制"</strong>
@@ -1036,9 +1036,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>错误处理策略的演进</strong>，从简单到健壮：</p>
 
               <div class="mermaid-container">
@@ -1070,9 +1070,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>onError 信号传播规则</strong>：在 Reactor 链中，<code class="inline-code">onError</code>
                 是<strong>终止信号</strong>——发出后流立即终止，后续
@@ -1153,9 +1153,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>完整的重试 + 退避 + 降级 + 错误分类链</strong>：以租赁系统调用定价服务为例，展示生产级错误处理。</p>
               <div class="code-block">
                 <pre><code><span class="kw">@Service</span>
@@ -1212,9 +1212,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：重试与幂等的关系是什么？非幂等接口能重试吗？</strong></p>
               <p>重试的前提是<strong>幂等</strong>——即多次执行与一次执行效果相同。幂等接口（GET、PUT、DELETE、带幂等键的 POST）重试安全，因为重复调用不会产生副作用。非幂等接口（如普通 POST 创建订单）重试有风险——第一次请求可能已成功但响应丢失，重试会创建重复订单。<strong>非幂等接口要重试必须保证幂等性</strong>：① 用幂等键（Idempotency-Key）——客户端生成唯一 ID，服务端去重，重复请求返回首次结果；② 用唯一约束——数据库唯一索引兜底，重复插入抛异常被 <code class="inline-code">onErrorResume</code> 处理；③ 状态检查——重试前先查询是否已创建。<strong>实战</strong>：支付/下单等关键写操作必须实现幂等键再允许重试，否则宁可快速失败不重试。</p>
               <p><strong>追问 2：如何区分网络错误（可重试）与业务错误（不可重试）？</strong></p>
@@ -1222,9 +1222,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1247,9 +1247,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>错误处理与重试之外，响应式排错是高频考点——Reactor 的异步链让异常栈"没头没尾"，需要专门的工具链定位问题。</p>
               <ul>
                 <li><strong>Hooks.onOperatorDebug()</strong>：全局开启后所有操作符记录装配栈（assembly trace），异常时打印完整操作符链调用栈而非只有异常发生处。性能开销大，仅排错时临时开启，生产禁止常开。</li>
@@ -1283,15 +1283,15 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C15.05 Virtual Threads vs Reactive 如何选型？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C15.05" data-difficulty="expert" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.05</div>
-            <div class="qa-question">Virtual Threads vs Reactive 并发模型如何选型？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.05" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.05</div>
+            <div class="content-question">Virtual Threads vs Reactive 并发模型如何选型？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对
                 <strong>"Virtual Threads 是否终结响应式编程、两种并发模型的本质差异与选型决策"</strong>
@@ -1300,9 +1300,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Java 并发模型的三代演进</strong>，核心是"如何用更轻量的并发单元承载更多并发"：</p>
 
               <div class="mermaid-container">
@@ -1325,9 +1325,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Virtual Threads 调度机制</strong>：虚拟线程由 JVM 调度器（<code class="inline-code">ForkJoinPool</code> 共享池，载体线程数=CPU 核数）管理。当虚拟线程执行<strong>阻塞操作</strong>（IO/<code class="inline-code">BlockingQueue.take()</code>）时，JVM 把它的栈帧从载体线程 unmount（卸载），载体线程立即运行下一个虚拟线程；阻塞就绪后 JVM 把栈帧 mount（装载）回某载体线程恢复执行。<strong>关键：阻塞调用不占 OS 线程</strong>，这就是"同步代码、异步效率"的原理。</p>
 
               <p>
@@ -1472,9 +1472,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Virtual Threads 启用与 pinning 修复</strong>：Spring Boot 3.2+ 一行配置启用虚拟线程，同步 JDBC 代码直接获得响应式吞吐。</p>
               <div class="code-block">
                 <pre><code><span class="com"># application.yml: 一行启用 Virtual Threads (Spring Boot 3.2+)</span>
@@ -1543,9 +1543,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Virtual Threads 能否完全替代 Reactive？</strong></p>
               <p><strong>不能完全替代</strong>，二者有不可重叠的优势区。Virtual Threads 替代了 Reactive 的<strong>大部分 IO 密集场景</strong>——同步代码 + JDBC + 阻塞 HTTP 在虚拟线程下吞吐接近 Reactive，且调试简单、生态兼容，<strong>传统 CRUD/微服务调用用 Virtual Threads 更优</strong>。但 Reactive 在以下场景仍不可替代：① <strong>流式背压</strong>——SSE 推送、大文件流式传输、数据库大结果集分批拉取，Reactive 的 <code class="inline-code">request(n)</code> 背压机制能精确控速，Virtual Threads 是 Push 模型无背压；② <strong>极高并发连接</strong>——百万级 WebSocket 长连接，虚拟线程虽轻但每个仍占几 KB 栈 + 调度开销，Reactive 回调无栈更省内存；③ <strong>操作符组合</strong>——Reactor 的 <code class="inline-code">flatMap/zip/merge/combineLatest</code> 复杂流编排，用同步代码 + Virtual Threads 实现会很啰嗦；④ <strong>已有 Reactive 代码资产</strong>——迁移成本高，不必为迁移而迁移。<strong>结论</strong>：新项目 IO 密集 + 无流式背压需求优先 Virtual Threads，流式/背压/超高并发长连接保留 Reactive。</p>
               <p><strong>追问 2：IO 密集 + CPU 密集混合场景如何选型？</strong></p>
@@ -1556,9 +1556,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1572,9 +1572,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>选型之外，两种并发模型在真实系统中常需共存——Reactor 链要调阻塞 JDBC、虚拟线程侧要调响应式服务，桥接边界设计是落地必修课。</p>
               <ul>
                 <li><strong>互补而非替代</strong>：VT 是"同步代码 + 虚拟线程调度"模型，适合 IO 密集同步代码；Reactor 是"异步回调 + 事件循环"模型，适合背压 + 流式处理。</li>
@@ -1610,15 +1610,15 @@ spring:
         <!-- ============================================================ -->
         <!-- C15.06 响应式系统架构设计如何落地？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C15.06" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.06</div>
-            <div class="qa-question">响应式系统架构设计如何全栈落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C15.06" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.06</div>
+            <div class="content-question">响应式系统架构设计如何全栈落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对
                 <strong>"Reactive Manifesto 四大原则如何从理论落地为全栈响应式架构"</strong>
@@ -1627,9 +1627,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>系统架构的响应式演进</strong>：</p>
 
               <div class="mermaid-container">
@@ -1655,9 +1655,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Reactive Manifesto 四大原则落地</strong>：</p>
               <p><strong>1. Responsive（响应性）</strong>：系统在任何情况下都快速响应。落地：非阻塞全栈（WebFlux/R2DBC/WebClient）保证 IO 等待不占线程；超时控制（<code class="inline-code">timeout()</code>）快速失败；降级（<code class="inline-code">onErrorResume</code>）保可用。</p>
               <p>
@@ -1726,9 +1726,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>全栈响应式架构示例</strong>：某租赁平台系统——WebFlux + R2DBC + Reactive Redis + WebClient + 限流背压协同 + Micrometer 可观测。</p>
               <div class="code-block">
                 <pre><code><span class="com">// 全栈响应式: WebFlux + R2DBC + Reactive Redis + WebClient</span>
@@ -1811,9 +1811,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：全栈响应式的落地难点是什么？</strong></p>
               <p>
                 五大难点：① <strong>生态约束</strong>——全栈要求每个组件都有响应式驱动，但部分中间件（如旧版 Elasticsearch 客户端、部分云服务 SDK）只有阻塞客户端，强行用 <code class="inline-code">boundedElastic</code> 包装是"假响应式"；② <strong>调试与排障</strong>——Reactor 操作符栈不反映业务代码行，异常难定位，需大量 <code class="inline-code">checkpoint()</code> + <code class="inline-code">Hooks.onOperatorDebug()</code>，团队需重新学习排障方法论；③ <strong>事务与上下文</strong>——<code class="inline-code">@Transactional</code> 和 ThreadLocal 失效，需用 <code class="inline-code">TransactionalOperator</code> 和 Reactor Context 重写所有横切逻辑；④ <strong>团队心智成本</strong>——响应式编程范式与命令式差异大，团队需系统培训，误用（阻塞调用、多次订阅、无背压）导致难以排查的生产事故；⑤ <strong>混合架构边界</strong>——与遗留同步系统对接时，<code class="inline-code">block()</code>/<code class="inline-code">fromFuture</code>
@@ -1827,9 +1827,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1843,9 +1843,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>架构落地离不开质量保障——响应式链无法用传统 JUnit 直接验证，StepVerifier 是 Reactor 官方测试框架，也是必须掌握的工具。</p>
               <ul>
                 <li><strong>基本用法</strong>：<code class="inline-code">StepVerifier.create(Flux.just(1, 2, 3)).expectNext(1, 2, 3).verifyComplete()</code>——创建 → 断言元素 → 断言完成信号，测试才会真正触发订阅。</li>
@@ -1887,9 +1887,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：背压与超时、Scheduler 隔离、block 禁区审查。表达提纲：信号语义→操作符链证据→线程模型。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -1900,14 +1900,14 @@ flowchart LR
         </div>
 
         <!-- C15.07 Mono vs Flux 语义与创建操作符 -->
-        <div class="qa-card" id="C15.07" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.07</div>
-            <div class="qa-question">Mono 与 Flux 语义差异？创建类操作符如何按官方口径选型？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C15.07" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.07</div>
+            <div class="content-question">Mono 与 Flux 语义差异？创建类操作符如何按官方口径选型？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>按 Reactor Core Reference：<code class="inline-code">Flux&lt;T&gt;</code> 表示异步序列 <strong>0..N</strong> 元素；<code class="inline-code">Mono&lt;T&gt;</code> 表示异步结果 <strong>0..1</strong>（单值或空）。类型携带<strong>基数语义</strong>——HTTP 单次响应应是 Mono，SSE/列表流应是 Flux；改变最大基数的操作符会切换类型（如 <code class="inline-code">Flux#count</code> → <code class="inline-code">Mono&lt;Long&gt;</code>）。</p>
               <p>
                 本题要答清：① 为何不能「一律 Flux」；② 创建序列时 <code class="inline-code">just</code>/<code class="inline-code">defer</code>/<code class="inline-code">from*</code>/<code class="inline-code">create</code>/<code class="inline-code">generate</code>
@@ -1915,9 +1915,9 @@ flowchart LR
               </p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>
                 Reactive Streams 只规定 <code class="inline-code">Publisher</code>；Reactor 用 Mono/Flux 双类型把「基数」编码进 API，减少误用（对 Mono 做无意义的 <code class="inline-code">buffer</code> 等）。官方附录
                 <em>Which operator do I need?</em>
@@ -1925,9 +1925,9 @@ flowchart LR
               </p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">底层原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">底层原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>Mono 信号约束</strong>（官方）：成功路径是至多一次 <code class="inline-code">onNext</code> 后 <code class="inline-code">onComplete</code>，或仅 <code class="inline-code">onError</code>；禁止 <code class="inline-code">onNext</code>+<code class="inline-code">onError</code> 组合。<code class="inline-code">Mono.never()</code>
                 是例外（无信号，多用于测试）。
@@ -2002,9 +2002,9 @@ flowchart LR
               </p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <div class="code-block">
                 <pre><code><span class="com">// 懒捕获：每次订阅读最新配置（官方：just 会立即捕获）</span>
 <span class="type">Mono</span>&lt;<span class="type">Cfg</span>&gt; cfg = <span class="type">Mono</span>.defer(() -&gt; <span class="type">Mono</span>.just(loadCfg()));
@@ -2031,9 +2031,9 @@ flowchart LR
               </p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为何 HTTP 客户端结果用 Mono 而不是 Flux.just？</strong></p>
               <p>官方说明：单次请求只有一个响应，Mono 只暴露 0..1 相关操作符，避免误用 count/buffer 等；语义上与「可空异步结果」一致。</p>
               <p><strong>追问 2：just 与 defer 差在哪？</strong></p>
@@ -2042,9 +2042,9 @@ flowchart LR
               <p><code class="inline-code">generate</code>：同步、每次回调至多一个 onNext，适合状态机。<code class="inline-code">create</code>：可多线程多发，适合把监听器/回调桥进 Reactor，须处理背压（OVERFLOW 策略）。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2056,9 +2056,9 @@ flowchart LR
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>
                 对外 API 契约写明 Mono/Flux；OpenAPI/文档与实际返回类型不一致是联调事故源。可观测：对 Cold 源多次订阅会放大下游 QPS——入口做 <code class="inline-code">cache</code>/<code class="inline-code">share</code>
                 要有意识（见 C15.11）。
@@ -2069,26 +2069,26 @@ flowchart LR
         </div>
 
         <!-- C15.08 转换操作符对比 -->
-        <div class="qa-card" id="C15.08" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.08</div>
-            <div class="qa-question">map / flatMap / concatMap / switchMap / flatMapSequential 如何按官方口径对比与实战？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C15.08" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.08</div>
+            <div class="content-question">map / flatMap / concatMap / switchMap / flatMapSequential 如何按官方口径对比与实战？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>官方附录「Transforming」：1-to-1 用 <code class="inline-code">map</code>；1-to-n 或异步 Publisher 返回用 <code class="inline-code">flatMap</code>；要保留顺序用 <code class="inline-code">flatMapSequential</code> 或 <code class="inline-code">concatMap</code>；「只关心最新」用 <code class="inline-code">switchMap</code>。混淆它们是响应式链顺序错乱、下游放大、取消泄漏的根因。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>早期资料常只写 flatMap≈mergeMap。Reactor 把并发、顺序、取消语义拆到不同操作符：<code class="inline-code">flatMap</code>（并发、不保序）、<code class="inline-code">concatMap</code>（串行、保序）、<code class="inline-code">flatMapSequential</code>（立刻订阅但重排输出）、<code class="inline-code">switchMap</code>（切换时取消前一个内层）。Mono 还有 <code class="inline-code">flatMapMany</code> 升到 Flux。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">底层原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">底层原理</div>
+            <div class="content-layer-body">
               <div class="compare-table">
                 <table>
                   <thead>
@@ -2159,9 +2159,9 @@ flowchart LR
               </p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <div class="code-block">
                 <pre><code><span class="com">// 并发拉取详情，限制并发度 16（官方 flatMap 第二参数）</span>
 <span class="type">Flux</span>&lt;<span class="type">Detail</span>&gt; details = ids.flatMap(id -&gt; client.get(id), <span class="num">16</span>);
@@ -2181,9 +2181,9 @@ flowchart LR
               <p>选型口诀：同步纯函数 → map；IO 且可乱序 → flatMap+并发度；IO 且保序 → concatMap 或 flatMapSequential；UI/搜索最新值 → switchMap。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：flatMap 与 merge 关系？</strong></p>
               <p>官方把「发射顺序合并」归在 combine 段的 <code class="inline-code">merge</code>；flatMap 是「每元素映射为 Publisher 再 merge」。无并发上限的 flatMap 近似无限并发 merge，生产必须显式 concurrency。</p>
               <p><strong>追问 2：为何分页遍历常用 concatMap？</strong></p>
@@ -2192,9 +2192,9 @@ flowchart LR
               <p>上一次 HTTP/DB 订阅被 cancel；若内层有不可取消副作用，需幂等或改用 concatMap/flatMapLatest 语义评估。搜索联想是经典正向场景。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2206,35 +2206,35 @@ flowchart LR
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>代码评审检查表：每个 flatMap* 写明「是否保序 / 并发度 / 失败是否吞掉 empty」。压测观察：内层超时与取消是否与 switchMap 预期一致。参考官方附录 §2 Transforming。</p>
             </div>
           </div>
         </div>
 
         <!-- C15.09 组合与拆分 -->
-        <div class="qa-card" id="C15.09" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.09</div>
-            <div class="qa-question">zip / merge / combineLatest / concat 与 buffer / window / groupBy 如何组合拆分实战？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.09" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.09</div>
+            <div class="content-question">zip / merge / combineLatest / concat 与 buffer / window / groupBy 如何组合拆分实战？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>官方把「组合多个 Publisher」与「拆分 Flux」分列：组合看齐步（zip）、交错（merge）、最新组合（combineLatest）、串接（concat）；拆分看边界（buffer/window）与键（groupBy）。选错会导致「短板卡死」「内存窗口爆炸」「分组无界」。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>组合语义对齐 Rx 家族，但 Reactor 强调与 Mono 的 zip/when/and 终点语义（等完成而非元素流）。拆分上 window 产出 <code class="inline-code">Flux&lt;Flux&lt;T&gt;&gt;</code>，buffer 产出 <code class="inline-code">Flux&lt;List&lt;T&gt;&gt;</code>——背压与内存画像不同。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">底层原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">底层原理</div>
+            <div class="content-layer-body">
               <div class="compare-table">
                 <table>
                   <thead>
@@ -2302,9 +2302,9 @@ flowchart LR
               <p>空序列回退：<code class="inline-code">defaultIfEmpty</code>（值）与 <code class="inline-code">switchIfEmpty</code>（另一 Publisher）——官方明确区分。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <div class="code-block">
                 <pre><code><span class="com">// 并行依赖组装（最短完成数限制）</span>
 <span class="type">Mono</span>&lt;<span class="type">Page</span>&gt; page = <span class="type">Mono</span>.zip(userMono, orderMono, (u, o) -&gt; <span class="kw">new</span> <span class="type">Page</span>(u, o));
@@ -2322,9 +2322,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：zip 一方永不发射会怎样？</strong></p>
               <p>下游永久等待（除非 timeout）。生产 zip 必须给各方 timeout/默认值。</p>
               <p><strong>追问 2：buffer 与 window 怎么选？</strong></p>
@@ -2333,9 +2333,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               <p>官方 TIP：返回 GroupedFlux；key 高基数会创建大量内层流，必须限制并行 group 数并处理慢组反压。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2347,35 +2347,35 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>组合点统一加 timeout 与指标（各方 RT）。微批参数与 DB 批量上限、锁等待一起评审。参考官方附录 §2 Combining / §7 Splitting。</p>
             </div>
           </div>
         </div>
 
         <!-- C15.10 过滤错误时间背压 -->
-        <div class="qa-card" id="C15.10" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.10</div>
-            <div class="qa-question">过滤 / 错误 / 时间 / 背压类操作符如何按官方口径选用？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.10" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.10</div>
+            <div class="content-question">过滤 / 错误 / 时间 / 背压类操作符如何按官方口径选用？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>官方 §4–§6：过滤（filter/take/skip/sample/single）、错误（onErrorReturn/Resume/Complete/Map、retry/retryWhen、timeout）、时间（delay*/interval/timed）、以及背压溢出策略（onBackpressure*）。与 C15.04 错误策略卡互补——本卡按<strong>操作符决策表</strong>落地。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>重试从简单 <code class="inline-code">retry(n)</code> 演进到 <code class="inline-code">retryWhen(Retry.backoff)</code>（抖动退避）。背压从「无界缓冲默认风险」到显式 Drop/Latest/Buffer/Error。超时是错误的一种触发源，常与 onErrorResume 组合。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">底层原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">底层原理</div>
+            <div class="content-layer-body">
               <div class="compare-table">
                 <table>
                   <thead>
@@ -2421,9 +2421,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <div class="code-block">
                 <pre><code>client.get(id)
   .timeout(<span class="type">Duration</span>.ofSeconds(<span class="num">2</span>))
@@ -2438,9 +2438,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               <p>与 G06.01 超时预算对齐：链式 timeout 可加总；重试次数计入总预算。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：onErrorReturn 与 onErrorResume 怎么选？</strong></p>
               <p>固定值 → Return；要查缓存/调降级服务 → Resume（可按异常类型分支）。</p>
               <p><strong>追问 2：Drop 与 Latest？</strong></p>
@@ -2449,9 +2449,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               <p>官方区分 take 是否向上游请求无界；测试背压时要用 StepVerifier 显式 request（见 C15.06 扩展）。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2463,35 +2463,35 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>统一错误分类：可重试（超时/5xx）vs 不可重试（4xx 业务）。背压策略写进接口 SLA。参考官方附录 §4–§6 与 C15.04。</p>
             </div>
           </div>
         </div>
 
         <!-- C15.11 调度 Context 多播 阻塞边界 -->
-        <div class="qa-card" id="C15.11" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.11</div>
-            <div class="qa-question">publishOn / subscribeOn、Context、cache/share 与 block 边界如何按官方口径落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.11" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.11</div>
+            <div class="content-question">publishOn / subscribeOn、Context、cache/share 与 block 边界如何按官方口径落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>线程模型：<code class="inline-code">subscribeOn</code> 影响源订阅线程，<code class="inline-code">publishOn</code> 影响下游执行线程。多播：<code class="inline-code">share</code>/<code class="inline-code">publish</code>/<code class="inline-code">cache</code>/<code class="inline-code">replay</code>（官方 §9）。回同步世界：<code class="inline-code">block</code>/<code class="inline-code">blockFirst</code>/<code class="inline-code">toFuture</code>（§8）——在标为 non-blocking 的 Scheduler 上会抛 <code class="inline-code">UnsupportedOperatorException</code>。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><code class="inline-code">elastic()</code> 已弃用移除，IO 用 <code class="inline-code">boundedElastic()</code>。Context 替代 ThreadLocal 做跨 publishOn 传播。调试用 <code class="inline-code">checkpoint</code>/<code class="inline-code">Hooks.onOperatorDebug</code>（与 C15.06 呼应）。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">底层原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">底层原理</div>
+            <div class="content-layer-body">
               <div class="compare-table">
                 <table>
                   <thead>
@@ -2538,9 +2538,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               <p>Context：<code class="inline-code">contextWrite</code> 影响上游读取；用 <code class="inline-code">deferContextual</code> 读取。放错位置读空是高频坑（C15.01 已述，本卡强调与调度联用）。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <div class="code-block">
                 <pre><code><span class="com">// 阻塞仓库隔离</span>
 <span class="type">Mono</span>&lt;<span class="type">Row</span>&gt; row = <span class="type">Mono</span>.fromCallable(() -&gt; jdbc.find(id))
@@ -2558,9 +2558,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：两个 publishOn 谁说了算？</strong></p>
               <p>下游最近的 publishOn 决定后续段线程；subscribeOn 通常放靠近源，且多次 subscribeOn 时最接近源的生效（以实际链为准，表达时画线程切换图）。</p>
               <p><strong>追问 2：cache 与 share 区别？</strong></p>
@@ -2569,9 +2569,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               <p>官方 §8：这些 Scheduler 标为 non-blocking only，block 会 UnsupportedOperatorException——防止在 EventLoop 类线程上阻塞。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2583,9 +2583,9 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>边界清单：WebFlux 入口禁 block；与 VT/MVC 桥接时 block 必须有超时；boundedElastic 活跃线程进看板。参考官方 Core Features（Schedulers）与附录 §8–§9。</p>
             </div>
           </div>
@@ -2593,38 +2593,38 @@ db.find(id).switchIfEmpty(cache.find(id));</code></pre>
 
         <!-- ============ 章节导航 ============ -->
 
-        <div class="qa-card" id="C15.12" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C15.12</div>
-            <div class="qa-question">背压未传递的症状与开关：如何识别与临时止血？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C15.12" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C15.12</div>
+            <div class="content-question">背压未传递的症状与开关：如何识别与临时止血？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>背压断了会在某段无界缓冲里堆内存或丢请求。要会认症状并找到可关的缓冲点。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">原理映射</div>
+            <div class="content-layer-body">
               <p>Reactive 链要求需求信号向上游传递；无界 buffer、阻塞调用藏在 flatMap 都会切断背压。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">落地排查</div>
+            <div class="content-layer-body">
               <p>症状：下游慢但上游仍高速进；某 operator 后队列长度狂涨；延迟升高但 CPU 不高。动作：降上游速率、缩小缓冲、启用 drop/latest（需业务允许）、扩下游。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">参数与开关</div>
+            <div class="content-layer-body">
               <p>旋钮：prefetch、缓冲容量、onBackpressure* 策略、连接池 max。先临时限流，再修传递链。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">失败模式与回滚</div>
+            <div class="content-layer-body">
               <p>失败模式：无界 buffer 当「解法」；drop 未告知业务；阻塞调用藏在 flatMap。回滚点：恢复旧缓冲策略并限流上游。</p>
               <p>背压未传递常见于：边界用了无界队列、block 在弹性线程、下游超时被吞。症状是内存涨而错误率不高。</p>
               <p>临时止血：降产/限流/切有界队列；长期把背压写成契约并做拒绝可观测。</p>

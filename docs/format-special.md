@@ -20,7 +20,7 @@
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
 - **定位**：全库框。C/E/S 是领域细枝，G 是门禁化的器，K 是器失效的反例；本篇提供可挂载的道/法/术/势（器**不单列** Module）。势已独立为 **M16 维度**（势定律 11 卡）。开篇含五层定义、同一词跨层三例（`#hang-cross`）与四种错位（`#hang-misalign`）；**不再维护**全库挂网总表（`#hang-master`）、组级 `.mod-hang` 五列下挂、图 0d 层带（`.layer-hang`）——导航以侧栏 TOC / 卡号锚点 / 开篇竖切为准（2026-10-27 清除）。<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">145</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 **`M01~M16` 共 16 组**分层侧边目录。
-- **卡片**：仍用 `.qa-card`，但**不采用标准六层**，改用三层**单向堆叠**：
+- **卡片**：仍用 `.content-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
   |-----------|--------|------|
@@ -30,7 +30,7 @@
 
 - **难度**：**不适用 —— M 卡不分难度等级**（2026-09-16 长官决策：移除 `data-difficulty`、难度计数键与「方法论难度三级求和」不变式）。本篇合计 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P17">145</span> 卡。
 - **优先级**：**属性侧**仅部分卡片携带 `data-priority`（分子/分母以 SSOT 键 `methodology_with_priority` / `methodology` 为准，**勿写死**；展示位在 `format-shared.md` §3.2）；**可见徽标侧不呈现**（同日决策：M/G/K 去等级与优先级徽标）。不属于全站题目优先级口径（P0/P1/P2 统计进入 `total` 的 C+A+E+S+D）。
-- **题目头**：`qa-badge`（M01.01）+ `qa-question`（条目标题，**不带难度/优先级徽标**）。
+- **题目头**：`content-badge`（M01.01）+ `content-question`（条目标题，**不带难度/优先级徽标**）。
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
   - 十六组 → `#m-group-01`～`#m-group-16`（与 Module 编号一致）
   - 条目锚点仍为 `M##.##`
@@ -39,7 +39,7 @@
 
 ## <a id="2"></a>2. 优先级大盘 nav-overview-priority（ov 组件）
 
-- **定位**：知识点大盘与优先级矩阵页，无 `qa-card`，纯 `ov-*` 组件；服务于「按 P0/P1/P2 复习」的导航索引，**向 C/E/S/A/D 宿主页锚点转发**（M/G/K 不进本页）。文件名前缀 `nav-` = 非篇章题宿主。
+- **定位**：知识点大盘与优先级矩阵页，无 `content-card`，纯 `ov-*` 组件；服务于「按 P0/P1/P2 复习」的导航索引，**向 C/E/S/A/D 宿主页锚点转发**（M/G/K 不进本页）。文件名前缀 `nav-` = 非篇章题宿主。
 - **结构层级**：
 
   ```
@@ -65,20 +65,20 @@
 
 ## <a id="3"></a>3. 核心原理速查 chapter-questions-eight-part（epq 组件）
 
-- **定位**：核心原理速查手册，卡数 = SSOT `basics`（当前页 `E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `qa-card` / `qa-layer`**。
+- **定位**：核心原理速查手册，卡数 = SSOT `basics`（当前页 `E01~E12` 共 12 组），ID 前缀 `E`（如 `E01.01`）；用独立的 `epq-*` 组件体系，**不用 `content-card` / `content-layer`**。
 - **TOC**：`toc-group`（分组）+ `toc-group-title`（须为 `<a href="#epq-group-NN">` 可点击，跳到组导读；禁止 `div`）+ `toc-number` 分层锚点。
 - **分组导读**：每组（E01~E12）在首题前有 `epq-group-head`（`epq-group-title` + `group-lead`）。`group-lead` 三块：① **本组知识链**（`group-lead-chain`：intro + 分阶段 `ol`，阶段说明写清因果与边界，禁止只剩箭头关键词）② **工程化要点**（`group-lead-points`，约 **7 条**，可执行口径）③ **本组思维模式**（`group-lead-mind`，约 **5 条**命名条目）。页底须有 `chapter-nav`（与顶栏内容一致）。
 - **条目**：
 
   ```
-  epq-section
-  ├─ epq-header
-  │    ├─ epq-badge         # E##.##
-  │    ├─ epq-question      # 题干
+  content-layer
+  ├─ content-header
+  │    ├─ content-badge         # E##.##
+  │    ├─ content-question      # 题干
   │    └─ epq-tags          # epq-tag 标签组
   ├─ 正文区
   │    ├─ .q / .a  问答块
-  │    ├─ epq-section-title（子小节标题）
+  │    ├─ content-layer-title（子小节标题）
   │    ├─ epq-kp-list       关键点列表
   │    └─ epq-fu-list       延伸追问列表
   ```
@@ -89,7 +89,7 @@
 
 - **定位**：场景设计题集，卡数 = SSOT `scenarios`，ID 前缀 `S`（如 `S01.01`）。
 - **分组导读**：每个 `scenario-group` 在 `group-title` 后插入 `group-lead`（结构与核心原理页一致：本组知识链 intro+`ol` / 工程化要点 / 本组思维模式）；侧栏 `toc-group-title` 须为 `<a href="#group-N">`（禁止 `div`）。
-- **卡片**：复用 `.qa-card` 外壳，但卡片内层为**场景专属序列**（非标准六层），顺序如下：
+- **卡片**：复用 `.content-card` 外壳，但卡片内层为**场景专属序列**（非标准六层），顺序如下：
 
   | data-layer 对应 | 层标题 | 职责 |
   |-----------|--------|------|
@@ -101,13 +101,13 @@
   | (pitfall) | 常见陷阱 | 易失分点 |
   | (extension) | 扩展补全 | 可选延伸 |
 
-- **分层特征**：`practice` 通常一题出现**两层**（`解决方案` + `关键代码`），故全页 `qa-layer-title` 总量明显高于卡片数；`数据层` 标签存在 `scenario / challenge / deep / pitfall / principle / practice / extension` 的组合。
+- **分层特征**：`practice` 通常一题出现**两层**（`解决方案` + `关键代码`），故全页 `content-layer-title` 总量明显高于卡片数；`数据层` 标签存在 `scenario / challenge / deep / pitfall / principle / practice / extension` 的组合。
 - **难度 / 优先级**：卡片带 `data-difficulty` 与 `data-priority`；分布以宿主页实计与 SSOT 为准，**勿在规范文写死分档数字**。
 - 新增场景题：`id = S{组}.{序}`；严格保持上述层序；`扩展补全`可选，其余各层建议齐备。
 
 ## <a id="5"></a>5. 安全 Checkpoint nav-server-security-checkpoint（独立单页）
 
-- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无 `qa-card`**；顶/底导航与篇章页一致（`chapter-nav-top` / `chapter-nav`：上一篇 / 核心方法论 / 全部章节 / 返回目录），并**引入 `nav.js`**。
+- **定位**：服务端开发安全自检清单，覆盖 OWASP Top 10:2025；**无 `content-card`**；顶/底导航与篇章页一致（`chapter-nav-top` / `chapter-nav`：上一篇 / 核心方法论 / 全部章节 / 返回目录），并**引入 `nav.js`**。
 - **布局 / 目录**：与篇章页一致，使用 `page-wrapper` + 左侧 `sidebar-toc`（「本篇目录」）+ `content-main`；禁止正文中置目录或浅蓝 `.toc` / `.doc-toc` 盒子。
 - **样式**：仅引入 `assets/design-system.css`，页面内联 `<style>` 仅定义少量独占令牌与正文排版覆盖（如 `--quote-bg`、`--quote-border`、`--th-bg`、`--zebra`），其余取值自全局令牌。
 - **内容结构**：传统「文档章节」式，标题层级清晰：
@@ -164,12 +164,12 @@
 
 | 页面 | 外壳 | 内容单元 | ID 前缀 | 难度 | 优先级 | nav.js |
 |------|------|----------|:---:|:---:|:---:|:---:|
-| chapter-01~15（标准） | page-wrapper + sidebar | `qa-card` 六层 | `C##.##` | ✔ | ✔ | ✔ |
-| chapter-core-methodology | 同标准外壳 | `qa-card` 三层 | `M##.##` | 不呈现 | 不呈现 | ✔ |
-| chapter-engineering-practices | 同标准外壳 | `qa-card` 三层 | `G##.##` | 不呈现 | 不呈现 | ✔ |
-| chapter-production-pitfalls | 同标准外壳 | `qa-card` 三层 | `K##.##` | 不呈现 | 不呈现 | ✔ |
+| chapter-01~15（标准） | page-wrapper + sidebar | `content-card` 六层 | `C##.##` | ✔ | ✔ | ✔ |
+| chapter-core-methodology | 同标准外壳 | `content-card` 三层 | `M##.##` | 不呈现 | 不呈现 | ✔ |
+| chapter-engineering-practices | 同标准外壳 | `content-card` 三层 | `G##.##` | 不呈现 | 不呈现 | ✔ |
+| chapter-production-pitfalls | 同标准外壳 | `content-card` 三层 | `K##.##` | 不呈现 | 不呈现 | ✔ |
 | chapter-questions-eight-part | – | `epq-*` | `E##.##` | ✔ | ✔ | ✔ |
-| chapter-questions-scenario | – | `qa-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
+| chapter-questions-scenario | – | `content-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
 | chapter-question-ai-engineering-deep | – | 纵深卡 / epq 组头 | `A##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-domain | – | 领域卡 | `D##.##` | ✔ | ✔ | ✔ |
 | nav-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |

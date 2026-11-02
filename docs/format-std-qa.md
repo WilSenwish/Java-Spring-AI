@@ -1,6 +1,6 @@
 # 标准 QA 章节格式规则（format-std-qa.md）
 
-适用对象：**chapter-01 ~ chapter-15**，共 15 个「标准 QA」章节。这些章节共用同一套页面骨架与 `qa-card` 卡片格式，改动与新增必须保持一致。
+适用对象：**chapter-01 ~ chapter-15**，共 15 个「标准 QA」章节。这些章节共用同一套页面骨架与 `content-card` 卡片格式，改动与新增必须保持一致。
 
 ---
 
@@ -81,8 +81,8 @@
         </div>
       </div>
 
-      <!-- ⑤ 正文：qa-card 序列 -->
-      <div class="qa-card" id="C01.01" data-difficulty="…" data-priority="p…">
+      <!-- ⑤ 正文：content-card 序列 -->
+      <div class="content-card" id="C01.01" data-difficulty="…" data-priority="p…">
         …（见下）…
       </div>
       …
@@ -97,16 +97,16 @@
 ```
 
 要点：
-- 每章**正文几乎不使用 `h2/h3` 分隔**（正文以 `qa-card` 为唯一单元，通常仅侧栏 `h3 本篇目录` 与末尾 `h2 参考资料` 两个标题）。
-- `chapter-header` 的难度分布（`×a/×b/×c`）必须与下方各卡片的 `data-difficulty` 统计一致；`题目数：N` 必须等于 `qa-card` 数量。
+- 每章**正文几乎不使用 `h2/h3` 分隔**（正文以 `content-card` 为唯一单元，通常仅侧栏 `h3 本篇目录` 与末尾 `h2 参考资料` 两个标题）。
+- `chapter-header` 的难度分布（`×a/×b/×c`）必须与下方各卡片的 `data-difficulty` 统计一致；`题目数：N` 必须等于 `content-card` 数量。
 - `chapter-subtitle` 只做钩子；**核心知识链（含阶段说明）+ 工程化要点（分点）+ 本篇思维模式** 放在 `chapter-lead`（每章恰好一处）。知识链要对齐 mind ①②③ 并写清因果，禁止只剩箭头关键词；工程化要点用 `<ul class="chapter-lead-points">`，建议 **7～8 条**，每条写清发布/观测/回滚/门禁/容量等可执行口径，忌口号化短句；思维模式用命名条目（`<strong>模式名</strong>：口径`），建议 **6 条**，写本领域落地口径，禁止每章复制同一句「见方法论」。顶部/底部导航须同文（详见 `format-shared.md` §4.2）：箭头用字面量 `←`/`→`；`nav-center` 顺序固定为 **核心方法论 → 全部章节 → 本章思维导图**。
 
-## 3. `qa-card` 卡片规范
+## 3. `content-card` 卡片规范
 
 ### 3.1 卡片根节点
 
 ```html
-<div class="qa-card" id="C01.01" data-difficulty="senior|expert|architect" data-priority="p0|p1|p2">
+<div class="content-card" id="C01.01" data-difficulty="senior|expert|architect" data-priority="p0|p1|p2">
 ```
 
 - `id`：`C{章}.{序}`；`data-difficulty` / `data-priority` 供全局检索 / 统计。
@@ -115,25 +115,25 @@
 ### 3.2 卡片头部
 
 ```html
-<div class="qa-header">
-  <div class="qa-badge">C01.01</div>
-  <div class="qa-question">题干<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+<div class="content-header">
+  <div class="content-badge">C01.01</div>
+  <div class="content-question">题干<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
 </div>
 ```
 
 - **难度标签文案 = 短表 `专家 / 架构 / 高级`**（2026-09-16 长官决策）；正文表述用 `专家 / 架构师 / 高级开发`。门禁 `validate_kb.py` 1j。
-- **M/G/K 三专篇不参与难度分级（2026-09-16 长官决策）**：方法论 / 工程化要点 / 生产踩坑页的 `.qa-card` **不写 `data-difficulty`**（原 220 处已全清），`.qa-question` 也不写任何等级、优先级徽标，只留题干文本；M 卡不写 `data-priority`（2026-09-21 废除：属性无消费方）。
-  - **视觉影响**：`design-system.css` 有 `.qa-card[data-difficulty="architect"]`（紫左边框 + 紫 `qa-badge`）与 `["expert"]`（青绿左边框 + 青绿 `qa-badge`，2026-09-16 晚由「蓝→紫渐变」改定）属性选择器，故 M/G/K 220 张卡由「按难度变色」回落为 `.qa-card` 默认蓝色左边框——这是「取消分级」的预期结果。同步口径见 `conventions.md` §2。
-- **难度配色（2026-09-16 晚修订）**：`senior` 蓝 / `architect` 紫 / `expert` **青绿**（`--diff-expert`），卡片边框与 `qa-badge` 底色用 `--diff-expert-solid`；改前 `expert` 与 `architect` 文字色同为 `var(--accent2)`，区分度不足。难度胶囊与优先级胶囊同框，色相须避开 `P0` 红 / `P1` 琥珀 / `P2` 蓝。
+- **M/G/K 三专篇不参与难度分级（2026-09-16 长官决策）**：方法论 / 工程化要点 / 生产踩坑页的 `.content-card` **不写 `data-difficulty`**（原 220 处已全清），`.content-question` 也不写任何等级、优先级徽标，只留题干文本；M 卡不写 `data-priority`（2026-09-21 废除：属性无消费方）。
+  - **视觉影响**：`design-system.css` 有 `.content-card[data-difficulty="architect"]`（紫左边框 + 紫 `content-badge`）与 `["expert"]`（青绿左边框 + 青绿 `content-badge`，2026-09-16 晚由「蓝→紫渐变」改定）属性选择器，故 M/G/K 220 张卡由「按难度变色」回落为 `.content-card` 默认蓝色左边框——这是「取消分级」的预期结果。同步口径见 `conventions.md` §2。
+- **难度配色（2026-09-16 晚修订）**：`senior` 蓝 / `architect` 紫 / `expert` **青绿**（`--diff-expert`），卡片边框与 `content-badge` 底色用 `--diff-expert-solid`；改前 `expert` 与 `architect` 文字色同为 `var(--accent-alt)`，区分度不足。难度胶囊与优先级胶囊同框，色相须避开 `P0` 红 / `P1` 琥珀 / `P2` 蓝。
 
 ### 3.3 内容层（layer）
 
 每层结构统一为：
 
 ```html
-<div class="qa-layer" data-layer="essence">
-  <div class="qa-layer-title">本质问题</div>
-  <div class="qa-layer-body">…段落 / 表格 / 代码…</div>
+<div class="content-layer" data-layer="essence">
+  <div class="content-layer-title">本质问题</div>
+  <div class="content-layer-body">…段落 / 表格 / 代码…</div>
 </div>
 ```
 
@@ -166,7 +166,7 @@
 
 ## 5. 新增 / 修改自检清单
 
-1. 新题 → 新增 `qa-card`，同时在侧栏 `sidebar-toc`、`chapter-header` 的 `题目数 / 难度分布` 里同步数字。
+1. 新题 → 新增 `content-card`，同时在侧栏 `sidebar-toc`、`chapter-header` 的 `题目数 / 难度分布` 里同步数字。
 2. 卡片 `id`、`data-difficulty`、`data-priority` 与提问行的视觉标签三者必须一致。
 3. 6 个核心层顺序不可乱；`extension / production` 为可选项。
 4. 更新首页 / 大盘页对该题锚点的引用（`../../index.html`、`nav-overview-priority.html`）。

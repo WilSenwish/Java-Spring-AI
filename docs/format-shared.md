@@ -43,8 +43,8 @@
 
 | 令牌 | 语义 | 令牌 | 语义 |
 |------|------|------|------|
-| `--bg` / `--bg2` | 页面背景 / 次级背景 | `--ink` | 主文字色 |
-| `--accent` / `--accent2` | 主强调 / 次强调色 | `--muted` | 弱化文字 |
+| `--bg-page` / `--bg-page-card` | 页面背景 / 次级背景 | `--ink` | 主文字色 |
+| `--accent` / `--accent-alt` | 主强调 / 次强调色 | `--muted` | 弱化文字 |
 | `--danger` | 危险 / 错误 / P0 | `--success` | 成功 / P2 |
 | `--warn` | 警告 / P1 | `--rule` | 分割线 / 边框 |
 | `--code-bg` / `--code-ink` | 代码背景 / 代码文字 | `--font-body` / `--font-mono` | 正文字体 / 等宽字体 |
@@ -95,11 +95,11 @@
 | 令牌 | 档位 | 亮模式 | 语义 |
 |------|------|--------|------|
 | `--diff-expert` | 专家 | `#0f766e` 青绿 | 顶级理解（与架构师区分） |
-| `--diff-architect` | 架构师 | 继承 `--accent2`（#7c3aed 紫） | 系统设计 |
+| `--diff-architect` | 架构师 | 继承 `--accent-alt`（#7c3aed 紫） | 系统设计 |
 | `--diff-senior` | 高级开发 | 继承 `--accent-senior`（#2563eb 蓝） | 常规进阶 |
 
 > 暗黑模式：`--code-*` / `--prio-*` / `--diff-*` / `--code-total` / `--danger` / `--warn` / `--accent*` 全部有对应暗色调，三处（亮/手动暗/自动暗）必须同步维护。
-> 使用规范：页面内联 CSS 或 `<span style="color: var(--prio-p0)">` 一律引用这些语义令牌，**禁止**直接写 `var(--danger)` / `var(--accent2)` 等低层令牌。
+> 使用规范：页面内联 CSS 或 `<span style="color: var(--prio-p0)">` 一律引用这些语义令牌，**禁止**直接写 `var(--danger)` / `var(--accent-alt)` 等低层令牌。
 
 > 安全手册页曾用 `--quote-bg`、`--th-bg` 等仅页面内联变量扩充，不影响全局令牌。
 
@@ -118,9 +118,9 @@
 - 卡片根节点用 `data-difficulty="senior|expert|architect"` 记录机器可读；提问行内叠加 `<span class="difficulty difficulty-xxx">文案</span>` 作视觉标签。
   - **口径（2026-09-16 长官决策）**：**标签位**一律短表 **专家 / 架构 / 高级**（徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` / `.ov-subgroup-title`、各导航页 `card-tags` / `q-tags`、页脚排序说明）；**正文**用 **专家 / 架构师 / 高级开发**。存量正文中把等级当定语的写法（「架构级理解」「专家级深度」等 8 处）保留、不再新增。门禁 `validate_kb.py` 1j。
   - **`M` / `G` / `K` 三专篇彻底取消难度分级（同日决策）**：不写 `data-difficulty`、不呈现难度徽标、`kb-counts.json` 无对应难度键与不变式；`counts.expert/architect/senior`（55/221/196 = 472）**只覆盖 C/E/S**。细则见 `conventions.md` §2。
-  - **优先级例外**：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡**不呈现优先级徽标**；三处载体同步：专篇页 `.qa-question`、根 index 的 M/G/K 区块（220 条 q-item，连 `.q-tags` 壳一并去掉）、章节导航 index 的三张专篇 `chapter-card`（无 `.card-tags`）。
-  - **配色（2026-09-16 晚修订，长官反馈「专家/架构区分度不明显」）**：`senior` = 蓝 `--accent`、`architect` = 紫 `--accent2`、`expert` = **青绿 `--diff-expert`**（浅色 `#0f766e` / 深色 `#2dd4bf`）。**改前** `expert` 与 `architect` 的文字色**同为 `var(--accent2)`**、底色都是 10% 蓝紫浅色，只有边框透明度 0.2/0.3 的微差，等于专家借用了架构的紫 —— 这是「区分度不明显」的真因。专家卡的左边框与 `qa-badge` 底色改用 `--diff-expert-solid`（浅 `#0f766e` / 深 `#14b8a6`），**原「蓝→紫渐变」已废弃**；两个令牌拆开的原因：徽标底色承白字、胶囊文字是前景色，对比度要求相反，同值无法兼顾。
-  - **难度色相须避开优先级色相**（二者在 `.qa-question` 内紧邻同框）：蓝＝高级 + `P2`；紫＝架构 + `callout-deep`；红＝`P0`；琥珀＝`P1` + `callout-pitfall`；翡翠绿＝`callout-tip`。可用余量只剩青绿。`.layer-tag`（想/做/守）刻意沿用架构紫，**不随难度配色改动**。
+  - **优先级例外**：`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡**不呈现优先级徽标**；三处载体同步：专篇页 `.content-question`、根 index 的 M/G/K 区块（220 条 q-item，连 `.q-tags` 壳一并去掉）、章节导航 index 的三张专篇 `chapter-card`（无 `.card-tags`）。
+  - **配色（2026-09-16 晚修订，长官反馈「专家/架构区分度不明显」）**：`senior` = 蓝 `--accent`、`architect` = 紫 `--accent-alt`、`expert` = **青绿 `--diff-expert`**（浅色 `#0f766e` / 深色 `#2dd4bf`）。**改前** `expert` 与 `architect` 的文字色**同为 `var(--accent-alt)`**、底色都是 10% 蓝紫浅色，只有边框透明度 0.2/0.3 的微差，等于专家借用了架构的紫 —— 这是「区分度不明显」的真因。专家卡的左边框与 `content-badge` 底色改用 `--diff-expert-solid`（浅 `#0f766e` / 深 `#14b8a6`），**原「蓝→紫渐变」已废弃**；两个令牌拆开的原因：徽标底色承白字、胶囊文字是前景色，对比度要求相反，同值无法兼顾。
+  - **难度色相须避开优先级色相**（二者在 `.content-question` 内紧邻同框）：蓝＝高级 + `P2`；紫＝架构 + `callout-deep`；红＝`P0`；琥珀＝`P1` + `callout-pitfall`；翡翠绿＝`callout-tip`。可用余量只剩青绿。`.layer-tag`（想/做/守）刻意沿用架构紫，**不随难度配色改动**。
 
 ### 3.2 优先级 `priority-p*`
 
@@ -246,7 +246,7 @@ index.html                                # 章节索引
 - **无图表页**：不写 mermaid 引入与初始化代码，避免多余网络开销。
 - **代码块内尖括号必须转义**：`<pre><code>` 仅保留空白/换行，**不禁用标签解析**——Java 泛型 `Map<T,S>`、lambda `->`、比较符等必须写成 `&lt;` / `&gt;`，否则 `<String` 被当作标签起始导致渲染错乱（chapter-07 曾踩坑）。
 - **命令占位符转义**：`<pid>` 之类占位符必须写 `&lt;pid&gt;`，否则被浏览器当作未知标签、"pid" 文本被吞（mind-02 曾踩坑）。
-- **顶层 div 必须平衡**：`qa-card` 的关闭 `</div>` 缺失会让后续所有卡片嵌套进该卡、并"偷走" `page-wrapper` 的关闭标签（chapter-09 曾踩坑）；改卡后应复核整页 div 深度为 0。
+- **顶层 div 必须平衡**：`content-card` 的关闭 `</div>` 缺失会让后续所有卡片嵌套进该卡、并"偷走" `page-wrapper` 的关闭标签（chapter-09 曾踩坑）；改卡后应复核整页 div 深度为 0。
 - **改文件名后的同步**：凡改名为 `chapter-*` 的文件，需同步更新 `../../index.html`、`../index.html`、`nav-overview-priority.html` 内的引用 href（曾发生安全手册从 `security/` 移入本目录并更名）。
 - **侧栏分组标题禁止用 div**：`<div class="toc-group-title">` 无法被 `nav.js` 高亮；必须用 `<a class="toc-group-title" href="#…">`，且正文有对应 `id`（方法论 / 工程化曾踩坑）。
 - **顶底导航须同文**：改 `chapter-nav-top` 时同步 `chapter-nav`；箭头与「返回目录」文案见 §4.2。
@@ -284,14 +284,14 @@ index.html                                # 章节索引
 3. **禁止**：固定宽表格/代码块不横滑；卡片页脚与标签不换行导致横向溢出；仅桌面 `hover` 位移作为唯一可发现性（触控设备须可直接点击）。
 4. **长 token 换行兜底（2026-09-15 补，实测事故）**：`body` 必须声明 `overflow-wrap: anywhere`——它是可继承属性，一条声明覆盖全站所有文本容器。缺此声明时，`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`、`-Djdk.tracePinnedThreads=full|short` 这类长英文标识符/路径/方法签名不换行，横向撑破卡片：实测 375px 视口下核心原理页（`chapter-questions-eight-part.html`）文档溢出 **248px**、**18 处**元素越界（`@media` 内的逐选择器兜底不可靠，`.epq-kp-list li` / `.epq-fu-list li` / `ol>li` / `.callout p` 全被漏掉）。
    裸 `<pre>`（未被 `.code-block` 包裹）另需 `pre { overflow-x: auto }` 兜底：实测 chapter-07 有 8 处裸 pre 溢出 **814px**。
-   > 注意：**逐选择器枚举的兜底方式本身是缺陷来源**——共享 CSS 原先只覆盖 `qa-*` / `epq-question` / `chapter-card *`，新增的 `epq-*` 正文容器整类被漏。优先用可继承的全局兜底而非罗列选择器。
+   > 注意：**逐选择器枚举的兜底方式本身是缺陷来源**——共享 CSS 原先只覆盖 `qa-*` / `content-question` / `chapter-card *`，新增的 `epq-*` 正文容器整类被漏。优先用可继承的全局兜底而非罗列选择器。
 5. **列表 marker 缩进兜底（2026-09-16 补，实测事故）**：`design-system.css` 必须保留零特异度兜底
    `:where(ul, ol) { padding-inline-start: 1.25rem }`。顶部 reset（`* { margin: 0; padding: 0 }`）抹掉了
    `ul` / `ol` 的 UA 默认 `padding-inline-start`（40px），全站列表缩进因此完全依赖各自的类规则；
    凡未匹配到类规则的列表 `padding-left` 即为 0，而 `list-style-position: outside` 的圆点/数字是
    **绘制在内容盒之外**的——会被甩进卡片内边距区：桌面表现为「列表没有缩进、圆点贴着卡片边缘」，
    小屏（卡片内边距收窄到 `0.9rem` = 14.4px）直接越出卡片。实测核心原理页 20 处
-   （`.epq-section > ul/ol`）、安全检查页 1 处（`main.content-main > ol`）。
+   （`.content-layer > ul/ol`）、安全检查页 1 处（`main.content-main > ol`）。
    > 必须用 `:where()` 把特异度压到 0，这样任何带类名的列表规则（`.epq-kp-list { padding: 0 }`、
    > `.map-col ul { padding: 0 }`、`.sidebar-toc ol { padding: 0 }`、`.guide-body ul { padding-left: 1.2em }`）
    > 都能覆盖它。**写成裸选择器 `ul, ol { … }`（特异度 0,0,1）会顶掉这些自定义列表的排版**，
@@ -301,7 +301,7 @@ index.html                                # 章节索引
    `.content-main ul { padding-left: 24px }`、`chapter-questions-scenario.html` 的
    `.reading-guide .guide-body ul { padding-left: 1.2em }`；`ol` 于是回落到共享样式的 `1.25rem`
    兜底，**数字比同容器的圆点少缩进 4px**（实测安全检查页正文数字列表 pl=20 vs 圆点 pl=24）。
-   另注意 `footer .sources ol` / `.qa-layer-body ul, ol` 用的是 `1.2rem`，与兜底的 `1.25rem` 不同值。
+   另注意 `footer .sources ol` / `.content-layer-body ul, ol` 用的是 `1.2rem`，与兜底的 `1.25rem` 不同值。
    `check_list_indent.js` 按「同容器内 `min(ol pl) < max(ul pl) − 0.5`」拦截。
    > `list-style: none` 的自定义装饰列表（`.map-col ul` / `.epq-kp-list ul` / `.sidebar-toc ol`）
    > 不参与该判定。
@@ -450,7 +450,7 @@ index.html                                # 章节索引
 
 硬约束：
 
-1. **令牌只写 CSS 变量**：新增样式优先 `var(--bg)` / `var(--ink)` / `var(--accent)` 等；禁止新增仅适配浅色的裸 hex 作为页面主色（装饰性章节色条、accent 底上的 `#fff` 文字可例外）。
+1. **令牌只写 CSS 变量**：新增样式优先 `var(--bg-page)` / `var(--ink)` / `var(--accent)` 等；禁止新增仅适配浅色的裸 hex 作为页面主色（装饰性章节色条、accent 底上的 `#fff` 文字可例外）。
 2. **深色令牌块**：`design-system.css` 须含 `html[data-theme="dark"]` 与 `@media (prefers-color-scheme: dark)` 下 `html:not([data-theme="light"])` 同套令牌。
 3. **不改** `docs/facts/`；不重写 Mermaid 图内数百处 `fill:#dbeafe`（**源码保持浅色**，深色改写一律在运行时做）。
    注意：`themeVariables` 只覆盖**无内联 fill** 的节点；`style X fill:#dbeafe` 会渲染成元素上的

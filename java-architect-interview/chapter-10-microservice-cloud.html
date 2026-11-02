@@ -181,15 +181,15 @@
         <!-- ============================================================ -->
         <!-- C10.01 微服务架构的服务注册发现与配置中心如何选型？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.01" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.01</div>
-            <div class="qa-question">微服务架构的服务注册发现与配置中心如何选型？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C10.01" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.01</div>
+            <div class="content-question">微服务架构的服务注册发现与配置中心如何选型？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对服务治理"<strong>地址发现</strong>"机制的
                 <strong>CAP 取舍</strong>理解，以及注册中心与配置中心"<strong>为何常合二为一又各有侧重</strong>"的工程逻辑。核心不是罗列组件，而是回答：注册中心为何优先选 AP 而非 CP？配置中心的推送机制如何权衡实时性与压力？选型时如何匹配团队技术栈与规模。
@@ -197,9 +197,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>起源：硬编码 IP → DNS + 负载均衡（LVS/Nginx）</strong>。早期单体与集群用 DNS 解析 + 反向代理做流量分发，变更需人工改配置，无法支撑服务的动态上下线。</p>
               <p><strong>ZooKeeper（2008，Yahoo→Apache）</strong>：通用分布式协调服务，基于 ZAB 共识（CP）。用临时顺序节点实现服务注册（客户端断开会话则节点消失）。Kafka 早期、Dubbo 2.x 默认用 ZK 做注册中心。问题：<strong>注册中心场景下"可用性比强一致更重要"</strong>——Leader 选举期间集群不可写，注册中心不可用会引发服务发现雪崩。</p>
               <p><strong>Eureka（2012，Netflix）</strong>：专为服务注册设计的 <strong>AP 系统</strong>。去中心化对等节点，Peer-to-Peer 复制，允许分区内各节点数据不一致；客户端 30s 心跳 + 自我保护模式。Spring Cloud Netflix 1.x 时代的事实标准。（Eureka 2.x 开发中止，Spring Cloud Netflix 时代已过，当前推荐 Nacos 作为注册发现与配置中心）Eureka 1.x 作为演进历史对比保留。</p>
@@ -209,9 +209,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>注册中心为何选 AP 而非 CP</strong>：服务发现允许<strong>短暂不一致</strong>（多返回一个已下线实例，调用失败重试即可，代价可控）；但绝不能<strong>不可用</strong>（注册中心宕机 → 新请求无法寻址 → 雪崩）。AP 的代价是"可能拿到旧实例列表"，通过客户端心跳 + 健康检查 + 调用重试容错，工程上可接受。这正是 Eureka/Nacos-AP 的设计动机。</p>
 
               <p><strong>Eureka 心跳与自我保护</strong>：客户端 30s 发一次心跳续约，90s 未续约则剔除；<strong>自我保护模式</strong>——当 15 分钟内心跳失败比例 &gt; 85% 时，Eureka 认为可能发生网络分区，停止剔除实例（宁可保留过期实例也不误删），待网络恢复后再清理。这是 AP 优先可用性的体现。</p>
@@ -286,9 +286,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>选型决策</strong>：</p>
               <ul>
                 <li><strong>中小规模 + Spring Cloud Alibaba</strong> → <strong>Nacos</strong>（注册 + 配置一体，AP/CP 可切，开箱即用）。</li>
@@ -329,9 +329,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Eureka 自我保护机制的利弊？</strong></p>
               <p>利：网络分区时不误删存活实例，避免大面积路由失败。弊：分区期间不剔除已真正下线的实例，消费者拿到失效地址导致调用失败率上升。本质是<strong>"宁可错杀不出，不可错杀入"</strong>的可用性优先权衡。Nacos 的 AP 模式同样有临时实例心跳过期剔除，但持久实例走服务端主动探测，更精准。</p>
               <p><strong>追问 2：服务实例下线如何做到完全平滑？</strong></p>
@@ -339,9 +339,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -355,9 +355,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：金丝雀错误预算、依赖超时传导、配置回滚。表达提纲：调用链预算→治理参数→发布门禁。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -370,22 +370,22 @@ spring:
         <!-- ============================================================ -->
         <!-- C10.02 API 网关在微服务中的核心职责？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.02" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.02</div>
-            <div class="qa-question">API 网关在微服务中的核心职责？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.02" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.02</div>
+            <div class="content-question">API 网关在微服务中的核心职责？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>网关是微服务边界的<strong>统一入口</strong>，考察"<strong>横切关注点下沉</strong>"的设计思想与网关选型演进。核心回答：网关应做什么（路由/鉴权/限流/熔断/协议转换/可观测）、<strong>不应做什么（业务逻辑）</strong>，以及从 Zuul 到 Gateway 到 APISIX 的非阻塞与动态化演进动机。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Nginx（2004）</strong>：反向代理 + 负载均衡，高性能但偏静态配置，非业务网关，常作为网关前置的流量层。</p>
               <p><strong>Zuul 1.x（2013，Netflix）</strong>：Spring Cloud Netflix 早期标配。基于 Servlet 同步阻塞模型，每请求一线程，filter 链可扩展。简单易用，但高并发下线程膨胀，性能受限。Netflix 进入维护模式后，Spring Cloud 生态主流转向 Spring Cloud Gateway；APISIX/Envoy 则多用于独立 API 网关和 Mesh 入口。</p>
               <p><strong>Zuul 2.x（2018）</strong>：Netty 异步非阻塞重写，性能大幅提升。但 Netflix 内部使用为主，社区未广泛普及，Spring 官方未集成，非社区主流方案，国内基本不采用。</p>
@@ -396,9 +396,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>网关核心职责（横切关注点下沉）</strong>：</p>
               <ol>
                 <li><strong>路由转发</strong>：按 Path/Header/Host 将请求路由到后端服务。</li>
@@ -493,9 +493,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Spring Cloud Gateway 路由 + 限流 + 鉴权配置</strong>：</p>
               <div class="code-block">
                 <pre><code>spring:
@@ -542,9 +542,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：网关如何避免单点故障？</strong></p>
               <p>网关无状态 → 多实例部署 → 前置 SLB（如 Nginx/云厂商 LB）做四层负载 → 任一网关实例宕机自动剔除。配置中心统一推送路由/限流规则保证一致性。容量规划上保留 50% 余量应对突发流量。</p>
               <p><strong>追问 2：网关与 Service Mesh 的 Ingress Gateway 边界？</strong></p>
@@ -552,9 +552,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -572,22 +572,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.03 高并发系统的限流算法与熔断降级策略？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.03" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.03</div>
-            <div class="qa-question">高并发系统的限流算法与熔断降级策略？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.03" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.03</div>
+            <div class="content-question">高并发系统的限流算法与熔断降级策略？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察流量治理三板斧——<strong>限流、熔断、降级</strong>的本质：<strong>保护系统不被过载拖垮、快速失败避免级联雪崩</strong>。核心区分限流算法的适用边界（漏桶平滑 vs 令牌桶突发）、熔断器状态机的恢复机制，以及 Hystrix→Resilience4j→Sentinel 的框架演进动机。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>限流算法演进</strong>：计数器（固定窗口，临界点双倍流量问题）→ 滑动窗口（细分子窗口平滑）→ 漏桶（恒定速率出水，平滑输出）→ 令牌桶（按速率发令牌，桶可累积，允许突发）。本质是对"<strong>时间窗口内请求量</strong>"的不同近似与权衡。</p>
               <p><strong>Hystrix（2012，Netflix）</strong>：熔断器状态机（Closed/Open/Half-Open）+ <strong>线程池/信号量隔离</strong> + 熔断后 fallback。Spring Cloud Netflix 1.x 标配。2018 年宣布进入维护模式（线程池隔离开销大、不支持热点参数限流）。新项目应按所用 Spring Boot 版本在 Resilience4j 与 Sentinel 之间做选型，而不是继续引入 Hystrix。</p>
               <p><strong>Resilience4j</strong>：常见的 Hystrix 替代方案。基于函数式编程 + Vavr 库，模块化设计（CircuitBreaker / RateLimiter / Bulkhead / Retry / TimeLimiter / Cache）。集成 starter 要按 Boot 主版本选择：<code class="inline-code">resilience4j-spring-boot2</code> 对应 Spring Boot 2.x，<code class="inline-code">resilience4j-spring-boot3</code> 对应 Spring Boot 3.x；不要在 Boot 3 项目中沿用 Boot 2 starter。</p>
@@ -596,9 +596,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>四种限流算法</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -666,9 +666,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Sentinel 限流 + 熔断规则示例</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 资源定义 + 限流/熔断规则 (编程式,生产用控制台推送)</span>
@@ -752,9 +752,9 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：单机限流 vs 集群限流如何选？</strong></p>
               <p>单机限流保护自身节点，无中心依赖、性能高，适合<strong>保护单实例不被压垮</strong>。集群限流控全局总量（如全局限 1000 QPS），需 Token Server/Redis，有网络开销与单点风险。实践：网关层集群限流控总量 + 服务层单机限流保节点。</p>
               <p><strong>追问 2：Hystrix 为何被淘汰？Resilience4j/Sentinel 强在哪？</strong></p>
@@ -811,9 +811,9 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -828,9 +828,9 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
           </div>
         </div>
 
-        <div class="qa-layer" data-layer="extension">
-          <div class="qa-layer-title">Sentinel 版本演进与集群限流生产部署</div>
-          <div class="qa-layer-body">
+        <div class="content-layer" data-layer="extension">
+          <div class="content-layer-title">Sentinel 版本演进与集群限流生产部署</div>
+          <div class="content-layer-body">
             <p><strong>① Sentinel 版本演进时间线</strong>：</p>
             <table class="compare-table">
               <thead>
@@ -885,22 +885,22 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
         <!-- ============================================================ -->
         <!-- C10.04 容器化与 Kubernetes 如何部署 Java 应用？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.04" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.04</div>
-            <div class="qa-question">容器化与 Kubernetes 如何部署 Java 应用？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.04" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.04</div>
+            <div class="content-question">容器化与 Kubernetes 如何部署 Java 应用？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察云原生部署模型与 <strong>JVM 在容器中的适配演进</strong>。核心回答：Docker 镜像分层与隔离原理、K8s 声明式编排模型（Pod/Deployment/Service/Ingress）、<strong>JVM 容器感知从 JDK 8 到 10+ 的演进</strong>，以及优雅停机与资源规划的工程实践。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>部署形态演进</strong>：物理机 → 虚拟机（资源隔离）→ 容器（轻量隔离）→ 容器编排（K8s，集群调度）→ Serverless（免运维）。容器化的本质是<strong>把应用与依赖打包成可移植镜像</strong>，K8s 解决的是<strong>大规模容器的调度与生命周期管理</strong>。</p>
               <p><strong>Docker（2013）</strong>：镜像分层（UnionFS 联合文件系统，每条指令一层可复用缓存）+ 容器隔离（namespace 隔离视图 + cgroups 限制资源）。</p>
               <p><strong>Kubernetes（2014，Google 基于 Borg）</strong>：声明式 API + <strong>控制循环（reconcile）</strong>——用户声明期望状态，Controller 持续调谐实际状态向期望收敛。成为容器编排事实标准。</p>
@@ -916,9 +916,9 @@ flowRule.<span class="fn">setLimitApp</span>(<span class="str">"default"</span>)
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Docker 镜像分层</strong>：Dockerfile 每条指令（FROM/RUN/COPY）生成一层只读层，多层叠加为镜像，容器运行时在最上层加可写层。<strong>分层复用</strong>使基础镜像只拉一次，多镜像共享。多阶段构建（multi-stage build）用构建阶段产物拷贝到运行镜像，大幅减小最终镜像体积。</p>
 
               <p><strong>K8s 核心对象</strong>：</p>
@@ -1011,9 +1011,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>多阶段构建 Dockerfile（减小镜像）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com"># 阶段 1: 构建</span>
@@ -1078,9 +1078,9 @@ spec:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Java 启动慢在 Serverless/弹性伸缩场景如何解决？</strong></p>
               <p>① <strong>GraalVM Native Image</strong>：AOT 编译为原生可执行文件，启动毫秒级、内存几十 MB，但牺牲部分动态特性（反射需配置）、编译时间长；② <strong>CRaC</strong>：在支持该机制的 OpenJDK CRaC/发行版上，应用启动后打快照，下次从快照恢复，可显著缩短启动并保留部分运行时优化，但必须验证连接池、句柄、临时文件和安全状态的 restore 回调；③ AppCDS（类数据共享）减少类加载；④ Spring Boot 3 AOT 优化 Bean 装配。</p>
               <p><strong>追问 2：容器内存为何要给 JVM 留 headroom？</strong></p>
@@ -1088,9 +1088,9 @@ spec:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1107,9 +1107,9 @@ spec:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展：K8s Operator — 将运维知识编码为自定义控制器</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展：K8s Operator — 将运维知识编码为自定义控制器</div>
+            <div class="content-layer-body">
               <p><strong>本质</strong>：K8s Operator 是<strong>将人类运维专家知识编码为软件</strong>的架构模式——通过自定义控制器（Custom Controller）+ 自定义资源（CRD, CustomResourceDefinition）将复杂应用的部署、扩缩容、故障恢复、备份升级等运维操作自动化。核心思想是"<strong>声明式期望状态 + 控制循环协调（Reconcile Loop）</strong>"。</p>
 
               <p><strong>核心组件</strong>：</p>
@@ -1197,22 +1197,22 @@ spec:
           </div>
         </div>
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.05" data-difficulty="expert" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.05</div>
-            <div class="qa-question">Service Mesh(Istio) 如何解耦微服务治理？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.05" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.05</div>
+            <div class="content-question">Service Mesh(Istio) 如何解耦微服务治理？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察微服务治理"<strong>从库侵入到 Sidecar 平台下沉</strong>"的范式转移，以及<strong>完整的微服务架构演进</strong>。核心回答：Service Mesh 用 Sidecar 代理将服务发现、负载均衡、熔断限流、认证加密、可观测等治理能力从应用 SDK 剥离到基础设施层，实现<strong>语言无关、升级无侵入、统一治理</strong>。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>完整演进：单体 → SOA → 微服务 → Service Mesh → Serverless</strong>，本质是治理能力从应用内逐步外移、平台化的过程。</p>
               <ul>
                 <li><strong>单体（Monolith）</strong>：所有功能在一个进程，模块间本地调用，简单但迭代耦合、扩展受限。</li>
@@ -1240,9 +1240,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Sidecar 模式</strong>：每个 Pod 注入一个 Envoy 代理容器，与应用容器同 Pod 共享网络 namespace。应用所有出入流量被 iptables 劫持到 Envoy，由 Envoy 完成<strong>负载均衡、熔断、限流、mTLS 认证、链路追踪、重试、超时</strong>等治理，<strong>应用代码完全无感知</strong>（仿佛直接调用对端）。</p>
 
               <p><strong>数据面 vs 控制面</strong>：</p>
@@ -1331,9 +1331,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Istio 流量治理示例（VirtualService 路由 + DestinationRule 熔断 + 金丝雀）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com"># VirtualService: 90% 流量到 v1, 10% 到 v2 (金丝雀)</span>
@@ -1379,9 +1379,9 @@ spec:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Sidecar 的性能开销有多大？如何优化？</strong></p>
               <p>每个 Pod 多一个 Envoy 容器（内存几十~百 MB，CPU 占用），且流量多一跳（应用→Sidecar→网络→对端 Sidecar→对端应用），延迟增加约 1-3ms。<strong>Ambient Mesh</strong> 去掉每 Pod Sidecar，改用节点级 ztunnel（L4）+ 按需 waypoint（L7），资源开销降一个数量级；eBPF 在内核态处理进一步降延迟。资源规划上 Sidecar 通常占 Pod 总资源 20-30%。</p>
               <p><strong>Ambient 落地要点（实践）</strong>：① 命名空间打标启用 Ambient（如 <code class="inline-code">istio.io/dataplane-mode=ambient</code>，以所用 Istio 版本文档为准）；② <strong>ztunnel</strong> 以 DaemonSet 跑在节点，负责 L4 安全与 HBONE；③ 需要 L7 策略（HTTP 路由/鉴权/遥测细粒度）时再为服务挂 <strong>waypoint</strong> proxy，按需付费而非全量 Sidecar；④ 从 Sidecar 迁 Ambient 要验证 mTLS、AuthorizationPolicy 与现有 VirtualService 行为，灰度命名空间推进。新集群优先评估 Ambient；存量 Sidecar 可并存过渡。</p>
@@ -1390,9 +1390,9 @@ spec:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1406,9 +1406,9 @@ spec:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>在掌握 Istio 基础流量治理（金丝雀路由、熔断、mTLS）后，补齐三大高频实战考点：<strong>流量镜像、故障注入、限流协同</strong>，并厘清 Istio 与 Spring Cloud Gateway 的治理边界。</p>
               <ul>
                 <li><strong>流量镜像（Mirroring）</strong>：在 VirtualService 中配置 <code class="inline-code">mirror</code> 字段（如 <code class="inline-code">mirror: { host: order-service, subset: v2 }</code>），把线上真实流量实时复制一份发给新版本，新版本<strong>只接收、不响应</strong>。用途：灰度发布前的真实流量验证——新版拿真实请求验证处理能力，且不改变用户体验。注意：镜像流量是<strong>异步</strong>的，不阻塞主流量，镜像目标异常也不影响主链路；需用 <code class="inline-code">mirrorPercentage</code> 控制镜像比例，避免瞬间打垮新版本。</li>
@@ -1463,22 +1463,22 @@ spec:
         <!-- ============================================================ -->
         <!-- C10.06 单体到微服务的架构演进路径如何规划？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.06" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.06</div>
-            <div class="qa-question">单体到微服务的架构演进路径如何规划？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.06" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.06</div>
+            <div class="content-question">单体到微服务的架构演进路径如何规划？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察架构演进的<strong>节奏把控与拆分方法论</strong>，反对"一步到位全拆"与"过度拆分"。核心回答：何时该拆（信号）、怎么拆（DDD 限界上下文）、用什么策略拆（绞杀者模式/模块化单体过渡），以及如何避免"<strong>分布式单体</strong>"陷阱。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>架构形态演进</strong>：单体 → 模块化单体 → 服务化 → 微服务 → 领域微服务。这不是线性强制升级，而是<strong>按业务规模与团队规模匹配的渐进过程</strong>。</p>
               <p><strong>SOA vs 微服务</strong>：SOA 重 ESB 集中编排、粗粒度服务、企业级集成；微服务重去中心化、细粒度自治、独立部署。<strong>康威定律</strong>（Conway's Law）：系统结构跟随组织沟通结构——微服务需配套小团队（两披萨团队），否则拆了也管不好。</p>
               <p><strong>拆分方法论演进</strong>：早期按技术层次拆（Web/Service/DAO 层服务，反模式）→ 按业务能力拆 → <strong>DDD 限界上下文驱动拆分</strong>（领域内聚、上下文边界即服务边界）。Eric Evans 2003 的 DDD 在微服务时代焕发第二春。</p>
@@ -1486,9 +1486,9 @@ spec:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>何时拆（拆分信号）</strong>：</p>
               <ul>
                 <li>单体迭代瓶颈：改一处需全量回归测试、发布窗口冲突频繁。</li>
@@ -1537,9 +1537,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>DDD 事件风暴划分限界上下文</strong>：① 召集领域专家与开发，梳理核心域/支撑域/通用域；② 用便利贴罗列领域事件（订单已创建、库存已扣减、支付已完成）；③ 按事件流转识别聚合与上下文边界；④ 上下文映射（合作关系/客户-供应商/防腐层）。</p>
 
               <p><strong>数据库拆分三步法</strong>（避免分布式单体）：</p>
@@ -1557,9 +1557,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：微服务拆分粒度如何把握？</strong></p>
               <p>三准则：① 一个服务一个团队负责；② 可独立部署（不依赖其他服务同时发版）；③ 领域内聚（一个限界上下文）。反对"一个表一个服务"（过细，分布式开销爆炸）与"一个大服务包揽多领域"（过粗，等于没拆）。Sam Newman 强调"先粗后细"，从粗粒度服务开始，按需细化。</p>
               <p><strong>追问 2：微服务一定比单体好吗？</strong></p>
@@ -1567,9 +1567,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1588,15 +1588,15 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.07 高可用架构设计的核心原则与实践？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.07" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.07</div>
-            <div class="qa-question">高可用架构设计的核心原则与实践？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.07" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.07</div>
+            <div class="content-question">高可用架构设计的核心原则与实践？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 高可用 =
                 <strong>冗余 + 故障隔离 + 故障转移 + 降级预案</strong>，考察"<strong>为失败而设计</strong>"（Design for Failure）的思维。核心回答：如何消除单点、如何隔离故障防扩散、如何自动转移、如何验证韧性（混沌工程），以及异地多活的单元化设计。
@@ -1604,18 +1604,18 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>容灾形态演进</strong>：主备（冷备，故障手工切）→ 热备（实时同步，自动切换）→ <strong>双活</strong>（两机房同时承载流量）→ <strong>异地多活</strong>（多机房多活，单元化）→ 多云（跨云厂商容灾）。</p>
               <p><strong>验证手段演进</strong>：人工故障演练 → <strong>Chaos Monkey（2011，Netflix）</strong>随机杀实例 → <strong>ChaosBlade（阿里）</strong>故障注入工具 → <strong>Litmus（CNCF）</strong>混沌工程平台。从"被动等故障"到"主动注入故障验证韧性"。</p>
               <p><strong>趋势</strong>：① 单元化架构（Cell-based）成异地多活主流；② <strong>混沌工程常态化</strong>（生产环境持续小规模注入）；③ 多云/混合云容灾；④ 基于 SLO 的弹性预算（错误预算驱动发布节奏）。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>高可用五大核心原则</strong>：</p>
               <ol>
                 <li><strong>冗余（Redundancy）</strong>：多副本、多机房、多可用区，<strong>消除单点</strong>。无状态服务多实例，有状态数据多副本（主从/集群）。</li>
@@ -1702,9 +1702,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>异地多活单元化设计要点</strong>：① 选路由维度（用户 ID 取模分单元）；② 单元内闭环（同单元应用+DB+缓存）；③ 跨单元数据同步（Binlog/DTS 异步，仅同步需全局共享的数据）；④ 全局唯一资源（如库存）用中心化扣减或分片预留；⑤ 流量调度中心切流。</p>
 
               <p><strong>混沌工程实验流程</strong>（ChaosBlade 示例）：① 定义稳态假设（如订单创建成功率 &gt; 99.9%）；② 选择故障注入维度（CPU 满载/网络延迟/磁盘满/Pod 杀死/依赖延迟）；③ 在生产或预发小范围注入；④ 监控指标是否偏离稳态；⑤ 记录系统行为，修复缺陷；⑥ 常态化定期演练。</p>
@@ -1724,9 +1724,9 @@ blade destroy &lt;experiment-id&gt;</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：异地多活如何处理跨机房数据一致性？</strong></p>
               <p>核心策略：① <strong>单元化</strong>——大部分数据在单元内闭环，无需跨机房一致；② <strong>全局共享数据</strong>用中心化写入 + 异步同步到各单元（接受秒级延迟）；③ <strong>冲突解决</strong>——多单元写同一数据用 last-write-wins 或业务规则仲裁；④ <strong>全局唯一性</strong>——用雪花算法/号段避免跨单元 ID 冲突；⑤ 跨单元强一致需求退化为单点写入（牺牲多活）。</p>
               <p><strong>追问 2：SLA 99.99% 意味着什么？如何达成？</strong></p>
@@ -1734,9 +1734,9 @@ blade destroy &lt;experiment-id&gt;</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1755,15 +1755,15 @@ blade destroy &lt;experiment-id&gt;</code></pre>
         <!-- ============================================================ -->
         <!-- C10.08 微服务配置中心的设计与选型？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.08" data-difficulty="senior" data-priority="p2">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.08</div>
-            <div class="qa-question">微服务配置中心的设计与选型？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+        <div class="content-card" id="C10.08" data-difficulty="senior" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.08</div>
+            <div class="content-question">微服务配置中心的设计与选型？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 配置中心 =
                 <strong>集中配置存储 + 变更推送 + 版本管理 + 灰度发布</strong>，考察配置治理的工程能力。核心回答：配置中心的核心能力矩阵、推送机制的权衡、配置热更新原理，以及 Nacos/Apollo/Spring Cloud Config 的选型差异。
@@ -1771,9 +1771,9 @@ blade destroy &lt;experiment-id&gt;</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>配置管理演进</strong>：properties 文件（打包死）→ 环境变量（12-Factor）→ 配置中心（集中动态）→ <strong>配置即代码（GitOps）</strong>。</p>
               <p><strong>Spring Cloud Config（2015）</strong>：以 Git/SVN 为后端，天然版本管理。但<strong>无原生推送</strong>，需配合 Spring Cloud Bus（MQ 广播）刷新，延迟分钟级，运维链路长。</p>
               <p><strong>Apollo（携程，2016）</strong>：旁路独立部署，<strong>多环境/多集群/多命名空间</strong>，长轮询实时推送（秒级），权限与审计完善，灰度发布内置。企业级配置中心标杆。</p>
@@ -1782,9 +1782,9 @@ blade destroy &lt;experiment-id&gt;</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>配置中心核心能力矩阵</strong>：</p>
               <ol>
                 <li><strong>集中存储</strong>：多环境（dev/test/prod）、多集群、多命名空间隔离。</li>
@@ -1873,9 +1873,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Nacos 配置热更新 + 灰度发布</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// bootstrap.yml —— 配置中心</span>
@@ -1918,9 +1918,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：配置中心自身高可用如何保证？</strong></p>
               <p>
                 ① 配置中心集群部署（Nacos 3+ 节点 AP，Apollo ConfigService 多实例）；② 配置存 MySQL/etcd 高可用；③
@@ -1931,9 +1931,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1949,9 +1949,9 @@ spring:
           </div>
         </div>
 
-        <div class="qa-layer" data-layer="extension">
-          <div class="qa-layer-title">Nacos 版本演进与 2.x gRPC 长连接 Push 模型</div>
-          <div class="qa-layer-body">
+        <div class="content-layer" data-layer="extension">
+          <div class="content-layer-title">Nacos 版本演进与 2.x gRPC 长连接 Push 模型</div>
+          <div class="content-layer-body">
             <p><strong>① Nacos 版本演进时间线</strong>：</p>
             <table class="compare-table">
               <thead>
@@ -2025,31 +2025,31 @@ spring:
         <!-- ============================================================ -->
         <!-- C10.09 灰度发布与蓝绿部署如何设计？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.09" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.09</div>
-            <div class="qa-question">灰度发布与蓝绿部署如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.09" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.09</div>
+            <div class="content-question">灰度发布与蓝绿部署如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察<strong>发布工程的安全平滑发布策略与回滚能力</strong>。核心回答：蓝绿/金丝雀/灰度（流量染色）的区别与适用场景，<strong>全链路灰度</strong>的设计（标签透传），以及数据库变更如何灰度、回滚如何设计。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>发布策略演进</strong>：停机发布（维护窗口，用户体验差）→ <strong>蓝绿部署</strong>（双环境切换）→ <strong>金丝雀发布</strong>（小流量验证）→ <strong>灰度发布</strong>（流量染色精确路由）→ <strong>全链路灰度</strong>（多服务协同灰度）。</p>
               <p><strong>金丝雀典故</strong>：矿工带金丝雀下井，金丝雀先死警示危险——引申为"先用小部分流量试探新版本"。</p>
               <p><strong>趋势</strong>：① 复杂微服务系统常用<strong>全链路灰度</strong>，但前提是入口、注册/配置面、RPC、MQ 和观测系统都支持标签语义；② 与 Service Mesh 结合时可用 VirtualService/HTTPRoute 表达权重和 Header 路由，是否可用取决于网格与 Gateway API 版本；③ 特征开关（Feature Flag）把业务放量的决策与代码发布解耦，但开关本身也需要生命周期治理。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>三种发布策略本质对比</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -2117,9 +2117,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>网关流量染色 + Spring Cloud LoadBalancer 元数据路由</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 网关 Filter: 按用户 ID 决定是否染色(如 1% 用户灰度)</span>
@@ -2149,9 +2149,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：数据库 schema 变更如何灰度？</strong></p>
               <p>核心是<strong>向前兼容</strong>：灰度期间新旧版本同时运行，schema 必须两者兼容。① 只增不删（加字段、加表）；② 改类型用新字段过渡（加 new_field 双写，切读后再处理旧字段）；③ 删除字段分两步——先发版本停止读写该字段，确认所有旧实例退出后再删表。扩大列长/加索引的在线行为取决于 MySQL/存储引擎版本、算法和表规模，发布前必须用目标版本和真实数据量验证。禁止灰度期间做破坏性变更。</p>
               <p><strong>追问 2：灰度命中规则不一致怎么排查？</strong></p>
@@ -2159,9 +2159,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2175,9 +2175,9 @@ flowchart LR
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p><strong>心智模型：蓝绿的"环境"=无状态计算资源，数据库被独立剥离</strong>：蓝绿说的"两套环境"主要指<strong>无状态应用实例</strong>（容器/中间件），数据库作为<strong>有状态设施被统一剥离管理</strong>，业务数据逻辑主体只有一份（权威数据源），切换本质是 LB/网关把流量从蓝集群瞬间切到绿集群，连接串通常不变。即"空间换时间、非黑即白（0%↔100%）"，致命约束是<strong>数据库写入不能灰度</strong>。</p>
               <p><strong>生产数据库隔离三模式</strong>：① <strong>物理共享·逻辑共用（最常见）</strong>——蓝绿连同一库，隔离的是流量非数据，DB 是单点风险，Schema 变更须严格向后兼容；② <strong>物理两份·逻辑同步（最安全）</strong>——绿库为蓝库实时从库（CDC/主从），权威源唯一（切前蓝、切后绿），另一份只是热备；③ <strong>逻辑隔离·物理共享（影子表）</strong>——同实例不同表（order_blue/order_green），仅用于压测，违背业务数据唯一性，生产慎用。与 C10.09 的"共享库 pitfall"呼应：方案①下 Schema 变更两环境都受影响，失去隔离意义。</p>
               <div class="callout callout-pitfall">
@@ -2195,22 +2195,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.10 Serverless 架构的适用场景与挑战？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.10" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.10</div>
-            <div class="qa-question">Serverless 架构的适用场景与挑战？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.10" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.10</div>
+            <div class="content-question">Serverless 架构的适用场景与挑战？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察云计算演进终态 <strong>FaaS + BaaS</strong> 的边界与 <strong>Java 在 Serverless 中的适配</strong>。核心回答：Serverless 的本质（按需执行、按用量计费、免运维）、冷启动问题、Java 冷启动的挑战与解法（Native Image/CRaC），以及适用与不适用场景的清晰边界。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>云计算演进</strong>：物理机（自建机房）→ <strong>IaaS</strong>（虚拟机，AWS EC2，管 OS 以下）→ <strong>PaaS</strong>（应用托管，Heroku/云引擎，管运行时以下）→ <strong>CaaS</strong>（容器即服务，K8s/容器服务）→ <strong>FaaS</strong>（函数即服务，只管代码）→ <strong>Serverless</strong>（FaaS + BaaS，全托管）。本质是<strong>运维边界不断上移，开发者只关注业务代码</strong>。</p>
 
               <div class="mermaid-container">
@@ -2232,9 +2232,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>FaaS（函数即服务）</strong>：开发者只写函数代码，平台负责扩缩容、路由、调度、计费。<strong>事件驱动</strong>（HTTP 请求/定时/消息/对象存储事件触发）、<strong>按需执行</strong>（无请求时不占资源）、<strong>按用量计费</strong>（调用次数 + 执行时长 × 内存）。</p>
 
               <p><strong>BaaS（后端即服务）</strong>：数据库（DynamoDB/PlanetScale）、对象存储（S3）、认证（Auth0/Cognito）、消息（SQS/EventBridge）等托管服务，开发者直接调用 API，无需运维。</p>
@@ -2283,9 +2283,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>适合场景</strong>：</p>
               <ul>
                 <li><strong>事件驱动</strong>：Webhook 回调、文件上传触发处理（S3 事件→图片压缩）、定时任务（Cron 触发）。</li>
@@ -2308,9 +2308,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Serverless 一定省钱吗？</strong></p>
               <p>否。Serverless 省钱的前提是<strong>流量低频、波动大、空闲多</strong>（按用量计费，空闲不计费）。高频常驻服务（如核心交易链路 7×24 高 QPS），按量计费远超包年包月实例。<strong>成本拐点</strong>：当函数实例长期高负载时，自建/常驻容器更经济。需按流量模型测算，混合架构（核心常驻 + 边缘 Serverless）往往最优。</p>
               <p><strong>追问 2：Serverless 下本地状态与调试如何处理？</strong></p>
@@ -2318,9 +2318,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2339,22 +2339,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.11 微服务间数据一致性如何保证？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.11" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.11</div>
-            <div class="qa-question">微服务间数据一致性如何保证？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C10.11" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.11</div>
+            <div class="content-question">微服务间数据一致性如何保证？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察微服务架构下<strong>跨服务事务</strong>的设计哲学：单体时代的 ACID 在分布式环境下不可行，必须在<strong>强一致、可用性、性能</strong>之间做显式权衡。核心回答：优先用"最终一致 + 补偿/对账"替代分布式事务；必须强一致时用 TCC 或 XA；SAGA 模式适合长事务编排；消息队列是实现最终一致的最常用基础设施。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>单体 ACID</strong>：一个数据库内用本地事务保证强一致，简单直接。拆分为微服务后，各服务有独立数据库，本地事务无法跨越服务边界。</p>
               <p><strong>2PC/3PC（刚性事务）</strong>：两阶段提交，协调者锁定资源，性能差、阻塞、单点故障。微服务高并发场景下几乎不可用。</p>
               <p><strong>TCC（Try-Confirm-Cancel，2008）</strong>：业务层实现三接口，预留资源 → 确认提交 / 取消释放。性能优于 2PC，但业务侵入大，需实现回滚逻辑。</p>
@@ -2365,9 +2365,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>CAP 约束下的微服务事务</strong>：微服务天然是分布式，P 不可选。强一致（CP）需牺牲可用性或性能；AP 场景用最终一致 + 补偿是更务实的选择。</p>
 
               <p><strong>TCC 核心</strong>：Try（预留资源，如冻结库存）→ Confirm（真正扣减，幂等）→ Cancel（释放预留，幂等）。Confirm/Cancel 需保证幂等性（网络重试可能导致多次调用）。优势：无全局锁、性能高；劣势：业务代码需拆为三接口，开发成本高。</p>
@@ -2382,9 +2382,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>选型对比</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -2437,9 +2437,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Seata AT 的脏读问题如何解决？</strong></p>
               <p>
                 Seata AT 一阶段已提交本地事务，其他事务可能读到未全局提交的数据（若全局回滚则读到脏数据）。解法：①
@@ -2450,9 +2450,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2465,9 +2465,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>选型结论：绝大多数场景用"最终一致 + 补偿/对账"即可，必须高性能强一致再上 TCC，严禁把 Seata AT 用于高频场景（全局锁会拖垮吞吐）。</strong>
               </p>
@@ -2518,22 +2518,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.12 云原生 CI/CD 与 GitOps 实践 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.12" data-difficulty="senior" data-priority="p2">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.12</div>
-            <div class="qa-question">云原生 CI/CD 与 GitOps 实践？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+        <div class="content-card" id="C10.12" data-difficulty="senior" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.12</div>
+            <div class="content-question">云原生 CI/CD 与 GitOps 实践？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察云原生时代<strong>持续交付流水线</strong>的演进与 GitOps 范式。核心回答：从"人工部署"到"脚本自动化"再到"声明式 GitOps"，本质是<strong>将基础设施与应用状态版本化、自动化、可审计</strong>；Git 成为唯一可信源（Single Source of Truth），K8s 成为目标状态执行引擎。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>人工/脚本时代（2000s）</strong>：手动上传 jar/war，SSH 执行命令。后用 Shell/Ansible 脚本化，但环境差异、配置漂移、回滚困难。</p>
               <p><strong>CI/CD 工具时代（2010s）</strong>：Jenkins（2004，事实标准）→ GitLab CI（集成度高）→ CircleCI/Travis CI（SaaS 化）。流水线：代码提交 → 构建 → 单元测试 → 打包镜像 → 推送仓库 → 部署。但部署阶段仍常依赖脚本或人工审批。</p>
               <p><strong>容器化交付（2013+）</strong>：Docker 镜像成为标准交付物，"一次构建，到处运行"。配合 K8s 声明式部署（Deployment/Service/Ingress），部署从"命令式"（告诉系统怎么做）变为"声明式"（告诉系统要什么状态）。</p>
@@ -2542,9 +2542,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>GitOps 核心原则</strong>：</p>
               <ol>
                 <li><strong>声明式</strong>：系统状态用 YAML/JSON 描述，存于 Git。</li>
@@ -2559,9 +2559,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>工具选型</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -2610,9 +2610,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：GitOps 下 Secret 如何管理？</strong></p>
               <p>Git 存明文 Secret 不安全。方案：① <strong>Sealed Secrets</strong>：用集群公钥加密 Secret，仅集群内可解密，密文可存 Git；② <strong>External Secrets Operator</strong>：Git 只存引用，实际 Secret 从 Vault/AWS Secret Manager 动态拉取；③ <strong>SOPS + Mozilla/OpenPGP</strong>：加密 YAML 中的敏感字段。核心原则：Git 可存密文引用，不存明文凭证。</p>
               <p><strong>追问 2：ArgoCD 自动同步的风险？</strong></p>
@@ -2623,9 +2623,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2643,22 +2643,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.13 微服务安全与零信任架构 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.13" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.13</div>
-            <div class="qa-question">微服务安全与零信任架构？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.13" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.13</div>
+            <div class="content-question">微服务安全与零信任架构？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察微服务架构下的<strong>安全边界重塑</strong>：传统"内网可信、边界防护"模型在微服务动态扩缩容、多语言异构、跨集群部署下失效。核心回答：<strong>零信任（Never Trust, Always Verify）</strong>——每个请求无论来自内外网都必须认证、授权、加密；Service Mesh 通过 Sidecar 透明实现 mTLS 与访问控制是主流工程路径。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>边界安全模型（Perimeter Security）</strong>：防火墙 + VPN 划分内外网，内网默认可信。微服务时代，服务间调用频繁跨越 Pod/节点/集群，边界模糊，"内网可信"假设不再成立。</p>
               <p><strong>零信任（Zero Trust，2010 Forrester，2018 Gartner）</strong>：默认不信任任何实体（人、设备、服务），每次访问都需<strong>身份验证、最小权限、持续验证</strong>。Google BeyondCorp（2014）是工程先驱。</p>
               <p><strong>微服务认证演进</strong>：Session/Cookie → API Key → OAuth2 / OpenID Connect（OIDC）→ SPIFFE/SPIRE（服务身份标准化）。服务间调用从"人认证"演进为"服务身份认证"。</p>
@@ -2667,9 +2667,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>零信任三大原则</strong>：</p>
               <ol>
                 <li><strong>永不信任，始终验证</strong>：不因为请求来自内网就放行。</li>
@@ -2688,9 +2688,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>分层安全策略</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -2738,9 +2738,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：mTLS 的性能开销有多大？</strong></p>
               <p>TLS 握手有 CPU 开销（尤其是 RSA），但现代 CPU 的 AES-NI 加速后，对称加密开销很低（&lt; 5%）。Istio 的 Sidecar 额外带来：① 网络多跳（应用 → Sidecar → Sidecar → 目标）增加延迟（通常 1~3ms）；② 证书轮转时的短时 CPU 峰值。缓解：① 启用 TLS session resumption；② 使用 ECDSA 证书（比 RSA 快）；③ 考虑 Ambient Mesh（Sidecar-less）减少代理开销。</p>
               <p><strong>追问 2：SPIFFE/SPIRE 解决了什么问题？</strong></p>
@@ -2748,9 +2748,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2768,22 +2768,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.14 多租户架构设计 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.14" data-difficulty="architect" data-priority="p2">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.14</div>
-            <div class="qa-question">多租户架构如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p2">P2</span></div>
+        <div class="content-card" id="C10.14" data-difficulty="architect" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.14</div>
+            <div class="content-question">多租户架构如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p2">P2</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察 SaaS 场景下<strong>多个客户（租户）共享一套系统</strong>时的隔离、扩展与成本权衡。核心回答：多租户的维度不仅是"数据隔离"，还包括<strong>资源隔离、性能隔离、故障隔离、运维隔离</strong>；从共享数据库到独立实例，隔离级别越高，成本越高，需在商业模型与技术实现间匹配。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>独立实例（Dedicated Instance）</strong>：每个租户一套独立应用+数据库。隔离最强、定制最灵活，但运维成本高、资源碎片化。适合大客户（KA）或强合规行业（金融、政府）。</p>
               <p><strong>共享应用 + 独立数据库（Shared App, Dedicated DB）</strong>：应用层共享，数据库按租户分库。平衡隔离与成本，但 schema 变更需同步多库。</p>
               <p><strong>共享数据库 + 独立 Schema（Shared DB, Dedicated Schema）</strong>：同一数据库内按租户分 schema。PostgreSQL/MySQL 均支持，但跨 schema 查询复杂，连接池需按 schema 路由。</p>
@@ -2792,9 +2792,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>隔离维度</strong>：</p>
               <ul>
                 <li><strong>数据隔离</strong>：租户 A 无法读到租户 B 的数据。通过分库/分表/行级过滤实现。</li>
@@ -2809,9 +2809,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>模型对比</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -2864,9 +2864,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：如何防止 tenant_id 过滤遗漏导致数据泄露？</strong></p>
               <p>这是共享模型最大风险。防御：① <strong>DAO 层强制拦截</strong>：MyBatis Plugin / Hibernate Filter 自动注入 tenant_id，禁止直接执行无 tenant_id 的 SQL；② <strong>代码审查 + 自动化测试</strong>：所有查询接口强制带租户参数；③ <strong>行级安全（RLS）</strong>：PostgreSQL 原生支持 RLS，数据库层强制过滤，即使 SQL 漏写也不泄露；④ <strong>数据访问审计</strong>：异常查询（返回数据含多租户）实时告警。</p>
               <p><strong>追问 2：租户级别灰度发布怎么做？</strong></p>
@@ -2874,9 +2874,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2890,9 +2890,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>选型结论：隔离强度与成本成正比——中小租户走共享库 + tenant_id 控成本，大租户独立实例保隔离，并用租户级限流防止"吵闹邻居"拖垮全局。</strong>
               </p>
@@ -2943,22 +2943,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.15 可观测性三大支柱与工程实践 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.15" data-difficulty="expert" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.15</div>
-            <div class="qa-question">可观测性三大支柱与工程实践？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.15" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.15</div>
+            <div class="content-question">可观测性三大支柱与工程实践？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察云原生微服务场景下<strong>Metrics/Logging/Tracing 的工程体系化建设</strong>。核心回答：可观测性不是"三个系统各自搭建"，而是<strong>以 TraceID 为纽带的三支柱联动</strong>；目标是"从现象（告警）到根因（代码行）"的分钟级定位能力，以及基于数据的容量规划与性能优化。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Metrics（指标）</strong>：从 Nagios/Zabbix 到 Prometheus 的 Pull 模型革命。Prometheus 的时序数据库 + PromQL + Alertmanager 成为云原生标准。聚焦"系统健康度"的量化表达：RED（Rate/Errors/Duration）与 USE（Utilization/Saturation/Errors）。</p>
               <p><strong>Logging（日志）</strong>：从 grep 到 ELK（Elasticsearch/Logstash/Kibana）再到 Loki（Grafana 推出，标签索引而非全文索引）。趋势：结构化 JSON + 日志与 Trace 关联。</p>
               <p><strong>Tracing（链路追踪）</strong>：从 Google Dapper 到 OpenTracing 标准，再到 OpenTelemetry 统一 SDK。从"可选调试工具"演进为"生产必配基础设施"。</p>
@@ -2967,9 +2967,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Metrics 是聚合的、丢失细节的</strong>：告诉你"接口 P99 延迟 500ms"，但不告诉你"哪次请求慢"。适合告警与趋势分析。</p>
 
               <p><strong>Logging 是离散的、高维的</strong>：告诉你"某次请求报了 NullPointerException"，但不知道前后调用上下文。适合错误详情与审计。</p>
@@ -2982,9 +2982,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Java 微服务可观测栈</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -3032,9 +3032,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Prometheus 的 Pull 模型有什么优缺点？高可用如何设计？</strong></p>
               <p>优点：① 被监控服务无需关心推送地址，只需暴露 /actuator/prometheus；② 利于服务发现（K8s 中自动发现 Pod）；③ 单点采集失败不影响被监控服务。缺点：① 短生命周期 Job（如 CronJob）可能采集不到；② 跨防火墙/NAT 时采集端需能连到目标。高可用：① <strong>Thanos/Cortex/VictoriaMetrics</strong>：远程存储 + 全局查询视图；② 多 Prometheus 副本同时采集，Thanos Sidecar 上传 TSDB 到对象存储。</p>
               <p><strong>追问 2：Trace 采样率低导致漏掉关键请求，全量采集又太昂贵，如何平衡？</strong></p>
@@ -3042,9 +3042,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -3062,22 +3062,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.16 CQRS 与 Event Sourcing 模式的架构设计？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.16" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.16</div>
-            <div class="qa-question">CQRS 与 Event Sourcing 模式的架构设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.16" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.16</div>
+            <div class="content-question">CQRS 与 Event Sourcing 模式的架构设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>CQRS（命令查询职责分离）</strong>与 <strong>Event Sourcing（事件溯源）</strong>两种架构模式及其结合的深度理解。核心要回答：① <strong>CQRS 读写模型分离</strong>的动机与代价——写模型面向业务不变量（聚合根），读模型面向查询性能（物化视图）；② <strong>Event Sourcing 用不可变事件序列重建状态</strong>的原理，与传统"存当前状态"的根本差异；③ 两者结合（CQRS+ES）带来的<strong>审计、时间旅行、解耦</strong>收益与<strong>最终一致性、复杂度</strong>代价；④ 何时该用、何时坚决不该用。理解关键：CQRS/ES 不是银弹，是为<strong>复杂领域 + 高查询多样性 + 强审计</strong>场景设计的权衡方案。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>CRUD 传统模式</strong>：单表/单模型同时承担读写，状态以"最新值"覆盖存储。简单直接，但<strong>读写需求冲突</strong>（写要规范化保一致性，读要反规范化保性能）时模型膨胀，且丢失历史状态。</p>
               <p><strong>CQRS 概念（Greg Young，2009）</strong>：提出<strong>命令（写）与查询（读）分离为两个模型</strong>，写侧聚合根保证业务规则，读侧物化视图优化查询。两者通过事件/消息异步同步。Greg Young 强调"CQRS 不是架构，是设计模式"。</p>
               <p><strong>Event Sourcing（Martin Fowler 推广，2005+）</strong>：状态不存当前值，而存<strong>一系列不可变领域事件</strong>，当前状态由事件回放（replay）得到。源于 DDD 聚合根思想，Fowler 在 EAA 模式中系统化。与 CQRS 天然契合：写侧产生事件，读侧订阅事件构建投影。</p>
@@ -3088,9 +3088,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>1. CQRS 核心：读写模型分离</strong>。<strong>写模型</strong>（Command 侧）：面向业务不变量，聚合根（Aggregate Root）封装状态与规则，命令（Command）是意图表达（如 <code class="inline-code">CreateOrderCommand</code>），命令处理器校验后变更聚合。<strong>读模型</strong>（Query 侧）：面向查询场景，物化视图（反规范化表/Document/搜索索引），专为查询优化，无业务逻辑。两者通过<strong>事件异步同步</strong>，写侧产生 <code class="inline-code">OrderCreatedEvent</code>，读侧订阅后更新视图。</p>
               <p><strong>2. Event Sourcing 核心：事件序列 = 真相之源</strong>。聚合状态不直接存储，而存为<strong>有序、不可变的事件流</strong>（如 <code class="inline-code">OrderCreated → ItemAdded → OrderPaid → OrderShipped</code>）。当前状态 = <code class="inline-code">replay(events)</code>（从空状态逐个应用事件）。Event Store 持久化事件流，按聚合 ID 分流。<strong>关键：事件一旦写入不可修改</strong>（immutable），错误用"补偿事件"修正。</p>
               <p><strong>3. Command Bus 分发</strong>：命令投递到 <code class="inline-code">CommandBus</code>，路由到对应 <code class="inline-code">CommandHandler</code>，处理器加载聚合（从事件回放）、执行命令、产生新事件、持久化。命令是<strong>请求意图</strong>，可能被拒绝（业务规则不符）。</p>
@@ -3159,9 +3159,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>高级开发</strong>：① <strong>Axon Framework + Spring Boot 集成</strong>——<code class="inline-code">@Aggregate</code>/<code class="inline-code">@CommandHandler</code>/<code class="inline-code">@EventHandler</code> 注解驱动，<code class="inline-code">axon-spring-boot-starter</code> 自动装配 CommandBus/EventBus/EventStore；② <strong>Command/Event/Query 三分离</strong>——命令侧聚合根保业务规则，事件不可变，查询侧物化视图独立演进；③ <strong>事件存储选型</strong>——开发用 Axon Server/JPA EventStorageEngine，生产用 EventStoreDB 或 Kafka。</p>
               <p><strong>架构师决策——何时用 CQRS+ES</strong>：</p>
               <p>
@@ -3178,9 +3178,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：CQRS 一定会引入最终一致性吗？</strong></p>
               <p>不一定。<strong>CQRS 本身只规定读写模型分离，不规定同步方式</strong>。① <strong>异步同步（最终一致）</strong>：写侧提交事件后，读侧通过消息异步更新，有延迟——这是常见形态，换来了读写独立扩展与解耦；② <strong>同步同步（强一致）</strong>：写侧在同一事务内更新读模型（如同一数据库事务写聚合 + 写读视图），读立即可见，但牺牲了独立扩展性，且读模型更新失败会回滚写操作；③ <strong>同库不同表 + 事务</strong>：折中方案，读模型与写模型同库，本地事务保证一致，但仍耦合扩展。<strong>实践中多数 CQRS 选最终一致</strong>，因为强一致场景往往不需要 CQRS（读写同库即可）。最终一致需在 UI 层处理"写成功读未更新"，常用做法是命令返回后前端轮询或服务端推送读模型版本号。</p>
               <p><strong>追问 2：Event Sourcing 如何处理事件模式（schema）变更？</strong></p>
@@ -3198,9 +3198,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -3219,22 +3219,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C10.17 SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.17" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.17</div>
-            <div class="qa-question">SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.17" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.17</div>
+            <div class="content-question">SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>SLO/SLI 体系工程化落地</strong>的深度理解。核心要回答：① <strong>SLI（服务等级指标）</strong>是可量化的服务质量度量，<strong>SLO（服务等级目标）</strong>是 SLI 的目标值（如可用性 99.9%），<strong>Error Budget（错误预算）= 1 − SLO</strong>，三者把"系统可靠性"从模糊的"尽量高可用"变成可量化、可预算、可决策的工程契约；② Error Budget 的核心价值不是"出事后告警"，而是"<strong>事前决策</strong>"——预算未耗尽时可激进发布新功能，预算耗尽则冻结发布、优先修稳定性，让可靠性与业务迭代速度形成可量化的博弈平衡；③ 基于 <strong>Burn Rate（预算消耗速率）</strong>的多窗口告警，能在 SLO 周期结束前提前预警，而非等月底才发现 SLO 未达标。理解关键：SLO 不是技术指标的堆砌，而是<strong>连接用户体验与工程决策的桥梁</strong>，SLI 必须从用户视角定义，SLO 必须由业务与技术共同承诺。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>被动监控告警阶段</strong>：靠 CPU/内存/错误率阈值告警，指标与用户体验脱节，告警风暴（一个故障触发上百条告警）与漏报并存，"系统全绿但用户骂街"是常态。</p>
               <p><strong>SLA 合同阶段</strong>：运维与业务签订可用性 SLA（如 99.95%），但 SLA 是<strong>事后赔偿条款</strong>，无法指导事前决策，且"可用性"定义模糊（是 HTTP 5xx 还是用户感知失败？），沦为月底对账数字。</p>
               <p><strong>Google SRE Book（2016）</strong>：系统化提出 SLI/SLO/Error Budget 方法论，将可靠性量化为"可消耗的预算"，SRE 与产品团队<strong>共享预算驱动发布节奏</strong>——这是从"运维背锅"到"可靠性是工程契约"的范式转变。</p>
@@ -3245,9 +3245,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>1. SLI 设计</strong>：SLI = <code class="inline-code">好的事件数 / 总事件数</code>（比率型），必须基于<strong>用户视角</strong>而非纯技术指标。四类核心指标——① <strong>可用性</strong>（成功请求数/总请求数，5xx 视为失败）；② <strong>延迟</strong>（如 P99 &lt; 300ms 的请求占比）；③ <strong>吞吐量</strong>（QPS 是否达标）；④ <strong>准确性/正确性</strong>（如数据处理无错率、推荐召回准确率）。SLI 三要素：indicator（指标）、good events（好事件定义）、total events（总事件定义），三者必须精确无歧义。</p>
               <p><strong>2. SLO 设定</strong>：基于"<strong>用户期望 + 历史数据 + 业务需求</strong>"三角校准。用户期望决定下限（低于则用户流失），历史数据决定可达性（取 P95 实际表现再收紧），业务需求决定投入产出（核心链路 SLO 更严）。常见 SLO 如可用性 99.9%（每月允许 43.2 分钟不可用）。<strong>SLO 不应设为 100%</strong>（无预算=无创新空间），也不应照搬 SLA（SLO 应严于 SLA，留缓冲层）。</p>
               <p><strong>3. Error Budget 计算</strong>：Budget = 1 − SLO。如 SLO=99.9%，则每月预算 = 43200min × 0.1% = <strong>43.2min</strong>。预算是"可消耗的不可靠性配额"：故障消耗预算，正常消耗为零。预算的核心用途——① 驱动发布决策（有预算可激进发布，无预算冻结）；② 量化可靠性投入（预算持续透支=需投入稳定性建设）。</p>
@@ -3293,9 +3293,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>高级开发</strong>：① <strong>Prometheus Recording Rules 实现 SLI</strong>——用 <code class="inline-code">histogram_quantile(0.99, ...)</code> 算延迟 P99，用 <code class="inline-code">sum(rate(success))/sum(rate(total))</code> 算可用性，SLI 作为独立 Recording Rule 持久化（避免每次查询重算）；② <strong>Grafana SLO 仪表盘</strong>——Error Budget 燃烧曲线（已耗/剩余预算）、Burn Rate 实时面板、SLO 达成率趋势图，让可靠性可视化；③ <strong>Alertmanager 多窗口告警</strong>——按上文规则配置三档告警，Page 走电话/短信、Ticket 走工单、趋势告警走 Slack 通知。</p>
               <p><strong>架构师决策</strong>：</p>
               <p>① <strong>SLO 治理体系</strong>：建立 SLI 注册中心（每个服务的 SLI/SLO 统一登记），SLO 评审流程（季度 Review，根据历史数据校准 SLO 松紧），明确 SLO 责任人（Service Owner）与违约处理流程。SLO 不是"设完就忘"，需定期校准。</p>
@@ -3312,9 +3312,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：SLO 和 SLA 有什么区别？</strong></p>
               <p>两者层次与用途不同。<strong>SLA（Service Level Agreement，服务等级协议）</strong>是<strong>业务/法律契约</strong>：服务方与客户签订的承诺，违约需赔偿（如云厂商承诺 99.95% 可用性，不达标退还部分费用），是<strong>事后条款</strong>，定义偏粗、留有安全余量。<strong>SLO（Service Level Objective）</strong>是<strong>内部工程目标</strong>：团队自己设定的可靠性目标，用于驱动日常运维与发布决策，是<strong>事前目标</strong>，定义精确（明确 SLI 算法）、周期更短（通常按月/周）。关键关系：<strong>SLO 应严于 SLA</strong>——如 SLA 承诺 99.9%，内部 SLO 设 99.95%，留出缓冲层吸收波动，确保即便 SLO 偶尔违约也不触发 SLA 赔付。SLI 是两者的共同度量基础。</p>
               <p><strong>追问 2：Error Budget 用完后应该怎么做？</strong></p>
@@ -3327,9 +3327,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -3346,31 +3346,31 @@ flowchart LR
 
         <!-- C10.18 Spring Cloud 服务调用链路：@LoadBalanced / LoadBalancer / OpenFeign 动态代理 -->
         <!-- ================================================================================= -->
-        <div class="qa-card" id="C10.18" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.18</div>
-            <div class="qa-question">Spring Cloud 服务调用链路：为什么 @LoadBalanced 的 RestTemplate 能用服务名直接访问？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C10.18" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.18</div>
+            <div class="content-question">Spring Cloud 服务调用链路：为什么 @LoadBalanced 的 RestTemplate 能用服务名直接访问？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>Spring Cloud 服务调用全链路</strong>的底层理解。核心要回答：打了 <code class="inline-code">@LoadBalanced</code> 注解的 <code class="inline-code">RestTemplate</code>/<code class="inline-code">WebClient</code>，之所以能直接用服务名（<code class="inline-code">http://order-service/xxx</code>）而非 IP:Port 访问，本质是 <strong>Spring 拦截器机制 + 客户端负载均衡 + 服务发现客户端</strong>三者的精妙组合。核心 4 个组件协同工作：① <code class="inline-code">@LoadBalanced</code> 注解（Qualifier 限定符，标记哪些 Bean 需要被增强）；② <code class="inline-code">LoadBalancerInterceptor</code>（ClientHttpRequestInterceptor 实现，拦截 HTTP 请求）；③ <code class="inline-code">LoadBalancerClient</code>（从 DiscoveryClient 拿到服务实例列表后按策略选一个）；④ 底层 HTTP 客户端（URLConnection/HttpClient/OkHttp/Apache HC5，执行真正的 TCP 通信）。理解关键：<code class="inline-code">@LoadBalanced</code> 不是"魔法"，而是 Spring 给特定 Bean 批量塞拦截器的<strong> Qualifier 限定注解</strong>。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>负载均衡框架演进</strong>：<strong>Ribbon（Spring Cloud Netflix 1.x，已废弃）</strong>——Netflix 开源，基于同步阻塞模型，核心接口 ILoadBalancer + IRule，内置轮询/随机/可用过滤/权重/响应时间加权等策略，Spring Cloud 2020.0.0（Ilford）起正式移除；→ <strong>Spring Cloud LoadBalancer（Spring Cloud Commons 重写）</strong>——基于 Reactor 响应式编程模型，取代 Ribbon，Spring Cloud 2021.x 起成为默认实现，核心抽象 <code class="inline-code">ServiceInstanceListSupplier</code> + <code class="inline-code">ReactorLoadBalancer</code>，默认 RoundRobin，支持按服务名单独配置策略。</p>
               <p><strong>HTTP 客户端演进</strong>：<strong>URLConnection（JDK 默认）</strong>——无连接池，单路由默认 5 连接，高并发瓶颈明显；→ <strong>Apache HttpClient 4</strong>——成熟稳定，连接池可配置；→ <strong>OkHttp</strong>——SPDY/HTTP/2 支持，API 简洁；→ <strong>Apache HttpClient 5 / Jetty Client</strong>——支持 HTTP/2，异步非阻塞模型更适合 WebFlux。</p>
               <p><strong>调用方式演进</strong>：<strong>RestTemplate（同步阻塞）</strong>——Spring 3.x 引入，经典但阻塞线程；→ <strong>WebClient（异步非阻塞，Spring WebFlux）</strong>——基于 Reactor，背压支持，适合高吞吐；→ <strong>RestClient（Spring 3.2+ 轻量 Fluent）</strong>——同步但 API 更现代，替代 RestTemplate 的新选择；→ <strong>OpenFeign（声明式）</strong>——写接口加注解即可，自动生成动态代理实现类，业务代码零 HTTP 细节。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>1. @LoadBalanced 是 Qualifier 限定注解</strong>：打开源码可见 <code class="inline-code">@LoadBalanced</code> 本身被 <code class="inline-code">@Qualifier</code> 标注。Spring Cloud 的自动配置类 <code class="inline-code">LoadBalancerAutoConfiguration</code> 会收集所有带 <code class="inline-code">@LoadBalanced</code> 注解的 <code class="inline-code">RestTemplate</code>/<code class="inline-code">WebClient.Builder</code> Bean，给它们逐个添加 <code class="inline-code">LoadBalancerInterceptor</code>。没有这个注解的 RestTemplate 就是普通直连模板——这是"哪些该注入拦截器"的筛选机制。</p>
               <p><strong>2. 拦截器完整执行链路</strong>：<code class="inline-code">ClientHttpRequestInterceptor#intercept</code> 被触发 → 从原始 URL 提取 serviceId（如 <code class="inline-code">http://order-service/api</code> → serviceId=<code class="inline-code">order-service</code>）→ 调用 <code class="inline-code">LoadBalancerClient.choose(serviceId)</code> → 从 <code class="inline-code">ServiceInstance</code> 列表按策略（RoundRobin/Random/Weighted）选一个实例 → 将 URL 的 serviceId 替换为 <code class="inline-code">host:port</code>（如 <code class="inline-code">10.0.1.5:8080</code>）→ delegate 给底层 HTTP Client 执行真正请求。</p>
 
@@ -3435,9 +3435,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>① 给 RestTemplate 打 @LoadBalanced + 配置 HTTP 客户端连接池</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="annotation">@Configuration</span>
@@ -3506,9 +3506,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p>
                 <strong>追问 1：@LoadBalanced 的 Qualifier 机制——Spring 怎么知道给哪些 RestTemplate 注拦截器？</strong>
               </p>
@@ -3523,9 +3523,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -3541,9 +3541,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：金丝雀错误预算、依赖超时传导、配置回滚。表达提纲：调用链预算→治理参数→发布门禁。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -3555,22 +3555,22 @@ flowchart TD
 
         <!-- C10.19 OpenFeign 深度：动态代理 + RequestInterceptor + 超时/重试/FallbackFactory + 多参数坑 -->
         <!-- ============================================================================================== -->
-        <div class="qa-card" id="C10.19" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.19</div>
-            <div class="qa-question">OpenFeign 深度：@FeignClient 接口如何变成能发 HTTP 的"实现类"？动态代理 + 熔断 + 多参数坑<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.19" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.19</div>
+            <div class="content-question">OpenFeign 深度：@FeignClient 接口如何变成能发 HTTP 的"实现类"？动态代理 + 熔断 + 多参数坑<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>OpenFeign 声明式调用底层原理</strong>的掌握。核心要回答：为什么只写一个 <code class="inline-code">@FeignClient</code> 注解的接口（没有任何实现类），注入后就能直接发 HTTP 请求拿到结果？本质是 <strong>JDK Dynamic Proxy + Feign Contract 注解解析 + Spring Bean 自动注册 + 与客户端负载均衡/熔断框架集成</strong>四者的协同。Spring 启动时，<code class="inline-code">@EnableFeignClients</code> 扫描所有 <code class="inline-code">@FeignClient</code> 接口 → 为每个接口生成 JDK 动态代理 → 代理对象作为 Bean 注册到 Spring 容器 → 调用接口方法时，代理层把方法签名翻译成 HTTP 请求、经拦截器链、走负载均衡、发请求、解码响应、命中异常时走 FallbackFactory。理解关键：Feign 不是"生成代码"而是"<strong>运行时动态代理拦截每一次方法调用</strong>"。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Netflix Feign（2012，Netflix 内部）</strong>：最初叫 <code class="inline-code">feign</code>，基于注解声明 REST 客户端，Java 6+ 兼容，集成 Ribbon + Hystrix，在 Spring Cloud Netflix 时代成为标配。</p>
               <p><strong>OpenFeign（2016，社区 fork）</strong>：Netflix 将 Feign 捐献给社区，在 <code class="inline-code">io.github.openfeign</code> groupId 下继续开发。Spring Cloud 2020.x 起全面从 Netflix Feign 迁移到 OpenFeign 3.x，支持 HTTP/2、更灵活的 Contract、Micrometer Tracing。</p>
               <p><strong>Spring Cloud OpenFeign 4.x（Spring Boot 3.x / Java 17+）</strong>：要求 Java 17 baseline，Jakarta EE 9+ 命名空间，整合 Spring Framework 6 的 HTTP Interface（<code class="inline-code">@HttpExchange</code>）新特性，原生支持 Observability，内置 Apache HC5 适配。</p>
@@ -3578,9 +3578,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>调用链完整路径（逐跳拆解）</strong>：</p>
               <ol>
                 <li>
@@ -3623,9 +3623,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>① @FeignClient 继承父接口模式（UserFeignClient extends UserApi）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// ---- 公共 API 模块（服务端+客户端共享）----</span>
@@ -3724,9 +3724,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Feign + Sentinel + LoadBalancer 三层超时如何设置？顺序和大小关系是什么？</strong></p>
               <p>
                 必须按从小到大设，否则上层超时先触发导致下层机制失效。正确顺序与大小关系：<br />
@@ -3748,9 +3748,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -3771,22 +3771,22 @@ flowchart TD
 
         <!-- C10.20 Spring Cloud Gateway 生产级调优：GlobalFilter 顺序 / DirectBuffer 泄漏 / 连接池 / 上下文透传 -->
         <!-- ========================================================================================================== -->
-        <div class="qa-card" id="C10.20" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.20</div>
-            <div class="qa-question">Spring Cloud Gateway 生产级调优：GlobalFilter 执行顺序、DirectBuffer 泄漏、连接池与响应上下文透传<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.20" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.20</div>
+            <div class="content-question">Spring Cloud Gateway 生产级调优：GlobalFilter 执行顺序、DirectBuffer 泄漏、连接池与响应上下文透传<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题直接考察<strong>"你是否在生产上踩过 Gateway 的坑"</strong>——不是背配置，而是能解释现象背后的根因。核心场景：为什么 Gateway 在 2k QPS 下出现 <code class="inline-code">OutOfDirectMemoryError</code>（堆外内存泄漏）？为什么自定义 GlobalFilter 里写回的响应头客户端收不到？为什么从 MDC 拿的 TraceId 在 Gateway 转发到下游时丢了？本质是 <strong>Reactor Netty 响应式模型 + Gateway Filter 执行顺序 + Netty 堆外内存生命周期 + Spring RequestContext 在异步线程传递失败</strong>四者之间的协同问题。理解关键：Gateway 不是 Servlet，它跑在 Netty EventLoop 上，<strong>ThreadLocal 在异步场景下完全失效</strong>，所有"存上下文/读上下文/释放内存"操作都必须走 Reactor Context 和 DataBuffer 引用计数，否则线上必出诡异问题。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Zuul 1.x（Servlet + 同步阻塞）</strong>：Netflix 第一代网关，基于 Servlet + Tomcat，每请求一线程，线程池耗尽即雪崩，生产上 1k QPS 就需要大堆大机器。</p>
               <p><strong>Spring Cloud Gateway（2017，WebFlux + Netty 异步非阻塞）</strong>：Spring 团队基于 Spring 5 WebFlux + Project Reactor + Netty 重写，少量线程（CPU 核数 × 2）支撑万级 QPS，Predicate + Filter 模型，Spring 生态无缝集成。</p>
               <p><strong>Gateway 3.x（Spring Boot 3.x / Spring 6.x）</strong>：Java 17 baseline，支持 RFC 7808 Problem 格式响应，Spring Boot 3 Observability（Micrometer Tracing）开箱支持，Netty Native Epoll/kqueue 传输，AOT GraalVM Native Image。</p>
@@ -3794,9 +3794,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>1. GlobalFilter 执行顺序（order 值越小越先执行）</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -3881,9 +3881,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>① 自定义 JwtAuthGlobalFilter（order=-100，必须在 NettyRoutingFilter 之前）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="annotation">@Component</span>
@@ -3972,9 +3972,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p>
                 <strong>追问 1：NettyRoutingFilter 为什么 order 是 LOWEST_PRECEDENCE（最大）而不是最小？你写的鉴权 GlobalFilter 应该放在哪个 order 值之前？</strong>
               </p>
@@ -4000,9 +4000,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -4023,15 +4023,15 @@ flowchart LR
 
         <!-- C10.21 Bootstrap 上下文 + @RefreshScope 动态刷新代理原理 -->
         <!-- ========================================================================================================== -->
-        <div class="qa-card" id="C10.21" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.21</div>
-            <div class="qa-question">Bootstrap 上下文与 @RefreshScope 动态刷新代理原理<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.21" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.21</div>
+            <div class="content-question">Bootstrap 上下文与 @RefreshScope 动态刷新代理原理<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 为什么一定要写 <code class="inline-code">bootstrap.yml</code> 才能让配置中心生效？<code class="inline-code">@RefreshScope</code>
                 打了之后配置就真的会自动刷新？本质是
@@ -4040,18 +4040,18 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Spring Cloud 早期（Boot 1.5 / 2.x，Dalston ~ 2021.x）</strong>：引入 Bootstrap 上下文机制，通过 <code class="inline-code">spring.factories</code> 加载 <code class="inline-code">BootstrapApplicationListener</code>，父上下文提前加载注册/配置 Bean，与主 <code class="inline-code">application.yml</code> 分层加载，保证"Nacos 先连上、再创建业务 Bean"的顺序。</p>
               <p><strong>Spring Boot 3.0 / Spring Cloud 2022.0.x（Kilburn，2022-11/12，与 Boot 3.0 同期）</strong>：<strong>停止自动创建 Bootstrap 上下文</strong>，配置中心集成（Nacos/Consul/Config Server）改为通过 <code class="inline-code">spring.config.import</code> 声明配置来源（如 <code class="inline-code">spring.config.import=nacos:</code>），不再自动扫描 bootstrap.yml；想恢复老行为需额外加依赖 <code class="inline-code">spring-cloud-starter-bootstrap</code>。注意：<code class="inline-code">spring.config.import</code> / ConfigData 这一套机制本身在 <strong>Spring Boot 2.4（2020）</strong>就已引入，这里只是"用 import 接管 bootstrap 职责"的迁移节点，并非新机制诞生点。</p>
               <p><strong>Spring Boot 3.2+（2024 ~ 至今）</strong>：<code class="inline-code">spring.config.import</code> 支持多配置中心优先级与可选 required 标记；<code class="inline-code">@RefreshScope</code> 与 <code class="inline-code">@ConfigurationProperties</code> 都能实现配置热更新，但刷新路径不同——<code class="inline-code">@ConfigurationProperties</code> 走 <code class="inline-code">ConfigurationPropertiesRebinder</code> 重新绑定，<code class="inline-code">@RefreshScope</code> 走 <code class="inline-code">RefreshScope.cache.clear()</code> 重建 target，二者不可混为一谈。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>① Bootstrap 上下文加载机制（Boot 2.x 时代）</strong>：<code class="inline-code">Spring Cloud BootstrapApplicationListener</code> 在 <code class="inline-code">ApplicationEnvironmentPreparedEvent</code> 阶段，用一个名为 <code class="inline-code">bootstrap</code> 的 <code class="inline-code">SpringApplication</code> 先创建父上下文（Parent Context），加载 <code class="inline-code">bootstrap.yml</code> 配置与 <code class="inline-code">BootstrapConfiguration</code> 配置类——Nacos/Apollo 等注册/配置 Bean 先实例化放入父上下文。父上下文的 Bean 可被子上下文用 <code class="inline-code">@Autowired</code> 直接拿到，因此 <code class="inline-code">NacosConfigService</code> 才能在主应用 Bean 创建前连上配置中心拉取配置。</p>
 
               <p>
@@ -4100,9 +4100,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>① bootstrap.yml(Boot 2.x) vs application.yml(Boot 3.x spring.config.import) 两份等价示例</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -4189,9 +4189,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：@RefreshScope 的 Bean 在 refresh 时正被线程调用会怎样？</strong></p>
               <p>Spring Cloud 用 <code class="inline-code">SerializationDelegate</code> 做锁，旧对象用 soft reference 暂存，等待用完再回收，所以不会发生 NPE。具体来说：<code class="inline-code">RefreshScope</code> 的 cache 是 <code class="inline-code">StandardScopeCache</code>，内部 <code class="inline-code">ConcurrentHashMap</code> 存 name→BeanLifecycleWrapper；refresh 时 <code class="inline-code">cache.clear()</code> 会把 wrapper 从 map 里移除（不再有强引用），但正在执行中的线程已经拿到了旧 target 的引用，会继续跑完；当所有线程都释放旧对象后，soft reference 下次 GC 时回收。唯一风险是"refresh 瞬间 + 并发极高"时可能有极短暂的新旧对象并存，但不会抛 NPE，也不会拿半初始化的对象。</p>
 
@@ -4207,9 +4207,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -4226,15 +4226,15 @@ flowchart TD
 
         <!-- C10.22 Sleuth→Micrometer Tracing 链路追踪演进（B3/W3C、采样率、Brave/OTel、MDC） -->
         <!-- ========================================================================================================== -->
-        <div class="qa-card" id="C10.22" data-difficulty="expert" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.22</div>
-            <div class="qa-question">Sleuth→Micrometer Tracing 链路追踪演进：B3/W3C 传播、采样率、Brave/OTel 桥接与 MDC 透传<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.22" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.22</div>
+            <div class="content-question">Sleuth→Micrometer Tracing 链路追踪演进：B3/W3C 传播、采样率、Brave/OTel 桥接与 MDC 透传<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 Spring Cloud Sleuth 为什么在 Boot 3.0 突然"消失"，而变成 Micrometer Tracing？本质是
                 <strong>Spring 社区在 2022 年把链路追踪 API 从 Spring Cloud 子项目下沉到 Spring Framework 级别的 Micrometer 观测抽象（Micrometer Metrics / Tracing / Logging 三合一）</strong>，与 OpenTelemetry API 对齐。这里考察的是：你是否知道"为什么要做这次下沉"？是否亲自做过 Boot 2→3 的链路追踪升级？能否区分 Brave vs OTel 两套桥接的取舍？W3C TraceContext 跟 B3 到底谁是未来？生产 10k QPS 下 traceId 怎么保证异步线程不丢、采集量怎么不压爆 OTel Collector？这些都是"用过 APM"和"做过 APM 生产落地"的分水岭。
@@ -4242,9 +4242,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Spring Cloud Sleuth 1.x（2017，Dalston）</strong>：基于 Brave 4.x，MDC 自动注入 traceId/spanId，默认 B3 传播格式，Zipkin 作为默认后端。</p>
               <p><strong>Spring Cloud Sleuth 2.x（2019 ~ 2020，Hoxton，对应 Boot 2.2/2.3）</strong>：升级 Brave 5.x + Zipkin Reporter 2.x，增强 Reactor/异步自动传播；<strong>Sleuth 3.x（2020 ~ 2022，Ilford ~ 2021.0，对应 Boot 2.4~2.7）</strong>：新增 <code class="inline-code">spring-cloud-sleuth-otel</code> 试验性桥接，但 OTel 的正式、长期支持路径是后续独立的 Micrometer Tracing，而非 Sleuth 自身。</p>
               <p><strong>Spring Boot 3.0（2022-11）</strong>：Sleuth 停止维护，功能迁移到 <strong>Micrometer Tracing 1.0+</strong>（Spring 官方观测栈）+ Spring Cloud 2022.0.x 只保留少量桥接适配。关键收益：观测 API 从 Spring Cloud 下沉到 Micrometer，与 Metrics/Logging 三合一，不再需要 Spring Cloud 全家桶也能用到链路追踪（比如只写 Spring MVC 单体也能上）。</p>
@@ -4268,9 +4268,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>① 核心抽象五件套</strong>：<code class="inline-code">Tracer</code>（创建 Span）、<code class="inline-code">Span</code>（一个调用段，带 name/tags/startTime/endTime）、<code class="inline-code">CurrentTraceContext</code>（ThreadLocal / Scope 存当前 Span）、<code class="inline-code">Propagator</code>（跨进程传播 Header）、<code class="inline-code">SpanExporter</code>（上报到 Zipkin/Jaeger/OTel Collector）。<strong>Brave 实现 vs OpenTelemetry 实现的取舍</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -4358,9 +4358,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>① application.yml 配置 Micrometer Tracing（W3C + 10% 采样 + OTLP Exporter）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="kw">management:</span>
@@ -4449,9 +4449,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p>
                 <strong>追问 1：跨线程池（ScheduledExecutorService / Kafka 消费线程 / Reactor Schedulers）时 traceId 如何传递？</strong>
               </p>
@@ -4477,9 +4477,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -4496,22 +4496,22 @@ flowchart LR
 
         <!-- C10.23 Spring Cloud Commons 核心抽象（DiscoveryClient/ServiceInstance/LoadBalancer）无缝切换 -->
         <!-- ========================================================================================================== -->
-        <div class="qa-card" id="C10.23" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.23</div>
-            <div class="qa-question">Spring Cloud Commons 核心抽象如何让注册中心从 Eureka→Nacos→Consul 无缝切换<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.23" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.23</div>
+            <div class="content-question">Spring Cloud Commons 核心抽象如何让注册中心从 Eureka→Nacos→Consul 无缝切换<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>为什么 pom.xml 把 <code class="inline-code">spring-cloud-starter-netflix-eureka-client</code> 改成 <code class="inline-code">spring-cloud-starter-alibaba-nacos-discovery</code>，代码里 <code class="inline-code">@LoadBalanced RestTemplate</code>、<code class="inline-code">DiscoveryClient</code>、<code class="inline-code">LoadBalancer</code> 的用法一行不用改？本质是 <strong>Spring Cloud Commons 定义了统一接口层，各注册中心组件（Eureka/Nacos/Consul）实现各自 AutoConfiguration，Bean 注入时 Spring 按条件装配，上层业务面向 Commons 抽象编程</strong>。这里考察的是：你是否真的理解"面向接口+条件装配"是怎么协作的？能否画出从业务代码到具体 Nacos/Eureka 实现的调用链路？能不能自己扩展一个 StaticDiscoveryClient 做本地测试？遇到 CompositeDiscoveryClient 多注册中心聚合时能排障。这些问题能区分"只会抄 pom 换依赖"和"真正懂 Spring Cloud 架构设计"两类候选人。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Spring Cloud Commons 1.0（2015，Angel 发行版）</strong>：第一次提出核心抽象——<code class="inline-code">DiscoveryClient</code> / <code class="inline-code">ServiceInstance</code> / <code class="inline-code">LoadBalancerClient</code>，奠定"面向抽象编程、替换注册中心不改代码"的架构基调。</p>
               <p><strong>Spring Cloud Commons 3.x（Spring Cloud 2020.x / Ilford，移除 Ribbon）</strong>：新增 <code class="inline-code">Spring Cloud LoadBalancer</code>（Reactor 实现）取代 Netflix Ribbon（已停止维护），抽象层增加 <code class="inline-code">ReactorLoadBalancer</code> / <code class="inline-code">ServiceInstanceListSupplier</code> 响应式接口。</p>
               <p><strong>Spring Cloud Commons 4.x（Boot 3.x / Spring 6.x）</strong>：删除 Spring Cloud Netflix 大量已废弃接口（Ribbon/Hystrix/Archaius），抽象全面对齐 Spring 6，<code class="inline-code">spring.factories</code> 迁移到 <code class="inline-code">AutoConfiguration.imports</code>。</p>
@@ -4519,9 +4519,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>核心抽象 4 件套 + Spring Factories / AutoConfiguration.imports 机制</strong>：业务代码 → Commons 抽象层 → AutoConfiguration 条件装配 → 具体实现（Nacos/Eureka/Consul/Zookeeper）。</p>
 
               <div class="mermaid-container">
@@ -4575,9 +4575,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>① 无缝切换示例：Eureka → Nacos 仅改 pom + yml，代码零改动</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -4674,9 +4674,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p>
                 <strong>追问 1：CompositeDiscoveryClient 如何聚合 Nacos + K8s Discovery，让一部分服务从 K8s Endpoints 拉，另一部分从 Nacos 拉？</strong>
               </p>
@@ -4700,9 +4700,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -4722,15 +4722,15 @@ flowchart TD
 
         <!-- C10.24 Spring Cloud 常见生产 7 大坑 -->
         <!-- ========================================================================================================== -->
-        <div class="qa-card" id="C10.24" data-difficulty="senior" data-priority="p2">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.24</div>
-            <div class="qa-question">Spring Cloud 常见生产 7 大坑：Feign 传文件、LoadBalanced WebClient 冲突、RefreshScope Bean 失效、Gateway Predicate 优先级、上下文丢失、Date 序列化、Sentinel Fallback 吞异常<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+        <div class="content-card" id="C10.24" data-difficulty="senior" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.24</div>
+            <div class="content-question">Spring Cloud 常见生产 7 大坑：Feign 传文件、LoadBalanced WebClient 冲突、RefreshScope Bean 失效、Gateway Predicate 优先级、上下文丢失、Date 序列化、Sentinel Fallback 吞异常<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这 7 个坑是 <strong>Spring Cloud 社区 GitHub issue 星标最高的 7 个真实生产事故集合</strong>，覆盖 Feign / Gateway / RefreshScope / Sentinel 四大组件。能否讲清"踩坑经验"，是区分"<strong>用过 Spring Cloud</strong>"和"<strong>用 Spring Cloud 做过生产</strong>"的分水岭。核心不是背"怎么改"，而是每坑能说出
                 <strong>根因 → 触发条件 → 最小复现代码 → 修复代码 → 如何预防下一次</strong>
@@ -4739,9 +4739,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>坑的版本依赖性很强——Spring Boot 2.x → 3.x，Spring Cloud 2021.x → 2022.x → 2023.x，很多坑在新版本修复但老项目仍然大量存在。本题重点讲"<strong>当前主流版本（Boot 3.2+ / Spring Cloud 2023.x）仍会踩到的坑</strong>"：</p>
               <ul>
                 <li>坑 1 Feign 传文件 → Feign 12.x 仍默认不支持，需显式加 feign-form 依赖。</li>
@@ -4755,9 +4755,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理 + 7 坑详解（根因 + 修复代码）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理 + 7 坑详解（根因 + 修复代码）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>坑 1：Feign 传 File / InputStream 报 <code class="inline-code">is not a type supported by this encoder</code></strong><br />
                 <strong>根因</strong>：Feign 默认的 <code class="inline-code">SpringEncoder</code>（基于 Jackson）只处理 JSON / POJO，不处理 <code class="inline-code">MultipartFile</code> / <code class="inline-code">File</code> / <code class="inline-code">InputStream</code>。要传文件必须用 Feign 官方的 <code class="inline-code">feign-form</code> 扩展，它实现了 <code class="inline-code">multipart/form-data</code> 编码。<br />
@@ -4808,9 +4808,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践（每坑一段修复代码）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践（每坑一段修复代码）</div>
+            <div class="content-layer-body">
               <p><strong>① 坑 1 修复：Feign 传文件 SpringFormEncoder 配置</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// pom.xml 加依赖</span>
@@ -5067,9 +5067,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p>
                 <strong>追问 1：坑 5 中用了 exchange.getAttributes()，但在 Gateway 的 NettyRoutingFilter 中异步转发后，响应链路上一个 Post GlobalFilter 还能读到吗？</strong>
               </p>
@@ -5097,9 +5097,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -5115,31 +5115,31 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C10.25 Dubbo vs Spring Cloud：RPC 核心原理与选型 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C10.25" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.25</div>
-            <div class="qa-question">Dubbo vs Spring Cloud：阿里系 RPC 核心原理与选型<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.25" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.25</div>
+            <div class="content-question">Dubbo vs Spring Cloud：阿里系 RPC 核心原理与选型<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对两种主流微服务技术路线的<strong>原理级区分与选型判断</strong>：Dubbo 是基于 TCP 长连接的<strong>高性能 RPC 框架</strong>（强调接口粒度治理与强契约），Spring Cloud 是基于 HTTP/REST 的<strong>微服务全家桶</strong>（强调生态整合与跨语言）。本质是"<strong>自研高性能 RPC vs 标准 HTTP 生态</strong>"的取舍。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Dubbo</strong>：阿里 2011 开源（2.x，Netty + Hessian），停更数年后由 Apache 接管；<strong>Dubbo 2.7（2019）</strong>强化元数据/配置中心，<strong>Dubbo 3.x（2021）</strong>引入 <strong>Triple 协议</strong>（gRPC over HTTP/2）与应用级服务发现，解决跨语言与 URL 爆炸。</p>
               <p><strong>Spring Cloud</strong>：Netflix OSS（Eureka/Ribbon/Hystrix）起步，后因 Netflix 停更转向官方/Spring Cloud Alibaba（Nacos/Sentinel/Seata），以 OpenFeign（HTTP）做声明式调用，配套 Gateway/Config/Sleuth 全家桶。</p>
               <p><strong>新变量</strong>：gRPC、Service Mesh（Sidecar 接管通信，框架变薄）正在重塑选型。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -5189,9 +5189,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>注册中心</strong>：Nacos 同时服务 Dubbo 与 Spring Cloud，可统一。Dubbo 3 推荐应用级服务发现（<code class="inline-code">dubbo.application.register-mode=instance</code>）降低注册中心压力。</p>
               <p><strong>混布架构</strong>：对外暴露 REST（Gateway/OpenFeign），内部服务间用 Dubbo 高性能 RPC；Provider 同时注册到 Nacos 供两类消费者发现。</p>
               <p><strong>序列化选型</strong>：Dubbo 避免用 Hessian 跨语言坑，内部用 Kryo/Fastjson2，跨语言用 Triple(Protobuf)。</p>
@@ -5199,9 +5199,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Dubbo 3 应用级服务发现解决了什么？</strong> 旧 2.x 接口级发现为每个接口生成一条 URL，大规模下注册中心 URL 数量爆炸（"URL 爆炸"）。应用级发现按"应用"粒度注册，接口映射下沉到 metadata，URL 数量降一到两个数量级。</p>
               <p>
                 <strong>追问 2：为什么大厂（阿里/字节/美团）偏好 Dubbo 系？</strong>
@@ -5214,9 +5214,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -5232,15 +5232,15 @@ flowchart TD
         </div>
 
         <!-- C10.26 @RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用规范 -->
-        <div class="qa-card" id="C10.26" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.26</div>
-            <div class="qa-question">@RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用规范<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.26" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.26</div>
+            <div class="content-question">@RefreshScope 生产踩坑与 @ConfigurationProperties 优雅使用规范<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 <code class="inline-code">@RefreshScope</code> 是 Spring Cloud 配置热刷新的"双刃剑"：它本质是一个自定义 Scope，把 Bean 包成代理、刷新时 <code class="inline-code">cache.clear()</code> 重建 target。很多团队把它当"加上就能热更新"的银弹，结果线上出现双实例、内存泄漏、定时任务重复执行、事务/AOP 失效等隐性生产事故。重点是：你能讲清 @RefreshScope 的 9 大坑与避坑准则，并能给出 @ConfigurationProperties 业务侧"优雅使用 + 安全热更新"的工程规范——尤其是
                 <strong>Nacos 下 @ConfigurationProperties 自动 rebind 无需 @RefreshScope，而 @Value 才需要；Spring Cloud Config 下 @ConfigurationProperties 仍需 @RefreshScope</strong>
@@ -5249,16 +5249,16 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>配置热更新从「重启生效」→ <code class="inline-code">@RefreshScope</code> 代理重建 → 配置中心 rebind（Nacos 对 <code class="inline-code">@ConfigurationProperties</code>）→ 事件监听手动托管资源生命周期。演进方向是<strong>少代理、可控销毁</strong>，避免把业务 Bean 塞进 RefreshScope。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理：9 大生产坑与根因</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理：9 大生产坑与根因</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -5332,9 +5332,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践：@ConfigurationProperties 业务侧优雅使用</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践：@ConfigurationProperties 业务侧优雅使用</div>
+            <div class="content-layer-body">
               <p><strong>① 标准模板（Nacos 无需 @RefreshScope）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="annotation">@Data</span>
@@ -5384,9 +5384,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问：Nacos vs Spring Cloud Config 刷新差异</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问：Nacos vs Spring Cloud Config 刷新差异</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -5427,9 +5427,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">避坑黄金准则</div>
                 <ul>
@@ -5443,9 +5443,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">排障 SOP 与工程速查</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">排障 SOP 与工程速查</div>
+            <div class="content-layer-body">
               <p><strong>① 线上已出事怎么定位（5 步 SOP）</strong>：@RefreshScope 的坑多为隐性、偶现、难复现，按以下顺序排查：</p>
               <ol>
                 <li>
@@ -5493,27 +5493,27 @@ flowchart TD
           </div>
         </div>
 
-        <div class="qa-card" id="C10.27" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.27</div>
-            <div class="qa-question">配置中心 / 注册中心的推送范式全景：通知+二次拉取 vs Watch 直推 vs 纯 Pull？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.27" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.27</div>
+            <div class="content-question">配置中心 / 注册中心的推送范式全景：通知+二次拉取 vs Watch 直推 vs 纯 Pull？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>客户端如何"及时拿到"配置 / 服务实例变更，是配置中心（Nacos/Apollo）与注册中心（Nacos/Eureka/ZK/Etcd/Consul）的核心差异点。常要求横向对比"推送机制"，本质是对三种数据同步范式的取舍。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>配置/注册变更感知：定时全量 Pull → 通知+二次拉取（Nacos/Apollo 常见）→ Watch/长轮询 → 纯事件流。选型看一致性窗口、连接数与防火墙，而非只比“推/拉”口号。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">三种推送范式</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">三种推送范式</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -5550,17 +5550,17 @@ flowchart TD
               </table>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">为什么 AP 型用"通知+二次拉取"而 CP 型可"直推完整数据"</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">为什么 AP 型用"通知+二次拉取"而 CP 型可"直推完整数据"</div>
+            <div class="content-layer-body">
               <p><strong>AP 型（Nacos/Apollo/Eureka）</strong>：服务端为保证可用性、不维护每个客户端会话状态，变更时不持有"完整最新快照给谁"的上下文，故只发轻量通知，由客户端自行拉取它需要的那份数据——解耦、可水平扩展、支持批量 / 灰度。</p>
               <p><strong>CP 型（ZK/Etcd/Consul）</strong>：基于强一致存储（ZAB/Raft），Watch 事件本身就能附带 MVCC 版本下的<strong>完整新值</strong>，且客户端会话由服务端维护，直推完整数据不破坏一致性，反而减少一次 RTT。</p>
               <p><strong>关键澄清</strong>：Nacos 2.x 用 gRPC 长连接，但<strong>配置推送仍是"通知+二次拉取"二阶段范式</strong>——gRPC 只升级了"通知"通道（从 HTTP 长轮询变为长连接主动 Push 通知），客户端收到通知后仍拉取最新配置快照，并非 Watch 直推。切勿与 ZK 的 Watch 直推混淆。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">选型与生产要点</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">选型与生产要点</div>
+            <div class="content-layer-body">
               <ul>
                 <li><strong>选型</strong>：追求强一致 + 实时直推选 ZK/Etcd/Consul（Watch 直推）；追求高可用 + 大规模动态配置选 Nacos/Apollo（通知+二次拉取，长连接保活）。</li>
                 <li><strong>客户端本地快照兜底</strong>：配置 / 注册中心全宕机时，客户端用上次快照启动运行（Nacos/Apollo 均支持），避免中心故障阻断业务。</li>
@@ -5568,9 +5568,9 @@ flowchart TD
               </ul>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -5584,22 +5584,22 @@ flowchart TD
         </div>
 
         <!-- C10.28 平台工程与内部开发者平台（IDP） -->
-        <div class="qa-card" id="C10.28" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.28</div>
-            <div class="qa-question">平台工程与内部开发者平台（IDP）：Golden Path、自助交付与平台团队边界如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.28" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.28</div>
+            <div class="content-question">平台工程与内部开发者平台（IDP）：Golden Path、自助交付与平台团队边界如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>平台工程不是"再做一个运维门户"，而是把<strong>认知负荷从业务团队转移到平台</strong>：用 Golden Path（默认正确路径）让开发者自助完成创建服务、CI/CD、可观测、权限与环境，同时保留逃生舱。核心回答：IDP 装什么？平台与业务的所有权边界？如何用 SLO/错误预算约束平台自身？</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>运维工单时代</strong>：申请机器/域名/证书靠人肉，交付周期周级。</p>
               <p><strong>DevOps 工具堆砌</strong>：Jenkins/K8s/Prometheus 齐了，但每个团队自建流水线，标准分裂、重复造轮。</p>
               <p><strong>平台工程 / IDP（2020s）</strong>：以开发者体验为产品，Backstage 等门户聚合软件目录、模板、文档与评分；GitOps（Argo CD）+ Progressive Delivery 把发布能力产品化。</p>
@@ -5607,9 +5607,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <ul>
                 <li><strong>Golden Path</strong>：官方推荐默认路径（脚手架、基础镜像、流水线、探针、日志规范），可选但默认最优；逃生舱允许偏离并登记例外。</li>
                 <li><strong>软件目录</strong>：服务所有权、依赖、文档、SLO、Oncall 一处可查（Backstage Catalog 思路）。</li>
@@ -5645,17 +5645,17 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>最小可行 IDP</strong>：① 服务脚手架（Boot 4 + 探针 + OTel Agent + 结构化日志）；② 一键流水线（构建/单测/镜像/安全扫描/部署）；③ 软件目录（Owner、依赖、Runbook）；④ 环境自助（dev/staging 命名空间配额）；⑤ 可观测默认接入（互链 C10.15/C11.09）。</p>
               <p><strong>治理</strong>：Scorecard（测试覆盖、有无 Runbook、有无 SLO）驱动改进，而非单纯审计惩罚。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：平台工程和 SRE 什么关系？</strong> SRE 偏可靠性与错误预算；平台工程偏开发者生产力与路径标准化。二者重叠在可观测/发布，但 KPI 不同（MTTR vs TTFV）。</p>
               <p>
                 <strong>追问 2：强制 Golden Path 会不会扼杀创新？</strong>
@@ -5664,9 +5664,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <ul>
                 <li><strong>门户堆链接</strong>：没有模板与自助 API，只是书签墙。</li>
                 <li><strong>平台背业务锅</strong>：未划清 SLO 所有权，业务告警全打给平台。</li>
@@ -5676,26 +5676,26 @@ flowchart TD
           </div>
         </div>
 
-        <div class="qa-card" id="C10.29" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.29</div>
-            <div class="qa-question">网关超时链路怎么拆：从客户端到下游每一跳的超时与排查顺序？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.29" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.29</div>
+            <div class="content-question">网关超时链路怎么拆：从客户端到下游每一跳的超时与排查顺序？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>超时不是单点配置：客户端、网关、服务、下游各有一层；任一层大于上游会导致「上游先断、下游仍占资源」。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">原理映射</div>
+            <div class="content-layer-body">
               <p>超时预算应自上而下递减；重试与超时乘积决定放大倍数。Trace 各 span 耗时是定位「谁先超时」的证据，存活探针绿不代表链路健康。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">落地排查</div>
+            <div class="content-layer-body">
               <p>排查顺序：</p>
               <ol>
                 <li>确认客户端超时与重试次数。</li>
@@ -5706,15 +5706,15 @@ flowchart TD
               </ol>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">参数与开关</div>
+            <div class="content-layer-body">
               <p>常用旋钮：Gateway <code>response-timeout</code>、Netty 连接超时；Feign/HttpClient connect/read；线程池 queue。契约示例：客户端 3s = 网关 2.5s = 服务内下游合计 ≤2s。把总预算写进接口契约。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">失败模式与回滚</div>
+            <div class="content-layer-body">
               <p>失败模式：只调网关不调客户端；超时后疯狂重试放大；异步回调无超时。回滚点：恢复上一版超时配置（配置当发布，对照 G01.02）。</p>
               <p>超时链路要可加总：客户端 &gt; 网关 &gt; 服务 &gt; 下游，且每一跳留余量。排查从最外层超时症状往内对预算表。</p>
               <p>常见坑：网关 1s、服务 3s；或重试把预算打穿。临时止血：降重试、扩超时（有上限）、切降级。</p>
@@ -5723,26 +5723,26 @@ flowchart TD
           </div>
         </div>
 
-        <div class="qa-card" id="C10.30" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C10.30</div>
-            <div class="qa-question">配置刷新安全回滚值班：@RefreshScope 之外还要核对什么？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C10.30" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.30</div>
+            <div class="content-question">配置刷新安全回滚值班：@RefreshScope 之外还要核对什么？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>动态刷新能秒级改行为，也是秒级制造事故的入口。值班要识别「配置已推但行为未变 / 行为已变但不可退」。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">原理映射</div>
+            <div class="content-layer-body">
               <p>配置中心是关键依赖：客户端要有本地快照、推送失败降级、订阅隔离。RefreshScope 只覆盖被代理的 Bean；重资源 Bean 更适合 @ConfigurationProperties + rebind。回滚必须含配置维（对照 G01.02 / C10.26）。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">落地排查</div>
+            <div class="content-layer-body">
               <p>排查顺序：</p>
               <ol>
                 <li>变更单与配置版本/MD5。</li>
@@ -5753,15 +5753,15 @@ flowchart TD
               </ol>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">参数与开关</div>
+            <div class="content-layer-body">
               <p>核对表：生效范围（命名空间/DataId）、灰度实例列表、本地快照兜底、关停开关、双人复核（限流/鉴权/路由）。15 分钟观察：推送成功率、订阅滞后、客户端版本分布。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">失败模式与回滚</div>
+            <div class="content-layer-body">
               <p>失败模式：控制台无单改生产；只退镜像不退配置；RefreshScope 未覆盖的 Bean 静默不生效。回滚点：配置快照 + 必要时缩容到未刷新实例。</p>
               <p>@RefreshScope 只刷新代理 Bean；静态字段、连接池、本地缓存不会自动跟。回滚要核对配置中心版本与实例实际生效值。</p>
               <p>清单：刷新范围、失败实例、是否需滚动重启、回滚后的只读校验。</p>

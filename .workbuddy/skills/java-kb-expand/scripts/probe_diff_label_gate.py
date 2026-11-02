@@ -41,7 +41,7 @@ METH = os.path.join(V.CHAPTER_DIR, "chapter-core-methodology.html")
 ROOT_IDX = os.path.join(V.BASE, "index.html")
 
 CHIP_LONG = re.compile(r'<span class="difficulty difficulty-senior">高级</span>')
-CARD_DIFF = re.compile(r'(<div class="qa-card" id="M01\.01")')
+CARD_DIFF = re.compile(r'(<div class="content-card" id="M01\.01")')
 
 
 def md5(t):

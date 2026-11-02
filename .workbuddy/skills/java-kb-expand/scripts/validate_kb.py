@@ -29,7 +29,7 @@ java-kb-expand · 全量校验脚本（通用版）
   1h) **列表缩进兜底**：design-system.css 须含零特异度 `:where(ul,ol){padding-inline-start:1.25rem}`（reset 抹掉了
       ul/ol 默认缩进，无类规则的列表圆点/数字会画到内容盒外、贴边甚至越出卡片），且不得退化成裸 `ul, ol {…}`
       （2026-09-16 补，实测核心原理页 20 处、安全检查页 1 处）
-  1i) **卡片嵌套**：任一 `qa-card` / `map-card` 不得被另一张卡包含（= 前一张卡缺 `</div>`；渲染为卡片套卡片）
+  1i) **卡片嵌套**：任一 `content-card` / `map-card` 不得被另一张卡包含（= 前一张卡缺 `</div>`；渲染为卡片套卡片）
       （2026-09-16 补，实测 chapter-11 的 C11.28 缺 1 个 `</div>`，C11.29/C11.30 被吞进去，当时全部门禁 PASS）
   1j) **难度标签口径**：全站 `<span class="difficulty difficulty-X">TEXT</span>` 的 TEXT 必须等于短表
       {expert:专家, architect:架构, senior:高级}（可带 ` ×N`）；禁止非难度语义占用 difficulty 类
@@ -253,7 +253,7 @@ def run_chapter_meta_difficulty_check():
         if bn == "chapter-questions-eight-part.html":
             card_pat = r'<div class="[^"]*card[^"]*"\s+id="E\d{2}\.\d{2}"[^>]*>'
         else:
-            card_pat = r'<div class="qa-card(?:\s+[^"]*)?"\s+id="[CMES]\d{2}\.\d{2}"[^>]*>'
+            card_pat = r'<div class="content-card(?:\s+[^"]*)?"\s+id="[CMES]\d{2}\.\d{2}"[^>]*>'
         cards = re.findall(card_pat, raw)
         cnt = {"senior": 0, "architect": 0, "expert": 0}
         for cm in cards:
@@ -304,7 +304,7 @@ def run_kb_count_markup_check():
         t = read(path)
         if "kb-count-local" in t or "data-kb-count-local" in t:
             miss.append(f"禁止本地计数：{os.path.relpath(path, BASE)}")
-        # 禁止口径控制套话（全站 HTML，含 qa-card）
+        # 禁止口径控制套话（全站 HTML，含 content-card）
         if "不计入题目总量" in t:
             miss.append(f"禁止文案「不计入题目总量」：{os.path.relpath(path, BASE)}")
     if miss:
@@ -640,13 +640,13 @@ def scan_bare_pre(html):
     return p.found
 
 
-CARD_CLASSES = ("qa-card", "map-card")
+CARD_CLASSES = ("content-card", "map-card")
 
 
 def scan_card_nesting(html):
     """返回被嵌套的卡片 [(id, line, outer_id, outer_line)]。
 
-    判定：解析栈里已存在 `qa-card` / `map-card` 时又开启一张卡 ⇒ 前一张卡缺 `</div>`
+    判定：解析栈里已存在 `content-card` / `map-card` 时又开启一张卡 ⇒ 前一张卡缺 `</div>`
     （浏览器渲染为卡片套卡片：后续卡片整块落进上一张卡的框里）。
     背景（2026-09-16 长官实测）：chapter-11 的 C11.28 少一个 `</div>`，C11.29/C11.30
     被吞进 C11.28 内部，而当时 validate_kb 全绿 —— 校验面缺这一类结构缺陷。
@@ -683,7 +683,7 @@ def scan_card_nesting(html):
 
 
 def run_card_nesting_check():
-    """1i) 卡片层级：章节页的 qa-card / map-card 不得互相嵌套。"""
+    """1i) 卡片层级：章节页的 content-card / map-card 不得互相嵌套。"""
     bad, n = [], 0
     for p in all_chapter_files():
         bn = os.path.basename(p)
@@ -772,7 +772,7 @@ def main():
     run_undeclared_check()
     # 0d) 篇章页/E/S 页头难度分布 vs 实体卡片（2026-09-15 新增，防 12 页漂移复发）
     run_chapter_meta_difficulty_check()
-    # 0e/1i) 卡片层级：qa-card / map-card 不得互相嵌套（2026-09-16 新增，防缺 </div> 卡片套卡片）
+    # 0e/1i) 卡片层级：content-card / map-card 不得互相嵌套（2026-09-16 新增，防缺 </div> 卡片套卡片）
     run_card_nesting_check()
     run_difficulty_label_check()
     run_special_no_difficulty_check()
@@ -1094,7 +1094,7 @@ def main():
         r'</section>\s*(.*?)\s*<section class="scenario-group"', _sc, re.S
     ):
         _sc_orphan += len(
-            re.findall(r'<div class="qa-card[^"]*"[^>]*id="S\d+\.\d+"', _gap)
+            re.findall(r'<div class="content-card[^"]*"[^>]*id="S\d+\.\d+"', _gap)
         )
     check(_sc_orphan == 0, f"[场景结构] section 间隙孤儿 S 卡={_sc_orphan}（须 0）")
     _sc_gc_fail = 0
@@ -1109,7 +1109,7 @@ def main():
             continue
         _body = _sm.group(1)
         _cards = set(
-            re.findall(r'<div class="qa-card[^"]*"[^>]*id="(S\d+\.\d+)"', _body)
+            re.findall(r'<div class="content-card[^"]*"[^>]*id="(S\d+\.\d+)"', _body)
         )
         _gcm = re.search(rf'class="group-count"[^>]*>\s*{_KB_NUM}', _body)
         if not _gcm or int(_gcm.group(1)) != len(_cards):

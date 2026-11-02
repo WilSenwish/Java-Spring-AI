@@ -35,7 +35,7 @@ def find_root(start):
 import validate_kb as V  # noqa: E402
 
 TARGET = os.path.join(V.CHAPTER_DIR, "chapter-11-middleware-engineering.html")
-ANCHOR = re.compile(r'\n        </div>\n\n        <div class="qa-card" id="C11\.29"')
+ANCHOR = re.compile(r'\n        </div>\n\n        <div class="content-card" id="C11\.29"')
 
 
 def md5(t):
@@ -65,7 +65,7 @@ def main():
         print("  !! 未找到注入锚点（C11.28/C11.29 边界已变动），中止")
         return 1
     open(TARGET, "w", encoding="utf-8").write(
-        ANCHOR.sub('\n        <div class="qa-card" id="C11.29"', orig, count=1))
+        ANCHOR.sub('\n        <div class="content-card" id="C11.29"', orig, count=1))
     if run("缺陷态") < 1:
         print("  !! 门禁恒真：注入缺陷后仍 PASS")
         ok = False

@@ -48,7 +48,7 @@ const MEASURE = `
   function cardOf(el) {
     var n = el;
     while (n && n !== document.body) {
-      if (n.classList && (n.classList.contains('epq-card') || n.classList.contains('qa-card') ||
+      if (n.classList && (n.classList.contains('content-card') || n.classList.contains('content-card') ||
           n.classList.contains('map-card') || n.classList.contains('chapter-card') ||
           n.classList.contains('eng-card') || n.classList.contains('kpit-card'))) {
         return (n.id || '').toString() || nm(n);
@@ -84,7 +84,7 @@ const MEASURE = `
   var res = culprits.map(function (el) {
     var found = null, n = el;
     while (n && n !== document.body) {
-      if (n.classList && (n.classList.contains('epq-card') || n.classList.contains('qa-card') ||
+      if (n.classList && (n.classList.contains('content-card') || n.classList.contains('content-card') ||
           n.classList.contains('map-card') || n.classList.contains('chapter-card'))) { found = n; break; }
       n = n.parentElement;
     }

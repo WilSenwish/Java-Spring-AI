@@ -37,7 +37,7 @@ os.makedirs(BACKUP, exist_ok=True)
 #       —— ⚠ 场景页 chapter-questions-scenario.html、E 页（eight-part）、以及
 #          【专篇页（方法论 / 工程化 / 踩坑）】同样有 TOC；漏加 → FAIL [TOC缺失]。
 #          2026-09-20 实测：踩坑页 64 个 toc-number 与 64 张卡 id 一一对应，
-#          新增 K 卡必须同步补 TOC 条目（且文案须与 qa-question 逐字一致）。
+#          新增 K 卡必须同步补 TOC 条目（且文案须与 content-question 逐字一致）。
 # 根 index（{BASE}/index.html）
 #   [4] q-item 必须【独立 li 包裹】：
 #         <li class="q-item">

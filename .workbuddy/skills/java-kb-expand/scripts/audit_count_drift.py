@@ -22,7 +22,7 @@
     允许多点位              → `guard.pos_allow_multi`
     全局忽略目录            → `guard.exclude`（含 rk/ 软考资料站）
     真源声明                → `guard.sources`（由被委托的真源引擎消费）
-  卡片实测源 = **全站自动识别**「含 qa-card 的文件」，不指定任何文件名。
+  卡片实测源 = **全站自动识别**「含 content-card 的文件」，不指定任何文件名。
 
 链路：结构性一致（本脚本）→ 真值正确（`audit_truth_source.py`）→ 覆盖完整（`audit_l1_counts.py`）。
 
@@ -89,8 +89,8 @@ def scan_files(exts):
     return sorted(set(out))
 
 
-# ---------------- 1) 实测：全站 qa-card 数（自动识别宿主页，不写死文件名） ----------------
-CARD_RE = re.compile(r'<div class="qa-card"\s+id="(M\d\d\.\d\d)"')
+# ---------------- 1) 实测：全站 content-card 数（自动识别宿主页，不写死文件名） ----------------
+CARD_RE = re.compile(r'<div class="content-card"\s+id="(M\d\d\.\d\d)"')
 cards = {}          # id -> rel（首个定义文件）
 dups = []
 hosts = collections.Counter()
@@ -103,7 +103,7 @@ for rel, p in scan_files(["html"]):
             dups.append("%s 在 %s 与 %s 重复定义" % (cid, cards[cid], rel))
         cards.setdefault(cid, rel)
 if not cards:
-    print("定位失败：全站未解析出任何 qa-card（M##.##）")
+    print("定位失败：全站未解析出任何 content-card（M##.##）")
     sys.exit(2)
 
 actual = collections.Counter(cid[:3] for cid in cards)      # 'M01' -> n

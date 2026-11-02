@@ -136,22 +136,22 @@
         <!-- ============================================================ -->
         <!-- C06.01 Spring Boot 自动配置的 SPI 机制如何工作？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.01" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.01</div>
-            <div class="qa-question">Spring Boot 自动配置的 SPI 机制如何工作？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C06.01" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.01</div>
+            <div class="content-question">Spring Boot 自动配置的 SPI 机制如何工作？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 Spring Boot "<strong>约定优于配置</strong>"核心机制的底层理解：<code class="inline-code">@EnableAutoConfiguration</code> 如何通过类路径扫描 + 条件过滤，把第三方 jar 里的配置类自动注入容器。本质是一套<strong>基于 SPI（Service Provider Interface）的自动装配机制</strong>——框架定义加载契约，各 Starter 按契约声明自己的配置类，Boot 在启动期读取声明、用 <code class="inline-code">@Conditional</code> 系列注解做条件裁剪，最终只装配"环境匹配"的 Bean。理解它就能回答"为什么引入 starter-data-redis 就能用 RedisTemplate""为什么自动配置类不冲突""如何禁用某个自动配置"等一切自动配置问题。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Spring Boot 1.x（2014）</strong>：确立 <code class="inline-code">spring.factories</code> 作为自动配置的 SPI 声明文件，位于 <code class="inline-code">META-INF/spring.factories</code>，以 <code class="inline-code">org.springframework.boot.autoconfigure.EnableAutoConfiguration</code> 为 key 列出全限定类名。加载器 <code class="inline-code">SpringFactoriesLoader</code> 用 Properties 解析，全量加载、无去重。</p>
               <p>
                 <strong>Spring Boot 2.x（2018）</strong>：沿用 spring.factories，但引入 <code class="inline-code">@AutoConfigureBefore/After/Order</code> 控制配置类顺序；<code class="inline-code">@ConditionalOnBean</code>
@@ -164,9 +164,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>触发入口：<code class="inline-code">@SpringBootApplication</code> = <code class="inline-code">@EnableAutoConfiguration</code> + <code class="inline-code">@ComponentScan</code> + <code class="inline-code">@SpringBootConfiguration</code></strong>。<code class="inline-code">@EnableAutoConfiguration</code> 通过
                 <code class="inline-code">@Import(AutoConfigurationImportSelector.class)</code>
@@ -258,9 +258,9 @@ com.example.MongoAutoConfiguration</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>调试自动配置</strong>：启动时加 <code class="inline-code">--debug</code> 或 <code class="inline-code">logging.level.org.springframework.boot.autoconfigure=debug</code>，会打印 <code class="inline-code">Conditions Evaluation Report</code>，列出哪些配置类匹配、哪些被排除及原因，是排查"为什么没自动装配"的第一手段。</p>
               <p><strong>排除特定自动配置</strong>：</p>
               <div class="code-block">
@@ -282,9 +282,9 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：3.x 为何要废弃 spring.factories 改用 AutoConfiguration.imports？</strong></p>
               <p>三个原因：① <strong>性能</strong>——spring.factories 是 Properties 格式，一个 key 可挂多个逗号分隔类名，加载需解析整个文件；imports 文件纯文本每行一类，<code class="inline-code">ImportCandidates</code> 读取更轻量；② <strong>职责单一</strong>——spring.factories 混装了十几种 SPI（监听器、初始化器、环境后置处理器等），自动配置与它们耦合在同一文件，难以独立管理与工具化；③ <strong>AOT 友好</strong>——AOT 处理器需要"确定且可静态分析"的配置清单，imports 文件结构清晰，便于构建期生成 AOT 元数据。注意：仅 <code class="inline-code">EnableAutoConfiguration</code> 这个 key 迁移，其他 SPI（如 <code class="inline-code">EnvironmentPostProcessor</code>）仍在 spring.factories。</p>
               <p><strong>追问 2：自动配置类的加载顺序如何保证？@ConditionalOnBean 会不会因顺序失败？</strong></p>
@@ -295,9 +295,9 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -311,9 +311,9 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：配置绑定校验、健康检查与滚动发布探针。表达提纲：自动配置条件→生效证据→覆盖与排障。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -326,15 +326,15 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
         <!-- ============================================================ -->
         <!-- C06.02 Spring Boot 3.x/4.x 的 AOT 与 GraalVM Native Image 如何工作？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.02" data-difficulty="expert" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.02</div>
-            <div class="qa-question">Spring Boot 3.x/4.x 的 AOT 与 GraalVM Native Image 如何工作？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C06.02" data-difficulty="expert" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.02</div>
+            <div class="content-question">Spring Boot 3.x/4.x 的 AOT 与 GraalVM Native Image 如何工作？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对 Java 编译范式从
                 <strong>JIT（即时编译）→ AOT（提前编译）→ GraalVM Native Image（原生镜像）</strong>演进的本质理解。AOT 不是"换个编译器"，而是<strong>把运行期才做的 Bean 定义解析、条件评估、反射调用，前移到构建期冻结为静态代码</strong>；Native Image 更进一步，用闭世界分析把整个应用编译成单一原生可执行文件。这背后是 Java 从"<strong>一次编写到处运行</strong>"向"<strong>一次构建到处运行</strong>"的范式转移——牺牲部分动态性换取极致启动速度与内存占用，适应云原生/Serverless 场景。
@@ -342,9 +342,9 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>JIT 时代（HotSpot，1990s 至今）</strong>：字节码运行期解释执行 + JIT（C1/C2 编译器）热点编译。优势是<strong>动态性极强</strong>——反射、动态代理、运行期类加载、字节码生成（CGLIB/ByteBuddy）都支持；劣势是<strong>冷启动慢</strong>（要加载类、解析注解、初始化容器）、内存占用高（JVM 自身开销）。传统单体长进程下 JIT 优势明显，但云原生短生命周期容器里成了负担。</p>
               <p><strong>Spring Native 实验期（2020-2022）</strong>：Spring 团队推出 <code class="inline-code">spring-native</code> 实验项目，用 <code class="inline-code">@NativeHint</code> 手动为 GraalVM 提供反射/代理元数据。痛点明显：开发者要手写大量 hint，框架的动态性（Spring AOP、Jackson 序列化）与 Native Image 的闭世界假设冲突严重，迁移成本高。</p>
               <p><strong>Spring Boot 3.0（2022）原生支持 AOT + Native Image</strong>：里程碑演进——AOT 处理器（<code class="inline-code">org.springframework.boot.aot.AotProcessor</code>）在构建期自动分析 BeanFactory，为每个 Bean 生成 <code class="inline-code">BeanFactoryInitializationAotContribution</code>（注册代码）和 <code class="inline-code">BeanRegistrationAotContribution</code>（实例化代码），<strong>用生成的静态代码替代运行期反射</strong>。同时自动生成 GraalVM reachability metadata（反射/资源/代理配置），无需手写 hint。这是 Spring 框架为云原生做的一次底层重构。</p>
@@ -352,9 +352,9 @@ spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.redis.Redis
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>AOT 处理：构建期冻结 Spring 动态性</strong>。Spring 的核心动态性来自三点：① 运行期反射扫描 <code class="inline-code">@Configuration</code>/<code class="inline-code">@Bean</code> 注册 BeanDefinition；② <code class="inline-code">@Conditional</code> 运行期评估；③ 反射实例化 Bean、CGLIB 生成代理。AOT 把这三点前移：</p>
 
               <div class="mermaid-container">
@@ -442,9 +442,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>启用 Native Image 构建</strong>（Spring Boot 3.x + GraalVM）：</p>
               <div class="code-block">
                 <pre><code><span class="com">&lt;!-- pom.xml --&gt;</span>
@@ -477,9 +477,9 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：AOT 生成的代码具体替换了什么？为何能加速启动？</strong></p>
               <p>AOT 为每个 Bean 生成两类代码：① <strong>BeanRegistration</strong>——用直接 <code class="inline-code">new</code> 调用替代 <code class="inline-code">BeanDefinition</code> 的反射实例化（<code class="inline-code">clazz.getDeclaredConstructor().newInstance()</code> → <code class="inline-code">new FooBean()</code>）；② <strong>BeanFactoryInitialization</strong>——把 <code class="inline-code">@Bean</code> 方法的调用、属性注入、<code class="inline-code">@PostConstruct</code> 触发都生成为静态方法链。加速根源：<strong>跳过运行期注解扫描、跳过 ConditionEvaluator 重新评估、跳过反射实例化</strong>。AOT(JVM) 模式启动约快 2-3 倍，Native 模式因无 JVM 额外快 10-50 倍。</p>
               <p><strong>追问 2：Native Image 下 CGLIB 代理为何失效？Spring 如何解决？</strong></p>
@@ -489,9 +489,9 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -505,9 +505,9 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：配置绑定校验、健康检查与滚动发布探针。表达提纲：自动配置条件→生效证据→覆盖与排障。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -520,22 +520,22 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
         <!-- ============================================================ -->
         <!-- C06.03 如何设计一个自定义 Spring Boot Starter？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.03" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.03</div>
-            <div class="qa-question">如何设计一个自定义 Spring Boot Starter？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C06.03" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.03</div>
+            <div class="content-question">如何设计一个自定义 Spring Boot Starter？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察把"自动配置 SPI + 条件装配 + 外部化配置"组合成一个可复用产物的工程能力。Starter 的本质是<strong>"约定 + 默认 + 可覆盖"</strong>三原则的封装：约定（引入即用）、默认（零配置可用）、可覆盖（用户可定制）。它不是简单写个配置类，而是要回答四个设计问题：① 模块如何拆分（autoconfigure 与 starter 分离）；② 配置项如何暴露与校验；③ 默认 Bean 如何让用户覆盖；④ 如何避免与官方 Starter 冲突。考察的是<strong>框架级组件设计思维</strong>，而非 API 使用。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>早期（Boot 1.x）</strong>：Starter 与 autoconfigure 耦合在一个 jar，配置类直接用 <code class="inline-code">@Configuration</code>，声明写在 <code class="inline-code">spring.factories</code>（已废弃：Spring Boot 3.0 起标记废弃，替代：AutoConfiguration.imports）。问题：用户只要功能不要某默认 Bean 时，难以剥离。</p>
               <p>
                 <strong>Boot 2.x 规范成熟</strong>：官方确立"<strong>双模块分离</strong>"——<code class="inline-code">xxx-spring-boot-autoconfigure</code>（含配置类与条件逻辑）+ <code class="inline-code">xxx-spring-boot-starter</code>（空 jar，只依赖 autoconfigure + 必需第三方库）。引入 <code class="inline-code">@ConfigurationProperties</code> + <code class="inline-code">@Validated</code> + Bean Validation（JSR 303/380）做配置校验，<code class="inline-code">@AutoConfigureBefore/After</code>
@@ -546,9 +546,9 @@ mvn -Pnative native:test    <span class="com"># 在 Native Image 下运行测试
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>官方 Starter 的双模块拆分原则</strong>。以 <code class="inline-code">mylib-spring-boot</code> 为例：</p>
               <div class="mermaid-container">
                 <!-- prettier-ignore -->
@@ -612,9 +612,9 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p>
                 在某平台项目中，把统一响应体
                 <code class="inline-code">ApiResponse&lt;T&gt;</code>、全局异常处理、统一日志 TraceId 透传等公共能力沉淀为 <code class="inline-code">common-spring-boot-starter</code>，各业务服务只引入一个依赖即获得全部能力，避免重复编码。
@@ -665,9 +665,9 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p>
                 <strong>追问 1：为何官方 starter 命名是 spring-boot-starter-xxx，而第三方是 xxx-spring-boot-starter？</strong>
               </p>
@@ -684,9 +684,9 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -700,9 +700,9 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：配置绑定校验、健康检查与滚动发布探针。表达提纲：自动配置条件→生效证据→覆盖与排障。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -715,24 +715,24 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
         <!-- ============================================================ -->
         <!-- C06.04 Spring Security 的过滤器链与认证授权流程？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.04" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.04</div>
-            <div class="qa-question">Spring Security 的过滤器链与认证授权流程？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C06.04" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.04</div>
+            <div class="content-question">Spring Security 的过滤器链与认证授权流程？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对 Spring Security "<strong>过滤器链 + Authentication/Authorization 双阶段</strong>"架构的整体把握。Spring Security 的本质是<strong>一个被 <code class="inline-code">FilterChainProxy</code> 代理的过滤器链</strong>，它通过 <code class="inline-code">DelegatingFilterProxy</code> 桥接 Servlet 容器与 Spring 容器，把安全逻辑插入到请求处理的最早阶段。理解它要抓住三条主线：① 请求如何进入过滤器链（<code class="inline-code">FilterChainProxy</code> → <code class="inline-code">SecurityFilterChain</code> 匹配）；② 认证流程（<code class="inline-code">AuthenticationManager</code> + <code class="inline-code">AuthenticationProvider</code> + <code class="inline-code">UserDetailsService</code>）；③ 授权流程（<code class="inline-code">FilterSecurityInterceptor</code> / <code class="inline-code">AuthorizationFilter</code> + <code class="inline-code">AccessDecisionManager</code>）。架构师还需掌握从 XML 到 DSL 到 Lambda DSL 的演进与 JWT/OAuth2 集成。
               </p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>
                 <strong>Spring Security 3.x（XML 时代）</strong>：安全配置全靠 <code class="inline-code">&lt;http&gt;</code>、<code class="inline-code">&lt;authentication-manager&gt;</code>
                 等 XML 标签，配置冗长且不类型安全。过滤器链由 XML 解析生成，开发者难以直观看到链路。
@@ -746,9 +746,9 @@ com.example.mylib.MyLibAutoConfiguration</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>过滤器链的入口：<code class="inline-code">DelegatingFilterProxy</code> → <code class="inline-code">FilterChainProxy</code></strong>。Servlet 容器不认识 Spring Bean，<code class="inline-code">DelegatingFilterProxy</code> 是个桥接 Filter，它通过 <code class="inline-code">findWebApplicationContext()</code> 拿到 Spring 容器，再委托给名为 <code class="inline-code">springSecurityFilterChain</code> 的 Bean（即 <code class="inline-code">FilterChainProxy</code>）。<code class="inline-code">FilterChainProxy</code> 内部持有多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">matches(request)</code> 选择第一条匹配的链执行。
               </p>
@@ -792,9 +792,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>6.x 无状态 JWT 安全配置</strong>（Lambda DSL，无 Adapter）：</p>
               <div class="code-block">
                 <pre><code><span class="kw">@Configuration</span>
@@ -831,9 +831,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p>
                 <strong>追问 1：6.x 为何废弃 WebSecurityConfigurerAdapter？多 SecurityFilterChain 如何工作？</strong>
               </p>
@@ -845,9 +845,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -861,9 +861,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：配置绑定校验、健康检查与滚动发布探针。表达提纲：自动配置条件→生效证据→覆盖与排障。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -876,15 +876,15 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C06.05 Spring Boot 的启动流程与事件机制是怎样的？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.05" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.05</div>
-            <div class="qa-question">Spring Boot 的启动流程与事件机制是怎样的？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.05" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.05</div>
+            <div class="content-question">Spring Boot 的启动流程与事件机制是怎样的？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对
                 <strong>Spring Boot 如何编排从 <code class="inline-code">main()</code> 到应用就绪的完整生命周期</strong>
@@ -893,9 +893,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>
                 <strong>Spring XML 时代（2003-2009）</strong>：开发者手动创建 <code class="inline-code">ClassPathXmlApplicationContext</code>，传入 XML 配置文件路径，构造器内部直接调 <code class="inline-code">refresh()</code>。没有"启动流程"概念——容器即应用，<code class="inline-code">refresh()</code>
                 完就绪。启动过程<strong>无事件、无回调、无自动配置</strong>，一切手动。
@@ -916,9 +916,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>启动流程七阶段与七事件</strong>（<code class="inline-code">SpringApplication.run()</code>
                 核心时序）：
@@ -1019,9 +1019,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p>系统启动慢（40s+），通过事件链分析定位到三个瓶颈：Flyway 迁移（8s）、Redis 连接池初始化（3s）、本地缓存预热（15s）。用事件机制做了三件事：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. EnvironmentPostProcessor: 启动最早期动态注入配置（如根据环境变量切换数据源）</span>
@@ -1080,9 +1080,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：SpringApplicationRunListener 是什么？和 ApplicationListener 什么关系？</strong></p>
               <p>
                 <code class="inline-code">SpringApplicationRunListener</code>
@@ -1098,9 +1098,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1118,15 +1118,15 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C06.06 Spring Session 如何实现分布式 Session？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.06" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.06</div>
-            <div class="qa-question">Spring Session 如何实现分布式 Session？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.06" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.06</div>
+            <div class="content-question">Spring Session 如何实现分布式 Session？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对<strong>分布式 Session 方案</strong>的底层理解。Spring Session 的本质是<strong>用 Filter 拦截 <code class="inline-code">HttpServletRequest.getSession()</code>，把 Session 的存储与过期管理从 Servlet 容器（内存）解耦到外部存储（Redis/JDBC）</strong>——业务代码用 <code class="inline-code">HttpSession</code> API 无感知，但底层已变成分布式共享。理解它要回答三个问题：① 它如何"骗过"Servlet 容器（<code class="inline-code">SessionRepositoryFilter</code>
                 包装 Request/Response）；② Session 如何在 Redis 存储与过期（Hash 结构 + TTL 续期）；③ 与 JWT/OAuth 的关系与选型。
@@ -1134,9 +1134,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Session（Servlet 原生）</strong>：Session 存在 Servlet 容器内存（如 Tomcat 的 ConcurrentHashMap），单机可用，多机需 Tomcat session 复制（DeltaManager，全量广播，不可扩展）或 Sticky Session（负载均衡绑定节点，节点宕机丢 Session）。</p>
               <p><strong>Spring Session（2014）</strong>：用 <code class="inline-code">@EnableRedisHttpSession</code> + <code class="inline-code">SessionRepositoryFilter</code> 把 Session 存到 Redis，业务无感。解决多机共享、水平扩展。支持 Redis/JDBC/Hazelcast 多后端。</p>
               <p><strong>JWT 兴起（2015+）</strong>：无状态 Token 方案，服务端不存 Session，Token 自带用户信息 + 签名。优势是无状态、易水平扩展、跨域；劣势是<strong>难主动吊销、续期复杂、Token 大</strong>。适合前后端分离/微服务。</p>
@@ -1145,9 +1145,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>核心机制：<code class="inline-code">SessionRepositoryFilter</code> 包装 Request/Response</strong>。这是"骗过"Servlet 容器的关键——该 Filter 用 <code class="inline-code">SessionRepositoryRequestWrapper</code> 包装 <code class="inline-code">HttpServletRequest</code>，重写 <code class="inline-code">getSession()</code> 返回 <code class="inline-code">SessionRepositoryWrapper</code>（委托给 <code class="inline-code">SessionRepository</code>）。业务调 <code class="inline-code">request.getSession().setAttribute()</code> 实际写入 Redis，而非容器内存。
               </p>
@@ -1181,9 +1181,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>启用 Spring Session Redis</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. 依赖: spring-session-data-redis + spring-boot-starter-data-redis</span>
@@ -1256,9 +1256,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Spring Session 如何实现"滑动过期"？与 Redis 自带 TTL 有何关系？</strong></p>
               <p>Spring Session 的滑动过期靠两点：① 每次 <code class="inline-code">getSession()</code>（访问）会触发 <code class="inline-code">SessionRepository.save()</code>，重新 <code class="inline-code">EXPIRE</code> 该 Key 为 <code class="inline-code">maxInactiveInterval</code>，重置 TTL；② 若整个 <code class="inline-code">maxInactiveInterval</code> 内无访问，Redis TTL 到期自动删除，Session 失效。即"有访问就续期，无访问到点过期"。注意：Spring Session 默认 <strong>不每次访问都 save</strong>（性能考虑），而是通过 <code class="inline-code">commitSession</code> 在响应阶段判断 Session 是否变更（dirty），仅变更或接近过期时才续期。可通过 <code class="inline-code">@EnableRedisHttpSession(saveMode=ALWAYS)</code> 强制每次续期。</p>
               <p><strong>追问 2：Session 事件在多实例下如何避免重复消费？</strong></p>
@@ -1269,9 +1269,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1292,22 +1292,22 @@ sequenceDiagram
         <!-- ============================================================ -->
         <!-- C06.07 Spring Boot Actuator 的监控端点与自定义？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.07" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.07</div>
-            <div class="qa-question">Spring Boot Actuator 的监控端点与自定义？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.07" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.07</div>
+            <div class="content-question">Spring Boot Actuator 的监控端点与自定义？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 Spring Boot <strong>生产级可观测性</strong>的理解。Actuator 的本质是<strong>一组通过 HTTP/JMX 暴露的应用运行时端点</strong>，把应用内部状态（健康、指标、配置、线程、日志）标准化对外提供，是运维与监控系统的数据源。理解它要抓住三点：① 端点体系（health/info/metrics/env/loggers/heapdump 等）；② 从 1.x 到 2.x+ 的<strong>安全演进</strong>（默认全开放 → 默认仅 health/info，其余需显式开启 + 权限）；③ 与 Micrometer/Prometheus 的集成做指标采集。这是高级开发线上运维必备能力。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Actuator 1.x（2014-2018）</strong>：端点放在根路径（<code class="inline-code">/health</code>、<code class="inline-code">/env</code>、<code class="inline-code">/metrics</code>），<strong>默认大部分端点开放且无细粒度权限控制</strong>，安全风险高（<code class="inline-code">/env</code> 泄露配置、<code class="inline-code">/heapdump</code> 泄露内存）。端点返回 JSON 结构不统一，难以标准化采集。</p>
               <p>
                 <strong>Actuator 2.x（2018，安全重构）</strong>：关键演进——① 端点统一移到 <code class="inline-code">/actuator</code> 前缀；② <strong>默认仅 <code class="inline-code">health</code> 和 <code class="inline-code">info</code> 开放</strong>，其余需 <code class="inline-code">management.endpoints.web.exposure.include</code> 显式开启；③ 引入 <strong>Micrometer</strong> 替代自研 metrics，统一度量门面（类似 SLF4J 之于日志），支持 Prometheus/Atlas/Datadog 等多后端；④ <code class="inline-code">/metrics</code> 改为可按维度查询（<code class="inline-code">/metrics/jvm.memory.used?tag=area:heap</code>）。
@@ -1317,9 +1317,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>端点体系</strong>。每个端点是一个 <code class="inline-code">@Endpoint</code> Bean，通过 <code class="inline-code">@ReadOperation</code>/<code class="inline-code">@WriteOperation</code>/<code class="inline-code">@DeleteOperation</code>
                 暴露 HTTP/JMX 操作：
@@ -1377,9 +1377,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>生产配置（安全 + Prometheus）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com"># application.yml</span>
@@ -1428,9 +1428,9 @@ management:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：K8s liveness 与 readiness 探针如何对接 Actuator？两者区别？</strong></p>
               <p>Spring Boot 2.3+ 自动配置 <code class="inline-code">/actuator/health/liveness</code> 与 <code class="inline-code">/actuator/health/readiness</code>（需 <code class="inline-code">management.endpoint.health.probes.enabled=true</code>）。<strong>liveness</strong>（存活探针）反映应用是否可恢复——DOWN 时 K8s 重启 Pod，只检查应用是否死锁/内存耗尽，不应含外部依赖（避免级联重启）；<strong>readiness</strong>（就绪探针）反映是否可接流量——DOWN 时 K8s 从 Service 摘除 Pod 但不重启，可含 DB/Redis 检查（依赖不可用时摘流量）。关键：<strong>不要把 DB 健康放 liveness</strong>，否则 DB 抖动导致全 Pod 重启雪崩。</p>
               <p><strong>追问 2：Micrometer 与 OpenTelemetry 的关系？Boot 3 如何整合？</strong></p>
@@ -1441,9 +1441,9 @@ management:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1461,15 +1461,15 @@ management:
         <!-- ============================================================ -->
         <!-- C06.08 Spring Boot 的配置加载机制与优先级？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.08" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.08</div>
-            <div class="qa-question">Spring Boot 的配置加载机制与优先级？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.08" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.08</div>
+            <div class="content-question">Spring Boot 的配置加载机制与优先级？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对 Spring Boot
                 <strong>外部化配置（Externalized Configuration）</strong>体系的整体把握。配置加载的本质是<strong>多 PropertySource 按优先级叠加，高优先级覆盖低优先级</strong>——Spring 把命令行参数、环境变量、yml、properties、随机值等抽象为有序的 <code class="inline-code">PropertySource</code> 列表，<code class="inline-code">Environment</code>
@@ -1478,9 +1478,9 @@ management:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Spring 早期（2.x-3.0）</strong>：配置靠 XML <code class="inline-code">PropertyPlaceholderConfigurer</code> 解析 <code class="inline-code">${}</code> 占位符，单一 properties 文件。多环境靠多套文件手动切换。<strong>Spring 3.1（2011）</strong>：引入 <code class="inline-code">@Profile</code> 注解和 <code class="inline-code">Environment</code> 抽象，奠定多环境支持基础。</p>
               <p><strong>Spring Boot 1.x</strong>：引入 <code class="inline-code">application.properties</code> + profile（<code class="inline-code">application-{profile}.properties</code>）+ 命令行参数 <code class="inline-code">--spring.profiles.active</code>。配置源扩展到命令行、环境变量、JNDI。</p>
               <p><strong>Spring Boot 2.x</strong>：全面支持 YAML（<code class="inline-code">application.yml</code>），引入 <code class="inline-code">@ConfigurationProperties</code> 结构化绑定。配置源进一步丰富：random、JNDI、OS env、System properties、application.yml、application.properties、<code class="inline-code">@PropertySource</code>。</p>
@@ -1492,9 +1492,9 @@ management:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>配置源优先级（从高到低，高者覆盖低者）</strong>。这是核心必背：</p>
               <table class="compare-table">
                 <thead>
@@ -1579,9 +1579,9 @@ management:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>多环境配置策略</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com"># application.yml (默认,开发用)</span>
@@ -1611,9 +1611,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么命令行参数优先级最高？这样设计有何好处？</strong></p>
               <p>
                 设计动机：<strong>运维可临时覆盖，无需改包</strong>。生产故障时（如端口冲突、日志级别调优），运维用
@@ -1634,9 +1634,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1649,9 +1649,9 @@ spring:
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>配置中心热更新的"快"与"容量"必须有量化支撑——长轮询推送延迟与单节点长轮询客户端上限，是架构选型与集群规模规划的依据。</strong>
               </p>
@@ -1697,22 +1697,22 @@ spring:
         <!-- ============================================================ -->
         <!-- C06.09 Spring Boot 全局异常处理如何设计？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.09" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.09</div>
-            <div class="qa-question">Spring Boot 全局异常处理如何设计？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.09" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.09</div>
+            <div class="content-question">Spring Boot 全局异常处理如何设计？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 Spring MVC <strong>异常处理链</strong>的系统性理解。全局异常处理的本质是<strong>把散落在各 Controller 的 try-catch 收敛到统一出口</strong>，实现：① 业务异常与 HTTP 状态码的映射；② 统一错误响应体（如 <code class="inline-code">ApiResponse</code>）；③ 异常日志与监控埋点；④ 隐藏堆栈防信息泄露。核心机制是 <code class="inline-code">@ControllerAdvice</code> + <code class="inline-code">@ExceptionHandler</code>，但要理解它为何能"全局拦截"——底层是 <code class="inline-code">ExceptionHandlerExceptionResolver</code>，是 Spring MVC 三大异常解析器之一。项目规范要求统一 <code class="inline-code">ApiResponse&lt;T&gt;</code> 封装，这道题是落地关键。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Servlet 原生</strong>：异常靠 <code class="inline-code">web.xml</code> 的 <code class="inline-code">&lt;error-page&gt;</code> 按 HTTP 状态码或异常类型跳错误页，无法编程式处理，只能返回静态页。</p>
               <p><strong>Spring MVC 早期（HandlerExceptionResolver）</strong>：引入 <code class="inline-code">HandlerExceptionResolver</code> 接口，可实现 <code class="inline-code">resolveException</code> 编程式处理。内置 <code class="inline-code">SimpleMappingExceptionResolver</code>（异常类 → 视图名映射）、<code class="inline-code">ResponseStatusExceptionResolver</code>（<code class="inline-code">@ResponseStatus</code> 注解）。痛点：每个 Resolver 只能返回 ModelAndView，JSON 响应需手动写 Response。</p>
               <p><strong>Spring 3.2+（@ControllerAdvice + @ExceptionHandler）</strong>：里程碑演进——<code class="inline-code">@ControllerAdvice</code> 全局拦截所有 Controller，<code class="inline-code">@ExceptionHandler</code> 按异常类型匹配处理方法，可直接返回 <code class="inline-code">@ResponseBody</code>/<code class="inline-code">ResponseEntity</code>。彻底取代手写 Resolver，成为主流。底层由 <code class="inline-code">ExceptionHandlerExceptionResolver</code> 驱动。</p>
@@ -1721,9 +1721,9 @@ spring:
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>Spring MVC 异常处理链：三个 Resolver 按顺序尝试</strong>。Controller 抛出异常后，<code class="inline-code">DispatcherServlet</code>
                 依次调用三个 Resolver，第一个成功处理的生效：
@@ -1749,9 +1749,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>统一全局异常处理 + ApiResponse 封装</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. 统一响应体(项目规范)</span>
@@ -1812,9 +1812,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：@ControllerAdvice 与 @RestControllerAdvice 的区别？如何限定拦截范围？</strong></p>
               <p><code class="inline-code">@RestControllerAdvice</code> = <code class="inline-code">@ControllerAdvice</code> + <code class="inline-code">@ResponseBody</code>，处理方法返回值直接序列化为 JSON，是 REST API 首选。<code class="inline-code">@ControllerAdvice</code> 返回视图，适合传统 MVC。限定范围：<code class="inline-code">@ControllerAdvice("com.example.web")</code>（按包）、<code class="inline-code">@ControllerAdvice(annotations = RestController.class)</code>（按注解）、<code class="inline-code">@ControllerAdvice(basePackageClasses = ApiController.class)</code>。多 Advice 按 <code class="inline-code">@Order</code> 排序，异常按继承最近匹配。</p>
               <p><strong>追问 2：Spring 6 的 ProblemDetail（RFC 7807）相比自定义 ApiResponse 有何优势？</strong></p>
@@ -1824,9 +1824,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1847,15 +1847,15 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C06.10 Spring Validation 数据校验机制？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.10" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.10</div>
-            <div class="qa-question">Spring Validation 数据校验机制？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.10" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.10</div>
+            <div class="content-question">Spring Validation 数据校验机制？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对<strong>声明式数据校验</strong>体系的理解。Spring Validation 的本质是<strong>把校验逻辑从业务代码中解耦，用注解声明规则，由框架在方法调用/请求绑定阶段自动执行</strong>。底层是 Bean Validation（JSR-303/380）标准 + Hibernate Validator 实现，Spring 用
                 <code class="inline-code">MethodValidationPostProcessor</code>（校验 Service 方法参数）和 <code class="inline-code">RequestResponseBodyMethodProcessor</code>（校验 <code class="inline-code">@RequestBody</code>）两个切入点集成。理解它要回答：① <code class="inline-code">@Valid</code> 与 <code class="inline-code">@Validated</code> 区别；② 校验失败异常如何被全局处理；③ 分组校验、自定义校验器、级联校验。
@@ -1863,9 +1863,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>JSR-303（Bean Validation 1.0，2009）</strong>：确立 <code class="inline-code">@NotNull</code>/<code class="inline-code">@Size</code>/<code class="inline-code">@Min</code> 等标准注解 + <code class="inline-code">Validator</code> 接口。Hibernate Validator 是参考实现。Spring 3 集成 <code class="inline-code">@Valid</code> 校验 <code class="inline-code">@RequestBody</code>。</p>
               <p><strong>JSR-349（Bean Validation 1.1，2013）</strong>：支持方法级校验（参数/返回值），<code class="inline-code">@Validated</code> 注解。Spring 4 集成 <code class="inline-code">MethodValidationPostProcessor</code>，可在 Service 方法参数加注解自动校验。</p>
               <p><strong>JSR-380（Bean Validation 2.0，2017）/ Hibernate Validator 6</strong>：新增 <code class="inline-code">@Email</code>/<code class="inline-code">@NotEmpty</code>/<code class="inline-code">@NotBlank</code> 等注解，支持 Java 8 日期类型（<code class="inline-code">@Past</code>/<code class="inline-code">@Future</code>），支持 Stream/Optional 校验。</p>
@@ -1874,9 +1874,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>两个切入点：请求体校验 vs 方法级校验</strong>。</p>
               <p>
                 <strong>1. 请求体校验（<code class="inline-code">@Valid</code>）</strong>：在 Controller 方法参数 <code class="inline-code">@RequestBody @Valid UserDTO dto</code> 上加 <code class="inline-code">@Valid</code>，<code class="inline-code">RequestResponseBodyMethodProcessor</code> 在反序列化后调用 <code class="inline-code">Validator.validate()</code>，失败抛 <code class="inline-code">MethodArgumentNotValidException</code>。
@@ -1933,9 +1933,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>分组校验（新增/更新用不同规则）</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. 分组接口</span>
@@ -1999,9 +1999,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：@Valid 与 @Validated 在级联校验中如何配合？</strong></p>
               <p>
                 级联校验（对象内嵌套对象）用 <code class="inline-code">@Valid</code> 标注字段触发级联：<code class="inline-code">class OrderDTO { @Valid @NotNull AddressDTO address; }</code>，校验 OrderDTO 时会递归校验 address 内的约束。注意：<strong>级联用 <code class="inline-code">@Valid</code>（JSR 标准），分组用 <code class="inline-code">@Validated</code>（Spring 扩展）</strong>，两者职责不同。若嵌套对象也要分组校验，需在字段上用 <code class="inline-code">@Validated(Group.class)</code>（Spring 特有），但兼容性较差，一般用 <code class="inline-code">@Valid</code> 默认分组级联。
@@ -2015,9 +2015,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2035,22 +2035,22 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C06.11 Spring Security 6 的安全架构与 OAuth2 实践？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.11" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.11</div>
-            <div class="qa-question">Spring Security 6 的安全架构与 OAuth2 实践？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C06.11" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.11</div>
+            <div class="content-question">Spring Security 6 的安全架构与 OAuth2 实践？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>Spring Security 6 安全架构</strong>与 <strong>OAuth2/JWT 工程落地</strong>的体系化理解。核心要回答四个层面：① <code class="inline-code">SecurityFilterChain</code> 过滤器链模型如何取代旧的 <code class="inline-code">WebSecurityConfigurerAdapter</code>；② <strong>OAuth2 授权码模式 + PKCE</strong> 的完整流程与适用场景；③ <strong>JWT 无状态认证</strong>与 <strong>Session 有状态认证</strong>的选型权衡；④ 微服务下 Token 传递、网关统一鉴权与 Token 吊销策略。理解关键在于：Spring Security 本质是一条<strong>可编排的过滤器链</strong>，认证（你是谁）与授权（你能做什么）是两个解耦阶段，OAuth2 解决的是<strong>跨域委托授权</strong>，JWT 解决的是<strong>无状态凭证自包含</strong>。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Spring Security 4（2014）</strong>：XML 配置为主，<code class="inline-code">&lt;http&gt;</code> 命名空间声明式配置，<code class="inline-code">WebSecurityConfigurerAdapter</code> 引入 Java Config 但仍需继承重写。功能完整但配置繁琐、扩展性差。</p>
               <p><strong>Spring Security 5（2017）</strong>：<code class="inline-code">WebSecurityConfigurerAdapter</code> 成为主流，<code class="inline-code">configure(HttpSecurity)</code> 重写成为标准姿势。5.0 引入 OAuth2 客户端支持（<code class="inline-code">spring-security-oauth2</code>，后废弃），5.2+ 重写为 <code class="inline-code">spring-security-oauth2-client</code>/<code class="inline-code">-resource-server</code>，引入 <code class="inline-code">oauth2Login()</code>。</p>
               <p>
@@ -2064,9 +2064,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>1. SecurityFilterChain 过滤器链</strong>：Spring Security 的核心是一条由 <code class="inline-code">Filter</code> 组成的链。<code class="inline-code">DelegatingFilterProxy</code>（Servlet 容器注册）→ <code class="inline-code">FilterChainProxy</code>（Spring Bean）→ 匹配到的 <code class="inline-code">SecurityFilterChain</code> → 依次执行 <code class="inline-code">SecurityContextHolderFilter</code>、<code class="inline-code">UsernamePasswordAuthenticationFilter</code>、<code class="inline-code">AuthorizationFilter</code> 等约 15 个过滤器。6.x 中 <code class="inline-code">FilterSecurityInterceptor</code> 被 <code class="inline-code">AuthorizationFilter</code> 取代，授权逻辑前置。可声明多个 <code class="inline-code">SecurityFilterChain</code>，按 <code class="inline-code">securityMatcher</code> 顺序匹配，<strong>顺序决定优先级</strong>。</p>
               <p><strong>2. 认证核心组件</strong>：<code class="inline-code">AuthenticationManager</code>（认证入口，委托给 <code class="inline-code">ProviderManager</code> → <code class="inline-code">AuthenticationProvider</code>）→ <code class="inline-code">UserDetailsService</code>/<code class="inline-code">UserDetails</code>（加载用户）→ <code class="inline-code">PasswordEncoder</code>（BCrypt 校验）→ <code class="inline-code">SecurityContext</code>（存入 <code class="inline-code">SecurityContextHolder</code>，6.x 默认 <code class="inline-code">DeferredSecurityContext</code> 异步优化）。</p>
               <p><strong>3. OAuth2 授权码模式 + PKCE</strong>：用户访问客户端 → 重定向到授权服务器登录 → 授权服务器返回 <code class="inline-code">code</code>（带 <code class="inline-code">redirect_uri</code>）→ 客户端用 <code class="inline-code">code</code> + <code class="inline-code">client_secret</code>（机密客户端）换 <code class="inline-code">access_token</code> → 用 token 访问资源服务器。<strong>PKCE</strong>（Proof Key for Code Exchange）为公开客户端（SPA/移动端）增加一层：客户端先生成 <code class="inline-code">code_verifier</code>（随机串）→ 算 <code class="inline-code">code_challenge</code>（S256 哈希）随授权请求发出 → 换 token 时带 <code class="inline-code">code_verifier</code>，授权服务器校验哈希匹配，防止授权码被截获后冒用。</p>
@@ -2124,9 +2124,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>高级开发</strong>：① <strong>SecurityFilterChain 配置</strong>——按 Lambda DSL 声明 Bean，区分公开/认证/角色接口；② <strong>OAuth2 Login 集成</strong>——<code class="inline-code">oauth2Login()</code> 接入 GitHub/Google，自动处理授权码交换与用户信息拉取；③ <strong>JWT 签发与验证</strong>——授权服务器用 <code class="inline-code">JWKSource</code> 签发，资源服务器用 <code class="inline-code">NimbusJwtDecoder</code> 验签，自定义 <code class="inline-code">JwtAuthenticationConverter</code> 映射权限。</p>
               <p><strong>架构师</strong>：</p>
               <p>① <strong>无状态 vs 有状态认证选型</strong>：单体/管理后台用 Session（CSRF 防护天然、踢人即时）；微服务/API 网关用 JWT（无状态、易水平扩展）。混合方案：网关 Session + 内部服务 JWT。</p>
@@ -2143,9 +2143,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：JWT 为什么不能主动吊销？如何实现？</strong></p>
               <p>
                 JWT 设计为<strong>无状态自包含</strong>，签发后服务端不存副本，到期前一直有效——这是无状态的代价。实现吊销的方案：①
@@ -2158,9 +2158,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2174,9 +2174,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：配置绑定校验、健康检查与滚动发布探针。表达提纲：自动配置条件→生效证据→覆盖与排障。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -2189,22 +2189,22 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C06.12 Spring Boot 优雅停机与 K8s 滚动发布协同 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.12" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.12</div>
-            <div class="qa-question">Spring Boot 优雅停机与 K8s 滚动发布协同（探针/Lifecycle/PreStop）<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C06.12" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.12</div>
+            <div class="content-question">Spring Boot 优雅停机与 K8s 滚动发布协同（探针/Lifecycle/PreStop）<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 <strong>应用生命周期与编排平台（K8s）的协同</strong>：如何让 Pod 在滚动更新/缩容时被"先摘流量、再处理完在途请求、最后退出"，杜绝 5xx 与连接中断。本质是<strong>应用侧优雅停机</strong>与<strong>平台侧流量摘除时序</strong>的对齐问题。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>暴力 kill</strong>：直接 SIGKILL，在途请求全部断，连接池/事务半途而废。</p>
               <p><strong>JVM Shutdown Hook</strong>：捕获 SIGTERM 做清理，但 Web 容器仍在接新请求，时序不可控。</p>
               <p><strong>Spring Boot 2.3+ Graceful Shutdown</strong>：<code class="inline-code">server.shutdown=graceful</code>，停止接收新请求、等待活跃请求在超时内完成。3.4 起<strong>默认开启</strong>优雅停机（所有内嵌 Web 服务器），无需显式配置。</p>
@@ -2212,9 +2212,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>应用侧（Spring Boot）</strong>：graceful shutdown 下，容器先停止接收新连接，已接收的请求在 <code class="inline-code">spring.lifecycle.timeout-per-shutdown-phase</code> 内处理完；<code class="inline-code">SmartLifecycle</code> 控制 Bean 停止顺序，<code class="inline-code">@PreDestroy</code> 释放资源（连接池、调度器、MQ 消费者暂停）。</p>
               <p><strong>平台侧（K8s）时序</strong>：① Pod 被标记为 Terminating；② <code class="inline-code">preStop</code> hook 与 Endpoint 摘除<strong>并发执行</strong>（K8s 不等 preStop 完成才摘 Endpoint）；③ preStop 执行完毕后发送 SIGTERM；④ 在 <code class="inline-code">terminationGracePeriodSeconds</code>（默认 30s）内等待应用优雅停机；超时则 SIGKILL。preStop 中 sleep 的目的是给 Endpoint/负载均衡传播留时间，确保摘流先于 SIGTERM 生效。</p>
               <div class="callout callout-tip">
@@ -2224,18 +2224,18 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>配置示例</strong>：<code class="inline-code">server.shutdown=graceful</code> + <code class="inline-code">spring.lifecycle.timeout-per-shutdown-phase=20s</code>；K8s <code class="inline-code">terminationGracePeriodSeconds=30</code>、<code class="inline-code">readinessProbe</code> 探活、<code class="inline-code">preStop: exec sleep 5</code>。</p>
               <p><strong>资源清理清单</strong>：暂停 MQ 消费（如 RabbitListener 容器 stop）、停定时任务（Scheduler shutdown）、连接池优雅关闭（HikariCP 默认随 Bean 销毁）。</p>
               <p><strong>Provider 端同样需要</strong>：Dubbo/gRPC 服务需先取消注册到注册中心再停机，避免 Consumer 仍路由到已下线实例。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：readiness 与 liveness 用同一个探针会怎样？</strong> 若合一，应用假死（依赖故障）会被 K8s 不断重启而非摘流，雪上加霜；二者必须分离——readiness 反映"能否接流量"，liveness 反映"进程是否该重启"。</p>
               <p><strong>追问 2：长任务（如文件导出）优雅停机如何处理？</strong> graceful 超时内完不成的，应转异步/任务队列，停机前把任务状态持久化，由新实例续跑，而非阻塞退出。</p>
               <p>
@@ -2245,9 +2245,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2261,9 +2261,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：配置绑定校验、健康检查与滚动发布探针。表达提纲：自动配置条件→生效证据→覆盖与排障。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -2276,22 +2276,22 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C06.13 云原生 Java 新选择：Quarkus/Micronaut vs Spring Boot -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.13" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.13</div>
-            <div class="qa-question">云原生 Java 新选择：Quarkus/Micronaut vs Spring Boot 取舍<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.13" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.13</div>
+            <div class="content-question">云原生 Java 新选择：Quarkus/Micronaut vs Spring Boot 取舍<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 <strong>云原生场景下 Java 技术选型判断力</strong>：Quarkus / Micronaut 以"编译期处理 + 原生镜像"实现极低内存与毫秒级启动，适配 K8s / Serverless / FaaS；而 Spring Boot 以生态完备与开发体验见长。核心是<strong>启动速度/内存 vs 生态成熟度</strong>的权衡。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Spring Boot 主导（2014+）</strong>：运行时反射 + 条件化 Bean，生态无敌但启动慢、内存高。</p>
               <p><strong>云原生诉求</strong>：容器高密度、Serverless 按需冷启、FaaS 毫秒计费的场景，倒逼"快启动 + 小内存"。</p>
               <p><strong>新选手</strong>：Quarkus（Red Hat，build-time 扩展 + 原生优先）、Micronaut（Object Computing 主导，编译期 DI/AOP，API 近似 Spring）；二者均拥抱 GraalVM Native Image。</p>
@@ -2302,9 +2302,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2355,27 +2355,27 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>迁移路径</strong>：Micronaut API 与 Spring 高度相似（<code class="inline-code">@Singleton</code>/<code class="inline-code">@Inject</code>），老 Spring 项目可渐进迁移；Quarkus 提供 Spring API 兼容层（<code class="inline-code">quarkus-spring-*</code> 扩展）降低改造成本。</p>
               <p><strong>Spring Boot 原生化</strong>：<code class="inline-code">mvn spring-boot:build-image</code> 生成 Native Image；注意排查不支持的反射（用 <code class="inline-code">@RegisterReflectionForBinding</code> 声明）。</p>
               <p><strong>决策清单</strong>：① 是否 Serverless/FaaS 冷启敏感？② 是否 CPU 密集长任务（否决原生）？③ 是否重度依赖暂不支持原生的 starter？三项决定选型。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：原生镜像峰值性能为何常低于 JIT？</strong> 原生镜像是 AOT，无运行时基于 Profile 的激进优化（分层编译、逃逸分析驱动的锁消除/标量替换、向量化），长任务峰值偏弱。</p>
               <p><strong>追问 2：Spring Boot 3 AOT 能追上 Quarkus 吗？</strong> 启动/内存接近，但 Quarkus 的 build-time 体系更彻底、Dev Services/Kubernetes 原生集成更深；AOT 仍属"尽力逼近"。</p>
               <p><strong>追问 3：Micronaut 与 Quarkus 的核心差异？</strong> Micronaut 编译期 DI 通用性强、易嵌入；Quarkus 针对 Kubernetes/原生极致优化、扩展生态偏 Red Hat 栈。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2393,26 +2393,26 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C06.14 测试策略：Testcontainers / 契约测试 / 架构守护 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C06.14" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.14</div>
-            <div class="qa-question">微服务测试策略如何分层：Testcontainers、契约测试与架构守护如何组合？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.14" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.14</div>
+            <div class="content-question">微服务测试策略如何分层：Testcontainers、契约测试与架构守护如何组合？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察<strong>可维护的质量金字塔在云原生下的变形</strong>：纯 mock 集成测易漂；打真集群太慢。Testcontainers 提供「真依赖、可抛环境」；契约测试锁住服务间 API；ArchUnit/架构守护锁住分层与依赖规则。三者分别防：环境漂移、接口背刺、结构腐化。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p>单测 + 手工联调 → Spring MockMvc/切片测 → <strong>Testcontainers</strong>（Docker 真依赖）→ <strong>Pact/Spring Cloud Contract</strong>（消费者驱动契约）→ <strong>ArchUnit</strong>（代码结构即测试）。驱动力：微服务爆炸、CI 成本、回归不可见。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2458,9 +2458,9 @@ flowchart TD
               <p>原则：<strong>能下沉的不要上浮</strong>；E2E 只保留黄金路径；契约失败应阻断合并。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>1. Testcontainers</strong>：MySQL/Redis/Kafka 用官方模块；复用容器（reuse）降 CI 时间；与 <code class="inline-code">@ServiceConnection</code>（Boot 3.1+）集成减少手工属性。</p>
               <p><strong>2. 契约测试</strong>：消费者定义期望 → 提供者 CI 验证；破坏性变更走版本化 API。勿用契约替代业务断言。</p>
               <p><strong>3. 架构守护</strong>：禁止 domain → infrastructure 反向依赖；控制中心/api 包边界；规则进主构建，失败即红。</p>
@@ -2480,17 +2480,17 @@ void domain_should_not_depend_on_adapters() {
 }</code></pre>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：全部用 Testcontainers 行吗？</strong>不行。过慢且脆；只覆盖「与真实协议/SQL 方言强相关」的路径。</p>
               <p><strong>追问 2：契约测和 API 文档谁为准？</strong>契约以可执行交互为准；OpenAPI 是文档。理想态由契约/代码生成文档。</p>
               <p><strong>追问 3：ArchUnit 能否替代 Code Review？</strong>不能。它锁可编码规则；业务语义与取舍仍靠人。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-danger">
                 <div class="callout-title">踩坑警告</div>
                 <ul>
@@ -2504,26 +2504,26 @@ void domain_should_not_depend_on_adapters() {
           </div>
         </div>
 
-        <div class="qa-card" id="C06.15" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C06.15</div>
-            <div class="qa-question">Boot 配置优先级实战：同名键冲突时怎么查最终生效值？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C06.15" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C06.15</div>
+            <div class="content-question">Boot 配置优先级实战：同名键冲突时怎么查最终生效值？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>多 PropertySource 叠加时，同名键冲突是高频翻车点。桥接目标：能用 Actuator/env 定位<strong>最终值与来源</strong>，并写成团队约定表，而不是背诵优先级口诀。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">原理映射</div>
+            <div class="content-layer-body">
               <p>Spring Environment 按 PropertySource 顺序覆盖；命令行 / 系统属性 / 环境变量 / 外部配置 / application-{{profile}} / application 是常见骨架，配置中心桥接插入位置以实际实现为准。@ConfigurationProperties 绑定的是最终 Environment，不是某一个 yml 文件。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">落地排查</div>
+            <div class="content-layer-body">
               <p>排查顺序：</p>
               <ol>
                 <li>列出怀疑键（含 relaxed binding 变体：foo.bar / FOO_BAR / foo-bar）。</li>
@@ -2534,9 +2534,9 @@ void domain_should_not_depend_on_adapters() {
               </ol>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">参数与开关</div>
+            <div class="content-layer-body">
               <p>核对表：</p>
               <ul>
                 <li>键名三种写法是否被误当成两个键。</li>
@@ -2547,9 +2547,9 @@ void domain_should_not_depend_on_adapters() {
               <p>常用口诀仅作起点：命令行 &gt; 系统属性 &gt; 环境变量 &gt; 外部配置 &gt; profile 文件 &gt; 默认 application；以 env 面板为准。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">失败模式与回滚</div>
+            <div class="content-layer-body">
               <p>失败模式：以为 yml 胜出实际被环境变量覆盖；本地与生产 profile 不一致；刷新后仍读缓存旧值。回滚点：恢复上一版配置快照并确认 env 来源回到已知好版本。</p>
               <p>同名键冲突时优先查「来源优先级表」而非猜：命令行 &gt; 环境变量 &gt; 外部配置 &gt; application-{profile} &gt; application。多文档合并后用 <code>Environment</code> 或 actuator/env（受权）核对最终值。</p>
               <p>值班最短路径：①复现同名键 ②列出所有 PropertySource ③确认 profile 与外部配置中心是否覆盖 ④改完做一次只读校验再放量。</p>

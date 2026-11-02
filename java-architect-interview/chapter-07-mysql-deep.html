@@ -139,22 +139,22 @@
         <!-- ============================================================ -->
         <!-- C07.01 InnoDB 的 B+树索引为何比 B树更适合数据库？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.01" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.01</div>
-            <div class="qa-question">InnoDB 的 B+树索引为何比 B树更适合数据库？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.01" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.01</div>
+            <div class="content-question">InnoDB 的 B+树索引为何比 B树更适合数据库？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对<strong>数据库索引底层存储结构选型动机</strong>的理解：为什么关系型数据库统一选择 B+树而非 B树、红黑树、跳表？本质是<strong>在磁盘 I/O 模型下，如何让一棵查找树以最少的磁盘页读取覆盖尽可能多的数据</strong>。B+树通过"非叶子节点只存索引键不存数据"换取极大的扇出（fan-out），使树高被压缩到 3-4 层即可索引千万级行数；再通过"叶子节点双向链表"使范围查询退化为顺序 I/O。理解这两点就能回答一切 B+树相关问题，包括聚簇索引、回表、页分裂、为什么 MongoDB 早期用 B树而 InnoDB 用 B+树。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>二叉查找树 → 平衡二叉树（AVL/红黑树）</strong>：内存场景的查找结构，树高 O(logN)。问题在于磁盘场景下每个节点一次 I/O，百万数据需 20+ 次 I/O，完全不可接受。需要<strong>降低树高、增加每节点扇出</strong>。</p>
               <p><strong>B树（1970，Bayer &amp; McCreight）</strong>：多路平衡查找树。每个节点既存键也存数据，m 阶 B树每个节点最多 m 个孩子、m-1 个键值对。树高显著降低（约 log_m N）。早期文件系统（如 ReiserFS）与 MongoDB（3.0 前 MMAPv1 引擎）采用 B树。<strong>痛点</strong>：范围查询要中序回溯遍历多层级，随机 I/O 多；节点存数据导致单页能放的键少、扇出受限。</p>
               <p><strong>B+树</strong>：B树变体——非叶子节点只存索引键（不存数据/卫星数据全部下沉到叶子），叶子节点存全部数据并按主键有序组织成双向链表。InnoDB、PostgreSQL、Oracle、SQL Server 全部采用 B+树。它解决了 B树范围查询低效与扇出受限两大痛点，成为 OLTP 数据库的事实标准。</p>
@@ -163,9 +163,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>B+树 vs B树的核心差异</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -254,18 +254,18 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>覆盖索引避免回表</strong>：若查询列全部包含在二级索引中，直接在二级索引叶子节点返回，无需回表聚簇索引。例如 <code class="inline-code">SELECT id,name FROM t WHERE name='x'</code>，在 <code class="inline-code">(name,id)</code> 索引上即覆盖（InnoDB 二级索引自动含主键）。EXPLAIN 中 Extra 显示 <code class="inline-code">Using index</code> 即覆盖索引。</p>
               <p><strong>页分裂与自增主键</strong>：B+树叶子节点按主键有序。随机主键（如 UUID）插入导致频繁页分裂、页填充率低、碎片多。<strong>推荐自增整型主键</strong>——顺序插入追加到叶子节点末尾，写放大最小。UUID 主键可改用雪花算法或存储为 BINARY(16) 并配 <code class="inline-code">uuid_short()</code>。</p>
               <p><strong>页大小调优</strong>：InnoDB 默认页 16KB。OLTP 高并发点查可用 8KB（减少单页竞争、提升 Buffer Pool 命中率）；OLAP 大范围扫描可用 32KB（MySQL 8.0 <code class="inline-code">innodb_page_size</code> 仅建实例时设定）。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么不用红黑树或跳表？</strong></p>
               <p>红黑树/跳表是二叉/多层链表结构，扇出小（红黑树扇出 2），同等数据量树高远高于 B+树（百万数据红黑树高约 20，B+树高 2-3）。磁盘 I/O 次数 = 树高，红黑树在磁盘场景完全不可用。<strong>跳表多用于内存数据库</strong>（Redis Zset、LevelDB MemTable），其优势是实现简单、并发友好，但磁盘 I/O 模型下扇出仍不如 B+树。</p>
               <p><strong>追问 2：B+树与 LSM 树的本质权衡是什么？如何选型？</strong></p>
@@ -273,9 +273,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -293,15 +293,15 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C07.02 MVCC 如何实现 RC 和 RR 两种隔离级别？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.02" data-difficulty="expert" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.02</div>
-            <div class="qa-question">MVCC 如何实现 RC 和 RR 两种隔离级别？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.02" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.02</div>
+            <div class="content-question">MVCC 如何实现 RC 和 RR 两种隔离级别？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对 InnoDB
                 <strong>多版本并发控制（Multi-Version Concurrency Control）</strong>底层实现的深度理解：如何在不加读锁的情况下实现读写并发、又如何仅通过"ReadView 生成时机"的差异切换 RC（读已提交）与 RR（可重复读）。本质是<strong>用 undo log 版本链 + ReadView 可见性算法，让每个事务看到数据的一个一致性快照</strong>，读写互不阻塞。掌握版本链结构、ReadView 组成、可见性判断四步算法，就能解释一切 MVCC 现象。
@@ -309,9 +309,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>SQL 标准的四个隔离级别（1992）</strong>：读未提交（RU）、读已提交（RC）、可重复读（RR）、串行化（Serializable）。标准基于<strong>锁</strong>实现——RC 用短读锁、RR 用长读锁、Serializable 全表锁。锁实现下读写互相阻塞，并发度低。</p>
               <p><strong>基于锁的困境</strong>：读阻塞写、写阻塞读，高并发 OLTP 下性能不可接受。PostgreSQL 率先在 1980s 后期引入 MVCC 思想——<strong>为每个事务保留数据的一个版本快照，读走快照、写生成新版本</strong>，读写分离。</p>
               <p><strong>InnoDB MVCC</strong>：InnoDB 在 RR 级别用 MVCC 实现快照读（普通 SELECT 不加锁），用 Next-Key Lock 解决当前读的幻读。关键设计：<strong>同一套 undo 版本链，仅靠 ReadView 生成时机的不同区分 RC 与 RR</strong>——RC 每条 SELECT 生成新 ReadView，RR 仅事务第一条 SELECT 生成一次并复用。这是 MySQL 最优雅的设计之一。</p>
@@ -319,9 +319,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>三大组件：隐藏字段 + undo 版本链 + ReadView</strong>。</p>
               <p>每行数据有两个隐藏字段：<code class="inline-code">DB_TRX_ID</code>（6 字节，最后修改该行的事务 ID）、<code class="inline-code">DB_ROLL_PTR</code>（7 字节，回滚指针，指向 undo log 中该行的上一版本）。每次 UPDATE 不是原地改，而是<strong>把旧版本写入 undo log，新版本写回数据页，roll_ptr 串联成版本链</strong>。</p>
 
@@ -400,9 +400,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p>
                 <strong>长事务是 MVCC 的头号敌人</strong>：长事务的 ReadView 长期存在，导致其生成时活跃事务产生的 undo 版本<strong>无法被 purge 线程回收</strong>，undo 表空间膨胀、history list 增长，影响所有事务性能。线上应监控 <code class="inline-code">information_schema.innodb_trx</code> 事务时长、<code class="inline-code">SHOW ENGINE INNODB STATUS</code>
                 的 history list length。
@@ -412,9 +412,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：RR 下 MVCC 完全解决幻读了吗？</strong></p>
               <p>
                 没有完全解决。<strong>快照读</strong>由 MVCC 解决幻读（同一事务多次范围快照读结果一致）；但<strong>当前读</strong>（FOR UPDATE/UPDATE/DELETE）若不加间隙锁会读到新插入的行产生幻读。InnoDB 在 RR 下对当前读用
@@ -425,9 +425,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -444,15 +444,15 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C07.03 InnoDB 的行锁/间隙锁/临键锁如何工作？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.03" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.03</div>
-            <div class="qa-question">InnoDB 的行锁/间隙锁/临键锁如何工作？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C07.03" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.03</div>
+            <div class="content-question">InnoDB 的行锁/间隙锁/临键锁如何工作？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察 InnoDB
                 <strong>锁体系</strong>的精确理解：记录锁、间隙锁、临键锁三种行锁算法的加锁范围与作用，以及它们在不同隔离级别下的行为差异。本质是<strong>如何用最小粒度的锁保证事务隔离性，同时最大化并发</strong>。InnoDB 行锁锁的是<strong>索引</strong>而非数据行本身——这是理解所有锁行为的关键前提。掌握加锁规则就能预测任意 SQL 的加锁范围、定位死锁。
@@ -460,9 +460,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>表锁时代（MyISAM/Memory）</strong>：写锁全表互斥，并发度极低，仅适合读多写少。</p>
               <p><strong>行锁引入（InnoDB）</strong>：锁粒度降到行（实际锁索引记录），不同行读写互不阻塞。但纯记录锁无法解决<strong>幻读</strong>——新插入的行不在已有记录上，记录锁锁不住。</p>
               <p><strong>间隙锁 + 临键锁</strong>：InnoDB 在 RR 级别引入 Gap Lock（锁记录间的间隙）与 Next-Key Lock（记录 + 其前间隙），锁住"范围"而非仅"点"，阻止间隙内的插入，从而在当前读场景解决幻读。这是 RR 比 RC 并发略低的根源。</p>
@@ -470,9 +470,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>三种行锁算法</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -530,9 +530,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>分析一条 SQL 加了什么锁</strong>：① 确认隔离级别（RR 还是 RC）；② 确认索引类型（唯一/非唯一/无索引）；③ 确认查询类型（等值/范围、命中/未命中）；④ 套用加锁规则。无索引的查询会<strong>锁全表</strong>（每行都加 Next-Key Lock），这是生产事故常见根因——务必确保 WHERE 走索引。</p>
               <p><strong>死锁排查</strong>：<code class="inline-code">SHOW ENGINE INNODB STATUS</code> 查看 LATEST DETECTED DEADLOCK 段，输出两个事务各自持有与等待的锁。常见死锁模式：事务 A-B 交叉持锁对方所需行；间隙锁交叉导致插入互等。开启 <code class="inline-code">innodb_print_all_deadlocks=ON</code> 将所有死锁写入 error log。</p>
               <p><strong>减少锁冲突实践</strong>：① 缩短事务（避免长事务持锁）；② 按固定顺序访问资源（防循环等待）；③ 用 RC 降低间隙锁；④ 大批量更新分批 + 避免 FOR UPDATE 长时间持有；⑤ 唯一索引等值命中只退化记录锁，优先用唯一索引。</p>
@@ -543,9 +543,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么 InnoDB 行锁锁的是索引而非数据行？</strong></p>
               <p>InnoDB 数据按聚簇索引组织，行数据就在聚簇索引叶子节点；二级索引查询需回表聚簇索引。<strong>加锁本质是给索引项加锁</strong>——若无索引，InnoDB 必须扫描聚簇索引每一行并加锁，等效全表锁。因此"走索引"不只是性能问题，更是<strong>锁粒度问题</strong>——无索引的 UPDATE/DELETE 会锁全表。</p>
               <p><strong>追问 2：高并发下死锁检测的 CPU 开销如何处理？</strong></p>
@@ -560,9 +560,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -579,9 +579,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：慢查询阈值、事务边界评审、主从延迟告警。表达提纲：执行计划→锁/索引证据→改写与容量。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -594,22 +594,22 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C07.04 Redo Log、Undo Log 与 Binlog 如何协同保证 ACID？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.04" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.04</div>
-            <div class="qa-question">Redo Log、Undo Log 与 Binlog 如何协同保证 ACID？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.04" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.04</div>
+            <div class="content-question">Redo Log、Undo Log 与 Binlog 如何协同保证 ACID？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 MySQL <strong>事务日志体系</strong>的全局理解：三种日志各司其职（Redo 崩溃恢复、Undo 回滚与 MVCC、Binlog 复制），又通过<strong>两阶段提交（2PC）</strong>协同保证 Redo 与 Binlog 的一致性，进而保证 ACID 中的原子性、持久性、一致性。本质是<strong>用 WAL（Write-Ahead Logging）+ 日志顺序写替代数据随机写，以最小代价保证崩溃不丢数据</strong>。架构师需理解双 1 参数、组提交、以及复制方案演进对日志体系的依赖。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>三种日志的起源</strong>：Binlog 是 MySQL Server 层日志（早于 InnoDB），最初用于主从复制与 PITR；Undo/Redo 是 InnoDB 引擎层日志，借鉴经典数据库理论（ARIES 恢复算法）。MySQL 收购 InnoDB 后，需让 Server 层 Binlog 与引擎层 Redo 协同——这才催生<strong>两阶段提交</strong>。</p>
               <p><strong>复制方案演进</strong>（与日志体系强相关）：<strong>异步复制</strong>（默认，主库不等从库，可能丢数据）→ <strong>半同步复制</strong>（5.5+，主库等至少一个从库收到 binlog 才返回，兼顾性能与数据安全）→ <strong>.lossless 半同步</strong>（5.7+，ACK 在 binlog 落盘后）→ <strong>MGR（Group Replication）</strong>（5.7.17 GA，基于 Paxos 变种 XCom，多数节点写成功才提交，强一致）。演进核心是<strong>在性能与一致性间不断向强一致推进</strong>。</p>
               <p><strong>组提交（Group Commit）</strong>：5.6 引入 binlog 组提交，5.7 改进为三阶段组提交（flush → sync → commit），将多个事务的日志合并一次 fsync，大幅提升高并发吞吐。这是半同步/MGR 能落地的性能基础。</p>
@@ -617,9 +617,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>三种日志职责对照</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -709,18 +709,18 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>redo log 大小调优</strong>：MySQL <strong>8.0.30+ / 8.4</strong> 生产以 <code class="inline-code">innodb_redo_log_capacity</code> 统一管理 redo 容量（动态可调，替代旧的 <code class="inline-code">innodb_log_file_size</code> × <code class="inline-code">innodb_log_files_in_group</code>）。容量过小 → 频繁 checkpoint、刷脏抖动；过大 → 崩溃恢复变长。按<strong>约 1 小时峰值写入量</strong>估算后压测确认。旧手册里的 <code class="inline-code">innodb_log_file_size</code> 仅作 8.0 早期历史对照，新环境勿再当主旋钮。</p>
               <p><strong>binlog 格式选择</strong>：<code class="inline-code">ROW</code>（行级，记录每行变更，安全可靠，主从一致性强，推荐）/<code class="inline-code">STATEMENT</code>（SQL 语句，小但有不确定函数风险）/<code class="inline-code">MIXED</code>。<strong>生产统一用 ROW</strong>，配合 <code class="inline-code">binlog_row_image=MINIMAL</code> 减小体积。</p>
               <p><strong>组提交调优</strong>：<code class="inline-code">binlog_group_commit_sync_delay</code>（微秒级延迟，攒批）+ <code class="inline-code">binlog_group_commit_sync_no_delay_count</code>（攒批数上限）。在高并发写场景可显著提升吞吐，低并发应设 0 避免增加延迟。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么必须有两阶段提交？不要行不行？</strong></p>
               <p>不行。假设先写 redo 后写 binlog：redo 写完崩溃，binlog 没写——主库恢复后提交（redo 完整），但从库没收到该事务，<strong>主从数据不一致</strong>。假设先写 binlog 后写 redo：binlog 写完崩溃，redo 没写——主库恢复后回滚，但从库收到了事务并执行，<strong>从库多了主库没有的数据</strong>。两阶段提交通过"redo prepare → binlog → redo commit + 崩溃时用 binlog 完整性裁决"确保两份日志要么都成功要么都失败。</p>
               <p><strong>追问 2：redo log 与 binlog 都是日志，为何要两份？</strong></p>
@@ -728,9 +728,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -748,31 +748,31 @@ sequenceDiagram
         <!-- ============================================================ -->
         <!-- C07.05 慢 SQL 如何排查与优化？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.05" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.05</div>
-            <div class="qa-question">慢 SQL 如何排查与优化？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C07.05" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.05</div>
+            <div class="content-question">慢 SQL 如何排查与优化？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察<strong>性能问题定位的方法论</strong>：从发现慢 SQL 到定位根因再到优化的完整闭环。本质是<strong>用 EXPLAIN 理解执行计划，用索引失效规则判断为何没走索引，用针对性优化策略（索引/改写/分页）消除性能瓶颈</strong>。这不仅是背 EXPLAIN 字段，而是建立"现象 → 计划 → 根因 → 优化"的因果链。高级开发必须能在生产环境独立完成慢 SQL 治理。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>发现手段演进</strong>：慢查询日志（slow_query_log，原始）→ <code class="inline-code">pt-query-digest</code>（Percona Toolkit，聚合分析慢日志）→ performance_schema（5.7+ 实时采样，<code class="inline-code">events_statements_summary_by_digest</code>）→ APM 全链路（SkyWalking 抓 SQL 耗时）→ 云数据库慢 SQL 诊断（RDS 控制台）。</p>
               <p><strong>分析工具演进</strong>：EXPLAIN（执行计划）→ EXPLAIN FORMAT=JSON（更详细）→ EXPLAIN ANALYZE（8.0.18+，实际执行并返回每算子真实行数与耗时）→ optimizer trace（8.0，查看优化器决策全过程）。</p>
               <p><strong>优化手段演进</strong>：加索引 → 覆盖索引 → 索引下推 ICP → 延迟关联分页 → 物化视图/汇总表 → 读写分离 → 分库分表 → 引入 ES/ClickHouse 卸载复杂查询。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>排查五步法</strong>：</p>
               <div class="mermaid-container">
                 <!-- prettier-ignore -->
@@ -869,9 +869,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>慢查询配置</strong>：<code class="inline-code">slow_query_log=ON</code>、<code class="inline-code">long_query_time=0.5</code>（线上可设 0.1-1s）、<code class="inline-code">log_queries_not_using_indexes=ON</code>（记录未走索引的 SQL，发现隐患）。用 <code class="inline-code">pt-query-digest slow.log</code> 按"次数 × 耗时"聚合，优先治理<strong>总耗时最高</strong>的 SQL（而非单次最慢的）。</p>
               <p><strong>常用优化策略</strong>：① 加合适索引（覆盖索引优先）；② 避免 SELECT *（减少回表与网络传输）；③ 大 IN 改 JOIN 或临时表；④ COUNT(*) 优化（用估算或汇总表，避免全表扫）；⑤ 复杂统计查询卸载到 ClickHouse/ES；⑥ 定期 ANALYZE TABLE 更新统计信息（rows 估算不准时）。</p>
               <div class="callout callout-tip">
@@ -881,9 +881,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：EXPLAIN 的 rows 不准怎么办？</strong></p>
               <p>
                 rows 是优化器基于<strong>统计信息</strong>（索引基数 cardinality）估算的。统计信息过期会导致估算偏差，优化器可能选错索引。<strong>处理</strong>：执行
@@ -898,9 +898,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -914,9 +914,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展：慢 SQL 治理 SOP 闭环</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展：慢 SQL 治理 SOP 闭环</div>
+            <div class="content-layer-body">
               <p>把"发现 → 归因 → 治理 → 回归 → 防回归"做成可复用闭环，而不是单次 EXPLAIN：</p>
               <ol>
                 <li><strong>发现</strong>：慢查询日志（<code class="inline-code">long_query_time</code>）+ <code class="inline-code">pt-query-digest</code> 按总耗时排序；并行看 performance_schema <code class="inline-code">events_statements_summary_by_digest</code> 的 TOP SQL。</li>
@@ -928,9 +928,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：慢查询阈值、事务边界评审、主从延迟告警。表达提纲：执行计划→锁/索引证据→改写与容量。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -943,22 +943,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C07.06 索引设计原则与优化策略？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.06" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.06</div>
-            <div class="qa-question">索引设计原则与优化策略？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.06" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.06</div>
+            <div class="content-question">索引设计原则与优化策略？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察<strong>索引设计的系统性方法论</strong>：何时建索引、建什么索引、联合索引字段顺序、如何避免索引失效与冗余。本质是<strong>在查询性能与写入开销之间权衡，用最少的索引覆盖最多的查询</strong>。索引不是越多越好——每个索引是一棵 B+树，增加写入时的维护成本与存储。掌握最左前缀、覆盖索引、索引下推、选择率等原则，才能做出经得起数据量增长的设计。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>单列索引</strong>：早期只对单列建索引，简单但无法支持多条件组合查询的高效检索。</p>
               <p><strong>联合索引（Composite Index）</strong>：多列组合索引，遵循最左前缀原则，一个索引覆盖多种查询模式。成为 OLTP 主流。</p>
               <p><strong>覆盖索引（Covering Index）</strong>：将查询所需所有列纳入索引，避免回表。InnoDB 二级索引自动含主键，扩展性好。</p>
@@ -967,9 +967,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>最左前缀原则</strong>：联合索引 (a,b,c) 的 B+树按 a→b→c 排序。能匹配前缀的查询走索引：(a)、(a,b)、(a,b,c) 走索引；(b,c) 不走（缺最左 a）；(a,c) 只能用 a 部分（c 因中间缺 b 无法参与索引查找，但 5.6+ ICP 可下推 c 过滤）。</p>
               <p><strong>联合索引字段顺序三原则</strong>：① <strong>等值在前，范围在后</strong>——范围查询右侧列无法用索引，故范围列放最后；② <strong>区分度高的放前面</strong>——快速缩小扫描范围（但需结合实际查询，不能只看区分度）；③ <strong>尽量覆盖更多查询</strong>——一个联合索引服务多个 WHERE 组合，减少索引数量。</p>
               <p><strong>覆盖索引</strong>：查询列全在索引中，Extra 显示 <code class="inline-code">Using index</code>，无需回表。设计时把高频查询的 SELECT 列纳入索引。但索引列不宜过多（增大索引体积、降低更新性能），需权衡。</p>
@@ -1022,9 +1022,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>建索引决策清单</strong>：① 该列是否频繁出现在 WHERE/JOIN/ORDER BY/GROUP BY；② 选择率是否足够高（无绝对阈值，需结合数据分布与查询模式判断）；③ 是否能复用已有联合索引的最左前缀；④ 写多读少的表是否值得加（写放大）；⑤ 是否可用覆盖索引替代多个单列索引。</p>
               <p><strong>避免冗余与无用索引</strong>：联合索引 (a,b) 已覆盖 (a) 单列索引，后者冗余；主键索引已含 id，二级索引自动含 id 无需显式加。定期用 <code class="inline-code">sys.schema_unused_indexes</code> 清理长期未使用的索引。</p>
               <div class="callout callout-tip">
@@ -1037,9 +1037,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：联合索引 (a,b,c)，查询 WHERE a=1 ORDER BY c 能用索引排序吗？</strong></p>
               <p>不能高效利用索引排序。索引顺序是 a,b,c，a 等值后应按 b 排序，但 ORDER BY 跳过 b 直排 c，无法利用索引有序性，会 <code class="inline-code">Using filesort</code>。优化：调整为 ORDER BY b,c（匹配索引），或建 (a,c) 索引（牺牲 b）。这说明<strong>排序字段也要考虑最左前缀</strong>。</p>
               <p><strong>追问 2：为什么不要在区分度低的列上单独建索引？</strong></p>
@@ -1047,9 +1047,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1063,9 +1063,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>索引设计不仅有定性原则，还有<strong>定量公式与统计信息增强</strong>手段，掌握这些才能在复杂场景做出精确决策。</p>
               <ul>
                 <li><strong>索引选择性公式</strong>：<code class="inline-code">selectivity = cardinality / total_rows</code>，取值 0~1，越接近 1 越适合建索引。经验阈值：选择性 &gt; 0.2（即过滤后剩余 20% 以下行数）适合建索引；选择性 &lt; 0.1 的列建索引收益低，优化器倾向于全表扫描。</li>
@@ -1084,22 +1084,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C07.07 分库分表如何设计与落地？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.07" data-difficulty="architect" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.07</div>
-            <div class="qa-question">分库分表如何设计与落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C07.07" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.07</div>
+            <div class="content-question">分库分表如何设计与落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察<strong>数据库水平扩展的架构设计能力</strong>：何时该分、怎么分（垂直/水平、分片策略）、分之后跨库难题如何解（Join/分页/事务/全局 ID）、用什么中间件、如何平滑迁移。本质是<strong>用数据分片突破单机容量与吞吐瓶颈，代价是引入分布式复杂性</strong>。架构师需权衡"分"的收益与成本，避免过早分库分表，也要在必要时能设计可落地的分片方案并规划演进到 NewSQL 的路径。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>单机 MySQL</strong>：读写在单库单表。瓶颈：单表数据量过大（B+树变高、维护成本升）、单机磁盘/内存/CPU 上限。</p>
               <p><strong>主从 + 读写分离</strong>：主库写、从库读，读扩展。瓶颈：写仍单点；从库延迟；单表数据量问题未解决。</p>
               <p><strong>分库分表（Sharding）</strong>：水平拆分数据到多库多表，写与读均可扩展。引入跨库 Join/分页/事务难题。代表中间件：MyCat（代理模式）、ShardingSphere（Sharding-JDBC 客户端模式 / Sharding-Proxy 代理模式）、TDDL（阿里）。</p>
@@ -1108,9 +1108,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>拆分维度</strong>：</p>
               <ul>
                 <li><strong>垂直分库</strong>：按业务拆库（订单库、用户库、商品库），解耦业务，解决单库表过多/连接数上限。</li>
@@ -1193,9 +1193,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>何时分库分表（经验阈值）</strong>：单表数据量 &gt; 1000 万或单表 &gt; 50GB、单库 QPS &gt; 5000/TPS &gt; 1000、单库连接数紧张。但<strong>优先尝试优化</strong>——索引优化、读写分离、归档冷数据、分区表，往往能延迟分库分表 1-2 年。过早分库分表是常见架构错误。</p>
               <p><strong>分片数量规划</strong>：预留 3-5 倍增长空间。如当前 5000 万、预计 3 年 5 亿，按 32 或 64 分片（2 的幂便于倍增扩容）。</p>
               <p><strong>平滑迁移方案（双写 + 校验）</strong>：① 新库建表 + 数据同步（全量 + 增量）；② 应用<strong>双写</strong>（新老库都写），读仍走老库；③ 校验新老库数据一致；④ 切读到新库（灰度）；⑤ 下线老库。关键：双写阶段需容忍短暂不一致，用 Canary 灰度切换。ShardingSphereScaling 或 DataX 可辅助。</p>
@@ -1203,9 +1203,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：分库分表后如何做全局二级索引？</strong></p>
               <p>
                 单分片内的索引天然局限——按 user_id 分片后，按 phone 查询需广播。方案：①
@@ -1216,9 +1216,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1231,9 +1231,9 @@ flowchart TD
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>分库分表落地最该用量化证据支撑的选型结论是：迁移可不停机、热点可量化、翻倍扩容低成本。</strong>
               </p>
@@ -1279,22 +1279,22 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C07.08 MySQL 主从复制原理与延迟优化？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.08" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.08</div>
-            <div class="qa-question">MySQL 主从复制原理与延迟优化？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C07.08" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.08</div>
+            <div class="content-question">MySQL 主从复制原理与延迟优化？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察<strong>主从复制的完整链路与延迟治理</strong>：binlog 如何从主库到从库应用、三种线程协作、复制模式差异、延迟根因与并行复制优化。本质是<strong>用日志重放实现数据副本，核心矛盾是"强一致性"与"复制延迟"的权衡</strong>。高级开发需能定位延迟根因并配置并行复制，架构师需理解复制模式演进以支撑高可用选型。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>异步复制（默认）</strong>：主库提交事务后不等从库即返回，binlog 由 dump 线程异步推送。性能最高但主库崩溃可能丢未同步事务。</p>
               <p><strong>半同步复制（5.5+）</strong>：主库提交后等待至少一个从库 ACK（收到 binlog）才返回客户端。AFTER_SYNC（5.7+，lossless，ACK 在 binlog 落盘后）vs AFTER_COMMIT（5.5，ACK 在提交后）。兼顾性能与数据安全，是金融场景标配。</p>
               <p>
@@ -1308,9 +1308,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>复制三线程模型</strong>：</p>
               <div class="mermaid-container">
                 <!-- prettier-ignore -->
@@ -1368,9 +1368,9 @@ replica_preserve_commit_order = ON</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>GTID 复制详细配置</strong>：</p>
               <p><strong>主库 GTID 配置</strong>：</p>
               <div class="code-block">
@@ -1670,9 +1670,9 @@ public class ParallelReplicationMonitorService {
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：半同步复制降级如何处理？</strong></p>
               <p>当副本在超时（8.4：<code class="inline-code">rpl_semi_sync_source_timeout</code>；8.0 旧名 <code class="inline-code">rpl_semi_sync_master_timeout</code>，默认 10000ms）内未 ACK，主库自动<strong>降级为异步</strong>以保证可用性（不阻塞写）。风险：降级期间主库崩溃丢数据。处理：① 监控半同步状态（8.4 source / 8.0 master 状态名），降级即告警；② 设置较大 timeout（如 30s）减少误降级；③ 配置多个副本（8.4：<code class="inline-code">rpl_semi_sync_source_wait_for_replica_count</code>）降低单点影响；④ 严格场景用 MGR 替代半同步。</p>
               <p><strong>追问 2：GTID 复制相比传统 binlog 位点复制有何优势？</strong></p>
@@ -1683,9 +1683,9 @@ public class ParallelReplicationMonitorService {
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1699,9 +1699,9 @@ public class ParallelReplicationMonitorService {
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：慢查询阈值、事务边界评审、主从延迟告警。表达提纲：执行计划→锁/索引证据→改写与容量。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -1714,22 +1714,22 @@ public class ParallelReplicationMonitorService {
         <!-- ============================================================ -->
         <!-- C07.09 MySQL 高可用方案如何选型？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.09" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.09</div>
-            <div class="qa-question">MySQL 高可用方案如何选型？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.09" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.09</div>
+            <div class="content-question">MySQL 高可用方案如何选型？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察<strong>数据库高可用架构的选型决策能力</strong>：各方案（MHA【已停止维护，仅作历史对比】、Orchestrator、MGR、MGC、云 RDS、NewSQL）的原理、优劣、适用场景，以及故障切换、脑裂防范、数据丢失风险评估。本质是<strong>在 RPO（数据丢失量）、RTO（恢复时间）、复杂度、成本之间权衡</strong>。架构师需根据业务对一致性与可用性的要求选型，并设计配套的监控、切换、演练机制。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>主从 + 手动切换</strong>：早期方案，主库故障人工选从库提升。RTO 长（依赖人），易出错。</p>
               <p><strong>MHA（Master High Availability，2010s，已停止维护）</strong>：Perl 脚本的故障切换管理器，监控主库，故障时从多个从库选最新的提升为新主，尽量补齐其他从库缺失的 binlog。广泛使用但<strong>已多年未维护</strong>（Perl 实现，无官方维护，仅作高可用演进的历史方案保留对比），<strong>当前推荐 MGR（MySQL Group Replication）/ Orchestrator 替代</strong>——MGR 提供原生强一致，Orchestrator 适合灵活拓扑的半同步切换场景。</p>
               <p><strong>Orchestrator（GitHub 出品）</strong>：Go 实现的拓扑管理器，支持复杂拓扑发现、手动/自动故障切换、优雅切换。比 MHA 更活跃、功能更强，但仍基于异步/半同步复制，<strong>不解决数据强一致</strong>。</p>
@@ -1740,9 +1740,9 @@ public class ParallelReplicationMonitorService {
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>方案对比矩阵</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -1841,9 +1841,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>选型决策树</strong>：① 云上优先 Aurora/PolarDB（托管、省心）；② 自建 + 强一致要求高 → InnoDB Cluster（MGR）；③ 自建 + 中等一致 + 灵活拓扑 → Orchestrator + 半同步；④ 存量 MHA 维持，新系统不再用；⑤ 金融级 + 水平扩展需求 → TiDB/OceanBase。</p>
               <p><strong>高可用必须配套</strong>：① <strong>监控告警</strong>——复制状态、延迟、节点健康；② <strong>切换演练</strong>——定期混沌演练验证切换有效；③ <strong>客户端重试</strong>——切换瞬间连接失败需应用自动重连；④ <strong>读分离中间件</strong>——ProxySQL/MySQL Router/ShardingSphere 透明路由；⑤ <strong>回滚预案</strong>——切换后新主数据不全时的回退方案。</p>
               <div class="callout callout-tip">
@@ -1853,9 +1853,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：MGR 多主模式为何不如单主模式常用？</strong></p>
               <p>多主模式允许多节点同时写，但<strong>冲突检测开销大</strong>——不同节点并发改同一行需认证回滚，冲突率高时性能急剧下降。且多主要求每次写都序列化认证，对应用写分布要求高（避免热点）。单主模式只有主节点写、从节点读，无写冲突，性能稳定，故障时自动选主切换。除特殊场景（多机房多写），<strong>生产默认单主模式</strong>。</p>
               <p><strong>追问 2：MGR 集群规模为什么限制 3-9 节点？</strong></p>
@@ -1863,9 +1863,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1883,22 +1883,22 @@ flowchart TD
         <!-- ============================================================ -->
         <!-- C07.10 MySQL 的执行计划(EXPLAIN)如何解读？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.10" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.10</div>
-            <div class="qa-question">MySQL 的执行计划(EXPLAIN)如何解读？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C07.10" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.10</div>
+            <div class="content-question">MySQL 的执行计划(EXPLAIN)如何解读？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察<strong>读懂执行计划并据此优化 SQL 的能力</strong>。EXPLAIN 是优化器对 SQL 的执行方案"说明书"——访问哪些表、用什么索引、扫描多少行、是否额外排序。本质是<strong>通过执行计划反推优化器决策，判断"是否走索引、走对索引、扫描量是否可控、是否有额外开销"</strong>。这是慢 SQL 治理的核心技能，每个字段都有明确的优化含义。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>EXPLAIN（传统）</strong>：输出预估执行计划，不实际执行 SQL，快速但 rows 是估算值。</p>
               <p><strong>EXPLAIN FORMAT=JSON（5.6+）</strong>：结构化输出，含更详细的成本信息（cost_info）、使用的索引详情。</p>
               <p>
@@ -1910,9 +1910,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>EXPLAIN 完整字段解读</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -2026,9 +2026,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>解读四步法</strong>：① 看 <strong>type</strong> 是否走索引、级别够不够；② 看 <strong>key/key_len</strong> 是否走对索引、联合索引用了几列；③ 看 <strong>rows</strong> 扫描量是否可控；④ 看 <strong>Extra</strong> 有无 filesort/temporary。四步定位 90% 的 SQL 性能问题。</p>
               <p>
                 <strong>多表 JOIN 解读</strong>：注意 id 顺序（id 大先执行）、驱动表与被驱动表关系（rows 小的应做驱动表）、被驱动表 JOIN 字段是否有索引（type 应为 ref/eq_ref）。<code class="inline-code">Using join buffer</code>
@@ -2052,9 +2052,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：key_len 如何判断联合索引用了几列？</strong></p>
               <p>key_len = 各使用列的索引长度之和。计算规则：INT 4 字节、BIGINT 8、CHAR(n) utf8mb4 = 4n、VARCHAR(n) utf8mb4 = 4n+2（变长）+1（NULL 标记）。例如联合索引 (user_id BIGINT, status VARCHAR(10))，若 key_len=8 表示只用 user_id；key_len=8+42+1=51 表示两列都用上（status 非空则 +42，可空 +43）。借此判断最左前缀用了几列、是否有列未参与索引。</p>
               <p><strong>追问 2：EXPLAIN 显示走了索引但仍然慢，可能原因？</strong></p>
@@ -2062,9 +2062,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2078,9 +2078,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展：窗口函数与 CTE（MySQL 8.0+ 高频）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展：窗口函数与 CTE（MySQL 8.0+ 高频）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>窗口函数</strong>：<code class="inline-code">ROW_NUMBER/RANK/DENSE_RANK</code>、<code class="inline-code">SUM() OVER (PARTITION BY … ORDER BY …)</code>
                 等，在结果集上开窗而不折叠行，适合排行榜、去重留最新、会话连续区间。对比：GROUP BY 会折叠行；窗口保留明细并附聚合列。
@@ -2101,9 +2101,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：慢查询阈值、事务边界评审、主从延迟告警。表达提纲：执行计划→锁/索引证据→改写与容量。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -2115,22 +2115,22 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
 
         <!-- C07.11 MySQL 的死锁检测原理与排查实战？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.11" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.11</div>
-            <div class="qa-question">MySQL 的死锁检测原理与排查实战？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.11" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.11</div>
+            <div class="content-question">MySQL 的死锁检测原理与排查实战？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察<strong>InnoDB 锁冲突的自动检测与死锁排查</strong>能力。核心回答：InnoDB 通过<strong>等待图（Wait-for Graph）检测死锁环</strong>，当发现环路时选择"代价最小"的事务回滚（Undo Log 量小的年轻事务）；生产排查依赖 <code class="inline-code">SHOW ENGINE INNODB STATUS</code> 中的 LATEST DETECTED DEADLOCK 区块，结合慢日志与业务代码分析加锁顺序。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>阶段 1：应用层超时回滚</strong>。早期数据库无死锁检测，靠应用设置锁等待超时（<code class="inline-code">innodb_lock_wait_timeout</code>），超时后报错由应用重试。简单粗暴但延迟高、无法定位根因。</p>
               <p>
                 <strong>阶段 2：InnoDB 死锁检测（MySQL 默认）</strong>。InnoDB 维护事务等待图，后台线程检测环路，发现死锁立即回滚一个事务（<code class="inline-code">ER_LOCK_DEADLOCK</code>
@@ -2141,9 +2141,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>死锁产生的四个必要条件（同时满足才会死锁）</strong>：</p>
               <ul>
                 <li><strong>互斥</strong>：资源（行锁）一次只能被一个事务持有。</li>
@@ -2198,9 +2198,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>死锁排查四步法</strong>：</p>
               <p>① <strong>获取死锁日志</strong>：</p>
               <div class="code-block">
@@ -2240,9 +2240,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么死锁检测在高并发下会成为性能瓶颈？</strong></p>
               <p>
                 死锁检测需要遍历等待图，复杂度约为 O(N^2)（N 为等待锁的事务数）。当并发极高（如秒杀场景数万事务同时等待），检测线程消耗大量 CPU 遍历图，反而拖慢整体性能。MySQL 8.0 提供
@@ -2253,9 +2253,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2273,22 +2273,22 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
         <!-- ============================================================ -->
         <!-- C07.12 大表在线变更与 Online DDL -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.12" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.12</div>
-            <div class="qa-question">大表在线变更（Online DDL）方案选型与治理？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.12" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.12</div>
+            <div class="content-question">大表在线变更（Online DDL）方案选型与治理？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察千万/亿级大表<strong>无停机变更 schema</strong>的工程能力。核心要讲清：① MySQL 原生 Online DDL（INPLACE/COPY/INSTANT）的能力边界与锁粒度；② pt-osc 与 gh-ost 通过"<strong>影子表 + 触发器/二进制日志回放</strong>"实现在线变更的原理差异；③ 选型权衡——何时用原生、何时用 gh-ost、何时走双写灰度。它是 DBA 与架构师的协作题——能否讲清三者锁影响、回滚成本、流量切换策略，是大表治理的实战分水岭。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>原生 COPY 方式（MySQL 5.5 前）</strong>：ALTER TABLE 创建新表复制全量数据，全程<strong>元数据锁（MDL）独占</strong>，阻塞所有读写，大表等于停机。</p>
               <p><strong>Online DDL（MySQL 5.6+）</strong>：引入 INPLACE 算法，建/删二级索引、加列等可在 InnoDB 内部完成，<strong>允许并发 DML</strong>（row log 回放）。但仍有限制：ADD COLUMN 走 INPLACE 需重建表；部分操作（改列类型、改字符集）仍 COPY 全程锁。</p>
               <p><strong>pt-online-schema-change（pt-osc，Percona Toolkit）</strong>：经典第三方方案。创建影子表 → 分块 chunk 拷贝数据 → 用<strong>触发器</strong>同步变更期间的增量 DML 到影子表 → rename 交换。<strong>痛点</strong>：触发器对原表每次写都生效，高写入负载下性能损耗显著；外键表需用 <code class="inline-code">--alter-foreign-keys-method</code> 处理关联（auto/rebuild_link 等），不是"不支持外键"。</p>
@@ -2297,9 +2297,9 @@ Using MRR                <span class="com"># 多范围读优化（中性，有�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>影子表三件套</strong>：pt-osc/gh-ost 本质都是"创建影子表 → 全量拷贝 + 增量同步 → 原子 rename"。差异在<strong>增量同步机制</strong>。</p>
 
               <div class="mermaid-container">
@@ -2369,9 +2369,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>选型决策树</strong>：① 操作在 INSTANT 支持范围（MySQL 8.0.12+ 末尾加列、8.0.29+ 任意位置加列）→ 直接 INSTANT；② 简单加索引/加列且无外键、可接受触发器开销 → pt-osc；③ 高写入负载/有外键/需暂停回滚 → gh-ost；④ 跨实例/分库分表/数据重算 → 双写灰度。</p>
 
               <div class="code-block">
@@ -2402,9 +2402,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：gh-ost 相比 pt-osc 的根本优势是什么？</strong></p>
               <p>根本优势是<strong>无触发器</strong>。pt-osc 的触发器挂在原表上，每次 INSERT/UPDATE/DELETE 都额外执行触发器逻辑，高写入下原表写吞吐下降 20-50%，外键表还需额外处理。gh-ost 作为 binlog 消费者旁路运行，原表零额外开销，且可动态 throttle、暂停、回滚（cut-over 前可随时放弃影子表）。代价是<strong>依赖 binlog row 格式</strong>且需额外部署 gh-ost 进程。</p>
 
@@ -2416,9 +2416,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2431,9 +2431,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>gh-ost 在线 DDL 最该用量化证据支撑的选型结论是：限速参数可控、迁移速率与耗时可预估、主从延迟与线上 RT 影响可控。</strong>
               </p>
@@ -2484,22 +2484,22 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
         <!-- ============================================================ -->
         <!-- C07.13 MySQL 隐式类型转换导致索引失效的原理与规避 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.13" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.13</div>
-            <div class="qa-question">MySQL 隐式类型转换如何导致索引失效？如何规避（含自增主键空洞）<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.13" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.13</div>
+            <div class="content-question">MySQL 隐式类型转换如何导致索引失效？如何规避（含自增主键空洞）<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>MySQL 类型转换规则与索引有序性关系</strong> 的理解：查询条件两侧类型不一致时，MySQL 按既定规则做<strong>隐式类型转换</strong>，一旦转换作用在<strong>索引列</strong>上（对列套了函数/CAST），索引有序性被破坏，优化器只能放弃索引走全表扫描（type=ALL）。这是当前高频的"看似该走索引却全表扫描"排查题，本质是<strong>比较前的类型归一化打断了 B+树的有序检索路径</strong>。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>显式转换时代</strong>：SQL 标准鼓励用 <code class="inline-code">CAST()</code> / <code class="inline-code">CONVERT()</code> 显式声明类型，转换点清晰但写法冗长、易遗漏。</p>
               <p>
                 <strong>隐式转换（MySQL 默认行为）</strong>：为易用性引入——操作符两侧类型不同，MySQL 按
@@ -2510,9 +2510,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>核心规则</strong>：字符串列与数字常量比较时，MySQL 把<strong>字符串列转换为数字</strong>（<code class="inline-code">CAST(col AS DECIMAL)</code>），而非把常量转字符串。后果：索引按字符串字典序组织，查询却变成"对每行 col 算数字后比较"，<strong>列被函数包裹 → 索引无法定位</strong>。</p>
               <table class="compare-table">
                 <thead>
@@ -2553,9 +2553,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>1. 参数类型严格匹配 DDL</strong>：varchar 列永远传字符串。MyBatis 中 <code class="inline-code">#{phone}</code> 若 Java 类型是 Long，会生成数字常量 → 触发失效，应把参数声明为 String。</p>
               <p><strong>2. 关联字段类型/字符集对齐</strong>：<code class="inline-code">a.user_id(int)</code> = <code class="inline-code">b.user_id(varchar)</code> 会导致一侧被 CAST → 索引失效 + 每行转换开销。建表统一类型，且字符集/排序规则也要一致，否则<strong>隐式 collation 转换</strong>同样废掉索引。</p>
               <p><strong>3. 厘清"主键空洞"的成因</strong>：隐式转换本身不制造主键空洞；空洞主要来自 <code class="inline-code">DELETE</code>、事务回滚、<code class="inline-code">REPLACE</code>、批量插入失败回滚。排查慢查询时要区分"索引失效"与"空洞导致页稀疏"是两类独立问题。</p>
@@ -2563,18 +2563,18 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：collation 不一致也会让索引失效吗？</strong> 会。两表 JOIN 字段类型相同但 collation 不同（如 <code class="inline-code">utf8mb4_general_ci</code> vs <code class="inline-code">utf8mb4_0900_ai_ci</code>），MySQL 对一侧做排序规则转换，等价于对列套函数 → 失效。统一建表规范是根治手段。</p>
               <p><strong>追问 2：为什么有时"该失效"却走了索引？</strong> 因为被转换的是常量而非列。<code class="inline-code">WHERE id = '1001'</code>（id 是 int）实际把 '1001' 转成 1001，列 id 未变。失效与否取决于"被转换的是列还是常量"。</p>
               <p><strong>追问 3：隐式转换还有什么副作用？</strong> 字符串转数字时 <code class="inline-code">'123abc'</code> 被转成 <code class="inline-code">123</code>（截断语义），<code class="inline-code">WHERE code = 123</code> 会误匹配 <code class="inline-code">'123abc'</code> 行，造成<strong>逻辑错误</strong>而不仅是性能问题。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2590,9 +2590,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全 · 隐式转换实战全景</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全 · 隐式转换实战全景</div>
+            <div class="content-layer-body">
               <p><strong>官方 Type Conversion Rules 全貌</strong>：除"字符串列 vs 数字常量→列转数字"这条最高频规则外，MySQL 还有几条常被忽略的归一化规则：① 两边都是字符串→按字符串逐字节比对，索引正常；② 两边都是数值→按数值比对；③ <strong>日期/时间列 vs 数字常量</strong>：如 <code class="inline-code">create_time = 20260907</code>（数字）会转成日期再做比较，字段本身不动→<strong>索引可用</strong>（但可读性差，推荐写 <code class="inline-code">'2026-09-07'</code>）；④ <strong>NULL 与任何值比较结果都是 NULL</strong>（含 <code class="inline-code">NULL = NULL</code> 为 NULL，判等须用 <code class="inline-code">IS NULL</code>）。总口诀：<strong>字符串向数字看齐、日期按字面归一，谁被转换谁失效</strong>。</p>
 
               <p><strong>IN 列表的隐式转换（高频漏点）</strong>：<code class="inline-code">WHERE uid IN (1001,1002)</code>（uid 为 varchar）中，IN 列表是数字常量，MySQL 会把 uid 列逐行转数字→<strong>索引失效、全表扫描</strong>。正确写法：<code class="inline-code">WHERE uid IN ('1001','1002')</code>，使列表与列同为字符串。这条与"数字列 vs 字符串常量走索引"不冲突——被转换的仍是<strong>列</strong>（列是 varchar、常量列表是数字），所以失效。</p>
@@ -2664,31 +2664,31 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
         <!-- ============================================================ -->
         <!-- C07.14 MyBatis 缓存体系、插件机制与 SQL 注入防护 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.14" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.14</div>
-            <div class="qa-question">MyBatis 一级/二级缓存、插件(Interceptor)机制与 #{} vs ${} 防 SQL 注入<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.14" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.14</div>
+            <div class="content-question">MyBatis 一级/二级缓存、插件(Interceptor)机制与 #{} vs ${} 防 SQL 注入<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>MyBatis 运行时机制的完整认知</strong>：缓存（减少 DB 访问）、插件（无侵入增强 SQL 执行链路）、SQL 拼接安全性（注入防护）。这是 Java 持久层的"基础分水岭"——很多开发者只用过 <code class="inline-code">#{}</code>，却说不清一级缓存为何在 Spring 里几乎不命中、二级缓存为何容易脏读、插件如何用责任链实现分页/脱敏/分库分表。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>iBatis → MyBatis</strong>：Apache iBatis 2010 年迁移到 Google Code 后更名 MyBatis，核心不变（SQL 与代码分离、手动映射），强化了注解与动态 SQL。</p>
               <p><strong>缓存演进</strong>：早期只有 SqlSession 一级缓存；后续加入 Mapper 级别二级缓存，并通过 <code class="inline-code">&lt;cache&gt;</code> / <code class="inline-code">@CacheNamespace</code> 支持 EHCache、Redis 等第三方实现。</p>
               <p><strong>插件机制</strong>：MyBatis 用<strong>责任链 + JDK 动态代理</strong>在四大组件（Executor/StatementHandler/ParameterHandler/ResultSetHandler）上开放拦截点，使分页、数据权限、加解密、审计等能力可无侵入注入。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>一级缓存（SqlSession 级别，默认开启）</strong>：同一个 SqlSession 内相同查询（相同 statementId + 参数 + 分页）命中缓存。执行 <code class="inline-code">update/commit/close/clearCache</code> 会清空。坑点：Spring 整合后 SqlSession 由 <code class="inline-code">SqlSessionTemplate</code> 管理，每次 Mapper 调用常是新 Session → <strong>一级缓存在 Web 层几乎不命中</strong>（同一事务/同一 SqlSession 内才复用）。</p>
               <p><strong>二级缓存（Mapper / namespace 级别）</strong>：需 <code class="inline-code">cacheEnabled=true</code> 且 Mapper 显式声明 <code class="inline-code">&lt;cache/&gt;</code>。跨 SqlSession 共享，但<strong>多表关联查询跨 namespace 更新不会互清 → 易脏读</strong>，因此生产多用 Redis 替代。</p>
               <p><strong>插件原理</strong>：实现 <code class="inline-code">Interceptor</code> + <code class="inline-code">@Intercepts</code> 声明拦截点，<code class="inline-code">Plugin.wrap(target, interceptor)</code> 对目标做动态代理，形成拦截链，<code class="inline-code">invocation.proceed()</code> 放行到下一环。</p>
@@ -2712,9 +2712,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>插件实战</strong>：① 分页插件（PageHelper/MP）拦截 <code class="inline-code">Executor.query</code> 重写 SQL 加 limit + count；② 数据脱敏/加解密拦截 <code class="inline-code">ParameterHandler</code> / <code class="inline-code">ResultSetHandler</code>；③ 分库分表拦截 <code class="inline-code">StatementHandler</code> 改写路由。下面是慢 SQL 审计插件骨架：</p>
               <div class="code-block">
                 <pre><code><span class="annotation">@Intercepts</span>({<span class="annotation">@Signature</span>(type = Executor.<span class="kw">class</span>, method = <span class="str">"query"</span>,
@@ -2737,9 +2737,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么 Spring 事务内一级缓存有时能命中？</strong> Spring 把 SqlSession 绑定到事务上下文，同一事务内多次 Mapper 调用复用同一 SqlSession，一级缓存生效；事务结束即释放。</p>
               <p>
                 <strong>追问 2：多个插件执行顺序如何？</strong>
@@ -2750,9 +2750,9 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2770,30 +2770,30 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
         <!-- ============================================================ -->
         <!-- C07.15 MyBatis-Plus vs JPA 对比及分页/乐观锁原理 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C07.15" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.15</div>
-            <div class="qa-question">MyBatis-Plus vs JPA 如何选型？分页插件与乐观锁(@Version)原理<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.15" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.15</div>
+            <div class="content-question">MyBatis-Plus vs JPA 如何选型？分页插件与乐观锁(@Version)原理<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 <strong>ORM 选型判断力</strong>：MyBatis 系（手写 SQL、灵活、适合复杂多表与报表）与 JPA/Hibernate（对象化、DDD 友好、自动 CRUD、但复杂查询易失控）的取舍，以及两者工程化增强（MP 通用 CRUD/分页/乐观锁、JPA 脏检查/二级缓存）的底层原理。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>JPA 谱系</strong>：EJB EntityBean（笨重）→ JPA 规范（Hibernate 实现）→ Spring Data JPA（方法名派生查询）。强调"对象即数据库"，屏蔽 SQL。</p>
               <p><strong>MyBatis 谱系</strong>：iBatis → MyBatis（SQL 与代码分离）→ MyBatis-Plus（在 MyBatis 上叠加通用 Mapper/Service、条件构造器、分页/乐观锁/逻辑删除插件），保留手写 SQL 灵活性的同时补齐"CRUD 样板"短板。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2846,27 +2846,27 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>分页实现</strong>：MP 配置 <code class="inline-code">MybatisPlusInterceptor</code> + <code class="inline-code">PaginationInnerInterceptor</code>，调用 <code class="inline-code">page()</code> 时自动追加 count 与 limit；JPA 用 <code class="inline-code">Pageable</code> / <code class="inline-code">PageRequest</code>。注意 MP 分页插件与 PageHelper 不能并存。</p>
               <p><strong>逻辑删除</strong>：MP <code class="inline-code">@TableLogic</code> 让查询自动追加 <code class="inline-code">WHERE deleted=0</code>，更新转软删；JPA 需 @SQLDelete + @Where 实现。</p>
               <p><strong>选型建议</strong>：互联网高并发、复杂多表 join、分析报表 → MyBatis/MP；企业内部系统、CRUD 密集、强 DDD 模型 → JPA；常见混合架构：JPA 管主数据 + MyBatis 做报表查询。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：JPA 的 N+1 如何产生与解决？</strong> 延迟加载关联集合时，遍历 N 个父对象各发 1 条子查询 → N+1。解法：<code class="inline-code">JOIN FETCH</code> / <code class="inline-code">@EntityGraph</code> 一次性抓取，或 <code class="inline-code">@BatchSize</code> 批量查询。</p>
               <p><strong>追问 2：MP Wrapper 在大查询下可读性如何？</strong> 复杂条件用 <code class="inline-code">QueryWrapper</code> 链式拼接会很长且难调试，可退回自定义 XML SQL 兼顾灵活与可读。</p>
               <p><strong>追问 3：乐观锁在批量更新为何易失效？</strong> 批量 UPDATE 通常一次性改多行，version 条件难以逐行匹配，应改为逐条带 version 更新或改用业务幂等键。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2881,26 +2881,26 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
           </div>
         </div>
 
-        <div class="qa-card" id="C07.16" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C07.16</div>
-            <div class="qa-question">事务超时与长事务止血：从锁等到回滚的值班路径？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C07.16" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C07.16</div>
+            <div class="content-question">事务超时与长事务止血：从锁等到回滚的值班路径？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>长事务拖垮并发：锁等待、复制延迟、Undo 膨胀。值班先止血再追代码，禁止一上来改业务逻辑。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">原理映射</div>
+            <div class="content-layer-body">
               <p>InnoDB 行锁持有到事务结束；长事务拉长锁与 MVCC 历史链。应用层事务边界应短、纯本地；远程调用不得包在 DB 事务里。超时要同时看锁等待超时与业务事务超时。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">落地排查</div>
+            <div class="content-layer-body">
               <p>值班顺序：</p>
               <ol>
                 <li><code>information_schema.innodb_trx</code> / 进程列表找长事务与持锁会话。</li>
@@ -2911,15 +2911,15 @@ ALTER TABLE order_detail ADD COLUMN remark VARCHAR(255) DEFAULT '', ALGORITHM=IN
               </ol>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">参数与开关</div>
+            <div class="content-layer-body">
               <p>信号：锁等待、history list length、复制延迟、Rows_examined 飙升。参数：<code>innodb_lock_wait_timeout</code>、应用事务超时、批大小、是否允许 kill。变更单写清：杀谁、影响面、预计回滚时长。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">失败模式与回滚</div>
+            <div class="content-layer-body">
               <p>失败模式：盲目 kill 导致更长回滚；在长事务里做远程调用；用更大超时「拖过高峰」。回滚点：恢复旧超时配置；业务用补偿而非无限拉长事务。</p>
               <p>
                 长事务常表现为锁等待雪崩：先看

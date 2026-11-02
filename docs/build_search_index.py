@@ -7,7 +7,7 @@ Writes <project-root>/docs/search-index.json.
   python3 docs/build_search_index.py --check  # compare hash + records, exit 1 on drift
 
 Indexed:
-  - interview.html and java-architect-interview/*.html that contain .qa-card
+  - interview.html and java-architect-interview/*.html that contain .content-card
     (chapter index is a link catalog and is skipped)
   - the three satellite sites named in the search plan
 
@@ -178,13 +178,13 @@ def parse_html(raw):
 def card_records(tree, rel, site):
     cards = find_all(
         tree,
-        lambda n: n["tag"] == "div" and has_class(n, "qa-card") and not under_skip(n),
+        lambda n: n["tag"] == "div" and has_class(n, "content-card") and not under_skip(n),
     )
     records = []
     for card in cards:
         questions = find_all(
             card,
-            lambda n: has_class(n, "qa-question") or has_class(n, "epq-question"),
+            lambda n: has_class(n, "content-question") or has_class(n, "content-question"),
         )
         title = ""
         if questions:

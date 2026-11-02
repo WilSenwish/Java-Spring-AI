@@ -71,8 +71,8 @@ const MEASURE = `
     }
     return parts.join('>');
   }
-  var CARDCLS = ['epq-card','qa-card','map-card','chapter-card','eng-card','kpit-card',
-                 'group-lead-block','epq-section','lead-block','card','map-col','chapter-lead'];
+  var CARDCLS = ['content-card','content-card','map-card','chapter-card','eng-card','kpit-card',
+                 'group-lead-block','content-layer','lead-block','card','map-col','chapter-lead'];
   function cardOf(el) {
     var n = el.parentElement;
     while (n && n !== document.body) {

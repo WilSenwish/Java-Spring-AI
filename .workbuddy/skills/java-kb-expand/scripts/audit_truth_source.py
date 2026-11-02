@@ -223,7 +223,7 @@ def main():
                 continue
             pat = r["count"][kind] if kind else r["count_re"]
             cnt = len(re.findall(pat, read(tgt)))
-            put(pos_key, cnt, "%s 内 %s" % (href, (kind or "qa-card")))
+            put(pos_key, cnt, "%s 内 %s" % (href, (kind or "content-card")))
         return errs
 
     def r_block_count_same_file(r):
@@ -255,7 +255,7 @@ def main():
                 errs.append("host_page_cards：文件不存在 %s" % it["file"])
                 continue
             put(it["key"], len(re.findall(it["count_re"], read(p))),
-                "%s 的 qa-card 数" % it["file"].split("/")[-1])
+                "%s 的 content-card 数" % it["file"].split("/")[-1])
         return errs
 
     def r_sum(r):

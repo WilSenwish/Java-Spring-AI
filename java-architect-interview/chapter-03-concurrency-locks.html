@@ -127,22 +127,22 @@
         <!-- ============================================================ -->
         <!-- C03.01 volatile 如何保证可见性？为何不能保证原子性？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.01" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.01</div>
-            <div class="qa-question">volatile 如何保证可见性？为何不能保证原子性？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C03.01" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.01</div>
+            <div class="content-question">volatile 如何保证可见性？为何不能保证原子性？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 JMM（Java Memory Model）中对 volatile 变量的<strong>两个语义</strong>——保证可见性、禁止指令重排，以及它与"原子性"之间的<strong>能力边界</strong>。volatile 是 Java 提供的最轻量级同步机制，但它只能保证"单次读/写"的可见性与有序性，无法保证"读-改-写"复合操作的原子性。理解这条边界，是正确使用 Atomic 类、synchronized、AQS 的认知地基。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>早期 Java 内存模型（JDK 1.4 之前）</strong>：volatile 语义较弱，只在 32 位读写上保证可见性，对 64 位 long/double 的读写甚至不保证原子性（允许拆成两次 32 位操作）。这导致跨线程读取 long 可能读到"半值"，是早期多线程程序的隐患。</p>
               <p><strong>JSR-133 语义增强（JDK 5，2004）</strong>：Doug Lea 等人主导重写 JMM，明确 volatile 的 happens-before 语义——volatile 写 happens-before 后续的 volatile 读。这一改动让 volatile 成为真正可用的轻量同步原语，DCL（双重检查锁定）单例才得以正确工作。</p>
               <p>
@@ -154,9 +154,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>可见性的底层机制：内存屏障 + MESI 协议</strong>。JVM 在 volatile 写之后插入 <code class="inline-code">StoreLoad</code> 屏障，在 volatile 读之前插入 <code class="inline-code">LoadLoad</code>/<code class="inline-code">LoadStore</code> 屏障。这些屏障在 x86 上对应 <code class="inline-code">lock</code> 前缀指令或 <code class="inline-code">mfence</code>，强制 CPU 将 Store Buffer 刷新到 L1 Cache，并通过 <strong>MESI 缓存一致性协议</strong>让其他 CPU 核上持有该缓存行的状态从 M（Modified）/S（Shared）降级为 I（Invalid），下次读取时强制从主内存或拥有最新值的缓存行重新加载。</p>
 
               <div class="mermaid-container">
@@ -246,9 +246,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>volatile 的正确使用场景</strong>：</p>
               <ul>
                 <li><strong>状态标志位</strong>：如 <code class="inline-code">volatile boolean running = true</code>，一个线程写、其他线程读，用于优雅停机。</li>
@@ -285,9 +285,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：StoreLoad 屏障为什么是四类屏障中开销最大的？</strong></p>
               <p>因为 StoreLoad 屏障需要<strong>等待所有 Store Buffer 刷新完成</strong>，同时保证后续的 Load 不会读到屏障之前的旧值。在 x86 上它对应 <code class="inline-code">lock addl $0,(%rsp)</code> 或 <code class="inline-code">mfence</code>，会触发 Store Buffer 排空 + 全局可见性保证，开销远大于只阻止重排的 StoreStore/LoadLoad。这也是 volatile 写比 volatile 读昂贵得多的原因。</p>
 
@@ -299,9 +299,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -317,9 +317,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>JMM 定义的 happens-before 完整规则共 8 条，要求能完整列举并解释含义：</p>
               <ol>
                 <li><strong>程序顺序规则</strong>：单线程内，前面的操作 happens-before 后面的操作（as-if-serial 语义，感觉上顺序执行）。</li>
@@ -342,9 +342,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：锁竞争指标（JFR/阻塞采样）、死锁检测演练。表达提纲：热点栈→锁粒度/数据结构→验证吞吐与尾延迟。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -357,22 +357,22 @@ sequenceDiagram
         <!-- ============================================================ -->
         <!-- C03.02 synchronized 的锁升级过程是怎样的？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.02" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.02</div>
-            <div class="qa-question">synchronized 的锁升级过程是怎样的？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C03.02" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.02</div>
+            <div class="content-question">synchronized 的锁升级过程是怎样的？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 synchronized 在 JVM 层"自适应优化"的理解——从无竞争到高竞争，JVM 如何在<strong>轻量级锁 → 重量级锁</strong>两级之间升级（JDK 15 起偏向锁已废弃，JEP 374，锁状态由 4 种简化为 3 种，现升级路径为：无锁 → 轻量级锁 → 重量级锁），以在"锁开销"与"竞争处理"间取得动态平衡。本质是 HotSpot 团队对"绝大多数锁在整个生命周期内不会出现竞争"这一经验的工程化利用。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>JDK 1.0~1.3：重量级锁独占</strong>。synchronized 直接映射到 OS 的互斥量（mutex），每次加锁解锁都涉及用户态/内核态切换，开销巨大。这也是早期 Java"慢"的代名词之一，Doug Lea 的 util.concurrent 库正是为了绕开它而生。</p>
               <p><strong>JDK 6（2006）：锁优化大爆发</strong>。HotSpot 引入偏向锁、轻量级锁、自旋锁、锁消除、锁粗化五项优化，让 synchronized 在无竞争/低竞争场景下性能逼近 ReentrantLock。这是"synchronized 性能不再差"的认知转折点。</p>
               <p><strong>JDK 15（2020）：偏向锁废弃并默认关闭（JEP 374）</strong>——BiasedLockingStartupDelay 默认值从 4000ms 改为 0ms（等效禁用），<code class="inline-code">-XX:+UseBiasedLocking</code> 标记废弃；JDK 18 起移除启动延迟参数。Oracle 发现偏向锁维护成本高（占 HotSpot 同步子系统的 5%~10% 代码）、收益在现代 CAS 指令下递减，且与 Virtual Threads 等新特性冲突，正式废弃并默认关闭。<strong>synchronized 回归到"轻量级锁 + 重量级锁"两级</strong>。</p>
@@ -380,9 +380,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Mark Word：锁状态的载体</strong>。每个 Java 对象的对象头（Header）中有一个 64 位的 Mark Word，不同锁状态复用这 64 位存储不同信息：</p>
               <table class="compare-table">
                 <thead>
@@ -470,9 +470,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>高级开发 · synchronized 使用要点</strong>：</p>
               <ul>
                 <li><strong>减小锁粒度</strong>：synchronized(this) 会让整个对象成为锁，优先用 synchronized 锁独立的小对象或独立方法，避免无关方法相互阻塞。</li>
@@ -491,9 +491,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：偏向锁为什么在 JDK15 被废弃？</strong></p>
               <p>核心原因是<strong>收益递减 + 维护成本高</strong>。偏向锁在"单线程长期持有锁"场景收益最大，但现代应用多为多线程并发，偏向锁的"撤销"操作（safepoint 时批量撤销）反而成为开销。Oracle 数据显示，维护偏向锁代码占同步子系统 5%~10%，但平均性能收益 &lt;1%。同时偏向锁与 Virtual Threads 存在语义冲突（载体线程切换时偏向锁需撤销），综合权衡后废弃。</p>
 
@@ -505,9 +505,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -520,9 +520,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：锁竞争指标（JFR/阻塞采样）、死锁检测演练。表达提纲：热点栈→锁粒度/数据结构→验证吞吐与尾延迟。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -535,15 +535,15 @@ graph TD
         <!-- ============================================================ -->
         <!-- C03.03 AQS 的 CLH 队列与 CAS 如何实现同步？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.03" data-difficulty="expert" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.03</div>
-            <div class="qa-question">AQS 的 CLH 队列与 CAS 如何实现同步？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.03" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.03</div>
+            <div class="content-question">AQS 的 CLH 队列与 CAS 如何实现同步？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 AQS（AbstractQueuedSynchronizer）是 Doug Lea 设计的
                 <strong>JUC 同步器框架</strong>，ReentrantLock/Semaphore/CountDownLatch/ReentrantReadWriteLock 全部基于它构建。这道题考察对"state + CLH 变体队列 + CAS + park/unpark"四要素如何协作实现阻塞同步的深度理解，是 Java 并发编程的"内功心法"。
@@ -551,9 +551,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>前 AQS 时代（JDK 1.4 之前）</strong>：Java 只有 synchronized（OS 互斥量）和 wait/notify，无法实现公平锁、可中断锁、条件变量等高级语义。开发者只能手写各种蹩脚的同步工具。</p>
               <p><strong>Doug Lea 的 util.concurrent（2003）</strong>：Doug Lea 在第三方库中设计了 AQS 的雏形，用 CAS + 等待队列实现了一套通用同步框架。这套设计后被 JSR-166 采纳，于 <strong>JDK 5（2004）</strong>正式进入 <code class="inline-code">java.util.concurrent</code>。</p>
               <p><strong>JDK 6~21 持续优化</strong>：AQS 内部从原始 CLH 改为 CLH 变体（引入自旋入队、nextWaiter、condition 队列）；JDK 11 引入 VarHandle 替代部分 Unsafe 调用；JDK 19+ 配合 Virtual Threads 探索 park 的虚拟线程感知优化。</p>
@@ -561,9 +561,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>AQS 的四大基石</strong>：</p>
               <ul>
                 <li><strong>state（volatile int）</strong>：同步状态。ReentrantLock 用它表示锁被重入几次，Semaphore 用它表示剩余许可数，CountDownLatch 用它表示还剩多少个计数。<strong>volatile 保证了 state 在多线程间的可见性，确保一个线程的更新对其他线程立即可见</strong>。</li>
@@ -640,9 +640,9 @@ graph LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>架构师 · 基于 AQS 实现自定义同步器</strong>。当 JDK 内置的同步器不满足需求（如实现"同时允许 N 个线程写 + M 个线程读"的混合限流），可继承 AQS：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 自定义互斥锁（演示 AQS 模板方法）</span>
@@ -680,9 +680,9 @@ graph LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：AQS 用的是 CLH 还是 MCS 队列？</strong></p>
               <p>严格说是 <strong>CLH 变体</strong>。原始 CLH 单向、基于前驱状态自旋；MCS 是"每个节点自旋在自己的状态上，前驱释放时改后继状态"。AQS 借鉴了 CLH 的"看前驱"思想，但改为<strong>双向链表 + park 阻塞</strong>（而非自旋），并增加 nextWaiter、condition 队列等扩展。Doug Lea 在注释中明确称其为 "CLH lock queue 的变体"。</p>
 
@@ -694,9 +694,9 @@ graph LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -709,9 +709,9 @@ graph LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>AQS 之上构建的四大同步器（Semaphore / CountDownLatch / CyclicBarrier / Phaser）是并发协作的常用工具，常考对比：</p>
               <ul>
                 <li><strong>Semaphore（信号量）</strong>：令牌限流。构造时指定 permits 数量，<code class="inline-code">acquire()</code> 获取令牌、<code class="inline-code">release()</code> 归还；release 必须放在 finally 块中防止令牌泄漏；支持公平/非公平模式。<strong>共享模式下多个线程可以同时获取许可</strong>，常用于连接池限流、并发任务数控制等场景。</li>
@@ -772,22 +772,22 @@ graph LR
         <!-- ============================================================ -->
         <!-- C03.04 CAS 与 ABA 问题如何解决？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.04" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.04</div>
-            <div class="qa-question">CAS 与 ABA 问题如何解决？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.04" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.04</div>
+            <div class="content-question">CAS 与 ABA 问题如何解决？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>CAS（Compare-And-Swap）是无锁编程的核心原语，所有 JUC 同步器、Atomic 类都建立在它之上。这道题考察 CAS 的<strong>工作原理、三大固有局限（ABA、自旋开销、单变量边界）</strong>，以及针对 ABA 的解决方案。理解 CAS 是理解 volatile、Atomic、LongAdder、AQS 的共同基础。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>硬件原语（1980s）</strong>：CAS 最早是 IBM 370 架构的 Compare-and-Swap 指令，后 x86 提供 <code class="inline-code">CMPXCHG</code>（多核需 LOCK 前缀保证原子性），ARM 提供 LDREX/STREX 对（后来 LL/SC 模式）。</p>
               <p><strong>Java 1.5 Unsafe（2004）</strong>：通过 <code class="inline-code">sun.misc.Unsafe.compareAndSwapXxx</code> 暴露 CAS 能力，但 Unsafe 是内部 API，非公开。AtomicInteger 等原子类封装了它。</p>
               <p>
@@ -798,9 +798,9 @@ graph LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>CAS 的本质</strong>：三参数操作 <code class="inline-code">CAS(V, expected, new)</code>——若内存值 V == expected，则将 V 更新为 new，返回 true；否则返回 false。整个操作由 CPU 单条指令原子完成（x86 上是 <code class="inline-code">lock cmpxchg</code>）。</p>
 
               <div class="code-block">
@@ -884,9 +884,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>无锁队列的经典实现</strong>：Michael-Scott 队列（ConcurrentLinkedQueue 的算法基础）用 CAS 实现无锁入队/出队，但出队时存在 ABA 风险（节点被回收后复用）。Java 中通过 GC 避免了节点复用的 ABA（节点不会被"重用为同一个内存地址"），所以 ConcurrentLinkedQueue 不需要版本号——这是 GC 语言实现无锁结构的天然优势。</p>
               <p><strong>实际项目中的 CAS 应用</strong>：</p>
               <ul>
@@ -902,9 +902,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：CAS 自旋在极高并发下会怎样？</strong></p>
               <p>吞吐量不升反降——大量线程同时 CAS 同一个变量，CACHE 行在多核间反复失效（MESI 频繁 invalidate），形成<strong>缓存行乒乓</strong>。这是 AtomicLong 在 64 核以上高并发计数时性能急剧下降的根因。LongAdder 通过 Cell[] 分散热点解决此问题（见 C03.10）。</p>
 
@@ -916,9 +916,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -935,22 +935,22 @@ sequenceDiagram
         <!-- ============================================================ -->
         <!-- C03.05 ReentrantLock 与 synchronized 如何选择？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.05" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.05</div>
-            <div class="qa-question">ReentrantLock 与 synchronized 如何选择？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.05" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.05</div>
+            <div class="content-question">ReentrantLock 与 synchronized 如何选择？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 Java 锁的<strong>演进脉络与选型决策</strong>。synchronized 是 JVM 内置锁，ReentrantLock 是 JDK 层基于 AQS 实现的显式锁，StampedLock 是 JDK8 引入的乐观读锁。三者各有适用场景，选型背后是"功能丰富度 vs 使用简洁性 vs 性能特性"的权衡。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>synchronized（JDK 1.0）</strong>：内置锁，语法简洁但功能单一（不可中断、不可超时、单条件变量）。早期因重量级锁开销大而被诟病。</p>
               <p><strong>ReentrantLock（JDK 5，2004）</strong>：Doug Lea 设计，基于 AQS，提供可中断、超时、公平锁、多 Condition 等高级特性。在 JDK6 synchronized 优化前，它是高性能并发场景的首选。</p>
               <p><strong>synchronized 性能反超（JDK 6，2006）</strong>：偏向锁/轻量级锁/锁消除等优化让 synchronized 在无竞争场景逼近 ReentrantLock，且 JVM 持续深度优化（JIT 可消除 synchronized 但无法消除 ReentrantLock 的 unlock 调用）。</p>
@@ -959,9 +959,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>三者核心特性对比</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -1056,9 +1056,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>选型决策树</strong>：</p>
               <ul>
                 <li><strong>默认选 synchronized</strong>：语法简洁、自动释放锁、JIT 可优化。80% 的加锁场景应选它。</li>
@@ -1074,9 +1074,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么 JDK6 后 synchronized 性能能反超 ReentrantLock？</strong></p>
               <p>因为 synchronized 是<strong>JVM 内置</strong>，HotSpot 可做深度优化：① 锁消除（逃逸分析后消除无竞争锁）；② 锁粗化（合并相邻加锁）；③ 轻量级锁自适应升级（偏向锁 JDK 15 已废弃 JEP 374，现仅轻量级锁/重量级锁两级）；④ JIT 可内联 monitorenter/exit 并做激进优化。而 ReentrantLock 的 lock/unlock 是普通 Java 方法调用，JIT 无法消除，每次都有方法调用开销。无竞争场景下 synchronized 的"零开销"优势明显。</p>
 
@@ -1088,9 +1088,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1103,9 +1103,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展：虚拟线程时代的临界区再平衡</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展：虚拟线程时代的临界区再平衡</div>
+            <div class="content-layer-body">
               <p><strong>心智切换</strong>：平台线程时代「线程数 ≈ 并发度」；虚拟线程时代「载体线程数 ≈ CPU 并行度」，临界区过长会<strong>钉住载体</strong>（JDK 21–23 的 synchronized；任何版本的 native/JNI），把百万虚拟线程吞吐打回「核数级」。</p>
               <p><strong>再平衡原则</strong>：① 临界区只保护共享可变状态，IO/远程调用移出锁外；② JDK 21–23 偏好短临界区 + <code class="inline-code">ReentrantLock</code>；JDK 24+（JEP 491）synchronized 主要 pinning 源消除，选型回归语义；③ 仍用 JFR <code class="inline-code">jdk.VirtualThreadPinned</code> 验收（工具版本线见 <a href="chapter-04-threadpool-virtual-threads.html#C04.09">C04.09</a>）。</p>
               <p><strong>容量公式（量化）</strong>：设载体并行度 <code class="inline-code">C ≈ CPU</code>，单请求在临界区内平均占用 <code class="inline-code">t_crit</code>，临界区外阻塞/计算 <code class="inline-code">t_out</code>。粗估：</p>
@@ -1125,15 +1125,15 @@ sequenceDiagram
         <!-- ============================================================ -->
         <!-- C03.06 ConcurrentHashMap 的并发安全如何保证？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.06" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.06</div>
-            <div class="qa-question">ConcurrentHashMap 的并发安全如何保证？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.06" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.06</div>
+            <div class="content-question">ConcurrentHashMap 的并发安全如何保证？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 ConcurrentHashMap 是 Java 并发工程的经典案例，它的演进浓缩了"全表锁 → 分段锁 → CAS + 单桶锁"的锁优化思想。这道题考察
                 <strong>JDK7 分段锁到 JDK8 CAS+synchronized 的演进动机</strong>，以及高并发哈希表的设计权衡——在"并发度"与"实现复杂度"间寻找最优点。
@@ -1141,9 +1141,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>HashMap（非线程安全）</strong>：多线程 put 可能触发扩容，JDK7 头插法会形成链表环导致 CPU 100%（get 死循环），JDK8 改尾插法避免环但仍会丢数据。</p>
               <p><strong>Hashtable（JDK 1.0，全表锁）</strong>：每个方法 synchronized，并发度 1，性能极差，已淘汰。</p>
               <p><strong>Collections.synchronizedMap（包装层全表锁）</strong>：本质同 Hashtable，只是用装饰器包装 HashMap。</p>
@@ -1177,9 +1177,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>JDK8 ConcurrentHashMap 的核心机制</strong>：</p>
               <ul>
                 <li><strong>Node 数组 + 链表/红黑树</strong>：与 HashMap 结构一致，但 Node 的 val 和 next 是 volatile，保证读可见性。</li>
@@ -1222,9 +1222,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>使用要点</strong>：</p>
               <ul>
                 <li><strong>禁止 null key/value</strong>：ConcurrentHashMap 不允许 null，因为无法区分"键不存在"和"值为 null"（HashMap 在单线程可用 containsKey 判断，并发下有竞态）。用 <code class="inline-code">containsKey</code> 或 <code class="inline-code">getOrDefault</code> 替代。</li>
@@ -1242,9 +1242,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：JDK8 为什么用 synchronized 而不是 ReentrantLock 锁桶？</strong></p>
               <p>① synchronized 在 JDK6 优化后无竞争场景开销极小（轻量级锁；偏向锁 JDK 15 已废弃 JEP 374），而 ReentrantLock 即使无竞争也有方法调用与 AQS 入队开销；② synchronized 是 JVM 内置，JIT 可做锁消除/粗化等深度优化；③ ReentrantLock 需要额外内存（AQS 队列），每个桶一个 ReentrantLock 内存开销大；④ synchronized 自动释放，不会因异常泄漏锁。综合权衡，单桶锁 synchronized 是更优选择。</p>
 
@@ -1259,9 +1259,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1281,22 +1281,22 @@ graph TB
         <!-- ============================================================ -->
         <!-- C03.07 Condition 条件变量与 LockSupport 如何实现等待/通知？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.07" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.07</div>
-            <div class="qa-question">Condition 条件变量与 LockSupport 如何实现等待/通知？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.07" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.07</div>
+            <div class="content-question">Condition 条件变量与 LockSupport 如何实现等待/通知？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 Java <strong>等待/通知机制的三层抽象</strong>：Object.wait/notify（内置 monitor）、Condition.await/signal（AQS 层）、LockSupport.park/unpark（底层原语）。理解三者的关系与各自的设计动机，是设计阻塞队列、生产消费模型、限流器等并发组件的基础。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Object.wait/notify（JDK 1.0）</strong>：与 synchronized 绑定，每个对象有一个 WaitSet。局限：① 必须在 synchronized 块内调用；② 只有一个等待队列，无法分类唤醒；③ notify 随机唤醒，无法指定唤醒哪类等待者；④ wait 无法做到"先 notify 后 wait 不阻塞"。</p>
               <p><strong>LockSupport.park/unpark（JDK 5，2004）</strong>：Doug Lea 引入的线程级阻塞原语，每个线程一个 permit（许可）。unpark 先于 park 调用时，park 不会阻塞（permit 已被"存起来"）。这是对 wait/notify 时序缺陷的根本修复。</p>
               <p><strong>Condition.await/signal（JDK 5）</strong>：基于 AQS 实现，一个 Lock 可创建多个 Condition，每个 Condition 有独立等待队列，可精准唤醒某类等待者。是阻塞队列、生产消费模型的标准实现工具。</p>
@@ -1304,9 +1304,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>三层关系</strong>：Condition.await 会借助 LockSupport.park 阻塞，HotSpot Object.wait 也进入 ObjectMonitor 等待机制。LockSupport 是常用的线程阻塞原语，但不同等待机制的持锁、队列和唤醒契约不同，不能混成一个模型。</p>
 
               <div class="mermaid-container">
@@ -1405,9 +1405,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>架构师 · 何时用 Condition vs LockSupport</strong>：</p>
               <ul>
                 <li><strong>Condition</strong>：需要"持锁 + 条件等待"的场景（阻塞队列、生产消费、限流），是最常用的等待/通知抽象。</li>
@@ -1417,9 +1417,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么 await 必须用 while 循环检查条件，不能用 if？</strong></p>
               <p>因为存在<strong>虚假唤醒</strong>（spurious wakeup）——线程可能在没有 signal 的情况下从 park 返回（OS 层的允许行为）。此外，被 signal 唤醒到重新拿到锁之间，条件可能已被其他线程改变。用 while 在拿到锁后重新检查条件，确保条件真正满足才继续。用 if 会导致条件不满足时错误地继续执行。</p>
 
@@ -1431,9 +1431,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1450,22 +1450,22 @@ graph TD
         <!-- ============================================================ -->
         <!-- C03.08 Java 并发集合有哪些？各自的使用场景？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.08" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.08</div>
-            <div class="qa-question">Java 并发集合有哪些？各自的使用场景？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.08" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.08</div>
+            <div class="content-question">Java 并发集合有哪些？各自的使用场景？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察 JUC 并发集合的<strong>演进脉络与选型决策</strong>。从早期的 Collections.synchronizedXxx（全表锁）到 CopyOnWrite、ConcurrentLinked、BlockingQueue 家族，再到 ConcurrentSkipListMap，每种集合都针对特定并发场景做了优化。理解它们的实现机制才能在"读多写少/写多读少/阻塞消费/排序"等场景正确选型。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>第一代：Collections.synchronizedXxx（JDK 1.2）</strong>：装饰器模式包装普通集合，每个方法 synchronized 全表锁。并发度 1，性能差，迭代需手动加锁。</p>
               <p><strong>第二代：ConcurrentHashMap / CopyOnWriteArrayList（JDK 5）</strong>：Doug Lea 的 util.concurrent 进入 JDK。ConcurrentHashMap 用分段锁，CopyOnWriteArrayList 用写时复制。Vector/Hashtable 正式退场。</p>
               <p><strong>第三代：ConcurrentLinkedQueue / ConcurrentSkipListMap（JDK 6~7）</strong>：无锁并发队列（Michael-Scott 算法）、并发跳表（替代红黑树的并发实现）。</p>
@@ -1473,9 +1473,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>并发集合全景对比</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -1560,9 +1560,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>选型决策</strong>：</p>
               <ul>
                 <li><strong>Map</strong>：默认 ConcurrentHashMap。需要排序用 ConcurrentSkipListMap。</li>
@@ -1576,9 +1576,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：CopyOnWriteArrayList 为何不适合写多场景？</strong></p>
               <p>每次写都全量复制数组，O(n) 开销且产生大量垃圾对象，频繁 GC。此外写时其他写线程串行（ReentrantLock），吞吐低。写多场景应改用 Collections.synchronizedList 或 ConcurrentHashMap（以 index 为 key 时）。</p>
 
@@ -1590,9 +1590,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1609,22 +1609,22 @@ graph TD
         <!-- ============================================================ -->
         <!-- C03.09 ForkJoinPool 的分治与工作窃取算法？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.09" data-difficulty="expert" data-priority="p2">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.09</div>
-            <div class="qa-question">ForkJoinPool 的分治与工作窃取算法？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p2">P2</span></div>
+        <div class="content-card" id="C03.09" data-difficulty="expert" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.09</div>
+            <div class="content-question">ForkJoinPool 的分治与工作窃取算法？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p2">P2</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>ForkJoinPool 是 Java 并行计算的重要内核。<strong>parallelStream 默认走 commonPool，CompletableFuture 在无自定义 executor 且 commonPool 并行度满足条件时也使用 commonPool；虚拟线程调度器则使用专用的 ForkJoinPool 载体池。</strong>这道题考察"外部提交任务、分治子任务、共享池"三个边界的区分，以及"分治任务模型 + 工作窃取（work-stealing）"核心；理解这些边界才能避免并行流中的阻塞任务影响全局。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>ThreadPoolExecutor（JDK 5）</strong>：传统线程池，所有线程共享一个工作队列，消费者线程从队列头部取任务。问题：高并发下队列成为竞争热点，且任务间无法"自底向上"地分解。</p>
               <p><strong>ForkJoinPool（JDK 7，2011）</strong>：Doug Lea 设计，每个线程有独立的双端队列（Deque），自己产生的子任务入自己队列的头部（LIFO），空闲时从其他线程队列尾部窃取（FIFO）。工作窃取大幅减少队列竞争。</p>
               <p><strong>parallelStream（JDK 8，2014）</strong>：基于 ForkJoinPool.commonPool 实现并行流，默认并行度 = CPU 核数 - 1。让普通开发者一行 <code class="inline-code">.parallel()</code> 就能用上分治并行。</p>
@@ -1632,9 +1632,9 @@ graph TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>分治任务模型</strong>：ForkJoinTask 有两个核心子类——RecursiveTask（有返回值）和 RecursiveAction（无返回值）。任务通过 fork() 拆分子任务异步执行，join() 等待结果。典型用法：递归把大任务拆成两个小任务，直到小于阈值直接计算。</p>
 
               <div class="mermaid-container">
@@ -1705,9 +1705,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>ForkJoinPool vs ThreadPoolExecutor 的差异</strong>：</p>
               <table class="compare-table">
                 <thead>
@@ -1748,9 +1748,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么窃取从尾部而非头部？</strong></p>
               <p>Worker 处理自己的任务从头部取（LIFO），若窃取也从头部，会与 Worker 自己的取操作竞争同一端。从尾部窃取（FIFO），窃取者与被窃取者操作 Deque 的不同端，竞争最小。且尾部是"最早入队的老任务"，通常是较大的子任务，窃取它能更平衡负载。</p>
 
@@ -1765,9 +1765,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1784,22 +1784,22 @@ graph TB
         <!-- ============================================================ -->
         <!-- C03.10 如何实现一个线程安全的计数器？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.10" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.10</div>
-            <div class="qa-question">如何实现一个线程安全的计数器？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.10" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.10</div>
+            <div class="content-question">如何实现一个线程安全的计数器？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题是 Java 并发计数器的<strong>性能演进史浓缩</strong>——从 synchronized 到 AtomicInteger（CAS）再到 LongAdder（分段 CAS），每一步演进都对应一个并发量级的突破。理解这条演进线，就理解了"如何在高并发下用最小开销完成计数"，也理解了 ConcurrentHashMap 的 CounterCell、ThreadLocalRandom 的 Probe 等相似设计。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>第一代：synchronized + long（JDK 1.0）</strong>：最朴素的计数器，每次 ++ 都加锁。低并发可用，高并发下线程串行化，吞吐急剧下降。</p>
               <p><strong>第二代：AtomicLong / AtomicInteger（JDK 5，CAS）</strong>：用 volatile + CAS 自旋替代锁，无竞争时几乎零开销。但在<strong>高并发（32+ 线程）</strong>下，所有线程 CAS 同一个变量，缓存行乒乓导致性能不升反降。</p>
               <p><strong>第三代：LongAdder（JDK 8，分段 CAS）</strong>：Doug Lea 设计，借鉴 Striped64 思想，用 Cell[] 数组分散热点。高并发下不同线程 CAS 不同的 Cell，最后 sum 累加。在 64 核高并发下吞吐比 AtomicLong 高一个数量级。</p>
@@ -1820,9 +1820,9 @@ graph LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>三种实现对比</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. synchronized 计数器（重量级）</span>
@@ -1877,9 +1877,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>选型决策</strong>：</p>
               <ul>
                 <li><strong>低并发（&lt;10 线程）</strong>：AtomicLong，简单且 sum 精确。</li>
@@ -1895,9 +1895,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：LongAdder 的 sum() 为什么不精确？</strong></p>
               <p>sum() 遍历 Cell[] 累加时<strong>不加锁也不禁写</strong>，遍历过程中某个 Cell 可能被修改，导致 sum 反映的是"遍历期间某个时刻的快照"，且不同 Cell 的读取时刻不同。在极高并发下 sum 甚至可能略小于真实值。若需精确值，必须用 AtomicLong 或加锁。</p>
 
@@ -1909,9 +1909,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1928,22 +1928,22 @@ graph TB
         <!-- ============================================================ -->
         <!-- C03.11 Disruptor 无锁队列的设计原理与高性能实现？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.11" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.11</div>
-            <div class="qa-question">Disruptor 无锁队列的设计原理与高性能实现？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.11" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.11</div>
+            <div class="content-question">Disruptor 无锁队列的设计原理与高性能实现？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>Disruptor 是 LMAX 交易所开发的高性能内存消息组件，本质是一个<strong>基于环形数组（RingBuffer）+ 序列号（Sequence）协调的无锁/低锁消息传递框架</strong>。本题考察四个核心设计：① <strong>RingBuffer</strong> 如何用定长环形数组 + 位运算实现 O(1) 寻址；② <strong>Sequence 与 Sequence Barrier</strong> 如何在不加锁的前提下协调生产者-消费者依赖关系；③ <strong>缓存行填充（Cache Line Padding）</strong> 如何消除伪共享（False Sharing）；④ <strong>单生产者无锁、多生产者 CAS</strong> 的并发模型。架构师需理解它"用数组预分配 + 序列号屏障替代锁"的设计哲学，以及在日志异步写入、事件分发场景中对比 BlockingQueue 的性能优势来源。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <ul>
                 <li><strong>LMAX 团队开发</strong>：LMAX 交易所为追求极低延迟交易系统，自研 Disruptor，<strong>2011 年开源</strong>。其设计动机源于 ArrayBlockingQueue 的性能痛点——锁竞争、对象分配、缓存行伪共享。</li>
                 <li><strong>ArrayBlockingQueue 痛点</strong>：① 用 <code class="inline-code">ReentrantLock</code> 串行化 put/take，高并发下锁竞争严重；② 队列 head/tail/count 等相邻字段共享缓存行导致伪共享；③ 对象在堆上流动，引发 GC。</li>
@@ -1956,9 +1956,9 @@ graph TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>1. RingBuffer（环形数组）</strong>：固定大小的数组（大小必须为 2 的幂，<code class="inline-code">2^n</code>），预分配所有 Event 槽位。生产者写
                 <code class="inline-code">sequence &amp; (size - 1)</code>
@@ -2050,9 +2050,9 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>高级开发层</strong>：</p>
               <ul>
                 <li>
@@ -2074,9 +2074,9 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Disruptor 为什么比 BlockingQueue 快？</strong></p>
               <p>四个维度的叠加优势：① <strong>无锁/低锁</strong>——单生产者无 CAS，多生产者只 CAS 抢序号，而 ArrayBlockingQueue 的 put/take 用同一把 ReentrantLock 串行化；② <strong>分配更少</strong>——RingBuffer 预分配复用事件载体，热路径只更新字段，业务 payload 仍需自管；③ <strong>降低伪共享</strong>——Disruptor 的 Sequence 用缓存行填充隔离，BlockingQueue 的相邻状态字段可能互相干扰；④ <strong>批量消费</strong>——消费者一次处理到可用上限的所有事件，减少协调次数。优势大小由事件形状、消费者速度和生产者并发决定。</p>
 
@@ -2091,9 +2091,9 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2118,15 +2118,15 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
         <!-- ============================================================ -->
         <!-- C03.12 OS 进程线程模型与上下文切换：Java 线程的底层骨架 -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C03.12" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C03.12</div>
-            <div class="qa-question">操作系统进程/线程模型：用户态与内核态线程、上下文切换代价、线程与进程的区别？Java 线程为何是 1:1 映射内核线程？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C03.12" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C03.12</div>
+            <div class="content-question">操作系统进程/线程模型：用户态与内核态线程、上下文切换代价、线程与进程的区别？Java 线程为何是 1:1 映射内核线程？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对<strong>并发底层载体的系统级认识</strong>：线程并非凭空存在，而是由 OS 内核调度的执行单元。能否说清
                 <strong>进程与线程的区别、内核态/用户态切换、上下文切换的开销构成</strong>，直接决定你对"线程池该开多大、协程/虚拟线程为何省资源、为什么并发量大要降低线程数"的判断力。它把 Java 并发 API 与真实硬件/内核行为连在了一起。
@@ -2134,9 +2134,9 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>进程（Process）</strong>：资源分配与调度的基本单位，拥有独立地址空间、文件描述符等，隔离强但创建/切换成本高（需换页表/快表）。</p>
               <p><strong>线程（Thread）</strong>：进程内的执行流，<strong>共享地址空间与资源</strong>，只保留独立栈与寄存器上下文，创建和切换比进程轻量，但共享意味着要自己加同步。</p>
               <p><strong>线程实现模型</strong>：① 用户级线程（M:1，调度在用户态，内核通常不单独感知）；② 内核级线程（1:1，由内核调度）；③ 混合模型（M:N）。不同 OS 和运行时的实现边界不同，不能只按“现代内核都是 1:1”概括。</p>
@@ -2144,9 +2144,9 @@ disruptor.<span class="fn">shutdown</span>();</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>上下文切换开销构成</strong>：保存/恢复 CPU 寄存器、换页表（进程级切换）、可能刷新或失效 TLB、切换内核栈和调度器记账。常见量级是微秒级，但具体时间随 CPU、内核、缓存状态和负载变化，应作为“高频切换会累积”的机制理解，不写成固定 1~2µs。</p>
               <p>
                 <strong>内核态/用户态切换</strong>：系统调用要从用户态陷入内核态；主流 JDK 创建平台线程涉及
@@ -2168,9 +2168,9 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>线程池参数推断</strong>：IO 密集（等待/计算 大）→ 线程数可设为 <code class="inline-code">核数 × (1 + 等待/计算)</code>；CPU 密集 → 约等于核数，避免过多线程造成<strong>上下文切换反噬</strong>。</p>
               <p><strong>避免线程饥饿与无界线程</strong>：高并发异步场景改用 <code class="inline-code">CompletableFuture</code> + 有界线程池；阻塞型中间件（如配合阻塞 IO 的日志/DB）要 <code class="inline-code">setDaemon=false</code> 且限制数量。</p>
               <p><strong>虚拟线程落地</strong>：JDK 21+ 的 IO 等待密集服务可用 <code class="inline-code">Executors.newVirtualThreadPerTaskExecutor()</code> 承接任务；CPU 密集段仍会占住载体线程，必要时显式让出或改用专用池。JDK 21-23 中长时间持有 <code class="inline-code">synchronized</code> 并在其中阻塞可能造成载体线程 pinning；JDK 24 的 JEP 491 消除了这一主要 pinning 来源，但 native frame、驱动和 JDK 实现仍要按版本核验。</p>
@@ -2178,18 +2178,18 @@ $ perf stat -- taskset -c 0 ./bench           <span class="com">// 观察上下�
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：上下文切换到底贵在哪？</strong> 不止"保存寄存器"——还有 TLB 刷新（进程切换）、内核栈切换、调度器锁竞争，以及切走后<strong>缓存/TLB 局部性丢失</strong>，故高频切换的代价远高于"微秒级"字面值。</p>
               <p><strong>追问 2：线程 vs 协程/虚拟线程的关键差异？</strong> 平台线程由 OS 调度，在主流系统中可被抢占；虚拟线程由 JVM 用户态调度器承载，在阻塞和显式让出点切换。它不是“更快的内核线程”，CPU 密集任务也不会仅因为虚拟线程更多而获得自动抢占。</p>
               <p><strong>追问 3：虚拟线程和 synchronized 的关系要按什么版本说？</strong> JDK 21-23 中，虚拟线程在 synchronized 中阻塞可能 pin 载体线程，可用 <code class="inline-code">ReentrantLock</code> 或缩短临界区规避；JDK 24 的 JEP 491 让 synchronized 在该主要场景不再 pin。存量服务应先看 JDK 版本和 JFR <code class="inline-code">jdk.VirtualThreadPinned</code>，不写绝对结论。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>

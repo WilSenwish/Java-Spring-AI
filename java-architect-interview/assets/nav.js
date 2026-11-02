@@ -137,7 +137,7 @@
     );
     if (tocLinks.length === 0) return;
 
-    // 以侧栏 href 为准解析目标，兼容 qa-card、epq 分组、安全手册 h2 等
+    // 以侧栏 href 为准解析目标，兼容 content-card、epq 分组、安全手册 h2 等
     var targets = [];
     var seen = {};
     tocLinks.forEach(function (link) {

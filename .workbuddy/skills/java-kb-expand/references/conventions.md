@@ -19,23 +19,23 @@
 - 目录层级：页面篇章 / 分组 / 题号。
 - 导航聚合页前缀 **`nav-`**：`nav-overview-priority.html` / `nav-overview-quick-list.html` / `nav-server-security-checkpoint.html`（非题号宿主）。
 
-## 2. 篇章/核心原理卡片结构（`.qa-card`）
+## 2. 篇章/核心原理卡片结构（`.content-card`）
 
 ```html
-<div class="qa-card" id="C10.26" data-difficulty="architect" data-priority="p1">
-  <div class="qa-header">
-    <div class="qa-badge">C10.26</div>
-    <div class="qa-question">题目标题
+<div class="content-card" id="C10.26" data-difficulty="architect" data-priority="p1">
+  <div class="content-header">
+    <div class="content-badge">C10.26</div>
+    <div class="content-question">题目标题
       <span class="difficulty difficulty-architect">架构</span>
       <span class="priority priority-p1">P1</span>
     </div>
   </div>
-  <div class="qa-layer" data-layer="essence"><div class="qa-layer-title">本质问题</div><div class="qa-layer-body">…</div></div>
-  <div class="qa-layer" data-layer="principle">…</div>
-  <div class="qa-layer" data-layer="practice">…</div>
-  <div class="qa-layer" data-layer="deep">…</div>
+  <div class="content-layer" data-layer="essence"><div class="content-layer-title">本质问题</div><div class="content-layer-body">…</div></div>
+  <div class="content-layer" data-layer="principle">…</div>
+  <div class="content-layer" data-layer="practice">…</div>
+  <div class="content-layer" data-layer="deep">…</div>
   <!-- 可选扩展层 -->
-  <div class="qa-layer" data-layer="extension">…</div>
+  <div class="content-layer" data-layer="extension">…</div>
 </div>
 ```
 
@@ -43,28 +43,28 @@
 - `data-priority` 取值：`p0` / `p1` / `p2`（**P3 已废除**）。
 - 双编码一致：卡片 `data-priority="p*"` 属性 **与** 可见徽标 `<span class="priority priority-p*">P*</span>` 必须同步，禁止只改其一。
 - **难度文案口径（全站唯一，2026-09-16 长官决策）**：
-  - **标签位**一律短表 **专家 / 架构 / 高级**（`difficulty-expert` / `architect` / `senior`）。标签位 = 卡片 `.qa-question` 徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` 与 `.ov-subgroup-title`、章节导航 `card-tags`、根 index `q-tags`、总览页脚排序说明、`format-shared` §3.1 的「文案」列。
+  - **标签位**一律短表 **专家 / 架构 / 高级**（`difficulty-expert` / `architect` / `senior`）。标签位 = 卡片 `.content-question` 徽标、章节页头 `chapter-meta` 的 `高级 ×N / 架构 ×N / 专家 ×N`、总览 `.ov-stat-label` 与 `.ov-subgroup-title`、章节导航 `card-tags`、根 index `q-tags`、总览页脚排序说明、`format-shared` §3.1 的「文案」列。
   - **正文**用 **专家 / 架构师 / 高级开发**（称人/角色）；存量正文中把等级当定语用的写法（「架构级理解」「专家级深度」「专家级的技术判断力」，共 8 处）**保留不改、不再新增**。
   - 门禁：`validate_kb.py` **1j**（徽标文案白名单，可带 ` ×N`）。
 - **难度配色口径（2026-09-16 晚修订，长官反馈「专家/架构区分度不明显」+「主要是颜色」）**：
-  - 三档色相：`senior` = 蓝 `--accent`（`#2563eb`）；`architect` = 紫 `--accent2`（`#7c3aed`）；**`expert` = 青绿 `--diff-expert`**（浅色 `#0f766e` / 深色 `#2dd4bf`）。
-  - **改前真因**：`expert` 与 `architect` 的 `color` **同为 `var(--accent2)`**、底色都是 10% 蓝紫浅色，仅边框透明度 0.2 / 0.3 之差 —— 专家等于借用了架构的紫。
-  - 专家卡的 `border-left-color` 与 `qa-badge` 底色取 **`--diff-expert-solid`**（浅 `#0f766e` / 深 `#14b8a6`），**原「蓝→紫渐变」已废弃**。两个令牌拆开的原因：徽标底色承白字、胶囊文字是前景色，对比度要求相反，同一值无法兼顾（若用 `#0d9488` 做底色，白字仅 1.86:1）。
-  - **色相避让**：难度胶囊与优先级胶囊在 `.qa-question` 内**紧邻同框**，故难度色相必须避开已占用色相 —— 蓝＝高级 + `P2`；紫＝架构 + `callout-deep`；红＝`P0`；琥珀＝`P1` + `callout-pitfall`；翡翠绿＝`callout-tip`。剩余可用即青绿。
+  - 三档色相：`senior` = 蓝 `--accent`（`#2563eb`）；`architect` = 紫 `--accent-alt`（`#7c3aed`）；**`expert` = 青绿 `--diff-expert`**（浅色 `#0f766e` / 深色 `#2dd4bf`）。
+  - **改前真因**：`expert` 与 `architect` 的 `color` **同为 `var(--accent-alt)`**、底色都是 10% 蓝紫浅色，仅边框透明度 0.2 / 0.3 之差 —— 专家等于借用了架构的紫。
+  - 专家卡的 `border-left-color` 与 `content-badge` 底色取 **`--diff-expert-solid`**（浅 `#0f766e` / 深 `#14b8a6`），**原「蓝→紫渐变」已废弃**。两个令牌拆开的原因：徽标底色承白字、胶囊文字是前景色，对比度要求相反，同一值无法兼顾（若用 `#0d9488` 做底色，白字仅 1.86:1）。
+  - **色相避让**：难度胶囊与优先级胶囊在 `.content-question` 内**紧邻同框**，故难度色相必须避开已占用色相 —— 蓝＝高级 + `P2`；紫＝架构 + `callout-deep`；红＝`P0`；琥珀＝`P1` + `callout-pitfall`；翡翠绿＝`callout-tip`。剩余可用即青绿。
   - 落地面：`design-system.css` 三处令牌（`:root` + 两处深色覆盖）+ 两条 `[data-difficulty="expert"]` 规则；全站 1252 枚徽标自动生效。`.layer-tag`（想/做/守）刻意沿用架构紫，**不随本次改动**。
 - **`M`（方法论）/ `G`（工程化要点）/ `K`（生产踩坑）三类卡彻底取消难度分级（2026-09-16 长官决策，属性 / 徽标 / 计数三层一并移除）**：
-  1. 三个专篇页（`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`）的 `.qa-card` **不写 `data-difficulty`**（原 220 处已全清），`.qa-question` 内不写 `<span class="difficulty …">`；
+  1. 三个专篇页（`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`）的 `.content-card` **不写 `data-difficulty`**（原 220 处已全清），`.content-question` 内不写 `<span class="difficulty …">`；
   2. 根 index 的 M/G/K 三个区块共 **220 条 q-item** 连 `.q-tags` 空壳一并去掉（其内只有等级徽标）；章节导航 index 的三张专篇 `chapter-card` **不带 `.card-tags`**（原 M 3 枚 / G 2 枚 / K 1 枚）；
   3. `kb-counts.json` **不再有** `methodology_expert/architect/senior`、`engineering_architect/senior`、`pitfalls_senior` 六个键，**也不再有不变量**「方法论难度三级求和 = methodology」；全局 `counts.expert/architect/senior` **覆盖进入 `total` 的 C/E/S/A/D**（求和 = `total`）。
-  - **视觉后果**：`.qa-card[data-difficulty="architect"|"expert"]` 的紫左边框 / 青绿左边框、`.qa-badge` 配色不再命中 → M/G/K 专篇卡统一回落 `.qa-card` 默认蓝色左边框。若日后要给某专篇统一专色，须显式加页面级类，**勿再借难度属性**。
+  - **视觉后果**：`.content-card[data-difficulty="architect"|"expert"]` 的紫左边框 / 青绿左边框、`.content-badge` 配色不再命中 → M/G/K 专篇卡统一回落 `.content-card` 默认蓝色左边框。若日后要给某专篇统一专色，须显式加页面级类，**勿再借难度属性**。
   - **不写**：M 卡 `data-priority`（2026-09-21 废除：属性无 CSS/JS 消费方，纯冗余）。新增 M/G/K 卡（含导航位）时**勿写 `data-difficulty`、勿贴难度徽标**。
   - 门禁：`validate_kb.py` **1k**（三专篇 `data-difficulty` 须 0）。
-- `qa-layer` 合法 `data-layer` 取值（在 `assets/design-system.css`）：`essence` / `evolution` / `principle` / `practice` / `deep` / `pitfall` / `extension` / `production` / `scenario` / `evaluation` / `insight` / `application` / `challenge`。
+- `content-layer` 合法 `data-layer` 取值（在 `assets/design-system.css`）：`essence` / `evolution` / `principle` / `practice` / `deep` / `pitfall` / `extension` / `production` / `scenario` / `evaluation` / `insight` / `application` / `challenge`。
 - 常用组件类：`compare-table`（对比表）、`code-block`/`pre>/code`（代码）、`callout callout-pitfall`（警示）、`inline-code`。
 
-## 3. 场景题结构（`scenario-group` / `qa-layer`）
+## 3. 场景题结构（`scenario-group` / `content-layer`）
 
-场景页按 `group-N` 分组的 `<section class="scenario-group" id="group-N">`，组内每题为 `.qa-card`（id=`Sxx.xx`）。标准七层：
+场景页按 `group-N` 分组的 `<section class="scenario-group" id="group-N">`，组内每题为 `.content-card`（id=`Sxx.xx`）。标准七层：
 `scenario` / `challenge` / `principle` / `practice` / `deep` / `pitfall` / `insight`。插入新场景题时定位「下一组」的 `<section class="scenario-group" id="group-N+1">` 锚点（注意该标签在列 0 常无缩进）。
 
 ## 4. 导图站（已下线）
@@ -157,7 +157,7 @@
 | 级别 | 名称 | 必须打标？ | 典型载体 |
 |---|---|---|---|
 | **L0** | SSOT 权威位 | **必须** `data-kb-pos="Pxx"` + `data-kb-count` | `kb-counts.json` 的 `counts` / `struct` + `positions`；`bump`/`apply` 写回 |
-| **L3** | 正文技术数字 | **不打标** | `qa-card` 正文、算法/JDK/HTTP 版本、对比表序号/年份、压测数据、「第 N 章」标题序号 |
+| **L3** | 正文技术数字 | **不打标** | `content-card` 正文、算法/JDK/HTTP 版本、对比表序号/年份、压测数据、「第 N 章」标题序号 |
 | **LX** | Mermaid 节点 | 节点内**禁止**嵌 span；旁注/`map-note` 挂同值 L0 | `flowchart` 节点标签里的「N 卡」 |
 
 **已废除**：`kb-count-local` / `data-kb-count-local`（旧 L1/L2「本地计数」）。凡页头、footer、desc、meta、overview 分组、场景 `group-count`、方法论表、mind chip 等展示题量/卡量，**一律 L0**，键落入 `counts` 或 `struct`，由 `sync_counts` 统一刷新。
@@ -344,7 +344,7 @@ C 段只覆盖「短元数据块」（可见文本 ≤ `max_block_chars`）；**
 
 **结构性派生计数（`guard.derived`）—— 真源不是卡片数的那一类**
 
-某些展示计数的真源**不是卡片数**，无法由 `qa-card` 推出。声明在 `guard.derived.items`：
+某些展示计数的真源**不是卡片数**，无法由 `content-card` 推出。声明在 `guard.derived.items`：
 `region` 取块 → `count` 计数 = 真值，与 SSOT 键值、已注册 position **三方互证**；且每个派生键
 **必须**有已注册 position（由真源引擎 `[无展示位]` 把关）。`items` 允许为空（无此类计数时
 勿保留空壳 `sources.rules` 的 `derived` 规则，否则真源审计会报配置错）。

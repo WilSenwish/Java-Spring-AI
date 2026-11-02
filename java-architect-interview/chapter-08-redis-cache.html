@@ -127,15 +127,15 @@
         <!-- ============================================================ -->
         <!-- C08.01 Redis 的 5+4 种数据结构与应用场景？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.01" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.01</div>
-            <div class="qa-question">Redis 的 5+4 种数据结构与应用场景？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C08.01" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.01</div>
+            <div class="content-question">Redis 的 5+4 种数据结构与应用场景？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>
                 这道题考察对 Redis
                 <strong>对外数据类型与底层编码（redisObject + encoding）解耦设计</strong>的理解：为什么同一种类型（如 List）在不同数据量下会切换不同底层结构（quicklist/ziplist/listpack）？本质是 Redis 用<strong>"统一命令接口 + 多种可切换编码"的设计，让小数据省内存、大数据保性能</strong>。掌握 5 种基础类型（String/List/Hash/Set/Zset）+ 4 种扩展类型（Stream/Bitmap/HyperLogLog/Vector Set）的命令语义、底层编码演进、典型场景，是 Redis 选型与性能优化的地基。
@@ -143,9 +143,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>早期 Redis 2.x~3.x：基础五类型 + 简单编码</strong>。String 底层 int/embstr/raw；List 用 ziplist（小，已废弃：Redis 7.0 起全面退役，替代：listpack，消除连锁更新问题）或 linkedlist（大）；Hash/Set/Zset 用 ziplist（同上已废弃）或 hashtable/skiplist。痛点：ziplist 的连锁更新（cascade update）问题——中间元素扩张导致后续所有元素 prevlen 字段级联修改，最坏 O(n²)。</p>
               <p><strong>Redis 3.2：List 引入 quicklist</strong>——双向链表 + 每节点一个 ziplist（Redis 7.0 起节点内部改用 listpack），兼顾内存紧凑与修改效率，替代纯 linkedlist。Redis 5.0 引入 Stream（借鉴 Kafka 消费组模型）。</p>
               <p><strong>Redis 7.0：ziplist 全面退役，引入 listpack</strong>。listpack 取消了 prevlen 字段，每个元素只存自身长度，从根本上<strong>消除连锁更新</strong>。Hash/Set/Zset 的小数据编码从 ziplist 切换为 listpack，List 的 quicklist 内部也从 ziplist 替换为 listpack（quicklist->listpack）。</p>
@@ -153,9 +153,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p>
                 <strong>redisObject 抽象</strong>：每个值都是 <code class="inline-code">redisObject{type, encoding, lru, refcount, *ptr}</code>。type 是对外类型，共 9 种：5 基础（String/List/Hash/Set/Zset）+ 4 扩展（Stream/Bitmap/HyperLogLog/Vector Set），encoding 是底层编码。Redis 根据元素数量与大小阈值（<code class="inline-code">hash-max-listpack-entries</code>
                 等）自动切换编码，对用户透明。
@@ -241,9 +241,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>编码阈值调优</strong>：默认 <code class="inline-code">hash-max-listpack-entries=128, hash-max-listpack-value=64</code>。若 Hash 字段多但单值小（如商品属性），可适当调大 entries 阈值保持 listpack 编码省内存；反之若字段大且频繁改单字段，应主动超出阈值切 hashtable（避免 listpack 频繁 realloc）。用 <code class="inline-code">OBJECT ENCODING key</code> 查看实际编码。</p>
               <p><strong>排行榜典型实现</strong>：Zset 存 <code class="inline-code">member=userId, score=积分</code>。<code class="inline-code">ZADD</code> 更新积分、<code class="inline-code">ZREVRANGE 0 9</code> 取 Top10、<code class="inline-code">ZREVRANK</code> 取个人排名。注意 <code class="inline-code">ZREVRANGE</code> 是 O(logN+M)，避免一次性取大范围；百万级排行榜用 Zset 性能仍优秀。</p>
               <p>
@@ -253,9 +253,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：String 的 embstr 与 raw 编码有何区别？为何 44 字节是分界线？</strong></p>
               <p>embstr（embedded string）将 redisObject 与 SDS 内存连续分配，一次 malloc，对 CPU cache 友好；raw 是 redisObject 与 SDS 分两次 malloc。embstr 要求 redisObject + SDS 连续分配且总大小 ≤ 64 字节（jemalloc 小对象分配边界），即数据部分 ≤ 64 − 16(redisObject) − 3(SDS 头) − 1(\0结尾) = 44 字节（Redis 4.x 后调整为 44）。超过即切 raw。embstr 是只读的——修改会转为 raw 再操作。</p>
               <p><strong>追问 2：Stream 相比 List/Kafka 做消息队列的边界？</strong></p>
@@ -263,9 +263,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -279,9 +279,9 @@
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展：Redis Functions — Lua 脚本的正统替代（Redis 7.0+）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展：Redis Functions — Lua 脚本的正统替代（Redis 7.0+）</div>
+            <div class="content-layer-body">
               <p><strong>背景</strong>：Redis 长期依赖 EVAL/EVALSHA 执行 Lua 脚本实现原子操作，但 Lua 脚本存在"无持久化、无管理、无审计"的痛点——脚本散落在客户端代码中，重启后丢失，FUNCTION 列表无法查询已注册脚本。Redis 7.0 引入 <strong>Functions</strong>（RFC 风格的 <code class="inline-code">FUNCTION LOAD</code> / <code class="inline-code">FCALL</code>），将脚本作为<strong>服务端一等公民</strong>管理。</p>
 
               <p><strong>核心机制</strong>：</p>
@@ -364,9 +364,9 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展：Redis 8.0 新特性 — 从缓存到统一多模数据平台（2025-05 GA）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展：Redis 8.0 新特性 — 从缓存到统一多模数据平台（2025-05 GA）</div>
+            <div class="content-layer-body">
               <p><strong>核心变化</strong>：Redis 8.0 是历史上最大的单版本跃迁——从"内存缓存 + 模块扩展"向<strong>统一多模数据平台</strong>的范式转变。三条主线：① <strong>One Redis 统一发行</strong>（Redis Stack 的搜索/JSON/时序/概率等能力内置化，消除模块管理碎片化）；② <strong>性能大幅跃迁</strong>（全新多线程 I/O；官方相对 Redis 7.2.5 基准：149 项测试中 90 项更快，p50 延迟降幅约 <strong>5.4%～87.4%</strong>——峰值非全命令保证；全量同步峰值复制缓冲约省 <strong>35%</strong>）；③ <strong>向 AI 原生演进</strong>（Vector Set：8.0 引入时为 Beta；8.4+ 性能与命令面增强，生产需按版本评测召回/延迟）。</p>
 
               <p><strong>版本演进脉络</strong>：</p>
@@ -466,9 +466,9 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
               <p>上线门禁：命中率/回源 QPS、TTL 抖动、故障降级演练。表达提纲：一致性窗口→防护组合→指标与预案。</p>
               <div class="callout callout-deep">
                 <div class="callout-title">P0 表达提纲</div>
@@ -480,22 +480,22 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
         <!-- ============================================================ -->
         <!-- C08.02 Redis RDB 与 AOF 持久化的权衡？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.02" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.02</div>
-            <div class="qa-question">Redis RDB 与 AOF 持久化的权衡？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.02" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.02</div>
+            <div class="content-question">Redis RDB 与 AOF 持久化的权衡？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 Redis <strong>持久化机制在"数据安全"与"性能开销"之间的权衡</strong>的理解：RDB 是全量快照（空间小、恢复快、可能丢数据），AOF 是增量日志（数据全、恢复慢、写放大）。本质是<strong>在内存数据库中，如何以最小的运行时开销换取崩溃后最小的数据丢失</strong>。混合持久化（4.0+）是两者折中的成熟方案。掌握 fork/COW/appendfsync/重写机制，才能回答持久化性能抖动与数据丢失问题。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>Redis 早期（2.x 前）：仅 RDB</strong>。BGSAVE 通过 fork 子进程 + COW（Copy-On-Write）写时复制生成全量二进制快照。优点：文件紧凑、恢复快、fork 后子进程异步不影响主进程。缺点：两次 BGSAVE 之间崩溃会丢失该窗口所有写入；fork 大内存实例阻塞（详见深度追问）。</p>
               <p><strong>Redis 2.x：引入 AOF</strong>。追加记录每条写命令到 appendonly.aof。Redis 7.0 起默认改为多文件 AOF（base + incr + manifest）；历史单文件加载路径仍存在，但新建实例不应把单文件当作当前默认布局。优点：数据丢失少（取决于 appendfsync）。缺点：文件膨胀、恢复慢（重放全量命令）。引入 AOF 重写（BGREWRITEAOF）压缩历史命令——只保留最终状态。</p>
               <p><strong>Redis 4.0：混合持久化（aof-use-rdb-preamble）</strong>。AOF 重写时，前半段写 RDB 全量快照、后半段追加增量 AOF 命令。加载时先加载 RDB（快）再重放增量 AOF（少）。结合 RDB 的恢复速度与 AOF 的数据完整性，<strong>成为生产推荐配置</strong>。</p>
@@ -506,9 +506,9 @@ FUNCTION DELETE inventory <span class="com">-- 删除库</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>RDB 原理：fork + COW</strong>。BGSAVE 调用 <code class="inline-code">fork()</code>，子进程共享父进程物理页（页表指向同一物理内存）。子进程遍历所有 key 写入 rdb 文件；父进程继续处理写请求，写某页时内核触发 COW 复制该页。关键：fork 瞬间会阻塞主线程（复制页表），大内存实例阻塞可达秒级。</p>
 
               <table class="compare-table">
@@ -596,9 +596,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>生产推荐配置</strong>：开启 AOF + 混合持久化。</p>
               <div class="code-block">
                 <pre><code><span class="com"># redis.conf 生产推荐</span>
@@ -618,9 +618,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：fork 为什么会阻塞？如何量化？</strong></p>
               <p>
                 fork 虽然用 COW 共享物理页，但必须<strong>复制页表</strong>（不是物理页）。页表大小与内存线性相关——64 位系统每 4KB 内存对应 8 字节页表项，10GB 实例页表约 20MB，fork 复制页表耗时约 100-200ms。此期间主线程阻塞。<code class="inline-code">INFO stats | grep latest_fork_usec</code>
@@ -636,9 +636,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -656,31 +656,31 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
         <!-- ============================================================ -->
         <!-- C08.03 缓存穿透/击穿/雪崩的区别与解决方案？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.03" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.03</div>
-            <div class="qa-question">缓存穿透/击穿/雪崩的区别与解决方案？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C08.03" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.03</div>
+            <div class="content-question">缓存穿透/击穿/雪崩的区别与解决方案？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对<strong>缓存作为"数据库挡箭牌"失效时的三种典型故障模式</strong>的区分与治理：穿透是"查不存在的数据，缓存永远 miss"，击穿是"热 key 过期瞬间高并发回源"，雪崩是"大量 key 同时过期或缓存宕机"。本质都是<strong>缓存层失去对数据库的保护能力，导致请求直达 DB</strong>。三者区别在"失效原因"，方案各异且可组合。能区分三者并给出组合方案，是缓存设计的入门门槛。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>早期：单层缓存 + 简单 TTL</strong>。问题裸露——缓存 miss 即回源，无防护。穿透用"缓存空值"缓解，击穿用"互斥锁"缓解，雪崩用"随机 TTL"缓解。各自孤立解决。</p>
               <p><strong>中期：引入布隆过滤器与逻辑过期</strong>。布隆过滤器从源头拦截不存在的 key（穿透）；逻辑过期（不设 TTL，value 内嵌逻辑过期时间，异步刷新）化解击穿；多级缓存（Caffeine+Redis）化解雪崩。</p>
               <p><strong>现状：组合方案 + 平台化</strong>。生产实践是<strong>布隆过滤器防穿透 + 互斥锁/逻辑过期防击穿 + 随机TTL+多级缓存+熔断降级防雪崩</strong>的组合拳，并通过热点探测（如 JD hotkey）动态识别热 key 提前本地缓存。趋势是缓存治理平台化——自动识别三大风险并注入防护策略。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -769,9 +769,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>组合方案设计</strong>：生产缓存层应同时部署三道防线：</p>
               <ul>
                 <li><strong>防穿透</strong>：布隆过滤器前置（详见 C08.09），对确定不存在的 key 直接拦截；兜底缓存空值。</li>
@@ -783,9 +783,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：互斥锁防击穿有什么副作用？如何选择互斥锁 vs 逻辑过期？</strong></p>
               <p>互斥锁会让其他线程等待/重试，增加 RT 与线程占用；高并发下锁竞争本身消耗资源。逻辑过期无等待但牺牲短时一致性。<strong>选择</strong>：一致性要求高、能容忍少量等待 → 互斥锁；延迟敏感、可容忍旧数据 → 逻辑过期。秒杀场景常用逻辑过期。</p>
               <p><strong>追问 2：缓存雪崩中"缓存宕机"如何防范？</strong></p>
@@ -793,9 +793,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -808,9 +808,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="production">
-            <div class="qa-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产量化证据（压测 / 命中率 / 容量）</div>
+            <div class="content-layer-body">
               <p>
                 <strong>缓存三件套组合方案（布隆过滤 + 互斥锁 + 随机 TTL）的价值，必须用"保护后 DB 峰值 QPS 与缓存命中率"量化，而非仅描述方案。</strong>
               </p>
@@ -861,22 +861,22 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
         <!-- ============================================================ -->
         <!-- C08.04 缓存与数据库一致性如何保证？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.04" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.04</div>
-            <div class="qa-question">缓存与数据库一致性如何保证？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.04" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.04</div>
+            <div class="content-question">缓存与数据库一致性如何保证？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对<strong>分布式系统中"双写一致性"本质矛盾</strong>的架构级理解：缓存与数据库是两个独立存储，无法用一个事务原子化更新。本质问题是<strong>在"先更DB还是先更缓存""更新缓存还是删除缓存""如何补偿并发与失败"之间做权衡</strong>。掌握 Cache Aside 模式、延迟双删、Canal binlog 订阅三种方案的适用边界与一致性强度，是缓存架构师的核心能力。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>方案1：双写（先更DB再更缓存 / 先更缓存再更DB）</strong>。问题：① 任何一步失败导致不一致；② 并发下"先更DB后更缓存"会出现线程A后发先至覆盖线程B的最新值（见图 8.4-1）。因此删除缓存 + 读时重建通常是默认选择；更新缓存只在"新值可低成本确定、可按版本单调写入、写后读收益明显"时使用，并必须处理失败补偿与乱序。</p>
               <p><strong>方案2：Cache Aside（先更DB再删缓存）</strong>。最经典模式。问题：① 删缓存失败导致脏数据；② 极端并发——线程A读旧值写缓存，线程B更DB删缓存后，A再写入旧值。此场景概率极低（需读比写慢），但强一致场景仍不可接受。</p>
               <p><strong>方案3：延迟双删</strong>。先删缓存→更DB→休眠N ms→再删缓存。第二次删除兜底"读旧值写缓存"的并发窗口。问题：N 难以确定（需大于一次读耗时）、休眠降低写性能、第二次删仍可能失败。</p>
@@ -885,9 +885,9 @@ save <span class="num">60</span> <span class="num">10000</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>为什么多数业务默认"删除缓存"而非"更新缓存"</strong>：</p>
               <ul>
                 <li>更新缓存：每次DB变更都要算缓存新值，复杂（多表 JOIN）；并发下可能乱序覆盖。</li>
@@ -947,9 +947,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>方案选型决策树</strong>：</p>
               <ul>
                 <li><strong>弱一致（允许秒级不一致）</strong>：Cache Aside + 缓存 TTL 兜底。最简单，90% 场景适用。</li>
@@ -961,9 +961,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：为什么不能"先删缓存再更DB"？</strong></p>
               <p>先删缓存后更DB有典型并发问题：线程A删缓存→线程B读（miss，读DB旧值，写回缓存）→线程A更DB。结果缓存是旧值、DB是新值，若不加 TTL、延迟再删或读时校验，不一致可能持续到 TTL。<strong>该方案不应作为强一致/较快收敛场景的默认</strong>；在弱一致或需要缩短旧读窗口的场景可接受，但必须给出 TTL 和二次删除成本。</p>
               <p><strong>追问 2：Canal 方案如何保证缓存删除的顺序与幂等？</strong></p>
@@ -971,9 +971,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -991,22 +991,22 @@ flowchart LR
         <!-- ============================================================ -->
         <!-- C08.05 Redisson 分布式锁如何实现可重入与看门狗？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.05" data-difficulty="expert" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.05</div>
-            <div class="qa-question">Redisson 分布式锁如何实现可重入与看门狗？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.05" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.05</div>
+            <div class="content-question">Redisson 分布式锁如何实现可重入与看门狗？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对<strong>分布式锁正确性边界与工程化实现</strong>的专家级理解：单节点 setnx 锁的过期与续期矛盾、RedLock 的争议、Redisson 如何用 Lua + Hash + WatchDog 解决可重入与续期。本质是<strong>在"锁释放（防死锁）"与"业务未完成锁过期（防误删）"之间，用看门狗自动续期实现平衡</strong>。掌握 Redisson 的 Lua 脚本语义、Hash 结构记录重入数、WatchDog 定时续期机制，并理解 Martin Kleppmann 对 RedLock 的质疑，是分布式锁深度考察的终点。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>阶段1：单节点 SETNX + EXPIRE</strong>。<code class="inline-code">SETNX key value</code> 加锁，<code class="inline-code">EXPIRE</code> 设过期防死锁。问题：两条命令非原子，SETNX 成功后宕机未 EXPIRE 导致死锁。<strong>改进</strong>：Redis 2.6.12 后 <code class="inline-code">SET key value NX EX seconds</code> 原子化。但仍有问题：① 不可重入（同线程再次加锁失败）；② 业务超时锁过期后被他人获取，原线程释放了别人的锁。</p>
               <p><strong>阶段2：value 存唯一标识 + Lua 释放</strong>。加锁时 value 存 UUID（标识持有者），释放用 Lua 脚本"判断 value 相等才删"，避免误删他人锁。解决误删，但未解决可重入与续期。</p>
               <p><strong>阶段3：RedLock（Antirez 提出）</strong>。在 N（奇数，通常5）个独立 Redis 实例上同时加锁，超过半数（N/2+1）成功且耗时小于锁 TTL 则加锁成功。意图：解决单点故障导致的锁失效。<strong>Martin Kleppmann 质疑</strong>：① GC pause 期间锁过期，客户端仍以为自己持锁，导致互斥被破坏；② RedLock 依赖各节点时间同步，但分布式系统时钟不可靠（NTP 漂移）；③ RedLock 既非 AP 也非 CP，定位尴尬。结论：RedLock 在 correctness 要求高的场景不安全。</p>
@@ -1014,9 +1014,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Redisson 可重入锁的 Hash 结构</strong>：锁 key 的 value 不是简单字符串，而是 Hash：<code class="inline-code">{threadId-uuid: 重入次数}</code>。同一线程再次加锁时重入数 +1，释放时 -1，归零才删 key。</p>
 
               <p><strong>加锁 Lua 脚本（核心语义）</strong>：</p>
@@ -1072,9 +1072,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>标准用法</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="type">RLock</span> lock = redissonClient.<span class="fn">getLock</span>(<span class="str">"order:lock:"</span> + orderId);
@@ -1093,9 +1093,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Martin Kleppmann 对 RedLock 的质疑核心是什么？Antirez 如何回应？</strong></p>
               <p>Kleppmann 质疑：① <strong>GC/STW 问题</strong>——客户端持锁后长时间 GC pause，锁过期被他人获取，两个客户端同时以为自己持锁，互斥被破坏；② <strong>时钟依赖</strong>——RedLock 用 TTL 判断合法性，依赖各 Redis 节点时钟一致，但 NTP 漂移、闰秒会使判断错误。Antirez 回应：RedLock 不比单节点更差，并讨论用 fencing token 缓解 GC 问题。该令牌的核心不是发放方，而是资源端必须比较单调 token 后才执行；Redis SET 锁和常规 Redisson RLock 不自动替下游资源完成这个校验。<strong>结论</strong>：正确性敏感场景，先落库约束/状态机；协调服务选型再按版本与故障模型评估 ZK/etcd。</p>
               <p><strong>追问 2：看门狗续期失败会怎样？</strong></p>
@@ -1103,9 +1103,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1123,22 +1123,22 @@ sequenceDiagram
         <!-- ============================================================ -->
         <!-- C08.06 多级缓存架构如何设计？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.06" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.06</div>
-            <div class="qa-question">多级缓存架构如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.06" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.06</div>
+            <div class="content-question">多级缓存架构如何设计？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对<strong>缓存层次化设计</strong>的架构能力：为何要分本地缓存 + 分布式缓存 + DB 多层？本质是<strong>用"距离 CPU 越近越快但容量越小"的存储金字塔原理，在延迟、容量、一致性之间分层权衡</strong>。本地缓存（Caffeine）纳秒级但容量小且不共享，分布式缓存（Redis）毫秒级且共享但网络开销，DB 毫秒~秒级为最终数据源。掌握多级缓存的命中链路、一致性保证、热点探测、缓存预热与失效策略，是高并发系统设计的核心。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>阶段1：单层 Redis 缓存</strong>。DB 前加 Redis 挡 80% 读。问题：Redis 单点故障或网络抖动时回源 DB 压力骤增；超高频 key（热 key）打爆 Redis 单分片。</p>
               <p><strong>阶段2：本地缓存 + Redis 两级</strong>。应用进程内 Caffeine/Guava 做一级缓存（L1），Redis 做二级（L2）。L1 命中纳秒级、无网络开销；L2 兜底共享。问题：L1 各实例独立，数据更新后多实例 L1 不一致。</p>
               <p><strong>阶段3：多级 + 一致性治理</strong>。引入 Redis Pub/Sub 或 MQ 广播 L1 失效消息，所有实例收到后清本地；或用 Canal 订阅 DB binlog 触发 L1+L2 双失效。引入热点探测（JD hotkey）动态识别热 key 推送 L1。</p>
@@ -1146,9 +1146,9 @@ sequenceDiagram
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>多级缓存架构图</strong>：</p>
               <div class="mermaid-container">
                 <!-- prettier-ignore -->
@@ -1183,9 +1183,9 @@ flowchart TD
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Spring Boot + Caffeine + Redis 多级缓存实现</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 1. Caffeine 本地缓存配置</span>
@@ -1236,9 +1236,9 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：L1 缓存各实例数据不一致如何彻底解决？</strong></p>
               <p>
                 无法"彻底"解决——多实例本地缓存在更新瞬间必然有窗口期不一致。可行策略：①
@@ -1249,9 +1249,9 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1265,9 +1265,9 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>多级缓存解决了命中率问题，但<strong>热 key 的发现与治理</strong>需要一套完整的标准操作流程（SOP），从检测到拆分到降级形成闭环。</p>
               <ul>
                 <li><strong>检测手段</strong>：① <code class="inline-code">redis-cli --hotkeys</code>（需开启 LFU 淘汰策略 <code class="inline-code">maxmemory-policy=allkeys-lfu</code>）；② <code class="inline-code">redis-cli --bigkeys</code>（顺带发现大 key）；③ MONITOR 命令（实时捕获所有命令，生产慎用，影响性能）；④ 代理层统计（Codis/Twemproxy 的 hotkey 统计）；⑤ 业务埋点（客户端本地 LRU 统计访问频次，超阈值上报）。</li>
@@ -1286,22 +1286,22 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
         <!-- ============================================================ -->
         <!-- C08.07 Redis Cluster 的工作原理？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.07" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.07</div>
-            <div class="qa-question">Redis Cluster 的工作原理？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.07" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.07</div>
+            <div class="content-question">Redis Cluster 的工作原理？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 <strong>Redis 水平扩展与去中心化集群</strong>的理解：为何要 Cluster？数据如何分片？节点如何通信？故障如何转移？本质是<strong>用 16384 个哈希槽做数据分片 + Gossip 协议做节点通信 + 主从复制做高可用</strong>，实现去中心化的水平扩展与自动故障转移。掌握槽位分配、MOVED 重定向、Gossip、故障选举，能回答 Cluster 的扩缩容、跨槽操作限制、脑裂等问题。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>阶段1：单节点</strong>。问题：单点故障、容量受限、无法水平扩展。</p>
               <p><strong>阶段2：主从复制</strong>。一主多从，主写从读，数据全量复制。解决读扩展与读高可用，但<strong>写仍单点、主故障需人工切换</strong>。</p>
               <p><strong>阶段3：哨兵 Sentinel（2.8+）</strong>。独立部署 Sentinel 集群监控主从，主故障自动选举从提升为主。解决主故障自动切换，但<strong>仍单主写入、容量未扩展</strong>。适合写量不大但要求高可用的场景。</p>
@@ -1310,9 +1310,9 @@ l1.<span class="fn">setCaffeine</span>(<span class="type">Caffeine</span>.<span 
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>哈希槽分片</strong>：Cluster 有 16384（2^14）个虚拟槽。key 通过 <code class="inline-code">CRC16(key) mod 16384</code> 计算槽位，槽位分配到各主节点。例如 3 主节点：节点A 持有 0-5460，节点B 5461-10922，节点C 10923-16383。</p>
               <p><strong>为何是 16384 而非 65536</strong>：① Gossip 消息携带每个节点的槽位 bitmap，16384 位 = 2KB，65536 位 = 8KB，前者带宽友好；② 集群规模实际不超过 1000 节点，16384 槽足够细粒度；③ CRC16 的 14 位即可覆盖。</p>
 
@@ -1368,9 +1368,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p>
                 <strong>Hash Tag 保证同槽</strong>：需同槽的多 key 操作用 <code class="inline-code">{tag}</code> 括号。<code class="inline-code">user:{1000}:info</code> 与 <code class="inline-code">user:{1000}:order</code> 都按
                 <code class="inline-code">user:1000</code>
@@ -1384,9 +1384,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Cluster 与哨兵如何选型？</strong></p>
               <p>哨兵：单主多从 + Sentinel 监控，<strong>写不扩展、容量不扩展</strong>，仅解决高可用。适合数据量小（&lt;10GB）、写量适中的场景。Cluster：多主分片 + 各主从，<strong>写与容量水平扩展</strong>。适合大数据量/高写入。两者可视为演进关系——Cluster 是哨兵的超集（功能上），但部署更复杂。生产大数据量首选 Cluster。</p>
               <p><strong>追问 2：Cluster 的脑裂问题如何防范？</strong></p>
@@ -1394,9 +1394,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1410,9 +1410,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>Redis Cluster 在单机房内运行良好，但<strong>跨机房部署</strong>会引入网络延迟、分区风险与锁续约等新问题，需要专门的同步方案设计。</p>
               <ul>
                 <li><strong>Redis Cluster 跨机房部署</strong>：① <strong>同城双活</strong>——两个机房各部署部分 master+slave，master 在 A 机房、slave 在 B 机房（或反之），依赖同城低延迟专线；② <strong>异地灾备</strong>——主集群 + 异地从集群，通过 redis-shake/redis-sync 做异步复制；③ <strong>网络分区风险</strong>——跨机房 cluster 可能因网络抖动触发 failover，导致数据不一致，需配合 <code class="inline-code">cluster-node-timeout</code> 调大容忍窗口。</li>
@@ -1435,22 +1435,22 @@ flowchart TB
         <!-- ============================================================ -->
         <!-- C08.08 Redis 的过期策略与内存淘汰机制？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.08" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.08</div>
-            <div class="qa-question">Redis 的过期策略与内存淘汰机制？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.08" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.08</div>
+            <div class="content-question">Redis 的过期策略与内存淘汰机制？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 Redis <strong>"key 过期"与"内存满"两个独立机制</strong>的区分：过期策略解决"设了 TTL 的 key 何时被删"，淘汰策略解决"内存满时按什么规则驱逐 key"。本质是<strong>用惰性删除保准确、定期删除控延迟、淘汰策略兜底内存</strong>的三层机制。掌握 8 种淘汰策略的演进（noeviction→LRU→LFU→random→TTL）与 LRU/LFU 的近似实现，能回答 maxmemory 调优与内存抖动问题。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>过期策略：惰性 + 定期（长期如此）</strong>。惰性——访问时检查过期则删，保准确但过期 key 不访问则一直占内存；定期——主动循环抽样检查并渐进清理。两者结合平衡准确与延迟。<strong>演进</strong>：Redis 4.0 引入 lazy-free 体系，包括 <code class="inline-code">UNLINK</code> 和 <code class="inline-code">lazyfree-lazy-expire</code> 等配置；开启后过期 key 的释放可交给后台线程，减少大对象释放阻塞主线程的概率。抽样判断本身仍是过期机制的一部分，不应概括为“主动过期整体都在子线程”；不同版本可用的 lazy-free 开关要按目标版本确认。</p>
               <p><strong>淘汰策略演进</strong>：</p>
               <ul>
@@ -1462,9 +1462,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>过期 key 不立即删除</strong>：SET key value EX 60 后，key 在 RedisDB 的 expires 字典记录过期时间，但<strong>expires 字典与主字典分开</strong>，key 仍存在于主字典。删除时机：访问时（惰性）或定期扫描（定期）。</p>
 
               <table class="compare-table">
@@ -1539,18 +1539,18 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>maxmemory 配置</strong>：单实例 maxmemory 建议 = 物理内存 × 60%（留 fork 与 COW 余量）。超限触发淘汰，<code class="inline-code">INFO memory</code> 的 used_memory 接近 maxmemory 时需告警。</p>
               <p><strong>内存碎片监控</strong>：<code class="inline-code">INFO memory</code> 的 <code class="inline-code">mem_fragmentation_ratio</code> = used_memory_rss / used_memory。&gt;1.5 表示碎片严重（频繁修改/删除导致）。Redis 4.0+ 支持 <code class="inline-code">activedefrag yes</code> 主动碎片整理（Jemalloc 后台合并碎片）。&lt;1 表示用了 swap，必须立即处理。</p>
               <p><strong>大 key 删除阻塞</strong>：删除大 key（如百万元素 Hash）可能阻塞主线程。Redis 4.0+ 用 <code class="inline-code">UNLINK</code> 把实际释放交给 lazy-free 路径；也可评估 <code class="inline-code">lazyfree-lazy-eviction yes</code> 让淘汰释放异步化。定期用 <code class="inline-code">redis-cli --bigkeys</code> 或 <code class="inline-code">MEMORY USAGE</code> 扫描大 key 拆分。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：LRU vs LFU 如何选？为何 4.0 后推荐 LFU？</strong></p>
               <p>LRU 按时间淘汰，问题：扫描污染——一次批量查询大量冷 key 会把热 key 挤出（冷 key 刚访问过 lru 最新）。LFU 按频率淘汰，热 key 因高频访问频率高不被淘汰，冷 key 即使刚被访问频率仍低被淘汰。多数缓存场景有热点（20% key 占 80% 访问），LFU 命中率更高。无热点（均匀访问）两者相近。所以 4.0+ 推荐 allkeys-lfu。</p>
               <p><strong>追问 2：maxmemory-samples 调大有何副作用？</strong></p>
@@ -1558,9 +1558,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1578,22 +1578,22 @@ flowchart TB
         <!-- ============================================================ -->
         <!-- C08.09 布隆过滤器的原理与缓存穿透防护？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.09" data-difficulty="senior" data-priority="p2">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.09</div>
-            <div class="qa-question">布隆过滤器的原理与缓存穿透防护？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+        <div class="content-card" id="C08.09" data-difficulty="senior" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.09</div>
+            <div class="content-question">布隆过滤器的原理与缓存穿透防护？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对<strong>概率型数据结构在空间效率与准确性权衡</strong>的理解：布隆过滤器用极少内存判断"元素一定不存在"或"可能存在"，本质是<strong>用 k 个哈希函数映射到位数组，牺牲一定误判率换取 O(1) 判定与常数级空间</strong>。掌握误判率公式、参数计算、不可删除问题与 Counting Bloom Filter/布谷鸟过滤器的演进，能设计穿透防护与去重方案。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>布隆过滤器（1970 Burton Bloom）</strong>：位数组 + k 个哈希函数。添加元素时 k 个位置置 1；查询时 k 个位置全 1 则"可能存在"，有 0 则"一定不存在"。误判率可控但<strong>不可删除</strong>（删除某元素会把其他元素的 1 也清掉）。</p>
               <p><strong>Counting Bloom Filter</strong>：将位数组改为计数数组（每位置用 4-8 位计数器）。添加 +1、删除 -1。解决删除问题，但空间放大 4-8 倍，且计数器溢出风险。</p>
               <p><strong>布谷鸟过滤器（2014 Cuckoo Filter）</strong>：用布谷鸟哈希（每元素两个候选桶，冲突则踢出已有元素到其另一候选桶）。优势：① 支持删除（无计数器溢出）；② 空间更省（相同误判率下比 BF 少 20-40%）；③ 查询更快（最多两次哈希）。劣势：装填因子受限（超过 95% 性能下降）、重复元素受限。</p>
@@ -1601,9 +1601,9 @@ flowchart TB
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>布隆过滤器结构</strong>：m 位位数组 + k 个独立哈希函数。添加元素 x：对每个哈希函数 h_i 计算 h_i(x) mod m，将位数组对应位置 1。查询：k 个位置全为 1 则"可能存在"（可能误判），任一为 0 则"一定不存在"（绝不漏判）。</p>
 
               <div class="mermaid-container">
@@ -1683,9 +1683,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>缓存穿透防护架构</strong>：请求 → 布隆过滤器判断 → 不存在直接返回 → 可能存在则查 Redis → miss 查 DB → 回填 Redis 与布隆。布隆过滤器需初始化加载所有合法 key（启动时或异步同步）。</p>
               <div class="code-block">
                 <pre><code><span class="com">// Guava BloomFilter 防穿透</span>
@@ -1709,9 +1709,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：布隆过滤器为什么不能删除？如何解决？</strong></p>
               <p>位数组的 1 可能被多个元素共享（多个哈希函数映射到同一位）。删除元素清 0 会影响其他元素。解决：① Counting Bloom Filter 用计数器替代位（+1/-1），但空间放大；② 布谷鸟过滤器天然支持删除；③ 重建——定期重建布隆过滤器（全量重新加载合法 key），适用于 key 集合可枚举的场景。</p>
               <p><strong>追问 2：布隆过滤器的哈希函数如何选择？为何可以不独立？</strong></p>
@@ -1722,9 +1722,9 @@ flowchart LR
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -1737,9 +1737,9 @@ flowchart LR
               </div>
             </div>
           </div>
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p><strong>扩展 1：布谷鸟过滤器的二维桶结构与指纹</strong>。与"位数组"不同，布谷鸟过滤器是<strong>桶数组 + 槽位 + 指纹</strong>的二维逻辑结构 <code class="inline-code">buckets[m][b]</code>：m 个桶，标准实现每桶 <code class="inline-code">b=4</code> 个 slot，每个 slot 存一个定长指纹（常见 8bit，工程取值 4–12bit），<code class="inline-code">0</code> 表示空槽。指纹 <code class="inline-code">f = fingerprint(x)</code> 取哈希低 N 位，<strong>取值不能为 0</strong>（取到 0 时置 1）；指纹长度直接决定假阳性率。底层内存是紧凑打包的比特数组，而非"m×b 个对象"，这是它内存接近标准布隆的根本原因。</p>
 
               <div class="mermaid-container">
@@ -1975,22 +1975,22 @@ url_bf:{shard0}  url_bf:{shard1}  ...  url_bf:{shard15}</code></pre>
         <!-- ============================================================ -->
         <!-- C08.10 Redis 在高并发场景的常见问题与优化？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.10" data-difficulty="architect" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.10</div>
-            <div class="qa-question">Redis 在高并发场景的常见问题与优化？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.10" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.10</div>
+            <div class="content-question">Redis 在高并发场景的常见问题与优化？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>这道题考察对 Redis <strong>生产高并发场景的问题全景与优化方法论</strong>的架构级综合能力：大 Key、热 Key、慢查询、pipeline、Lua、集群扩缩容、连接池、内存治理等。本质是<strong>从单命令延迟、单分片压力、网络往返、内存占用四个维度系统识别瓶颈并优化</strong>。这是前 9 题的综合应用——数据结构选型、持久化权衡、缓存三大问题、一致性、分布式锁、多级缓存、Cluster、淘汰策略的工程化串联。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>早期：单线程模型的性能认知</strong>。Redis 6.0 前命令处理和网络 IO 都在单线程中完成，避免锁竞争；简单 GET/SET 常见压测可达十万级 QPS，但上限取决于命令复杂度、值大小、网络、协议、TLS 和客户端并发，不是固定 10 万上限。优化聚焦命令选择与 pipeline。</p>
               <p><strong>Redis 6.0：多线程网络 IO</strong>。命令执行仍单线程（保有序与无锁），但网络读写多线程化，提升网络密集场景吞吐。配合 IO threads 配置。</p>
               <p><strong>现状：全链路优化</strong>。从客户端（连接池、pipeline、集群路由）→ 网络（多线程 IO、TLS）→ 服务端（Lua 原子、大 key 拆分、慢命令禁用）→ 集群（分片均衡、热 key 迁移）→ 持久化（fork 优化、异步删除）→ 监控（latency monitor、slowlog）的全链路治理。</p>
@@ -1998,9 +1998,9 @@ url_bf:{shard0}  url_bf:{shard1}  ...  url_bf:{shard15}</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <table class="compare-table">
                 <thead>
                   <tr>
@@ -2073,9 +2073,9 @@ url_bf:{shard0}  url_bf:{shard1}  ...  url_bf:{shard15}</code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>大 Key 治理全流程</strong>：① <strong>发现</strong>——<code class="inline-code">redis-cli --bigkeys</code> 采样、<code class="inline-code">MEMORY USAGE key</code> 精确、RDB 离线分析；② <strong>拆分</strong>——大 Hash 按 hash(key)%N 分桶到多个 key、大 List 改 Stream、大 String 拆字段用 Hash；③ <strong>删除</strong>——UNLINK 异步删，或 HSCAN+HDEL 分批；④ <strong>隔离</strong>——大 key 单独实例，避免影响其他业务。</p>
               <p><strong>热 Key 治理</strong>：① <strong>探测</strong>——<code class="inline-code">redis-cli --hotkeys</code>（需 LFU）、JD hotkey 组件、Sentinel 热点参数；② <strong>本地化</strong>——热 key 推送到 Caffeine 本地缓存，TTL 短（秒级）；③ <strong>读副本</strong>——热 key 读多副本分散压力（Cluster 从节点读）；④ <strong>拆分</strong>——热 key 拆多份（如 <code class="inline-code">hotkey_0~hotkey_9</code> 随机读）。</p>
               <p><strong>连接池调优（Lettuce/Jedis）</strong>：</p>
@@ -2095,9 +2095,9 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Redis 6.0 多线程 IO 为何不把命令执行也多线程化？</strong></p>
               <p>命令执行单线程是 Redis 的核心设计——保证命令原子有序、无锁、数据结构简单。多线程执行需对每个数据结构加锁，Hash/Set/List 等复杂结构的细粒度锁代价巨大，反而降低性能。6.0 的多线程仅在网络读写（协议解析、响应发送）环节，命令执行仍单线程，既提升网络吞吐又保核心简单。这也是 Redis 与 Memcached（多线程+锁）的根本区别。</p>
               <p><strong>追问 2：如何监控 Redis 性能瓶颈？</strong></p>
@@ -2109,9 +2109,9 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2126,9 +2126,9 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="extension">
-            <div class="qa-layer-title">扩展补全</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
               <p>bigkey 的根本治理是拆分，但当单 key 的 value 确实需要存储大容量数据（如 100MB 的 Hash/List）时，纯内存 Redis 成本不可承受，需要<strong>替代存储方案</strong>。</p>
               <ul>
                 <li><strong>Pika</strong>（360 开源）：基于 RocksDB 的 SSD 存储，兼容 Redis 协议。适用于单 key 超大 value（如 100MB 的 Hash/List），SSD 成本远低于内存。读写性能：内存命中时接近 Redis，未命中时受 SSD IOPS 限制（毫秒级）。局限：不支持 Stream、部分命令行为与 Redis 不完全一致。</li>
@@ -2146,22 +2146,22 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
 
         <!-- C08.11 Redis Stream 作为消息队列的设计与实战？ -->
         <!-- ============================================================ -->
-        <div class="qa-card" id="C08.11" data-difficulty="senior" data-priority="p0">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.11</div>
-            <div class="qa-question">Redis Stream 作为消息队列的设计与实战？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+        <div class="content-card" id="C08.11" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.11</div>
+            <div class="content-question">Redis Stream 作为消息队列的设计与实战？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
           </div>
 
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>考察<strong>Redis Stream 的日志型消息队列设计与生产落地</strong>能力。核心回答：Redis Stream 是 Redis 5.0 引入的<strong>类 Kafka 的追加日志结构</strong>，通过 <strong>Radix Tree（基数树）存储消息、Consumer Group 实现组内消费与 ACK 机制</strong>，适合轻量级、低延迟、小吞吐的消息队列场景。需厘清 Stream ID 的生成规则、消费者组的 Pending Entries List（PEL）机制、以及与传统 List/ PubSub 的本质差异。</p>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="evolution">
-            <div class="qa-layer-title">演进脉络</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
               <p><strong>阶段 1：List（LPUSH/BRPOP）</strong>。Redis 早期用 List 做队列，简单但无 ACK 机制、无消费者组、无消息回溯，消息一出队就丢失，失败无法重试。</p>
               <p><strong>阶段 2：Pub/Sub</strong>。发布订阅模式，支持多消费者，但消息不持久化、无 ACK、离线消费者收不到消息，只适合做广播通知，不适合任务队列。</p>
               <p><strong>阶段 3：Stream（Redis 5.0，2018）</strong>。引入<strong>日志型结构</strong>：消息持久化、支持范围查询、Consumer Group 组内竞争消费、ACK 确认与未确认重投（Claim）。是 List + Pub/Sub 的补足，但<strong>非 Kafka 替代</strong>——适合中小规模（万级 QPS）、低延迟（亚毫秒级）场景。</p>
@@ -2169,9 +2169,9 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">第一性原理</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
               <p><strong>Stream 核心结构</strong>：</p>
               <ul>
                 <li><strong>Radix Tree（基数树）</strong>：Stream 底层用 Radix Tree 存储消息，每个节点是一个消息 ID（时间戳-序列号），保证有序且支持按 ID 范围查询。</li>
@@ -2232,9 +2232,9 @@ spring.data.redis.lettuce.pool.max-wait=<span class="num">2000</span>ms <span cl
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">工程实践</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
               <p><strong>Stream 生产者与消费者示例</strong>：</p>
               <div class="code-block">
                 <pre><code><span class="com">// 生产者：添加消息到 Stream</span>
@@ -2291,9 +2291,9 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">深度追问</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
               <p><strong>追问 1：Stream 能否完全替代 Kafka？</strong></p>
               <p><strong>不能</strong>。Stream 是内存结构，受单机内存限制，无分区多副本机制（Redis Cluster 的 Stream 分片需客户端手动按 key 拆分），无磁盘持久化重放能力，消费者组协调也较简单。Stream 的优势是<strong>低延迟（亚毫秒）+ 部署简单</strong>，适合：订单状态流转、延时任务调度（配合 ZSet）、轻量事件总线。Kafka 适合：大数据吞吐（百万 QPS）、长时间消息保留、跨机房复制、复杂流处理（Flink/Spark）。</p>
               <p><strong>追问 2：Stream 的消费者组与 Kafka Consumer Group 的差异？</strong></p>
@@ -2301,9 +2301,9 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
             </div>
           </div>
 
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">常见陷阱</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
               <div class="callout callout-pitfall">
                 <div class="callout-title">易错点</div>
                 <ul>
@@ -2318,26 +2318,26 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
           </div>
         </div>
 
-        <div class="qa-card" id="C08.12" data-difficulty="senior" data-priority="p1">
-          <div class="qa-header">
-            <div class="card-badge code-c">C08.12</div>
-            <div class="qa-question">缓存击穿值班手册：热点过期瞬间如何止血？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+        <div class="content-card" id="C08.12" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C08.12</div>
+            <div class="content-question">缓存击穿值班手册：热点过期瞬间如何止血？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
-          <div class="qa-layer" data-layer="essence">
-            <div class="qa-layer-title">本质问题</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
               <p>击穿=热点 key 过期瞬间请求打穿到 DB。分钟级目标是止血，不是架构演讲。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="principle">
-            <div class="qa-layer-title">原理映射</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">原理映射</div>
+            <div class="content-layer-body">
               <p>击穿与穿透、雪崩处置不同：击穿靠互斥重建/逻辑过期；穿透靠空值或布隆；雪崩靠随机 TTL/预热。失败可降级必须写进契约（对照 G05 / K05）。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="practice">
-            <div class="qa-layer-title">落地排查</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">落地排查</div>
+            <div class="content-layer-body">
               <p>值班顺序：</p>
               <ol>
                 <li>确认热点 key 与 DB QPS 尖刺是否同秒对齐。</li>
@@ -2348,15 +2348,15 @@ XTRIM order-stream MINID <span class="num">1640000000000-0</span></code></pre>
               </ol>
             </div>
           </div>
-          <div class="qa-layer" data-layer="deep">
-            <div class="qa-layer-title">参数与开关</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">参数与开关</div>
+            <div class="content-layer-body">
               <p>开关表：singleflight/mutex、逻辑过期、热点 key 名单、DB 限流阈值、降级开关。看板：缓存命中率、该 key QPS、DB 同指纹 QPS。禁止直接「关缓存」。</p>
             </div>
           </div>
-          <div class="qa-layer" data-layer="pitfall">
-            <div class="qa-layer-title">失败模式与回滚</div>
-            <div class="qa-layer-body">
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">失败模式与回滚</div>
+            <div class="content-layer-body">
               <p>失败模式：当穿透处理乱加空值；关缓存直打；互斥锁变成全局锁。回滚点：关闭错误开关，恢复旧 TTL/降级策略。</p>
               <p>击穿与穿透不同：击穿是热点过期瞬间并发打穿 DB。临时止血用互斥重建或逻辑过期；长期靠预热与单 key 护栏。</p>
               <p>核对：TTL 是否对齐、是否有单飞锁、降级是否可读旧值。禁止只靠「把 TTL 调很长」掩盖设计问题。</p>
