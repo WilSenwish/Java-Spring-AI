@@ -990,7 +990,7 @@ def main():
     _ov_bucket_fail = 0
     _ov_title_fail = 0
     for _gm in re.finditer(
-        r'<section class="ov-group" id="(group-p[012])">(.*?)</section>',
+        r'<section class="ov-group[^"]*" id="(group-p[012])">(.*?)</section>',
         texts["overview"],
         re.S,
     ):
@@ -1051,7 +1051,7 @@ def main():
             if not re.match(r'<h3 class="ov-subgroup-title">', _sm or ""):
                 continue
             _type_blocks = list(
-                re.finditer(r'<div class="ov-type">(.*?)</div>', _sm, re.S)
+                re.finditer(r'<div class="ov-type[^"]*">(.*?)</div>', _sm, re.S)
             )
             if not _type_blocks:
                 _ov_type_missing += 1

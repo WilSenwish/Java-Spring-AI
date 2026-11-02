@@ -677,10 +677,10 @@ pre {
   line-height: 1;
   white-space: nowrap;
 }
-.qa-card[data-difficulty="architect"] .qa-badge {
+.qa-card[data-difficulty="architect"] .qa-badge:not([class*="code-"]) {
   background: var(--accent2);
 }
-.qa-card[data-difficulty="expert"] .qa-badge {
+.qa-card[data-difficulty="expert"] .qa-badge:not([class*="code-"]) {
   background: var(--diff-expert-solid);
 }
 .qa-question {
@@ -1130,30 +1130,34 @@ code.inline-code {
   transition: all 0.15s ease;
   line-height: 1.5;
 }
-.sidebar-toc a:hover {
+.sidebar-toc:not([class*="sidebar-code-"]):not([class*="toc-group-code-"]) a:hover {
   color: var(--accent);
   background: var(--bg2);
 }
-.sidebar-toc a.active {
+.sidebar-toc:not([class*="sidebar-code-"]):not([class*="toc-group-code-"]) a.active {
   color: var(--accent);
   border-left-color: var(--accent);
-  background: rgba(37, 99, 235, 0.05);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
   font-weight: 600;
 }
 .sidebar-toc .toc-number {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--accent);
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.15);
+  color: var(--accent); /* 兜底，被 sidebar-code-x / toc-group-code-x 覆盖 */
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 5px;
   padding: 1px 5px;
   margin-right: 6px;
   white-space: nowrap;
   display: inline-block;
   vertical-align: 1px;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
+/* 悬浮时 toc-number 加深 —— 与 a:hover 联动 */
+.sidebar-toc a:hover .toc-number,
+.sidebar-toc a.active .toc-number { filter: brightness(1.15); }
 
 /* ---------- 导航首页特有样式 ---------- */
 .index-hero {
@@ -1260,6 +1264,7 @@ code.inline-code {
   font-size: 0.75rem;
   color: var(--accent);
   letter-spacing: 0.08em;
+  transition: filter 0.15s ease;
 }
 .chapter-card .card-title {
   font-size: 1.1rem;
@@ -1676,8 +1681,8 @@ html[data-theme="dark"] .compare-table.table-cards td::before {
 html[data-theme="dark"] .sidebar-toc a {
   color: var(--muted);
 }
-html[data-theme="dark"] .sidebar-toc a.active,
-html[data-theme="dark"] .sidebar-toc a:hover {
+html[data-theme="dark"] .sidebar-toc:not([class*="sidebar-code-"]):not([class*="toc-group-code-"]) a.active,
+html[data-theme="dark"] .sidebar-toc:not([class*="sidebar-code-"]):not([class*="toc-group-code-"]) a:hover {
   color: var(--accent);
 }
 @media (prefers-color-scheme: dark) {
@@ -1762,8 +1767,8 @@ html[data-theme="dark"] .sidebar-toc a:hover {
   html:not([data-theme="light"]) .sidebar-toc a {
     color: var(--muted);
   }
-  html:not([data-theme="light"]) .sidebar-toc a.active,
-  html:not([data-theme="light"]) .sidebar-toc a:hover {
+  html:not([data-theme="light"]) .sidebar-toc:not([class*="sidebar-code-"]):not([class*="toc-group-code-"]) a.active,
+  html:not([data-theme="light"]) .sidebar-toc:not([class*="sidebar-code-"]):not([class*="toc-group-code-"]) a:hover {
     color: var(--accent);
   }
 }
@@ -2433,6 +2438,18 @@ html[data-theme="dark"] .sidebar-toc a:hover {
 .qa-badge.code-a  { background: var(--code-a);  }
 .qa-badge.code-sec{ background: var(--code-sec);}
 
+/* --- epq-badge：核心原理题集（E 体系专用编号徽章）--- */
+.epq-card .epq-badge {
+  background: var(--code-e);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+/* qa-card 悬浮时徽章加深 */
+.qa-card:hover .qa-badge,
+.qa-card:hover .epq-badge { filter: brightness(1.15); }
+
 /* --- chapter-card 边框着色钩子（javaint/index.html 的 24 张卡 + chapter 页导航卡）--- */
 .chapter-card.code-c  { border-left-color: var(--code-c);  }
 .chapter-card.code-m  { border-left-color: var(--code-m);  }
@@ -2456,6 +2473,18 @@ html[data-theme="dark"] .sidebar-toc a:hover {
 .chapter-card .card-number.code-a  { color: var(--code-a);  }
 .chapter-card .card-number.code-sec{ color: var(--code-sec);}
 .chapter-card .card-number.overview-card { color: var(--success); }
+/* chapter-card 悬浮时编号加深 */
+.chapter-card:hover .card-number,
+.chapter-card:hover .card-number.code-c,
+.chapter-card:hover .card-number.code-m,
+.chapter-card:hover .card-number.code-e,
+.chapter-card:hover .card-number.code-g,
+.chapter-card:hover .card-number.code-d,
+.chapter-card:hover .card-number.code-s,
+.chapter-card:hover .card-number.code-k,
+.chapter-card:hover .card-number.code-a,
+.chapter-card:hover .card-number.code-sec,
+.chapter-card:hover .card-number.overview-card { filter: brightness(1.2); }
 
 /* --- toc-group-title 着色钩子（特异度须压过 .sidebar-toc a.toc-group-title）--- */
 .sidebar-toc a.toc-group-title.code-c  { color: var(--code-c);  border-left-color: var(--code-c);  }
@@ -2485,6 +2514,61 @@ html[data-theme="dark"] .sidebar-toc a:hover {
 .sidebar-toc a.toc-group-title.code-a:hover  { color: var(--code-a);  border-left-color: var(--code-a);  }
 .sidebar-toc a.toc-group-title.code-sec.active,
 .sidebar-toc a.toc-group-title.code-sec:hover{ color: var(--code-sec);border-left-color: var(--code-sec);}
+
+/* ====== sidebar-toc 父级体系标识（覆盖所有 a 和 h3，篇章级着色）====== */
+.sidebar-toc.sidebar-code-m a,  .sidebar-toc.sidebar-code-m h3  { color: var(--code-m); }
+.sidebar-toc.sidebar-code-m a.active, .sidebar-toc.sidebar-code-m a:hover { color: var(--code-m); border-left-color: var(--code-m); background: color-mix(in srgb, var(--code-m) 5%, transparent); }
+.sidebar-toc.sidebar-code-c a,  .sidebar-toc.sidebar-code-c h3  { color: var(--code-c); }
+.sidebar-toc.sidebar-code-c a.active, .sidebar-toc.sidebar-code-c a:hover { color: var(--code-c); border-left-color: var(--code-c); background: color-mix(in srgb, var(--code-c) 5%, transparent); }
+.sidebar-toc.sidebar-code-e a,  .sidebar-toc.sidebar-code-e h3  { color: var(--code-e); }
+.sidebar-toc.sidebar-code-e a.active, .sidebar-toc.sidebar-code-e a:hover { color: var(--code-e); border-left-color: var(--code-e); background: color-mix(in srgb, var(--code-e) 5%, transparent); }
+.sidebar-toc.sidebar-code-s a,  .sidebar-toc.sidebar-code-s h3  { color: var(--code-s); }
+.sidebar-toc.sidebar-code-s a.active, .sidebar-toc.sidebar-code-s a:hover { color: var(--code-s); border-left-color: var(--code-s); background: color-mix(in srgb, var(--code-s) 5%, transparent); }
+.sidebar-toc.sidebar-code-a a,  .sidebar-toc.sidebar-code-a h3  { color: var(--code-a); }
+.sidebar-toc.sidebar-code-a a.active, .sidebar-toc.sidebar-code-a a:hover { color: var(--code-a); border-left-color: var(--code-a); background: color-mix(in srgb, var(--code-a) 5%, transparent); }
+.sidebar-toc.sidebar-code-g a,  .sidebar-toc.sidebar-code-g h3  { color: var(--code-g); }
+.sidebar-toc.sidebar-code-g a.active, .sidebar-toc.sidebar-code-g a:hover { color: var(--code-g); border-left-color: var(--code-g); background: color-mix(in srgb, var(--code-g) 5%, transparent); }
+.sidebar-toc.sidebar-code-k a,  .sidebar-toc.sidebar-code-k h3  { color: var(--code-k); }
+.sidebar-toc.sidebar-code-k a.active, .sidebar-toc.sidebar-code-k a:hover { color: var(--code-k); border-left-color: var(--code-k); background: color-mix(in srgb, var(--code-k) 5%, transparent); }
+.sidebar-toc.sidebar-code-d a,  .sidebar-toc.sidebar-code-d h3  { color: var(--code-d); }
+.sidebar-toc.sidebar-code-d a.active, .sidebar-toc.sidebar-code-d a:hover { color: var(--code-d); border-left-color: var(--code-d); background: color-mix(in srgb, var(--code-d) 5%, transparent); }
+/* sidebar-toc 默认 active/hover 色被上面 sidebar-code-x 覆盖，active 状态再显式强调 */
+.sidebar-toc[class*="sidebar-code-"] a.active::before,
+.sidebar-toc[class*="sidebar-code-"] a.active::after { background: currentColor; }
+
+/* ====== sidebar-code-x 覆盖 toc-number（篇章级 sidebar 内卡片编号）====== */
+.sidebar-toc.sidebar-code-m .toc-number { color: var(--code-m); background: color-mix(in srgb, var(--code-m) 12%, transparent); border-color: color-mix(in srgb, var(--code-m) 35%, transparent); }
+.sidebar-toc.sidebar-code-c .toc-number { color: var(--code-c); background: color-mix(in srgb, var(--code-c) 12%, transparent); border-color: color-mix(in srgb, var(--code-c) 35%, transparent); }
+.sidebar-toc.sidebar-code-e .toc-number { color: var(--code-e); background: color-mix(in srgb, var(--code-e) 12%, transparent); border-color: color-mix(in srgb, var(--code-e) 35%, transparent); }
+.sidebar-toc.sidebar-code-s .toc-number { color: var(--code-s); background: color-mix(in srgb, var(--code-s) 12%, transparent); border-color: color-mix(in srgb, var(--code-s) 35%, transparent); }
+.sidebar-toc.sidebar-code-a .toc-number { color: var(--code-a); background: color-mix(in srgb, var(--code-a) 12%, transparent); border-color: color-mix(in srgb, var(--code-a) 35%, transparent); }
+.sidebar-toc.sidebar-code-g .toc-number { color: var(--code-g); background: color-mix(in srgb, var(--code-g) 12%, transparent); border-color: color-mix(in srgb, var(--code-g) 35%, transparent); }
+.sidebar-toc.sidebar-code-k .toc-number { color: var(--code-k); background: color-mix(in srgb, var(--code-k) 12%, transparent); border-color: color-mix(in srgb, var(--code-k) 35%, transparent); }
+.sidebar-toc.sidebar-code-d .toc-number { color: var(--code-d); background: color-mix(in srgb, var(--code-d) 12%, transparent); border-color: color-mix(in srgb, var(--code-d) 35%, transparent); }
+/* sidebar-code-sec 不存在篇章级（仅专篇），如后续新增则补 */
+
+/* ====== toc-group-code-x 覆盖 toc-number（quick-list 混合多体系场景）====== */
+.sidebar-toc .toc-group.toc-group-code-m .toc-number { color: var(--code-m); background: color-mix(in srgb, var(--code-m) 12%, transparent); border-color: color-mix(in srgb, var(--code-m) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-c .toc-number { color: var(--code-c); background: color-mix(in srgb, var(--code-c) 12%, transparent); border-color: color-mix(in srgb, var(--code-c) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-e .toc-number { color: var(--code-e); background: color-mix(in srgb, var(--code-e) 12%, transparent); border-color: color-mix(in srgb, var(--code-e) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-s .toc-number { color: var(--code-s); background: color-mix(in srgb, var(--code-s) 12%, transparent); border-color: color-mix(in srgb, var(--code-s) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-a .toc-number { color: var(--code-a); background: color-mix(in srgb, var(--code-a) 12%, transparent); border-color: color-mix(in srgb, var(--code-a) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-g .toc-number { color: var(--code-g); background: color-mix(in srgb, var(--code-g) 12%, transparent); border-color: color-mix(in srgb, var(--code-g) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-k .toc-number { color: var(--code-k); background: color-mix(in srgb, var(--code-k) 12%, transparent); border-color: color-mix(in srgb, var(--code-k) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-d .toc-number { color: var(--code-d); background: color-mix(in srgb, var(--code-d) 12%, transparent); border-color: color-mix(in srgb, var(--code-d) 35%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-sec .toc-number { color: var(--code-sec); background: color-mix(in srgb, var(--code-sec) 12%, transparent); border-color: color-mix(in srgb, var(--code-sec) 35%, transparent); }
+
+/* ====== toc-group-code-x 覆盖 a:hover / a.active 文字色（quick-list 多体系混排）====== */
+.sidebar-toc .toc-group.toc-group-code-m a:hover,  .sidebar-toc .toc-group.toc-group-code-m a.active  { color: var(--code-m); border-left-color: var(--code-m); background: color-mix(in srgb, var(--code-m) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-c a:hover,  .sidebar-toc .toc-group.toc-group-code-c a.active  { color: var(--code-c); border-left-color: var(--code-c); background: color-mix(in srgb, var(--code-c) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-e a:hover,  .sidebar-toc .toc-group.toc-group-code-e a.active  { color: var(--code-e); border-left-color: var(--code-e); background: color-mix(in srgb, var(--code-e) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-s a:hover,  .sidebar-toc .toc-group.toc-group-code-s a.active  { color: var(--code-s); border-left-color: var(--code-s); background: color-mix(in srgb, var(--code-s) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-a a:hover,  .sidebar-toc .toc-group.toc-group-code-a a.active  { color: var(--code-a); border-left-color: var(--code-a); background: color-mix(in srgb, var(--code-a) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-g a:hover,  .sidebar-toc .toc-group.toc-group-code-g a.active  { color: var(--code-g); border-left-color: var(--code-g); background: color-mix(in srgb, var(--code-g) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-k a:hover,  .sidebar-toc .toc-group.toc-group-code-k a.active  { color: var(--code-k); border-left-color: var(--code-k); background: color-mix(in srgb, var(--code-k) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-d a:hover,  .sidebar-toc .toc-group.toc-group-code-d a.active  { color: var(--code-d); border-left-color: var(--code-d); background: color-mix(in srgb, var(--code-d) 5%, transparent); }
+.sidebar-toc .toc-group.toc-group-code-sec a:hover,.sidebar-toc .toc-group.toc-group-code-sec a.active{ color: var(--code-sec); border-left-color: var(--code-sec); background: color-mix(in srgb, var(--code-sec) 5%, transparent); }
+
 
 /* --- 方法论 dimension-title .dim-number 着色钩子 --- */
 .dimension-title .dim-number.code-m { color: var(--code-m); }
