@@ -14,135 +14,133 @@
   /* 偏蓝文档风：浅色 / 深色各一套（theme: base + themeVariables） */
   var MERMAID_VARS_LIGHT = {
     darkMode: false,
-    background: '#f8fafc',
-    primaryColor: '#dbeafe',
-    primaryTextColor: '#1e3a5f',
-    primaryBorderColor: '#3b82f6',
-    secondaryColor: '#eff6ff',
-    tertiaryColor: '#f1f5f9',
-    lineColor: '#64748b',
-    textColor: '#1e293b',
-    mainBkg: '#dbeafe',
-    nodeBorder: '#3b82f6',
-    clusterBkg: '#eff6ff',
-    clusterBorder: '#93c5fd',
-    titleColor: '#1d4ed8',
-    edgeLabelBackground: '#f8fafc',
-    actorBkg: '#dbeafe',
-    actorBorder: '#3b82f6',
-    actorTextColor: '#1e3a5f',
-    actorLineColor: '#60a5fa',
-    signalColor: '#334155',
-    signalTextColor: '#1e293b',
-    labelBoxBkgColor: '#eff6ff',
-    labelBoxBorderColor: '#93c5fd',
-    labelTextColor: '#1e3a5f',
-    loopTextColor: '#1e3a5f',
-    noteBkgColor: '#fef9c3',
-    noteTextColor: '#713f12',
-    noteBorderColor: '#facc15',
-    activationBkgColor: '#bfdbfe',
-    activationBorderColor: '#2563eb',
-    sequenceNumberColor: '#ffffff',
-    /* cScale 系列：思维导图分支底色/连线/标签色。
-       不显式定义时 Mermaid 会用 base 主题的默认紫蓝调色板（如 #6a5ffb），
-       配本主题的深藏青标签色只有 2.54:1（不可读）——必须显式接管。 */
-    cScale0: '#dbeafe',
-    cScale1: '#fef3c7',
-    cScale2: '#dcfce7',
-    cScale3: '#ede9fe',
-    cScale4: '#fee2e2',
-    cScale5: '#cffafe',
-    cScale6: '#f3e8ff',
-    cScale7: '#fef9c3',
-    cScale8: '#d1fae5',
-    cScale9: '#ffe4e6',
-    cScale10: '#e0e7ff',
-    cScale11: '#e2e8f0',
-    cScaleInv0: '#2563eb',
-    cScaleInv1: '#d97706',
-    cScaleInv2: '#059669',
-    cScaleInv3: '#7c3aed',
-    cScaleInv4: '#dc2626',
-    cScaleInv5: '#0891b2',
-    cScaleInv6: '#9333ea',
-    cScaleInv7: '#ca8a04',
-    cScaleInv8: '#10b981',
-    cScaleInv9: '#e11d48',
-    cScaleInv10: '#4f46e5',
-    cScaleInv11: '#64748b',
+    background: '#eff1f5',
+    primaryColor: '#cdd6f4',
+    primaryTextColor: '#4c4f69',
+    primaryBorderColor: '#1e66f5',
+    secondaryColor: '#e6e9ef',
+    tertiaryColor: '#eef1f5',
+    lineColor: '#9ca0b3',
+    textColor: '#4c4f69',
+    mainBkg: '#cdd6f4',
+    nodeBorder: '#1e66f5',
+    clusterBkg: '#e6e9ef',
+    clusterBorder: '#bcc0cc',
+    titleColor: '#1e66f5',
+    edgeLabelBackground: '#eff1f5',
+    actorBkg: '#cdd6f4',
+    actorBorder: '#1e66f5',
+    actorTextColor: '#4c4f69',
+    actorLineColor: '#1e66f5',
+    signalColor: '#5c5f77',
+    signalTextColor: '#4c4f69',
+    labelBoxBkgColor: '#e6e9ef',
+    labelBoxBorderColor: '#bcc0cc',
+    labelTextColor: '#4c4f69',
+    loopTextColor: '#4c4f69',
+    noteBkgColor: '#f9e2af',
+    noteTextColor: '#4c4f69',
+    noteBorderColor: '#df8e1d',
+    activationBkgColor: '#cdd6f4',
+    activationBorderColor: '#1e66f5',
+    sequenceNumberColor: '#4c4f69',
+    /* cScale 系列：思维导图分支底色/连线/标签色（Catppuccin Latte） */
+    cScale0: '#cdd6f4',
+    cScale1: '#f9e2af',
+    cScale2: '#a6e3a1',
+    cScale3: '#cba6f7',
+    cScale4: '#f38ba8',
+    cScale5: '#94e2d5',
+    cScale6: '#f5c2e7',
+    cScale7: '#f9e2af',
+    cScale8: '#a6e3a1',
+    cScale9: '#f38ba8',
+    cScale10: '#b4befe',
+    cScale11: '#ccd0da',
+    cScaleInv0: '#1e66f5',
+    cScaleInv1: '#df8e1d',
+    cScaleInv2: '#40a02b',
+    cScaleInv3: '#8839ef',
+    cScaleInv4: '#d20f39',
+    cScaleInv5: '#179299',
+    cScaleInv6: '#ea76cb',
+    cScaleInv7: '#fe640b',
+    cScaleInv8: '#40a02b',
+    cScaleInv9: '#d20f39',
+    cScaleInv10: '#7287fd',
+    cScaleInv11: '#7c7f93',
     /* 思维导图根节点走 git0 / gitBranchLabel0（非 cScale） */
-    git0: '#bfdbfe',
-    gitBranchLabel0: '#1e3a5f',
+    git0: '#cdd6f4',
+    gitBranchLabel0: '#4c4f69',
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
   };
   var MERMAID_VARS_DARK = {
     darkMode: true,
-    background: '#0f1419',
-    primaryColor: '#1e3a5f',
-    primaryTextColor: '#e2e8f0',
-    primaryBorderColor: '#60a5fa',
-    secondaryColor: '#1a2332',
-    tertiaryColor: '#152033',
-    lineColor: '#94a3b8',
-    textColor: '#e2e8f0',
-    mainBkg: '#1e3a5f',
-    nodeBorder: '#60a5fa',
-    clusterBkg: '#152033',
-    clusterBorder: '#3b82f6',
-    titleColor: '#93c5fd',
-    edgeLabelBackground: '#1a2332',
-    actorBkg: '#1e3a5f',
-    actorBorder: '#60a5fa',
-    actorTextColor: '#e2e8f0',
-    actorLineColor: '#60a5fa',
-    signalColor: '#cbd5e1',
-    signalTextColor: '#e2e8f0',
-    labelBoxBkgColor: '#1a2332',
-    labelBoxBorderColor: '#3b82f6',
-    labelTextColor: '#e2e8f0',
-    loopTextColor: '#e2e8f0',
-    noteBkgColor: '#422006',
-    noteTextColor: '#fde68a',
-    noteBorderColor: '#fbbf24',
-    activationBkgColor: '#1e40af',
-    activationBorderColor: '#60a5fa',
-    sequenceNumberColor: '#0f1419',
-    /* cScale 系列：深底版分支底色（与浅色同色相，仅降明度、提对比） */
-    cScale0: '#1e3a5f',
-    cScale1: '#3d3312',
-    cScale2: '#14402b',
-    cScale3: '#2a2255',
-    cScale4: '#4b1a1d',
-    cScale5: '#0e3a44',
-    cScale6: '#341d4d',
-    cScale7: '#3b3708',
-    cScale8: '#0f3d33',
-    cScale9: '#4a1c24',
-    cScale10: '#1e2a5c',
-    cScale11: '#26313f',
-    cScaleInv0: '#60a5fa',
-    cScaleInv1: '#fbbf24',
-    cScaleInv2: '#34d399',
-    cScaleInv3: '#a78bfa',
-    cScaleInv4: '#f87171',
-    cScaleInv5: '#22d3ee',
-    cScaleInv6: '#c084fc',
-    cScaleInv7: '#facc15',
-    cScaleInv8: '#34d399',
-    cScaleInv9: '#fb7185',
-    cScaleInv10: '#818cf8',
-    cScaleInv11: '#94a3b8',
+    background: '#1e1e2e',
+    primaryColor: '#313244',
+    primaryTextColor: '#cdd6f4',
+    primaryBorderColor: '#89b4fa',
+    secondaryColor: '#181825',
+    tertiaryColor: '#181825',
+    lineColor: '#6c7086',
+    textColor: '#cdd6f4',
+    mainBkg: '#313244',
+    nodeBorder: '#89b4fa',
+    clusterBkg: '#181825',
+    clusterBorder: '#45475a',
+    titleColor: '#89b4fa',
+    edgeLabelBackground: '#313244',
+    actorBkg: '#313244',
+    actorBorder: '#89b4fa',
+    actorTextColor: '#cdd6f4',
+    actorLineColor: '#89b4fa',
+    signalColor: '#a6adc8',
+    signalTextColor: '#cdd6f4',
+    labelBoxBkgColor: '#181825',
+    labelBoxBorderColor: '#45475a',
+    labelTextColor: '#cdd6f4',
+    loopTextColor: '#cdd6f4',
+    noteBkgColor: '#45475a',
+    noteTextColor: '#f9e2af',
+    noteBorderColor: '#f9e2af',
+    activationBkgColor: '#313244',
+    activationBorderColor: '#89b4fa',
+    sequenceNumberColor: '#cdd6f4',
+    /* cScale 系列：深底版分支底色（Catppuccin Mocha · 同色相降明度） */
+    cScale0: '#153a84',
+    cScale1: '#423c2f',
+    cScale2: '#314030',
+    cScale3: '#372e43',
+    cScale4: '#603944',
+    cScale5: '#173e3e',
+    cScale6: '#4a2a42',
+    cScale7: '#423c2f',
+    cScale8: '#314030',
+    cScale9: '#603944',
+    cScale10: '#2a2e52',
+    cScale11: '#2a2e3a',
+    cScaleInv0: '#89b4fa',
+    cScaleInv1: '#f9e2af',
+    cScaleInv2: '#a6e3a1',
+    cScaleInv3: '#cba6f7',
+    cScaleInv4: '#f38ba8',
+    cScaleInv5: '#94e2d5',
+    cScaleInv6: '#f5c2e7',
+    cScaleInv7: '#fab387',
+    cScaleInv8: '#a6e3a1',
+    cScaleInv9: '#f38ba8',
+    cScaleInv10: '#b4befe',
+    cScaleInv11: '#a6adc8',
     /* 思维导图根节点走 git0 / gitBranchLabel0（非 cScale） */
-    git0: '#24406b',
-    gitBranchLabel0: '#e2e8f0',
+    git0: '#45475a',
+    gitBranchLabel0: '#cdd6f4',
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
   };
 
   /* cScaleLabel：分支标签文字色（不定义则回落 labelTextColor） */
   for (var _ci = 0; _ci < 12; _ci++) {
-    MERMAID_VARS_LIGHT['cScaleLabel' + _ci] = '#1e3a5f';
-    MERMAID_VARS_DARK['cScaleLabel' + _ci] = '#e2e8f0';
+    MERMAID_VARS_LIGHT['cScaleLabel' + _ci] = '#4c4f69';
+    MERMAID_VARS_DARK['cScaleLabel' + _ci] = '#cdd6f4';
   }
 
   /* ---------- 图表内联配色「深色重着色」 ----------
@@ -155,57 +153,35 @@
    * 少数饱和实色配白字的节点则压暗明度，保住白字。 */
   var RETINT_ATTR = 'data-kb-orig-style';
   var RETINT_FILL_DARK = {
-    '#dbeafe': '#1e3a5f',
-    '#fef3c7': '#3d3312',
-    '#dcfce7': '#14402b',
-    '#d1fae5': '#0f3d33',
-    '#fee2e2': '#4b1a1d',
-    '#ffe4e6': '#4a1c24',
-    '#ede9fe': '#2a2255',
-    '#f3e8ff': '#341d4d',
-    '#e0e7ff': '#1e2a5c',
-    '#f0f3f7': '#232e40',
-    '#e2e8f0': '#26313f',
-    '#e5e7eb': '#2a323d',
-    '#e1f5fe': '#123a47',
-    '#fff3e0': '#46301a',
-    '#e8f5e9': '#1d3b22',
-    '#4a90d9': '#2f5f96',
-    '#7b68ee': '#4f3fb0',
-    '#ff6b35': '#a5431f',
-    '#e74c3c': '#9e2f26',
-    '#f39c12': '#8a5a09',
-    '#9b59b6': '#6a3a7f',
-    /* 2026-10-24：D 篇 R4 导图页扩至十二域，新增四色对应浅底（青/酸橙/品红/橙 100） */
-    '#cffafe': '#164e63',
-    '#ecfccb': '#2a3a10',
-    '#fae8ff': '#4a1d52',
-    '#ffedd5': '#4a2c12',
-    /* 2026-10-27：A 篇 AI 工程纵深导图页新增三色（青绿浅底/白底/青绿描边） */
-    '#ccfbf1': '#0f3d38',
-    '#ffffff': '#26313f',
+    '#cdd6f4': '#33363d',
+    '#f9e2af': '#423c2f',
+    '#a6e3a1': '#314030',
+    '#cba6f7': '#372e43',
+    '#f38ba8': '#603944',
+    '#ccd0da': '#37373a',
+    '#e6e9ef': '#373839',
+    '#1e66f5': '#153a84',
+    '#7287fd': '#303869',
+    '#8839ef': '#472277',
+    '#d20f39': '#8f0a27',
+    '#df8e1d': '#875612',
+    '#fab387': '#634736',
+    '#fe640b': '#923a07',
+    '#bcc0cc': '#36373a',
+    '#ffffff': '#313244',
   };
   var RETINT_STROKE_DARK = {
-    '#2563eb': '#60a5fa',
-    '#d97706': '#fbbf24',
-    '#059669': '#34d399',
-    '#dc2626': '#f87171',
-    /* 2026-10-24：D 篇 R4 导图页「风控与合规」域描边（红 700），与 dc2626 同色相族 */
-    '#b91c1c': '#f87171',
-    '#7c3aed': '#a78bfa',
-    '#e11d48': '#fb7185',
-    '#4f46e5': '#818cf8',
-    /* 2026-10-24：D 篇 R4 导图页扩至十二域，新增四色（青/酸橙/品红/橙） */
-    '#0e7490': '#22d3ee',
-    '#4d7c0f': '#a3e635',
-    '#c026d3': '#e879f9',
-    '#ea580c': '#fb923c',
-    /* 2026-10-27：A 篇导图页青绿描边 */
-    '#0f766e': '#2dd4bf',
-    '#6b7280': '#94a3b8',
-    '#475569': '#94a3b8',
-    '#64748b': '#94a3b8',
-    '#9ca3af': '#cbd5e1',
+    '#1e66f5': '#89b4fa',
+    '#40a02b': '#a6e3a1',
+    '#585b70': '#7f849c',
+    '#6c6f85': '#7f849c',
+    '#7287fd': '#b4befe',
+    '#8839ef': '#cba6f7',
+    '#a6adc8': '#7f849c',
+    '#d20f39': '#f38ba8',
+    '#df8e1d': '#f9e2af',
+    '#7c7f93': '#7f849c',
+    '#9ca0b3': '#9399b2',
   };
   var RETINT_DECL = /(^|;)\s*(fill|stroke)\s*:\s*(#[0-9a-fA-F]{3,8})\s*(!important)?/g;
 
@@ -811,26 +787,26 @@
         'max-width:calc(100vw - 24px);pointer-events:none}' +
         '.kb-listen__btn,.kb-listen__rate,.kb-listen__stop,.kb-listen__toggle{pointer-events:auto;touch-action:manipulation;' +
         '-webkit-tap-highlight-color:transparent;font-family:inherit;cursor:pointer;' +
-        'background:var(--bg-card,#fff);color:var(--ink,var(--text,#1e293b));' +
-        'border:1px solid var(--rule,var(--line,#e2e8f0));' +
+        'background:var(--bg-card,#ffffff);color:var(--ink,var(--text,#4c4f69));' +
+        'border:1px solid var(--rule,var(--line,#ccd0da));' +
         'box-shadow:var(--shadow-md,0 4px 12px rgba(15,23,42,.12))}' +
         '.kb-listen__btn{width:44px;height:44px;padding:0;border-radius:50%;display:flex;align-items:center;' +
         'justify-content:center;line-height:1}' +
         '.kb-listen__btn svg{width:22px;height:22px;display:block}' +
-        '.kb-listen__btn:hover,.kb-listen__rate:hover,.kb-listen__stop:hover,.kb-listen__toggle:hover{border-color:var(--accent,#2563eb);color:var(--accent,#2563eb)}' +
+        '.kb-listen__btn:hover,.kb-listen__rate:hover,.kb-listen__stop:hover,.kb-listen__toggle:hover{border-color:var(--accent,#1e66f5);color:var(--accent,#1e66f5)}' +
         '.kb-listen__btn:focus-visible,.kb-listen__rate:focus-visible,.kb-listen__stop:focus-visible,.kb-listen__toggle:focus-visible{' +
-        'outline:2px solid var(--accent,#2563eb);outline-offset:2px}' +
-        '.kb-listen__btn[aria-pressed="true"],.kb-listen__btn.is-armed{border-color:var(--accent,#2563eb);color:var(--accent,#2563eb)}' +
+        'outline:2px solid var(--accent,#1e66f5);outline-offset:2px}' +
+        '.kb-listen__btn[aria-pressed="true"],.kb-listen__btn.is-armed{border-color:var(--accent,#1e66f5);color:var(--accent,#1e66f5)}' +
         '.kb-listen__panel{display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100vw - 32px)}' +
         '.kb-listen__panel[hidden]{display:none !important}' +
         '.kb-listen__rate,.kb-listen__stop,.kb-listen__toggle{min-height:36px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600}' +
-        '.kb-listening{box-shadow:inset 4px 0 0 var(--accent,#2563eb)}' +
+        '.kb-listening{box-shadow:inset 4px 0 0 var(--accent,#1e66f5)}' +
         '@media (max-width:480px){.kb-listen{left:max(16px,env(safe-area-inset-left));bottom:24px}}' +
         '@media print{.kb-listen{display:none !important}.kb-listening{box-shadow:none !important}}' +
         '.kb-listen__hint{position:absolute;bottom:56px;left:0;max-width:260px;padding:8px 12px;' +
         'border-radius:10px;font-size:12px;line-height:1.5;' +
-        'background:var(--bg-card,#fff);color:var(--ink,var(--text,#1e293b));' +
-        'border:1px solid var(--rule,var(--line,#e2e8f0));' +
+        'background:var(--bg-card,#ffffff);color:var(--ink,var(--text,#4c4f69));' +
+        'border:1px solid var(--rule,var(--line,#ccd0da));' +
         'box-shadow:var(--shadow-md,0 4px 12px rgba(15,23,42,.12));pointer-events:none;white-space:normal}' +
         '.kb-listen__hint[hidden]{display:none !important}';
       document.head.appendChild(style);
@@ -1411,13 +1387,13 @@
       style.textContent =
         '.kb-search-btn{width:44px;height:44px;padding:0;border-radius:50%;display:flex;align-items:center;' +
         'justify-content:center;line-height:1;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;' +
-        'background:var(--bg-card,#fff);color:var(--ink,var(--text,#1e293b));' +
-        'border:1px solid var(--rule,var(--line,#e2e8f0));' +
+        'background:var(--bg-card,#ffffff);color:var(--ink,var(--text,#4c4f69));' +
+        'border:1px solid var(--rule,var(--line,#ccd0da));' +
         'box-shadow:var(--shadow-md,0 4px 12px rgba(15,23,42,.12));' +
         'touch-action:manipulation;-webkit-tap-highlight-color:transparent}' +
         '.kb-search-btn svg{width:20px;height:20px;display:block}' +
-        '.kb-search-btn:hover,.kb-search-btn[aria-expanded="true"]{border-color:var(--accent,#2563eb);color:var(--accent,#2563eb)}' +
-        '.kb-search-btn:focus-visible{outline:2px solid var(--accent,#2563eb);outline-offset:2px}' +
+        '.kb-search-btn:hover,.kb-search-btn[aria-expanded="true"]{border-color:var(--accent,#1e66f5);color:var(--accent,#1e66f5)}' +
+        '.kb-search-btn:focus-visible{outline:2px solid var(--accent,#1e66f5);outline-offset:2px}' +
         '.kb-search-btn--fixed{position:fixed;z-index:1000;top:max(10px,env(safe-area-inset-top));' +
         'right:max(16px,env(safe-area-inset-right))}' +
         '.kb-search-btn--bar{position:static;width:auto;min-height:44px;height:auto;padding:0 12px;border-radius:999px;' +
@@ -1430,10 +1406,10 @@
         '.kb-search.kb-search--dock .kb-search__panel{position:fixed;z-index:1200;max-height:min(60vh,420px);' +
         'width:min(420px,calc(100vw - 16px))}' +
         '.toolbar .kb-search-inline{flex:1 1 180px;min-width:0;max-width:280px;height:36px;margin:0;padding:0 12px;' +
-        'border-radius:999px;border:1px solid var(--border-strong,var(--line,#cdd5e0));' +
-        'background:var(--bg-page,#fff);color:var(--text,var(--ink,#1e293b));font-family:inherit;font-size:16px;' +
+        'border-radius:999px;border:1px solid var(--border-strong,var(--line,#bcc0cc));' +
+        'background:var(--bg-page,#ffffff);color:var(--text,var(--ink,#4c4f69));font-family:inherit;font-size:16px;' +
         'line-height:36px;outline:none;box-shadow:none}' +
-        '.toolbar .kb-search-inline:focus{border-color:var(--accent,#2563eb)}' +
+        '.toolbar .kb-search-inline:focus{border-color:var(--accent,#1e66f5)}' +
         '@media (max-width:720px){.toolbar:has(.kb-search-inline){flex-wrap:wrap;row-gap:8px}' +
         '.toolbar:has(.kb-search-inline) .brand{flex:1 1 auto}' +
         '.toolbar:has(.kb-search-inline) .tools{margin-left:auto}' +
@@ -1442,25 +1418,25 @@
         'background:rgba(15,23,42,.45)}' +
         '.kb-search__panel{position:relative;z-index:1;width:min(640px,100%);max-height:calc(100vh - 24px);' +
         'max-height:calc(100dvh - 24px);display:flex;flex-direction:column;overflow:hidden;' +
-        'background:var(--bg-page,#fff);color:var(--ink,var(--text,#1e293b));' +
-        'border:1px solid var(--rule,var(--line,#e2e8f0));border-radius:12px;' +
+        'background:var(--bg-page,#ffffff);color:var(--ink,var(--text,#4c4f69));' +
+        'border:1px solid var(--rule,var(--line,#ccd0da));border-radius:12px;' +
         'box-shadow:var(--shadow-md,0 8px 24px rgba(15,23,42,.16))}' +
-        '.kb-search__bar{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule,var(--line,#e2e8f0))}' +
+        '.kb-search__bar{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule,var(--line,#ccd0da))}' +
         '.kb-search__input{flex:1;min-width:0;border:0;background:transparent;color:inherit;font-family:inherit;' +
         'font-size:16px;line-height:1.4;padding:12px 14px;outline:none}' +
         '.kb-search__close{flex:none;margin-right:8px;min-height:36px;padding:0 10px;border-radius:999px;cursor:pointer;' +
-        'font-family:inherit;font-size:13px;font-weight:600;background:var(--bg-card,#f0f3f7);' +
-        'color:inherit;border:1px solid var(--rule,var(--line,#e2e8f0))}' +
-        '.kb-search__status{padding:8px 14px;font-size:12px;color:var(--muted,var(--dim,#64748b))}' +
+        'font-family:inherit;font-size:13px;font-weight:600;background:var(--bg-card,#eff1f5);' +
+        'color:inherit;border:1px solid var(--rule,var(--line,#ccd0da))}' +
+        '.kb-search__status{padding:8px 14px;font-size:12px;color:var(--muted,var(--dim,#8c8fa1))}' +
         '.kb-search__results{overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}' +
         '.kb-search__hit{display:block;padding:10px 14px;text-decoration:none;color:inherit;' +
-        'border-top:1px solid var(--rule,var(--line,#e2e8f0))}' +
-        '.kb-search__hit:hover,.kb-search__hit:focus-visible{background:var(--bg-card,#f0f3f7)}' +
-        '.kb-search__site{display:block;font-size:12px;color:var(--muted,var(--dim,#64748b));margin-bottom:2px}' +
+        'border-top:1px solid var(--rule,var(--line,#ccd0da))}' +
+        '.kb-search__hit:hover,.kb-search__hit:focus-visible{background:var(--bg-card,#eff1f5)}' +
+        '.kb-search__site{display:block;font-size:12px;color:var(--muted,var(--dim,#8c8fa1));margin-bottom:2px}' +
         '.kb-search__title,.kb-search__snip{display:block;overflow-wrap:anywhere}' +
         '.kb-search__title{font-weight:600}' +
-        '.kb-search__snip{margin-top:4px;font-size:13px;color:var(--muted,var(--dim,#64748b))}' +
-        '.kb-search mark{background:transparent;color:var(--accent,#2563eb);font-weight:700}' +
+        '.kb-search__snip{margin-top:4px;font-size:13px;color:var(--muted,var(--dim,#8c8fa1))}' +
+        '.kb-search mark{background:transparent;color:var(--accent,#1e66f5);font-weight:700}' +
         'html.kb-search-open,html.kb-search-open body{overflow:hidden}' +
         '@media (max-width:768px){.kb-search{padding-left:12px;padding-right:12px}.kb-search__panel{width:100%}}' +
         '@media print{.kb-search,.kb-search-btn,.kb-search-inline{display:none !important}}';
