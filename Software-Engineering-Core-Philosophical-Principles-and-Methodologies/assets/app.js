@@ -41,8 +41,8 @@
 
   /* ---------- 数据 ---------- */
   var IDEA_COLORS = {
-    i1: "#3b82f6", i2: "#8b5cf6", i3: "#22c55e", i4: "#f59e0b", i5: "#ec4899",
-    i6: "#14b8a6", i7: "#65a30d", i8: "#d946ef", i9: "#ef4444"  /* 深度透镜⑥~⑨，色相与一~五交错 */
+    i1: "#1e66f5", i2: "#8839ef", i3: "#40a02b", i4: "#df8e1d", i5: "#ea76cb",
+    i6: "#179299", i7: "#fe640b", i8: "#7287fd", i9: "#d20f39"  /* 深度透镜⑥~⑨，色相与一~五交错 */
   };
   // 雷达：九思路 × 五维度（1-5 分，仅示意性相对强度）
   var RADAR_AXES = ["抽象深度", "场景广度", "组织维度", "落地实操", "哲学深度"];
@@ -142,10 +142,10 @@
     return n;
   }
   var MOUNT_LAYERS = [
-    { label: "道", sub: "元约束 · 价值观 · 守恒律", color: "#9b7fd1" },
-    { label: "法", sub: "原则 · 规范 · 禁法", color: "#d98a3a" },
-    { label: "术", sub: "招式 · 模式 · 反模式", color: "#5a8fd6" },
-    { label: "器", sub: "语言 · 框架 · 平台", color: "#3aa0a0" }
+    { label: "道", sub: "元约束 · 价值观 · 守恒律", color: "#8839ef" },
+    { label: "法", sub: "原则 · 规范 · 禁法", color: "#df8e1d" },
+    { label: "术", sub: "招式 · 模式 · 反模式", color: "#1e66f5" },
+    { label: "器", sub: "语言 · 框架 · 平台", color: "#179299" }
   ];
   // 图二：五层全量结构（势环绕，双向细曲线，箭头沿各自切线精确旋转）
   function MountDiagram(svg) {
@@ -154,32 +154,32 @@
     var defs = svgEl("defs", {});
     // 箭头尖朝 +x：orient:auto 将 marker 的 +x 轴对齐路径切线，箭头即沿切线方向旋转
     defs.appendChild(svgEl("marker", { id: uid + "Down", markerWidth: 9, markerHeight: 9, refX: 7.5, refY: 4, orient: "auto", markerUnits: "userSpaceOnUse" })
-      .appendChild(svgEl("path", { d: "M0,0 L0,8 L8,4 Z", fill: "#94a3b8" })).parentNode);
+      .appendChild(svgEl("path", { d: "M0,0 L0,8 L8,4 Z", fill: "#9ca0b3" })).parentNode);
     defs.appendChild(svgEl("marker", { id: uid + "Up", markerWidth: 9, markerHeight: 9, refX: 7.5, refY: 4, orient: "auto", markerUnits: "userSpaceOnUse" })
-      .appendChild(svgEl("path", { d: "M0,0 L0,8 L8,4 Z", fill: "#4ea1ff" })).parentNode);
+      .appendChild(svgEl("path", { d: "M0,0 L0,8 L8,4 Z", fill: "#1e66f5" })).parentNode);
     svg.appendChild(defs);
-    svg.appendChild(svgEl("rect", { x: 30, y: 14, width: W - 60, height: top + MOUNT_LAYERS.length * (h + gap) - 6, rx: 14, fill: "none", stroke: "#e0556b", "stroke-width": 1.5, "stroke-dasharray": "6 5" }));
-    var shiLbl = svgEl("text", { x: W / 2, y: 30, "text-anchor": "middle", fill: "#e0556b", "font-size": 12, "font-weight": 700 });
+    svg.appendChild(svgEl("rect", { x: 30, y: 14, width: W - 60, height: top + MOUNT_LAYERS.length * (h + gap) - 6, rx: 14, fill: "none", stroke: "#e64553", "stroke-width": 1.5, "stroke-dasharray": "6 5" }));
+    var shiLbl = svgEl("text", { x: W / 2, y: 30, "text-anchor": "middle", fill: "#e64553", "font-size": 12, "font-weight": 700 });
     shiLbl.textContent = "势 · 横贯全局（时机·环境·趋势）";
     svg.appendChild(shiLbl);
     MOUNT_LAYERS.forEach(function (L, i) {
       var y = top + i * (h + gap);
       svg.appendChild(svgEl("rect", { x: x, y: y, width: 240, height: h, rx: 9, fill: L.color, filter: "drop-shadow(0 4px 10px rgba(0,0,0,.22))" }));
-      var t = svgEl("text", { x: W / 2, y: y + 27, "text-anchor": "middle", fill: "#fff", "font-size": 16, "font-weight": 700 });
+      var t = svgEl("text", { x: W / 2, y: y + 27, "text-anchor": "middle", fill: "#ffffff", "font-size": 16, "font-weight": 700 });
       t.textContent = L.label; svg.appendChild(t);
       var s = svgEl("text", { x: W / 2, y: y + 47, "text-anchor": "middle", fill: "rgba(255,255,255,.92)", "font-size": 11 });
       s.textContent = L.sub; svg.appendChild(s);
       if (i < MOUNT_LAYERS.length - 1) {
         var y1 = y + h, y2 = top + (i + 1) * (h + gap);
         // 左曲线（灰实·下行依据）：从中块下沿外凸至 x≈122.5
-        svg.appendChild(svgEl("path", { d: "M" + (x + 60) + " " + y1 + " C " + (x - 70) + " " + (y1 + 18) + "," + (x - 70) + " " + (y2 - 18) + "," + (x + 60) + " " + y2, fill: "none", stroke: "#94a3b8", "stroke-width": 1.6, "stroke-linecap": "round", "marker-end": "url(#" + uid + "Down)" }));
+        svg.appendChild(svgEl("path", { d: "M" + (x + 60) + " " + y1 + " C " + (x - 70) + " " + (y1 + 18) + "," + (x - 70) + " " + (y2 - 18) + "," + (x + 60) + " " + y2, fill: "none", stroke: "#9ca0b3", "stroke-width": 1.6, "stroke-linecap": "round", "marker-end": "url(#" + uid + "Down)" }));
         // 右曲线（蓝虚·上行体现）：从下层外凸回收至中块上沿
-        svg.appendChild(svgEl("path", { d: "M" + (x + 180) + " " + y2 + " C " + (x + 310) + " " + (y2 - 18) + "," + (x + 310) + " " + (y1 + 18) + "," + (x + 180) + " " + y1, fill: "none", stroke: "#4ea1ff", "stroke-width": 1.6, "stroke-dasharray": "4 4", "stroke-linecap": "round", "marker-end": "url(#" + uid + "Up)" }));
+        svg.appendChild(svgEl("path", { d: "M" + (x + 180) + " " + y2 + " C " + (x + 310) + " " + (y2 - 18) + "," + (x + 310) + " " + (y1 + 18) + "," + (x + 180) + " " + y1, fill: "none", stroke: "#1e66f5", "stroke-width": 1.6, "stroke-dasharray": "4 4", "stroke-linecap": "round", "marker-end": "url(#" + uid + "Up)" }));
         // 连线中点注释：紧贴曲线、白描边衬底，表达关联关系
         var my = (y1 + y2) / 2;
-        var lblL = svgEl("text", { x: x - 37.5, y: my + 4, "text-anchor": "middle", fill: "#94a3b8", "font-size": 11, "font-weight": 600, stroke: "#fff", "stroke-width": 3, "paint-order": "stroke" });
+        var lblL = svgEl("text", { x: x - 37.5, y: my + 4, "text-anchor": "middle", fill: "#9ca0b3", "font-size": 11, "font-weight": 600, stroke: "#ffffff", "stroke-width": 3, "paint-order": "stroke" });
         lblL.textContent = "依据"; svg.appendChild(lblL);
-        var lblR = svgEl("text", { x: x + 277.5, y: my + 4, "text-anchor": "middle", fill: "#4ea1ff", "font-size": 11, "font-weight": 600, stroke: "#fff", "stroke-width": 3, "paint-order": "stroke" });
+        var lblR = svgEl("text", { x: x + 277.5, y: my + 4, "text-anchor": "middle", fill: "#1e66f5", "font-size": 11, "font-weight": 600, stroke: "#ffffff", "stroke-width": 3, "paint-order": "stroke" });
         lblR.textContent = "体现"; svg.appendChild(lblR);
       }
     });
@@ -197,12 +197,12 @@
     ];
     var defs = svgEl("defs", {});
     defs.appendChild(svgEl("marker", { id: uid + "Down", markerWidth: 9, markerHeight: 9, refX: 7.5, refY: 4, orient: "auto", markerUnits: "userSpaceOnUse" })
-      .appendChild(svgEl("path", { d: "M0,0 L0,8 L8,4 Z", fill: "#94a3b8" })).parentNode);
+      .appendChild(svgEl("path", { d: "M0,0 L0,8 L8,4 Z", fill: "#9ca0b3" })).parentNode);
     svg.appendChild(defs);
     MOUNT_LAYERS.forEach(function (L, i) {
       var y = top + i * (h + gap);
       svg.appendChild(svgEl("rect", { x: x, y: y, width: 240, height: h, rx: 9, fill: L.color, filter: "drop-shadow(0 4px 10px rgba(0,0,0,.22))" }));
-      var t = svgEl("text", { x: W / 2, y: y + 26, "text-anchor": "middle", fill: "#fff", "font-size": 16, "font-weight": 700 });
+      var t = svgEl("text", { x: W / 2, y: y + 26, "text-anchor": "middle", fill: "#ffffff", "font-size": 16, "font-weight": 700 });
       t.textContent = L.label; svg.appendChild(t);
       var s = svgEl("text", { x: W / 2, y: y + 45, "text-anchor": "middle", fill: "rgba(255,255,255,.92)", "font-size": 11 });
       s.textContent = subs[i]; svg.appendChild(s);
@@ -210,15 +210,15 @@
         var y1 = y + h, y2 = top + (i + 1) * (h + gap);
         var midY = (y1 + y2) / 2;
         // 竖向细线（中线 280）贴块中心
-        svg.appendChild(svgEl("line", { x1: W / 2, y1: y1 + 4, x2: W / 2, y2: y2 - 4, stroke: "#94a3b8", "stroke-width": 1.6, "stroke-linecap": "round", "marker-end": "url(#" + uid + "Down)" }));
+        svg.appendChild(svgEl("line", { x1: W / 2, y1: y1 + 4, x2: W / 2, y2: y2 - 4, stroke: "#9ca0b3", "stroke-width": 1.6, "stroke-linecap": "round", "marker-end": "url(#" + uid + "Down)" }));
         // 动词贴线右侧 12px，表达「上层 动词 下层」的挂载落地关系
-        var vt = svgEl("text", { x: W / 2 + 12, y: midY + 4, "text-anchor": "start", fill: L.color, "font-size": 12, "font-weight": 700, stroke: "#fff", "stroke-width": 3, "paint-order": "stroke" });
+        var vt = svgEl("text", { x: W / 2 + 12, y: midY + 4, "text-anchor": "start", fill: L.color, "font-size": 12, "font-weight": 700, stroke: "#ffffff", "stroke-width": 3, "paint-order": "stroke" });
         vt.textContent = verbs[i]; svg.appendChild(vt);
       }
     });
     var by = top + 4 * (h + gap) - 2;
-    svg.appendChild(svgEl("rect", { x: 140, y: by, width: 280, height: 42, rx: 12, fill: "none", stroke: "#e0556b", "stroke-width": 1.5, "stroke-dasharray": "6 5" }));
-    var sl = svgEl("text", { x: W / 2, y: by + 18, "text-anchor": "middle", fill: "#e0556b", "font-size": 12, "font-weight": 700 });
+    svg.appendChild(svgEl("rect", { x: 140, y: by, width: 280, height: 42, rx: 12, fill: "none", stroke: "#e64553", "stroke-width": 1.5, "stroke-dasharray": "6 5" }));
+    var sl = svgEl("text", { x: W / 2, y: by + 18, "text-anchor": "middle", fill: "#e64553", "font-size": 12, "font-weight": 700 });
     sl.textContent = "势 · 横贯全程"; svg.appendChild(sl);
     var sl2 = svgEl("text", { x: W / 2, y: by + 34, "text-anchor": "middle", fill: "rgba(224,85,107,.9)", "font-size": 10.5 });
     sl2.textContent = "时机 · 组织 · 规模 · 周期"; svg.appendChild(sl2);

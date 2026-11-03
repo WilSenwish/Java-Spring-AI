@@ -144,8 +144,8 @@
   }
 
   /* ---------- 图表内联配色「深色重着色」 ----------
-   * 背景：Mermaid 的 `style X fill:#dbeafe` 指令会被渲染成元素上的内联
-   *   fill:#dbeafe !important
+   * 背景：Mermaid 的 `style X fill:#ccd0da` 指令会被渲染成元素上的内联
+   *   fill:#ccd0da !important
    * 样式表里的 !important 压不过内联 !important（实测两种特异性皆败），
    * 只能在渲染完成后改写 style 属性本身。浅色画布若原样保留，会变成
    * 「浅底 + 近白字」，对比度 1.0 —— 文字事实上不可见。

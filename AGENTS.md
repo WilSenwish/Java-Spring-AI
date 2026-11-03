@@ -40,6 +40,7 @@
     - 静态搜索索引 `docs/search-index.json`（由 `docs/build_search_index.py` 生成，`--check` 比对 `source_hash` 与条目）；
     - 站点构建/校验脚本置于 `docs/`。
     - 根目录允许保留：`README.md` / `AGENTS.md` / `index.html` / `interview.html` / 四个内容站点目录 / `rk/`（全局忽略）/ 配置类点文件（`.gitignore`、`.nojekyll`、`.prettierrc.json`、`.prettierignore`）/ `package.json` / `package-lock.json` / `.workbuddy/`；`node_modules/` 与 `tmp/` 属 gitignored 临时产物，不计入源树整洁约束。
+13. **配色单一色源（2026-11-03 长官指令）**：站点样式与图表内联 hex 只允许 **Catppuccin Latte/Mocha 官方色**，及 SSOT `docs/catppuccin-tokens.json` 登记的派生值（带 reason）与豁免（台账，非后门）；规约见 `docs/format-colors.md`。交付前必跑 `python3 docs/audit_catppuccin.py`（ALL PASS），门禁扫描范围/palette/派生/豁免全部数据化于该 JSON，脚本不写死色值与路径（根定位走 `_kbroot.find_root`）；改门禁后必跑 `python3 docs/probe_catppuccin_gate.py` 双向验证（注入必 FAIL、还原必 PASS）。图表新增内联 `fill:`/`stroke:` 色必须同步登记 `theme-init.js` 的 RETINT 两 map（门禁第 2 项强制校验）。
 
 ## 3. 权威计数（单一真源驱动）
 
