@@ -147,7 +147,7 @@
               <a href="#A09.02"><span class="toc-number">A09.02</span>两阶段 Re-rank 与混合检索（BM25 + RRF）</a>
             </li>
             <li>
-              <a href="#A09.03"><span class="toc-number">A09.03</span>Query Rewrite 四法与四代 RAG 范式</a>
+              <a href="#A09.03"><span class="toc-number">A09.03</span>Query Rewrite 四法与三代 + 四个高级 RAG 范式</a>
             </li>
             <li>
               <a href="#A09.04"><span class="toc-number">A09.04</span>图增强与 Agentic RAG</a>
@@ -270,7 +270,7 @@
           <a class="toc-group-title code-a" href="#a-group-18">十八、A18 部署与基础设施</a>
           <ol>
             <li>
-              <a href="#A18.01"><span class="toc-number">A18.01</span>GraalVM / K8s + HPA 与 Java×Python 推理 Sidecar</a>
+              <a href="#A18.01"><span class="toc-number">A18.01</span>GraalVM / K8s + HPA 与 Java×Python 混合部署（推理服务选型）</a>
             </li>
             <li>
               <a href="#A18.02"><span class="toc-number">A18.02</span>入库流水线（Kafka/RocketMQ）与 Agent 六种部署形态</a>
@@ -592,7 +592,7 @@
                 <li>从最简单方案起步：先 Workflow / 单 Agent，验证确实不够再升级范式；自主性每升一级，不确定性、成本、安全风险同步上升。</li>
                 <li>多数生产系统是<strong>混合架构</strong>：如客服场景，Workflow 控制主流程（身份核验 → 工单分类 → 路由），只在「复杂诉求理解」等少数环节起 Agent；自主 Agent 仅用于目标明确、结果可校验的开放任务（如调研报告）。</li>
                 <li>稳定性治理三板斧：<strong>最大步数、回退、人工确认</strong>——路径震荡与死循环是 ReAct 类范式的常态而非意外。</li>
-                <li>执行方差治理：同输入多次执行结果不一致是模型本性，需靠上下文工程压输入噪声 + 评估闭环压输出方差（见 A.6），而非指望模型「下次稳定」。</li>
+                <li>执行方差治理：同输入多次执行结果不一致是模型本性，需靠上下文工程压输入噪声 + 评估闭环压输出方差（见 A06.02），而非指望模型「下次稳定」。</li>
                 <li>单 / 多 Agent 判定：任务边界清晰、子任务可并行 → 多 Agent；否则单 Agent + 强 Harness 更稳。</li>
               </ul>
             </div>
@@ -799,12 +799,7 @@
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程实践</div>
             <div class="content-layer-body">
-              <p><strong>短期记忆控制三法（与上下文工程同源）</strong>：</p>
-              <ul>
-                <li><strong>上下文缩减</strong>：滑动窗口丢弃最早 N 轮，或用轻量模型压缩历史为摘要；适合闲聊型多轮，不适合需早期决策依据的任务。</li>
-                <li><strong>上下文卸载</strong>：重型结果（大文件、长日志）放外部临时存储，窗口内只留 UUID / 路径引用；读取设超时与大小上限，超限返回截断或降级。</li>
-                <li><strong>上下文隔离</strong>：主 Agent 只向子任务交付「任务说明 + 必要片段」，不全量广播；子 Agent 结果以摘要回传。</li>
-              </ul>
+              <p><strong>短期记忆控制</strong>：缩减 / 卸载 / 隔离三法与通用压缩策略同源，机制与适用条件见 A02.01，本卡不再重复展开。</p>
               <p><strong>压缩执行要点</strong>：保留架构决策、未解决 Bug、关键实现；清理已完成工具结果（保留 tool_use、清除 tool_result）；压缩触发阈值不照搬他人数字——监控上下文利用率，用自有评测集实测「压缩点前后质量曲线」确定。大规模并发下配套 Prompt / Context Caching 降首 Token 延迟。</p>
             </div>
           </div>
@@ -1026,13 +1021,13 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>图增强检索的边界与选型</strong>：传统向量 RAG 的三大失效场景（跨文档多跳推理、全局归纳、切块语义断裂）是什么？GraphRAG（社区摘要 + 图遍历）与 LightRAG（去社区层 + 双层检索）的机制与成本差异为何高达两个数量级（Token 成本约 $20–50 vs $0.15）？能否给出「传统 RAG → LightRAG → GraphRAG」的务实升级路径。</p>
+              <p>这道题考察的是 <strong>图增强检索的边界与选型</strong>：传统向量 RAG 的三大失效场景（跨文档多跳推理、全局归纳、切块语义断裂）是什么？GraphRAG（社区摘要 + 图遍历）与 LightRAG（去社区层 + 双层检索）的机制与成本差异为何高达两个数量级（论文报告口径的 Token 成本约 $20–50 vs $0.15，具体数值与语料规模需核实）？能否给出「传统 RAG → LightRAG → GraphRAG」的务实升级路径。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>GraphRAG（微软，2024-04）</strong>：用 LLM 抽取实体与关系构建知识图谱，检索时 Local Search（图遍历邻居）+ Global Search（Leiden 社区检测 + 社区摘要 Map-Reduce）。代价显著：索引昂贵（被称「Token 焚烧炉」）、增量更新引发级联失效、端到端延迟 10s–1min。<strong>LightRAG（港大，2024-10）</strong>：去掉社区层（省 80%+ LLM 调用）、双层检索（低层实体 + 高层主题并行）、追加式增量更新；Token 成本降约 99%，延迟 1–3s，且保留 Naive 模式兼容传统向量 RAG。</p>
+              <p><strong>GraphRAG（微软，2024-04）</strong>：用 LLM 抽取实体与关系构建知识图谱，检索时 Local Search（图遍历邻居）+ Global Search（Leiden 社区检测 + 社区摘要 Map-Reduce）。代价显著：索引昂贵（被称「Token 焚烧炉」）、增量更新引发级联失效、端到端延迟 10s–1min。<strong>LightRAG（港大，2024-10）</strong>：去掉社区层（省 80%+ LLM 调用）、双层检索（低层实体 + 高层主题并行）、追加式增量更新；论文报告 Token 成本降幅约 99%（基线口径需核实），延迟 1–3s，且保留 Naive 模式兼容传统向量 RAG。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -1094,7 +1089,7 @@
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>从私有 Function Call 到协议标准化</strong>：早期各家模型私有 FC 格式互不兼容，工具接入随模型切换重写；2024-11 Anthropic 开源 MCP（Model Context Protocol）统一「模型 ↔ 工具」连接标准，被称「AI 界 USB-C」；2025-04 Google 发布 A2A 补齐「Agent ↔ Agent」横向协作（Agent Card / Task 生命周期 / Message & Artifact，基于 HTTP+JSON+SSE，支持异步长任务）。Skills 则由 Claude Code 等实践沉淀为「声明式任务说明」形态（<code class="inline-code">SKILL.md</code>）。四层概念至此齐备。</p>
+              <p><strong>从私有 Function Call 到协议标准化</strong>：早期各家模型私有 FC 格式互不兼容，工具接入随模型切换重写；2024-11 Anthropic 开源 MCP（Model Context Protocol）统一「模型 ↔ 工具」连接标准，被称「AI 界 USB-C」；2025-04 Google 发布 A2A 补齐「Agent ↔ Agent」横向协作（Agent Card / Task 生命周期 / Message & Artifact，基于 HTTP+JSON+SSE，支持异步长任务），2025-06 起移交 Linux Foundation 托管（治理细节与时间以官方公告为准，需核实）。Skills 则由 Claude Code 等实践沉淀为「声明式任务说明」形态（<code class="inline-code">SKILL.md</code>）。四层概念至此齐备。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -1332,7 +1327,7 @@
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>从串行链到图编排</strong>：初期多 Agent 就是「A 调 B 调 C」串行链——慢、无存档、难暂停审批、难表达复杂分工。LangGraph（2024）把「图」显式化（StateGraph + 条件边 + 持久化）；Spring AI Alibaba 对齐同一套概念（OverAllState + KeyStrategyFactory + addConditionalEdges + MemorySaver/RedisSaver 持久化 + interruptBefore 人机协同）。Claude Code 的 subagent / hook / workflow 也是同一思想的实现变体。</p>
+              <p><strong>从串行链到图编排</strong>：初期多 Agent 就是「A 调 B 调 C」串行链——慢、无存档、难暂停审批、难表达复杂分工。LangGraph（2024）把「图」显式化（StateGraph + 条件边 + 持久化）；Spring AI Alibaba 对齐同一套概念（OverAllState + KeyStrategyFactory + addConditionalEdges + MemorySaver/RedisSaver 持久化 + interruptBefore 人机协同；类名与模块随版本演进，以所用版本官方文档为准，需核实）。Claude Code 的 subagent / hook / workflow 也是同一思想的实现变体。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -1900,7 +1895,7 @@
               <ul>
                 <li><strong>审计事件设计</strong>：ToolAuditEvent 记录请求 / 租户 / 用户 / 工具 / 参数 Hash / 风险级 / 决策 / 幂等键 / 状态；PII 不全文入库、加密受控存储——审计要能问责，也要能「被遗忘」（删除请求可定位并清除该用户全部 PII，同时保留脱敏后的审计骨架）。</li>
                 <li><strong>多租户隔离清单</strong>：RAG 检索 / Memory namespace / 缓存键 / Trace 索引全部带租户与权限边界；被遗忘权落地 = 数据地图（该用户数据分布在哪些库 / 索引 / 缓存）+ 删除编排 + 审计留存。</li>
-                <li><strong>Spring AI 安全层</strong>：仅传当前身份允许的 ToolCallback；自定义 ToolCallbackResolver 拒绝未授权工具名；ToolCallingManager 归一化 + 鉴权 + 幂等；ToolCallingAdvisor 控预算 / 阻断。</li>
+                <li><strong>Spring AI 安全层</strong>：仅传当前身份允许的 ToolCallback；自定义 ToolCallbackResolver 拒绝未授权工具名；ToolCallingManager 归一化 + 鉴权 + 幂等；Advisor 链上的安全拦截控预算 / 阻断（上述类名与职责划分以所用版本官方文档为准，需核实）。</li>
                 <li><strong>AOP 审计切面</strong>：工具执行统一过注解切面，审计逻辑与业务代码解耦，防「新增工具忘埋审计」。</li>
               </ul>
             </div>
@@ -2235,7 +2230,7 @@
               <ul>
                 <li><strong>为什么「压缩后 Agent 失忆跑偏」高发</strong>？把任务进度也压进了上下文——上下文（可压缩重建的 prompt 材料）与任务状态（系统权威数据）必须分开存储；压缩只动前者。</li>
                 <li><strong>「运行停止 ≠ 任务完成」如何工程化</strong>？完成判定独立成模块，以可验证外部结果为准（订单状态 / 测试通过）；循环停了可能只是没 Token / 被限流 / 在等用户。</li>
-                <li><strong>软硬双阈值为何必要</strong>？只有软阈值（70–80% 摘要）极端时仍可能漏；只有硬阈值（截断）信息损失大；软阈值保质量、硬阈值保不崩。</li>
+                <li><strong>软硬双阈值为何必要</strong>？只有软阈值（按预算公式反推、常见落在 70%–80%）极端时仍可能漏；只有硬阈值（截断）信息损失大；软阈值保质量、硬阈值保不崩。</li>
               </ul>
             </div>
           </div>
@@ -2259,7 +2254,7 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>反思机制、Multi-Agent Handoff 与容错三件核心设计</strong>：Self-Refine 闭环的两个关键 Prompt 设计（明确检查维度 + PASS 出口）是什么？Reflexion（反思 + 失败经验入记忆）带来多少提升（有文献报 HumanEval pass@1 约 80%→91%，须核对原文，不当定律）？Handoff 移交什么、为什么必须设移交上限？Multi-Agent 容错为何必须分层（通信层：心跳 / 租约 / fencing token；一致性层：所有权 / worktree / 唯一 Integrator）。</p>
+              <p>这道题考察的是 <strong>反思机制、Multi-Agent Handoff 与容错三件核心设计</strong>：Self-Refine 闭环的两个关键 Prompt 设计（明确检查维度 + PASS 出口）是什么？Reflexion（Shinn 等，2023）带来多少提升（该文献报告 HumanEval pass@1 约 80%→91%，具体口径须核对原文，不当定律）？Handoff 移交什么、为什么必须设移交上限？Multi-Agent 容错为何必须分层（通信层：心跳 / 租约 / fencing token；一致性层：所有权 / worktree / 唯一 Integrator）。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
@@ -2434,12 +2429,12 @@
         <div class="content-card" id="A09.03" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A09.03</div>
-            <div class="content-question">Query Rewrite 四法与四代 RAG 范式<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+            <div class="content-question">Query Rewrite 四法与三代 + 四个高级 RAG 范式<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>Query Rewrite 四法与四代 RAG 范式</strong>：直接改写 / HyDE / Step-back / 多 Query 各针对什么问题（口语指代 / 文体差异 / 问题太具体 / 角度单一）——为什么 HyDE 的机理是「答案到答案比问题到答案近得多」？Naive → Advanced → Modular 三代范式与 Self-RAG / CRAG / GraphRAG / Agentic RAG 四高级范式的适用判据是什么。核心是「Query 质量决定后续所有环节的天花板」。</p>
+              <p>这道题考察的是 <strong>Query Rewrite 四法与 RAG 范式分层</strong>：直接改写 / HyDE / Step-back / 多 Query 各针对什么问题（口语指代 / 文体差异 / 问题太具体 / 角度单一）——为什么 HyDE 的机理是「答案到答案比问题到答案近得多」？Naive → Advanced → Modular 三代范式与 Self-RAG / CRAG / GraphRAG / Agentic RAG 四个高级范式的适用判据是什么。核心是「Query 质量决定后续所有环节的天花板」。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
@@ -2635,7 +2630,7 @@
             <div class="content-layer-body">
               <ul>
                 <li><strong>SFT 数据五场景全覆盖</strong>：单工具 / 多工具并行 / 失败后处理 / <strong>不需要工具直接回答</strong> / 多轮中的调用——缺哪个场景就在哪个场景翻车。</li>
-                <li><strong>数据来源</strong>：人工标注（种子）+ 强模型蒸馏（主流——防幻觉传递必须人工抽查）；RLAIF 用 AI 评委降本 10–100 倍但偏见传递，关键数据人工 + 量大 AI 混用。</li>
+                <li><strong>数据来源</strong>：人工标注（种子）+ 强模型蒸馏（主流——防幻觉传递必须人工抽查）；RLAIF 用 AI 评委降本（社区观察值约 10–100 倍，随任务与数据规模波动，需核实）但存在偏见传递，关键数据人工 + 量大 AI 混用；偏好优化一侧已扩展到 DPO / GRPO 等免奖励模型路线。</li>
                 <li><strong>schema 工程</strong>：description 写清用途 / 范围 / 格式 / 示例 / 限制（「获取天气」→「查询指定城市实时天气，含气温 / 天气状况 / 风向风速，仅支持中国大陆城市」）；参数 description 同理。</li>
                 <li><strong>模型侧兜底</strong>：推理模型（思维链式）早期不支持中途工具调用——生成范式冲突（思维链连续生成不能打断 vs 工具调用需暂停等待）；解法是工具调用发生在思考阶段结束后（extended thinking）或 interleaved thinking 穿插。</li>
               </ul>
@@ -2730,7 +2725,7 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>A2A 协议的两大机制与「Agent 微服务化」本质</strong>：Agent Card（<code class="inline-code">/.well-known/agent-card.json</code> 名片：技能列表 / 端点 / 认证）为什么本质是服务发现？Task 状态机（submitted → working → completed / failed / canceled，支持异步长任务与 Artifact 回传）如何治理超时 / 取消 / 重试？以及「Agent Card ≈ 服务注册发现、Skill 声明 ≈ API 契约、Task ≈ 异步任务队列」的微服务类比。</p>
+              <p>这道题考察的是 <strong>A2A 协议的两大机制与「Agent 微服务化」本质</strong>：Agent Card（<code class="inline-code">/.well-known/agent-card.json</code> 名片：技能列表 / 端点 / 认证）为什么本质是服务发现？Task 状态机（submitted → working → input-required → completed / failed / canceled / rejected，支持异步长任务、多轮补充与 Artifact 回传）如何治理超时 / 取消 / 重试？以及「Agent Card ≈ 服务注册发现、Skill 声明 ≈ API 契约、Task ≈ 异步任务队列」的微服务类比。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
@@ -2745,7 +2740,7 @@
               <p><strong>两大机制</strong>：</p>
               <ul>
                 <li><strong>Agent Card</strong>：Agent 在约定路径暴露 JSON 名片（技能列表 / 端点 / 认证方式）——本质是<strong>服务发现</strong>：调用方拉取名片即可知道「你能干什么、在哪调、怎么鉴权」，跨组织协作靠能力声明达成契约。</li>
-                <li><strong>Task 状态机</strong>：submitted → working → completed / failed / canceled，支持异步长任务；产物以 Artifact 回传——本质是<strong>异步任务队列语义</strong>。</li>
+                <li><strong>Task 状态机</strong>：submitted → working → input-required（需补充信息，可多轮往返）→ completed / failed / canceled / rejected（明确不接受该任务）；支持异步长任务；产物以 Artifact 回传——本质是<strong>异步任务队列语义</strong>。</li>
               </ul>
               <p><strong>微服务类比</strong>：Agent Card ≈ 服务注册发现；Skill 声明 ≈ API 契约（能力边界）；Task ≈ 异步任务队列（提交 / 轮询 / 回调）。这一类比把 A2A 从「新概念」落回后端工程师的既有知识体系。</p>
             </div>
@@ -3581,7 +3576,7 @@
               <ul>
                 <li><strong>为什么「平台省了什么、自研强在哪」要看包结构才能看清</strong>？功能清单看不出深度——如 RuoYi 的 workflow 引擎与 Ragent v1 Workflow 等价（路径写死），但公平排队 / 事务一致性 / 证据短路这些深度能力在包结构中明显缺位。</li>
                 <li><strong>factory 包的存在说明了什么</strong>？意图树 / 分块策略 / 回调对象的工厂化创建——平台也沉淀了设计模式，但<strong>隐式使用、无显式范式文档</strong>；自研的价值之一是把经验提炼为可复用规范。</li>
-                <li><strong>采集实证的严谨性</strong>？目录树经 GitHub API 实拉取（非文档转述），版本演进快，具体包名 / 版本以官方仓库实时为准——源码级结论必须标采集时间。</li>
+                <li><strong>采集实证的严谨性</strong>？目录树经 GitHub API 实拉取（非文档转述），本次整理于 2026-11，版本演进快，具体包名 / 版本以官方仓库实时为准——源码级结论必须标采集时间与版本，并定期复核。</li>
               </ul>
             </div>
           </div>
@@ -3678,7 +3673,7 @@
                 <li><strong>公平排队工程细节</strong>：Redis ZSET 按入队时间排序 + Lua 脚本原子抢占（防超发）+ 过期信号量回收僵尸会话 + Pub/Sub 唤醒队首——模型调用是昂贵资源，必须限并发且保公平。</li>
                 <li><strong>事务一致工程细节</strong>：RocketMQ 事务消息（半消息 + 本地事务 + 回查）保障「分块任务要么全做要么不做」；幂等键防重；远程刷新 = 分布式锁 + 状态机（防并发重复刷新、防刷新中脏读）。</li>
                 <li><strong>证据短路</strong>：检索无证据时直接告知用户「知识库中暂无相关内容」——架构层杜绝编造，比生成后校验便宜且可靠。</li>
-                <li><strong>四大常见误区（自查清单）</strong>：① 调 API ≠ 会 RAG / Agent；② RAG ≠ 检索 + 生成（每环都有坑）；③ 接框架 / MCP ≠ 企业级（增量更新 / 多租户 / 风控 / 可观测缺一不可）；④ 只关注模型忽略工程（检索策略 / 分块 / 上下文管理决定效果）。</li>
+                <li><strong>四大常见误区（自查清单）</strong>：调 API ≠ 会 RAG / Agent、RAG ≠ 检索 + 生成、接框架 / MCP ≠ 企业级、只关注模型忽略工程——完整展开与判据见 A16.04，本卡不复述。</li>
               </ul>
             </div>
           </div>
@@ -3722,7 +3717,7 @@
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>从直连 SDK 到抽象路由</strong>：早期业务直连各家 SDK（模型名写死、切换重写）；Spring AI 以 <code class="inline-code">ChatModel</code> / <code class="inline-code">ChatClient</code> 抽象 + 自动配置统一接入（Mistral / Ollama / OpenAI 等），多供应商路由（chat-multiple-providers 范式）按<strong>档位 / 成本 / 可用性</strong>运行时切换——与理论层 1.3 档位路由、Ragent <code class="inline-code">infra-ai</code> 首包探测 / 三态熔断同构。Embedding 侧同样抽象（含 ONNX 本地推理），Image / Audio（STT·TTS）多模态接口齐备。</p>
+              <p><strong>从直连 SDK 到抽象路由</strong>：早期业务直连各家 SDK（模型名写死、切换重写）；Spring AI 以 <code class="inline-code">ChatModel</code> / <code class="inline-code">ChatClient</code> 抽象 + 自动配置统一接入（Mistral / Ollama / OpenAI 等），多供应商路由（官方示例仓库提供多供应商示例，示例名与位置以仓库为准，需核实）按<strong>档位 / 成本 / 可用性</strong>运行时切换——与理论层 1.3 档位路由、Ragent <code class="inline-code">infra-ai</code> 首包探测 / 三态熔断同构。Embedding 侧同样抽象（含 ONNX 本地推理），Image / Audio（STT·TTS）多模态接口齐备。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -3738,7 +3733,7 @@
                 <li><strong>路由落地</strong>：按 scene（场景）/ Token 预算 / 套餐 / 风险绑定 <strong>tier（档位）而非具体模型名</strong>；ChatClient 按档位构造，底层实现可配置切换——供应商切换对业务透明。</li>
                 <li><strong>结构化输出落地</strong>：定义输出 Bean（字段 + 校验注解）→ Converter 生成结构化提示 → 解析失败触发重试（结构化输出自纠正）；复杂抽取再配 few-shot 示例。</li>
                 <li><strong>与熔断的关系</strong>：Spring AI 抽象解决「怎么调统一」，Ragent 式首包探测 / 三态熔断解决「调不稳怎么办」——两者叠加才是生产级供应商隔离。</li>
-                <li><strong>组件全景对照</strong>：Prompts（模板）/ Tool Calling（Java 方法暴露为工具）/ Memory（四实现）/ RAG（三种流变）/ Observability（Micrometer）/ Guardrails / MCP——每个能力点都有官方参考实现可抄。</li>
+                <li><strong>组件全景对照</strong>：Prompts（模板）/ Tool Calling（Java 方法暴露为工具）/ Memory（四实现）/ RAG（三种流变）/ Observability（Micrometer）/ 护栏（SafeGuardAdvisor + 自定义 Advisor）/ MCP——每个能力点都有官方参考实现可抄。</li>
               </ul>
             </div>
           </div>
@@ -4317,7 +4312,7 @@
         <div class="content-card" id="A18.01" data-difficulty="architect" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A18.01</div>
-            <div class="content-question">GraalVM / K8s + HPA 与 Java×Python 推理 Sidecar<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+            <div class="content-question">GraalVM / K8s + HPA 与 Java×Python 混合部署（推理服务选型）<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
@@ -4437,7 +4432,7 @@
                 <tr>
                   <td>① Web 服务为核心</td>
                   <td>HTTP + SSE/WebSocket，Spring Boot / 大模型网关</td>
-                  <td>极高（95%+）</td>
+                  <td>极高（经验判断，非实测比值）</td>
                   <td>对话、流式输出、中心化管控</td>
                 </tr>
                 <tr>
@@ -5246,7 +5241,7 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>模型与 Prompt 的版本资产管理与回滚机制</strong>：模型档位版本注册表（候选 id 校验、版本元数据）、Prompt 的版本化—变更评审—效果回归三位一体、回滚预案与演练。与 A.6 评测体系的分工：A.6 讲「怎么评」，本卡讲「评完之后怎么管版本、怎么上线、怎么退回来」。核心在于回答：<strong>Prompt 与模型配置是一等资产，必须获得与代码同级的工程待遇</strong>。</p>
+              <p>这道题考察的是 <strong>模型与 Prompt 的版本资产管理与回滚机制</strong>：模型档位版本注册表（候选 id 校验、版本元数据）、Prompt 的版本化—变更评审—效果回归三位一体、回滚预案与演练。与 A06.02 评测体系的分工：A06.02 讲「怎么评」，本卡讲「评完之后怎么管版本、怎么上线、怎么退回来」。核心在于回答：<strong>Prompt 与模型配置是一等资产，必须获得与代码同级的工程待遇</strong>。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
@@ -5601,7 +5596,7 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>研发交付的工程化升级：IDP / 脚手架 / Starter 化标准化交付</strong>：内部开发者平台（IDP）如何统一 AI 应用的项目骨架与基建接入；Spring Boot Starter 自动装配为什么是 Java 生态标准化交付的核心机制；「防重三层」从业务代码抽象为 Starter 的抽象路径。与 A.11 的分工：A.11 讲 Coding Agent 方法论（怎么用 AI 写代码），本卡讲交付工程化（写出来的能力怎么标准化复用）。核心在于回答：<strong>对使用者隐藏复杂度，对运维者暴露可控性</strong>。</p>
+              <p>这道题考察的是 <strong>研发交付的工程化升级：IDP / 脚手架 / Starter 化标准化交付</strong>：内部开发者平台（IDP）如何统一 AI 应用的项目骨架与基建接入；Spring Boot Starter 自动装配为什么是 Java 生态标准化交付的核心机制；「防重三层」从业务代码抽象为 Starter 的抽象路径。与 A11.01 的分工：A11.01 讲 Coding Agent 方法论（怎么用 AI 写代码），本卡讲交付工程化（写出来的能力怎么标准化复用）。核心在于回答：<strong>对使用者隐藏复杂度，对运维者暴露可控性</strong>。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
@@ -5812,7 +5807,7 @@
                 <li><strong>立项动作清单</strong>：决策树四问打分 → 竞品 / 平台路线初判（平台 vs 自研，对齐 A13.02）→ 北极星指标 + 对照基线（现状人工耗时 / 错误率）→ 最小验证场景（灰度试点）→ ROI 模型挂账（对齐 A22.02）。</li>
                 <li><strong>场景—引擎路由表</strong>：标准问答 / 检索类走 Workflow（v1，路径确定成本低）；规划 / 多步任务走 Agent（v2，路径自主能力上限高）；网关按意图路由两引擎。</li>
                 <li><strong>价值叙事纪律</strong>：项目汇报按「问题 → 方案权衡 → 数据验证」组织，每项目提炼 3 个可量化成果（QPS / P99 / 成本降幅 / 解决率）+ 2 个深度技术决策——<strong>数据是价值叙事的唯一硬通货</strong>。</li>
-                <li><strong>四大误区自查</strong>：调 API ≠ 会 RAG / Agent；RAG ≠ 检索 + 生成（每环都有坑）；接框架 / MCP ≠ 企业级（增量更新 / 多租户 / 风控 / 可观测）；只关注模型忽略工程（检索策略 / 分块 / 上下文管理决定效果）。</li>
+                <li><strong>四大误区自查</strong>：调 API ≠ 会 RAG / Agent、RAG ≠ 检索 + 生成、接框架 / MCP ≠ 企业级、只关注模型忽略工程——完整清单与判据见 A16.04，本卡只做选型视角的取舍。</li>
               </ul>
             </div>
           </div>
@@ -5823,7 +5818,7 @@
                 <li><strong>「增强项 vs 核心壁垒」的投入分野</strong>：AI 是增强项 → 平台 / 低代码快速交付（对齐 A13.01 选平台），工程投入保全底线；AI 是核心壁垒 → 自研纵深（Ragent / Nexus 范式），评测 / 检索 / 编排自主可控——路线错了，执行越努力偏差越大。</li>
                 <li><strong>北极星防「指标幻觉」</strong>：会话量 / 调用量是虚荣指标（可被刷高），一次解决率 / 采纳率 / 处理时长缩短才是价值指标——北极星必须绑定业务成果而非系统活动。</li>
                 <li><strong>容错边界的分层设计</strong>：多数场景不是「能用 / 不能用」二元——用风险分级（对齐 A23.03：高风险场景人工审核兜底 / 中风险置信度阈值 / 低风险直出）把不可靠技术放进可靠的产品结构里。</li>
-                <li><strong>决策树与需求形态判定的衔接</strong>：A.13 的需求形态判定（平台 / 自研 / 场景）解决「用什么路线做」，本卡决策树解决「该不该做」——立项先过本卡，路线再过 A13。</li>
+                <li><strong>决策树与需求形态判定的衔接</strong>：A13.02 的需求形态判定（平台 / 自研 / 场景）解决「用什么路线做」，本卡决策树解决「该不该做」——立项先过本卡，路线再走 A13.02。</li>
               </ul>
             </div>
           </div>
@@ -5835,7 +5830,7 @@
                 <li><strong>无北极星上线</strong>：上线后说不清价值，预算被砍时无数据自辩——指标与对照基线在立项期锁定。</li>
                 <li><strong>技术堆砌无主线</strong>：方案汇报罗列技术清单而非问题—权衡—验证叙事，评审无法判断合理性。</li>
                 <li><strong>一步到位大而全</strong>：首版追求全功能，验证周期拉长错过窗口——最小验证场景先行，灰度复制。</li>
-                <li><strong>全场景 Agent 化</strong>：标准问答也走自主循环，成本高 4 倍且不可控——按场景路由引擎。</li>
+                <li><strong>全场景 Agent 化</strong>：标准问答也走自主循环，成本与延迟量级明显高于 Workflow（经验估计，随轮次放大）且不可控——按场景路由引擎。</li>
               </ul>
             </div>
           </div>

@@ -1351,7 +1351,7 @@ graph TD
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 熔断器：滑动窗口 + 半开放量（Sentinel/HRes 同款思想）</span>
+                  <pre><code><span class="com">// 熔断器：滑动窗口 + 半开放量（Hystrix/Resilience4j 等熔断器同款思想）</span>
 <span class="kw">public</span> <span class="kw">enum</span> State { CLOSED, OPEN, HALF_OPEN }
 
 <span class="kw">public</span> <span class="type">boolean</span> <span class="fn">allowRequest</span>(String channel) {
@@ -1436,7 +1436,7 @@ graph TD
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>跨境电商收单平台，支持十余种币种收款，日流水约两亿等值美元。硬指标：多币种账务平衡（折算本位币后借贷相等）、汇兑损益准确、符合外汇管理局跨境收支申报要求、退款可跨币种原路退回。涉及持牌合作（支付机构跨境人民币资质）与汇率服务。</p>
+                <p>跨境电商收单平台，支持十余种币种收款，日流水约两亿等值美元。硬指标：多币种账务平衡（折算本位币后借贷相等）、汇兑损益准确、符合外汇管理局跨境收支申报要求、退款可跨币种原路退回。涉及持牌合作（支付机构跨境人民币业务资格、外汇局批复，按现行监管口径，需核实）与汇率服务。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -1541,7 +1541,7 @@ BigDecimal pl = bal.origAmt().<span class="fn">multiply</span>(revalRate).<span 
                   </li>
                   <li>
                     <div class="followup-q">没有牌照能自建跨境清算吗？</div>
-                    <div class="followup-a">不能。跨境清算必须持牌（支付机构跨境人民币业务资格/外汇局批复），自建只能做「境内发卡、境外收单」的合作链路；架构上把合规边界当一等约束——链路设计前先确认资质覆盖范围。</div>
+                    <div class="followup-a">不能。跨境清算必须持牌（支付机构跨境人民币业务资格 / 外汇局批复，具体资质与批复口径按现行规定，需核实），自建只能做「境内发卡、境外收单」的合作链路；架构上把合规边界当一等约束——链路设计前先确认资质覆盖范围。</div>
                   </li>
                 </ul>
               </div>
@@ -1819,7 +1819,7 @@ graph TD
             <div class="content-layer" data-layer="practice">
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
-                <p><strong>1. 指纹 SDK</strong>：采集硬件常量（IMEI/OAID/序列号哈希）、系统属性、传感器完备性、电池与充电行为、网络特征；多信号缺失时降级为「低置信度指纹」并联动验证码。</p>
+                <p><strong>1. 指纹 SDK</strong>：采集合规设备标识（OAID/IDFV 等）与硬件特征哈希（IMEI/序列号属受限标识，仅在有授权与合规前置的场景使用，需核实）、系统属性、传感器完备性、电池与充电行为、网络特征；多信号缺失时降级为「低置信度指纹」并联动验证码。</p>
                 <p><strong>2. 环境检测</strong>：规则集判模拟器（无传感器、分辨率异常、改机工具包名）+ 行为模型判自动化（点击间隔方差、滑动轨迹线性度）；命中进「高风险设备池」联动 D02.01 实时风控。</p>
                 <p><strong>3. 图谱构建</strong>：实时流（注册/登录/支付）生成边进图存储；离线 Spark GraphFrames 算社区发现与团伙分；团伙名单回流名单服务（D02.01）。</p>
                 <p><strong>4. 在线查询</strong>：二度邻居风险聚合（邻居风险分 × 衰减），输出「关联风险」供决策融合；查询走图数据库二级索引，P99 &lt; 30ms。</p>
@@ -1926,7 +1926,7 @@ graph TD
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>持牌支付机构 AML 系统，客户五千万、日监测交易八百万笔。硬指标：制裁名单/政治公众人物（PEP）名单<strong>实时筛查零漏匹配</strong>；可疑交易模型 T+1 检出；大额与可疑交易按监管时限（如五个工作日内）上报；全部筛查与调查记录留痕备查。</p>
+                <p>持牌支付机构 AML 系统，客户五千万、日监测交易八百万笔。硬指标：制裁名单/政治公众人物（PEP）名单<strong>实时筛查零漏匹配</strong>；可疑交易模型 T+1 检出；大额与可疑交易按监管时限上报（如五个工作日内，具体口径需核实）；全部筛查与调查记录留痕备查。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -2363,13 +2363,13 @@ BigDecimal debtSum = loanClient.<span class="fn">outstanding</span>(custId);
             <div class="content-layer" data-layer="challenge">
               <div class="content-layer-title">核心挑战</div>
               <div class="content-layer-body">
-                <p>① <strong>案件分案</strong>：数十万案件按账龄、金额、客户价值、历史还款表现分池到自催/委外/法诉，分案规则要可调；② <strong>策略执行</strong>：每个案件有动作序列（短信提醒→电话→上门），动作间隔与升级路径要策略化；③ <strong>通信合规</strong>：拨打时段（晚九点到早八点禁呼）、频次上限、禁呼名单（投诉过）、用语文明——违规即监管处罚；④ <strong>还款分配</strong>：部分还款先抵费用还是本金，直接关系客户剩余债务与平台损益；⑤ <strong>委外管理</strong>：数据给出去要可控（最小化+脱敏+回收），回收效果要对账。</p>
+                <p>① <strong>案件分案</strong>：数十万案件按账龄、金额、客户价值、历史还款表现分池到自催/委外/法诉，分案规则要可调；② <strong>策略执行</strong>：每个案件有动作序列（短信提醒→电话→上门），动作间隔与升级路径要策略化；③ <strong>通信合规</strong>：拨打时段（平台策略严于监管底线：常见监管口径为 22:00–次日 8:00 禁呼，本卡取更严的 21:00 起算，具体口径需核实）、频次上限、禁呼名单（投诉过）、用语文明——违规即监管处罚；④ <strong>还款分配</strong>：部分还款先抵费用还是本金，直接关系客户剩余债务与平台损益；⑤ <strong>委外管理</strong>：数据给出去要可控（最小化+脱敏+回收），回收效果要对账。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>案件状态机驱动一切：逾期日（DPD）推进案件状态（M1→M2→M3→M3+），每级有动作序列与责任人。催收不是「催」而是「恢复履约」：先易后难（短信自动 → 电话人工 → 外访/法诉），每级设置停留时限与升级条件。还款分配走「先费用后本金、先利息后本金」的固定规则（监管认可顺序），分配结果客户可查。合规是前置校验而非事后审计：每次触达前校验时段/频次/禁呼，不合规直接拦截。</p>
+                <p>案件状态机驱动一切：逾期日（DPD）推进案件状态（M1→M2→M3→M3+），每级有动作序列与责任人。催收不是「催」而是「恢复履约」：先易后难（短信自动 → 电话人工 → 外访/法诉），每级设置停留时限与升级条件。还款分配按合同与监管框架下的常见顺序（费用→利息→本金）执行，具体抵充顺序以合同约定与现行规定为准（需核实），分配结果客户可查。合规是前置校验而非事后审计：每次触达前校验时段/频次/禁呼，不合规直接拦截。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -2582,6 +2582,7 @@ stateDiagram-v2
     待支付 --> 已取消: 超时关单
     已支付 --> 待发货: 备货
     已支付 --> 已取消: 全额退款
+    待发货 --> 已取消: 全额退款
     待发货 --> 已发货: 发货
     已发货 --> 已完成: 确认收货
     已发货 --> 售后中: 申请售后
@@ -2718,13 +2719,13 @@ stateDiagram-v2
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>三态库存模型：<strong>实物在仓 = 可用 + 预占</strong>（预占含已售未发与锁定），在途库存（调拨/采购中）单独维度。扣减分层：Redis Lua 预扣抗峰值（快速失败）→ DB 条件 UPDATE 实扣（最终防线）→ 日终对账校准。多仓拆单遵循「就近 + 可发 + 成本」规则，单仓不足时拆多仓或引导替代仓。超时释放走延迟消息，释放幂等。</p>
+                <p>三态库存模型：<strong>实物在仓 = 可用 + 预占</strong>（预占含已售未发与锁定，盘点/活动冻结是预占的子态），在途库存（调拨/采购中）单独维度。扣减分层：Redis Lua 预扣抗峰值（快速失败）→ DB 条件 UPDATE 实扣（最终防线）→ 日终对账校准。多仓拆单遵循「就近 + 可发 + 成本」规则，单仓不足时拆多仓或引导替代仓。超时释放走延迟消息，释放幂等。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：库存（仓 × SKU，可用、预占、在途、冻结）。<strong>实体</strong>：占用记录（Occupancy，业务单号 + 数量 + 仓）、调拨单（Transfer）、盘点单（Stocktake，差异处理）。<strong>值对象</strong>：数量。<strong>不变量</strong>：① 可用 + 预占 ≤ 实物在仓；② 可用 ≥ 0（原子扣减）；③ 每笔预占有对应释放或实扣路径（订单终态驱动）。<strong>领域事件</strong>：StockPreempted、StockDeducted、StockReleased、StockArrived（在途转在仓）。</p>
+                <p><strong>聚合根</strong>：库存（仓 × SKU，可用、预占、在途；冻结是预占的子态，盘点/活动锁定时从可用转入预占并打冻结标记）。<strong>实体</strong>：占用记录（Occupancy，业务单号 + 数量 + 仓）、调拨单（Transfer）、盘点单（Stocktake，差异处理）。<strong>值对象</strong>：数量。<strong>不变量</strong>：① 可用 + 预占 ≤ 实物在仓；② 可用 ≥ 0（原子扣减）；③ 每笔预占有对应释放或实扣路径（订单终态驱动）。<strong>领域事件</strong>：StockPreempted、StockDeducted、StockReleased、StockArrived（在途转在仓）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -3074,16 +3075,17 @@ graph TD
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 拆单规则链：规则按优先级排序，任一「必拆」即终止合并</span>
+                  <pre><code><span class="com">// 拆单规则链：规则按优先级排序，任一「必拆」即终止合并；未命中必拆时默认整单成组</span>
 <span class="kw">public</span> List&lt;FulfillmentGroup&gt; <span class="fn">split</span>(Order order, SplitContext ctx) {
-    List&lt;FulfillmentGroup&gt; groups = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;&gt;();
+    <span class="kw">boolean</span> mergePreferred = <span class="kw">false</span>;
     <span class="kw">for</span> (SplitRule r : rules.<span class="fn">sortedByPriority</span>()) {
-        <span class="kw">if</span> (r.<span class="fn">matches</span>(order, ctx)) {
-            <span class="kw">if</span> (r.<span class="fn">action</span>() == MUST_SPLIT) { groups.<span class="fn">addAll</span>(r.<span class="fn">apply</span>(order)); <span class="kw">break</span>; }
-            <span class="kw">if</span> (r.<span class="fn">action</span>() == PREFER_MERGE) { <span class="com">/* 记录偏好继续 */</span> }
-        }
+        <span class="kw">if</span> (!r.<span class="fn">matches</span>(order, ctx)) <span class="kw">continue</span>;
+        <span class="kw">if</span> (r.<span class="fn">action</span>() == MUST_SPLIT) <span class="kw">return</span> r.<span class="fn">apply</span>(order);    <span class="com">// 必拆：按该规则拆，后续规则不再合并</span>
+        <span class="kw">if</span> (r.<span class="fn">action</span>() == PREFER_MERGE) mergePreferred = <span class="kw">true</span>;       <span class="com">// 记录合并偏好，继续匹配</span>
     }
-    <span class="kw">return</span> groups;
+    <span class="type">FulfillmentGroup</span> whole = <span class="type">FulfillmentGroup</span>.<span class="fn">ofWhole</span>(order);        <span class="com">// 无必拆规则：默认整单成组</span>
+    <span class="kw">if</span> (mergePreferred) whole.<span class="fn">markMergeAllowed</span>();                    <span class="com">// 允许与同发货窗口的订单合并</span>
+    <span class="kw">return</span> <span class="type">List</span>.<span class="fn">of</span>(whole);
 }
 
 <span class="com">// 时效承诺：仓时段 + 承运商时效 + 截单点，下单即算出可承诺值</span>
@@ -3819,13 +3821,13 @@ graph TD
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>核心思想：<strong>积分当钱管——账务化</strong>（同 D01.02）。流水 append-only，每笔带批次与过期时间；余额 = Σ有效流水；过期任务生成「过期扣减」流水而非直接改余额；冻结解冻成对；退款回收生成反向流水。日终对账：积分流水与账务积分科目核对。</p>
+                <p>核心思想：<strong>积分当钱管——账务化</strong>（同 D01.02）。流水 append-only，每笔带批次与过期时间；余额 = 有效流水净额（另扣当前冻结）；过期任务生成「过期扣减」流水而非直接改余额；冻结解冻成对；退款回收生成反向流水。日终对账：积分流水与账务积分科目核对。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：积分账户（PointsAccount，可用余额、冻结、版本）。<strong>实体</strong>：积分流水（PointsEntry，类型：获取/消耗/过期/冻结/解冻/回收，批次，过期时间）。<strong>值对象</strong>：积分数量。<strong>不变量</strong>：可用 = Σ未过期未冻结流水；每笔消耗有对应获取来源（可追溯）；冻结必有解冻或转消耗路径。</p>
+                <p><strong>聚合根</strong>：积分账户（PointsAccount，可用余额、冻结、版本）。<strong>实体</strong>：积分流水（PointsEntry，类型：获取/消耗/过期/冻结/解冻/回收，批次，过期时间）。<strong>值对象</strong>：积分数量。<strong>不变量</strong>：可用 = 获取 − 消耗 − 过期 − 回收 − 当前冻结（冻结是账户维度占用，解冻回补，非独立流水口径）；每笔消耗有对应获取来源（可追溯）；冻结必有解冻或转消耗路径。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -3856,7 +3858,8 @@ graph TD
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 消耗：扣最早到期批次（FIFO），每批生成一条消耗流水，可追溯</span>
+                  <pre><code><span class="com">// 消耗：扣最早到期批次（FIFO），每批流水与余额更新在同一事务内，可追溯</span>
+<span class="type">@Transactional</span>
 <span class="kw">public</span> <span class="type">void</span> <span class="fn">consume</span>(Long acctId, <span class="kw">int</span> amount, String bizNo) {
     List&lt;BatchBalance&gt; batches = batchRepo.<span class="fn">findAvailable</span>(acctId, Order.<span class="fn">byExpireAsc</span>());
     <span class="kw">int</span> <span class="var">rest</span> = amount;
@@ -3872,8 +3875,8 @@ graph TD
 
 <span class="com">// 过期扫描：只生成扣减流水，禁直接改余额（同账务铁律）</span>
 <span class="kw">for</span> (BatchBalance b : batchRepo.<span class="fn">findExpiredBefore</span>(today)) {
-    entryRepo.<span class="fn">insert</span>(PointsEntry.<span class="fn">expire</span>(acctId, b.remaining(), b.batchId()));
-    balanceRepo.<span class="fn">applyDelta</span>(acctId, -b.remaining(), <span class="str">"EXPIRED:"</span> + b.batchId());
+    entryRepo.<span class="fn">insert</span>(PointsEntry.<span class="fn">expire</span>(b.<span class="fn">accountId</span>(), b.remaining(), b.batchId()));
+    balanceRepo.<span class="fn">applyDelta</span>(b.<span class="fn">accountId</span>(), -b.remaining(), <span class="str">"EXPIRED:"</span> + b.batchId());
 }</code></pre>
                 </div>
               </div>
@@ -5135,7 +5138,7 @@ flowchart LR
 
 <span class="com">// 私有化灰度升级：按批次推进 + 健康检查失败即熔断回滚</span>
 <span class="kw">public</span> <span class="kw">void</span> <span class="fn">rollingUpgrade</span>(DeploymentId dep, Version target) {
-    <span class="kw">for</span> (Batch b : plan.<span class="fn">batches</span>(dep)) {                    <span class="com">// 首批灰度 5%</span>
+    <span class="kw">for</span> (Batch b : plan.<span class="fn">batches</span>(dep, GRAY_RATIOS)) {       <span class="com">// GRAY_RATIOS 默认 {5%, 50%, 100%}，按部署配置</span>
         deployer.<span class="fn">upgrade</span>(b, target);
         HealthReport r = health.<span class="fn">check</span>(b, Duration.<span class="fn">ofMinutes</span>(<span class="num">10</span>));
         <span class="kw">if</span> (!r.ok()) {
@@ -6029,7 +6032,7 @@ flowchart TD
                 <p><strong>1. 端上</strong>：SDK 采集改机特征（root/模拟器/ hook 框架）、传感器一致性（位移与 GPS 速度匹配度）、上报频率异常；端上模型 + 服务端双判。</p>
                 <p><strong>2. 轨迹</strong>：实时流检测（瞬移、速度超限、长时间静止但单在推进）、地址聚集（多骑手同一取餐点）、完成时效分布异常（总是卡点送达）。</p>
                 <p><strong>3. 图谱</strong>：设备-账号-银行卡关联，团伙刷单识别（同设备多账号、同提现账户多骑手）；复用反欺诈平台（D02.02）的图谱能力。</p>
-                <p><strong>4. 理赔</strong>：事故报案自动定损（照片 EXIF、时间地点与轨迹比对、伤情描述结构化）；欺诈分高的进人核；正常理赔自动赔付（体验优先）。</p>
+                <p><strong>4. 理赔</strong>：事故报案自动定损（照片元数据（EXIF 可被篡改，仅作辅助信号）、时间地点与轨迹交叉比对、伤情描述结构化）；欺诈分高的进人核；正常理赔自动赔付（体验优先）。骑手职业伤害保障按当地试点政策执行（社会保障口径，需核实，不在本卡处置逻辑内）。</p>
                 <p><strong>5. 处置</strong>：风险分 → 自动/人工处置 → 通知骑手（含理由）→ 申诉通道 → 复核纠错；处置记录进档案影响后续权重。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
@@ -6072,10 +6075,12 @@ flowchart LR
     <span class="kw">return</span> <span class="kw">new</span> <span class="type">RiskScore</span>(Math.<span class="fn">min</span>(score, <span class="num">100</span>), t.riderId());
 }
 
-<span class="com">// 处置分级：低分观察、中分限制接单、高分进人工 + 保险理赔标记</span>
+<span class="com">// 处置分级：观察 / 限制接单 / 冻结结算 / 封号，全程留痕供申诉</span>
 <span class="kw">public</span> <span class="kw">void</span> <span class="fn">handle</span>(RiskScore s) {
-    <span class="kw">if</span> (s.value() &gt;= <span class="num">80</span>) { riskCtrl.<span class="fn">block</span>(s.riderId()); audit.<span class="fn">record</span>(s); }  <span class="com">// 全程留痕供申诉</span>
-    <span class="kw">else</span> <span class="kw">if</span> (s.value() &gt;= <span class="num">50</span>) riskCtrl.<span class="fn">limitOrders</span>(s.riderId(), <span class="num">24</span>);
+    <span class="kw">if</span> (s.value() &gt;= <span class="num">90</span>) { riskCtrl.<span class="fn">block</span>(s.riderId()); audit.<span class="fn">record</span>(s); }        <span class="com">// 严重：封号 + 人工复核</span>
+    <span class="kw">else</span> <span class="kw">if</span> (s.value() &gt;= <span class="num">80</span>) { riskCtrl.<span class="fn">freezeSettlement</span>(s.riderId()); audit.<span class="fn">record</span>(s); } <span class="com">// 高：冻结结算</span>
+    <span class="kw">else</span> <span class="kw">if</span> (s.value() &gt;= <span class="num">50</span>) riskCtrl.<span class="fn">limitOrders</span>(s.riderId(), <span class="num">24</span>);              <span class="com">// 中：限制接单</span>
+    <span class="kw">else</span> <span class="kw">if</span> (s.value() &gt;= <span class="num">30</span>) monitor.<span class="fn">observe</span>(s.riderId());                       <span class="com">// 低：观察</span>
 }</code></pre>
                 </div>
               </div>
@@ -6512,7 +6517,7 @@ flowchart LR
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：路由规则（RouteRule：匹配条件、sink 列表、优先级、状态）。<strong>实体</strong>：广播任务（BroadcastJob：目标集、批次、进度、熔断）。<strong>值对象</strong>：Topic 模式、消息类型。<strong>不变量</strong>：规则按优先级唯一匹配（无歧义）；广播任务必带速率限制与熔断（失败率超阈值自动停）；同设备消息在同一分区（顺序保持）；规则变更不影响在途消息的路由归属（版本绑定）。</p>
+                <p><strong>聚合根</strong>：路由规则（RouteRule：匹配条件、sink 列表、优先级、状态）。<strong>实体</strong>：广播任务（BroadcastJob：目标集、批次、进度、熔断）。<strong>值对象</strong>：Topic 模式、消息类型。<strong>不变量</strong>：规则按优先级首命中生效（允许重叠，重叠时高优先级覆盖，结果无歧义）；广播任务必带速率限制与熔断（失败率超阈值自动停）；同设备消息在同一分区（顺序保持）；规则变更不影响在途消息的路由归属（版本绑定）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -6597,7 +6602,7 @@ flowchart TD
                   </li>
                   <li>
                     <div class="followup-q">同设备消息乱序导致属性覆盖错？</div>
-                    <div class="followup-a">消息带设备侧序列号 + 服务端时间戳；属性存储用「版本向量」或「时间戳大的赢」（时钟漂移场景用序列号兜底）；消费端按设备串行消费（分区保证）。乱序在 IoT 是常态不是异常，设计时要默认它会来。</div>
+                    <div class="followup-a">消息带设备侧序列号 + 服务端时间戳；属性存储常用「LWW（时间戳大者胜）」，需要检测并发写冲突时才用版本向量（二者不是同一机制）；本卡以设备序列号为主、服务端时间戳兜底；消费端按设备串行消费（分区保证）。乱序在 IoT 是常态不是异常，设计时要默认它会来。</div>
                   </li>
                   <li>
                     <div class="followup-q">广播任务中途要停止（发现内容错误）？</div>
@@ -6816,7 +6821,7 @@ mqtt.<span class="fn">publish</span>(ackTopic, <span class="str">"{\"id\":\""</s
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
                 <p><strong>与 D07.06 的边界</strong>：本卡只讲升级专属的差分、验签、灰度熔断与分区回滚；注册到退役的状态机见 D07.06。</p>
-                <p>OTA 四件套：<strong>差分包</strong>（bsdiff 类算法，新旧固件二进制差，通常压到十分之一体积）+ <strong>签名验签</strong>（平台私钥签，设备公钥验，验签失败拒绝升级）+ <strong>灰度批次</strong>（按设备分组逐批推进，批次间设观察期，核心指标——升级成功率、功能异常率、崩溃率——异常即熔断）+ <strong>A/B 双分区</strong>（固件写备份分区，启动失败或功能异常回切旧分区，即「失败回滚」）。升级流程状态机：通知 → 下载（差分包 + 校验）→ 验签 → 写入备份分区 → 切换启动 → 健康检查（心跳 + 功能自检）→ 确认升级（超时未确认自动回滚）。</p>
+                <p>OTA 四件套：<strong>差分包</strong>（bsdiff 类算法，新旧固件二进制差，压缩效果依版本差异而定，常见可降至原包 1/10 量级，需实测）+ <strong>签名验签</strong>（平台私钥签，设备公钥验，验签失败拒绝升级）+ <strong>灰度批次</strong>（按设备分组逐批推进，批次间设观察期，核心指标——升级成功率、功能异常率、崩溃率——异常即熔断）+ <strong>A/B 双分区</strong>（固件写备份分区，启动失败或功能异常回切旧分区，即「失败回滚」）。升级流程状态机：通知 → 下载（差分包 + 校验）→ 验签 → 写入备份分区 → 切换启动 → 健康检查（心跳 + 功能自检）→ 确认升级（超时未确认自动回滚）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -6885,7 +6890,7 @@ flowchart TD
                 <div class="code-block">
                   <pre><code><span class="com">// OTA 灰度：按批次百分比推进，每批失败率超阈值自动熔断</span>
 <span class="kw">public</span> <span class="kw">void</span> <span class="fn">grayRelease</span>(Firmware fw) {
-    <span class="kw">for</span> (<span class="kw">int</span> batch : PLAN) {                              <span class="com">// 1% → 5% → 25% → 100%</span>
+    <span class="kw">for</span> (<span class="kw">int</span> batch : PLAN) {                              <span class="com">// PLAN 批次：内部 → 1% → 10% → 50% → 100%</span>
         List&lt;DeviceId&gt; targets = selector.<span class="fn">pick</span>(fw.model(), batch);
         push.<span class="fn">sendUpgrade</span>(targets, fw);
         HealthReport r = monitor.<span class="fn">await</span>(fw.id(), Duration.<span class="fn">ofHours</span>(<span class="num">2</span>));
@@ -7309,7 +7314,7 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>经典<strong>推拉结合（hybrid）</strong>：普通作者（粉丝 &lt; 阈值）走推——发帖时写粉丝收件箱（收件箱 = Redis ZSet，按时间戳排序，容量上限淘汰）；大 V 走拉——不发收件箱，用户读时实时拉取大 V 最新帖与本地收件箱合并。合并策略「时间线归并排序 + 已读过滤 + 分页游标」。一致性兜底：发帖事件带全局序列号，收件箱写入幂等（作者 ID + 帖子 ID），用户按游标翻页不重不漏。推荐流走独立召回-排序-重排链路（D10.01 检索思路复用），最终与关注流按「穿插规则」融合（如每 N 条插一条推荐，重试降权）。</p>
+                <p>经典<strong>推拉结合（hybrid）</strong>：普通作者（粉丝 &lt; 阈值）走推——发帖时写粉丝收件箱（收件箱 = Redis ZSet，按时间戳排序，容量上限淘汰）；大 V 走拉——不发收件箱，用户读时实时拉取大 V 最新帖与本地收件箱合并。合并策略「时间线归并排序 + 已读过滤 + 分页游标」。一致性兜底：发帖事件带全局序列号，收件箱写入幂等（作者 ID + 帖子 ID），用户按游标翻页不重不漏。推荐流走独立「召回 → 粗排 → 精排 → 重排」链路（详见 D08.06；站内检索思路见 D10.01），最终与关注流按「穿插规则」融合（如每 N 条插一条推荐，重试降权）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -7393,7 +7398,7 @@ flowchart TD
     <span class="kw">return</span> merge(pushed, pulled, cursor);                   <span class="com">// 合并去重 + 游标续页</span>
 }
 
-<span class="com">// 热度分：时间衰减 + 互动加权，防老内容霸屏</span>
+<span class="com">// 热度分：时间衰减 + 互动加权，防老内容霸屏；now / createdAt 单位为小时（牛顿冷却口径）</span>
 <span class="kw">public</span> <span class="kw">double</span> <span class="fn">hotScore</span>(Post p, <span class="kw">double</span> now) {
     <span class="kw">return</span> (p.likes() * <span class="num">1</span> + p.comments() * <span class="num">3</span> + p.shares() * <span class="num">5</span>)
          / Math.<span class="fn">pow</span>(now - p.createdAt() + <span class="num">2</span>, GRAVITY);         <span class="com">//// 牛顿冷却式衰减</span>
@@ -7771,7 +7776,7 @@ flowchart TD
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
                 <p><strong>1. 归因与计价</strong>：内容带追踪 ID，广告/付费转化回传按归因窗口匹配；收益日报（创作者可见明细）→ 月账单（含规则版本号）；</p>
-                <p><strong>2. 结算</strong>：账单确认 → 税务计算（劳务/经营所得代扣）→ MCN 分账（按合同比例拆）→ 打款（企业付款到银行卡/钱包）；失败重试 + 人工兜底；</p>
+                <p><strong>2. 结算</strong>：账单确认 → 税务处理（劳务/经营所得判定与代扣，并按规定报送平台内创作者收入信息，具体口径需核实）→ MCN 分账（按合同比例拆）→ 打款（企业付款到银行卡/钱包）；失败重试 + 人工兜底；</p>
                 <p><strong>3. 激励</strong>：任务规则 DSL（参与条件 + 奖励梯度 + 发放上限）；完成度按真实数据（播放/互动增量）校验，风控过滤后发奖；预算日熔断；</p>
                 <p><strong>4. 信用</strong>：信用分模型（违规扣分、优质加分、时效恢复）；影响流量与分成系数；扣分必通知（依据 + 申诉通道），恢复有明确路径。</p>
                 <div class="mermaid-container">
@@ -8744,7 +8749,7 @@ flowchart TD
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>逆向是物流的成本黑洞：电商退货率百分之十到三十，退件要从用户手里取回、验损、入库（可二次销售）或报废。货运破损/丢件的理赔涉及资金与保险。硬指标：退货上门时效、验损准确（该谁赔）、理赔时效（客户体验）、骗保识别（黄牛与职业索赔）。</p>
+                <p>逆向是物流的成本黑洞：电商退货率约百分之十到三十（行业经验区间，随品类与平台差异较大，需核实），退件要从用户手里取回、验损、入库（可二次销售）或报废。货运破损/丢件的理赔涉及资金与保险。硬指标：退货上门时效、验损准确（该谁赔）、理赔时效（客户体验）、骗保识别（黄牛与职业索赔）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -8837,7 +8842,7 @@ flowchart TD
                   </li>
                   <li>
                     <div class="followup-q">用户寄回假货/调包怎么防？</div>
-                    <div class="followup-a">揽收验视（取件时扫码 + 外观拍照）+ 仓内质检（序列号/防伪码比对，高价值品全检）+ 差异留证（照片 + 重量比对）；确认调包按规则拒退并留证据链。高价值品的「一物一码」是防调服基础。</div>
+                    <div class="followup-a">揽收验视（取件时扫码 + 外观拍照）+ 仓内质检（序列号/防伪码比对，高价值品全检）+ 差异留证（照片 + 重量比对）；确认调包按规则拒退并留证据链。高价值品的「一物一码」是防调包基础。</div>
                   </li>
                   <li>
                     <div class="followup-q">理赔时效与准确矛盾（快但错赔）？</div>
@@ -11571,7 +11576,7 @@ flowchart LR
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>省级政务服务平台：一网通办（群众只跑一次）、跨部门数据共享（户籍/社保/医保/不动产互相调）、敏感场景隐私计算（联合核验不出域）。硬指标：事项网办率、数据共享接口可用性、授权合规（每次调用有授权链）、等保密评（三级等保是底线）。</p>
+                <p>省级政务服务平台：一网通办（群众只跑一次）、跨部门数据共享（户籍/社保/医保/不动产互相调）、敏感场景隐私计算（联合核验不出域）。硬指标：事项网办率、数据共享接口可用性、授权合规（每次调用有授权链）、等保密评（等级以定级备案结论为准，常见为三级，具体等级需核实）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -11589,7 +11594,7 @@ flowchart LR
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：政务事项（Item，材料 + 流程 + 时限 + 部门）。<strong>实体</strong>：共享目录（Catalog，数据源 + 分级 + 授权规则）、共享调用记录（ShareLog，调用方 + 授权链 + 用途 + 结果）、隐私计算任务（PCTask，场景 + 参与方 + 结果）。<strong>值对象</strong>：授权凭据、数据分级。<strong>不变量</strong>：无授权链不允许调用；目录外数据不允许共享；隐私计算结果不含原始明细；审计日志不可篡改（哈希链）。</p>
+                <p><strong>聚合根</strong>：政务事项（Item，材料 + 流程 + 时限 + 部门）。<strong>实体</strong>：共享目录（Catalog，数据源 + 分级 + 授权规则）、共享调用记录（ShareLog，调用方 + 授权链 + 用途 + 结果）、隐私计算任务（PCTask，场景 + 参与方 + 结果）。<strong>值对象</strong>：授权凭据、数据分级。<strong>不变量</strong>：无授权链不允许调用；目录外数据不允许共享；隐私计算结果不含原始明细；审计日志不可篡改（哈希链，落地细节见 D12.05，本卡不重复展开）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -11599,7 +11604,7 @@ flowchart LR
                 <p><strong>2. 授权链</strong>：调用方资质审核 → 授权单（范围 + 用途 + 期限）→ 调用时带授权凭据 → 网关校验 + 全程审计；授权过期自动失效，超范围调用拦截告警。</p>
                 <p><strong>3. 一网通办</strong>：事项标准化录入（一表通办），流程编排引擎（跨部门串联审批 + 并联会签），电子证照库复用（户口簿/营业执照免提交），时限看板（临期预警 + 超时通报）。</p>
                 <p><strong>4. 隐私计算</strong>：联合核验场景（低保资格/人口比对）走 TEE 或安全多方计算：数据不出域，只出核验结果；任务全程审计（参与方 + 用途 + 结果哈希）。</p>
-                <p><strong>5. 安全合规</strong>：等保三级建设（分区 + 国密 + 审计），信创全栈适配；运维审计（堡垒机 + 操作留痕），数据安全事件应急预案与演练。</p>
+                <p><strong>5. 安全合规</strong>：按定级备案结论做等保建设（常见三级；分区 + 国密 + 审计），信创全栈适配；运维审计（堡垒机 + 操作留痕），数据安全事件应急预案与演练。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
                   <div class="mermaid">
