@@ -1184,7 +1184,7 @@
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>痛点模型</strong>：M 个 AI 应用（Host）× N 个工具（数据源 / 系统）= M×N 份定制集成代码，任一方升级都牵动全部。MCP（Anthropic，2024-11 开源）把集成收口为 <strong>M+N</strong>：应用实现一次 MCP Client，工具实现一次 MCP Server，中间走统一协议。生态演进：2025-03 规范修订引入 Streamable HTTP 传输（替代纯 HTTP+SSE）；2025-11-25 版规范进一步固化安全与传输语义；2026-07-28 版做无状态化重构（远程部署可横向扩展）——SDK 版本与规范版本需配对核对（如 Spring AI 2.0 随附 MCP Java SDK 2.0 对标 2025-11-25 版）。</p>
+              <p><strong>痛点模型</strong>：M 个 AI 应用（Host）× N 个工具（数据源 / 系统）= M×N 份定制集成代码，任一方升级都牵动全部。MCP（Anthropic，2024-11 开源）把集成收口为 <strong>M+N</strong>：应用实现一次 MCP Client，工具实现一次 MCP Server，中间走统一协议。生态演进：2025-03 规范修订引入 Streamable HTTP 传输（替代纯 HTTP+SSE）；2025-11-25 版规范进一步固化安全与传输语义——SDK 版本与规范版本需配对核对（双方绑定关系以官方发布说明为准，需核实）。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -1452,7 +1452,7 @@
             <div class="content-layer-body">
               <ul>
                 <li><strong>为什么说 Loop 的本质是「制度设计」</strong>？退出条件、质量门槛、安全边界都是制度；制度一旦建立可反复复用（资产），而每次手写 prompt 是一次性消耗——这是投入产出结构的根本变化。</li>
-                <li><strong>Graph 里的回边与 Agent Loop 的 while 有何本质差异</strong>？回边的继续 / 退出由 Edge 条件（可代码可模型）决定且 State 显式记录轮次；while 的控制在模型手 unnatural，易震荡——所以工程上倾向把迭代显式建模为 Graph 回边 + 轮次上限。</li>
+                <li><strong>Graph 里的回边与 Agent Loop 的 while 有何本质差异</strong>？回边的继续 / 退出由 Edge 条件（可代码可模型）决定且 State 显式记录轮次；while 的控制权在模型手中，天然易震荡——所以工程上倾向把迭代显式建模为 Graph 回边 + 轮次上限。</li>
                 <li><strong>Loop 与自进化</strong>？进阶形态是 Loop 修改自身规约（如把失败教训写回 AGENTS.md）；必须人工审核入口，否则规约被污染将系统性放大错误。</li>
               </ul>
             </div>
@@ -2673,13 +2673,13 @@
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
               <p><strong>与 A04.02 的边界</strong>：N×M→N+M 与 Roots 不是沙箱，以 A04.02 为准；本卡只保留版本、传输和三角色的运维字段。</p>
-              <p>这道题考察的是 <strong>MCP 的三角色 / 版本演进 / 传输选型</strong>：Host / Client / Server 三角色与「一 Client 对一 Server」的约束是什么？协议从 2024-11 双端点 HTTP+SSE → 2025-03 单端点 → 2026-07-28 无状态化的演进脉络与动机？stdio 与 Streamable HTTP 的选型判据、以及「消息格式（JSON-RPC 2.0）与传输层解耦」意味着什么。与 A04.02 的理论层互补，本卡聚焦版本与传输的工程细节。</p>
+              <p>这道题考察的是 <strong>MCP 的三角色 / 版本演进 / 传输选型</strong>：Host / Client / Server 三角色与「一 Client 对一 Server」的约束是什么？协议从 2024-11 双端点 HTTP+SSE → 2025-03 单端点 Streamable HTTP → 2025-06-18 / 2025-11-25 后续修订的演进脉络（各版本具体变更以官方 changelog 为准，需核实）？stdio 与 Streamable HTTP 的选型判据、以及「消息格式（JSON-RPC 2.0）与传输层解耦」意味着什么。与 A04.02 的理论层互补，本卡聚焦版本与传输的工程细节。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>传输演进三阶段</strong>：2024-11 初版（双端点：HTTP 请求 + SSE 推送分离）→ 2025-03（合并为单端点 Streamable HTTP，旧方案 deprecated——短请求普通响应、长请求 SSE 流）→ 2026-07-28（无状态化重构：移除握手与 HTTP 会话、请求 <code class="inline-code">_meta</code> 带版本——远程部署可横向扩展，代价是失去双向会话语义）。<strong>工程铁律：接入前核对「SDK 版本 ↔ 目标规范版本」配对，勿把两者当成同一代</strong>。</p>
+              <p><strong>传输演进路径</strong>：2024-11 初版（双端点：HTTP 请求 + SSE 推送分离）→ 2025-03（合并为单端点 Streamable HTTP，旧方案 deprecated——短请求普通响应、长请求 SSE 流）→ 2025-06-18（移除 JSON-RPC 批量请求）→ 2025-11-25 后续修订（传输与会话语义的具体变更以官方 changelog 为准，需核实）。<strong>工程铁律：接入前核对「SDK 版本 ↔ 目标规范版本」配对，勿把两者当成同一代</strong>。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -2696,7 +2696,7 @@
               <ul>
                 <li><strong>传输选型</strong>：stdio（Host 拉起子进程走管道，零网络低延迟，本地个人工具；<strong>stdout 只走协议消息、日志必须写 stderr</strong>）；Streamable HTTP（Server 独立 HTTP 服务，多 Client 共享，适配微服务部署，可过网关统一鉴权 / 限流 / 审计）。同一份 Server 代码通常两种传输都支持，配置层切换。</li>
                 <li><strong>自写 Server 最小路径</strong>：声明 tools/list → 实现 tools/call → 启动传输（约 30 行起步）；失败分层——协议层 error 与业务层 <code class="inline-code">isError: true</code> 分开处理。</li>
-                <li><strong>版本兼容</strong>：接入前查双方支持版本（server/discover）；批量请求 JSON-RPC 2.0 支持但 MCP 2025-06-18 规范已移除——<strong>判断功能看 MCP 规范，不只看底层消息格式</strong>。</li>
+                <li><strong>版本兼容</strong>：接入前查双方支持的规范版本（通过 initialize 握手协商，具体能力发现方法名以目标规范版本为准，需核实）；批量请求 JSON-RPC 2.0 支持但 MCP 2025-06-18 规范已移除——<strong>判断功能看 MCP 规范，不只看底层消息格式</strong>。</li>
                 <li><strong>安全边界</strong>：授权围绕具体操作和数据设计（不按「Tools 高危 / Resources 开放」一刀切）；<strong>Server 返回的文档 / 工具说明 / 模板也可能含不可信内容</strong>——不能因来自 MCP Server 就当高优先级指令（注入面）。</li>
               </ul>
             </div>
@@ -2705,7 +2705,7 @@
             <div class="content-layer-title">深度追问</div>
             <div class="content-layer-body">
               <ul>
-                <li><strong>为什么 2026-07 版要无状态化</strong>？会话粘滞（HTTP 会话绑定实例）阻碍横向扩展；无状态化后负载均衡可自由分发，代价是双向通信与会话级状态需应用层重建——规范与 SDK 版本配对就是为此。</li>
+                <li><strong>为什么远程传输要关注无状态化与横向扩展</strong>？会话粘滞（HTTP 会话绑定实例）阻碍负载均衡自由分发；若目标规范版本不再保留 HTTP 会话语义，双向通信与会话级状态需应用层重建——因此「规范 ↔ SDK」版本配对必须先核对（具体版本行为以官方文档为准，需核实）。</li>
                 <li><strong>「一 Client 对一 Server」为何这样设计</strong>？隔离故障域与生命周期（一个 Server 崩溃不牵连其他连接）、权限按 Server 粒度授予；多工具复用一个连接会把故障与权限搅在一起。</li>
                 <li><strong>MCP 选型五步</strong>？① 社区有现成 Server 直接用；② 跨项目 / 多人复用选 MCP；③ 数量 / 复杂度 / 团队 / 变更频率综合看拐点；④ 正式 Agent 系统选 MCP；⑤ 部署环境不允许子进程只能 FC/HTTP。</li>
               </ul>
@@ -3773,13 +3773,13 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>Spring AI 记忆四实现与 Tool Calling 生产范式</strong>：Basic / JDBC / Spring Security / Vector Store 四种记忆持久化各自适用什么场景（原型 / 跨重启会话 / 多租户隔离 / 语义召回）？把 Java 方法暴露为 LLM 工具（Mistral / Ollama / OpenAI 三套实现）的生产要点是什么？记忆四实现与理论层记忆分层（短期 / 长期）、多租户体系的映射关系。</p>
+              <p>这道题考察的是 <strong>Spring AI 记忆四实现与 Tool Calling 生产范式</strong>：内存（InMemory）/ JDBC / Neo4j / Vector Store 四种记忆持久化各自适用什么场景（原型 / 跨重启会话 / 图结构长期记忆 / 语义召回）？把 Java 方法暴露为 LLM 工具（Mistral / Ollama / OpenAI 三套实现）的生产要点是什么？记忆四实现与理论层记忆分层（短期 / 长期）、多租户体系的映射关系——以及多租户隔离为何不能依赖框架、必须由应用层显式实现。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>记忆实现的工程化谱系</strong>：Basic（内存会话——原型 / 单实例）→ JDBC（关系库持久化——跨重启会话、对接既有 DB）→ Spring Security（多租户隔离记忆——按认证身份分区，对齐 OAuth2 / JWT 多租户体系）→ Vector Store（语义召回记忆——记忆即检索）。四实现是「同一抽象接口 + 不同存储后端」的教科书式落地，对应理论层 1.2 的短期（会话）与长期（向量库）二分。</p>
+              <p><strong>记忆实现的工程化谱系</strong>：内存（InMemoryChatMemory——原型 / 单实例）→ JDBC（JdbcChatMemoryRepository——跨重启会话、对接既有 DB）→ Neo4j（Neo4jChatMemoryRepository——图结构长期记忆）→ Vector Store（VectorStoreChatMemoryAdvisor——记忆即检索）。四种实现是「同一 ChatMemory 抽象 + 不同存储后端」的落地，对应理论层 1.2 的短期（会话）与长期（向量库）二分；<strong>多租户隔离不在框架内</strong>，需应用层在读写键上显式加 tenant 维度。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -3792,8 +3792,8 @@
             <div class="content-layer-title">工程实践</div>
             <div class="content-layer-body">
               <ul>
-                <li><strong>选型映射</strong>：内部工具 / 原型 → Basic；面向用户的助手（会话可恢复）→ JDBC；SaaS 多租户 → Spring Security 实现（租户级隔离与既有安全体系同源）；个性化助手 → Vector Store（语义召回历史偏好）。</li>
-                <li><strong>组合使用</strong>：JDBC（会话连续性）+ Vector Store（长期偏好）+ Spring Security（隔离边界）三实现叠加是常见生产形态——各管一层，接口统一。</li>
+                <li><strong>选型映射</strong>：内部工具 / 原型 → 内存实现；面向用户的助手（会话可恢复）→ JDBC；需要图结构长期关联 → Neo4j；个性化助手 → Vector Store（语义召回历史偏好）。SaaS 多租户不是「换一种实现」，而是任一持久化实现 + 应用层显式租户键。</li>
+                <li><strong>组合使用</strong>：JDBC（会话连续性）+ Vector Store（长期偏好）+ 应用层租户键（隔离边界）三件套叠加是常见生产形态——各管一层，接口统一。</li>
                 <li><strong>工具暴露纪律</strong>：工具粒度按业务动作拆（不做万能工具）；description 回答「何时该调 / 何时不该调」；错误信息可操作（帮模型自纠）。</li>
                 <li><strong>与 Agent 模块的关系</strong>：Ragent <code class="inline-code">agent</code> 模块（AgentScope ReAct + 技能 + 记忆 + 人工确认）建立在 Spring AI Tool Calling 之上——组件范式（怎么调）与 Agent 架构（怎么编排）分层。</li>
               </ul>
@@ -3803,7 +3803,7 @@
             <div class="content-layer-title">深度追问</div>
             <div class="content-layer-body">
               <ul>
-                <li><strong>为什么「多租户记忆隔离」要用 Spring Security 实现</strong>？记忆按认证身份（principal / tenant）自动分区，与既有 OAuth2 / JWT 体系同源——隔离逻辑复用安全框架而非自造租户键，降低串租户风险。</li>
+                <li><strong>为什么「多租户记忆隔离」不能依赖框架自带实现</strong>？记忆抽象只负责存取，不携带租户语义——必须由应用层在会话 / 查询键上显式加 tenant 维度，并在入口校验数据归属；把隔离当框架能力，是串租户事故的根源。</li>
                 <li><strong>Vector Store 记忆与 RAG 的边界</strong>？同一套向量基建，两种数据：RAG 管共享知识（文档），记忆管用户个性化（偏好 / 历史）；检索时可分开召回再统一排序（详见 A02.03）。</li>
                 <li><strong>Tool Calling 与 MCP 的迁移路径</strong>？先用 Tool Calling 快速验证（进程内零部署）；能力需要跨应用复用时包装为 MCP Server——「一次实现，两类消费方」。</li>
               </ul>
@@ -3814,7 +3814,7 @@
             <div class="content-layer-body">
               <ul>
                 <li><strong>生产用 Basic 内存记忆</strong>：重启即失忆、多实例不共享；跨重启场景必须 JDBC 以上。</li>
-                <li><strong>多租户产品用无隔离记忆</strong>：会话串租户 P0 事故；Spring Security 实现或显式租户键。</li>
+                <li><strong>多租户产品用无隔离记忆</strong>：会话串租户 P0 事故；应用层显式租户键 + 入口归属校验。</li>
                 <li><strong>工具方法写万能入口</strong>：<code class="inline-code">execute(String sql)</code> 式设计权限粒度全失；按业务动作拆分。</li>
                 <li><strong>记忆无限增长</strong>：无 TTL / 无压缩的会话记忆撑爆存储；会话 TTL + 摘要压缩。</li>
               </ul>
