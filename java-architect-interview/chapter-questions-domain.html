@@ -3505,8 +3505,8 @@ settlementRepo.<span class="fn">save</span>(st);         <span class="com">// �
             <div class="content-layer" data-layer="practice">
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
-                <p><strong>1. 领取</strong>：Lua 脚本原子完成「批次库存扣减 + 用户限领计数」，失败即已领完/已超限；成功发 MQ 异步创建用户券实例（本地消息表保证不丢不发重）。</p>
-                <p><strong>2. 核销</strong>：下单时锁券（未用 → 锁定中，带订单号）；支付成功转已用并记录订单；取消/超时释放回未用；核销幂等（券 ID + 订单号唯一）。</p>
+                <p><strong>1. 领取</strong>：库存按「批次 + 分桶」拆 key（如 16 桶），Lua 只争单桶再聚合，热点批次按桶位摊平；Lua 原子完成「分桶库存扣减 + 用户限领计数」，失败即已领完/已超限；成功发 MQ 异步创建用户券实例（本地消息表保证不丢不发重；Redis 扣减与 DB 落库非同事务，需日终按「已扣数 vs 已落实例数」对账补偿）。</p>
+                <p><strong>2. 核销</strong>：下单时锁券（未用 → 锁定中，带订单号）；支付成功转已用并记录订单；取消/超时释放回未用；核销幂等（条件更新「券 ID + status='LOCKED' + 订单号」为第一道防线，券 ID + 订单号唯一索引兜底）。</p>
                 <p><strong>3. 退款回退</strong>：整单退按券规则原路退回券（返还到账户、可能重置有效期）；部分退按分摊比例处理（见 D04.02 分摊）；不退规则要在券模板显式声明。</p>
                 <p><strong>4. 过期</strong>：过期时间进延迟消息队列，到期置过期；兜底扫描每日对「应过期未过期」补处理；到期前（如三天）推送提醒。</p>
                 <div class="mermaid-container">
@@ -3564,7 +3564,7 @@ stateDiagram-v2
     <span class="kw">long</span> <span class="var">r</span> = redis.<span class="fn">execute</span>(CLAIM, List.<span class="fn">of</span>(<span class="str">"batch:left:"</span> + batchId, <span class="str">"user:got:"</span> + batchId + <span class="str">":"</span> + userId),
         String.<span class="fn">valueOf</span>(batchRules.<span class="fn">perUserLimit</span>(batchId)));
     <span class="kw">if</span> (r != <span class="num">1</span>) <span class="kw">return</span> ClaimResult.<span class="fn">reject</span>(r);                       <span class="com">// 0=领完 -1=超限</span>
-    outbox.<span class="fn">save</span>(<span class="kw">new</span> <span class="type">CouponClaimedMsg</span>(batchId, userId));                 <span class="com">// 同事务：MQ 异步建实例，不丢不发重</span>
+    outbox.<span class="fn">save</span>(<span class="kw">new</span> <span class="type">CouponClaimedMsg</span>(batchId, userId));                 <span class="com">// 本地消息表；与 Redis 扣减非同事务，靠日终对账补偿</span>
     <span class="kw">return</span> ClaimResult.<span class="fn">ok</span>();
 }
 
@@ -3588,7 +3588,7 @@ stateDiagram-v2
                   </li>
                   <li>
                     <div class="followup-q">批量发券（圈定用户群）怎么做？</div>
-                    <div class="followup-a">走发放任务：用户群列表 → 批量写实例（分片 + 限速，避免打爆 DB）→ 到账通知。与「用户主动领取」是两条路径，但实例模型一致；批量发不受批次库存限（按名单发），但要有总量熔断防误操作发全军。</div>
+                    <div class="followup-a">走发放任务：用户群列表 → 批量写实例（分片 + 限速，避免打爆 DB）→ 到账通知。与「用户主动领取」是两条路径，但实例模型一致；批量发走独立发放池（或先调增批次总量再发），不占用用户领取库存，并设总量熔断防误操作发全军。</div>
                   </li>
                   <li>
                     <div class="followup-q">券被黑产批量扫了怎么办？</div>
@@ -3722,19 +3722,23 @@ graph TD
     <span class="kw">for</span> (Dimension dim : List.<span class="fn">of</span>(ITEM, SHOP, PLATFORM)) {           <span class="com">// 固定三层顺序</span>
         List&lt;Promotion&gt; acts = promoIndex.<span class="fn">findApplicable</span>(dim, cur, ctx);
         acts = exclusivity.<span class="fn">resolve</span>(acts);                          <span class="com">// 互斥组：同组取优先级最高</span>
-        <span class="kw">for</span> (Promotion p : acts) { cur = p.<span class="fn">apply</span>(cur); applied.<span class="fn">add</span>(<span class="kw">new</span> <span class="type">Applied</span>(p.id(), p.<span class="fn">discount</span>(cur))); }
+        <span class="kw">for</span> (Promotion p : acts) {
+            Money d = p.<span class="fn">discount</span>(cur);                            <span class="com">// 先按应用前价格算优惠额</span>
+            cur = p.<span class="fn">apply</span>(cur);
+            applied.<span class="fn">add</span>(<span class="kw">new</span> <span class="type">Applied</span>(p.<span class="fn">id</span>(), d));                <span class="com">// 快照记录真实减免额</span>
+        }
     }
     <span class="kw">return</span> PriceResult.<span class="fn">of</span>(cur, applied, ctx.<span class="fn">coupons</span>());
 }
 
-<span class="com">// 订单级优惠分摊：按行实付占比，余数进调节行，保证 Σ守恒</span>
-<span class="kw">public</span> List&lt;LineShare&gt; <span class="fn">allocate</span>(Money orderDiscount, List&lt;Line&gt; lines) {
+<span class="com">// 订单级优惠分摊：按行实付占比，余数进「调用方指定的调节行」（须 payable&gt;0），保证 Σ守恒</span>
+<span class="kw">public</span> List&lt;LineShare&gt; <span class="fn">allocate</span>(Money orderDiscount, List&lt;Line&gt; lines, <span class="kw">int</span> <span class="var">adjustIdx</span>) {
     Money total = lines.<span class="fn">stream</span>().<span class="fn">map</span>(Line::payable).<span class="fn">reduce</span>(Money.<span class="fn">ZERO</span>, Money::add);
     List&lt;LineShare&gt; shares = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;&gt;();
     Money allocated = Money.<span class="fn">ZERO</span>;
     <span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="num">0</span>; i &lt; lines.<span class="fn">size</span>(); i++) {
-        Money share = (i == lines.<span class="fn">size</span>() - <span class="num">1</span>)
-            ? orderDiscount.<span class="fn">subtract</span>(allocated)                    <span class="com">// 末行兜余数，总和精确守恒</span>
+        Money share = (i == adjustIdx)
+            ? orderDiscount.<span class="fn">subtract</span>(allocated)                    <span class="com">// 调节行兜余数，总和精确守恒</span>
             : orderDiscount.<span class="fn">multiply</span>(lines.<span class="fn">get</span>(i).payable()).<span class="fn">divide</span>(total);
         allocated = allocated.<span class="fn">add</span>(share);
         shares.<span class="fn">add</span>(<span class="kw">new</span> <span class="type">LineShare</span>(lines.<span class="fn">get</span>(i).id(), share));
@@ -4071,7 +4075,7 @@ graph TD
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>投放四件套：<strong>人群 → 权益 → 渠道 → 度量</strong>。人群走标签平台圈选（内容画像能力，见 D08；D09 是物流供应链，不是内容域）；权益调券系统（D04.01）按用户逐个发，走限速队列；渠道发送同样限速 + 模板审核；预算引擎对「权益成本 + 渠道成本」实时累计，超限自动停投。归因用「投放批次 → 券批次 → 核销订单」链路：券的唯一批次 ID 是天然归因键，核销时带上即可算 ROI。治理看沉睡率（未领取）、核销率，低效投放自动降权。</p>
+                <p>投放四件套：<strong>人群 → 权益 → 渠道 → 度量</strong>。人群走标签平台圈选（人群画像由标签平台提供）；权益调券系统（D04.01）按用户逐个发，走限速队列；渠道发送同样限速 + 模板审核；预算引擎对「权益成本 + 渠道成本」实时累计，超限自动停投。归因用「投放批次 → 券批次 → 核销订单」链路：券的唯一批次 ID 是天然归因键，核销时带上即可算 ROI。治理看沉睡率（未领取）、核销率，低效投放自动降权。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -4085,7 +4089,7 @@ graph TD
               <div class="content-layer-body">
                 <p><strong>1. 人群与权益</strong>：标签平台圈选导出人群包；权益选券批次（或动态发券）；配置预算（权益 + 渠道）与限速（如每秒五千）。</p>
                 <p><strong>2. 发放调度</strong>：任务分片 + 令牌桶限速；单用户失败（注销/黑名单）跳过并记录；失败重试带退避；发放进度实时可观测（进度条 + 失败率）。</p>
-                <p><strong>3. 预算熔断</strong>：每笔发放前原子扣预算（Redis + DB 双记录），预算耗尽自动停投并通知运营；超支告警到运营 + 财务。</p>
+                <p><strong>3. 预算熔断</strong>：每笔发放前原子扣预算（Redis 快路径 + DB 流水事实源），预算耗尽自动停投并通知运营；日终对账，Redis 丢失或漂移时按 DB 流水重建余额；超支告警到运营 + 财务。</p>
                 <p><strong>4. 归因看板</strong>：券批次 ID 贯穿「投放 → 发放 → 领取 → 核销订单 → GMV」，日级报表；末次归因口径写清（多触点冲突规则）。</p>
                 <p><strong>5. 沉睡治理</strong>：到期未领取自动释放预算回收；核销率低于阈值的投放模板降权；重复领取同一权益的用户进疲劳度控制（同一用户多渠道触达频次上限）。</p>
                 <div class="mermaid-container">
@@ -4124,12 +4128,18 @@ graph TD
     <span class="kw">return</span> <span class="kw">true</span>;
 }
 
-<span class="com">// 限速发放：令牌桶 + 分片，单用户失败跳过不阻塞整批</span>
-rateLimiter.<span class="fn">acquire</span>(batchSize);
-dispatchExecutor.<span class="fn">submit</span>(users.<span class="fn">stream</span>()
-    .<span class="fn">filter</span>(u -&gt; !blacklist.<span class="fn">contains</span>(u))
-    .<span class="fn">map</span>(u -&gt; couponService.<span class="fn">issue</span>(u, batchId))
-    .<span class="fn">toList</span>());</code></pre>
+<span class="com">// 限速发放：按微批取令牌后提交，单用户失败捕获跳过，不阻塞整批</span>
+List&lt;User&gt; targets = users.<span class="fn">stream</span>().<span class="fn">filter</span>(u -&gt; !blacklist.<span class="fn">contains</span>(u)).<span class="fn">toList</span>();
+<span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="num">0</span>; i &lt; targets.<span class="fn">size</span>(); i += MICRO_BATCH) {
+    List&lt;User&gt; part = targets.<span class="fn">subList</span>(i, Math.<span class="fn">min</span>(i + MICRO_BATCH, targets.<span class="fn">size</span>()));
+    rateLimiter.<span class="fn">acquire</span>(part.<span class="fn">size</span>());                     <span class="com">// 每批前按实际批大小取令牌</span>
+    dispatchExecutor.<span class="fn">submit</span>(() -&gt; {
+        <span class="kw">for</span> (User u : part) {
+            <span class="kw">try</span> { couponService.<span class="fn">issue</span>(u, batchId); }
+            <span class="kw">catch</span> (Exception e) { failLog.<span class="fn">record</span>(u, e); }     <span class="com">// 单用户失败跳过并记录</span>
+        }
+    });
+}</code></pre>
                 </div>
               </div>
             </div>
@@ -4192,7 +4202,7 @@ dispatchExecutor.<span class="fn">submit</span>(users.<span class="fn">stream</s
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>电商大促与日常营销，日消息触达千万级：App Push、短信、微信模板消息、站内信四类通道。硬指标：触达成本（短信按条计费，Push 近零成本）、到达率（Push 到达率受厂商通道影响大）、退订/取关率（过度打扰的代价）、转化归因准确率（投放效果怎么算）。</p>
+                <p>电商大促与日常营销，日消息触达千万级：App Push、短信、微信订阅消息（公众号/小程序；公众号模板消息已下线，两者能力口径需核实）、站内信四类通道。硬指标：触达成本（短信按条计费，Push 近零成本）、到达率（Push 到达率受厂商通道影响大）、退订/取关率（过度打扰的代价）、转化归因准确率（投放效果怎么算）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -4218,8 +4228,8 @@ dispatchExecutor.<span class="fn">submit</span>(users.<span class="fn">stream</s
               <div class="content-layer-body">
                 <p><strong>1. 消息中心</strong>：模板管理（审核 + 版本）、变量渲染（用户属性 + 商品数据），渲染失败降级为通用文案；多语言与个性化兜底。</p>
                 <p><strong>2. 通道路由</strong>：按通道优先级（Push → 微信 → 短信）+ 可达性（Push Token 有效性）+ 场景时效（验证码类直发短信，营销类优先 Push）选路；Push 回执失败自动降级短信。</p>
-                <p><strong>3. 频控</strong>：发送前查疲劳度（Redis 计数，用户 × 全局/通道 × 日/周窗口），超限进压制池次日再评估；退订与免打扰时段（晚十点后不发营销）硬拦截。</p>
-                <p><strong>4. 归因</strong>：触点埋点（任务 × 通道 × 点击），订单成交时按末次点击 + 窗口期归因；同一渠道内多次触点只算最近一次，防自夸。</p>
+                <p><strong>3. 频控</strong>：发送前查疲劳度（Redis 计数，用户 × 全局/通道 × 日/周窗口），超限进压制池次日再评估；退订与免打扰时段（按当地监管/通道规则配置，常见 22:00–次日 8:00，需核实）硬拦截。</p>
+                <p><strong>4. 归因</strong>：归因链路与口径统一见 D04.05，本卡只做触点埋点与通道侧执行（任务 × 通道 × 点击）；订单成交时按末次点击 + 窗口期归因；同一渠道内多次触点只算最近一次，防自夸。</p>
                 <p><strong>5. 发送引擎</strong>：任务拆微批 + 令牌桶限速 + 失败重试与死信告警；大促前通道侧容量报备与压测。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
@@ -4231,7 +4241,7 @@ graph TD
     C -->|通过| E[通道路由]
     E --> F[Push 优先]
     F -->|Token失效/未达| G[降级短信]
-    E --> H[微信模板]
+    E --> H[微信订阅消息]
     E --> I[站内信 免费]
     F --> J[触点埋点]
     G --> J
@@ -4259,10 +4269,10 @@ graph TD
     <span class="var">r</span> = smsClient.<span class="fn">send</span>(userId, rendered.<span class="fn">toPlain</span>());   <span class="com">// 降级前查成本预算</span>
 }
 
-<span class="com">// 末次点击归因：同渠道内只保留最近触点，窗口七天</span>
-attribution.<span class="fn">record</span>(<span class="type">Touch</span>.<span class="fn">of</span>(userId, campaignId, ch, now));
-<span class="kw">if</span> (order.<span class="fn">createdAfter</span>(touch, <span class="type">Duration</span>.<span class="fn">ofDays</span>(<span class="num">7</span>))) {
-    attribution.<span class="fn">attribute</span>(orderId, touch.<span class="fn">channel</span>());   <span class="com">// 新触点覆盖同渠道旧触点</span>
+<span class="com">// 末次点击归因：成交时回查窗口内最近触点（不再「先记触点再判订单」）</span>
+<span class="type">Touch</span> <span class="var">touch</span> = attribution.<span class="fn">latestTouch</span>(<span class="var">userId</span>, <span class="var">campaignId</span>, <span class="type">Duration</span>.<span class="fn">ofDays</span>(<span class="num">7</span>));
+<span class="kw">if</span> (<span class="var">touch</span> != <span class="kw">null</span> &amp;&amp; order.<span class="fn">createdAfter</span>(<span class="var">touch</span>, <span class="type">Duration</span>.<span class="fn">ofDays</span>(<span class="num">7</span>))) {
+    attribution.<span class="fn">attribute</span>(orderId, touch.<span class="fn">channel</span>());   <span class="com">// 同渠道新触点覆盖旧触点</span>
 }</code></pre>
                 </div>
               </div>
@@ -4408,7 +4418,7 @@ attribution.<span class="fn">record</span>(<span class="type">Touch</span>.<span
               <div class="content-layer-body">
                 <p><strong>1. 路由</strong>：网关注入租户标识（域名/Header/JWT claim）→ TenantContext（ThreadLocal + 异步透传）→ MyBatis 拦截器为所有业务表 SQL 自动追加 tenant_id；租户目录本地缓存 + 短 TTL，避免每次查库。</p>
                 <p><strong>2. 隔离落地</strong>：L1 用 tenant_id + 复合索引（tenant_id, biz_id）；L2 用 schema 级连接切换；L3 独立数据源分组，连接池按组限额，防止大租户打满共享池。全局唯一（如登录邮箱）走「全局唯一索引表」单独治理，不与租户内唯一混淆。</p>
-                <p><strong>3. 大租户在线迁移</strong>：迁移任务状态机（准备 → 全量拷贝 → 增量追平 → 双写校验 → 切流 → 旧库只读观察 → 下线），每步可中止可回滚；校验用行数 + 采样哈希 + 关键业务查询比对。</p>
+                <p><strong>3. 大租户在线迁移</strong>：状态机与读写路由细则见 D05.06（准备 → 全量拷贝 → 增量追平 → 双写校验 → 切流 → 旧库只读观察 → 下线，每步可中止可回滚）；本卡只强调切换点由迁移任务状态机锁定、双写期旧库为准。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
                   <div class="mermaid">
@@ -4475,9 +4485,9 @@ flowchart LR
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 租户上下文 + 数据源路由：共享库隔离模式按 tenant_id 强制注入</span>
+                  <pre><code><span class="com">// 租户上下文 + 数据源路由：异步场景用 TransmittableThreadLocal（或显式包装 Runnable）</span>
 <span class="kw">public</span> <span class="kw">final</span> <span class="kw">class</span> TenantContext {
-    <span class="kw">private</span> <span class="kw">static</span> <span class="kw">final</span> ThreadLocal&lt;String&gt; CURRENT = <span class="kw">new</span> ThreadLocal&lt;&gt;();
+    <span class="kw">private</span> <span class="kw">static</span> <span class="kw">final</span> TransmittableThreadLocal&lt;String&gt; CURRENT = <span class="kw">new</span> TransmittableThreadLocal&lt;&gt;();
 
     <span class="kw">public</span> <span class="kw">static</span> <span class="kw">void</span> <span class="fn">set</span>(String tenantId) { CURRENT.<span class="fn">set</span>(tenantId); }
     <span class="kw">public</span> <span class="kw">static</span> String <span class="fn">require</span>() {
@@ -4588,7 +4598,7 @@ flowchart LR
             <div class="content-layer" data-layer="practice">
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
-                <p><strong>1. 计量</strong>：网关埋点 + 服务埋点双路，事件带全局事件 ID；Kafka 至少一次 → Flink 按事件 ID 去重 + 小时窗口预聚合 → 汇总表 + 明细 OSS。日终对账：服务端原始计数与预聚合总量比对，差异进差异表人工/自动修。</p>
+                <p><strong>1. 计量</strong>：网关埋点 + 服务埋点双路，事件带全局事件 ID；Kafka 至少一次 → Flink 按事件 ID 去重 + 小时窗口预聚合 → 汇总表 + 明细 OSS。去重状态设 TTL（覆盖允许迟到窗口 + 一个账期，如四十天），事件 ID 保留期与明细归档一致；日终对账：服务端原始计数与预聚合总量比对，差异进差异表人工/自动修。</p>
                 <p><strong>2. 定价</strong>：价格是一等公民版本化（计划价目 + 阶梯价 + 生效区间），账单生成时按用量发生时间寻址价格版本，而不是按生成时刻——这是可复现的关键。</p>
                 <p><strong>3. 账单</strong>：账期关闭后跑账（幂等键 = 账期 + 租户），生成行项快照（含价格版本号）；未关闭可重跑，关闭后只能红冲。升级降级按天比例折算，生成「补差」行项。</p>
                 <p><strong>4. 发票</strong>：账单确认后申请，税务系统对接；作废重开走红冲 + 新票，票面信息快照留存。</p>
@@ -4661,9 +4671,9 @@ sequenceDiagram
 
 <span class="com">// 订阅状态机：试用 → 生效 → 到期/欠费 → 冻结 → 恢复</span>
 <span class="kw">private</span> <span class="kw">static</span> <span class="kw">final</span> Map&lt;SubState, Set&lt;SubState&gt;&gt; TRANS = Map.<span class="fn">of</span>(
-    SubState.TRIAL,   Set.<span class="fn">of</span>(SubState.ACTIVE, SubState.CANCELLED),
+    SubState.TRIAL,   Set.<span class="fn">of</span>(SubState.ACTIVE, SubState.EXPIRED, SubState.PAST_DUE, SubState.CANCELLED),
     SubState.ACTIVE,  Set.<span class="fn">of</span>(SubState.EXPIRED, SubState.PAST_DUE, SubState.CANCELLED),
-    SubState.PAST_DUE, Set.<span class="fn">of</span>(SubState.SUSPENDED, SubState.ACTIVE),
+    SubState.PAST_DUE, Set.<span class="fn">of</span>(SubState.SUSPENDED, SubState.EXPIRED, SubState.ACTIVE),
     SubState.SUSPENDED, Set.<span class="fn">of</span>(SubState.ACTIVE, SubState.CANCELLED));
 
 <span class="kw">public</span> <span class="kw">void</span> <span class="fn">transit</span>(SubId id, SubState target) {
@@ -4694,7 +4704,7 @@ sequenceDiagram
                   </li>
                   <li>
                     <div class="followup-q">发票红冲后税务怎么衔接？</div>
-                    <div class="followup-a">红冲单（负数票）与原票号关联，重开票用新号码；全电票模式下对接税务数字账户自动开具/红冲。关键是发票状态机与账单状态解耦但金额锚定，杜绝「票账不符」。</div>
+                    <div class="followup-a">红冲单（负数票）与原票号关联，重开票用新号码；数电票（数字化电子发票）模式下对接税务数字账户自动开具/红冲，具体对接方式与红冲规则需按现行税务口径核实。关键是发票状态机与账单状态解耦但金额锚定，杜绝「票账不符」。</div>
                   </li>
                 </ul>
               </div>
@@ -4903,13 +4913,13 @@ flowchart TD
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>分而治之：<strong>可变行为配置化</strong>（字段、流程节点、规则参数走配置 + 低代码），<strong>不可配行为扩展点化</strong>（对接外部系统这类逻辑走插件 SPI）。配置三层模型：系统默认（随版本发布）→ 租户覆盖（运营可改，带版本与审批）→ 用户偏好（终端用户）。插件走「扩展点注册 + 契约接口 + 沙箱隔离（独立类加载/进程 + 超时熔断 + 资源配额）」，插件只能通过扩展点与核心交互，禁止直连内部 API。一切定制能力带 feature flag，灰度发布、异常自动熔断到默认行为。</p>
+                <p>分而治之：<strong>可变行为配置化</strong>（字段、流程节点、规则参数走配置 + 低代码），<strong>不可配行为扩展点化</strong>（对接外部系统这类逻辑走插件 SPI）。配置四层模型：系统默认（随版本发布）→ 套餐（租户所属计划）→ 租户覆盖（运营可改，带版本与审批）→ 用户偏好（终端用户）。插件走「扩展点注册 + 契约接口 + 隔离运行（独立线程池 + 超时熔断 + 资源配额；强隔离用独立进程/容器）」，插件只能通过扩展点与核心交互，禁止直连内部 API。一切定制能力带 feature flag，灰度发布、异常自动熔断到默认行为。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：租户配置集（ConfigSet：分层键值 + 版本 + 生效状态）、插件安装（PluginInstall：扩展点、版本、授权范围）。<strong>实体</strong>：配置项（含 schema 校验）、扩展点注册。<strong>值对象</strong>：配置作用域（系统/租户/用户）、插件版本。<strong>不变量</strong>：租户配置仅在租户内可见可写；插件只能调用已发布扩展点；配置值必须通过 schema 校验（类型/范围/依赖）；灰度中的配置可一键回滚到上一版本。</p>
+                <p><strong>聚合根</strong>：租户配置集（ConfigSet：分层键值 + 版本 + 生效状态）、插件安装（PluginInstall：扩展点、版本、授权范围）。<strong>实体</strong>：配置项（含 schema 校验）、扩展点注册。<strong>值对象</strong>：配置作用域（系统/套餐/租户/用户）、插件版本。<strong>不变量</strong>：租户配置仅在租户内可见可写；插件只能调用已发布扩展点；配置值必须通过 schema 校验（类型/范围/依赖）；灰度中的配置可一键回滚到上一版本。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -4917,7 +4927,7 @@ flowchart TD
               <div class="content-layer-body">
                 <p><strong>1. 配置中心</strong>：键 = 作用域 + 模块 + 名称；读取走本地缓存 + 长轮询推送（秒级生效）；写走「申请 → 校验 schema → 灰度（按租户百分比）→ 全量」，每步留版本快照。敏感配置（密钥）进 KMS，配置中心只存引用。</p>
                 <p><strong>2. 低代码扩展</strong>：自定义字段（元数据驱动表单与存储列映射）、流程节点（BPMN 子集 + 租户自定义节点实现）、报表（语义层 + 拖拽）。低代码产物也是配置，纳入同一版本治理。</p>
-                <p><strong>3. 插件</strong>：定义扩展点（如「订单创建后」「审批通过后」），插件实现契约接口；运行时隔离：超时（默认短）、线程池独立、异常计数熔断；插件生命周期（安装/启用/禁用/升级/卸载）由平台管控，权限最小化（只能经 API 网关访问授权数据）。</p>
+                <p><strong>3. 插件</strong>：定义扩展点（如「订单创建后」「审批通过后」），插件实现契约接口；运行时隔离分两档：轻隔离 = 独立线程池 + 超时 + 异常计数熔断，强隔离 = 独立进程/容器 + API 网关鉴权 + CPU/内存配额（注意：JDK 17 起 SecurityManager 弃用、JDK 24 起永久禁用，仅靠类加载器挡不住反射与文件 IO）；插件生命周期（安装/启用/禁用/升级/卸载）由平台管控，权限最小化（只能经 API 网关访问授权数据）。</p>
                 <p><strong>4. 私有化导出</strong>：租户配置集 + 低代码产物 + 插件清单整体导出为「定制包」，私有化部署时一键应用，保证环境一致。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
@@ -4969,19 +4979,20 @@ flowchart TD
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 配置分层：默认值 → 套餐 → 租户覆盖，逐层合并（禁全量覆盖丢默认）</span>
-<span class="kw">public</span> Config <span class="fn">effective</span>(String tenantId, String key) {
+                  <pre><code><span class="com">// 配置分层：系统默认 → 套餐 → 租户覆盖 → 用户偏好，逐层深合并（禁全量覆盖丢下层）</span>
+<span class="kw">public</span> Config <span class="fn">effective</span>(String tenantId, String userId, String key) {
     Config base  = defaultRepo.<span class="fn">find</span>(key);               <span class="com">// 平台默认</span>
     Config plan  = planRepo.<span class="fn">findByTenant</span>(tenantId).<span class="fn">override</span>(key);
     Config tenant = tenantConfRepo.<span class="fn">find</span>(tenantId, key);
-    <span class="kw">return</span> base.<span class="fn">merge</span>(plan).<span class="fn">merge</span>(tenant);       <span class="com">// 深合并，未设置的键继承下层</span>
+    Config user   = userPrefRepo.<span class="fn">find</span>(userId, key);
+    <span class="kw">return</span> base.<span class="fn">merge</span>(plan).<span class="fn">merge</span>(tenant).<span class="fn">merge</span>(user); <span class="com">// 深合并，未设置的键继承下层</span>
 }
 
-<span class="com">// 插件化：能力声明 + 沙箱加载，插件只经扩展点接入</span>
+<span class="com">// 插件化：能力声明 + 隔离加载，插件只经扩展点接入（类加载器仅做依赖隔离）</span>
 <span class="kw">public</span> <span class="kw">void</span> <span class="fn">loadPlugin</span>(PluginJar jar, String tenantId) {
     PluginManifest mf = manifest.<span class="fn">read</span>(jar);              <span class="com">// 声明扩展点/依赖/所需权限</span>
     manifest.<span class="fn">checkCompat</span>(mf, platformVersion);          <span class="com">//// 版本矩阵校验（D05.05）</span>
-    ClassLoader cl = sandbox.<span class="fn">create</span>(jar, mf.permissions());  <span class="com">// 权限沙箱：禁反射禁文件</span>
+    ClassLoader cl = sandbox.<span class="fn">create</span>(jar, mf.permissions());  <span class="com">// 依赖隔离；安全边界靠进程/容器 + 网关鉴权</span>
     <span class="kw">for</span> (ExtensionPoint ep : mf.extensionPoints()) {
         registry.<span class="fn">register</span>(tenantId, ep, cl.<span class="fn">load</span>(ep.implClass()));
     }
@@ -5413,7 +5424,7 @@ plan.<span class="fn">verifyRowCounts</span>();                                 
               <div class="content-layer-body">
                 <p><strong>1. 召回</strong>：骑手位置写入内存网格（Redis GEO 或自研网格），取餐点查周边网格骑手 + 扩展环（每轮扩大半径），控制在百毫秒预算内。</p>
                 <p><strong>2. 评分</strong>：特征 = 距离、顺路（与在途单路径夹角）、预计送达增益、骑手当前负载、历史准时率；轻量模型（GBDT 或线性加权）在线推理；分数只用于排序，不对外承诺。</p>
-                <p><strong>3. 约束与公平性</strong>：连派上限（同骑手 N 单后强制间隔）、区域保底（每网格至少留 M 骑手防抽干）、大单/远单轮候（避免总压给新人）、客户等级仅作小权重（禁止过度倾斜）。</p>
+                <p><strong>3. 约束与公平性</strong>：连派上限（同骑手 N 单后强制间隔）、区域保底（每网格至少留 M 骑手防抽干）、大单/远单轮候（避免总压给新人）、客户等级仅作小权重（禁止过度倾斜）；骑手权益相关的「算法取中」等监管口径需按现行规定核实并落到约束层。</p>
                 <p><strong>4. 派单执行</strong>：推送 + 响应窗口（秒级）→ 接单锁定时效 → 拒单/超时进下一候选；并单在取餐后动态评估（同商家顺路单合并）。全部事件入消息队列，派单状态机最终一致。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
@@ -5478,16 +5489,18 @@ sequenceDiagram
             dist(r.pos(), oid.pickup()) * W_DIST                       <span class="com">// 距离成本</span>
             + detour(r.route(), oid) * W_DETOUR                        <span class="com">// 顺路度（现有任务的绕行增量）</span>
             + (r.activeOrders() &gt;= r.capacity() ? <span class="num">1e9</span> : <span class="num">0</span>)          <span class="com">// 容量硬约束</span>
-            - r.fairnessScore() * W_FAIR))                            <span class="com">// 公平性：低分优先（防饿死）</span>
+            - r.underServeScore() * W_FAIR))                            <span class="com">// 欠派补偿分越高越优先（防饿死）</span>
         .<span class="fn">min</span>(Comparator.<span class="fn">comparing</span>(Map.Entry::getValue))
         .<span class="fn">map</span>(Map.Entry::getKey);
 }
 
-<span class="com">// 派单冲突：乐观锁抢占，失败即转下一候选（禁双重派单）</span>
+<span class="com">// 派单冲突：乐观锁抢占 + 原子占座，失败即转下一候选（禁双重派单）</span>
 <span class="kw">public</span> <span class="kw">boolean</span> <span class="fn">claim</span>(OrderId oid, RiderId rid) {
     <span class="kw">int</span> n = orderRepo.<span class="fn">claimIfUnassigned</span>(oid, rid, <span class="str">"DISPATCHING"</span>);
-    <span class="kw">if</span> (n == <span class="num">1</span>) { riderRepo.<span class="fn">incActive</span>(rid); <span class="kw">return</span> <span class="kw">true</span>; }
-    <span class="kw">return</span> <span class="kw">false</span>;                                          <span class="com">// 已被抢：重新评分下一骑手</span>
+    <span class="kw">if</span> (n != <span class="num">1</span>) <span class="kw">return</span> <span class="kw">false</span>;                          <span class="com">// 已被抢：重新评分下一骑手</span>
+    <span class="kw">if</span> (riderRepo.<span class="fn">incActiveIfBelowCapacity</span>(rid) == <span class="num">1</span>) <span class="kw">return</span> <span class="kw">true</span>; <span class="com">// 原子占座：仅 active&lt;capacity 才 +1</span>
+    orderRepo.<span class="fn">release</span>(oid, rid);                        <span class="com">// 占座失败：释放订单，避免挂在满容量骑手上</span>
+    <span class="kw">return</span> <span class="kw">false</span>;
 }</code></pre>
                 </div>
               </div>
@@ -5603,7 +5616,7 @@ flowchart TD
                 </div>
                 <div class="code-block">
                   <div class="code-block-title">附近检索：中心格 + 八邻格（消 GeoHash 边界漏查）</div>
-                  <pre><code><span class="cm">// GeoHash 精度 6（约 ±0.6km）；查 3x3 邻域后按真实距离过滤排序</span>
+                  <pre><code><span class="cm">// GeoHash 精度 6（约 1.2km × 0.6km）；查 3x3 邻域后按真实距离过滤排序</span>
 List&lt;String&gt; cells = geoHash.<span class="fn">neighbors</span>(centerHash, <span class="num">6</span>); <span class="cm">// 含中心共九格</span>
 List&lt;Merchant&gt; hits = redis.<span class="fn">geoSearch</span>(KEY_SHOPS, cells);
 List&lt;Merchant&gt; result = hits.stream()
@@ -5618,10 +5631,12 @@ List&lt;Merchant&gt; result = hits.stream()
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// GeoHash 网格：精度 6（约 150m），附近检索按 8 邻域展开</span>
+                  <pre><code><span class="com">// GeoHash 网格：精度 7（约 150m）、精度 6（约 1.2km × 0.6km），按检索半径选精度</span>
 <span class="kw">public</span> Set&lt;String&gt; <span class="fn">nearbyCells</span>(LatLng p, <span class="kw">int</span> precision) {
     String center = GeoHash.<span class="fn">encode</span>(p.lat(), p.lng(), precision);
-    <span class="kw">return</span> GeoHash.<span class="fn">neighbors</span>(center);                    <span class="com">// 中心 + 8 邻域，查 9 格覆盖边界</span>
+    <span class="kw">Set</span>&lt;String&gt; cells = <span class="kw">new</span> <span class="type">HashSet</span>&lt;&gt;(GeoHash.<span class="fn">neighbors</span>(center));
+    cells.<span class="fn">add</span>(center);                              <span class="com">// 补中心格，防本格漏查</span>
+    <span class="kw">return</span> cells;
 }
 
 <span class="com">// ETA 校准：实测时长回流，用中位数衰减修正预测（防历史脏数据拉偏）</span>
@@ -5630,7 +5645,7 @@ List&lt;Merchant&gt; result = hits.stream()
     List&lt;Long&gt; hist = feedback.<span class="fn">recentDurations</span>(r.cellPair(), <span class="num">200</span>);
     <span class="kw">if</span> (hist.<span class="fn">size</span>() &gt;= <span class="num">20</span>) {
         <span class="kw">double</span> median = percentile(hist, <span class="num">50</span>);                <span class="com">// 中位数抗离群</span>
-        base = base * ALPHA + median * (<span class="num">1</span> - ALPHA);               <span class="com">// 衰减融合，新数据权重渐进</span>
+        base = base * ALPHA + median * (<span class="num">1</span> - ALPHA);               <span class="com">// 固定权重融合（非自适应）；如需渐进按样本量调权</span>
     }
     <span class="kw">return</span> Duration.<span class="fn">ofSeconds</span>((<span class="kw">long</span>) (base + SAFETY_MARGIN));
 }</code></pre>
@@ -5782,7 +5797,8 @@ flowchart LR
             <span class="kw">if</span> (r.terminal()) <span class="kw">break</span>;                     <span class="com">// 独占规则终止后续</span>
         }
     }
-    <span class="kw">return</span> p.<span class="fn">clamp</span>(ctx.minFare(), ctx.surgeCap());          <span class="com">// 溢价上限合规红线</span>
+    p = p.<span class="fn">floor</span>(ctx.minFare());                          <span class="com">// 保底：金额维度</span>
+    <span class="kw">return</span> p.<span class="fn">capSurge</span>(ctx.markupCapRatio());           <span class="com">// 溢价封顶：系数维度，禁与保底混用同一 clamp</span>
 }
 
 <span class="com">// 试算一致：下单用同一 quote 函数与版本，禁两套实现漂移</span>
@@ -5852,7 +5868,7 @@ flowchart LR
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>潮汐效应明显：午高峰写字楼爆单、晚高峰住宅爆单、雨天全城紧张、演唱会散场局部爆炸。被动派单只会追赶缺口，主动调度才能削峰填谷。同时预约单（明天早八配送）要预分配运力。硬指标：热点区域不瘫、预约单履约率、调度成本可控（奖励不能乱撒）、干预效果可度量。</p>
+                <p>（即时配送口径：骑手/运单。）潮汐效应明显：午高峰写字楼爆单、晚高峰住宅爆单、雨天全城紧张、演唱会散场局部爆炸。被动派单只会追赶缺口，主动调度才能削峰填谷。同时预约单（明天早八配送）要预分配运力。硬指标：热点区域不瘫、预约单履约率、调度成本可控（奖励不能乱撒）、干预效果可度量。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -6124,7 +6140,7 @@ flowchart LR
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>网约车调度平台，早晚高峰供需失衡：核心商圈用车需求暴增而运力不足，用户排队十几分钟。硬指标：预测准确率（网格 × 十五分钟粒度）、供需比（需求/运力）分层准确、引导有效率（被引导司机实际成交占比）、用户排队时长。</p>
+                <p>本卡聚焦网约车侧（司机/订单口径），与 D06.01/D06.04 的即时配送（骑手/运单）同组但属不同子领域，术语不混用。网约车调度平台，早晚高峰供需失衡：核心商圈用车需求暴增而运力不足，用户排队十几分钟。硬指标：预测准确率（网格 × 十五分钟粒度）、供需比（需求/运力）分层准确、引导有效率（被引导司机实际成交占比）、用户排队时长。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -6338,7 +6354,7 @@ graph TD
             <div class="content-layer" data-layer="practice">
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
-                <p><strong>1. 协议与网关</strong>：MQTT over TLS（证书或密钥）；网关集群无状态，会话映射存 Redis（设备 → 网关节点 + 连接 ID）；Topic 规范 `/{productKey}/{deviceName}/{up|down}/{property|event|service}`，权限模板在服务端强制（越权 topic 直接拒）。</p>
+                <p><strong>1. 协议与网关</strong>：MQTT over TLS（TLS 只负责传输加密，设备身份另由设备密钥/证书判定）；网关集群无状态，会话映射存 Redis（设备 → 网关节点 + 连接 ID）；Topic 规范 `/{productKey}/{deviceName}/{up|down}/{property|event|service}`，权限模板在服务端强制（越权 topic 直接拒）。</p>
                 <p><strong>2. 鉴权</strong>：一机一密（设备密钥 HMAC 挑战应答）或 X.509（每设备证书，CA 分级）；支持「临时令牌」供受限设备（无安全存储）短期接入。密钥支持单设备吊销与批量轮换。</p>
                 <p><strong>3. 上下线</strong>：MQTT 遗嘱（异常断连即时感知）+ 服务端 keepalive 超时判定（正常关闭不发遗嘱）；状态变更事件驱动业务（通知、影子标记）。</p>
                 <p><strong>4. 消息可靠性</strong>：默认 QoS1（至少一次，业务幂等去重）；关键控制指令 QoS2；消息总线（Kafka）落盘后消费，消费端按「设备 + 序列号」去重。</p>
@@ -6397,12 +6413,13 @@ flowchart LR
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 一机一密：连接时按 deviceSecret 派生 token，禁长期固定口令</span>
-<span class="kw">public</span> AuthResult <span class="fn">authConnect</span>(String deviceId, String ts, String sign) {
+                  <pre><code><span class="com">// 一机一密挑战应答：平台下发一次性 nonce，设备用 deviceSecret 签名应答</span>
+<span class="kw">public</span> AuthResult <span class="fn">authConnect</span>(String deviceId, String nonce, String ts, String sign) {
     Device d = deviceRepo.<span class="fn">find</span>(deviceId).<span class="fn">orElseThrow</span>();
     <span class="kw">if</span> (!d.online()) <span class="kw">return</span> AuthResult.<span class="fn">reject</span>(<span class="str">"设备未激活"</span>);
+    <span class="kw">if</span> (!authNonce.<span class="fn">consume</span>(deviceId, nonce)) <span class="kw">return</span> AuthResult.<span class="fn">reject</span>(<span class="str">"挑战无效或已过期"</span>); <span class="com">// 一次性，防重放</span>
     <span class="kw">if</span> (Math.<span class="fn">abs</span>(now() - <span class="fn">parse</span>(ts)) &gt; SKEW_MS) <span class="kw">return</span> AuthResult.<span class="fn">reject</span>(<span class="str">"时间戳过期"</span>);
-    String expect = hmacSha256(d.secretRef(), deviceId + ts);       <span class="com">// 密钥存 KMS，服务不落明文</span>
+    String expect = hmacSha256(d.secretRef(), nonce + deviceId + ts);       <span class="com">// 密钥存 KMS，服务不落明文</span>
     <span class="kw">return</span> MessageDigest.<span class="fn">isEqual</span>(expect, sign)
         ? AuthResult.<span class="fn">accept</span>(d.tenantId()) : AuthResult.<span class="fn">reject</span>(<span class="str">"签名不符"</span>);
 }
@@ -6700,22 +6717,28 @@ mqtt.<span class="fn">publish</span>(ackTopic, <span class="str">"{\"id\":\""</s
     Shadow s = shadowRepo.<span class="fn">get</span>(deviceId);
     Shadow next = s.apply(delta);                                 <span class="com">// desired vs reported 分离</span>
     <span class="kw">if</span> (!next.reported().<span class="fn">equals</span>(s.reported())) {
-        shadowRepo.<span class="fn">save</span>(next);                                <span class="com">// 版本号 +1，供并发合并</span>
+        <span class="kw">boolean</span> saved = shadowRepo.<span class="fn">compareAndSave</span>(next, s.version());  <span class="com">// CAS：WHERE version = 旧版本</span>
+        <span class="kw">if</span> (!saved) <span class="kw">throw</span> <span class="kw">new</span> <span class="type">OptimisticLockException</span>(<span class="str">"影子版本冲突，重读后再合并"</span>);
         eventBus.<span class="fn">publish</span>(<span class="kw">new</span> <span class="type">ShadowChanged</span>(deviceId, next.version()));
     }
     <span class="kw">return</span> next;
 }
 
-<span class="com">// 命令必达：ACK 超时重发 + 次数上限 + 终态通知</span>
-<span class="kw">public</span> <span class="kw">void</span> <span class="fn">sendWithRetry</span>(Command cmd) {
-    <span class="kw">int</span> tries = <span class="num">0</span>;
-    <span class="kw">while</span> (tries &lt; MAX_RETRY) {
-        connHub.<span class="fn">send</span>(cmd.deviceId(), cmd);
-        <span class="kw">if</span> (ack.<span class="fn">await</span>(cmd.cmdId(), TIMEOUT)) <span class="kw">return</span>;        <span class="com">// 设备 ACK 即终态</span>
-        tries++;
-        backoff.<span class="fn">sleep</span>(tries);                                  <span class="com">// 指数退避</span>
-    }
-    notifier.<span class="fn">alert</span>(<span class="str">"命令未确认: "</span> + cmd.cmdId());          <span class="com">// 转人工/工单，禁无限重发</span>
+<span class="com">// 命令必达：投递后由延迟队列驱动重发，ACK 回调推进状态（不阻塞线程）</span>
+<span class="kw">public</span> <span class="kw">void</span> <span class="fn">send</span>(Command cmd) {
+    connHub.<span class="fn">send</span>(cmd.deviceId(), cmd);
+    retryScheduler.<span class="fn">schedule</span>(cmd.cmdId(), cmd.attempt() + <span class="num">1</span>, BACKOFF[cmd.attempt()]);
+}
+
+<span class="kw">public</span> <span class="kw">void</span> <span class="fn">onRetryDue</span>(Command cmd) {
+    <span class="kw">if</span> (cmd.attempt() &gt;= MAX_RETRY) { notifier.<span class="fn">alert</span>(<span class="str">"命令未确认: "</span> + cmd.cmdId()); <span class="kw">return</span>; } <span class="com">// 转人工，禁无限重发</span>
+    connHub.<span class="fn">send</span>(cmd.deviceId(), cmd);
+    retryScheduler.<span class="fn">schedule</span>(cmd.cmdId(), cmd.attempt() + <span class="num">1</span>, BACKOFF[cmd.attempt()]);
+}
+
+<span class="kw">public</span> <span class="kw">void</span> <span class="fn">onAck</span>(String cmdId) {
+    retryScheduler.<span class="fn">cancel</span>(cmdId);                              <span class="com">// ACK 即终态，取消待重发任务</span>
+    commandRepo.<span class="fn">markSuccess</span>(cmdId);
 }</code></pre>
                 </div>
               </div>
@@ -7110,7 +7133,7 @@ flowchart LR
                 <p><strong>2. 影子配置</strong>：云侧维护 desired 配置，设备上报 reported；配置下发 = 改 desired，设备下次连接自动追平并回执；离线设备上线后批量补拉，差异看板实时可见。</p>
                 <p><strong>3. 批量运维</strong>：OTA/配置任务按灰度策略推进（内测 → 小比例 → 全量），每批观察窗口；失败率/变砖率超阈值自动熔断停推；固件签名验签防篡改，回滚包预置。</p>
                 <p><strong>4. 告警自愈</strong>：告警分级（自愈类/人工类），自愈类（死机、断连）自动执行远程重启并验证恢复；恢复失败升级人工工单带设备侧日志。</p>
-                <p><strong>5. 退役</strong>：过户/报废触发退役单：解绑车辆、吊销凭证（CRL/OCSP 实时生效）、远程擦除本地敏感数据、档案转历史态。</p>
+                <p><strong>5. 退役</strong>：过户/报废触发退役单：解绑车辆、吊销凭证（网关黑名单秒级生效；OCSP 实时查询、CRL 按发布周期兜底，二者不承诺实时）、远程擦除本地敏感数据、档案转历史态。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
                   <div class="mermaid">
@@ -7153,7 +7176,7 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
 
 <span class="com">// 退役三动作齐备才闭环</span>
 <span class="kw">if</span> (ticket.<span class="fn">isUnbound</span>() &amp;&amp; ticket.<span class="fn">isRevoked</span>() &amp;&amp; ticket.<span class="fn">isWiped</span>()) {
-    credential.<span class="fn">revoke</span>(deviceId);                       <span class="com">// CRL 实时生效，此后设备无法再连</span>
+    credential.<span class="fn">revoke</span>(deviceId);                       <span class="com">// 网关黑名单秒级生效，此后设备无法再连</span>
     archive.<span class="fn">close</span>(ticket);
 }</code></pre>
                 </div>
@@ -7168,7 +7191,7 @@ deviceClient.<span class="fn">onAck</span>(deviceId, applied -&gt; s.<span class
                     <div class="followup-a">凭证分层是预防：产线烧录凭证只用于激活，激活后业务通信走短期会话 Token（可轮换）；发现泄露立即吊销该凭证 + 拉黑设备指纹，风控侧监控异常激活（同凭证多地激活）。固件与通信全程签名验签，防中间人篡改。</div>
                   </li>
                   <li>
-                    <div class="followup-q">百万设备同时升级，怎么不发Together崩？</div>
+                    <div class="followup-q">百万设备同时升级，怎么不把平台和网络一起压崩？</div>
                     <div class="followup-a">推送节奏平台控制：灰度批次 + 拉取速率限制（设备分片错峰）+ 服务端按区域限流；设备侧断点续传（分包下载，失败重试单包）；升级窗口避开业务高峰（夜间/车辆闲置）。大版本前全链路压测，固件包 CDN 预热。</div>
                   </li>
                   <li>
@@ -7438,7 +7461,7 @@ flowchart TD
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>平台日发布千万级内容（文本/图片/视频/音频/直播）。监管要求违规内容及时处置（涉政暴恐等有时限）。机审覆盖绝大部分，但误杀漏放都有代价；人审是最后防线但成本高。硬指标：违规漏放率（监管指标）、误杀率（创作者体验）、处置时限（先审后发类秒级；直播类实时）、申诉处理时效。</p>
+                <p>平台日发布千万级内容（文本/图片/视频/音频/直播）。监管要求违规内容及时处置（涉政暴恐等有时限）。机审覆盖绝大部分，但误杀漏放都有代价；人审是最后防线但成本高。硬指标：违规漏放率（监管指标）、误杀率（创作者体验）、处置时限（按监管/平台 SLA 分级，秒级仅直播断流类，具体时限需核实）、申诉处理时效。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -7462,7 +7485,7 @@ flowchart TD
             <div class="content-layer" data-layer="practice">
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
-                <p><strong>1. 机审</strong>：文本（多语言 + 变体归一化）、图片（违规场景 + OCR 图内文字 + 人脸敏感信息）、视频（关键帧 + 场景 + ASR）、音频（ASR + 声纹违规）；多模态结果融合加权；模型服务 GPU 集群 + 批量推理降本。</p>
+                <p><strong>1. 机审</strong>：文本（多语言 + 变体归一化）、图片（违规场景 + OCR 图内文字 + 人脸敏感信息）、视频（关键帧 + 场景 + ASR）、音频（ASR + 声纹违规）；多模态结果融合加权；模型服务 GPU 集群 + 批量推理降本；AIGC 内容按现行规定加显式标识 + 隐式水印，并留存生成元数据备查（具体办法口径需核实）。</p>
                 <p><strong>2. 分级与路由</strong>：策略引擎（内容类目 × 账号信誉 × 历史违规）→ 先审后发 / 先发后审 / 抽检；中置信度自动进人审队列；人审工作台（优先级排序、相似案例推荐、审核员质量抽检）。</p>
                 <p><strong>3. 直播</strong>：旁路拉流抽帧（秒级）+ 实时模型；命中 → 分级处置（警告/断流/封播）；全程录制留证。</p>
                 <p><strong>4. 申诉与闭环</strong>：创作者申诉通道 → 人审复核（优先）→ 成立撤销 + 记录误杀样本回流模型；审核质量指标（漏放率、误杀率、人审一致率）周报驱动模型迭代。</p>
@@ -7867,13 +7890,13 @@ flowchart LR
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>指纹用<strong>感知哈希 + 关键帧特征</strong>：视频抽关键帧提特征（SIFT/深度 embedding），多帧签名组合；入库时建索引（局部敏感哈希），新内容比对召回候选再精排。音频指纹（歌曲）用声纹特征库。侵权发现两条路：主动比对（新发布内容过指纹库）+ 被动投诉（权利人在线提交：版权证明 + 侵权位置）。处置走「通知-删除」：有效通知 → 下架/限流 + 通知被投诉方；被投诉方可反通知（申诉）→ 成立则恢复。重复侵权账号按阶梯处置（警告 → 限流 → 封号），全程留痕。</p>
+                <p>指纹用<strong>感知哈希 + 关键帧特征</strong>：视频抽关键帧提特征（SIFT/深度 embedding），多帧签名组合；入库建局部敏感哈希（LSH）索引，新内容先召回候选再精排。二剪/裁切鲁棒性以实测召回为准，需标注评测集。音频指纹用旋律/声纹 embedding（变速/变调鲁棒性需实测验证）。侵权发现两条路：主动比对（新发布内容过指纹库）+ 被动投诉（权利人在线提交：版权证明 + 侵权位置）。处置走「通知-删除」：有效通知 → 下架/限流 + 通知被投诉方；被投诉方可反通知（申诉）→ 成立则恢复。重复侵权账号按阶梯处置（警告 → 限流 → 封号），全程留痕。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：版权作品（CopyrightWork：权利人、授权范围、期限、指纹集）。<strong>实体</strong>：侵权投诉（Complaint：通知内容、状态、处置）、指纹比对记录。<strong>值对象</strong>：授权范围、处置类型。<strong>不变量</strong>：投诉必须含法定要素（权利人信息、权属证明、侵权定位）否则不受理；处置与投诉/反通知绑定留痕；重复侵权计数按账号累计；授权过期后指纹库自动退场。</p>
+                <p><strong>聚合根</strong>：版权作品（CopyrightWork：权利人、授权范围、期限、指纹集）。<strong>实体</strong>：侵权投诉（Complaint：通知内容、状态、处置）、指纹比对记录。<strong>值对象</strong>：授权范围、处置类型。<strong>不变量</strong>：投诉应含《信息网络传播权保护条例》所要求的法定要素（权利人信息、权属证明、侵权定位），具体条款与适用范围按现行法规核实，否则不予受理；处置与投诉/反通知绑定留痕；重复侵权计数按账号累计；授权过期后指纹库自动退场。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -8053,10 +8076,12 @@ lanes.<span class="fn">put</span>(<span class="str">"fresh"</span>,    explore.<
 
 <span class="com">// 重排：同作者最小间隔 + 负反馈实时降权 + 多样性约束</span>
 <span class="type">List</span>&lt;<span class="type">Item</span>&gt; <span class="var">out</span> = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;&gt;();
-<span class="kw">int</span> <span class="var">lastAuthorGap</span> = <span class="num">0</span>;
+<span class="type">Map</span>&lt;<span class="type">AuthorId</span>, <span class="type">Integer</span>&gt; <span class="var">lastPos</span> = <span class="kw">new</span> <span class="type">HashMap</span>&lt;&gt;();
 <span class="kw">for</span> (<span class="type">Item</span> <span class="var">it</span> : ranked) {
     <span class="kw">if</span> (feedback.<span class="fn">isNegative</span>(userId, it)) <span class="kw">continue</span>;          <span class="com">// 负反馈过滤</span>
-    <span class="kw">if</span> (it.<span class="fn">authorId</span>().<span class="fn">equals</span>(<span class="var">out</span>.<span class="fn">isEmpty</span>() ? <span class="kw">null</span> : <span class="var">out</span>.<span class="fn">get</span>(<span class="var">out</span>.<span class="fn">size</span>() - <span class="num">1</span>).<span class="fn">authorId</span>()) &amp;&amp; ++<span class="var">lastAuthorGap</span> &lt; <span class="num">3</span>) <span class="kw">continue</span>; <span class="com">// 同作者间隔</span>
+    <span class="type">Integer</span> <span class="var">prev</span> = lastPos.<span class="fn">get</span>(it.<span class="fn">authorId</span>());
+    <span class="kw">if</span> (<span class="var">prev</span> != <span class="kw">null</span> &amp;&amp; <span class="var">out</span>.<span class="fn">size</span>() - <span class="var">prev</span> &lt; <span class="num">3</span>) <span class="kw">continue</span>;      <span class="com">// 同作者最小间隔 3 位</span>
+    lastPos.<span class="fn">put</span>(it.<span class="fn">authorId</span>(), <span class="var">out</span>.<span class="fn">size</span>());
     <span class="var">out</span>.<span class="fn">add</span>(it);
     <span class="kw">if</span> (<span class="var">out</span>.<span class="fn">size</span>() == feedSize) <span class="kw">break</span>;
 }
@@ -8192,7 +8217,7 @@ lanes.<span class="fn">put</span>(<span class="str">"fresh"</span>,    explore.<
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>寻源是<strong>带约束的多仓分配</strong>：候选仓（按库存与距离过滤）→ 成本函数（运费 + 时效惩罚 + 拆单惩罚）→ 求解（小规模精确/大规模启发：先按「时效可达」过滤，再按成本贪心 + 局部交换优化）。拆单决策内嵌寻源（同仓合并优先）。仓内走<strong>波次 + 路径</strong>：订单聚批（按仓区/承运商/时效）→ 拣货路径（S 型/分区接力，货位热力图优化布局）→ 复核打包。库存视图分「可售/锁定/在途/退货在途」，寻源用可售 + 预留（未付款锁定，超时释放，同 D03.02 三态思路）。大促走「寻源降级 + 截单策略」（偏远线路提前截单，页面明示）。</p>
+                <p>寻源是<strong>带约束的多仓分配</strong>：候选仓（按库存与距离过滤）→ 成本函数（运费 + 时效惩罚 + 拆单惩罚）→ 求解（小规模精确/大规模启发：先按「时效可达」过滤，再按成本贪心 + 局部交换优化）。拆单决策内嵌寻源（同仓合并优先）。仓内走<strong>波次 + 路径</strong>：订单聚批（按仓区/承运商/时效）→ 拣货路径（S 型/分区接力，货位热力图优化布局）→ 复核打包。库存视图分四态「可售/锁定/在途/退货在途」；寻源用可用 + 预留（未付款锁定，超时释放；与 D03.02 的三态销售库存是不同视图，名称不混用）。大促走「寻源降级 + 截单策略」（偏远线路提前截单，页面明示）。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -8204,7 +8229,7 @@ lanes.<span class="fn">put</span>(<span class="str">"fresh"</span>,    explore.<
             <div class="content-layer" data-layer="practice">
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
-                <p><strong>1. 寻源服务</strong>：输入订单行 + 收货地址；候选仓按「库存覆盖 + 地理距离 + 线路可达」过滤；成本函数综合运费（按重量体积距离报价）、时效等级、拆单数；输出寻源方案（含备选）。高频城市-仓对预计算运费矩阵，冷门实时算。</p>
+                <p><strong>1. 寻源服务</strong>：输入订单行 + 收货地址；候选仓按「库存覆盖 + 地理距离 + 线路可达」过滤；成本函数综合运费（按重量体积距离报价）、时效等级、拆单数；输出寻源方案（含备选）。高频城市-仓对预计算运费矩阵，冷门实时算。缺件/取消事件回流：先释放原仓预占，再按备选方案重算，仍无解才取消行并通知用户。</p>
                 <p><strong>2. 拆单</strong>：按「仓覆盖 + 承运能力」贪心合并（同仓同承运优先）；不可合并时拆并通知用户（合并运费规则）；拆单结果写履约单，子单独立状态机。</p>
                 <p><strong>3. 仓内</strong>：波次生成器（按截单时间 + 仓区 + 承运商聚合）→ 拣货任务下发（PDA，路径按货位热力排序）→ 复核（称重/扫码）→ 打包 → 交接承运（揽收扫描）。</p>
                 <p><strong>4. 大促</strong>：产能预估（历史峰值 × 增长系数）→ 寻源降级（跨仓调拨预案）→ 截单策略（分线路分时段截单，提前在商品页透出）→ 仓内加班/众包运力预案。</p>
@@ -8248,10 +8273,10 @@ flowchart TD
         .<span class="fn">orElse</span>(SourcingPlan.<span class="fn">crossWarehouse</span>(o));        <span class="com">//// 单仓不覆盖：跨仓拆单方案</span>
 }
 
-<span class="com">// 库存校验：可售 = 实物 - 锁定 - 在途未上架，防超卖</span>
+<span class="com">// 可售 = 实物 - 锁定（在途未上架不在实物库存内，不能重复扣减）</span>
 <span class="kw">public</span> <span class="kw">int</span> <span class="fn">available</span>(SkuId sku, WarehouseId w) {
     Inv inv = invRepo.<span class="fn">find</span>(sku, w);
-    <span class="kw">return</span> inv.physical() - inv.locked() - inv.inTransitNotShelved();
+    <span class="kw">return</span> Math.<span class="fn">max</span>(<span class="num">0</span>, inv.physical() - inv.locked());
 }</code></pre>
                 </div>
               </div>
@@ -8381,11 +8406,11 @@ flowchart LR
     <span class="kw">return</span> <span class="kw">true</span>;
 }
 
-<span class="com">// 装载规则：重不压轻、后送先装（LIFO），三维启发 + 规则校验</span>
+<span class="com">// 装载规则：后送先装（LIFO，后送压底层）、重的优先压底，三维启发 + 规则校验</span>
 <span class="kw">public</span> LoadPlan <span class="fn">planLoad</span>(Trip t) {
     List&lt;Package&gt; sorted = t.packages().<span class="fn">stream</span>()
-        .<span class="fn">sorted</span>(comparing(Package::weight).reversed()
-            .thenComparing(Package::deliverSeq).reversed())         <span class="com">//// 重的在下/先送后装</span>
+        .<span class="fn">sorted</span>(comparing(Package::deliverSeq).reversed()          <span class="com">// 后送先装（LIFO）</span>
+            .<span class="fn">thenComparing</span>(comparing(Package::weight).reversed())) <span class="com">//// 同序重的先装（压底）</span>
         .<span class="fn">toList</span>();
     <span class="kw">return</span> pack3d(sorted, t.vehicle().volume());              <span class="com">//// 启发装箱 + 体积/承重校验</span>
 }</code></pre>
@@ -8645,13 +8670,15 @@ flowchart TD
       + lt.stdDev() * lt.stdDev() * d.mean() * d.mean()));          <span class="com">//// 需求与提前期双波动</span>
 }
 
-<span class="com">// 补货触发：预计库存低于「安全库存 + 在途」即生成采购建议</span>
+<span class="com">// 补货建议：低于再订货点（安全库存）时，一次补到目标库存（与不变量口径一致）</span>
 <span class="kw">public</span> Optional&lt;PurchaseAdvice&gt; <span class="fn">advise</span>(SkuId sku, WarehouseId w) {
     Inv inv = invRepo.<span class="fn">find</span>(sku, w);
     <span class="kw">int</span> pipeline = inv.inTransit() + inv.onOrder();
     <span class="kw">int</span> ss = safetyStock(demand(sku, w), leadTime(sku), SERVICE_LEVEL);
-    <span class="kw">if</span> (inv.available() + pipeline &lt; ss) {
-        <span class="kw">return</span> Optional.<span class="fn">of</span>(PurchaseAdvice.<span class="fn">of</span>(sku, w, ss - inv.available() - pipeline));
+    <span class="kw">int</span> rop = (<span class="kw">int</span>) Math.<span class="fn">ceil</span>(demand(sku, w).<span class="fn">mean</span>() * leadTime(sku).<span class="fn">days</span>()) + ss; <span class="com">// ROP = 提前期平均需求 + 安全库存</span>
+    <span class="kw">if</span> (inv.available() + pipeline &lt; rop) {
+        <span class="kw">int</span> target = planRepo.<span class="fn">target</span>(sku, w);                 <span class="com">// 目标库存（含安全库存）</span>
+        <span class="kw">return</span> Optional.<span class="fn">of</span>(PurchaseAdvice.<span class="fn">of</span>(sku, w, target - inv.available() - pipeline));
     }
     <span class="kw">return</span> Optional.<span class="fn">empty</span>();
 }</code></pre>
@@ -9354,7 +9381,7 @@ sequenceDiagram
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>广告主要在自家 App/落地页埋点上报转化（下载、注册、付费）。平台要把转化归到广告上：用户先看了 A 广告、后点了 B 广告、再转化，功劳算谁的？归因结果驱动 oCPC 出价（D10.02）与广告主报表。硬指标：归因规则明确（广告主可理解）、回传链路可靠（丢了转化模型就瞎）、延迟可控（实时回传秒级、批量分钟级）、反作弊（假转化骗模型）。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。</p>
+                <p>广告主要在自家 App/落地页埋点上报转化（下载、注册、付费）。平台要把转化归到广告上：用户先看了 A 广告、后点了 B 广告、再转化，功劳算谁的？归因结果驱动 oCPC 出价（D10.02）与广告主报表。硬指标：归因规则明确（广告主可理解）、回传链路可靠（丢了转化模型就瞎）、延迟可控（实时回传秒级、批量分钟级）、反作弊（假转化骗模型）。上述是观察口径，具体阈值须按本业务标定，禁止把本卡文字直接当成门禁数字。注意：平台归因只代表「平台分发口径」，与广告主自有归因（自归因/MMP）存在系统性差异，报表须并列展示、不互相覆盖。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -9422,7 +9449,7 @@ flowchart LR
 <span class="com">// 回传去重：广告主回调幂等（广告主侧按 convertId 去重）</span>
 <span class="kw">public</span> <span class="kw">void</span> <span class="fn">postback</span>(Conversion c, ClickId clickId) {
     String key = <span class="str">"pb:"</span> + c.advertiserId() + <span class="str">":"</span> + c.convertId();
-    <span class="kw">if</span> (!dedup.<span class="fn">tryAdd</span>(key)) <span class="kw">return</span>;                        <span class="com">//// 同转化只回传一次</span>
+    <span class="kw">if</span> (!dedup.<span class="fn">tryAdd</span>(key, <span class="type">Duration</span>.<span class="fn">ofDays</span>(<span class="num">30</span>))) <span class="kw">return</span>;            <span class="com">//// 幂等键 TTL 覆盖最长归因窗口 + 补传期</span>
     callbackClient.<span class="fn">send</span>(c.advertiserId(), Postback.<span class="fn">of</span>(c, clickId));
 }</code></pre>
                 </div>
@@ -9434,7 +9461,7 @@ flowchart LR
                 <ul class="followup-list">
                   <li>
                     <div class="followup-q">iOS 隐私政策后归因不准怎么办？</div>
-                    <div class="followup-a">多通道降级：click_id + SKAN（苹果归因框架，转化值回传）+ 设备指纹（概率匹配）+ 广告主侧第一方数据（登录态匹配）。没有单一银弹，工程上做「通道冗余 + 模型对不确定归因降权」。</div>
+                    <div class="followup-a">多通道降级：click_id + iOS 归因（按系统版本选型：旧版本用 SKAdNetwork，新版本优先 AdAttributionKit；具体可用版本与能力需按 Apple 现行文档核实）+ 设备指纹（概率匹配）+ 广告主侧第一方数据（登录态匹配）。没有单一银弹，工程上做「通道冗余 + 模型对不确定归因降权」。</div>
                   </li>
                   <li>
                     <div class="followup-q">转化延迟（用户三天后才付费）怎么归因？</div>
@@ -9499,7 +9526,7 @@ flowchart LR
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>数据流：扣费流水（D10.02）→ 实时管道（Flink 多维聚合，分钟级精度，标注「实时口径」）→ 离线数仓（T+1 全量，含 IVT 过滤后的「结算口径」）→ 两层口径并行展示（实时看趋势、结算看准确）。账户体系：充值（进）、消耗（出，与扣费流水一一对应）、返点（周期结算）、退款（冲正）；所有资金动作走「凭证 + 幂等」。分成：按「有效收入（扣费 − IVT − 退款）× 分成规则版本」计算媒体方分成，月结对账（平台收入 vs 媒体分成 vs 渠道返点闭环）。发票：充值开票（预收）或消耗开票（按结算单），二选一配置，红冲规则同 D05.02。</p>
+                <p>数据流：扣费流水（D10.02）→ 实时管道（Flink 多维聚合，分钟级精度，标注「实时口径」）→ 离线数仓（T+1 全量，含 IVT 过滤后的「结算口径」）→ 两层口径并行展示（实时看趋势、结算看准确）。账户体系：充值（进）、消耗（出，与扣费流水一一对应）、返点（周期结算）、退款（冲正）；所有资金动作走「凭证 + 幂等」。分成：按「有效收入（扣费 − IVT − 退款）× 分成规则版本」计算媒体方分成，月结对账（平台收入 vs 媒体分成 vs 渠道返点闭环）。发票：充值开票（预收）或消耗开票（按结算单），按客户类型与业务实质配置；具体适用口径需按现行税务规定核实（以主管税务机关口径为准），红冲规则同 D05.02。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -9583,7 +9610,7 @@ flowchart TD
                   </li>
                   <li>
                     <div class="followup-q">充值开票还是消耗开票？</div>
-                    <div class="followup-a">两种税务处理都合法但逻辑不同：充值开票（预收，简单，但退款要红冲）；消耗开票（按实际，准确，但跨月复杂）。平台按客户类型配置，红冲链路与退款联动。这是财务域决策，技术保证两种模式都支持。</div>
+                    <div class="followup-a">两种开票模式在实务中都存在，但适用与否取决于业务实质与现行税务口径（需核实，以主管税务机关口径为准）：充值开票（预收，简单，但退款要红冲）；消耗开票（按实际，准确，但跨月复杂）。平台按客户类型配置，红冲链路与退款联动。这是财务域决策，技术保证两种模式都支持。</div>
                   </li>
                 </ul>
               </div>
@@ -10109,7 +10136,7 @@ flowchart LR
                 <p><strong>2. 帧驱动器</strong>：固定三十毫秒 tick；输入窗口收集（本 tick 内到达的操作）→ 满员或超时（两倍 tick）推进 → 输入集合广播给所有客户端 → 各端按 playerId 排序后同序执行 → 计算 stateHash 上报。</p>
                 <p><strong>3. 一致性校验</strong>：服务端维护每房间的「输入集合指纹 + stateHash 链」；客户端每若干帧上报 hash，不一致立即标记该客户端分叉（踢出对局并进观察名单）。同时全量落输入流用于回放与仲裁。</p>
                 <p><strong>4. 回放</strong>：只存「种子 + 逐帧输入集合 + 版本号」，存储量极小；观战端用同一引擎重放；纠纷申诉时重放比对即可判定谁在说谎。</p>
-                <p><strong>5. 反外挂</strong>：伤害/命中由各端计算但服务端用轻量校验（输入合法性 + 频率 + 统计异常）发现即处理；透视挂靠「视野外实体不下发」根治（帧同步下用服务端裁剪视野集合）；加速挂靠服务端时间戳校验。</p>
+                <p><strong>5. 反外挂</strong>：帧同步下各端必须运行同一世界状态，<strong>不能靠「视野外实体不下发」防透视</strong>（裁剪会破坏确定性与哈希校验）；正确做法是逻辑世界全量一致 + 表现层视野裁剪 + 服务端输入合法性/频率/统计异常校验 + 回放复核。透视挂依赖服务端权威判定与信息分级（适合状态同步/混合架构），帧同步则靠行为检测与回放举证；加速挂靠服务端时间戳校验。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
                   <div class="mermaid">
@@ -10517,7 +10544,7 @@ flowchart LR
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：战斗实体（BattleEntity：entityId、hp、shield、attrs、buffs）。<strong>实体</strong>：BUFF 实例（BuffInstance：buffId、stacks、expireFrame、casterId、priority、mutexGroup）、结算单（SettleOrder：battleId、rewards、state）。<strong>值对象</strong>：伤害结果（DamageResult：raw、mitigated、crit、final）、公式版本（FormulaVersion）。<strong>不变量</strong>：hp ∈ [0, maxHp]；同互斥组同时只保留最高优先级实例；结算单按 battleId 唯一且状态单向；发奖必带 bizNo。</p>
+                <p><strong>聚合根</strong>：战斗实体（BattleEntity：entityId、hp、shield、attrs、buffs）。<strong>实体</strong>：BUFF 实例（BuffInstance：buffId、stacks、expireFrame、casterId、priority、mutexGroup）、结算单（SettleOrder：battleId、rewards、state）。<strong>值对象</strong>：伤害结果（DamageResult：按管线逐段记录 raw / afterDef / afterCrit / afterPen / afterCamp / afterResist / byShield / toHp）、公式版本（FormulaVersion）。<strong>不变量</strong>：hp ∈ [0, maxHp]；同互斥组同时只保留最高优先级实例；结算单按 battleId 唯一且状态单向；发奖必带 bizNo。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -10556,15 +10583,18 @@ flowchart LR
     <span class="kw">long</span> raw = formula.<span class="fn">base</span>(ctx, ver);                 <span class="com">// 配置化公式，按版本取参</span>
     <span class="kw">long</span> afterDef = raw * (DEFENSE_CAP - ctx.defense()) / DEFENSE_CAP; <span class="com">// 防御减免</span>
     <span class="kw">long</span> afterCrit = ctx.rng().<span class="fn">nextFixed</span>() &lt; ctx.critRate() ? afterDef * ctx.critMul() / <span class="num">100</span> : afterDef;
-    <span class="kw">long</span> afterResist = afterCrit * (<span class="num">100</span> - ctx.resist()) / <span class="num">100</span>;
+    <span class="kw">long</span> afterPen = afterCrit * (<span class="num">100</span> - ctx.penetration()) / <span class="num">100</span>;  <span class="com">// 穿透：按护甲穿透率削减防御收益</span>
+    <span class="kw">long</span> afterCamp = afterPen * ctx.campCoeff() / <span class="num">100</span>;   <span class="com">// 阵营克制系数（如 110/90）</span>
+    <span class="kw">long</span> afterResist = afterCamp * (<span class="num">100</span> - ctx.resist()) / <span class="num">100</span>; <span class="com">// 免伤/抗性</span>
     <span class="kw">long</span> byShield = Math.<span class="fn">min</span>(ctx.shield(), afterResist);     <span class="com">// 护盾先于 hp</span>
     <span class="kw">long</span> toHp = afterResist - byShield;
-    <span class="kw">return</span> <span class="kw">new</span> <span class="type">DamageResult</span>(raw, afterDef, afterCrit, afterResist, byShield, toHp, ver);
+    <span class="kw">return</span> <span class="kw">new</span> <span class="type">DamageResult</span>(raw, afterDef, afterCrit, afterPen, afterCamp, afterResist, byShield, toHp, ver);
 }
 
 <span class="com">// BUFF 帧事件：互斥组只留最高优先级，堆叠到顶只刷新时间</span>
 <span class="kw">public</span> <span class="kw">void</span> <span class="fn">applyBuff</span>(BattleEntity e, BuffInstance b) {
-    <span class="kw">for</span> (BuffInstance old : e.<span class="fn">buffsOfGroup</span>(b.mutexGroup())) {
+    <span class="type">List</span>&lt;BuffInstance&gt; same = b.mutexGroup() == <span class="kw">null</span> ? <span class="type">List</span>.<span class="fn">of</span>() : e.<span class="fn">buffsOfGroup</span>(b.mutexGroup()); <span class="com">// 无互斥组则跳过</span>
+    <span class="kw">for</span> (BuffInstance old : same) {
         <span class="kw">if</span> (old.priority() &lt; b.priority()) { e.<span class="fn">removeBuff</span>(old); <span class="fn">emit</span>(<span class="kw">new</span> <span class="type">BuffDispelled</span>(old, b)); }
         <span class="kw">else</span> <span class="kw">return</span>;                          <span class="com">// 已有更强同组 BUFF，忽略施加</span>
     }
@@ -10646,7 +10676,7 @@ flowchart LR
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>消息模型：<strong>会话（频道）维度单调递增 seq，客户端按 seq 对齐与去重</strong>；必达 = 发送端 ack + 服务端重传 + 离线信箱。扇出分型：世界频道读扩散（拉模式：客户端拉增量 seq，服务端只存频道消息流）+ 私聊写扩散（推模式：直接投递 + 信箱兜底）。世界频道抗洪峰：消息分片（按 seq 段聚合推送）+ 限速（用户发送频率限制）+ 分级（世界频道可容忍秒级延迟，私聊必须实时）。审核策略分型：世界频道先审后发（合规要求）+ 私聊异步审（先发后审，命中再处置）；离线补偿：信箱按 seq 拉取，上限（如最近两百条）+ 关键消息（公会通知/私聊）永久保留。</p>
+                <p>消息模型：<strong>会话（频道）维度单调递增 seq，客户端按 seq 对齐与去重</strong>；必达 = 发送端 ack + 服务端重传 + 离线信箱。扇出分型：世界频道读扩散（拉模式：客户端拉增量 seq，服务端只存频道消息流）+ 私聊写扩散（推模式：直接投递 + 信箱兜底）。世界频道抗洪峰：消息分片（按 seq 段聚合推送）+ 限速（用户发送频率限制）+ 分级（世界频道可容忍秒级延迟，私聊必须实时）。审核策略按<strong>合规等级与平台策略分档</strong>：公开可见且可接受延迟的场景用先审后发（机审 + 人工抽检）；消息量大、前置审核吞吐不足时用先发后审 + 秒级召回/撤回，并保留处置证据。具体是否强制事前审核、时限与留证要求<strong>需核实</strong>所在地区与平台的现行口径。离线补偿：信箱按 seq 拉取，上限（如最近两百条）+ 关键消息（公会通知/私聊）永久保留。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -10661,7 +10691,7 @@ flowchart LR
                 <p><strong>1. 消息流</strong>：频道消息按 seq 追加写（消息表 + 缓存最近窗口），客户端连接后拉「本地 seq → 频道最新 seq」的增量；长连接推送只做「有新消息」通知，内容客户端自拉（读扩散，服务端零扇出压力）。</p>
                 <p><strong>2. 必达</strong>：私聊/关键通知写扩散直投在线用户；失败进重试（指数退避，有限次）；用户离线进信箱（关键消息永久、普通消息最近窗口）；上线时按各会话 seq 对齐补拉。</p>
                 <p><strong>3. 世界频道抗峰</strong>：发送侧限速（用户 N 秒一条 + 等级要求）；推送侧聚合（同一秒消息合并通知）；极端洪峰降级为纯拉模式（推送只发心跳，客户端高频拉取）。</p>
-                <p><strong>4. 审核</strong>：世界频道先审后发（机审敏感词 + 图片机审，分钟级 SLA）；私聊/队伍异步审（先发后审 + 抽检）；命中处置（禁言/封号）实时生效，处置记录留证可申诉。</p>
+                <p><strong>4. 审核</strong>：按合规等级选择——可接受延迟的公开频道先审后发（敏感词 + 图片机审，秒级至分钟级，具体时限需核实）；前置审核吞吐不足时先发后审 + 秒级召回/撤回；私聊/队伍异步审 + 抽检；命中处置（禁言/封号）实时生效，处置记录留证可申诉。</p>
                 <p><strong>5. 防骚扰</strong>：发送频率限制 + 内容风控（导流广告模型）+ 举报通道（一键举报 + 证据快照）；累犯升级处置。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
@@ -10688,20 +10718,25 @@ graph TD
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// seq 对齐补拉：客户端带本地 seq，服务端返回增量；缺段即补</span>
+                  <pre><code><span class="com">// seq 对齐补拉：区分「已过期」与「缺段」——过期只能重置基线，缺段才补拉</span>
 <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">Message</span>&gt; <span class="fn">sync</span>(<span class="type">String</span> <span class="var">channelId</span>, <span class="kw">long</span> <span class="var">localSeq</span>) {
     <span class="kw">long</span> <span class="var">latest</span> = channel.<span class="fn">latestSeq</span>(<span class="var">channelId</span>);
+    <span class="kw">long</span> <span class="var">earliest</span> = msgStore.<span class="fn">earliestSeq</span>(<span class="var">channelId</span>);          <span class="com">// 保留窗口下界</span>
+    <span class="kw">if</span> (<span class="var">localSeq</span> + <span class="num">1</span> &lt; <span class="var">earliest</span>) <span class="kw">throw</span> <span class="kw">new</span> <span class="type">ExpiredException</span>(<span class="var">earliest</span>); <span class="com">// 已过期：重置基线，不重试</span>
     <span class="type">List</span>&lt;<span class="type">Message</span>&gt; <span class="var">inc</span> = msgStore.<span class="fn">range</span>(<span class="var">channelId</span>, <span class="var">localSeq</span> + <span class="num">1</span>, <span class="var">latest</span>);
-    <span class="kw">if</span> (<span class="var">inc</span>.<span class="fn">isEmpty</span>() &amp;&amp; <span class="var">latest</span> &gt; <span class="var">localSeq</span>) <span class="kw">throw</span> <span class="kw">new</span> <span class="type">GapException</span>(<span class="var">localSeq</span>);  <span class="com">// 缺段：触发补拉</span>
+    <span class="kw">if</span> (<span class="var">inc</span>.<span class="fn">isEmpty</span>() &amp;&amp; <span class="var">latest</span> &gt; <span class="var">localSeq</span>) <span class="kw">throw</span> <span class="kw">new</span> <span class="type">GapException</span>(<span class="var">localSeq</span>);  <span class="com">// 窗口内取不到：缺段，补拉</span>
     <span class="kw">return</span> <span class="var">inc</span>;
 }
 
-<span class="com">// 私聊必达：在线直投，失败重试有限次，仍失败进信箱</span>
-<span class="kw">for</span> (<span class="kw">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="num">3</span>; <span class="var">i</span>++) {
-    <span class="kw">if</span> (conn.<span class="fn">deliver</span>(toUserId, msg).<span class="fn">success</span>()) <span class="kw">return</span>;
-    <span class="type">Thread</span>.<span class="fn">sleep</span>(backoff(<span class="var">i</span>));
+<span class="com">// 私聊必达：在线直投；失败交延迟队列退避重试（不阻塞投递线程），终态落信箱</span>
+<span class="kw">if</span> (!conn.<span class="fn">deliver</span>(toUserId, msg).<span class="fn">success</span>()) retryQueue.<span class="fn">schedule</span>(<span class="type">RetryTask</span>.<span class="fn">of</span>(toUserId, msg, <span class="num">0</span>), backoff(<span class="num">0</span>));
+
+<span class="com">// 延迟任务执行体：有限次重试，仍失败进信箱</span>
+<span class="kw">void</span> <span class="fn">onRetry</span>(<span class="type">RetryTask</span> t) {
+    <span class="kw">if</span> (conn.<span class="fn">deliver</span>(t.<span class="fn">userId</span>(), t.<span class="fn">msg</span>()).<span class="fn">success</span>()) <span class="kw">return</span>;
+    <span class="kw">if</span> (t.<span class="fn">attempt</span>() + <span class="num">1</span> &lt; MAX_RETRY) { retryQueue.<span class="fn">schedule</span>(t.<span class="fn">next</span>(), backoff(t.<span class="fn">attempt</span>() + <span class="num">1</span>)); <span class="kw">return</span>; }
+    mailbox.<span class="fn">save</span>(t.<span class="fn">userId</span>(), t.<span class="fn">msg</span>(), <span class="type">Retention</span>.FOREVER);   <span class="com">// 关键消息永久保留</span>
 }
-mailbox.<span class="fn">save</span>(toUserId, msg, <span class="type">Retention</span>.FOREVER);   <span class="com">// 关键消息永久保留</span>
 
 <span class="com">// 世界频道抗峰：发送限速 + 推送聚合，洪峰降级纯拉</span>
 <span class="kw">if</span> (!rateLimit.<span class="fn">tryAcquire</span>(senderId, <span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">3</span>))) <span class="kw">return</span>;
@@ -10723,7 +10758,7 @@ mailbox.<span class="fn">save</span>(toUserId, msg, <span class="type">Retention
                   </li>
                   <li>
                     <div class="followup-q">先审后发还是先发后审？</div>
-                    <div class="followup-a">分频道：世界频道公开可见、合规要求高，先审后发（机审分钟级，接受小延迟）；私聊/队伍私密性强，先发后审 + 抽检 + 命中处置。两类都不能裸奔——公开频道裸奔是监管风险，私聊全审是体验灾难。</div>
+                    <div class="followup-a">按<strong>合规等级与审核吞吐</strong>选：公开频道若可接受小延迟，先审后发（机审 + 人工抽检）；审核量压不住时先发后审 + 秒级召回/撤回，并保留处置证据。私聊/队伍私密性强，先发后审 + 抽检 + 命中处置。两种都不等于裸奔——公开频道完全不审是平台风险；是否强制事前审核与具体时限<strong>需核实</strong>。</div>
                   </li>
                   <li>
                     <div class="followup-q">消息乱序怎么处理？</div>
@@ -10739,7 +10774,7 @@ mailbox.<span class="fn">save</span>(toUserId, msg, <span class="type">Retention
                   <li><strong>世界频道写扩散</strong>：一条消息扇出十万，洪峰直接打爆推送；读扩散 + 聚合通知。</li>
                   <li><strong>私聊无信箱</strong>：离线消息只推一次，丢了就丢了；信箱是必达底线。</li>
                   <li><strong>用时间戳排序</strong>：多机时钟偏差消息乱序；seq 单调递增才是正解。</li>
-                  <li><strong>世界频道裸奔</strong>：不审核直接广播，违规内容即平台事故；先审后发分频道策略。</li>
+                  <li><strong>世界频道裸奔</strong>：不审核直接广播，违规内容即平台事故；按合规等级选前置审核或先发后审 + 秒级召回（不能无审核）。</li>
                 </ul>
               </div>
             </div>
@@ -10830,19 +10865,19 @@ mailbox.<span class="fn">save</span>(toUserId, msg, <span class="type">Retention
             <div class="content-layer" data-layer="challenge">
               <div class="content-layer-title">核心挑战</div>
               <div class="content-layer-body">
-                <p>① <strong>异构集成</strong>：HL7 v2 管道消息、CDA 文档、私有 Socket 协议并存，点对点对接变成蜘蛛网；② <strong>术语标准化</strong>：诊断要 ICD-10、检验项要 LOINC，各家字典不一致；③ <strong>患者主索引</strong>：同一人多渠道建档重复，合并要保历史；④ <strong>病历隐私</strong>：谁能看什么、调阅留痕、修改不可覆盖；⑤ <strong>互联网处方合规</strong>：医师实名签名、审方规则、处方不得重复使用。</p>
+                <p>① <strong>异构集成</strong>：HL7 v2 管道消息、CDA 文档、私有 Socket 协议并存，点对点对接变成蜘蛛网；② <strong>术语标准化</strong>：诊断编码用 ICD-10（国内落地分《国家临床版 ICD-10》与医保版，需核实本地口径）、检验项用 LOINC，各家字典不一致；③ <strong>患者主索引</strong>：同一人多渠道建档重复，合并要保历史；④ <strong>病历隐私</strong>：谁能看什么、调阅留痕、修改不可覆盖；⑤ <strong>互联网处方合规</strong>：医师实名签名、审方规则、处方不得重复使用。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>集成走<strong>集成引擎</strong>（ESB/医疗集成平台，如 Mirth）：各厂商系统只与引擎对接，引擎负责协议适配（HL7 v2 ↔ FHIR ↔ 私有报文）、格式转换、路由与重试，把点对点蜘蛛网收敛为星型。患者身份用 <strong>EMPI</strong>（患者主索引）：多源建档记录按身份证/手机号/姓名生日模糊匹配合并成全局 PID，历史数据通过别名映射保留。病历用<strong>结构化 + 文档</strong>双模：结构化字段（诊断/医嘱/结果）支撑统计与质控，文档（CDA/PDF）保原文；病历修改走「留痕模式」（新版本 + 变更记录，禁物理覆盖）。隐私靠<strong>授权 + 留痕 + 脱敏</strong>：调阅需角色授权 + 患者授权（科研/外院），每次访问写审计；展示层按角色脱敏（手机号/身份证掩码）。互联网医院处方走「医师 CA 实名签名 + 药师审方 + 处方单次有效 + 流转签收」，全程可追溯。</p>
+                <p>集成走<strong>集成引擎</strong>（ESB/医疗集成平台，如 Mirth）：各厂商系统只与引擎对接，引擎负责协议适配（HL7 v2 ↔ FHIR ↔ 私有报文）、格式转换、路由与重试，把点对点蜘蛛网收敛为星型。患者身份用 <strong>EMPI</strong>（患者主索引）：多源建档记录按身份证/手机号/姓名生日模糊匹配合并成全局 PID，历史数据通过别名映射保留。病历用<strong>结构化 + 文档</strong>双模：结构化字段（诊断/医嘱/结果）支撑统计与质控，文档（CDA/PDF）保原文；病历修改走「留痕模式」（新版本 + 变更记录，禁物理覆盖）。隐私靠<strong>授权 + 留痕 + 脱敏</strong>：调阅需角色授权 + 患者授权（科研/外院），每次访问写审计；展示层按角色脱敏（手机号/身份证掩码）。互联网医院处方走「医师 CA 实名签名 + 药师审方 + 处方有效期内单次使用（有效期按现行规定，需核实） + 流转签收」，全程可追溯。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：就诊（Encounter：encounterId、patientId、dept、state、orders）。<strong>实体</strong>：医嘱（Order：orderId、type、state、execRecords）、报告（Report：reportId、type、content、version）、患者档案（Patient：pid、identities、consents）。<strong>值对象</strong>：诊断编码（ICD-10 组合）、检验编码（LOINC）、授权凭据（Consent：scope、grantor、expireAt）。<strong>不变量</strong>：病历任何修改产生新版本且保留变更链；调阅操作必留审计事件；处方未经审方不可发药；就诊状态按门诊/住院动线合法推进。</p>
+                <p><strong>聚合根</strong>：就诊（Encounter：encounterId、patientId、dept、state、orders）。<strong>实体</strong>：医嘱（Order：orderId、type、state、execRecords）、报告（Report：reportId、type、content、version）、患者档案（Patient：pid、identities、consents）。<strong>值对象</strong>：诊断编码（ICD-10 组合，国内落地按国家临床版/医保版取码）、检验编码（LOINC）、授权凭据（Consent：scope、grantor、expireAt）。<strong>不变量</strong>：病历任何修改产生新版本且保留变更链；调阅操作必留审计事件；处方未经审方不可发药；就诊状态按门诊/住院动线合法推进。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
@@ -10911,7 +10946,7 @@ flowchart LR
                   </li>
                   <li>
                     <div class="followup-q">跨院调阅患者历史病历，合规路径是什么？</div>
-                    <div class="followup-a">区域平台级授权（患者签约「同意跨院调阅」→ 平台签发短期令牌 → 调阅记录双方留痕）；未授权时只能看到「摘要卡片」（过敏史/近期诊断，急救场景法定豁免并事后补录）。跨院靠区域平台，不靠两院私接——私接既不合规也难审计。</div>
+                    <div class="followup-a">区域平台级授权（患者签约「同意跨院调阅」→ 平台签发短期令牌 → 调阅记录双方留痕）；未授权时只能看到「摘要卡片」（过敏史/近期诊断）。急救等紧急情况可依《个人信息保护法》第 13 条先行处理、事后补授权并留痕——是否构成「法定豁免」及本地细则<strong>需核实</strong>。跨院靠区域平台，不靠两院私接——私接既不合规也难审计。</div>
                   </li>
                   <li>
                     <div class="followup-q">老系统只有私有 Socket 接口，怎么收敛？</div>
@@ -11248,7 +11283,7 @@ flowchart LR
             <div class="content-layer" data-layer="scenario">
               <div class="content-layer-title">场景背景</div>
               <div class="content-layer-body">
-                <p>个保法/GDPR 类合规要求落到工程：个人数据分类分级（公开/内部/敏感/高危）、最小必要采集、处理活动有法源（同意/合同/法定义务）、跨境传输合规（安全评估/标准合同/认证）、用户权利（查阅/复制/更正/删除/可携带）、PIA 评估、保留期到期清除。现实是数据散落在数十个库表、数仓、日志、缓存、报表、备份与第三方，一条「删除某用户」的指令要触达全链路，而备份里的数据不能物理删。</p>
+                <p>个保法/GDPR 类合规要求落到工程：个人数据分类分级（公开/内部/敏感/高危）、最小必要采集、处理活动有法源（同意/合同/法定义务）、跨境传输合规（安全评估/标准合同/认证三条路径，2024 年《促进和规范数据跨境流动规定》另设豁免与累计人数阈值分档，需核实）、用户权利（查阅/复制/更正/删除/可携带）、个人信息保护影响评估（PIPIA）、保留期到期清除。现实是数据散落在数十个库表、数仓、日志、缓存、报表、备份与第三方，一条「删除某用户」的指令要触达全链路，而备份里的数据不能物理删。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="challenge">
@@ -11260,7 +11295,7 @@ flowchart LR
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>合规落地的地基是<strong>数据地图</strong>：自动扫描（库表/字段打标 + ETL 血缘解析）+ 人工标注，形成「数据资产 → 分级 → 处理活动 → 保留期 → 法源」台账，后续所有合规能力（删除、跨境、审计）都建在它上面。<strong>删除权</strong>的工程解是「分层删除」：在线库物理/逻辑删除 → 数仓与衍生数据走「去标识化重算或隔离」→ 备份标记到期（保留期一到随备份轮换自然消失）→ 日志按保留期策略脱敏；对外承诺「合理期限内完成全链路不可达」而非「物理擦除每一份副本」。<strong>跨境</strong>走「合规网关」：数据分级 + 目的地策略决定路由（境内数据不出境、出境走评估通过的通道），PIA 与标准合同作为上线门禁。<strong>同意</strong>由同意管理平台（CMP）统一：授权/撤回全链路留痕，处理系统消费「同意状态」决定能否处理。匿名化只对「真无法还原」的数据宣称，其余按假名化继续保护。</p>
+                <p>合规落地的地基是<strong>数据地图</strong>：自动扫描（库表/字段打标 + ETL 血缘解析）+ 人工标注，形成「数据资产 → 分级 → 处理活动 → 保留期 → 法源」台账，后续所有合规能力（删除、跨境、审计）都建在它上面。<strong>删除权</strong>的工程解是「分层删除」：在线库物理/逻辑删除 → 数仓与衍生数据走「去标识化重算或隔离」→ 备份标记到期（保留期一到随备份轮换自然消失）→ 日志按保留期策略脱敏；对外承诺「合理期限内完成全链路不可达」而非「物理擦除每一份副本」。<strong>跨境</strong>走「合规网关」：先按 2024 年跨境规定判定分档（安全评估 / 标准合同 / 认证，符合豁免与人数阈值条件的可免办；具体阈值与敏感个人信息口径需核实），再由数据分级 + 目的地策略决定路由（境内数据不出境、出境走评估通过的通道）；PIPIA 与标准合同作为上线门禁。<strong>同意</strong>由同意管理平台（CMP）统一：授权/撤回全链路留痕，处理系统消费「同意状态」决定能否处理。匿名化只对「真无法还原」的数据宣称，其余按假名化继续保护。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
@@ -11274,7 +11309,7 @@ flowchart LR
               <div class="content-layer-body">
                 <p><strong>1. 数据地图</strong>：扫描器按 schema + 样本识别敏感字段（身份证/手机号模式 + 分类模型），产出资产清单；ETL 血缘解析（SQL 解析 + 任务 DAG）形成字段级流向；运营后台维护分级与保留期。地图是所有合规能力的索引。</p>
                 <p><strong>2. 删除编排</strong>：删除引擎按 subjectId 查地图 → 生成任务链（在线库删除 → 数仓隔离 → 缓存清除 → 文件删除 → 备份标记）→ 各系统执行回报 → 完成证明存档；备份采用「标记 + 到期轮换」，不物理改备份。重复请求按 requestId 幂等。</p>
-                <p><strong>3. 跨境网关</strong>：数据处理路由带「目的地标签」；跨境调用先过合规网关（查资产分级 + 目的地评估状态 + 合同有效性），不合规直接拒绝并告警；多 region 部署按数据驻留要求隔离。</p>
+                <p><strong>3. 跨境网关</strong>：数据处理路由带「目的地标签」；跨境调用先过合规网关（按 2024 年跨境规定分档判定，再查资产分级 + 目的地评估状态 + 合同有效性；豁免与人数阈值是否适用需核实），不合规直接拒绝并告警；多 region 部署按数据驻留要求隔离。</p>
                 <p><strong>4. 同意中心</strong>：同意采集（多端 SDK 上报，带版本与文案哈希）→ 存储（含撤回记录）→ 分发（业务系统订阅同意状态，营销类处理必须先查同意）；撤回即时生效到推送/营销链路，数据类处理按保留期收尾。</p>
                 <div class="mermaid-container">
                   <!-- prettier-ignore -->
@@ -11338,7 +11373,7 @@ flowchart LR
                   </li>
                   <li>
                     <div class="followup-q">跨境场景多云部署，怎么保证数据不出境？</div>
-                    <div class="followup-a">三层：网络层（region 隔离 + 跨境链路审批）、应用层（数据路由带目的地标签，服务调用过合规网关校验）、数据层（资产分级与目的地绑定，出境资产走专用加密通道 + 合同备案）。再配「出境检测」巡检（扫描跨 region 数据流），发现即阻断告警。合规是工程约束，不是文档承诺。</div>
+                    <div class="followup-a">三层：网络层（region 隔离 + 跨境链路审批）、应用层（数据路由带目的地标签，服务调用过合规网关校验）、数据层（资产分级与目的地绑定，出境资产走专用加密通道 + 合同备案）。网关判定前先确认是否落在 2024 年跨境规定的豁免/人数阈值内（不必一律评估，但短路判断要留证据，需核实）。再配「出境检测」巡检（扫描跨 region 数据流），发现即阻断告警。合规是工程约束，不是文档承诺。</div>
                   </li>
                   <li>
                     <div class="followup-q">统计报表里的聚合数据还受删除权约束吗？</div>
@@ -11398,26 +11433,26 @@ flowchart LR
             <div class="content-layer" data-layer="challenge">
               <div class="content-layer-title">核心挑战</div>
               <div class="content-layer-body">
-                <p>① <strong>审计不可篡改</strong>：高权限账号（DBA/运维）理论上能改任何库；② <strong>采集覆盖面</strong>：应用层、网关层、数据库层、运维通道（堡垒机）都要有，漏一层即盲区；③ <strong>字段级血缘</strong>：数仓 ETL 链路长，口径变化要能追到源字段；④ <strong>报送一致性</strong>：报送口径与源系统口径不一致就是监管风险；⑤ <strong>成本与时效</strong>：审计数据只增不减，留存期长达数年，查询要秒级。</p>
+                <p>① <strong>审计不可篡改</strong>：高权限账号（DBA/运维）理论上能改任何库；② <strong>采集覆盖面</strong>：应用层、网关层、数据库层、运维通道（堡垒机）都要有，漏一层即盲区；③ <strong>字段级血缘</strong>：数仓 ETL 链路长，口径变化要能追到源字段；④ <strong>报送一致性</strong>：报送口径与源系统口径不一致就是监管风险；⑤ <strong>成本与时效</strong>：审计数据只增不减，留存期至少六个月（《网络安全法》网络日志基线），行业另有更长年限要求（需核实具体年限），查询要秒级。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">分析框架</div>
               <div class="content-layer-body">
-                <p>审计防篡改靠<strong>只写存储 + 哈希链</strong>：审计事件写入 WORM（对象存储合规保留）/ 追加式存储，每条事件带 prevHash + 自身内容哈希形成链条，任何历史修改都会断链；校验服务定期重算验证，异常即告警。采集分四层互补：应用层（AOP 记录业务操作，字段级前后值）、网关层（访问日志、鉴权结果）、数据库层（审计插件/日志，防绕过应用直接改库）、运维层（堡垒机录屏 + 命令审计）。血缘靠<strong>自动解析 + DAG</strong>：SQL 解析（表级/字段级依赖）+ 调度任务 DAG + 人工标注补充，形成「源表 → ETL → 报表字段」的可查图谱；口径变更走血缘影响分析（改一个字段会影响哪些报表）。报送靠<strong>口径 SSOT</strong>：指标定义（口径、公式、来源表）集中管理，报送报表按模板自动生成，数字与源系统对账一致；报送记录留档（含版本与校验值），支持重放举证。</p>
+                <p>审计防篡改靠<strong>只写存储 + 哈希链</strong>：审计事件写入 WORM（对象存储合规保留）/ 追加式存储，每条事件带 prevHash + 自身内容哈希形成链条，任何历史修改都会断链；校验服务定期重算验证，异常即告警。链尾推进必须<strong>单写者</strong>（单分区单线程 / 分布式锁串行提交）：多实例并发读写同一链尾会拿到同一 prevHash，写出分叉链。采集分四层互补：应用层（AOP 记录业务操作，字段级前后值）、网关层（访问日志、鉴权结果）、数据库层（审计插件/日志，防绕过应用直接改库）、运维层（堡垒机录屏 + 命令审计）。血缘靠<strong>自动解析 + DAG</strong>：SQL 解析（表级/字段级依赖）+ 调度任务 DAG + 人工标注补充，形成「源表 → ETL → 报表字段」的可查图谱；口径变更走血缘影响分析（改一个字段会影响哪些报表）。报送靠<strong>口径 SSOT</strong>：指标定义（口径、公式、来源表）集中管理，报送报表按模板自动生成，数字与源系统对账一致；报送记录留档（含版本与校验值），支持重放举证。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="domain">
               <div class="content-layer-title">领域模型</div>
               <div class="content-layer-body">
-                <p><strong>聚合根</strong>：审计事件（AuditEvent：eventId、actor、action、target、result、prevHash、hash、ts）。<strong>实体</strong>：血缘边（LineageEdge：upstream、downstream、transform）、报送任务（ReportTask：template、period、state、checksum）。<strong>值对象</strong>：操作者（Actor：userId、role、sourceIp、channel）、留存策略（RetentionPolicy：years、worm）。<strong>不变量</strong>：hash = H(prevHash + 事件规范化内容），链连续不可断裂；留存期内事件不可删除（只能到期归档）；报送任务数据必须与源系统对账一致；血缘图谱中下游必须可达上游。</p>
+                <p><strong>聚合根</strong>：审计事件（AuditEvent：eventId、actor、action、target、result、prevHash、hash、ts）。<strong>实体</strong>：血缘边（LineageEdge：upstream、downstream、transform）、报送任务（ReportTask：template、period、state、checksum）。<strong>值对象</strong>：操作者（Actor：userId、role、sourceIp、channel）、留存策略（RetentionPolicy：years、worm）。<strong>不变量</strong>：hash = H(prevHash + 事件规范化内容），链连续不可断裂（链尾推进单写者，禁并发分叉）；留存期内事件不可删除（只能到期归档）；报送任务数据必须与源系统对账一致；血缘图谱中下游必须可达上游。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="practice">
               <div class="content-layer-title">解决方案</div>
               <div class="content-layer-body">
                 <p><strong>1. 审计采集</strong>：应用层 AOP 注解（@Audited 声明敏感操作，自动记录前后值）；网关层统一记录（who/when/what/result）；数据库层审计插件（DDL/DML 全量 + 直连变更）；堡垒机录屏。四层数据进同一 Kafka topic，按规范 schema 归一。</p>
-                <p><strong>2. 防篡改存储</strong>：Kafka → 实时写对象存储（按天分区）+ 哈希链计算（链尾状态独立存储，防尾篡改）；定期全链重算校验；访问审计数据需双人授权 + 自身也被审计。</p>
+                <p><strong>2. 防篡改存储</strong>：Kafka → 实时写对象存储（按天分区）+ 哈希链计算（链尾推进走单写者队列或分布式锁串行，链尾状态独立存储防尾篡改）；定期全链重算校验；访问审计数据需双人授权 + 自身也被审计。</p>
                 <p><strong>3. 血缘</strong>：SQL 解析器提取表/字段依赖（INSERT/SELECT/JOIN 关系）；调度 DAG 补任务级边；前端可视化（点击报表字段 → 反查全链路 + 每跳转换逻辑）；口径变更发起影响分析（受影响报表清单自动生成）。</p>
                 <p><strong>4. 报送</strong>：指标口径库（定义 + 公式 + 源表 + 负责人）；报送模板渲染（按监管模板取数，保留计算过程）；报送前自动对账（报送数 vs 源系统聚合数，差异阈值告警）；报送产物归档（版本 + 校验和 + 审批记录），支持事后重放。</p>
                 <div class="mermaid-container">
@@ -11448,15 +11483,17 @@ flowchart LR
               <div class="content-layer-title">关键代码</div>
               <div class="content-layer-body">
                 <div class="code-block">
-                  <pre><code><span class="com">// 哈希链：任何历史修改都会断链；链尾状态独立存储防尾篡改</span>
+                  <pre><code><span class="com">// 哈希链：任何历史修改都会断链；链尾是全局单点，必须单写者/分布式锁串行，否则并发写同一 prevHash 分叉</span>
 <span class="kw">public</span> AuditEvent <span class="fn">append</span>(Actor actor, String action, String target, String result) {
-    String prev = chainHead.<span class="fn">get</span>();                       <span class="com">// 独立存储的链尾</span>
-    String canonical = canonicalForm(actor, action, target, result); <span class="com">// 规范化序列化（字段定序）</span>
-    String hash = sm3(prev + <span class="str">"|"</span> + canonical);           <span class="com">// 国密摘要</span>
-    AuditEvent ev = <span class="kw">new</span> <span class="type">AuditEvent</span>(nextId(), actor, action, target, result, prev, hash, now());
-    wormStore.<span class="fn">append</span>(ev);                               <span class="com">// 只写存储，禁更新接口</span>
-    chainHead.<span class="fn">set</span>(hash);                               <span class="com">// 链尾推进（写入也走 WORM 日志）</span>
-    <span class="kw">return</span> ev;
+    <span class="kw">return</span> chainLock.<span class="fn">call</span>(() -&gt; {                    <span class="com">// 分布式锁 / 单写者队列，保证链尾推进串行</span>
+        String prev = chainHead.<span class="fn">get</span>();                     <span class="com">// 独立存储的链尾</span>
+        String canonical = canonicalForm(actor, action, target, result); <span class="com">// 规范化序列化（字段定序）</span>
+        String hash = sm3(prev + <span class="str">"|"</span> + canonical);         <span class="com">// 国密摘要</span>
+        AuditEvent ev = <span class="kw">new</span> <span class="type">AuditEvent</span>(nextId(), actor, action, target, result, prev, hash, now());
+        wormStore.<span class="fn">append</span>(ev);                             <span class="com">// 只写存储，禁更新接口</span>
+        chainHead.<span class="fn">set</span>(hash);                             <span class="com">// 链尾推进（写入也走 WORM 日志）</span>
+        <span class="kw">return</span> ev;
+    });
 }
 
 <span class="com">// 血缘影响分析：改一个上游字段，自动列出受影响下游</span>
