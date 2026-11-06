@@ -6,7 +6,7 @@
 
 ---
 
-## 目录结构（4 子站 + 2 索引 + 工具链 + rk/ 随笔）
+## 目录结构（4 子站 + 2 索引 + 工具链 + rk/ 随笔 + xinchuang/ 研究专题）
 
 ```
 Java-Spring-AI/
@@ -29,6 +29,7 @@ Java-Spring-AI/
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
 ├── Software-Engineering-Core-Philosophical-Principles-and-Methodologies/  # ④ 软件工程「道—法—术—器—势」核心哲学原理
 ├── rk/                                     # 两篇随笔（高项 / 系规），见 rk/README.md
+├── xinchuang/                              # 12 篇信创研究专题（md），非 HTML 站群
 ├── .workbuddy/skills/java-kb-expand/       # 工具链 · java-kb-expand Skill
 │   └── scripts/
 │       ├── sync_counts.py     # 权威计数同步（改数唯一入口：bump / check / apply）
