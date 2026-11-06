@@ -150,9 +150,15 @@ def main():
             blocks = [t[m.end():ms[i + 1].start() if i + 1 < len(ms) else len(t)]
                       for i, m in enumerate(ms)]
         kr = re.compile(r["key_re"])
+        # anchor_re 可选：块内存在多个计数锚点时，用它精确指定本块真值锚点
+        # （如根 index 方向块的 dir-subtitle 与 dir-count 并存，真值锚点是 dir-count）
+        anchor_re = re.compile(
+            r.get("anchor_re")
+            or 'data-kb-count="([^"]+)"[^>]*data-kb-pos="(P\\d+)"[^>]*>(\\d+)<'
+        )
         n = 0
         for b in blocks:
-            dm = re.search(r'data-kb-count="([^"]+)"[^>]*data-kb-pos="(P\d+)"[^>]*>(\d+)<', b)
+            dm = anchor_re.search(b)
             if not dm:
                 continue
             key = dm.group(1)

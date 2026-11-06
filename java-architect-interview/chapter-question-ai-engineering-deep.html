@@ -127,9 +127,6 @@
               <a href="#A08.02"><span class="toc-number">A08.02</span>任务拆分与 DAG 并行执行</a>
             </li>
             <li>
-              <a href="#A08.03"><span class="toc-number">A08.03</span>记忆系统选型：Mem0 / Letta / Zep-Graphiti</a>
-            </li>
-            <li>
               <a href="#A08.04"><span class="toc-number">A08.04</span>上下文压缩的预算公式与状态管理四层</a>
             </li>
             <li>
@@ -356,7 +353,10 @@
               <a href="#A25.01"><span class="toc-number">A25.01</span>内部开发者平台 IDP / 脚手架 / Starter 化标准化交付</a>
             </li>
             <li>
-              <a href="#A25.02"><span class="toc-number">A25.02</span>裸线程池 vs Starter 动态线程池 vs 虚拟线程选型 + SDD</a>
+              <a href="#A25.02"><span class="toc-number">A25.02</span>裸线程池 vs Starter 动态线程池 vs 虚拟线程选型</a>
+            </li>
+            <li>
+              <a href="#A25.03"><span class="toc-number">A25.03</span>SDD 规约驱动与 AI 原生研发流</a>
             </li>
           </ol>
         </div>
@@ -379,7 +379,7 @@
           <h1 class="chapter-title">AI 工程纵深：理论 · 前沿 · 规模化生产</h1>
           <p class="chapter-subtitle">从理论底座到企业级规模化生产实践，多维立体覆盖 AI 工程化全栈能力。</p>
           <div class="chapter-meta">
-            <span>题目数：74</span> <span class="meta-divider">|</span> <span>高级 ×25</span> <span class="meta-divider">|</span> <span>架构 ×39</span> <span class="meta-divider">|</span> <span>专家 ×10</span> <span class="meta-divider">|</span>
+            <span>题目数：74</span> <span class="meta-divider">|</span> <span>高级 ×26</span> <span class="meta-divider">|</span> <span>架构 ×39</span> <span class="meta-divider">|</span> <span>专家 ×9</span> <span class="meta-divider">|</span>
             <span>预计复习：420 分钟</span>
           </div>
           <div class="chapter-lead">
@@ -833,13 +833,13 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>记忆工程的分层模型、生命周期与存储三态</strong>：短期 / 长期如何二分？事实 / 经验 / 工作（再分情景 / 语义 / 程序）记忆如何归类？「编码 → 存储 → 提取 → 巩固 → 反思 → 遗忘」生命周期各环节的工程实现是什么？以及长期记忆与 RAG 的边界——技术相似（都是向量检索），职责为何必须分开。这是 Agent 系统「越用越懂你」的架构题。</p>
+              <p>这道题考察的是 <strong>记忆工程的分层模型、生命周期与存储三态</strong>：短期 / 长期如何二分？事实 / 经验 / 工作（再分情景 / 语义 / 程序）记忆如何归类？「编码 → 存储 → 提取 → 巩固 → 反思 → 遗忘」生命周期各环节的工程实现是什么？主流方案（Mem0 / Letta-MemGPT / Zep-Graphiti）的选型判据与边界是什么？以及长期记忆与 RAG 的边界——技术相似（都是向量检索），职责为何必须分开。这是 Agent 系统「越用越懂你」的架构题。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>从「对话历史」到「记忆系统」</strong>：早期仅滑动窗口存对话；随后向量库存语义片段；再演进到产品化分层——Mem0（以 ADD 为主，支持 ADD / UPDATE / DELETE / NOOP 的抽取式写入 + 多信号融合检索）、Letta/MemGPT（OS 式虚拟内存分页，Main↔External 动态交换）、Zep（时间感知三层子图 + 边失效）、MemOS（记忆立方体：纯文本 ↔ 激活记忆 KV Cache ↔ 参数记忆 LoRA 动态流转）。演进主线：从「存取文本」走向「管理有生命周期的知识资产」。</p>
+              <p><strong>从「对话历史」到「记忆系统」</strong>：早期仅滑动窗口存对话；随后向量库存语义片段；再演进到产品化分层——Mem0（以 ADD 为主，支持 ADD / UPDATE / DELETE / NOOP 的抽取式写入 + 多信号融合检索）、Letta/MemGPT（OS 式虚拟内存分页，Main↔External 动态交换）、Zep（时间感知三层子图 + 边失效）、MemOS（记忆立方体：纯文本 ↔ 激活记忆 KV Cache ↔ 参数记忆 LoRA 动态流转）。三条产品化路线的分歧本质是记忆管理复杂度放在哪里：平台侧（Mem0 全包）、Agent 侧（Letta 自管）、数据模型侧（Zep 时序图谱）。演进主线：从「存取文本」走向「管理有生命周期的知识资产」。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -851,6 +851,8 @@
                 <li><strong>功能轴</strong>：事实记忆（知道什么：偏好 / 环境 / 显式事实）、经验记忆（如何改进：成败教训 / 策略）、工作记忆（当前思考：推理上下文 / 任务进展）；细分还有情景（发生了什么）、语义（意味着什么）、程序（习得技能，如「该用户代码审查优先查 OOM」）。</li>
                 <li><strong>存储形态轴（三态）</strong>：Token 级（向量库文本块 / 结构化 JSON）、参数化（预训练 / LoRA / SFT）、潜在态（KV Cache / 激活值）。</li>
               </ul>
+              <p><strong>主流方案选型对照</strong>：Mem0——记忆即服务，embedding / 去重 / 冲突消解全包，按 <code class="inline-code">user_id</code> 隔离，接入成本最低，适合个性化偏好记忆；Letta / MemGPT——记忆即 OS，Core（常在上下文）/ Recall（最近历史）/ Archival（长期归档）三层分页，Agent 自主管理，适合长会话自编辑；Zep / Graphiti——记忆即图谱，有效时间窗口 + 时序知识图谱管生命周期，适合事实会过时、需要失效追踪的长期 Agent。判据不是 star 数，而是团队愿意把复杂度放在平台侧、Agent 侧还是数据模型侧，以及是否具备对应的运维能力。</p>
+              <p><strong>图增强记忆的第一性</strong>：向量检索按「一条一条」存取，记忆之间没有显式关联——「用户 A 所在公司做什么业务」这类问题里，「用户 A」与「云计算」文本语义不相近，向量召不回；三元组（实体 → 关系 → 实体）+ 多跳推理补足关系链。分工是<strong>向量库管模糊语义、图谱管精确关系</strong>，对话中由 LLM 抽取实体关系入图。成本边界：实体 / 关系抽取每次都要调 LLM，低价值对话不上图，按对话重要性或实体密度触发。</p>
               <p><strong>生命周期六环节的工程实现</strong>：编码（LLM 抽取事实三元组 / 生成摘要）→ 存储（向量 + 图 + 关系）→ 提取（向量检索 + BM25 + 图遍历多路召回）→ 巩固（对话摘要归并实体库）→ 反思（任务后异步提取元知识 / 教训）→ 遗忘（<code class="inline-code">score = relevance × importance × decay(t)</code>，decay 为指数衰减，实际在重排阶段实时应用；该式源自 Generative Agents，属一种常见实现，不同方案的权重与衰减曲线不同，此处仅作示意）。</p>
             </div>
           </div>
@@ -859,8 +861,11 @@
             <div class="content-layer-body">
               <ul>
                 <li><strong>写入链路</strong>：对话后异步 LLM 语义提纯（Best-Effort）；幂等 Key 用 <code class="inline-code">sourceId + batchId</code> 而非文本哈希（温度与微调会导致字面不同）；并发写用乐观锁 / MVCC。</li>
+                <li><strong>存储字段与索引</strong>：内容转向量与原文、metadata（时间 / 任务类型 / 重要程度 / 记忆类型）一起存；查询必须用<strong>同一 embedding 模型</strong>，ANN 索引（HNSW / IVF）加速——写入与检索的向量空间不一致，等于自毁召回。</li>
                 <li><strong>检索链路</strong>：新 Session 开始向量化 Query 取回，prepend 进系统提示或平行 slot；向量库 P99 直接吃 TTFT——用 Redis 预热、浅层画像全量预载、检索与生成重叠执行来压等待感。</li>
+                <li><strong>读 → 用 → 写闭环</strong>：任务前按任务描述检索长期记忆并注入 system prompt；执行中把「查记忆」封装成 Tool 按需检索；任务后把新偏好更新到实体记忆、有价值结论摘要写入向量库——只在任务前预载会漏掉中途出现的新线索，只在任务后写则下次会话接不上。</li>
                 <li><strong>存储三层架构</strong>：VectorStore（选型看索引 HNSW / IVF / DiskANN、预过滤 / 后过滤、多租户隔离粒度、一致性、成本）+ GraphStore（实体关系图谱，支撑多跳推理）+ Reranker（交叉编码器二次精排）。</li>
+                <li><strong>粒度与整合</strong>：粒度太细 → 碎片化（一条完整偏好拆四条只命中两条）；太粗 → 噪音（两千 token 里相关的只有一百）；<strong>合理粒度 = 一次完整交互或一个独立知识点</strong>。整合四步：去重（语义相近合并）→ 冲突消解（保留时间新的，<strong>时间戳是关键</strong>）→ 抽象提炼（情节记忆 → 语义记忆，如多次「动态渲染 requests 失败」沉淀为「有动态渲染时用浏览器自动化」）→ 分层节奏（任务后轻量去重 + 定期深度提炼）。</li>
                 <li><strong>遗忘与冲突</strong>：新事实写入时标记旧边失效 + 时间戳，定期 Vacuum 重建索引（软删除会破坏 HNSW 连通性）。</li>
                 <li><strong>轻量替代</strong>：少量明确结构化的偏好 / 规范，用 Markdown 文件（如 <code class="inline-code">AGENTS.md</code>）+ Git 版本化，零迁移成本、透明可审计；与向量库边界——少量结构化走 Markdown，大量非结构化语义召回走向量，两者可并存。</li>
               </ul>
@@ -874,6 +879,8 @@
                 <li><strong>为什么幂等 Key 不用文本哈希</strong>？同一事实两次表述字面不同（温度采样 / 模型升级），文本哈希判重必失效；用业务侧 sourceId + batchId 才能保证「不重写、不漏写」。</li>
                 <li><strong>检索链路优化次序</strong>？先修检索链路（看 Trace：query 改写 / 过滤 / 候选集 / 重排打分），再扩写入规模——写入越多检索质量越差时，扩容只会放大问题。</li>
                 <li><strong>自我反思闭环</strong>？任务后异步复盘提炼教训（源于 Generative Agents 的「睡眠记忆巩固」）；高风险操作后触发细粒度核对（事实 / 验收 / 数据缺口），不通过则退回补齐。</li>
+                <li><strong>「这次答对」与「下次少犯错」为何是两件事</strong>？纠正留在上一段对话里，模型参数没有更新，新会话读不到——经验必须存到<strong>任务外</strong>（向量库 / 记忆服务）并在<strong>下次决策前</strong>检索注入，才构成学习闭环。</li>
+                <li><strong>四层记忆（感知 / 短期 / 长期 / 实体）与三个工程问题</strong>？存什么（事实 / 偏好 / 教训分型）、怎么存（向量 + metadata + 图谱边）、何时取（任务前预载 / 执行中按需 / 冲突时裁决）——只答「长短两分」是经典的不完整答案（Letta 的 OS 三层是另一套计数口径，不要混用）。</li>
               </ul>
             </div>
           </div>
@@ -885,6 +892,9 @@
                 <li><strong>只写不清</strong>：无遗忘机制与冲突标记，记忆库膨胀后陈旧事实压过新事实——「用户换了团队」被三个月前的旧记忆覆盖。</li>
                 <li><strong>多租户检索不带硬过滤</strong>：A 租户检索命中 B 租户记忆是 P0 事故；检索层必须带 UserID / 组织 / 时间 / 业务标签硬过滤，高活跃租户独立 Collection 物理隔离。</li>
                 <li><strong>记忆写入走同步链路</strong>：LLM 提纯耗时且可能失败，同步写会拖垮响应；应异步 + 失败重投 + 幂等。</li>
+                <li><strong>用关键词搜索代替语义检索</strong>：问「代码习惯」命不中已存的「Python 风格偏好」——长期记忆必须 Embedding + 向量库语义检索；少量结构化偏好走 Markdown 文件是另一条边界，不是关键词库。</li>
+                <li><strong>粒度越细越好</strong>：碎片化导致召回失全；按「一次完整交互 / 一个独立知识点」裁决，而不是按句子切。</li>
+                <li><strong>选框架只看 star 数</strong>：Mem0 省心但策略黑盒、Letta 灵活但要自己管、Zep 强在时态但引入图谱运维——按「谁管理记忆复杂度」与团队运维能力选。</li>
               </ul>
             </div>
           </div>
@@ -2105,85 +2115,6 @@
                 <li><strong>按技术层拆任务</strong>：接口约定无人守护，联调灾难；从行为拆起、先锁共享接口。</li>
                 <li><strong>DAG 并行不控并发度</strong>：无最大并发限制的扇出会打爆下游（模型限流 / 工具限流）；限并发 + 阶段 Deadline。</li>
                 <li><strong>任务全勾但整体不对</strong>：局部通过 ≠ 整体正确；必须有真实联调与总需求回归两个收尾任务。</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div class="content-card" id="A08.03" data-difficulty="expert" data-priority="p2">
-          <div class="content-header">
-            <div class="content-badge code-a">A08.03</div>
-            <div class="content-question">记忆系统选型：Mem0 / Letta / Zep-Graphiti<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p2">P2</span></div>
-          </div>
-          <div class="content-layer" data-layer="essence">
-            <div class="content-layer-title">本质问题</div>
-            <div class="content-layer-body">
-              <p>这道题考察的是 <strong>记忆系统三大框架的选型对比</strong>：Mem0（独立记忆服务层，add/search 两接口）、Letta/MemGPT（OS 式内存分层，Agent 自管三层记忆）、Zep/Graphiti（时间感知，时序知识图谱管生命周期）各自的核心思路与适用场景是什么？以及知识图谱增强记忆如何补向量检索的短板（多跳推理）、「记忆整合」四步（去重 / 冲突消解 / 抽象提炼）如何从碎片到知识。</p>
-            </div>
-          </div>
-          <div class="content-layer" data-layer="evolution">
-            <div class="content-layer-title">演进脉络</div>
-            <div class="content-layer-body">
-              <p><strong>三条技术路线并行成熟</strong>：Mem0（5w+ star）走「记忆即服务」——管理逻辑全包，应用只调 add / search；Letta（MemGPT 系）走「记忆即 OS」——Core（常在上下文）/ Recall（最近历史）/ Archival（长期归档）三层分页，Agent 自己用工具管理；Zep / Graphiti 走「记忆即图谱」——每条记忆标有效时间窗口，时序知识图谱自动识别过时记忆。选型分歧的本质是：记忆管理的复杂度放在<strong>平台侧、Agent 侧还是数据模型侧</strong>。</p>
-            </div>
-          </div>
-          <div class="content-layer" data-layer="principle">
-            <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body">
-              <p><strong>选型对照</strong>：</p>
-              <table class="compare-table">
-                <tr>
-                  <th>框架</th>
-                  <th>核心思路</th>
-                  <th>适用场景</th>
-                </tr>
-                <tr>
-                  <td>Mem0</td>
-                  <td>记忆管理独立服务层；embedding / 去重 / 冲突消解全包；按 user_id 隔离</td>
-                  <td>个性化记忆（用户偏好习惯），接入成本最低</td>
-                </tr>
-                <tr>
-                  <td>Letta / MemGPT</td>
-                  <td>OS 内存分层分页；Agent 自主管理三层记忆</td>
-                  <td>需要 Agent 自主管理记忆、长会话自编辑的场景</td>
-                </tr>
-                <tr>
-                  <td>Zep / Graphiti</td>
-                  <td>时间感知：有效时间窗口 + 时序知识图谱管生命周期</td>
-                  <td>长期运行的 Agent 系统（事实会过时、需要失效追踪）</td>
-                </tr>
-              </table>
-              <p><strong>图增强记忆的第一性</strong>：向量检索「一条一条」存取、记忆间无关联——「用户 A 所在公司做什么业务」这类问题中「用户 A」与「云计算」文本语义不相近，向量命不中；三元组（实体 → 关系 → 实体）+ 多跳推理补足关系链。配合方式：<strong>向量库管模糊语义、图谱管精确关系</strong>；对话中由 LLM 自动提取实体关系入图。</p>
-            </div>
-          </div>
-          <div class="content-layer" data-layer="practice">
-            <div class="content-layer-title">工程实践</div>
-            <div class="content-layer-body">
-              <ul>
-                <li><strong>长期记忆存储工程</strong>：存时「内容转向量 + 原文 + metadata 标签（时间 / 任务类型 / 重要程度 / 记忆类型）」一起存；取时查询向量（<strong>同一 embedding 模型</strong>）相似检索 + ANN 索引（HNSW / IVF）加速。</li>
-                <li><strong>粒度裁决</strong>：太细 → 碎片化（完整偏好拆四条只命中两条）；太粗 → 噪音（两千 token 里相关只有一百）；<strong>合理粒度 = 一次完整交互 或 一个独立知识点</strong>。</li>
-                <li><strong>「读 → 用 → 写」闭环</strong>：任务前主动检索（任务描述 → 长期记忆 → 注入 system prompt）；执行中「查记忆」封装成 Tool 按需检索；任务后写入（新偏好更新实体记忆、有价值结论摘要入向量库）。</li>
-                <li><strong>记忆整合四步</strong>：去重（语义相近合并）→ 冲突消解（保留时间新的，<strong>时间戳是关键</strong>）→ 抽象提炼（情节记忆 → 语义记忆：多次「动态渲染 requests 失败」经历 → 「有动态渲染时用浏览器自动化」的通用规律）→ 分层节奏（任务后轻量去重 + 定期深度提炼）。</li>
-              </ul>
-            </div>
-          </div>
-          <div class="content-layer" data-layer="deep">
-            <div class="content-layer-title">深度追问</div>
-            <div class="content-layer-body">
-              <ul>
-                <li><strong>「这次答对」和「下次少犯错」为什么是两件事</strong>？纠正留在上一段对话里，模型参数没更新，新会话读不到——经验必须存到<strong>任务外</strong>（向量库 / 记忆服务）并在<strong>下次决策前</strong>检索注入，才构成学习闭环。</li>
-                <li><strong>四层记忆（感知 / 短期 / 长期 / 实体；Letta 的 OS「三层」是另一套计数）与三工程问题</strong>？存什么（事实 / 偏好 / 教训分型）、怎么存（向量 + metadata + 图谱边）、何时取（任务前预载 / 执行中按需 / 冲突时裁决）——只答「长短两分」是经典不完整答案。</li>
-                <li><strong>图谱记忆的成本边界</strong>？实体抽取与关系抽取每次对话都要调 LLM；低价值对话不上图，按对话重要性 / 实体密度触发抽取。</li>
-              </ul>
-            </div>
-          </div>
-          <div class="content-layer" data-layer="pitfall">
-            <div class="content-layer-title">常见陷阱</div>
-            <div class="content-layer-body">
-              <ul>
-                <li><strong>长期记忆「存数据库靠关键词搜索」</strong>：错。必须 Embedding + 向量库语义检索（问「代码习惯」能命中存的「Python 风格偏好」）。</li>
-                <li><strong>以为粒度越细越好</strong>：碎片化导致召回失全；粒度按「完整交互 / 独立知识点」裁决。</li>
-                <li><strong>无冲突消解直接追加</strong>：旧偏好压过新偏好（用户换了团队仍被按旧团队画像服务）；时间戳 + 保留最新是底线。</li>
-                <li><strong>选框架只看 star 数</strong>：Mem0 省心但黑盒策略、Letta 灵活但要自己管、Zep 强在时态但引入图谱运维——按「谁管理忆复杂度」与团队运维能力选。</li>
               </ul>
             </div>
           </div>
@@ -5652,19 +5583,18 @@
         <div class="content-card" id="A25.02" data-difficulty="senior" data-priority="p1">
           <div class="content-header">
             <div class="content-badge code-a">A25.02</div>
-            <div class="content-question">裸线程池 vs Starter 动态线程池 vs 虚拟线程选型 + SDD<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+            <div class="content-question">裸线程池 vs Starter 动态线程池 vs 虚拟线程选型<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
           </div>
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body">
-              <p>这道题考察的是 <strong>执行基建选型与 SDD 规约驱动</strong>：裸 JDK 线程池 / Spring TaskExecutor / Starter 化动态线程池 / 虚拟线程四形态的选型对比与判据；动态线程池的两大生产痛点（参数不可调 / 无监控）；以及 SDD（规约驱动开发）如何把「AI 理解需求」的不确定性前置消灭。核心在于回答：<strong>AI 服务是 IO 密集型负载，执行基建的选型直接影响成本与稳定性</strong>。</p>
+              <p>这道题考察的是 <strong>AI 服务执行基建的选型</strong>：裸 JDK 线程池 / Spring TaskExecutor / Starter 化动态线程池 / 虚拟线程四形态的能力边界与选型判据；动态线程池要解决的两大生产痛点（参数不可调 / 无监控）；以及 AI 这类 IO 密集型负载下，为什么默认答案不是「裸线程池」。核心在于回答：<strong>执行基建直接吃成本与稳定性，参数必须可观测、可调整</strong>。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>线程池形态的演进</strong>：裸 JDK <code class="inline-code">ThreadPoolExecutor</code>（参数运行期不可调，改参要重启；无监控）→ Spring <code class="inline-code">ThreadPoolTaskExecutor</code>（Bean 重建可换参但弱）→ <strong>动态线程池框架</strong>（oneThread / Hippo4j：配置中心热更 + Prometheus 监控 + 告警 + 拒绝策略增强）→ 虚拟线程（JDK 21，按需创建无需池化，IO 密集新范式）。</p>
-              <p><strong>研发范式的演进</strong>：Prompt 式驱动（口头描述让 AI 写）→ <strong>SDD 规约驱动</strong>（先写规约：需求 + 验收标准，再让 AI 编码——把理解偏差前置消灭）→ AI 原生研发流六阶段（需求 → 规约 → 编码 → 验证 → 评审 → 上线，Agent 参与全程、人类把关准入准出）。</p>
+              <p><strong>线程池形态的演进</strong>：裸 JDK <code class="inline-code">ThreadPoolExecutor</code>（参数运行期不可调，改参要重启；无监控）→ Spring <code class="inline-code">ThreadPoolTaskExecutor</code>（Bean 重建可换参但能力弱）→ <strong>动态线程池框架</strong>（oneThread / Hippo4j：配置中心热更 + Prometheus 监控 + 告警 + 拒绝策略增强）→ 虚拟线程（JDK 21，按需创建无需池化，IO 密集新范式）。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -5704,7 +5634,7 @@
                 </tr>
               </table>
               <p><strong>两大生产痛点（美团经典问题）</strong>：核心数偏小 → 大量拒绝异常触发降级；队列过长 → 最大线程数失效任务堆积下游超时——根因都是「参数不可调 + 无监控，问题暴露时已成故障」。</p>
-              <p><strong>SDD 的第一性</strong>：AI 编码的质量上限由规约质量决定——规约含需求描述 + 验收标准（可测试的完成定义），AI 的自由发挥空间被约束在验收框架内；<strong>先写规约 = 把沟通成本前置，把返工成本消灭在编码前</strong>。</p>
+              <p><strong>默认选型判据</strong>：生产业务池默认 Starter 化动态线程池（可热更 + 可监控）；纯 IO 高并发且任务轻量再评估虚拟线程；裸池只用于参数稳定、无监控诉求的内部任务。选型不是「越新越好」，而是「出问题时能不能看见、能不能调」。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="practice">
@@ -5715,7 +5645,6 @@
                 <li><strong>动态线程池落地</strong>：Starter 接入配置中心（Nacos / Apollo 监听热更）+ 告警阈值设在压测临界点 70–80% + 持续时间窗口防抖动风暴；拒绝事件动态代理拦截告警（拒绝 = 故障前兆必须可见）。</li>
                 <li><strong>JDK 边界注意</strong>：动态改 <code class="inline-code">corePoolSize</code> 有并发边界问题（先减后加或加锁）；队列容量动态改要保证 <code class="inline-code">remainingCapacity</code> 一致性。</li>
                 <li><strong>虚拟线程适用判据</strong>：高并发 IO 型（AI 服务的模型调用 / 检索正是此类）+ 任务轻量；需配套新监控工具，池化类经验（队列 / 拒绝策略）不适用。</li>
-                <li><strong>SDD 落地</strong>：规约模板（背景 / 需求 / 边界 / 验收标准 / 禁区），AI 按规约产出代码，验收标准直接转为测试用例——<strong>规约即测试的前置物</strong>。</li>
               </ul>
             </div>
           </div>
@@ -5725,8 +5654,6 @@
               <ul>
                 <li><strong>虚拟线程与 AI 服务的适配性</strong>：AI 服务主流等待是 IO（模型响应 / 检索 / 队列轮询），线程在等待期零占用正是虚拟线程的设计靶点；但模型调用受全局信号量约束（对齐 A24.01），虚拟线程的「无限并发」必须仍受分布式配额约束——两者是互补不是替代。</li>
                 <li><strong>从监控到自愈的闭环</strong>：告警 → 自动扩容（HPA 或动态调大 maximumPoolSize）→ 事后复盘——监控的终点是自动化响应而非人肉救火（oneThread 进阶结论）。</li>
-                <li><strong>为什么 SDD 与 Coding Agent 是绝配</strong>：Agent 执行力强但理解需求有偏差——规约把偏差约束在验收标准内；同时规约是项目记忆（<code class="inline-code">CLAUDE.md</code> / <code class="inline-code">AGENTS.md</code>，对齐 A11.04）的输入，长会话上下文压缩也不丢关键决策。</li>
-                <li><strong>Anthropic 研究的落地映射</strong>：用好 AI 编程的关键是会问问题、会审结果、会定标准——SDD 的规约正是「会定标准」的工程化形态，把资深工程师的判断力沉淀为验收资产。</li>
               </ul>
             </div>
           </div>
@@ -5738,7 +5665,62 @@
                 <li><strong>告警无持续时间窗口</strong>：瞬时抖动触发告警风暴，值班疲劳后真告警被淹没。</li>
                 <li><strong>参数拍脑袋不压测标定</strong>：core/max/queue 凭经验设，高峰期积压或空转——压测找到临界点再定参。</li>
                 <li><strong>虚拟线程套池化思维</strong>：给虚拟线程配队列和拒绝策略，失去按需创建的意义——语义变了，监控与容量规划跟着变。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="A25.03" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-a">A25.03</div>
+            <div class="content-question">SDD 规约驱动与 AI 原生研发流<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>这道题考察的是 <strong>SDD（Spec-Driven Development，规约驱动开发）与 AI 原生研发流</strong>：为什么「先写规约再让 AI 编码」能把理解偏差前置消灭？规约必须包含哪些要素（背景 / 需求 / 边界 / 验收标准 / 禁区）？验收标准如何直接转成测试用例？AI 原生研发流六阶段（需求 → 规约 → 编码 → 验证 → 评审 → 上线）的准入准出如何设置？与 A11.04 的分工：A11.04 讲 Coding Agent 六件设施与规约三件套的目录组织，本卡讲规约驱动的研发流程与组织落地。核心在于回答：<strong>AI 编码的质量上限由规约质量决定，流程要把返工成本消灭在编码前</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>研发范式的演进</strong>：Prompt 式驱动（口头描述让 AI 写，产出随理解漂移）→ <strong>SDD 规约驱动</strong>（先写规约：需求 + 边界 + 验收标准，再让 AI 编码——把理解偏差前置消灭）→ AI 原生研发流六阶段（需求澄清 → 规约 → 编码 → 验证 → 评审 → 上线，Agent 参与全程、人类把关准入准出）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>SDD 的第一性</strong>：AI 编码的质量上限由规约质量决定——规约含需求描述 + 可测试的验收标准，AI 的自由发挥空间被约束在验收框架内；<strong>先写规约 = 把沟通成本前置，把返工成本消灭在编码前</strong>。规约的最小要素：背景（为什么做）、需求（做什么）、边界（不做什么）、验收标准（可测试的完成定义）、禁区（不可触碰的约束）。</p>
+              <p><strong>六阶段的准入准出</strong>：需求澄清（目标与不做的范围确认）→ 规约（验收标准可写成用例）→ 编码（按规约产出，不夹带未定义需求）→ 验证（验收用例全绿）→ 评审（人类审 diff 与规约一致性）→ 上线（观测指标与回滚条件就绪）。每阶段的准出物是下一阶段的输入，缺一项就把不确定性带到更贵的环节。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <ul>
+                <li><strong>规约模板</strong>：背景 / 需求 / 边界 / 验收标准 / 禁区五段式，长度按功能复杂度裁剪；小功能几段文字写清行为即可，不为「用模板」把功能扩成复杂文档。</li>
+                <li><strong>验收标准即测试</strong>：每条验收标准写成可执行的 Given / When / Then 或断言，直接转成测试用例——<strong>规约即测试的前置物</strong>，测试通过就是验收通过。</li>
+                <li><strong>规约作为项目记忆</strong>：关键决策写入 <code class="inline-code">CLAUDE.md</code> / <code class="inline-code">AGENTS.md</code>，长会话压缩只省过程、不丢决策；新会话先读规约再动手。</li>
+                <li><strong>变更纪律</strong>：需求变更先改规约再改代码，评审同时看规约 diff 与代码 diff——只改代码不改规约，下一次 AI 生成又会回到旧行为。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <ul>
+                <li><strong>为什么 SDD 与 Coding Agent 是绝配</strong>？Agent 执行力强但理解需求有偏差——规约把偏差约束在验收标准内；同时规约是项目记忆的输入，长会话上下文压缩也不丢关键决策。</li>
+                <li><strong>规约「够用」的判据</strong>？不是篇幅，而是能否写出可执行的验收用例、边界能否被测试表达；若验收标准只能写成「体验好 / 性能高」，说明需求还没澄清，继续写文档只是把模糊放大。</li>
+                <li><strong>业界研究的落地映射</strong>：用好 AI 编程的关键是会问问题、会审结果、会定标准——SDD 的规约正是「会定标准」的工程化形态，把资深工程师的判断力沉淀为验收资产。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ul>
                 <li><strong>规约缺失直接让 AI 写</strong>：口头需求 + AI 自由发挥，产出漂移返工——哪怕 20 行规约也强于没有。</li>
+                <li><strong>验收标准不可测试</strong>：写成「体验好」「性能高」，无法转成用例，等于没有验收——改成可观测的数值或行为断言。</li>
+                <li><strong>规约写成大而全文档</strong>：小功能被扩成复杂文档，维护成本超过收益——按复杂度裁剪，几段文字能写清就不上三件套。</li>
                 <li><strong>长会话靠压缩接力</strong>：关键决策在摘要中失真——决策写入记忆文件，压缩只省过程。</li>
               </ul>
             </div>
@@ -5899,7 +5881,7 @@
               <ul>
                 <li><strong>为什么工程完整度决定存活</strong>：Demo 与生产的差距全在「没发生过的路径」——异常 / 并发 / 数据一致性 / 故障恢复；这些路径的完备度是「技术演示」与「业务系统」的分界线，也是组织对 AI 项目信任的来源。</li>
                 <li><strong>知识资产的组织复利</strong>：Golden Set（评测资产）、规约（SDD / Checklist）、Starter（代码资产）、踩坑库（经验资产）——四类资产随项目累积，新项目的边际成本持续下降；<strong>这四类资产的厚度就是组织 AI 工程能力的厚度</strong>。</li>
-                <li><strong>判断力的组织级映射</strong>：用好 AI 的关键是会问问题、会审结果、会定标准——组织层面把「判断力」沉淀为 Hooks / Skills / 规约（对齐 A25.02），让 Agent 在循环中自动执行资深标准，个人的判断力变成组织的生产力。</li>
+                <li><strong>判断力的组织级映射</strong>：用好 AI 的关键是会问问题、会审结果、会定标准——组织层面把「判断力」沉淀为 Hooks / Skills / 规约（对齐 A25.03），让 Agent 在循环中自动执行资深标准，个人的判断力变成组织的生产力。</li>
                 <li><strong>失败案例的正面价值</strong>：把精确查询场景套用全文检索方案（业务形态与检索方案不匹配的典型反面案例，具体归属需核实）、缓存穿透单方案漏洞（Null 缓存脏数据窗口 / 布隆误判）——失败案例是最便宜的学费，避坑库的组织价值不亚于成功范式。</li>
               </ul>
             </div>

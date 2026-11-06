@@ -42,9 +42,9 @@ agent_created: true
 - 难度三级（覆盖 C/E/S/A/D）：专家 / 架构师 / 高级开发（求和 = `total`）。**标签位文案一律短表 专家 / 架构 / 高级**；M/G/K 不分难度等级。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **546** = 篇章C 252 + AI纵深A 74 + 核心原理 74 + 场景 74 + 垂直领域 72
-- 优先级 **P0=124 / P1=337 / P2=85**（求和 = 546）
-- 难度 **专家 65 / 架构师 260 / 高级开发 221**（求和 = 546；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 题目总量 **552** = 篇章C 252 + AI纵深A 74 + 核心原理 74 + 场景 74 + 垂直领域 78
+- 优先级 **P0=124 / P1=342 / P2=86**（求和 = 552）
+- 难度 **专家 64 / 架构师 265 / 高级开发 223**（求和 = 552；覆盖 C/E/S/A/D，M/G/K 不分级）
 - 方法论 **145 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
@@ -471,6 +471,11 @@ agent_created: true
 | P560 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段题目总量 |
 | P561 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题 AI 纵深 A 题数 |
 | P562 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc AI 纵深 A 题数 |
+| P563 | `java-architect-interview/nav-overview-priority.html` | 垂直领域 P2·架构 ov-type 计数（2026-11-06 新增类型块） |
+| P564 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 题目数（2026-11-06 升格裸计数） |
+| P565 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 高级数（2026-11-06 升格裸计数） |
+| P566 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 架构数（2026-11-06 升格裸计数） |
+| P567 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 专家数（2026-11-06 升格裸计数） |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
