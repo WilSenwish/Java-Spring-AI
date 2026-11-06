@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="行业进度与案例库、六阶段门禁、Java/Spring Boot 专项与 20 项验收清单。" />
+    <meta name="color-scheme" content="light dark" />
+    <title>行业落地与工程迁移方法论 · 信创研究站</title>
+    <script>
+      /* 首屏主题同步初始化：在 CSS 之前定好 data-theme，避免深色偏好用户闪白。
+         与 assets/app.js 的 readPref() 口径一致：仅 light/dark 为显式偏好，其余跟随系统。 */
+      (function () {
+        try {
+          var v = localStorage.getItem('xc-theme');
+          var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme',
+            (v === 'light' || v === 'dark') ? v : (dark ? 'dark' : 'light'));
+        } catch (e) { /* 隐私模式忽略持久化失败 */ }
+      })();
+    </script>
+    <link rel="stylesheet" href="assets/base.css" />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body data-page="07-migration.html">
+    <div class="toolbar">
+      <a class="brand" href="index.html">信创研究站</a>
+      <div class="tools">
+        <div class="search-box">
+          <input id="siteSearch" type="search" placeholder="搜索章节 / 文档" autocomplete="off"
+                 aria-label="站内搜索" aria-expanded="false" role="combobox" />
+          <div id="searchResults" class="search-results" role="listbox" hidden></div>
+        </div>
+        <button class="btn" id="themeBtn" type="button" title="切换颜色主题">◐ 系统</button>
+        <button class="btn" id="topBtn" type="button" title="平滑回到顶部">↑ 顶部</button>
+      </div>
+    </div>
+
+<header class="hero hero--compact"><div class="wrap"><div class="kicker">07 · 工程 / 实施</div><h1>07 行业落地与工程迁移方法论</h1><p class="sub">本文回答：各行业替到哪一步了、有哪些可参照的公开案例；一个信创迁移项目应该分几阶段推进、每阶段的门禁是什么；Java / Spring Boot + MyBatis + PageHelper + Redis + MySQL/MongoDB 技术栈具体要改什么。</p><div class="meta"><span class="pill">文档 <b>07</b></span><span class="pill">视角 <b>工程 / 实施</b></span><span class="pill">基准日 <b>2026-11-05</b></span></div></div></header>
+
+
+
+<div class="wrap doc-layout"><nav class="toc doc-toc" id="docToc" aria-label="页内目录"><div class="wrap"><a class="toc-h2" href="#sec-1">1. 「2+8+N」行业进度：多源对照</a><a class="toc-h2" href="#sec-2">2. 行业案例库（按可借鉴点组织）</a><a class="toc-h2" href="#sec-3">3. 迁移方法论：六阶段 + 门禁（全站唯一阶段主表）</a><a class="toc-h3" href="#sec-4">S0 摸底评估</a><a class="toc-h3" href="#sec-5">S1 环境验证</a><a class="toc-h3" href="#sec-6">S2 代码与 SQL 适配</a><a class="toc-h3" href="#sec-7">S3 数据迁移与双轨并行</a><a class="toc-h3" href="#sec-8">S4 灰度切换与回退</a><a class="toc-h3" href="#sec-9">S5 验收与运维</a><a class="toc-h2" href="#sec-10">4. 六层适配检查单（可直接用于项目自查）</a><a class="toc-h2" href="#sec-11">5. Java / Spring Boot 技术栈专项</a><a class="toc-h3" href="#sec-12">5.1 为什么 Java 栈相对好迁</a><a class="toc-h3" href="#sec-13">5.2 JDK 选型与验证矩阵</a><a class="toc-h3" href="#sec-14">5.3 Spring Boot 配置改造（yml 示意）</a><a class="toc-h3" href="#sec-15">5.4 MyBatis / PageHelper 与 SQL 方言</a><a class="toc-h3" href="#sec-16">5.5 中间件替换</a><a class="toc-h3" href="#sec-17">5.6 Redis 与 MongoDB 的替代路径</a><a class="toc-h3" href="#sec-18">5.7 国密改造</a><a class="toc-h3" href="#sec-19">5.8 构建、镜像与 CI</a><a class="toc-h3" href="#sec-20">5.9 Java 栈迁移验收清单（20 项）</a><a class="toc-h2" href="#sec-21">6. 工期与成本的主要变量</a><a class="toc-h2" href="#sec-22">7. 本章小结</a></div></nav><article class="doc-body"><h1>07 行业落地与工程迁移方法论</h1>
+<blockquote><p>本文回答：各行业替到哪一步了、有哪些可参照的公开案例；一个信创迁移项目应该分几阶段推进、每阶段的门禁是什么；<strong>Java / Spring Boot + MyBatis + PageHelper + Redis + MySQL/MongoDB 技术栈具体要改什么</strong>。</p><p>前置依赖：<a href="05-software.html">05 基础软件</a>、<a href="06-compliance.html">06 安全合规</a>。后续：<a href="09-risks.html">09 风险挑战</a>、<a href="10-outlook.html">10 决策建议</a></p><p>说明：文中出现的配置示例均为<strong>示意</strong>，采用 <code>application.yml</code> + 环境变量占位，不硬编码连接信息；实际以项目现有配置规范与厂商驱动文档为准。</p></blockquote>
+<hr class="sec-sep" />
+<h2 id="sec-1">1. 「2+8+N」行业进度：多源对照</h2>
+<blockquote><p><strong>口径警告</strong>：下表渗透率来自不同机构、不同分母（系统数量 / 采购金额 / 终端台数 / 核心系统占比），<strong>只能判断梯队顺序，不能横向相减或求平均</strong>。</p></blockquote>
+<div class="table-wrap"><table><thead><tr><th>梯队</th><th>行业</th><th>阶段判断</th><th>常见转引数据</th><th>证据等级</th></tr></thead><tbody><tr><td>先行</td><td>党政 / 电子政务</td><td>常态化采购，从办公向核心业务延伸</td><td>电子公文系统国产化率高；党政整体替换率约 85%；截至 2025 年底服务器 OS 替代率突破 40%〔不同口径，差异大〕</td><td>B/C</td></tr><tr><td>第一梯队</td><td>金融</td><td>非核心规模化落地，向核心交易系统攻坚</td><td><strong>国产替换率</strong>：非核心 50%—60%、核心约 20%（分母为系统数量/采购额，见 <a href="03-industry.html">03</a> §4）；<strong>架构采用率</strong>：有资料称超 50% 银行核心已采用分布式数据库。二者是不同指标——后者含 OceanBase/PostgreSQL 等非「国产替换」判定，不可相减或互相印证；均为转引、年份未披露，标「待核实」</td><td>B/C</td></tr><tr><td>第一梯队</td><td>电信</td><td>全面铺开，进入 CRM/BOSS/计费核心</td><td>业务支撑与管理支撑系统国产化率约 90%；服务器国产化率超 90%</td><td>B/C</td></tr><tr><td>第一梯队</td><td>电力 / 能源</td><td>规模化建设高峰，调度、配网自动化推进</td><td>硬件替换率较高，办公软件基本国产化</td><td>C</td></tr><tr><td>第二梯队</td><td>石油、交通、航空航天</td><td>向生产控制、指挥调度等核心环节渗透</td><td>工控系统进入适配替换阶段</td><td>C</td></tr><tr><td>第三梯队</td><td>医疗、教育</td><td>试点增多，渗透率较低</td><td>渗透率不足 10%（部分口径）；统信 UOS 进入数千所学校</td><td>C</td></tr><tr><td>N</td><td>制造、零售、建筑、中小企业等</td><td>起步 / 点位验证</td><td>无稳定可比口径</td><td>C</td></tr></tbody></table></div>
+<p><strong>可核查的结构性判断</strong>（比具体百分比更可靠）：</p>
+<ol><li><strong>从外围到核心</strong>：OA/门户/邮件 → 经营管理 → 数据分析平台 → 核心交易/账务/调度，风险与工期逐级上升。</li><li><strong>从硬到软</strong>：硬件替代占比由 2022 年约 68% 降至 2025 年约 52%，软件与服务占比上升〔B，信通院白皮书转述〕。</li><li><strong>从合规到价值</strong>：行业观察认为政策重点从「替代比例」转向「替代质量」（性能不低于原系统、安全合规不打折扣）〔C〕。</li></ol>
+<hr class="sec-sep" />
+<h2 id="sec-2">2. 行业案例库（按可借鉴点组织）</h2>
+<blockquote><p>案例数据均为厂商/行业媒体<strong>公开披露口径</strong>〔B/C〕，存在幸存者偏差，用于说明「可行路径」，不作为性能承诺或成本基准。完整数据库与电信案例清单见 <a href="05-software.html">05</a> §2.4。</p></blockquote>
+<div class="table-wrap"><table><thead><tr><th>案例</th><th>可借鉴的做法</th><th>出处类型</th></tr></thead><tbody><tr><td><strong>河科大一附院（三甲医院，双模式并行）</strong></td><td>搭建「全信创架构」与「x86/ARM 混合架构」双环境；基础软硬件每层至少选两家伙伴；按应用软件厂商改造程度决定「自上而下」还是「自下而上」选型；梳理 <strong>5TB 结构化数据</strong>，剥离冷数据、绘制热数据关联图确定迁移顺序；每次迁移前定制<strong>迁移与回退脚本</strong>并演练；模拟超日常门诊量压测；2024 年 9—11 月分三阶段切换（集成平台/康复/病理 → 住院医生站/EMR/LIS → 门诊/收费/药房/预约）</td><td>行业媒体（HIT 专家网）</td></tr><tr><td><strong>某省级政务系统 x86 → 鲲鹏 + 麒麟 V10 + 达梦</strong></td><td>四步法：应用摸底（识别 Java 跨架构优势 + 两个本地 C 模块 + 一个 Windows 专属报表控件）→ 数据库迁移（结构自动转换、存储过程/触发器逐个改写、<strong>双库并行两周字段级每日比对</strong>，差异归零才切换）→ 中间件 Tomcat→TongWeb 配置逐项映射 → 渐进切换（先查询后写入、回退通道全程开放）；老环境完整待命两周；慢 SQL 按新执行计划重调</td><td>技术实施方案例</td></tr><tr><td><strong>某医院 HIS（Kingbase FlySync 双轨并行）</strong></td><td>初期只把查询/报告打印导到新库，挂号缴费仍留 Oracle；实时同步保证两端毫秒级对齐；逐步切核心交易；并行三个月后全量切换；解决 Oracle 隐式类型转换精度问题；全量迁移拆并发任务从预期 3 天缩至 18 小时；切换后同步任务转为单向容灾 + Kafka 数据湖</td><td>厂商技术博客</td></tr><tr><td><strong>贵州农信全栈信创核心</strong></td><td>520 天建设周期、22 小时完成切换；处理能力约原系统 6 倍，跑批效率约 2 倍；预计三年节约许可与维保约 1.7 亿元</td><td>行业报告转引</td></tr><tr><td><strong>山东省财政厅预算管理一体化</strong></td><td>全省 180+ 财政区划整合；硬件成本 -26%+，响应 5s→2s；一键部署/升级/扩容</td><td>厂商公开案例</td></tr><tr><td><strong>某省医保局 OS 迁移</strong>（另见中粮信托同类案例）</td><td>单台服务器迁移控制在 30 分钟内；5000 余套 CentOS 服务器 4 个月完成迁移，与 <a href="05-software.html">05</a> §1.4 为同一案例</td><td>厂商/行业稿</td></tr></tbody></table></div>
+<p><strong>三条共性经验</strong>：</p>
+<ul><li><strong>兼容性预检先行</strong>，而不是「装新系统导数据」。</li><li><strong>双轨并行 + 秒级回退</strong>是高风险核心系统的安全阀，不是保守。</li><li><strong>冷/热数据分层 + 数据关联图 + 逐批演练</strong>，比一次性全量导出导入可靠得多。</li></ul>
+<hr class="sec-sep" />
+<h2 id="sec-3">3. 迁移方法论：六阶段 + 门禁（全站唯一阶段主表）</h2>
+<blockquote><p><strong>口径声明（v1.1）</strong>：本章 S0—S5 是全站<strong>唯一</strong>的迁移阶段划分与门禁定义。<a href="02-policy.html">02</a> §6、<a href="06-compliance.html">06</a> §7、<a href="09-risks.html">09</a> §9 是同一 S 阶段下的<strong>合规材料 / 风险动作清单</strong>，不另立阶段；<a href="10-outlook.html">10</a> §6 的 W1—W13 是 S0—S5 的<strong>周计划时间展开</strong>，同样不是独立阶段口径。</p></blockquote>
+<pre><code>S0 摸底评估  →  S1 环境验证  →  S2 代码与 SQL 适配
+    →  S3 数据迁移与双轨并行  →  S4 灰度切换与回退演练
+    →  S5 验收与持续运维</code></pre>
+<h3 id="sec-4">S0 摸底评估</h3>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>内容</th><th>产出</th></tr></thead><tbody><tr><td>资产盘点</td><td>服务器/终端型号、CPU 架构、OS 版本、中间件、数据库、应用清单、接口清单</td><td>资产台账</td></tr><tr><td>依赖盘点</td><td>第三方 jar、native 库（.so/.dll）、监控/APM Agent、JDBC 驱动、加密 UKey、外设（打印机/扫码枪/高拍仪）</td><td><strong>依赖矩阵（含目标架构可用版本）</strong></td></tr><tr><td>闭源组件确认</td><td>向厂商书面确认是否提供 aarch64/loongarch64 版本与时间表</td><td>写入合同附录（不能靠口头承诺）</td></tr><tr><td>合规基线</td><td>等保定级、是否关基、密评要求、测评等级要求、声明函要求</td><td>合规矩阵（见 <a href="06-compliance.html">06</a> §7）</td></tr><tr><td>业务基线</td><td>TPS、P99、批处理窗口、峰值并发、RPO/RTO</td><td><strong>可验收的性能基线</strong></td></tr></tbody></table></div>
+<p><strong>门禁 S0</strong>：依赖矩阵中不存在「无对应架构版本且无替代方案」的硬阻塞项；性能基线经业务方签字。</p>
+<h3 id="sec-5">S1 环境验证</h3>
+<ul><li>搭建与生产 <strong>1:1</strong> 的国产化测试环境（同 CPU 型号、同 OS 与内核版本、同数据库大版本、同中间件版本）。</li><li>至少跑 2—3 周冒烟测试，验证三件事：应用能否启动、常用外设能否识别、压测结果是否达到原系统基线的约定比例。</li><li>行业经验值常引用「性能达到原系统 80% 以上」或「与 x86 基线差距控制在 15%—20% 以内」〔C，技术博客/实施方经验，<strong>非国家标准</strong>〕。<strong>项目应在合同中自行约定阈值</strong>，不要引用行业经验值当验收标准。</li><li>执行 <code>uname -m</code>、<code>file $(which java)</code> 确认架构确实切换，避免「在同一架构上做了一周迁移」。</li></ul>
+<p><strong>门禁 S1</strong>：1:1 环境跑通核心流程；适配问题清单已建立并分派责任；性能对比报告出具（含差异说明，不回避差距）。</p>
+<h3 id="sec-6">S2 代码与 SQL 适配</h3>
+<p>高发问题清单（详见 §5 Java 专项）：</p>
+<div class="table-wrap"><table><thead><tr><th>类别</th><th>典型症状</th></tr></thead><tbody><tr><td>架构相关</td><td>本地编译 C/C++ 模块、JNI、Netty native 模块、无对应架构的闭源 SDK</td></tr><tr><td>OS 相关</td><td>硬编码 Windows 路径、大小写敏感、字体渲染、打印驱动、locale/时区</td></tr><tr><td>数据库</td><td>分页语法、序列/自增、隐式类型转换、递归查询、存储过程/触发器/包体、函数差异、执行计划与索引策略失效</td></tr><tr><td>中间件</td><td><code>javax.*</code> → <code>jakarta.*</code> 命名空间、部署描述符、JNDI/JMS、连接池与会话保持参数</td></tr><tr><td>前端/控件</td><td>ActiveX / OCX 在国产浏览器下不可用、报表控件无国产版本</td></tr><tr><td>安全</td><td>RSA/SHA/AES → SM2/SM3/SM4、TLCP 支持、JCE 策略、随机数熵源</td></tr></tbody></table></div>
+<p><strong>门禁 S2</strong>：适配问题跟踪表（现象 → 定位 → 方案 → 回归结果）全部闭环；全量回归测试通过。</p>
+<h3 id="sec-7">S3 数据迁移与双轨并行</h3>
+<ul><li>原则：<strong>先备份、再迁移、多校验</strong>；全量 + 增量同步；冷数据一次性导入、热数据分批。</li><li>校验三层：<strong>行数比对 → 抽样比对 → 字段级/业务逻辑比对</strong>；核心系统建议字段级每日比对，差异归零才准切换。</li><li>双轨：新旧库实时同步，新环境并行运行（案例周期从两周到三个月不等），持续观测同步延迟与错误日志。</li><li>不要忽略 <strong>DDL 同步</strong>：源端表结构变更常是盲点，需确认同步工具对特定 DDL 的支持范围。</li><li>高频 TOP SQL 在迁移<strong>前</strong>做语法优化，迁移后继续观测资源占用与慢事务。</li></ul>
+<p><strong>门禁 S3</strong>：数据一致性差异归零；同步延迟在约定阈值内；回退脚本演练成功。</p>
+<h3 id="sec-8">S4 灰度切换与回退</h3>
+<ul><li>流量顺序：<strong>先查询后写入</strong>，先非核心后核心，先单部门试点后全量。</li><li>双轨期间新旧两套并行录入或实时同步比对，周期通常 1—2 周起，核心系统更长。</li><li><strong>回退通道全程开放</strong>，老环境完整待命（案例建议两周），严禁为腾机柜提前关闭旧环境。</li><li>切换窗口选业务低峰；准备一键回滚脚本与决策人。</li></ul>
+<p><strong>门禁 S4</strong>：灰度各阶段无 P0/P1 缺陷；回退演练在真实数据规模下成功。</p>
+<h3 id="sec-9">S5 验收与运维</h3>
+<ul><li>交付：适配问题清单及解法、性能基线对比、安全测评报告、试运行报告（含适配调优专项）、运维培训记录、声明函与证书归档。</li><li>持续：三级等保每年测评、密评每年至少一次、测评证书三年到期预警、SBOM 与漏洞治理、版本升级后重测适配。</li><li>迁移工具导出的中间数据<strong>用完即毁</strong>，并留存销毁记录。</li></ul>
+<p><strong>门禁 S5</strong>：全部合规材料齐备并与 <a href="06-compliance.html">06</a> §7 清单逐项勾对。</p>
+<hr class="sec-sep" />
+<h2 id="sec-10">4. 六层适配检查单（可直接用于项目自查）</h2>
+<div class="table-wrap"><table><thead><tr><th>层</th><th>检查项</th><th>通过标准</th></tr></thead><tbody><tr><td>L1 芯片</td><td><code>uname -m</code> 架构标识；native 库/驱动有对应架构版本；闭源 Agent 可用</td><td>全部有版本或已确认替代</td></tr><tr><td>L2 整机固件</td><td>BIOS/BMC 可自主更新；BOM 关键元器件溯源；外设驱动</td><td>供应链溯源材料齐备</td></tr><tr><td>L3 OS</td><td>内核版本一致；locale/时区/字符集；systemd 启动脚本；字体与打印</td><td>1:1 环境跑通</td></tr><tr><td>L4 数据库</td><td>驱动类名/URL；SQL 方言；分页；事务与隔离级别；连接池；执行计划</td><td>全量 SQL 回归 + 压测</td></tr><tr><td>L4 中间件</td><td>Java EE/Jakarta EE 版本；部署方式；会话保持；消息 SDK</td><td>联调通过</td></tr><tr><td>L5 应用</td><td>路径、控件、报表、附件、文件编码、第三方 SDK</td><td>业务 UAT 通过</td></tr><tr><td>L6 安全</td><td>等保基线、国密算法、密评、审计日志、声明函</td><td>合规包齐备</td></tr><tr><td>横向</td><td>多架构镜像、CI 多架构构建、监控告警、备份恢复、回退</td><td>演练记录齐备</td></tr></tbody></table></div>
+<hr class="sec-sep" />
+<h2 id="sec-11">5. Java / Spring Boot 技术栈专项</h2>
+<blockquote><p>针对 Spring Boot + MyBatis + PageHelper + Redis + MySQL/MongoDB 这一典型栈，给出逐层改造点与验收动作。<strong>这是全站与工程实践最贴合的一节。</strong></p></blockquote>
+<h3 id="sec-12">5.1 为什么 Java 栈相对好迁</h3>
+<p>JVM 字节码屏蔽了大部分指令集差异，纯 Java 应用的核心代码通常无需修改。因此「信创迁移 = 改 Java 业务代码」是错误认知。<strong>工作量分布的经验判断</strong>：数据库方言与 SQL 改写占比最高，其次是闭源依赖与控件、中间件配置、OS/驱动，最后才是 CPU 架构本身〔C，多篇迁移实践一致〕。</p>
+<p>反过来也要警惕：正因为「Java 天然跨平台」的说法流行，团队容易漏查 <strong>native 依赖</strong>（Netty 的 <code>netty-transport-native-epoll</code>、JNI 库、APM Agent、加密 UKey 驱动、lib 字体库），这些才是启动失败或性能骤降的高频根因。</p>
+<h3 id="sec-13">5.2 JDK 选型与验证矩阵</h3>
+<div class="table-wrap"><table><thead><tr><th>目标架构</th><th>推荐发行版</th><th>必查项</th></tr></thead><tbody><tr><td>鲲鹏 / 飞腾（aarch64）</td><td>毕昇 JDK（ARM 优化最充分）；Kona、Dragonwell 亦可</td><td>JDBC 驱动版本、GC 策略、JCE 策略、国密 Provider</td></tr><tr><td>海光 / 兆芯（x86_64）</td><td>标准 OpenJDK 或任一国产发行版</td><td>无需更换 JVM 架构，重点在授权合规与国密支持</td></tr><tr><td>龙芯（loongarch64）</td><td>龙芯 JDK</td><td>全量依赖是否有 loongarch64 版本</td></tr><tr><td>申威（sw_64）</td><td>对应厂商 JDK</td><td>生态最窄，需专项评估</td></tr></tbody></table></div>
+<p><strong>四个隐形杀手</strong>〔C，迁移实践共性〕：</p>
+<ol><li><strong>JCE 无限制强度策略</strong>：部分 Java 8 国产发行版默认关闭 unlimited policy，使用 AES-256 时抛 <code>Illegal key size</code>。检查 <code>$JAVA_HOME/jre/lib/security/java.security</code> 中 <code>crypto.policy=unlimited</code>。</li><li><strong>SecureRandom 阻塞</strong>：国产服务器熵源不足时，<code>/dev/random</code> 会导致启动卡住数分钟、加密性能骤降；需评估 <code>securerandom.source</code> 与熵源服务。</li><li><strong>字符集与时区</strong>：国产 OS 默认 locale 未必 UTF-8，中文乱码与 8 小时时差高发。<strong>JDK 18+ 起 JEP 400 已默认 UTF-8</strong>，Java 8/11 发行版仍需显式确认 <code>-Dfile.encoding</code>；<code>sun.jnu.encoding</code> 是 JVM 依据平台 locale 推导的<strong>只读系统属性</strong>，用 <code>-D</code> 指定通常不生效，不应列为必选启动参数。最小启动参数示例：<pre><code>   java -XX:+UseG1GC \
+        -Dfile.encoding=UTF-8 \
+        -Duser.timezone=Asia/Shanghai \
+        -jar app.jar</code></pre></li><li><strong>GC 参数不可移植</strong>：x86 上调优过的 CMS/G1 参数不是可移植资产；ARM 多核场景需重新评估 G1/ZGC 与堆分代比例，并按 TPS/P99 重测。</li></ol>
+<p><strong>版本矩阵风险</strong>：Spring Boot 2.1.x 属 Java 8 时代、<code>javax.*</code> 命名空间。若外置到国产应用服务器，需核对其支持的 Servlet / Java EE 版本；若保留 Spring Boot 内嵌容器，则改动最小。<strong>JDBC 驱动对高版本 JDK 的支持常滞后</strong>（早期达梦驱动在 JDK 17+ 撞过模块化反射限制），因此「文档写支持」不等于「组合可用」，必须用<strong>实际驱动版本 × 目标 JDK × 目标架构</strong>压测。</p>
+<h3 id="sec-14">5.3 Spring Boot 配置改造（yml 示意）</h3>
+<pre><code class="language-yaml">spring:
+  datasource:
+    driver-class-name: ${XC_JDBC_DRIVER}     # 例：dm.jdbc.driver.DmDriver / com.kingbase8.Driver
+    url: ${XC_JDBC_URL}
+    username: ${XC_DB_USER}
+    password: ${XC_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${XC_POOL_MAX:20}
+      connection-test-query: ${XC_TEST_QUERY}
+  redis:
+    host: ${XC_CACHE_HOST}
+    port: ${XC_CACHE_PORT}
+    password: ${XC_CACHE_PASSWORD}
+  data:
+    mongodb:
+      uri: ${XC_MONGO_URI}
+
+pagehelper:
+  helper-dialect: ${XC_PAGE_DIALECT}        # 见 5.4
+  reasonable: "true"
+  support-methods-arguments: "true"</code></pre>
+<p>要点：</p>
+<ul><li><strong>禁止硬编码</strong>连接信息、驱动类名、方言；全部通过配置/环境变量注入，便于一套代码在 x86 与信创双环境并行。</li><li>建议用 <strong>Spring Profile</strong>（<code>application-xinchuang.yml</code>）隔离差异，避免为迁移拉分支。</li><li><code>connection-test-query</code> 需按目标库调整（部分国产库不支持 <code>SELECT 1</code> 的写法或需要 <code>FROM DUAL</code>）。</li><li>连接池参数（最小/最大、超时、验证间隔）需按国产库的连接建立成本重新压测，不能沿用 MySQL 经验值。</li></ul>
+<h3 id="sec-15">5.4 MyBatis / PageHelper 与 SQL 方言</h3>
+<p><strong>PageHelper 方言</strong>：需确认项目所用 PageHelper 版本是否内置目标数据库方言（常见发行版内置部分国产库方言标识）；若不支持，应通过 <code>PageHelper</code> 的自定义 <code>Dialect</code> 扩展或改用显式物理分页，而<strong>不是在 XML 里散落 <code>LIMIT/?</code> 硬编码</strong>。切换方言后必须对每个分页查询做边界回归（首页/末页/空结果/排序/总数）。</p>
+<p><strong>MyBatis 层改造清单</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>项</th><th>MySQL / Oracle 习惯</th><th>国产库注意点</th></tr></thead><tbody><tr><td>分页</td><td><code>LIMIT ?,?</code> / <code>ROWNUM</code></td><td>依赖方言配置或改写为窗口函数；核对 <code>count</code> 与排序一致性</td></tr><tr><td>主键</td><td><code>AUTO_INCREMENT</code> / <code>SEQUENCE</code></td><td>序列语法、<code>&lt;selectKey&gt;</code> 写法、<code>useGeneratedKeys</code> 支持度</td></tr><tr><td>字符串</td><td><code>CONCAT</code>、<code>GROUP_CONCAT</code></td><td>函数差异、空串与 NULL 语义</td></tr><tr><td>日期</td><td><code>NOW()</code>、<code>DATE_FORMAT</code></td><td>函数映射、时区、精度</td></tr><tr><td>递归</td><td><code>CONNECT BY</code>（Oracle）</td><td>改为递归 CTE 或目标库等价写法</td></tr><tr><td>批量</td><td>多值 <code>INSERT</code> / <code>MERGE</code></td><td>批量语法与事务日志行为差异</td></tr><tr><td>存储过程</td><td>PL/SQL 包体</td><td>逐个人工改写，兼容模式通常只能覆盖大部分</td></tr><tr><td>隐式类型转换</td><td>Oracle 隐式转换</td><td>易引发精度问题，需显式 <code>CAST</code></td></tr><tr><td>索引与执行计划</td><td>沿用原索引策略</td><td><strong>必须按新库执行计划重调</strong>，照搬索引常导致慢 SQL</td></tr><tr><td>保留字</td><td>—</td><td>国产库保留字集合不同，字段名冲突需转义</td></tr></tbody></table></div>
+<p><strong>Hibernate/JPA（若项目使用）</strong>：需引入厂商提供的 Dialect 类或社区实现，并核对 DDL 自动生成、序列生成策略与分页 SQL。</p>
+<h3 id="sec-16">5.5 中间件替换</h3>
+<div class="table-wrap"><table><thead><tr><th>原组件</th><th>处理建议</th></tr></thead><tbody><tr><td>Spring Boot 内嵌 Tomcat</td><td><strong>优先保留</strong>（纯 Java、跨架构）。若招标要求国产应用服务器，再评估外置 WAR 部署到 TongWeb / BES / InforSuite / Apusic</td></tr><tr><td>WebLogic / WebSphere</td><td>映射到 TongWeb / BES / InforSuite / Apusic / PAS；重点核对 Java EE 版本、部署描述符、JNDI/JMS、类加载顺序、<code>weblogic.xml</code> 等专有描述符清理</td></tr><tr><td>spring-session / Redis 会话</td><td>若换国产缓存，需验证命令兼容性、过期策略、集群协议与序列化格式</td></tr><tr><td>消息队列</td><td>RocketMQ 等纯 Java 组件可直接跑在 aarch64；若换 TongLINK/Q 等，需替换客户端 SDK 并做事务消息回归</td></tr></tbody></table></div>
+<h3 id="sec-17">5.6 Redis 与 MongoDB 的替代路径</h3>
+<div class="table-wrap"><table><thead><tr><th>组件</th><th>可选路径</th><th>关键验证</th></tr></thead><tbody><tr><td>Redis</td><td>保留 Redis（编译到目标架构，须先核定所用版本的许可证）；或使用国产缓存服务/兼容产品（如 TongRDS、云托管兼容服务）</td><td>命令覆盖、Lua 脚本、Pipeline、持久化 RDB/AOF、Cluster/Sentinel 协议、Spring Data Redis 版本兼容；<strong>Redis 7.4 起改为 RSAL/SSPL 双许可，不再属 OSI 开源许可证，商用前需做法务确认</strong></td></tr><tr><td>MongoDB</td><td>保留（若提供目标架构构建）；或评估兼容 MongoDB 协议的国产文档数据库（如巨杉 SequoiaDB 类方案）</td><td><strong>驱动兼容性、聚合管道、索引类型、事务、GridFS、Change Stream</strong>；这是替换风险最高的一类，建议优先「保留 + 架构适配」而非换库。<strong>MongoDB 自 2018 年起改用 SSPL（Server Side Public License），OSI 不认定为开源许可证</strong>，涉及托管/分发场景须单独评估许可义务</td></tr></tbody></table></div>
+<blockquote><p>判断原则：<strong>许可证允许商用、纯 Java/无 native 依赖、可自行编译的组件优先保留</strong>（「开源」需按当前许可证核对，不能沿用历史称谓）；把改造预算集中在被招标或合规明确点名的层，以及确实无法获得目标架构版本的闭源组件。</p></blockquote>
+<h3 id="sec-18">5.7 国密改造</h3>
+<div class="table-wrap"><table><thead><tr><th>场景</th><th>改造点</th></tr></thead><tbody><tr><td>加解密 / 签名</td><td>RSA/SHA-256/AES → SM2/SM3/SM4；引入支持国密的 Provider（如 BouncyCastle 国密扩展）或厂商 SDK</td></tr><tr><td>传输</td><td>HTTPS → TLCP（GB/T 38636-2020）；Spring Boot 内嵌容器基于 JSSE，通常需替换 Provider 或由国密网关卸载，不宜在应用层硬改协议栈</td></tr><tr><td>证书 / UKey</td><td>国密证书、智能密码钥匙接口（GB/T 35291、GM/T 0017）</td></tr><tr><td>密钥管理</td><td>对接服务器密码机 / 签名验签服务器（GM/T 0030、GB/T 38629）</td></tr><tr><td>合规</td><td>密码应用方案密评 → 运行前密评 → 每年至少一次；密码产品须检测认证合格</td></tr></tbody></table></div>
+<p><strong>注意</strong>：国密改造属于<strong>密评范畴</strong>，不是「信创适配」的副产品；应在立项阶段单列工作包与预算（见 <a href="06-compliance.html">06</a> §3）。</p>
+<h3 id="sec-19">5.8 构建、镜像与 CI</h3>
+<ul><li>多架构镜像：<code>docker buildx</code> + manifest list，分别为 <code>linux/amd64</code>、<code>linux/arm64</code>（必要时 <code>linux/loong64</code>）构建；<strong>容器平台标识用 Go/Docker 的 <code>loong64</code>，不是 <code>uname -m</code> 的 <code>loongarch64</code></strong>，写错会导致 manifest 不被识别、拉取失败。基础镜像中的 JDK、glibc、字体、CA 证书、时区数据需逐架构对齐。</li><li>CI：增加目标架构构建节点（或交叉编译 + QEMU），并在流水线中加入「目标架构启动冒烟测试」。</li><li>依赖仓库：配置国产 Maven/Gradle 镜像；核对私有二方包是否含 native 依赖。</li><li>监控/APM：确认 Agent 有目标架构版本，否则上线后将出现「应用正常但无可观测性」。</li></ul>
+<h3 id="sec-20">5.9 Java 栈迁移验收清单（20 项）</h3>
+<ol><li><code>uname -m</code> 与 <code>file $(which java)</code> 输出符合预期架构</li><li>JDK 发行版、版本与 <code>crypto.policy</code> 已核对</li><li>启动参数含 UTF-8 字符集与 Asia/Shanghai 时区</li><li><code>SecureRandom</code> 无阻塞，启动耗时在基线内</li><li>GC 策略已按目标架构重测（TPS/P99 对比报告）</li><li>全量第三方 jar 与 native 库完成架构盘点</li><li>监控/APM/日志 Agent 有对应架构版本</li><li>JDBC 驱动版本 × JDK 版本 × 架构 组合压测通过</li><li>数据源配置全部外置到 yml / 环境变量，无硬编码</li><li><code>connection-test-query</code> 在目标库可用</li><li>连接池参数按目标库重压测</li><li>PageHelper 方言已确认并覆盖所有分页查询回归</li><li>全量 SQL 已扫描：分页/序列/函数/递归/隐式转换/保留字</li><li>存储过程、触发器、包体逐个改写并回归</li><li>高频 TOP SQL 按新执行计划重调索引</li><li>应用服务器（如替换）部署描述符与命名空间核对完成</li><li>缓存/消息/文档库客户端 SDK 兼容性与协议回归完成</li><li>国密算法与 TLCP 链路通过密评相关验证</li><li>多架构镜像、CI 构建与启动冒烟测试通过</li><li>双轨并行数据比对差异归零、回退脚本演练成功</li></ol>
+<hr class="sec-sep" />
+<h2 id="sec-21">6. 工期与成本的主要变量</h2>
+<div class="table-wrap"><table><thead><tr><th>变量</th><th>影响</th><th>缓解</th></tr></thead><tbody><tr><td>无源码的老旧系统</td><td>只能二进制兼容运行，稳定性与性能难保证</td><td>优先外围系统重建；或采用指令转译方案并实测损耗</td></tr><tr><td>闭源控件 / ActiveX / 报表</td><td>厂商不提供国产版本即硬阻塞</td><td>S0 阶段书面确认并写入合同附录</td></tr><tr><td>存量 SQL 规模</td><td>十年核心系统 SQL 可能数以万计</td><td>自动扫描 + 按调用频次排序，先高频后长尾</td></tr><tr><td>多路线并行</td><td>适配成本随组合数增长</td><td>收敛到 1—2 套主流组合；用一云多芯屏蔽差异</td></tr><tr><td>双轨周期</td><td>直接决定人力与硬件占用</td><td>按风险分级设定，非核心可缩短</td></tr><tr><td>证书三年有效期</td><td>可能诱发二次选型</td><td>合同约定重测与免费适配义务</td></tr><tr><td>人才与培训</td><td>国产栈排障资料少</td><td>交付培训 + 建立适配问题清单知识库</td></tr></tbody></table></div>
+<hr class="sec-sep" />
+<h2 id="sec-22">7. 本章小结</h2>
+<ul><li>行业进度呈「党政先行 → 金融/电信/电力攻坚 → 医疗教育起步」的梯队，但<strong>渗透率数字口径混乱，只看梯队顺序不看绝对值</strong>。</li><li>可复用的成功路径是：<strong>预检先行、1:1 环境、双轨并行、字段级比对、灰度切换、回退通道全程开放</strong>。</li><li>六阶段各有明确门禁，且为全站唯一阶段口径（§3）；任何阶段跳过门禁，问题都会在切换当晚集中爆发。</li><li>Java 栈的改造重点不在 CPU 而在 <strong>SQL 方言、闭源 native 依赖、中间件配置、国密与多架构构建</strong>；纯 Java/开源组件优先保留。</li><li>性能验收阈值应由项目自行约定并写入合同，不引用「行业经验值」当标准；所有案例数据仅作可行性证据。</li></ul></article></div>
+
+<nav class="doc-pager" aria-label="上下篇导航"><a class="pg-link" href="06-compliance.html"><span>← 上一篇</span><b>06 安全合规与测评认证体系</b></a><a class="pg-link pg-right" href="08-economy.html"><span>下一篇 →</span><b>08 产业经济与生态格局</b></a></nav>
+
+    <footer>
+      <div class="wrap">
+        <div class="src">
+          <strong>站点说明</strong><br />
+          本页由 <code>07-行业落地与工程迁移方法论.md</code> 编译生成，<a href="07-行业落地与工程迁移方法论.md">查看 Markdown 原文</a>；
+          调研基准日 2026-11-05，政策与数据具时效性，引用前请按附录核验路径复核。<br />
+          纯静态、零外部依赖：样式与脚本均在 <code>assets/</code> 内，可离线阅读。
+        </div>
+        <p>信创（信息技术应用创新）研究专题 · 独立站点 · 不隶属于 KB 站群</p>
+      </div>
+    </footer>
+
+    <script src="assets/search-data.js"></script>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

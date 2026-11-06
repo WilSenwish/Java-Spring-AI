@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="六条 CPU 指令集路线、AI 芯片、整机固件、半导体上游与 RISC-V。" />
+    <meta name="color-scheme" content="light dark" />
+    <title>核心硬件与算力底座 · 信创研究站</title>
+    <script>
+      /* 首屏主题同步初始化：在 CSS 之前定好 data-theme，避免深色偏好用户闪白。
+         与 assets/app.js 的 readPref() 口径一致：仅 light/dark 为显式偏好，其余跟随系统。 */
+      (function () {
+        try {
+          var v = localStorage.getItem('xc-theme');
+          var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme',
+            (v === 'light' || v === 'dark') ? v : (dark ? 'dark' : 'light'));
+        } catch (e) { /* 隐私模式忽略持久化失败 */ }
+      })();
+    </script>
+    <link rel="stylesheet" href="assets/base.css" />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body data-page="04-hardware.html">
+    <div class="toolbar">
+      <a class="brand" href="index.html">信创研究站</a>
+      <div class="tools">
+        <div class="search-box">
+          <input id="siteSearch" type="search" placeholder="搜索章节 / 文档" autocomplete="off"
+                 aria-label="站内搜索" aria-expanded="false" role="combobox" />
+          <div id="searchResults" class="search-results" role="listbox" hidden></div>
+        </div>
+        <button class="btn" id="themeBtn" type="button" title="切换颜色主题">◐ 系统</button>
+        <button class="btn" id="topBtn" type="button" title="平滑回到顶部">↑ 顶部</button>
+      </div>
+    </div>
+
+<header class="hero hero--compact"><div class="wrap"><div class="kicker">04 · 硬件 / 供应链</div><h1>04 核心硬件与算力底座</h1><p class="sub">本文回答：六家国产 CPU 厂商沿三条指令集/授权技术路线到底差在哪、怎样按业务选型、AI 芯片与 RISC-V 处于什么位置、整机与固件层有哪些易被忽略的供应链环节、上游半导体的真实约束是什么。「六」是厂商数，「三」是技术路线数，全文按此双口径表述。</p><div class="meta"><span class="pill">文档 <b>04</b></span><span class="pill">视角 <b>硬件 / 供应链</b></span><span class="pill">基准日 <b>2026-11-05</b></span></div></div></header>
+
+
+
+<div class="wrap doc-layout"><nav class="toc doc-toc" id="docToc" aria-label="页内目录"><div class="wrap"><a class="toc-h2" href="#sec-1">1. 六家 CPU 厂商、三条技术路线：一张决策级对比表</a><a class="toc-h3" href="#sec-2">1.1 三条技术路线的本质权衡（六家厂商归入其中）</a><a class="toc-h3" href="#sec-3">1.2 选型时真正要问的五个问题</a><a class="toc-h3" href="#sec-4">1.3 常见误传辨析</a><a class="toc-h2" href="#sec-5">2. 安全可靠测评中的 CPU 结果（可核查锚点）</a><a class="toc-h2" href="#sec-6">3. AI 训推芯片：2026 年的制度性变化</a><a class="toc-h3" href="#sec-7">3.1 《安全可靠测评结果公告（2026 年第 2 号）》首批名单〔A〕</a><a class="toc-h3" href="#sec-8">3.2 产业侧背景</a><a class="toc-h2" href="#sec-9">4. 整机、固件与外设：容易被漏掉的层</a><a class="toc-h2" href="#sec-10">5. 上游半导体：全栈可控的现实边界</a><a class="toc-h3" href="#sec-11">5.1 分层国产化图景（2026 年多源汇总）〔B/C，口径需逐一核对〕</a><a class="toc-h3" href="#sec-12">5.2 「产量自给率 70%」与「光刻机 &lt;1%」并置</a><a class="toc-h3" href="#sec-13">5.3 政策与资本</a><a class="toc-h2" href="#sec-14">6. RISC-V：开源路线的机会与约束</a><a class="toc-h3" href="#sec-15">6.1 可核查进展（2026 年）</a><a class="toc-h3" href="#sec-16">6.2 三大约束</a><a class="toc-h2" href="#sec-17">7. 硬件选型决策矩阵</a><a class="toc-h2" href="#sec-18">8. 本章小结</a></div></nav><article class="doc-body"><h1>04 核心硬件与算力底座</h1>
+<blockquote><p>本文回答：<strong>六家国产 CPU 厂商</strong>沿<strong>三条指令集/授权技术路线</strong>到底差在哪、怎样按业务选型、AI 芯片与 RISC-V 处于什么位置、整机与固件层有哪些易被忽略的供应链环节、上游半导体的真实约束是什么。<strong>「六」是厂商数，「三」是技术路线数</strong>，全文按此双口径表述。</p><p>前置依赖：<a href="03-industry.html">03 产业链全景</a>。后续：<a href="05-software.html">05 基础软件</a>、<a href="07-migration.html">07 工程迁移</a></p></blockquote>
+<hr class="sec-sep" />
+<h2 id="sec-1">1. 六家 CPU 厂商、三条技术路线：一张决策级对比表</h2>
+<blockquote><p>说明：下表「授权性质」「性能定位」综合多源公开资料与厂商公开信息整理〔B/C〕；<strong>具体型号性能以厂商官方规格书与第三方实测为准</strong>，本表不用于性能承诺。</p></blockquote>
+<div class="table-wrap"><table><thead><tr><th>厂商</th><th>指令集 / 架构标识</th><th>授权与演进路径</th><th>自主可控程度</th><th>生态与迁移成本</th><th>典型场景</th></tr></thead><tbody><tr><td><strong>海光</strong></td><td>x86 / <code>x86_64</code></td><td>基于 AMD Zen 架构授权，交叉授权模式；进入实体清单后新 IP 获取受限〔C，行业分析〕</td><td>较低：受 x86 授权与 IP 约束</td><td><strong>最低</strong>：主流商业软件与内部工具可直接运行，几乎无需重编译</td><td>金融、电信、政务云，对稳定性与迁移成本敏感的核心系统</td></tr><tr><td><strong>兆芯</strong></td><td>x86 / <code>x86_64</code></td><td>x86 授权源自威盛（VIA）体系</td><td>较低</td><td>低；桌面与 Windows 生态兼容路线</td><td>桌面办公、工作站；对既有外设/办公软件依赖强的场景</td></tr><tr><td><strong>鲲鹏 / 海思</strong></td><td>ARMv8 / <code>aarch64</code></td><td>ARMv8 指令集永久授权；华为全栈（芯片—OS—DB—云）协同</td><td>中：受架构版本演进约束</td><td>中：Linux 开源生态对 aarch64 支持成熟（Nginx/MySQL/Redis/Java/Python/Node.js 均有官方或社区构建）</td><td>数据中心、大数据、分布式存储、云与高并发</td></tr><tr><td><strong>飞腾</strong></td><td>ARMv8 / <code>aarch64</code></td><td>ARM 指令集授权；源自国防科大体系，构建 PKS 安全体系</td><td>中</td><td>中</td><td>政务、电力、交通、关基与嵌入式</td></tr><tr><td><strong>龙芯</strong></td><td><strong>LoongArch</strong> / <code>loongarch64</code></td><td>早期基于 MIPS，后自研 LoongArch 指令集并逐步切换</td><td><strong>高</strong>：指令集自主定义</td><td>高：二进制软件需专门适配；已建成 OS、工具链与主流开源软件体系</td><td>党政办公、工控、教育；对长期可控性要求最高的场景</td></tr><tr><td><strong>申威</strong></td><td><strong>SW64</strong> / <code>sw_64</code></td><td>源于 Alpha 架构深度改进，发展出自主 SW64</td><td><strong>高</strong></td><td>最高：生态最窄</td><td>超算、特种领域、高性能计算；近年尝试向民用拓展</td></tr></tbody></table></div>
+<h3 id="sec-2">1.1 三条技术路线的本质权衡（六家厂商归入其中）</h3>
+<pre><code>                     生态兼容 / 迁移成本  ←────────────→  长期自主可控
+ x86 授权  (海光/兆芯)   ●────────────────────────────○     起点高、天花板受授权约束
+ ARM 授权  (鲲鹏/飞腾)   ────────●────────────────○         开源生态红利、架构版本风险
+ 自主指令集(龙芯/申威)   ────────────────●────────●       可控性最强、生态需从零积累</code></pre>
+<ul><li><strong>x86 路线</strong>：把迁移成本降到最低，代价是底层指令集专利与技术演进方向依赖外部授权方；适合存量系统庞大、闭源组件无法重编译的甲方。</li><li><strong>ARM 路线</strong>：享受 aarch64 的开源软件红利，同时保持较高能效比；代价是指令集版本演进依赖授权链。业界普遍判断国内厂商未获得 ARMv9 永久授权〔C，多家行业分析一致转述，但<strong>非官方确认</strong>，不宜作为确定事实引用〕。</li><li><strong>自主指令集路线</strong>：长期演进不受外部指令集约束，但需要自建整个软件栈；龙芯近年通过 LoongArch 把 OS、编译器、主流开源软件带起来，申威更集中于超算与特定领域。</li></ul>
+<h3 id="sec-3">1.2 选型时真正要问的五个问题</h3>
+<ol><li>业务依赖的<strong>闭源软件、监控 Agent、数据库驱动、硬件加密组件</strong>是否有对应架构版本？这是 x86→非 x86 迁移中最常见的硬阻塞。</li><li>是否存在 C/C++ 本地编译模块、JNI 库、.so 依赖？这些必须按目标架构重新编译。</li><li>目标 OS 是否有对应内核版本与驱动支持（尤其 GPU、网卡、RAID/HBA、UKey、打印机、扫码枪）？</li><li>供应保障：该型号的量产成熟度、备货周期、迭代路线与售后能力如何？</li><li>合规要求：本项目是否要求特定安全可靠测评等级，以及<strong>该等级对应的具体产品型号与公告版本</strong>？</li></ol>
+<blockquote><p>工程提示：决策前先执行 <code>uname -m</code> 与目标环境验证，确认架构标识。有案例记录团队在未真正切换架构的环境上做了一周「迁移」〔C，技术博客〕。看似基础，但在多架构混合云环境中确实高发。</p></blockquote>
+<h3 id="sec-4">1.3 常见误传辨析</h3>
+<div class="table-wrap"><table><thead><tr><th>说法</th><th>判定</th><th>依据</th></tr></thead><tbody><tr><td>「龙芯后续拓展出 SW-64 指令集，申威基于 Alpha 拓展出 LoongISA」</td><td><strong>错误，恰好写反</strong></td><td>龙芯 = LoongArch（早期 MIPS）；申威 = SW64（源于 Alpha）。见 CSDN 文章中出现的错置，与厂商公开资料、架构标识 <code>loongarch64</code> / <code>sw_64</code> 不符</td></tr><tr><td>「龙芯早期基于 MIPS，因此不算自主」</td><td>片面</td><td>判断依据是<strong>当前指令集定义权与持续演进能力</strong>，LoongArch 为自主定义；但历史授权链路仍应在供应链审查中如实披露</td></tr><tr><td>「六大 CPU 都实现了 100% 自主可控」</td><td>错误</td><td>三条路线的授权模式与可控程度明显不同，见上表</td></tr><tr><td>「某架构已获得 ARMv9 永久授权」</td><td>存疑</td><td>未见官方确认；行业分析普遍作相反判断，引用须标注「业界判断」</td></tr></tbody></table></div>
+<hr class="sec-sep" />
+<h2 id="sec-5">2. 安全可靠测评中的 CPU 结果（可核查锚点）</h2>
+<p>以下为<strong>一手公告</strong>内容摘录〔A，中国信息安全测评中心 / 国家保密科技测评中心官网〕，用于说明等级分布，不是完整清单：</p>
+<div class="table-wrap"><table><thead><tr><th>公告</th><th>日期</th><th>Ⅱ 级</th><th>Ⅰ 级</th></tr></thead><tbody><tr><td>2025 年第 1 号</td><td>2025-03-14</td><td>飞腾腾云 S5000C-E、龙芯 3B6000、龙芯 3C6000、申威威鑫 H8000、麒麟 X90</td><td>申威 WY831(GC 版)、兆芯 KX-U6980S、兆芯 KX-6940S</td></tr><tr><td>2025 年第 3 号</td><td>2025-09-12</td><td>龙芯 3B6000M、海思麒麟 9000X</td><td>飞腾腾锐 D3000M、龙芯 2K1500</td></tr></tbody></table></div>
+<p>同期操作系统结果：2025 年第 1 号为银河麒麟桌面 V10 SP1（内核 5.10，Ⅰ 级）、天翼云 CTyunOS V2.0（内核 4.19，Ⅰ 级）；2025 年第 3 号为方德桌面 Pro V5.0（6.6，Ⅰ 级）、银河麒麟桌面 V11（6.6，Ⅰ 级）、银河麒麟高级服务器 V11（6.6，Ⅰ 级）、腾讯云 Linux 服务器 OS V4（6.6，Ⅰ 级）。</p>
+<p>行业汇总称 2023 年以来 5 家厂商 17 款 CPU 进入 Ⅱ 级〔B/C，媒体根据历次公告统计〕。<strong>注意</strong>：测评结果<strong>有效期三年</strong>，引用时必须核对公告日期与产品版本，不能用「某厂商通过测评」笼统代替具体型号。等级含义与「Ⅰ 级是否最高」的辨析见 <a href="06-compliance.html">06</a> §4。</p>
+<hr class="sec-sep" />
+<h2 id="sec-6">3. AI 训推芯片：2026 年的制度性变化</h2>
+<h3 id="sec-7">3.1 《安全可靠测评结果公告（2026 年第 2 号）》首批名单〔A〕</h3>
+<p>2026-05-26 发布，9 款 AI 训练推理芯片<strong>全部为 Ⅰ 级</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>产品</th><th>送测单位</th></tr></thead><tbody><tr><td>昇腾 310、昇腾 910</td><td>深圳市海思半导体有限公司</td></tr><tr><td>真武 M530、真武 M890</td><td>平头哥（上海）半导体技术有限公司</td></tr><tr><td>壁砺 166</td><td>上海壁仞科技股份有限公司</td></tr><tr><td>DCU-3G</td><td>海光信息技术股份有限公司</td></tr><tr><td>KCC-V100X 芯片</td><td>上海天数智芯半导体股份有限公司</td></tr><tr><td>MXC600</td><td>沐曦集成电路（上海）股份有限公司</td></tr><tr><td>PH100</td><td>摩尔线程智能科技（北京）股份有限公司</td></tr></tbody></table></div>
+<p>媒体注意到寒武纪、燧原科技、百度昆仑芯等未出现在该批名单中〔C，媒体观察〕。<strong>未上榜不等于产品不合格</strong>——指南明确测评为<strong>企业自愿申请</strong>，不申请、送测时间窗口未到、产品迭代未同步更新认证都可能导致缺席。把它解读为「国家队认证淘汰」属于过度推论。</p>
+<h3 id="sec-8">3.2 产业侧背景</h3>
+<ul><li>有媒体引述数据称 2025 年中国 AI 服务器市场交付约 400 万颗 AI GPU，国产芯片占比达 41%；摩根士丹利预测 2030 年中国 AI 芯片市场约 670 亿美元、国产有望满足约 76% 需求〔C，媒体转述，<strong>预测值</strong>〕。</li><li>2026 年国产算力竞争焦点从单卡转向「超节点」与系统级方案，智能算力规模快速增长〔C，行业会议报道〕。</li><li>「AI + 信创」的双向融合：一端是智算基础设施进入关基与政务采购视野，另一端是 AI PC / 智能体被纳入终端 OS 能力叙事。</li></ul>
+<blockquote><p>辨析：有报道称「9 款 AI 芯片全部评定为最高安全可靠等级（Ⅰ 级）」〔C，重庆日报转载稿〕，但同期其他报道与 2026 年第 1 号公告的语义均表明 <strong>Ⅱ 级高于 Ⅰ 级</strong>（HarmonyOS V1.0 获 Ⅱ 级被报道为「首个达到该等级的国产桌面 OS」）。「Ⅰ 级为最高等级」是错误表述，详见 <a href="06-compliance.html">06</a> §4.3 与 <a href="09-risks.html">09</a>。</p></blockquote>
+<hr class="sec-sep" />
+<h2 id="sec-9">4. 整机、固件与外设：容易被漏掉的层</h2>
+<p>信创审计中，「全栈国产」的失分点常在整机内部而非 CPU 型号：</p>
+<div class="table-wrap"><table><thead><tr><th>环节</th><th>风险点</th><th>核查要点</th></tr></thead><tbody><tr><td>电源管理芯片、网络 PHY、时钟、内存接口</td><td>部分「国产化设备」仅更换主 CPU，关键元器件仍为进口供应链，难以通过高标准审计〔C，工业领域报道〕</td><td>要求提供 BOM 层级来源与供应链溯源</td></tr><tr><td>BIOS / UEFI / BMC</td><td>固件自主程度、远程管理接口、默认口令、漏洞响应</td><td>固件是否可自主更新、是否有安全启动与度量</td></tr><tr><td>板卡与驱动</td><td>国产 OS 下驱动缺失或仅提供闭源二进制</td><td>驱动是否提供目标架构版本、是否有长期维护承诺</td></tr><tr><td>可信计算</td><td>TPCM/TCM 模块、可信度量链</td><td>是否对接等保与密评要求</td></tr><tr><td>打印机主控芯片</td><td>V3.0 已将其纳入测评对象</td><td>关注后续公告批次</td></tr><tr><td>工业环境适应</td><td>宽温、抗振动、电磁兼容、车载/户外/电网工况</td><td>参数是否匹配实际工况，而非仅看 CPU 型号</td></tr></tbody></table></div>
+<p><strong>结论</strong>：选型时要求供应商提供<strong>端到端适配清单 + BOM 溯源 + 压测报告</strong>，比只看 CPU 品牌更能反映真实国产化程度。</p>
+<hr class="sec-sep" />
+<h2 id="sec-10">5. 上游半导体：全栈可控的现实边界</h2>
+<h3 id="sec-11">5.1 分层国产化图景（2026 年多源汇总）〔B/C，口径需逐一核对〕</h3>
+<div class="table-wrap"><table><thead><tr><th>环节</th><th>国产化率 / 状态</th><th>说明</th></tr></thead><tbody><tr><td>刻蚀设备</td><td>50%—65%（与 <a href="03-industry.html">03</a> §6 统一；部分来源给出 55%—65%）</td><td>成熟制程进展最快</td></tr><tr><td>清洗设备</td><td>50%—60%</td><td>同上</td></tr><tr><td>薄膜沉积</td><td>25%—30%</td><td>中等</td></tr><tr><td>光刻机（整体 / 先进制程）</td><td>不足 1%</td><td>最硬约束，EUV 完全依赖海外</td></tr><tr><td>量测、离子注入</td><td>个位数至低两位数</td><td>待突破</td></tr><tr><td>材料整体</td><td>约 15%</td><td>12 英寸大硅片约 10%、高端光刻胶 &lt;10%、电子特气 15%—30%、溅射靶材约 30%</td></tr><tr><td>EDA 整体</td><td>12%—20%（与 <a href="03-industry.html">03</a> §4 统一；早期稿件曾写「全流程 15%—20%」，为区间内较窄口径）；先进制程设计覆盖不足 30%；数字后端 &lt;20%、5nm 以下 &lt;5%</td><td>亦有厂商称「工具覆盖率从不足 30% 提升到 85%」——<strong>覆盖率与国产化率是两个指标，不可混用</strong></td></tr><tr><td>成熟制程（28nm+）</td><td>设备国产化率可达 50%+</td><td>产能利用率高</td></tr><tr><td>先进制程（7/14nm）</td><td>普遍低于 10%</td><td>良率与成本攻坚中</td></tr><tr><td>先进封装</td><td>国产化程度最高、追赶最快</td><td>Chiplet、HBM 相关</td></tr><tr><td>全行业人才</td><td>缺口超 20 万〔C，行业会议引述〕</td><td>高端研发与技能工匠双重短缺</td></tr></tbody></table></div>
+<h3 id="sec-12">5.2 「产量自给率 70%」与「光刻机 &lt;1%」并置</h3>
+<p>有报告引用高盛数据称中国集成电路<strong>产量自给率</strong>约 70%（2010 年约 38%），同时强调光刻设备是制约完全自主的核心瓶颈〔B，券商转引〕。两者不矛盾：</p>
+<ul><li>产量自给率衡量的是<strong>芯片颗数 / 产值层面的供给规模</strong>，主要由成熟制程与封测拉动；</li><li>设备国产化率衡量的是<strong>制造能力的自主程度</strong>，决定先进制程上限。</li></ul>
+<p>只引前者会高估可控水平，只引后者会低估产业规模。<strong>正确表述必须成对出现</strong>。</p>
+<h3 id="sec-13">5.3 政策与资本</h3>
+<ul><li>大基金三期注册资本 3440 亿元，投向设备、材料、零部件等卡脖子环节〔B/C〕。</li><li>工信部在 2026 年全国电子信息制造业高质量发展行业会议提出加快促进 RISC-V 产业发展；《电子信息制造业发展「十五五」规划》将 RISC-V 研发与产业化列入任务〔B/C，需以正式发布文本为准〕。</li><li>「十五五」规划建议把集成电路列为全链条攻关首位领域〔A，gov.cn〕。</li></ul>
+<hr class="sec-sep" />
+<h2 id="sec-14">6. RISC-V：开源路线的机会与约束</h2>
+<h3 id="sec-15">6.1 可核查进展（2026 年）</h3>
+<div class="table-wrap"><table><thead><tr><th>事项</th><th>内容</th><th>证据等级</th></tr></thead><tbody><tr><td>玄铁系列</td><td>达摩院公布累计出货突破 60 亿颗；发布车规级处理器；厂商称跑通 Android on RISC-V（<strong>具体版本未见官方适配公告，标「待核实」</strong>）</td><td>B/C（峰会报道与厂商官网）</td></tr><tr><td>服务器级芯片</td><td>进迭时空联合香山团队发布 V100，<strong>厂商自称</strong>「业内首颗完整符合服务器全套规范的通用计算芯片」，攻克服务器场景二进制兼容〔<strong>「首颗」为厂商表述，无独立第三方认定，标「待核实」</strong>〕</td><td>B/C</td></tr><tr><td>生态共建</td><td>中国移动、中国电信、中兴、阿里、腾讯等参与香山下一代「昆明湖」架构联合研发</td><td>B/C</td></tr><tr><td>标准参与</td><td>玄铁为 RISC-V 国际基金会高级会员、董事会与 TSC 成员；牵头矩阵扩展标准起草</td><td>B/C（厂商官网）</td></tr><tr><td>资本</td><td>奕斯伟计算登陆港交所成为 RISC-V 赛道首家上市企业；奕行智能完成近 20 亿元融资</td><td>B/C</td></tr><tr><td>产业份额</td><td>有公开演讲转述称 RISC-V 占全球处理器市场约 25% 份额〔<strong>按出货颗数且主要为嵌入式/IoT 口径，不可等同于服务器 CPU 或营收份额；统计年份未披露，标「待核实」</strong>〕</td><td>B/C（公开演讲转述）</td></tr></tbody></table></div>
+<h3 id="sec-16">6.2 三大约束</h3>
+<ol><li><strong>产能</strong>：晶圆代工资源向头部倾斜，中小设计企业排产优先级低，出现「手握六万片订单、仅交付两三万片」的现象〔B/C，证券日报报道〕。</li><li><strong>扩展碎片化</strong>：各家自定义扩展互不兼容，形成技术「方言」，削弱软件可移植性——这与信创整体面临的碎片化问题同构。</li><li><strong>软件生态</strong>：编译器、操作系统、中间件、上层应用对 RISC-V 的支持深度仍不及 aarch64；服务器级落地刚起步。</li></ol>
+<p><strong>判断</strong>：RISC-V 在 IoT、车规、边缘 AI、专用加速等新增场景具备结构性机会；在通用服务器与桌面替代上，中短期内仍是补充路线而非主流替代路线。把它直接列为「第七条信创 CPU 路线」为时过早。</p>
+<hr class="sec-sep" />
+<h2 id="sec-17">7. 硬件选型决策矩阵</h2>
+<div class="table-wrap"><table><thead><tr><th>业务场景</th><th>优先路线</th><th>理由</th><th>主要风险</th><th>必做验证</th></tr></thead><tbody><tr><td>存量核心系统、大量闭源组件无法重编译</td><td>x86 兼容（海光/兆芯）</td><td>迁移成本最低，可沿用既有二进制</td><td>授权与供应约束</td><td>驱动与固件完整性、供应链溯源</td></tr><tr><td>新建云原生/大数据平台、以开源栈为主</td><td>ARM（鲲鹏/飞腾）</td><td>aarch64 开源生态成熟、多核能效优</td><td>闭源 Agent/监控组件缺失</td><td>全量依赖的 aarch64 版本盘点、多架构镜像</td></tr><tr><td>党政办公、工控、对长期可控性要求极高</td><td>自主指令集（龙芯/申威）</td><td>指令集自主、等级测评表现好</td><td>专业软件与外设生态</td><td>逐项软件/外设适配清单、性能基线</td></tr><tr><td>混合存量、多批次采购</td><td>一云多芯统一纳管</td><td>屏蔽异构差异、盘活存量资产</td><td>平台锁定、跨架构调度复杂度</td><td>镜像可迁移性、故障域隔离、NUMA 性能衰减</td></tr><tr><td>AI 训推 / 智算</td><td>按测评公告 + 生态成熟度</td><td>2026 年首次纳入安全可靠测评</td><td>框架/算子/通信库适配</td><td>模型精度对齐、吞吐与互联带宽实测</td></tr><tr><td>工业现场（宽温、抗振、电磁兼容）</td><td>按工况定，不按 CPU 品牌定</td><td>现场环境是主要约束</td><td>参数与工况不匹配</td><td>环境适应性测试、BOM 溯源、固件自主度</td></tr></tbody></table></div>
+<hr class="sec-sep" />
+<h2 id="sec-18">8. 本章小结</h2>
+<ul><li>六家厂商、三条技术路线构成「迁移成本 × 自主程度 × 演进风险」的三角取舍，<strong>没有全局最优解</strong>；选型的硬约束往往是闭源组件与驱动，而非 CPU 峰值性能。</li><li>龙芯 = LoongArch、申威 = SW64，网络资料中常见把两者写反；ARMv9 授权状态属业界判断而非官方确认。</li><li>2026 年第 2 号公告首次把 AI 训推芯片纳入安全可靠测评（9 款，均 Ⅰ 级）；未上榜不代表不合格，测评为自愿申请。</li><li>整机内部的电源管理芯片、网络 PHY、BIOS/BMC、驱动与打印机主控芯片，是「全栈国产」审计中最常见的失分点。</li><li>上游半导体的正确图景是「产量自给率约 70%」与「先进制程光刻机不足 1%」并置；EDA、材料、高端 IP 仍是主要约束。</li><li>RISC-V 在新增场景有结构性机会，但产能、扩展碎片化、软件生态三大约束决定其短期是补充路线。</li></ul></article></div>
+
+<nav class="doc-pager" aria-label="上下篇导航"><a class="pg-link" href="03-industry.html"><span>← 上一篇</span><b>03 产业链全景与技术栈</b></a><a class="pg-link pg-right" href="05-software.html"><span>下一篇 →</span><b>05 基础软件与平台软件</b></a></nav>
+
+    <footer>
+      <div class="wrap">
+        <div class="src">
+          <strong>站点说明</strong><br />
+          本页由 <code>04-核心硬件与算力底座.md</code> 编译生成，<a href="04-核心硬件与算力底座.md">查看 Markdown 原文</a>；
+          调研基准日 2026-11-05，政策与数据具时效性，引用前请按附录核验路径复核。<br />
+          纯静态、零外部依赖：样式与脚本均在 <code>assets/</code> 内，可离线阅读。
+        </div>
+        <p>信创（信息技术应用创新）研究专题 · 独立站点 · 不隶属于 KB 站群</p>
+      </div>
+    </footer>
+
+    <script src="assets/search-data.js"></script>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

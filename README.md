@@ -6,7 +6,7 @@
 
 ---
 
-## 目录结构（4 子站 + 2 索引 + 工具链 + rk/ 随笔 + xinchuang/ 研究专题）
+## 目录结构（4 个 KB 子站 + xinchuang/ 独立站点 + 2 索引 + 工具链 + rk/ 随笔）
 
 ```
 Java-Spring-AI/
@@ -29,7 +29,7 @@ Java-Spring-AI/
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/ # ③ 软件工程 定律 / 理论 / 原则 / 模式 索引
 ├── Software-Engineering-Core-Philosophical-Principles-and-Methodologies/  # ④ 软件工程「道—法—术—器—势」核心哲学原理
 ├── rk/                                     # 两篇随笔（高项 / 系规），见 rk/README.md
-├── xinchuang/                              # 12 篇信创研究专题（md），非 HTML 站群
+├── xinchuang/                              # ⑤ 信创独立站点：12 篇 md 源文档 + 自包含 HTML 站（非 KB 站群）
 ├── .workbuddy/skills/java-kb-expand/       # 工具链 · java-kb-expand Skill
 │   └── scripts/
 │       ├── sync_counts.py     # 权威计数同步（改数唯一入口：bump / check / apply）
@@ -87,7 +87,7 @@ Java-Spring-AI/
 
 | 入口 | URL | 说明 |
 |---|---|---|
-| 根索引（全站） | `index.html` | 聚合所有子站，三权威源之一 |
+| 根索引（全站） | `index.html` | 主 KB 三级目录 + 独立专题站点入口，三权威源之一 |
 | 章节索引 | `java-architect-interview/index.html` | 15 篇章 + 方法论 + 工程化 + 踩坑 + 核心原理 + 场景 |
 | 优先级聚合 | `java-architect-interview/nav-overview-priority.html` | P0 → P1 → P2 三级分组，内按难度 / 类型再拆 |
 | 安全检查点 | `java-architect-interview/nav-server-security-checkpoint.html` | 服务端开发安全速查 |
@@ -97,6 +97,7 @@ Java-Spring-AI/
 | 设计原则 & GoF 23 | `java-design-patterns-principles/` | 设计原则 + 超越 GoF 23 |
 | 软件定律 / 理论 / 原则 / 模式 | `Software-Engineering-Laws-Theories-Principles-and-Patterns/` | 24 条 + 7 类 + 13 类 + 6 类索引 |
 | 软件工程「道法术器势」| `Software-Engineering-Core-Philosophical-Principles-and-Methodologies/` | 核心哲学原理完整篇 |
+| 信创（信息技术应用创新）研究专题 | `xinchuang/index.html` | 独立静态站点 · 政策 / 产业 / 技术 / 工程 / 安全 / 经济 多视角 · 可单独拷贝部署 |
 
 ---
 

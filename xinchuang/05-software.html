@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="操作系统、数据库、中间件、一云多芯与 JDK 工具链。" />
+    <meta name="color-scheme" content="light dark" />
+    <title>基础软件与平台软件 · 信创研究站</title>
+    <script>
+      /* 首屏主题同步初始化：在 CSS 之前定好 data-theme，避免深色偏好用户闪白。
+         与 assets/app.js 的 readPref() 口径一致：仅 light/dark 为显式偏好，其余跟随系统。 */
+      (function () {
+        try {
+          var v = localStorage.getItem('xc-theme');
+          var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme',
+            (v === 'light' || v === 'dark') ? v : (dark ? 'dark' : 'light'));
+        } catch (e) { /* 隐私模式忽略持久化失败 */ }
+      })();
+    </script>
+    <link rel="stylesheet" href="assets/base.css" />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body data-page="05-software.html">
+    <div class="toolbar">
+      <a class="brand" href="index.html">信创研究站</a>
+      <div class="tools">
+        <div class="search-box">
+          <input id="siteSearch" type="search" placeholder="搜索章节 / 文档" autocomplete="off"
+                 aria-label="站内搜索" aria-expanded="false" role="combobox" />
+          <div id="searchResults" class="search-results" role="listbox" hidden></div>
+        </div>
+        <button class="btn" id="themeBtn" type="button" title="切换颜色主题">◐ 系统</button>
+        <button class="btn" id="topBtn" type="button" title="平滑回到顶部">↑ 顶部</button>
+      </div>
+    </div>
+
+<header class="hero hero--compact"><div class="wrap"><div class="kicker">05 · 基础软件 / 选型</div><h1>05 基础软件与平台软件</h1><p class="sub">本文回答：操作系统、数据库、中间件、云平台、办公软件、开发工具链各自的真实格局如何；测评公告里的产品清单意味着什么；选型时应考察哪些维度；哪些「生态数量」数字存在口径陷阱。</p><div class="meta"><span class="pill">文档 <b>05</b></span><span class="pill">视角 <b>基础软件 / 选型</b></span><span class="pill">基准日 <b>2026-11-05</b></span></div></div></header>
+
+
+
+<div class="wrap doc-layout"><nav class="toc doc-toc" id="docToc" aria-label="页内目录"><div class="wrap"><a class="toc-h2" href="#sec-1">1. 操作系统：双寡头 + 云厂商 + 开源根社区</a><a class="toc-h3" href="#sec-2">1.1 四类供给</a><a class="toc-h3" href="#sec-3">1.2 一手公告中的操作系统清单〔A〕</a><a class="toc-h3" href="#sec-4">1.3 「生态适配数量」的口径陷阱〔本节 B/C 级数字年份多未披露，一律视为待核实〕</a><a class="toc-h3" href="#sec-5">1.4 CentOS 停服与迁移工具</a><a class="toc-h2" href="#sec-6">2. 数据库：从「外围替代」到「核心突破」</a><a class="toc-h3" href="#sec-7">2.1 技术路线分类</a><a class="toc-h3" href="#sec-8">2.2 安全可靠测评公告数据库清单〔A；2025 年第 2 号 2025-08-22、2026 年第 2 号 2026-05-26〕</a><a class="toc-h3" href="#sec-9">2.3 选型维度（按重要性排序）</a><a class="toc-h3" href="#sec-10">2.4 金融与行业核心系统公开案例（案例库）</a><a class="toc-h2" href="#sec-11">3. 中间件：一超多强，Java 栈的第一替换点</a><a class="toc-h3" href="#sec-12">3.1 主要厂商与产品矩阵</a><a class="toc-h3" href="#sec-13">3.2 替换映射（对 Java 应用最实用）</a><a class="toc-h2" href="#sec-14">4. 云平台：一云多芯是碎片化的主要收敛手段</a><a class="toc-h3" href="#sec-15">4.1 能力模型</a><a class="toc-h3" href="#sec-16">4.2 实践要点</a><a class="toc-h3" href="#sec-17">4.3 存储与网络</a><a class="toc-h2" href="#sec-18">5. 大数据平台与数据湖：L4 被漏掉的一层</a><a class="toc-h3" href="#sec-19">5.1 组件栈与国产供给</a><a class="toc-h3" href="#sec-20">5.2 适配与迁移要点</a><a class="toc-h2" href="#sec-21">6. 应用软件与办公套件</a><a class="toc-h2" href="#sec-22">7. 开发工具链：Java 栈的基础设施</a><a class="toc-h3" href="#sec-23">7.1 国产 JDK 发行版</a><a class="toc-h3" href="#sec-24">7.2 编译器、IDE 与 CI/CD</a><a class="toc-h2" href="#sec-25">8. 基础软件选型决策矩阵</a><a class="toc-h2" href="#sec-26">9. 本章小结</a></div></nav><article class="doc-body"><h1>05 基础软件与平台软件</h1>
+<blockquote><p>本文回答：操作系统、数据库、中间件、云平台、办公软件、开发工具链各自的真实格局如何；测评公告里的产品清单意味着什么；选型时应考察哪些维度；哪些「生态数量」数字存在口径陷阱。</p><p>前置依赖：<a href="03-industry.html">03 产业链全景</a>、<a href="04-hardware.html">04 核心硬件</a>。后续：<a href="07-migration.html">07 工程迁移</a></p></blockquote>
+<hr class="sec-sep" />
+<h2 id="sec-1">1. 操作系统：双寡头 + 云厂商 + 开源根社区</h2>
+<h3 id="sec-2">1.1 四类供给</h3>
+<div class="table-wrap"><table><thead><tr><th>类型</th><th>代表</th><th>定位</th><th>可核查锚点</th></tr></thead><tbody><tr><td><strong>商业发行版（桌面/服务器）</strong></td><td>银河麒麟（麒麟软件）、统信 UOS、中科方德、麒麟信安、凝思、中兴新支点</td><td>党政、关基、央企关键业务</td><td>多款进入安全可靠测评公告</td></tr><tr><td><strong>云厂商服务器 OS</strong></td><td>华为云欧拉 V3、阿里云服务器 OS V4、腾讯云 Linux 服务器 OS V4、天翼云 CTyunOS V2.0</td><td>云底座、规模化运维</td><td>2025 年第 1/3 号、2026 年第 1 号公告</td></tr><tr><td><strong>开源根社区</strong></td><td>openEuler、OpenAnolis（龙蜥）、OpenHarmony、openGauss（数据库）、deepin</td><td>技术底座，被商业发行版集成</td><td>开放原子开源基金会孵化运营</td></tr><tr><td><strong>全场景/终端 OS</strong></td><td>HarmonyOS / OpenHarmony</td><td>终端、嵌入式、工业、 IoT</td><td>HarmonyOS V1.0 获 2026 年第 1 号公告 Ⅱ 级</td></tr></tbody></table></div>
+<h3 id="sec-3">1.2 一手公告中的操作系统清单〔A〕</h3>
+<div class="table-wrap"><table><thead><tr><th>公告</th><th>日期</th><th>桌面 OS</th><th>服务器 OS</th></tr></thead><tbody><tr><td>2025 年第 1 号</td><td>2025-03-14</td><td>银河麒麟桌面 V10 SP1（内核 5.10）Ⅰ 级</td><td>天翼云 CTyunOS V2.0（内核 4.19）Ⅰ 级</td></tr><tr><td>2025 年第 3 号</td><td>2025-09-12</td><td>方德桌面 Pro V5.0（6.6）Ⅰ 级；银河麒麟桌面 V11（6.6）Ⅰ 级</td><td>银河麒麟高级服务器 V11（6.6）Ⅰ 级；腾讯云 Linux 服务器 OS V4（6.6）Ⅰ 级</td></tr><tr><td>2026 年第 1 号</td><td>2026-01-16</td><td><strong>HarmonyOS V1.0</strong>（HongMeng Kernel 1.11）<strong>Ⅱ 级</strong>；统信桌面 V25（6.6）Ⅰ 级</td><td>华为云欧拉 V3（6.6）Ⅰ 级；阿里云服务器 OS V4（6.6）Ⅰ 级；新支点服务器 OS V7（6.6）Ⅰ 级</td></tr></tbody></table></div>
+<p><strong>可观察趋势</strong>：内核版本从 4.19 / 5.10 向 <strong>6.6</strong> 收敛；云厂商 OS 批量进入测评；桌面 OS 首次出现 Ⅱ 级。对甲方的含义是：内核大版本升级会改变系统调用、驱动与内核模块兼容性，<strong>存量适配结论不能跨内核版本沿用</strong>，必须重新回归。</p>
+<h3 id="sec-4">1.3 「生态适配数量」的口径陷阱〔本节 B/C 级数字年份多未披露，一律视为待核实〕</h3>
+<p>行业稿件常见表述：「适配软件超 400 万款」「生态兼容超 1000 万件」「累计部署超 2000 万套」「装机超 5000 万台」「openEuler 累计装机超 610 万套 / 1600 万套」〔C，多为厂商宣传或聚合稿，<strong>同一指标在不同稿件中数值差异达 2—3 倍</strong>〕。</p>
+<p>必须区分四个不同指标：</p>
+<ol><li><strong>适配条目数</strong>（软硬件组合/版本配对计数）——一次软件与一个 OS 版本 + 一个 CPU 架构的组合即可能计为一条，天然远大于独立软件数。</li><li><strong>独立软件/硬件型号数</strong>——去重后的产品数。</li><li><strong>部署套数 / 装机量</strong>——含测试环境、预装、历史累计，不等同活跃付费用户。</li><li><strong>生态伙伴数</strong>——注册厂商数，与适配深度无关。</li></ol>
+<p><strong>使用建议</strong>：招标中不要以「适配 XX 万款」作为技术评分依据，应要求供应商提供<strong>本项目涉及的软件清单在指定 CPU + OS + 内核版本组合下的适配证明与压测报告</strong>。</p>
+<h3 id="sec-5">1.4 CentOS 停服与迁移工具</h3>
+<p>CentOS 停服构成国产 OS 替代的重要窗口。厂商侧已形成相对成熟的迁移工具链：桌面环境克隆式搬迁、Windows 驱动迁移（deepin-wine 类技术）、AD 域与组策略替代（集中域管平台）、自动化迁移与回退脚本。公开案例包括单台服务器迁移控制在 30 分钟内、某省医保局 5000 余套 CentOS 服务器 4 个月完成迁移〔C，厂商/行业稿，属案例宣传，需以项目验收材料核实〕。</p>
+<p><strong>工程判断</strong>：迁移工具能降低重复劳动，但<strong>不能替代兼容性预检与业务回归</strong>。真正决定工期的是外设驱动、字体渲染、打印控件与 ActiveX 类组件，详见 <a href="07-migration.html">07</a>。</p>
+<hr class="sec-sep" />
+<h2 id="sec-6">2. 数据库：从「外围替代」到「核心突破」</h2>
+<h3 id="sec-7">2.1 技术路线分类</h3>
+<div class="table-wrap"><table><thead><tr><th>类别</th><th>代表</th><th>主要兼容对象</th><th>典型场景</th></tr></thead><tbody><tr><td>集中式（Oracle 兼容路线）</td><td>达梦 DM8/V9、人大金仓 KingbaseES、海量数据 Vastbase、南大通用 GBase 8s/8a</td><td>Oracle 语法、PL/SQL、存储过程</td><td>政务、电力、金融核心改造中的平滑迁移</td></tr><tr><td>集中式（MySQL/PG 路线）</td><td>PolarDB（MySQL 版）、OceanBase 集中式版、TaurusDB、GoldenDB Lite、SeaboxSQL、磐维</td><td>MySQL / PostgreSQL 生态</td><td>互联网化业务、云上系统</td></tr><tr><td>分布式事务型</td><td>GaussDB、GoldenDB、OceanBase、TDSQL、达梦分布式版、崖山、TiDB</td><td>分布式事务、分片、两地三中心</td><td>银行核心、运营商计费、大型账务</td></tr><tr><td>分析型 / 数仓 / HTAP</td><td>华为云 DWS、AnalyticDB PostgreSQL 版、星环 ArgoDB、GBase 8c、DolphinDB</td><td>OLAP、行列混存</td><td>数据仓库、实时分析</td></tr><tr><td>专用型</td><td>TimechoDB（工业时序）、DolphinDB（时序/量化）、图数据库、文档数据库</td><td>特定数据模型</td><td>物联网、工业、金融量化</td></tr></tbody></table></div>
+<h3 id="sec-8">2.2 安全可靠测评公告数据库清单〔A；2025 年第 2 号 2025-08-22、2026 年第 2 号 2026-05-26〕</h3>
+<p><strong>集中式（8 款）</strong></p>
+<div class="table-wrap"><table><thead><tr><th>等级</th><th>产品 / 送测单位</th></tr></thead><tbody><tr><td>Ⅱ 级</td><td>达梦数据库管理系统 V9（武汉达梦）</td></tr><tr><td>Ⅰ 级</td><td>平安 RASESQL V3（平安科技）；阿里云 PolarDB（MySQL 版）V2.0；海盒 SeaboxSQL V21（东方金信）；磐维 V3.0（中移动信息）；GoldenDB Lite V7（中兴）；OceanBase 集中式版 V4（奥星贝斯）；TaurusDB V3.0（华为云）</td></tr></tbody></table></div>
+<p><strong>分布式（15 款）</strong></p>
+<div class="table-wrap"><table><thead><tr><th>等级</th><th>产品 / 送测单位</th></tr></thead><tbody><tr><td>Ⅱ 级</td><td>达梦分布式版 V9；崖山 V23（深圳计算科学研究院）；GaussDB V3.0 分布式版（华为云）；GoldenDB V7（中兴）</td></tr><tr><td>Ⅰ 级</td><td>TimechoDB V2.0（天谋科技）；天翼云 TeleDB V5.1.9；中国银联 UPDRDB V2；华为云 DWS V8；AnalyticDB PostgreSQL 版 V2.0；GBase 8c V6（南大通用）；Transwarp ArgoDB V6（星环）；SeaboxSQL 分布式版 V21；DolphinDB V2.0；GoldenDB EBASE V3；Kingwow 金乌 V6</td></tr></tbody></table></div>
+<p>行业统计称已有 28 款集中式、26 款分布式数据库通过测评〔C，行业媒体按历次公告累计〕，且部分早期过测产品在后续批次中缺席，原因可能包括产品迭代未同步更新认证、供应链变化导致资质失效等。<strong>对采购方的直接含义</strong>：选型时必须核对<strong>具体产品名 + 版本号 + 公告批次 + 三年有效期</strong>，并评估厂商三年后重测的持续投入能力，否则存在被迫二次选型的风险。</p>
+<h3 id="sec-9">2.3 选型维度（按重要性排序）</h3>
+<ol><li><strong>SQL 方言与存量资产</strong>：分页语法、序列/自增、隐式类型转换、<code>CONNECT BY</code> 递归、PL/SQL 包体、<code>DBMS_LOB</code>、触发器、存储过程、执行计划与索引策略。</li><li><strong>迁移工具链成熟度</strong>：是否支持结构转换、全量+增量同步、DDL 同步、字段级比对、校验与回滚。有案例显示 DDL 同步能力是异构迁移的「隐形守护者」〔C，厂商技术博客〕。</li><li><strong>高可用与容灾</strong>：RPO / RTO、同城双活、异地灾备、故障切换演练记录。</li><li><strong>性能特征</strong>：OLTP / OLAP / HTAP 负载匹配、批量与跑批窗口、连接池行为。</li><li><strong>生态与运维</strong>：监控、备份、审计、SQL 审核工具、DBA 人才可得性。</li><li><strong>合规资质</strong>：安全可靠测评等级、等保与密评支撑能力、国密算法支持。</li><li><strong>商业可持续性</strong>：厂商交付能力、版本路线、维保成本、是否有同类核心系统案例。</li></ol>
+<h3 id="sec-10">2.4 金融与行业核心系统公开案例（案例库）</h3>
+<blockquote><p>以下均为<strong>厂商或行业媒体公开披露的案例口径</strong>〔B/C〕，效果数据为披露方自述，未经独立审计，仅作「可行性存在」的证据，不作为性能承诺。</p></blockquote>
+<div class="table-wrap"><table><thead><tr><th>行业</th><th>客户 / 系统</th><th>产品</th><th>披露要点</th></tr></thead><tbody><tr><td>银行</td><td>邮储银行个人+对公核心</td><td>GaussDB 分布式</td><td>日均 20 亿笔、峰值 6.7 万 TPS、988TB、6.5 亿用户</td></tr><tr><td>银行</td><td>工商银行核心分布式</td><td>GaussDB</td><td>4000+ 节点、230+ 业务、同城双集群 RPO=0</td></tr><tr><td>银行</td><td>建设银行核心主机下移</td><td>GoldenDB</td><td>境内外核心全部下移</td></tr><tr><td>银行</td><td>中信银行信用卡/总账核心</td><td>GoldenDB</td><td>2019/2020 分批上线</td></tr><tr><td>银行</td><td>平安银行核心全栈单轨</td><td>TDSQL</td><td>笔均交易成本 -68%、处理能力 4 倍</td></tr><tr><td>银行</td><td>贵州农信全栈信创核心</td><td>国产分布式数据库</td><td>处理能力约原系统 6 倍，520 天建设、22 小时切换</td></tr><tr><td>保险</td><td>中国太保全险种核心</td><td>OceanBase</td><td>300+ 系统、6PB、降本超 1 亿元</td></tr><tr><td>保险</td><td>中国人寿</td><td>PolarDB</td><td>一年迁移 400+ 核心库、1PB 数据</td></tr><tr><td>保险</td><td>中银保险</td><td>达梦数据库一体机</td><td>支撑十余个核心系统，业务连续性 99.99%</td></tr><tr><td>电信</td><td>中国移动省级核心/计费</td><td>GoldenDB</td><td>支撑 9 亿移动用户计费</td></tr><tr><td>电信</td><td>广西移动计费中心</td><td>GoldenDB</td><td>OLTP/OLAP 性能提升约 40%，适配改造量 &lt;5%</td></tr><tr><td>电信</td><td>辽宁移动</td><td>金仓 KingbaseRAC</td><td>平替 Oracle 四节点集群</td></tr><tr><td>政务</td><td>山东省财政厅预算管理一体化</td><td>GaussDB</td><td>180+ 财政区划，硬件成本 -26%+，响应 5s→2s</td></tr><tr><td>政务</td><td>甘肃医保</td><td>GaussDB</td><td>门诊结算 5s→0.9s</td></tr><tr><td>证券</td><td>上交所</td><td>Vastbase</td><td>替换 70+ 应用系统</td></tr><tr><td>医疗</td><td>河科大一附院</td><td>双模式并行迁移</td><td>5TB 结构化数据、三阶段切换，见 <a href="07-migration.html">07</a></td></tr></tbody></table></div>
+<p><strong>读法</strong>：这些案例证明「核心系统可替」，但<strong>不能证明「任意系统都能低成本替」</strong>。披露方通常选择成功项目公开，存在幸存者偏差；真实成本集中在 SQL 改写、双轨并行周期与性能调优，见 <a href="07-migration.html">07</a>。</p>
+<hr class="sec-sep" />
+<h2 id="sec-11">3. 中间件：一超多强，Java 栈的第一替换点</h2>
+<h3 id="sec-12">3.1 主要厂商与产品矩阵</h3>
+<div class="table-wrap"><table><thead><tr><th>厂商</th><th>应用服务器</th><th>消息中间件</th><th>交易/缓存/其他</th><th>侧重</th></tr></thead><tbody><tr><td>东方通</td><td>TongWeb</td><td>TongLINK/Q</td><td>TongEASY（交易）、TongRDS（缓存）</td><td>党政市占领先、全栈最全，兼容 Jakarta EE</td></tr><tr><td>宝兰德</td><td>BES Application Server</td><td>BES MQ</td><td>云原生中间件</td><td>电信高并发、金融核心；无独立交易中间件</td></tr><tr><td>中创股份</td><td>InforSuite AS</td><td>消息中间件</td><td>PaaS、AI 模型管理平台</td><td>金税、电网、金融；牵头多项国家标准</td></tr><tr><td>金蝶天燕</td><td>Apusic</td><td>Apusic MQ</td><td>ESB</td><td>与金蝶 ERP 一体化，政务/制造</td></tr><tr><td>普元信息</td><td>Primeton AppServer (PAS)</td><td>Primeton MQ</td><td>ESB、数据集成</td><td>金融级高可用、国有大行核心交易</td></tr><tr><td>云厂商第二梯队</td><td>阿里云 EDAS</td><td>RocketMQ / 腾讯云 TDMQ</td><td>微服务框架</td><td>互联网与金融云原生场景</td></tr></tbody></table></div>
+<p>市场份额的转引数据：东方通超 30%（连续 17 年国产第一）、普元约 15%、宝兰德约 12%，中间件国产化率约 45%〔B，赛迪/平台软件研究报告转引〕。<strong>注意</strong>：不同报告对「中间件」边界（是否含消息队列、ESB、微服务框架、云 PaaS）定义不同，份额数字不可跨报告比较。</p>
+<h3 id="sec-13">3.2 替换映射（对 Java 应用最实用）</h3>
+<div class="table-wrap"><table><thead><tr><th>原组件</th><th>国产替代</th><th>适配重点</th></tr></thead><tbody><tr><td>Oracle WebLogic / IBM WebSphere</td><td>TongWeb / BES / InforSuite AS / Apusic / PAS</td><td>Jakarta EE 版本（<code>javax.*</code> → <code>jakarta.*</code>）、部署描述符、JNDI、JMS、连接池、类加载顺序</td></tr><tr><td>Apache Tomcat（内嵌）</td><td>可保留（本身开源跨架构），或按招标要求换国产应用服务器</td><td>若 Spring Boot 内嵌容器，需确认招标是否接受；外置 WAR 部署改动更大</td></tr><tr><td>IBM MQ / RabbitMQ / Kafka</td><td>TongLINK/Q、BES MQ、Primeton MQ、RocketMQ</td><td>协议兼容、消息确认与事务、客户端 SDK 架构版本</td></tr><tr><td>Redis</td><td>TongRDS、国产缓存/云托管 Redis 兼容服务</td><td>命令兼容性、持久化、集群协议、客户端驱动</td></tr><tr><td>Nginx / 硬件负载均衡</td><td>国产网关、云厂商 API 网关</td><td>配置语法、TLS/国密 TLCP 支持</td></tr><tr><td>ESB / 数据集成</td><td>普元 ESB、东方通集成平台、中创数据中间件</td><td>适配器、报文转换、幂等与补偿</td></tr></tbody></table></div>
+<p><strong>工程原则</strong>：优先保留「跨架构、开源、无需替换」的组件（如纯 Java 的 Spring Boot 内嵌容器、RocketMQ），把改造预算集中在<strong>真正被招标或合规要求点名的层</strong>。为替换而替换会显著放大回归面。</p>
+<hr class="sec-sep" />
+<h2 id="sec-14">4. 云平台：一云多芯是碎片化的主要收敛手段</h2>
+<h3 id="sec-15">4.1 能力模型</h3>
+<div class="table-wrap"><table><thead><tr><th>层</th><th>能力</th><th>作用</th></tr></thead><tbody><tr><td>硬件抽象层</td><td>算力插件 / 算力网关，将 x86、ARM、LoongArch、RISC-V 抽象为统一逻辑资源池</td><td>屏蔽芯片差异</td></tr><tr><td>平台服务层</td><td>跨架构虚拟化规范、虚拟机/容器镜像可迁移、统一调度与 NUMA 感知</td><td>降低运维复杂度</td></tr><tr><td>应用开发层</td><td>标准 API、多架构构建与镜像分发</td><td>开发者无需感知底层架构</td></tr><tr><td>多云管理（CMP）</td><td>统一纳管信创私有云、传统虚拟化、公有云</td><td>存量资产盘活、成本可视化</td></tr></tbody></table></div>
+<h3 id="sec-16">4.2 实践要点</h3>
+<ul><li><strong>混合部署是常态而非过渡态</strong>：多批次采购必然形成 x86 与国产 CPU 并存，一云多芯的价值在于把「多架构」从应用侧问题收敛为平台侧问题。公开方案显示可同时调度飞腾、鲲鹏、海光等异构 CPU，并兼容异构存储与网络设备〔B/C，中国电子云 CECSTACK 白皮书、EasyStack ECF 资料〕。</li><li><strong>镜像必须多架构</strong>：容器镜像按 <code>linux/amd64</code> / <code>linux/arm64</code> / <code>linux/loong64</code> 分别构建并使用 manifest list（<code>loong64</code> 为容器平台标识，<code>loongarch64</code> 仅为 <code>uname -m</code> 输出），基础镜像需含对应架构的 JDK 与 native 依赖。</li><li><strong>NUMA 与调度</strong>：国产多核平台存在 NUMA 架构下的性能衰减问题，需在内核调度、内存管理、中断处理层面做针对性优化〔C，厂商技术文章〕。</li><li><strong>存量利用</strong>：老型号服务器在健康达标（NVMe/S.M.A.R.T. 检测）前提下可纳入统一资源池，降低 TCO。</li><li><strong>风险</strong>：平台层屏蔽差异的同时也带来厂商锁定；应在合同中约定镜像可导出、API 兼容与数据可迁移条款。</li></ul>
+<h3 id="sec-17">4.3 存储与网络</h3>
+<ul><li>软件定义存储（SDS）已成信创云数据基石，支持块/文件/对象三种接口，完成与主流国产 CPU/OS 的适配及百余家厂商互认证〔C，厂商资料〕。</li><li>网络设备（核心/汇聚/接入交换机、路由器、网卡）国产化率相对较高，但高端射频、光模块、SR-IOV/RDMA 支持需在选型时实测。</li></ul>
+<hr class="sec-sep" />
+<h2 id="sec-18">5. 大数据平台与数据湖：L4 被漏掉的一层</h2>
+<p><a href="03-industry.html">03</a> §1 把大数据与数据湖列入 L4 平台软件，<a href="07-migration.html">07</a> §2 的医院案例也出现「切换后同步任务转为单向容灾 + Kafka 数据湖」，但基础软件篇此前只覆盖 OS / 数据库 / 中间件 / 云 / 办公 / 工具链，未展开这一层。本节补齐。</p>
+<h3 id="sec-19">5.1 组件栈与国产供给</h3>
+<div class="table-wrap"><table><thead><tr><th>子层</th><th>典型组件</th><th>信创语境下的关注点</th></tr></thead><tbody><tr><td>批处理与调度</td><td>Hadoop MapReduce/Tez、Spark、DolphinScheduler</td><td>调度依赖 Quartz/Cron 表达式、Kerberos 认证与信创 OS 的 PAM/时区行为</td></tr><tr><td>流处理</td><td>Flink、Kafka、Pulsar</td><td>状态后端（RocksDB）含 JNI/native 库，须逐架构重编；Exactly-once 与双轨期回放</td></tr><tr><td>湖仓格式</td><td>Iceberg / Hudi / Paimon、Parquet / ORC</td><td>元数据与文件布局可跨架构保留，<strong>数据本体通常无需重写</strong>，风险集中在元数据服务与权限</td></tr><tr><td>查询引擎</td><td>Hive、Spark SQL、Presto/Trino、Doris/StarRocks</td><td>SQL 方言差异、UDF 中的 native 依赖、CBO 统计信息重建</td></tr><tr><td>资源与部署</td><td>YARN / Kubernetes、对象存储 / HDFS</td><td>一云多芯下的混合调度、NUMA 亲和、国产对象存储 S3 兼容度</td></tr><tr><td>安全治理</td><td>Ranger / Kerberos / LDAP、审计与脱敏</td><td>国密改造（TLCP/SM4）、密评边界、账号体系与信创目录服务对接</td></tr></tbody></table></div>
+<p>国产供给以「<strong>开源根社区 + 商业发行版/托管服务</strong>」为主：Hadoop/Spark/Flink/Iceberg 等上游多为国际开源社区，国内厂商提供发行版、运维平台与适配认证；Doris、Paimon、Kylin 等项目国内贡献度较高〔B/C，社区与厂商公开资料，具体份额待核实〕。因此这一层的「国产化」更多体现为<strong>发行版可控、适配认证与运维能力</strong>，而非「内核全部自研」——与 <a href="09-risks.html">09</a> §4 对开源依赖的判断一致。</p>
+<h3 id="sec-20">5.2 适配与迁移要点</h3>
+<ol><li><strong>先分清「计算迁移」与「数据迁移」</strong>：列式文件（Parquet/ORC）与湖表元数据一般跨 CPU 架构可读，真正要重做的是计算引擎二进制、JNI 压缩库（snappy/lz4/zstd）、JDK 与 glibc 组合。据此可显著缩小 S3 阶段的数据搬迁量。</li><li><strong>native 依赖是头号阻塞点</strong>：RocksDB、LevelDB、OpenSSL、netty-transport-native-epoll、SIMD 加速路径需逐架构编译并做指令集回退验证；纯 Java/Scala 作业通常可直接跨架构运行。</li><li><strong>SQL 方言比 CPU 更贵</strong>：Hive/Spark/Presto 与国产 MPP 引擎在窗口函数、隐式类型转换、分区语法、时间戳精度上不一致，须按 <a href="07-migration.html">07</a> §5.4 的方言清单逐条回归。</li><li><strong>权限与审计不可丢</strong>：迁移常重建 Ranger/LDAP 而遗漏行列级策略、脱敏规则与审计留痕，属等保/密评检查高发项，见 <a href="06-compliance.html">06</a> §7。</li><li><strong>双跑比对口径</strong>：按「任务级输出行数 + 主键集合 + 关键指标哈希」三重比对，而非只比对作业成功状态；历史分区抽样回算，避免统计口径漂移。</li><li><strong>阶段归属</strong>：平台盘点与 native 依赖确认属 <strong>S0</strong>，引擎冒烟与 SQL 回归属 <strong>S1/S2</strong>，元数据/权限/历史数据迁移与双跑属 <strong>S3</strong>，全站阶段定义以 <a href="07-migration.html">07</a> §3 的 S0—S5 为唯一主表。</li></ol>
+<blockquote><p>口径提示：本节厂商与份额类描述多为 B/C 级转引、缺少统一统计时点，按 <a href="index.html">README</a> §四规则一律视为「待核实」，不得单独作为选型或招标依据。</p></blockquote>
+<h2 id="sec-21">6. 应用软件与办公套件</h2>
+<div class="table-wrap"><table><thead><tr><th>类别</th><th>代表</th><th>适配要点</th></tr></thead><tbody><tr><td>办公套件</td><td>金山 WPS（主导）、永中 Office</td><td>宏/VBA 兼容、模板与字体、OFD 版式、电子签章</td></tr><tr><td>版式与签章</td><td>OFD、电子印章/签章</td><td>GB/T 相关标准、国密算法、密评衔接</td></tr><tr><td>经营管理</td><td>用友 YonBIP、金蝶苍穹、致远互联、泛微</td><td>数据库方言、工作流引擎、与国产中间件适配</td></tr><tr><td>浏览器与控件</td><td>国产浏览器（ Chromium 系）</td><td><strong>ActiveX / 插件类控件在国产浏览器下常完全不可用</strong>，是高发阻塞点</td></tr><tr><td>行业 ISV</td><td>金融 IT（中电金信、宇信、神州信息、长亮、南天）、医疗、政务等</td><td>高度碎片化，需逐系统盘点</td></tr></tbody></table></div>
+<p>行业观察：办公软件替代完成度最高，专业工业软件（CAD/CAE/EDA/PLC）仍是最大短板，详见 <a href="09-risks.html">09</a>。</p>
+<hr class="sec-sep" />
+<h2 id="sec-22">7. 开发工具链：Java 栈的基础设施</h2>
+<h3 id="sec-23">7.1 国产 JDK 发行版</h3>
+<div class="table-wrap"><table><thead><tr><th>发行版</th><th>维护方</th><th>主要优化方向</th><th>适配架构</th></tr></thead><tbody><tr><td>毕昇 JDK</td><td>华为</td><td>鲲鹏/ARM 针对性调优、毕昇编译器协同</td><td>aarch64 优先，亦支持 x86</td></tr><tr><td>Dragonwell（龙井）</td><td>阿里</td><td>云原生、JWarmup、弹性堆、诊断增强</td><td>x86 / aarch64</td></tr><tr><td>Kona JDK</td><td>腾讯</td><td>大数据与云场景、GC 优化</td><td>x86 / aarch64</td></tr><tr><td>龙芯 JDK</td><td>龙芯中科</td><td>官方支持 LoongArch</td><td>loongarch64</td></tr><tr><td>麒麟信安 JDK / 其他</td><td>各 OS 厂商</td><td>与自有 OS 集成</td><td>按厂商</td></tr></tbody></table></div>
+<p>均为 OpenJDK 衍生发行版，覆盖 Java 8/11/17/21 LTS〔B/C，厂商与行业资料〕。<strong>版本矩阵是真实风险</strong>：数据库 JDBC 驱动对高版本 JDK 的支持往往滞后，早期 DM8 驱动在 JDK 17+ 上出现模块化反射限制问题〔C，技术博客〕。选型时应以<strong>实际驱动版本 + 目标 JDK 版本组合做压测</strong>，而不是采信文档中的「支持」。</p>
+<h3 id="sec-24">7.2 编译器、IDE 与 CI/CD</h3>
+<ul><li>编译器：毕昇编译器、GCC/LLVM 的国产架构后端、龙芯工具链。</li><li>IDE 与构建：主流 IDE 在国产 OS 上可用；需配置国产 Maven/Gradle 镜像、多架构 CI 构建节点。</li><li>运维：容器平台（KubeSphere 等）、监控、日志、APM 需确认目标架构 Agent 可用——<strong>监控/APM Agent 常是迁移中最容易被遗漏的闭源二进制依赖</strong>。</li></ul>
+<hr class="sec-sep" />
+<h2 id="sec-25">8. 基础软件选型决策矩阵</h2>
+<div class="table-wrap"><table><thead><tr><th>决策项</th><th>首选考察维度</th><th>常见陷阱</th></tr></thead><tbody><tr><td>服务器 OS</td><td>内核版本与业务组件依赖、测评等级与有效期、驱动覆盖、迁移工具</td><td>只看品牌市占率，忽略内核 4.19→6.6 的兼容性断层</td></tr><tr><td>桌面 OS</td><td>外设/控件/打印、办公套件兼容、域管替代、用户培训成本</td><td>用「适配千万款」代替本项目软件清单验证</td></tr><tr><td>数据库</td><td>存量 SQL 方言、迁移工具链、RPO/RTO、同类核心案例、测评版本</td><td>以兼容模式宣称「零改写」，实际剩余 30% 人工处理</td></tr><tr><td>中间件</td><td>Jakarta EE 版本、连接池/会话保持、消息 SDK 架构版本</td><td>为替换而替换开源组件，放大回归面</td></tr><tr><td>云平台</td><td>一云多芯真实调度能力、镜像可迁移性、API 开放度、存量纳管</td><td>只做「界面统一」，底层仍按架构分池运维</td></tr><tr><td>JDK</td><td>驱动兼容性、GC 在目标架构表现、国密支持、JCE 策略</td><td>沿用 x86 调优参数，忽略 aarch64 下 G1/ZGC 差异</td></tr><tr><td>应用软件</td><td>控件替代、字体渲染、文件格式、宏兼容</td><td>忽略 ActiveX/OCX 类历史组件</td></tr></tbody></table></div>
+<hr class="sec-sep" />
+<h2 id="sec-26">9. 本章小结</h2>
+<ul><li>操作系统已形成「双寡头 + 云厂商 OS + 开源根社区」结构，内核向 6.6 收敛；<strong>适配结论不可跨内核版本沿用</strong>。</li><li>「适配千万款」「装机千万套」类数字口径混乱，招标应改为「本项目软件清单 × 指定组合」的适配证明。</li><li>2026 年第 2 号公告给出 8 款集中式 + 15 款分布式数据库测评结果，其中 Ⅱ 级 5 款；选型必须核对产品名、版本号、公告批次与三年有效期。</li><li>中间件是 Java 栈最直接替换点，但纯 Java/开源组件应优先保留，把预算集中在合规点名的层。</li><li>一云多芯是碎片化的主要收敛手段，同时带来平台锁定风险；多架构镜像与 NUMA 调优是落地关键。</li><li>大数据平台与数据湖属 L4 平台软件，国产化主要体现为发行版可控与适配能力；数据本体多可跨架构保留，风险集中在 native 依赖、SQL 方言、元数据与权限（§5）。</li><li>国产 JDK 均为 OpenJDK 衍生，<strong>驱动版本 × JDK 版本 × CPU 架构</strong>的组合压测不可省略，详见 <a href="07-migration.html">07</a> 的 Java 专项。</li></ul></article></div>
+
+<nav class="doc-pager" aria-label="上下篇导航"><a class="pg-link" href="04-hardware.html"><span>← 上一篇</span><b>04 核心硬件与算力底座</b></a><a class="pg-link pg-right" href="06-compliance.html"><span>下一篇 →</span><b>06 安全合规与测评认证体系</b></a></nav>
+
+    <footer>
+      <div class="wrap">
+        <div class="src">
+          <strong>站点说明</strong><br />
+          本页由 <code>05-基础软件与平台软件.md</code> 编译生成，<a href="05-基础软件与平台软件.md">查看 Markdown 原文</a>；
+          调研基准日 2026-11-05，政策与数据具时效性，引用前请按附录核验路径复核。<br />
+          纯静态、零外部依赖：样式与脚本均在 <code>assets/</code> 内，可离线阅读。
+        </div>
+        <p>信创（信息技术应用创新）研究专题 · 独立站点 · 不隶属于 KB 站群</p>
+      </div>
+    </footer>
+
+    <script src="assets/search-data.js"></script>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
