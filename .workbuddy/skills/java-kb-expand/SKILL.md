@@ -42,9 +42,9 @@ agent_created: true
 - 难度三级（覆盖 C/E/S/A/D）：专家 / 架构师 / 高级开发（求和 = `total`）。**标签位文案一律短表 专家 / 架构 / 高级**；M/G/K 不分难度等级。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **552** = 篇章C 252 + AI纵深A 74 + 核心原理 74 + 场景 74 + 垂直领域 78
-- 优先级 **P0=124 / P1=342 / P2=86**（求和 = 552）
-- 难度 **专家 64 / 架构师 265 / 高级开发 223**（求和 = 552；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 题目总量 **554** = 篇章C 252 + AI纵深A 74 + 核心原理 74 + 场景 74 + 垂直领域 80
+- 优先级 **P0=124 / P1=342 / P2=88**（求和 = 554）
+- 难度 **专家 65 / 架构师 265 / 高级开发 224**（求和 = 554；覆盖 C/E/S/A/D，M/G/K 不分级）
 - 方法论 **145 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
@@ -476,6 +476,14 @@ agent_created: true
 | P565 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 高级数（2026-11-06 升格裸计数） |
 | P566 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 架构数（2026-11-06 升格裸计数） |
 | P567 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 专家数（2026-11-06 升格裸计数） |
+| P568 | `index.html` | 根 index M 篇章 dir-subtitle 方法论卡数（2026-11-06 升格裸计数） |
+| P569 | `index.html` | 根 index C 篇章 dir-subtitle 篇章题数（2026-11-06 升格裸计数） |
+| P570 | `index.html` | 根 index E 篇章 dir-subtitle 核心原理数（2026-11-06 升格裸计数） |
+| P571 | `index.html` | 根 index S 篇章 dir-subtitle 场景题数（2026-11-06 升格裸计数） |
+| P572 | `index.html` | 根 index A 篇章 dir-subtitle AI 纵深数（2026-11-06 升格裸计数） |
+| P573 | `index.html` | 根 index G 篇章 dir-subtitle 工程化卡数（2026-11-06 升格裸计数） |
+| P574 | `index.html` | 根 index K 篇章 dir-subtitle 踩坑卡数（同键第二展示位，2026-11-06 升格裸计数） |
+| P575 | `index.html` | 根 index D 篇章 dir-subtitle 垂直领域题数（2026-11-06 升格裸计数） |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
