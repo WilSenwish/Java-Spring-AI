@@ -127,6 +127,30 @@
           <li>
             <a href="#C12.35"><span class="toc-number">C12.35</span>模型超时与降级开关</a>
           </li>
+          <li>
+            <a href="#C12.36"><span class="toc-number">C12.36</span>语义校验网关</a>
+          </li>
+          <li>
+            <a href="#C12.37"><span class="toc-number">C12.37</span>工具调用幂等与重试预算</a>
+          </li>
+          <li>
+            <a href="#C12.38"><span class="toc-number">C12.38</span>身份网关注入与 ExecutionContext</a>
+          </li>
+          <li>
+            <a href="#C12.39"><span class="toc-number">C12.39</span>语义缓存的全维度哈希与投毒防护</a>
+          </li>
+          <li>
+            <a href="#C12.40"><span class="toc-number">C12.40</span>语义 SRE 埋点</a>
+          </li>
+          <li>
+            <a href="#C12.41"><span class="toc-number">C12.41</span>故障快照回放与 Bad Case 回写评测集</a>
+          </li>
+          <li>
+            <a href="#C12.42"><span class="toc-number">C12.42</span>记忆写入闸门</a>
+          </li>
+          <li>
+            <a href="#C12.43"><span class="toc-number">C12.43</span>混沌注入与 kill switch 的 Spring 落地</a>
+          </li>
         </ol>
       </aside>
 
@@ -139,15 +163,15 @@
           <p class="chapter-subtitle">本篇按「检索先于生成、工具有契约、变更必回归」组织：Spring AI/RAG/Agent，经 Guardrails 与成本/多租户，到评测灰度与生产开关。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-14">M14</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：35</span>
+            <span>题目数：43</span>
             <span class="meta-divider">|</span>
-            <span>高级 ×4</span>
+            <span>高级 ×6</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×19</span>
+            <span>架构 ×24</span>
             <span class="meta-divider">|</span>
-            <span>专家 ×12</span>
+            <span>专家 ×13</span>
             <span class="meta-divider">|</span>
-            <span>预计复习：580 分钟</span>
+            <span>预计复习：640 分钟</span>
           </div>
 
           <div class="chapter-lead">
@@ -3702,6 +3726,8 @@ flowchart LR
                 <div class="callout-title">P0 表达提纲</div>
                 <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
               </div>
+
+              <p>检索门控在 Spring 侧落为 Advisor 链：先由查询改写与混合检索拿到候选，再由门控 Bean 依据租户、索引版本与白名单过滤；未达最低证据数的请求直接走拒答分支，不进入生成。<code class="inline-code">cited_docs</code> 写入执行上下文供后置校验与前端溯源，避免把校验逻辑塞进 Prompt 里。门控结果须计入语义正确率指标，而不是只记成功调用数。</p>
             </div>
           </div>
         </div>
@@ -3880,6 +3906,8 @@ flowchart LR
                 <div class="callout-title">P0 表达提纲</div>
                 <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
               </div>
+
+              <p>熔断用 Resilience4j 按依赖分层：模型网关、向量库、工具服务各自持有独立熔断器与舱壁，任一不可用只降本层，不拖垮主链路。重试归属必须唯一，建议只在网关层配置一次，下游标注为不可重试；超时预算由入口统一下发并在链路上递减，避免各层各自计时叠加出超长尾延迟。降级路径要预先准备缓存结果或静态答案，并绑定开关版本号。</p>
             </div>
           </div>
         </div>
@@ -4056,6 +4084,8 @@ flowchart LR
                 <div class="callout-title">P0 表达提纲</div>
                 <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
               </div>
+
+              <p>注入检测链落为三道过滤器：入口做不可信文本标记与分隔符隔离，工具返回做内容扫描与来源标注，出口做敏感字段与越权意图复核。关键在于消息结构隔离——用户内容、检索文档、系统约束分槽位组装，禁止拼成单一字符串；检测命中后按拒绝策略处理，而不是交给模型自行判断。所有命中与放行都写审计记录，供红队复盘与规则回放。</p>
             </div>
           </div>
         </div>
@@ -4652,6 +4682,8 @@ flowchart TD
                 <div class="callout-title">P0 表达提纲</div>
                 <p>先给可观测证据与门禁，再谈实现细节；避免只报组件名。</p>
               </div>
+
+              <p>错误分类必须先于重试：把超时、限流、schema 不符、业务拒绝、语义错分为不同 taxonomy，只有前两类允许自动重试，且同一业务请求只能由一层负责重试。Spring 侧用幂等键贯穿工具调用，键由网关注入而非模型生成；重试预算写进执行上下文并逐次递减，耗尽后走降级或人工终审，禁止用无限循环换成功率。</p>
             </div>
           </div>
         </div>
@@ -4774,6 +4806,13 @@ flowchart TD
                   <li><strong>降级返回 null</strong>：下游 NPE。降级返回语义安全的默认值或标记，下游显式处理。</li>
                 </ul>
               </div>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
+              <p>结构化输出用 <code class="inline-code">BeanOutputConverter</code> 拿类型约束，再叠 JSON Schema 强校验与业务规则校验，三层都放在模型之外。拒绝策略分四类：可修复字段缺失走补全后复验，类型错走一次性重生成，业务规则不符走拒答，连续失败走降级模板。禁止业务代码裸解析模型原始文本，也禁止把「请输出合法 JSON」当作唯一防线。</p>
             </div>
           </div>
         </div>
@@ -5129,6 +5168,8 @@ flowchart LR
                 <div class="callout-title">关键结论</div>
                 <p>语义缓存命中率 20%–40% 即已显著降本，叠加分级路由（小模型单价 ~1/10）整体成本可降 60%–70%；单轮 2–5k token 是成本归因与容量规划基准，成本看板需按模型/租户/接口拆分并设日成本告警。以上为<strong>参考基准，需以自身生产数据替换</strong>。</p>
               </div>
+
+              <p>语义缓存的 key 必须是全维度哈希：租户标识、模型版本、Prompt 版本、检索索引版本、工具契约版本与归一化后的输入共同入参，缺任一维度都会造成跨租户串答或旧版本命中。命中后不直接返回，仍要跑一遍后置语义校验，防止缓存投毒被放大；失效策略按版本变更主动清理，并记录命中率与校验拒绝率两个指标。</p>
             </div>
           </div>
         </div>
@@ -5371,6 +5412,13 @@ flowchart LR
                   <li><strong>万租户万 collection 资源爆炸</strong>：小租户也独立 collection，资源与管理开销爆炸。小租户应共享 collection。</li>
                 </ul>
               </div>
+            </div>
+          </div>
+
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
+              <p>租户隔离落为三层：网关层用执行上下文注入租户标识并校验令牌，检索层按租户分区或过滤表达式限制可见文档，缓存与向量库按租户维度做 key 前缀与配额隔离。配额与计费以每完成一个合规任务为单位归集，而不是按调用次数；跨租户命中率异常升高应作为一级告警，因为它通常意味着隔离维度漏进了哈希。</p>
             </div>
           </div>
         </div>
@@ -5909,6 +5957,13 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               </div>
             </div>
           </div>
+
+          <div class="content-layer" data-layer="production">
+            <div class="content-layer-title">生产实践</div>
+            <div class="content-layer-body">
+              <p>工具合约必填项落为注册表结构：鉴权主体、幂等键来源、超时上限、最大重试、是否可写、是否需要人工确认、配额上限、参数 schema 与版本号。注册在网关侧而非由模型声明，按会话动态挂载而非一次性永久挂载；调用前做白名单与 schema 校验，调用后落审计与副作用记录。合约版本变更按生产变更处理，必须过回归门禁。</p>
+            </div>
+          </div>
         </div>
 
         <div class="content-card" id="C12.33" data-difficulty="senior" data-priority="p1">
@@ -5922,6 +5977,13 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p>没有黄金集的 RAG 变更等于蒙眼发版。最小闭环：固定问题集 + 期望要点 + 打分 + 卡点阈值。</p>
             </div>
           </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>从单点容错到分层契约</strong>：早期把评测当作上线前的一次人工抽检，改动只验证能不能答；随后把检索与生成分开度量，黄金集版本化并绑定四方快照；再往后评测成为发布门禁，任何变更触发全量回归、指标不达标即阻断放量。当前方向是把线上差评与故障快照自动回灌为回归用例，并让故障注入常态化——评测不再是一次性验收，而是持续运行的信号源。</p>
+            </div>
+          </div>
+
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">原理映射</div>
             <div class="content-layer-body">
@@ -5967,6 +6029,13 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>Prompt 与工具副作用等同配置发布：要灰度、卡点、可关停。</p></div>
           </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>灰度对象从流量比例演进为契约面</strong>：起初只按百分比切流，观测延迟与报错；后来引入影子流量，在不影响用户的前提下比对新旧两版输出；再往后把 Prompt、工具契约、模型与索引作为四方版本化对象，任一维度变更都要求独立回滚点与评审记录。如今灰度前还要先过红队与故障注入门禁，确认降级开关与紧急停用可用，才允许进入放量。</p>
+            </div>
+          </div>
+
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">原理映射</div>
             <div class="content-layer-body">
@@ -6014,6 +6083,13 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p>模型慢会占满线程/连接；要用超时、隔离、降级话术与预算，而不是无限等待。</p>
             </div>
           </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>从被动超时到主动故障注入</strong>：最初只在调用侧配超时与重试，抖动时靠放大重试续命，结果常把局部故障放大为雪崩；随后改为熔断分层、重试归属唯一、并给降级路径准备静态答案或缓存结果；再往后把开关做成分层可回滚的配置，绑定审计与演练记录。当前要求把注入演练纳入常态：定期在影子流量里注入延迟、错误与语义错，验证告警、降级与回滚链路确实可用。</p>
+            </div>
+          </div>
+
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">原理映射</div>
             <div class="content-layer-body">
@@ -6046,6 +6122,350 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p>模型超时要有舱壁：线程/连接/信号量隔离，避免拖垮主链路。降级开关要用户可感文案，不是空响应。</p>
               <p>值班：先限流/降级，再查上游超时预算与重试是否放大。</p>
               <p>量化：read timeout 取模型 P99 × 1.5（通常 8~15s，流式另算首 token 预算），熔断错误率阈值 50% / 10s，舱壁并发 = 峰值 QPS × 平均 RT × 1.2 并留 20% 余量。演进：把「降级命中率、降级话术投诉率」纳入看板——做不到用户可感话术的降级不算演练通过；配额被打满时先按租户限流，再考虑切小模型，而非直接返回空响应。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.36" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.36</div>
+            <div class="content-question">语义校验网关：结构化输出之后还缺哪一层？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>结构化输出转换器只兑现 Java 类型，不兑现业务语义。本题考察 <code class="inline-code">StructuredOutputConverter</code> 与 Bean Validation 的职责边界、四段校验在 Spring 容器里各挂在哪个扩展点，以及拒绝响应怎样保留可回放的原始报文。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>从控制器内手工解析到独立校验链：早期在 ChatClient 回调里用 ObjectMapper 硬转，异常直接冒泡成 500；随后把转换收敛为 BeanOutputConverter 并把失败映射为一次受控重生成；再往后把 Jakarta Validation 与 JSON Schema 拆成两个独立 Validator Bean；当前把校验器版本、拒绝码与原始报文一起落审计表，使「模型退化」与「规则收紧」可以分开归因。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>反序列化成功只说明字段可赋值：金额单位、枚举取值、外键是否存在、状态机是否允许迁移，都不在类型系统里。FAIL_ON_UNKNOWN_PROPERTIES 管形状，约束组管取值，业务规则管上下文——三者必须顺序执行且任一失败即短路，否则前一层会把后一层的判据污染成默认值。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>在 ChatClient 的 entity(Record.class) 之后接一条 @Component 校验链：SchemaValidator 查必填与格式 → ConstraintValidator 按 Create/Update 分组 → BusinessRuleValidator 查库验证外键与权限 → RejectionPolicy 输出补全复验、单次重生成、拒答或降级模板。校验器独立成 Bean，不复用模型调用的线程池；每次结果写 validation_audit（trace_id、raw_output、converter_version、rule_version、reject_code）。缓存命中与降级模板同样进这条链，不设旁路。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么拒绝码要细分到可统计？「模型没按格式输出」与「格式对但外键不存在」对应完全不同的修复动作，合并成一个 4xx 会让重生成被滥用。为什么校验器版本必须入库？升级约束注解后历史样本会突然集体失败，没有版本字段就无法区分规则变更与模型变差。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>用 try/catch 包住转换异常后直接返回兜底对象；把 @Valid 写在 Controller 参数上却校验模型生成的 DTO；校验失败无限重生成；降级模板跳过业务规则；审计只存解析后对象而丢弃原始报文。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.37" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.37</div>
+            <div class="content-question">工具调用幂等与重试预算：为什么只能由一层重试？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>同一业务请求在网关、编排、工具三层各配一次重试，调用量会按乘积放大；更麻烦的是各层生成的幂等键不同，去重表形同虚设。本题考察把重试收敛为单一归属、并让预算随调用链递减的 Spring 配置方式。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>从注解散落到处处重试到入口统一治理：起初每个 Feign 客户端各自声明退避策略；随后把超时、限流与依赖不可用从异常堆里分类出来；再往后由网关生成 Idempotency-Key 并写入执行上下文；当前用一份 RetryBudget 贯穿全链路，任一层耗尽即强制降级。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>重试的收益只来自「瞬时故障的重新采样」。超时、429 与连接不可用的失败分布随时间变化，重采样有意义；参数错、权限拒绝与语义错的失败分布不变，重来一次只是重复副作用。因此错误分类必须先于重试配置，且幂等键的生成者必须是可信边界——交给模型，就等于让「哪些调用算同一次」由概率决定。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>只在 GatewayFilter 里注册一个 RetryRegistry 实例，RetryConfig 用 intervalBiFunction 加随机抖动；下游 @Tool 方法在 ToolMetadata 上标 retryable=false，执行层读取后跳过本地重试。HandlerInterceptor 从已认证会话生成 Idempotency-Key，写操作配 uk_idempotency 唯一索引，重复键返回首次结果而非再执行。RetryBudget 放在 ExecutionContext 用 AtomicInteger 递减，每次工具调用前 decrementAndGet()，归零抛 BudgetExhaustedException 转人工终审。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么抖动不能省？依赖恢复的瞬间，所有实例的退避计时器同时到期，脉冲会重新打垮刚恢复的下游。为什么预算要跨层共享？各层独立计时只能约束自己的调用数，回答不了「这次业务请求总共花了多少次模型调用」，成本硬顶因此失守。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>在 @Tool 与 Feign 上都标 @Retryable；幂等键拼 System.currentTimeMillis()；只给读操作建去重表；预算耗尽后仍走兜底循环；异常日志只记成功调用，失败样本无法沉淀为错误分类的输入。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.38" data-difficulty="expert" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.38</div>
+            <div class="content-question">身份网关注入与 ExecutionContext：模型为何拿不到身份？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>身份、租户与配额是已认证会话里的事实，不该出现在模型可见的参数列表里。本题考察 OncePerRequestFilter 到 ToolCallback 之间这条注入链如何防止被同名参数覆盖，以及审批状态机如何与工具执行解耦。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>从 Prompt 拼接身份到控制面托管：早期把 tenantId 写进 System Prompt；随后改为让模型填工具参数，随即出现跨租户取值；再往后由过滤器解析 JWT 并写入执行上下文；当前把只读注入、参数白名单、参数快照与审批单串成一次不可分割的调用准备阶段。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>模型给出的始终是意图而非凭据。只要身份字段出现在模型可写的参数集合里，提示注入就拥有了一条看似合法的越权路径。可信边界必须放在模型之外：注入字段在参数合并阶段标记为 readOnly，合并算法以网关值为准、丢弃同名入参，而不是依赖「谁覆盖谁」这类易被调换的顺序约定。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>OncePerRequestFilter 校验签名后把 Principal 写入 SecurityContextHolder，再构造 ExecutionContext（虚拟线程场景改用 ScopedValue 传递，避免 ThreadLocal 在载体线程复用时串号）。ToolContract 声明 injectableFields，ToolCallback#call 前由 ArgumentMerger 用白名单剔除模型提交的同名字段；工具方法上保留 @PreAuthorize 做最后一跳鉴权。高风险调用先落 tool_invocation_snapshot（参数、主体、工具版本、审批单号），状态机从 PENDING 迁到 APPROVED 才提交执行，审批与执行由不同服务账号完成。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么一次前端确认不够？用户看到的是摘要文本，执行的是参数对象；两者不通过不可变快照绑定，确认就失去了对象。为什么虚拟线程要换传递方式？ThreadLocal 依附于载体线程，池化复用会把上一个请求的身份带进下一个请求。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>把租户标识拼进 Prompt；参数合并允许模型覆盖注入字段；审批单只存布尔值不存参数哈希；工具方法省略方法级鉴权；给 Agent 配长期高权限 ServiceAccount。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.39" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.39</div>
+            <div class="content-question">语义缓存的全维度哈希与投毒防护<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>缓存命中率再高，只要 key 少了一个影响输出的维度，就会把一次错误答案复制给所有相似请求。本题考察 KeyGenerator 的维度组成、版本变更时的清理顺序，以及命中后的二次校验如何接进 @Cacheable 之外的路径。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>从字符串精确匹配到带前置与后置约束的复用：最初用输入文本做 Redis key；随后换成向量相似度检索，出现跨租户串答；再往后把租户与各组件版本纳入哈希；当前把命中后校验、拒绝率监控与按前缀主动失效一起写进缓存契约。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>缓存把一次概率性生成变成多次确定性返回，因此 key 必须是「所有影响输出的状态」的函数，而不是「输入是否相似」的函数。tenant / modelVersion / promptVersion / indexVersion / toolContractVersion / normalizedInput 任一变化都可能改写答案；相似度阈值只决定要不要查缓存，判断不了查到的内容是否正确。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>自定义 KeyGenerator 拼六维后用 SHA-256 截断，值对象里带 schemaVersion 字段便于反序列化兼容；命中后不直接返回，交给 CacheHitPostValidator 复核证据绑定与业务规则；用 Micrometer 注册 cache.hit 与 cache.postvalidation.reject 两个 Counter。版本发布时先按 tenant:model:* 前缀 SCAN + UNLINK 清理再切流量；拒绝率突增即熔断缓存并转人工复核；对空结果做短 TTL 负缓存防穿透。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么不能靠 TTL 自然过期？版本切换是事件而非时间；在旧 key 全部过期前，新旧答案会混合返回，归因时无法区分。为什么要记录拒绝率？命中率上升既可能是复用效率提高，也可能是被投毒的历史结果被反复返回，只有后置校验的拒绝数能区分这两者。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>key 只取输入文本；@Cacheable 方法直接返回缓存对象跳过校验器；版本发布不清理旧前缀；用命中率单独评估缓存健康；把疑似投毒样本写进评测基线。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.40" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.40</div>
+            <div class="content-question">语义 SRE 埋点：Micrometer 自定义指标与行为基线<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>语义错误不会体现在 HTTP 状态码里，因此 Spring 应用的埋点必须自己定义「什么算一次失败」。本题考察用 MeterRegistry 把语义正确率、行为偏离与成本做成一等指标，并控制标签基数。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>从 Actuator 默认指标到自定义语义指标：起初只暴露 http.server.requests；随后补 Token 与耗时；再往后按业务定义语义错计数器；当前把行为基线、快照索引与告警抑制规则一并纳入 ObservationRegistry 的观测约定。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>默认指标描述「调用完成」，业务需要「行为正确」。二者没有映射关系，所以必须新增语义维度：正确性、行为分布、成本、链路各一组 meter。标签设计上，只有能用于归因的维度（租户、模型版本、Prompt 版本）才进 tag；请求 ID、用户输入等高基数字段只能进日志与快照，否则时序库会被标签组合打爆。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>Counter.builder("ai.semantic.error").tag(...).register(registry) 记录「返回成功但语义错」，Timer 记录任务耗时，Gauge 暴露分场景行为基线；@Observed 把检索、工具、生成三段串进同一 TraceId。/actuator/prometheus 暴露后，Alertmanager 用 group_by: [tenant, model_version] 做同源聚合、inhibit_rules 压掉派生告警；每条告警带快照主键，值班可从快照回放到具体检索片段。单元测试用 SimpleMeterRegistry 断言计数增量，避免只靠线上验证埋点是否生效。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么标签基数要先算？标签每多一个取值就多一条时间序列，把 traceId 当标签会让指标量等于请求量。为什么埋点要有单测？埋点代码常落在异常分支里，线上不出错时永远不会被触发，等到真出事才发现计数器没注册。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>只暴露 Actuator 默认指标；把 traceId 或用户输入做成 tag；语义错与显式失败共用一个 Counter；告警不配抑制规则；快照只有日志没有结构化主键。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.41" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.41</div>
+            <div class="content-question">故障快照回放与 Bad Case 回写评测集<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>没有快照的语义故障无法复现，没有回写的评测集无法阻止复发。本题考察快照要素、回放环境隔离、Bad Case 入库与持续集成回归门禁的触发方式。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>从口述复盘到闭环回归</strong>：起初靠值班口述与截图；随后保存请求与响应日志；再往后要求四方版本快照与检索片段；当前把线上 Bad Case 经标注后回灌为回归用例，并让评测集与生产样本严格隔离。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>一次回答由 Prompt、模型、索引、工具、参数与随机性共同决定，缺任一维度都无法重放；而评测集若直接吸收生产流量，会被自身输出污染，形成评估污染与刷分。故快照要全、入库要筛、基线要冻结，三者缺一都会让回归门禁失去判别力。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>快照包含原始输入、模型与 Prompt 版本、索引版本、工具返回、检索文档标识、参数与随机种子、TraceId 与成本；回放在隔离环境执行，禁止触达生产写路径；Bad Case 经规则或人工标注后进候选池，抽样复核后并入盲集，触发持续集成回归门禁；报告可贴进变更单。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么入库前必须标注与抽样？未筛选的线上样本含噪声与重复，会稀释评测集区分度。为什么门禁要阻断而非告警？静默质量退化不会抛异常，只有发布卡点能阻止其进入放量；fail-plausible（错误被转化为流畅叙述且返回成功）须归入回归失败。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>只存最终回答不存中间检索；回放直连生产；把生产流量直接回灌为基线；无版本号导致无法定位变更；评测集与调优样本共用；回归失败仍允许「先上再补评测」。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.42" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.42</div>
+            <div class="content-question">记忆写入闸门：事件、审计表与谱系<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>持久化状态会累积偏差，局部合理的记忆更新可能漂移到从未授权的行为轨迹。本题考察 Spring 侧如何把记忆写入按生产变更准入，并用事件、审计表与谱系支撑回滚。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>从随手写库到变更准入</strong>：起初直接把对话摘要写库；随后加去重与 TTL；再往后引入写入前的回归比对；当前把写入视为生产变更，要求准入标准、谱系追踪、遗忘权与拒绝策略齐备。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>记忆不是缓存而是长期生效的配置，一次错误写入会在后续会话中反复被引用，偏差随写入次数累积。准入标准应是「没有在别处制造退化」，而非「本次写入局部有效」；因此写入前要在盲集上比对退化，写入后要能按谱系回滚，且系统硬约束不参与摘要压缩。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>用 Spring 事件把写入请求送进闸门，闸门校验来源、谱系父版本、冲突与敏感字段，再跑盲集退化比对；通过后写审计表，记录写入主体、时间、父版本、触发会话与回滚点；提供按主体与谱系的遗忘接口；拒绝策略写明哪些内容永不落盘，删除须覆盖主表、索引副本、缓存与日志片段。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么硬约束必须排除在压缩之外？压缩是有损重写，会把结构化约束降级为可被上下文争夺解释权的普通文本。为什么谱系要记父版本？没有父子关系就无法回答「这条记忆从哪次会话开始影响行为」，也无法做定点回滚。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>把记忆当普通缓存；写入无准入与回滚点；摘要压缩吞掉硬约束；审计表不记父版本；遗忘只删主表；拒绝策略缺失导致敏感内容落盘。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.43" data-difficulty="senior" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.43</div>
+            <div class="content-question">混沌注入与 kill switch 的 Spring 落地<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>降级开关若从未演练，故障时大概率不可用。本题考察注入点清单、影子流量隔离、开关层级、演练流程与回滚点。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>从事故后手改配置到常态演练</strong>：起初只在事故后手动改配置；随后加开关但无演练；再往后把注入点纳入发布前门禁；当前在影子流量里常态注入延迟、错误与语义错，验证告警、降级与回滚链路确实可用。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p>控制面的可信度只能由演练建立。注入的目的不是制造故障，而是证明「监测得到、降级得动、回滚得回」；因此注入必须在与生产隔离的影子流量中执行，且每个注入点都要有对应的观测指标与回滚点。只演练超时会留下静默失效这一最大盲区。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>注入点覆盖模型网关超时、工具返回异常、检索返回噪声、缓存投毒、语义错与权限拒绝；用配置中心做分层开关，按租户与场景灰度；演练前冻结快照，演练中记录指标偏离与告警时延，演练后核对降级路径与回滚点，结果进变更单；开关变更本身按生产变更留审计与版本号。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么 kill switch 要分层？全局一刀切会放大业务损失，按租户与工具维度收敛才能在止血与可用之间取平衡。为什么演练通过不等于永不失效？模型、Prompt 与工具版本变更后，原有降级路径可能失效，故注入演练须随发布节奏重复执行。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <p>开关从未演练；注入直连生产流量；只注入超时不注入语义错；开关无审计与版本号；演练无回滚点；把演练通过当作永久有效的证明。</p>
             </div>
           </div>
         </div>

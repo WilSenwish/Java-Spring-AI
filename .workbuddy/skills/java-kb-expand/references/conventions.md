@@ -500,14 +500,14 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **554** = 篇章C 252 + AI纵深A 74 + 核心原理 74 + 场景 74 + 垂直领域 80
-- 优先级 **P0=124 / P1=342 / P2=88**（求和 = 554）
-- 难度 **专家 65 / 架构师 265 / 高级开发 224**（求和 = 554；覆盖 C/E/S/A/D，M/G/K 不分级）
-- 方法论 **145 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
+- 题目总量 **581** = 篇章C 260 + AI纵深A 93 + 核心原理 74 + 场景 74 + 垂直领域 80
+- 优先级 **P0=136 / P1=355 / P2=90**（求和 = 581）
+- 难度 **专家 71 / 架构师 278 / 高级开发 232**（求和 = 581；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 方法论 **150 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章C+AI纵深A+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 0/145（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 0/150（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -942,6 +942,8 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P573 | `index.html` | 根 index G 篇章 dir-subtitle 工程化卡数（2026-11-06 升格裸计数） |
 | P574 | `index.html` | 根 index K 篇章 dir-subtitle 踩坑卡数（同键第二展示位，2026-11-06 升格裸计数） |
 | P575 | `index.html` | 根 index D 篇章 dir-subtitle 垂直领域题数（2026-11-06 升格裸计数） |
+| P576 | `index.html` | 批次 4 新增 A27 概率性系统与控制面 dir-group 题数（5 卡） |
+| P577 | `index.html` | 批次 4 新增 A28 静默失效、反模式与落地路径 dir-group 题数（3 卡） |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
@@ -984,3 +986,14 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 - **卡片顺序人工编排**：勿按文件名自动重排；现序为 导图 → 方法论 → 工程化 → 核心原理 → 场景 → 优先级总览 → ch01～15 → 安全。细则见 `docs/format-special.md` §7。
 - **难度徽标**：可按目标页 `data-difficulty` 实计的卡片均写 **专家 → 架构 → 高级** 的 `×N`（0 档省略）；导图入口 / 安全等无难度题卡的只标档位。详见 `docs/format-special.md` §7。
 - **技术栈全景 / 最新技术趋势**：`<details class="tag-cloud|trend-section index-fold">`，**默认折叠**（不加 `open`）。
+
+## 8.7 跨轴卡片去重门禁（2026-11-07 新增）
+
+- **背景**：仅靠 6-gram Jaccard 会低估「换几个词但整句照搬」；2026-11-07 第二轮独立审核发现 C12 新增卡与 A 轴存在系统性逐句复制，而当时 13 项门禁全 PASS。故补内容层门禁。
+- **入口**：`npm run audit:dedup`（`scripts/audit_cross_axis_dedup.py`）；双向验证 `npm run audit:dedup:probe`（`probe_cross_axis_dedup_gate.py`）。
+- **判据**：完全相同句数 ≥ `exact_fail`、近似句数 ≥ `near_fail`、去模板后全文 shingle Jaccard ≥ `jaccard_fail`，三者任一即 FAIL；违规对点名不截断。
+- **配置全部数据化**于 `docs/kb-counts.json` → `guard.cross_axis_dedup`：`scan` / `exclude` / 各阈值 / `focus_ids` / `exempt`。项目根走 `_kbroot.require_root(__file__)`，脚本禁写死绝对路径、禁写死编码子集、无关闭开关。
+- **结构性兜底**：`template_doc_freq` 自动剔除全库 doc_freq 过高的模板套话（如 G 篇共用提纲句），避免把历史模板误判为复制；门禁全量扫描所有卡对，不依赖枚举。
+- **变更范围**：`focus_ids` 为本轮新增/改动卡（与 `validate_kb.NEW_IDS` 同源口径）。**focus 卡违规 FAIL**；两卡均不在 focus 的历史基线仅 WARN 可见、不阻断。**新增卡必须同步登记 `focus_ids`**。
+- **豁免**：`exempt` 每条须含 `a` / `b` / `reason`，缺 `reason` 直接 FAIL；误报只准进豁免，禁调阈值。
+- **验证规约**：注入必 FAIL / 还原必 PASS / 豁免生效必 PASS / 豁免无理由必 FAIL，`try/finally` 还原三份文件，不依赖 `tmp/` 夹具，夹具缺失退 3。
