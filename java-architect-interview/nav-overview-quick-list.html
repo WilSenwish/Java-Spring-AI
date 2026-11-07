@@ -271,7 +271,7 @@
               <a href="#card-m13"><span class="toc-number">M13</span>M13 安全工程心智</a>
             </li>
             <li>
-              <a href="#card-m14"><span class="toc-number">M14</span>M14 AI 工程纪律</a>
+              <a href="#card-m14"><span class="toc-number">M14</span>M14 AI 工程判定式</a>
             </li>
             <li>
               <a href="#card-m15"><span class="toc-number">M15</span>M15 排障与复盘</a>
@@ -453,10 +453,10 @@
               <a href="#card-a12"><span class="toc-number">A12</span>A12 AI 工程范式演进</a>
             </li>
             <li>
-              <a href="#card-a13"><span class="toc-number">A13</span>A13 开源平台选型与对照</a>
+              <a href="#card-a13"><span class="toc-number">A13</span>A13 架构决策与能力边界</a>
             </li>
             <li>
-              <a href="#card-a14"><span class="toc-number">A14</span>A14 平台落地与产品化差异</a>
+              <a href="#card-a14"><span class="toc-number">A14</span>A14 框架内核与扩展点</a>
             </li>
             <li>
               <a href="#card-a15"><span class="toc-number">A15</span>A15 Spring AI 工程实践</a>
@@ -798,7 +798,7 @@
           </div>
 
           <div class="cheat-card" id="card-m14" style="--card-color: var(--code-m)">
-            <div class="cheat-card-header">M14 AI 工程纪律</div>
+            <div class="cheat-card-header">M14 AI 工程判定式</div>
             <div class="cheat-bullet"><strong>变更必回归黄金集</strong>：≥50 题固定评测集，任何 Prompt/模型/工具变更全量跑</div>
             <div class="cheat-bullet"><strong>放量四闸门</strong>：要点覆盖≥基线−2%；安全拒答 100%；P99 延迟≤基线×1.1；成本≤基线×1.1</div>
             <div class="cheat-bullet"><strong>灰度节奏</strong>：1%→10%→50%→100%，每档≥30 分钟</div>
@@ -811,6 +811,9 @@
             <div class="cheat-bullet"><strong>步数预算</strong>：可靠性是各步乘积，先定最大步数与交接校验点，压缩窗口不改变乘积结构</div>
             <div class="cheat-bullet"><strong>静默失效一级故障</strong>：200 OK 但语义错按故障计，看板必须有语义正确率与行为基线偏离</div>
             <div class="cheat-bullet"><strong>状态写入准入</strong>：记忆/索引/工具状态写入须带谱系、回滚点与拒绝策略，无回滚点不写入</div>
+            <div class="cheat-bullet"><strong>评测独立性</strong>：评测集与评估器独立于生成链路，生产样本回灌基线会污染门禁；judge 与被测模型同源会把偏见放大成「一致通过」</div>
+            <div class="cheat-bullet"><strong>变更单元与回滚点</strong>：模型/Prompt/索引/工具任一组合变更登记为同一变更单元并自带回滚点，无回滚点不进灰度</div>
+            <div class="cheat-bullet"><strong>语义可观测准入</strong>：列语义错为一级故障前先定义并埋点能判语义错的信号，否则立法不可执行</div>
           </div>
 
           <div class="cheat-card" id="card-m15" style="--card-color: var(--code-m)">
@@ -1448,15 +1451,19 @@
           </div>
 
           <div class="cheat-card" id="card-a13" style="--card-color: var(--code-a)">
-            <div class="cheat-card-header">A13 开源平台选型与对照</div>
-            <div class="cheat-bullet"><strong>RuoYi AI vs JEECG AI 双平台对照与选型</strong> 核心在于把「平台路线」与「自研路线」放进同一条光谱，而非当作非此即彼。</div>
-            <div class="cheat-bullet"><strong>平台 vs 自研决策树与 Ragent/Nexus 模块划分</strong> Ragent 7 模块与 Nexus 6 模块的分层意图是什么——为什么「切换模型 / 向量库 / 对象存储时核心问答流程不重写」是架构的第一验收标准。</div>
+            <div class="cheat-card-header">A13 架构决策与能力边界</div>
+            <div class="cheat-bullet"><strong>自建 vs 引入的决策边界：成熟度、锁定成本与退出路径</strong> 决策对象不是「整体自建或整体引入」，而是哪部分能力必须自己持有；真正的锁定发生在数据格式与评测资产里。</div>
+            <div class="cheat-bullet"><strong>Agent 平台能力地图：编排内核、工具注册表与可观测基座</strong> 注册表必须是准入而非清单，执行与治理分离，每个能力可观测 / 可灰度 / 可回滚。</div>
+            <div class="cheat-bullet"><strong>能力准入与生产分级</strong> 定级对象是「能力 × 场景」，放行条件须可判定，摘除必须比放行快。</div>
+            <div class="cheat-bullet"><strong>边界重估与兼容治理</strong> 兼容是语义等价而非签名相同；评测集与提示词资产能否迁移，才是边界的硬门槛。</div>
           </div>
 
           <div class="cheat-card" id="card-a14" style="--card-color: var(--code-a)">
-            <div class="cheat-card-header">A14 平台落地与产品化差异</div>
-            <div class="cheat-bullet"><strong>RuoYi ruoyi-chat vs JEECG airag 逐包对照</strong> 核心结论：平台包结构 ≈ 自研分层表的产品化。</div>
-            <div class="cheat-bullet"><strong>产品化 vs 自研差异（公平排队 / 事务 / 证据短路 / 11 种设计模式）</strong> 核心命题：「调 API ≠ 生产级 Agent」。</div>
+            <div class="cheat-card-header">A14 框架内核与扩展点</div>
+            <div class="cheat-bullet"><strong>Spring AI Advisor 链与扩展点：请求改写、记忆注入与审计横切</strong> 顺序即语义：改写在记忆注入之前，审计包住请求与响应两端，链序要有快照测试。</div>
+            <div class="cheat-bullet"><strong>ChatModel / ToolCallback SPI：多模型方言适配与可替换实现</strong> 可替换性来自稳定的接口边界与能力协商，而不是把所有模型压到最小公共能力集。</div>
+            <div class="cheat-bullet"><strong>观测扩展点：ObservationRegistry 与自定义 Node Span</strong> 生命周期成对、上下文只读、标签基数有界；取消路径最容易漏 close。</div>
+            <div class="cheat-bullet"><strong>能力协商式自动配置</strong> 装配期把缺能力暴露成启动失败，能力矩阵与运行期探测必须共用一份声明。</div>
           </div>
 
           <div class="cheat-card" id="card-a15" style="--card-color: var(--code-a)">
@@ -1468,7 +1475,7 @@
 
           <div class="cheat-card" id="card-a16" style="--card-color: var(--code-a)">
             <div class="cheat-card-header">A16 生产级 Agent 中间件</div>
-            <div class="cheat-bullet"><strong>Ragent 双链路 v1/v2 与 Nexus 三层执行器</strong> MCP 边界为什么「客户端仅在 agent 模块装配、Workflow 不连 MCP」？</div>
+            <div class="cheat-bullet"><strong>双链路 v1/v2 与三层执行器</strong> MCP 边界为什么「客户端仅在 agent 模块装配、Workflow 不连 MCP」？</div>
             <div class="cheat-bullet"><strong>检索融合 RRF 与模型容错三态熔断</strong> 模型容错的「首包探测 + 三态熔断 + 多候选切换」如何设计？</div>
             <div class="cheat-bullet"><strong>Redis ZSET 公平排队与 RocketMQ 事务一致</strong> 海量文档分块入库为什么必须 RocketMQ 事务消息（半消息 + 本地事务 + 回查）+ 幂等 + 分布式锁状态机。</div>
             <div class="cheat-bullet"><strong>11 种设计模式与&quot;调 API ≠ 生产级 Agent&quot;</strong> 以及中间件 / 基础组件的 Starter 化交付范式（防重 Starter：AOP + 注解复用）如何提升工程复用度。</div>

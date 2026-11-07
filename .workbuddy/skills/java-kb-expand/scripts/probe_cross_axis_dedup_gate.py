@@ -21,6 +21,48 @@ A_HOST = os.path.join(BASE, "java-architect-interview", "chapter-question-ai-eng
 C_HOST = os.path.join(BASE, "java-architect-interview", "chapter-12-ai-engineering.html")
 SRC, DST = "A19.03", "C12.40"
 
+# 兼容空数组与已有豁免台账：按锚点定位 cross_axis_dedup 的 exempt 数组整体
+EXEMPT_ANCHOR = '"jaccard_fail": 0.3,\n      "exempt": '
+
+
+def exempt_span(t):
+    assert t.count(EXEMPT_ANCHOR) == 1, "exempt 锚点异常（须唯一命中 cross_axis_dedup 块）"
+    s = t.index(EXEMPT_ANCHOR) + len(EXEMPT_ANCHOR)
+    assert t[s] == "[", "exempt 值须为数组"
+    depth, in_str, esc = 0, False, False
+    for j in range(s, len(t)):
+        ch = t[j]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == chr(92):
+                esc = True
+            elif ch == '"':
+                in_str = False
+        else:
+            if ch == '"':
+                in_str = True
+            elif ch == "[":
+                depth += 1
+            elif ch == "]":
+                depth -= 1
+                if depth == 0:
+                    return s, j + 1
+    raise AssertionError("exempt 数组未闭合")
+
+
+def read_exempt(t):
+    s, e = exempt_span(t)
+    return json.loads(t[s:e])
+
+
+def write_exempt(items):
+    s0 = open(SSOT, encoding="utf-8").read()
+    s, e = exempt_span(s0)
+    open(SSOT, "w", encoding="utf-8").write(
+        s0[:s] + json.dumps(items, ensure_ascii=False) + s0[e:])
+
+
 
 def run_gate():
     r = subprocess.run([sys.executable, GATE, "--json"], cwd=BASE,
@@ -122,13 +164,9 @@ def main():
             open(p, "w", encoding="utf-8").write(s)
 
         print("=== 5) 豁免台账生效（注入 + 合法豁免）应 PASS ===")
-        t = open(SSOT, encoding="utf-8").read()
-        old = '"jaccard_fail": 0.3,\n      "exempt": []'
-        assert t.count(old) == 1, "exempt 锚点异常（须唯一命中 cross_axis_dedup 块）"
-        t = t.replace(old, '"jaccard_fail": 0.3,\n      "exempt": '
-                      '[{"a": "%s", "b": "%s", "reason": "probe 临时豁免验证"}]'
-                      % (DST, SRC), 1)
-        open(SSOT, "w", encoding="utf-8").write(t)
+        cur = read_exempt(open(SSOT, encoding="utf-8").read())
+        cur.append({"a": DST, "b": SRC, "reason": "probe 临时豁免验证"})
+        write_exempt(cur)
         inject(C_HOST, DST, sents[:4])
         rc, data = run_gate()
         ok &= expect(rc == 0, "豁免生效 PASS", f"rc={rc} violations={data.get('violations', [])[:1]}")
@@ -136,11 +174,7 @@ def main():
             open(p, "w", encoding="utf-8").write(s)
 
         print("=== 6) 豁免缺 reason 应 FAIL（台账校验） ===")
-        t = open(SSOT, encoding="utf-8").read()
-        t = t.replace('"jaccard_fail": 0.3,\n      "exempt": []',
-                      '"jaccard_fail": 0.3,\n      "exempt": [{"a": "%s", "b": "%s"}]'
-                      % (DST, SRC), 1)
-        open(SSOT, "w", encoding="utf-8").write(t)
+        write_exempt([{"a": DST, "b": SRC}])
         rc, _ = run_gate()
         ok &= expect(rc == 1, "豁免无理由必 FAIL", f"rc={rc}")
     finally:
