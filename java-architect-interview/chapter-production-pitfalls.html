@@ -326,7 +326,7 @@
           <div class="chapter-meta">
             <span><span class="kb-count" data-kb-count="pitfalls_groups" data-kb-pos="P348">10</span> 组 · <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P92">71</span> 卡</span>
             <span class="meta-divider">|</span>
-            <span>题目总量（C+A+E+S+D）<span class="kb-count" data-kb-count="total" data-kb-pos="P98">594</span></span>
+            <span>题目总量（C+A+E+S+D）<span class="kb-count" data-kb-count="total" data-kb-pos="P98">614</span></span>
             <span class="meta-divider">|</span>
             <span>ID 前缀 K</span>
             <span class="meta-divider">|</span>
@@ -347,7 +347,7 @@
             <div class="chapter-lead-block">
               <div class="chapter-lead-label">与工程化对照</div>
               <ul class="chapter-lead-points">
-                <li>十组与工程化要点 G01～G10 一一对应，便于互链对照「门禁被绕过会怎样」。</li>
+                <li>K 篇十组与工程化要点 G01～G10 一一对应；G11 为组织治理新增组，暂无 K 对位，便于互链对照「门禁被绕过会怎样」。</li>
                 <li>每卡三层：事故叙事 → 识别要点 → 止血与复盘（对齐 G 的洞察 / 原理 / 表达）。</li>
                 <li>导图：生产踩坑心智地图；细节与值班顺序以本页「止血与复盘」层为准。</li>
               </ul>
@@ -2109,7 +2109,13 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">止血与复盘</div>
-              <div class="content-layer-body"><p>值班顺序：①隔离受影响流量 ②拉血缘定位漂移数据集版本 ③回滚到上一稳定模型+数据快照 ④补漂移监控门禁。互链 G09.01 / A29.01。</p></div>
+              <div class="content-layer-body">
+                <p>值班顺序：①隔离受影响流量 ②拉血缘定位漂移数据集版本 ③回滚到上一稳定模型+数据快照 ④补漂移监控门禁。互链 G09.01 / A29.01。</p>
+                <p><strong>事故信号</strong>：总量与耗时都正常，但核心意图通过率连续 3 天下滑、意图分布 PSI >0.2、检索片段来源占比突变；值班若只看「有没有报错」会完全漏掉这类静默退化。</p>
+                <p><strong>回放与责任</strong>：按 <code>dataset_ver / index_ver</code> 回放重建当时的检索输入，定位到新渠道数据稀释了核心意图；责任人 = 数据 owner（非模型 owner）。<strong>预防机制</strong>：按意图分桶监测 + 漂移超阈自动冻结下游评测与训练，回写一条常驻对抗用例（C12.41）。</p>
+
+                <p><strong>验收口径</strong>：回放能在十分钟内重建当时的检索输入与意图分桶结果；冻结动作必须在变更单里有对应记录；对抗用例下一次同类变更应被卡门拦住，否则视为预防机制未生效。</p>
+              </div>
             </div>
           </div>
 
@@ -2128,7 +2134,13 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">止血与复盘</div>
-              <div class="content-layer-body"><p>值班：①端侧切回上一稳定版本 ②校验端云版本清单一致性 ③签名校验阻断脏模型 ④真机回放对齐。互链 G10.01 / A30.01。</p></div>
+              <div class="content-layer-body">
+                <p>值班：①端侧切回上一稳定版本 ②校验端云版本清单一致性 ③签名校验阻断脏模型 ④真机回放对齐。互链 G10.01 / A30.01。</p>
+                <p><strong>事故信号</strong>：同版本号下不同设备组的输出分布分裂、加载失败后静默回落旧权重、离线队列集中回传造成采集积压；最容易被误判为「偶发模型抖动」。</p>
+                <p><strong>回放与责任</strong>：按下发批次与设备分组回放，发现低端机未过设备兼容校验却拿了新权重；责任人 = 端侧发布 owner。<strong>预防机制</strong>：下发前设备能力校验、加载成功回执强制核对、分组灰度与一键回滚（C12.45）。</p>
+
+                <p><strong>验收口径</strong>：任一设备分组都能按下发批次查到加载回执与量化方案版本；模拟低端机加载失败时不得静默回落，必须产生告警并停止该批次放量。</p>
+              </div>
             </div>
           </div>
 
@@ -2147,7 +2159,13 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">止血与复盘</div>
-              <div class="content-layer-body"><p>值班：①降级到纯文本兜底 ②开启跨模态一致性校验与引用溯源 ③补多模态专项评测。互链 G10.02 / A32.01。</p></div>
+              <div class="content-layer-body">
+                <p>值班：①降级到纯文本兜底 ②开启跨模态一致性校验与引用溯源 ③补多模态专项评测。互链 G10.02 / A32.01。</p>
+                <p><strong>事故信号</strong>：回答流畅但引用的图中并不存在该物体、OCR 误识别改变了用户意图、引用片段无法点开；结果级指标与错误率均显示正常。</p>
+                <p><strong>回放与责任</strong>：回放发现 ASR/OCR 输出被当事实直传且 confidence 未入日志；责任人 = 链路 owner。<strong>预防机制</strong>：转换层输出置信度与时间戳、低置信度强制澄清、跨模态一致性断言进 CI（A33.05）。</p>
+
+                <p><strong>验收口径</strong>：随机抽取回答均能点开原始片段并看到时间戳或帧号；低置信度样本必须走澄清分支；跨模态一致性断言失败时输出被阻断而非降级继续生成。</p>
+              </div>
             </div>
           </div>
         </section>
@@ -2172,7 +2190,13 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">止血与复盘</div>
-              <div class="content-layer-body"><p>止血：①补 append-only 审计（含拒绝路径）②存储边界补脱敏 ③consent 闸门上线 ④决策依据回填。互链 G09.03 / C12.46。</p></div>
+              <div class="content-layer-body">
+                <p>止血：①补 append-only 审计（含拒绝路径）②存储边界补脱敏 ③consent 闸门上线 ④决策依据回填。互链 G09.03 / C12.46。</p>
+                <p><strong>事故信号</strong>：监管询问「为什么这笔被拒绝」时无法提供留痕；或审计表只有成功路径、哈希链出现断号、降级与人工放行无记录。</p>
+                <p><strong>回放与责任</strong>：按 run_id 回放发现拒绝路径由前置规则直接短路，未走审计 Advisor；责任人 = 合规 owner。<strong>预防机制</strong>：把审计做成网关层统一切面而非各业务自行埋点，四条路径全覆盖并做「有响应无审计」的对账告警（C12.46）。</p>
+
+                <p><strong>验收口径</strong>：构造一次「有响应无审计」的注入用例，对账告警应在分钟内触发；监管抽查任一笔拒绝都能在十分钟内拿到完整留痕链，含降级与人工放行记录。</p>
+              </div>
             </div>
           </div>
 
@@ -2191,7 +2215,13 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">止血与复盘</div>
-              <div class="content-layer-body"><p>止血：①关闭全部隐藏入口 ②清点调用方 ③归档权重保留回滚 ④退役标准作业固化。互链 G10.03 / M14.S19。</p></div>
+              <div class="content-layer-body">
+                <p>止血：①关闭全部隐藏入口 ②清点调用方 ③归档权重保留回滚 ④退役标准作业固化。互链 G10.03 / M14.S19。</p>
+                <p><strong>事故信号</strong>：账单仍在产生调用、别名仍可解析、旧的定时任务继续拉起已下线模型，但没人记得该服务还活着；通常伴随「无 owner」的孤儿配置项。</p>
+                <p><strong>回放与责任</strong>：回放别名映射变更记录，发现退役只关了入口没解绑别名与定时任务；责任人 = 平台 owner。<strong>预防机制</strong>：退役五项清单逐项打勾 + 别名 TTL 到期复核 + 定时任务绑定 owner 与有效期（C10.34）。</p>
+
+                <p><strong>验收口径</strong>：别名解析、定时任务、账单调用三项在退役清单完成后均不可再产生新记录；到期复核未通过时别名自动失效，孤儿配置项能被平台扫描列出。</p>
+              </div>
             </div>
           </div>
 
@@ -2210,7 +2240,13 @@
             </div>
             <div class="content-layer" data-layer="application">
               <div class="content-layer-title">止血与复盘</div>
-              <div class="content-layer-body"><p>止血：①冻结自动执行 ②高风险动作强制人工确认 ③人在环审计留痕 ④降级触发人工。互链 G10.03 / M14.S20。</p></div>
+              <div class="content-layer-body">
+                <p>止血：①冻结自动执行 ②高风险动作强制人工确认 ③人在环审计留痕 ④降级触发人工。互链 G10.03 / M14.S20。</p>
+                <p><strong>事故信号</strong>：高风险动作（写库/外发/费用产生）在无人确认下自动执行，或审批超时被默认放行；审批等待时长突然下降而违规率上升，是典型的「一键通过」信号。</p>
+                <p><strong>回放与责任</strong>：回放审批事件缺失，发现超时策略配置为默认放行且审批记录未进轨迹；责任人 = 平台策略 owner。<strong>预防机制</strong>：按可逆性/影响面做 R0～R3 分级、超时默认拒绝 + 自动升级、审批决策进轨迹与审计（A33.09）。</p>
+
+                <p><strong>验收口径</strong>：审批超时注入必须落到拒绝并升级到备份审批人；审批记录可按人与动作反查；抽样复审违规率应随分级调整下降，而不是靠增加审批数量掩盖。</p>
+              </div>
             </div>
           </div>
         </section>

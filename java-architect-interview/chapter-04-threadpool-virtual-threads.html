@@ -52,6 +52,9 @@
           <li>
             <a href="#C04.10"><span class="toc-number">C04.10</span>ScopedValue 与 ThreadLocal</a>
           </li>
+          <li>
+            <a href="#C04.11"><span class="toc-number">C04.11</span>Java 25+ 运行时演进与生产选型</a>
+          </li>
         </ol>
       </aside>
 
@@ -64,9 +67,9 @@
           <p class="chapter-subtitle">本篇回答「任务如何被承载」：池化七参数与状态机 → ThreadLocal 语境 → 虚拟线程/pinning → 异步编排与结构化并发。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-12">M12</a> / <a href="chapter-core-methodology.html#m-group-08">M08</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：10</span>
+            <span>题目数：11</span>
             <span class="meta-divider">|</span>
-            <span>高级 ×5</span>
+            <span>高级 ×6</span>
             <span class="meta-divider">|</span>
             <span>架构 ×3</span>
             <span class="meta-divider">|</span>
@@ -2023,6 +2026,60 @@ flowchart TD
                 <div class="callout-title">关键结论</div>
                 <p>高并发阻塞等待场景应优先评估虚拟线程；CPU 密集型通常继续使用按核数配置的平台线程池。大量虚拟线程中的 ThreadLocal 是潜在内存和继承成本，one-way immutable context 可迁移 ScopedValue；压测务必监控 pinning 事件并按 JDK 版本治理热点。（以上为验证方法，不是固定性能基准）</p>
               </div>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C04.11" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C04.11</div>
+            <div class="content-question">Java 25+ 运行时演进：哪些能力值得为生产升级付成本？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>站点现有内容覆盖到 Java 21（虚拟线程、结构化并发预览、Scoped Value），而 2026 年岗位已把 Java 25+ 列为加分项。升级不是追版本号，而是判断<strong>新特性能否在现有线程模型、框架版本与运维体系下换来可测量的吞吐或稳定性收益</strong>。</p>
+              <p>本题要给出一张升级决策表：特性成熟度（正式 / 预览）、对现有代码的侵入面、依赖框架的最低版本、回退成本，以及不该升级的判据。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>Java 8 → 11/17</strong>：主要是 GC、模块化与 TLS/HTTP Client 的现代化，多数应用无感升级。</p>
+              <p><strong>Java 21（LTS）</strong>：虚拟线程正式（JEP 444）改变阻塞 I/O 的承载方式；结构化并发、Scoped Value 仍处预览，生产使用需 <code>--enable-preview</code> 且不能直接跨版本升级（C04.08 / C04.10）。</p>
+              <p><strong>Java 25（LTS）</strong>：结构化并发与 Scoped Value 继续演进、稳定 API 逐步收敛，并补强 JFR / 可观测与启动性能相关能力；关键变化是<strong>预览 API 的签名可能变动</strong>，跨版本升级需要重新编译与回归。</p>
+              <p><strong>后续方向（Valhalla / 值类型）</strong>：面向值语义与内存布局优化，主要收益在数值密集与大量小对象场景，业务 CRUD 收益有限，属于观察项而非升级理由。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>升级收益必须可测量</strong>：虚拟线程的收益来自「大量阻塞 I/O 并发」，若应用是 CPU 密集或已被连接池限流，换 JDK 不会提高吞吐；先用 JFR 看线程数、parking 时间与连接池等待，再决定。</p>
+              <p><strong>预览特性不入核心链路</strong>：预览 API 允许在下个版本变更或移除，把它放进支付/订单主链路等于把升级成本固化；可放在内部工具、批处理或可快速回滚的旁路。</p>
+              <p><strong>pinning 与 synchronized 仍是硬约束</strong>：虚拟线程遇到 <code>synchronized</code> 或 native 栈帧会钉住载体线程；升级前先用 JFR 事件或 <code>-Djdk.tracePinnedThreads</code> 盘点（C04.09）。</p>
+              <p><strong>框架兼容性优先于语言特性</strong>：Spring Boot / Netty / JDBC 驱动 / 字节码增强 Agent（APM、Mock、覆盖率）对 JDK 版本敏感，升级顺序应是「依赖矩阵 → 构建与测试 → 灰度实例 → 全量」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>升级检查单：①列出 JDK 版本相关的依赖最小版本（Spring Boot、Netty、GraalVM、APM Agent、Lombok、字节码框架）；②CI 用目标 JDK 编译并跑全量测试，禁用 <code>--enable-preview</code> 跑生产构建；③JFR 录制典型高峰 30 分钟，对比 GC 暂停、分配速率、载体线程数、socket read 等待；④灰度 5% 实例观察 24～48 小时，重点是 TLS/加密套件、序列化兼容与反射告警。</p>
+              <p>判断「值得升级」的量化信号：阻塞 I/O 线程等待占比 > 40%、线程数长期接近容器线程上限、且连接池不是瓶颈时，虚拟线程可把并发承载提升一个量级；反之若 P95 延迟由数据库慢查询主导，升级收益接近 0。</p>
+              <p>回退预案：容器镜像与 JDK 版本绑定，保留上一 LTS 镜像可直接回滚；避免在升级同一批次引入框架大版本升级，否则事故归因无法拆分。结构化并发若已用于生产，要把 <code>StructuredTaskScope</code> 的用法封装在适配层，便于 API 变更时只改一处。</p>
+              <p>与 AI 长响应链路的关系：C12.47 的 SSE 长连接适合虚拟线程承载大量空闲连接，但推理调用的执行时限与取消仍由任务状态机负责；不要把「换 JDK」当作异步架构的替代方案。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body"></div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把预览特性写进公共基础库：下个 JDK 版本 API 变更时，所有业务线被迫同步升级，升级成本从一次变成 N 次。</p>
+              <p>忽略 APM/字节码 Agent 兼容：灰度实例直接 OOM 或启动失败，且因 Agent 在 -javaagent 阶段报错，日志里看不到业务堆栈。</p>
+              <p>只看吞吐不看尾延迟：虚拟线程让并发数上升，下游数据库连接池被打满，P99 反而恶化。</p>
+              <p>以「Java 25+ 是加分项」为唯一理由升级：没有基线对比与回退方案，出问题后无法证明是 JDK 还是同批次变更引入。</p>
+              <p><strong>向下回指</strong>：C04.04 / C04.08 / C04.09 / C04.10 / E01.01 / S06.01。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
             </div>
           </div>
         </div>

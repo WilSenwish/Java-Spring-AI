@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>生产生命周期检索视图 | Java 工程能力知识库</title>
+    <script src="assets/theme-init.js"></script>
+    <link rel="stylesheet" href="assets/design-system.css" />
+    <style>
+      .kbx-wrap { max-width: 1100px; margin: 0 auto; padding: 0 var(--space-md) var(--space-xl); }
+      .kbx-hero { max-width: 1100px; margin: 0 auto; padding: var(--space-lg) var(--space-md) var(--space-md); text-align: center; }
+      .kbx-hero h1 { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: var(--space-xs); background: linear-gradient(135deg, var(--accent), var(--accent-alt)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+      .kbx-hero .kbx-subtitle { font-size: 1rem; color: var(--muted); max-width: 760px; margin: 0 auto; line-height: 1.75; }
+      .kbx-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; margin-bottom: var(--space-lg); padding: var(--space-sm) var(--space-md); background: var(--bg-card); border: 1px solid var(--rule); border-radius: var(--radius-md); }
+      .kbx-toolbar input { flex: 1 1 240px; min-width: 180px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: var(--radius-sm, 6px); background: var(--bg-page); color: var(--ink); font-size: 0.9rem; }
+      .kbx-toolbar button { padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--bg-page); color: var(--muted); cursor: pointer; font-size: 0.8rem; }
+      .kbx-toolbar button.is-active { border-color: var(--accent); color: var(--accent); background: var(--bg-card); }
+      .kbx-group { margin-bottom: var(--space-lg); }
+      .kbx-group-title { font-size: 1.15rem; font-weight: 700; color: var(--ink); padding-bottom: var(--space-xs); margin-bottom: var(--space-sm); border-bottom: 2px solid var(--rule); }
+      .kbx-dim { background: var(--bg-card); border: 1px solid var(--rule); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); }
+      .kbx-dim-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+      .kbx-dim-name { font-weight: 700; color: var(--ink); font-size: 0.98rem; }
+      .kbx-grade { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+      .kbx-grade-strong { color: var(--code-c); border-color: var(--code-c); }
+      .kbx-grade-up { color: var(--accent-alt); border-color: var(--accent-alt); }
+      .kbx-new { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--accent); color: var(--accent); }
+      .kbx-links { display: flex; flex-wrap: wrap; gap: 6px; }
+      .kbx-link { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; text-decoration: none; color: var(--muted); border: 1px solid var(--rule); border-radius: var(--radius-sm, 6px); padding: 3px 8px; background: var(--bg-page); }
+      .kbx-link:hover { color: var(--accent); border-color: var(--accent); }
+      .kbx-link b { color: var(--code-c); font-family: var(--font-mono); font-weight: 600; }
+      .kbx-link.is-new b { color: var(--accent-alt); }
+      .kbx-stage-lead { color: var(--muted); font-size: 0.88rem; margin-bottom: var(--space-sm); }
+      .kbx-empty { display: none; color: var(--muted); text-align: center; padding: var(--space-lg); }
+      @media (max-width: 768px) { .kbx-hero h1 { font-size: 1.55rem; } .kbx-wrap { padding: 0 var(--space-sm) var(--space-lg); } }
+    </style>
+  </head>
+  <body>
+    <div class="site-page-nav site-page-nav--top">
+      <nav class="chapter-nav-top">
+        <a href="../index.html" class="nav-home">← 返回总目录</a>
+        <span class="nav-center"></span>
+        <a href="nav-overview-priority.html" class="nav-next">优先级总览 →</a>
+      </nav>
+    </div>
+
+    <section class="kbx-hero">
+      <h1>生产生命周期 · 检索视图</h1>
+      <p class="kbx-subtitle">按立项 → 准入 → 上线 → 运营 → 退役的阶段顺序重排既有卡片，用于从「当前处在哪个阶段、该核对什么」出发定位架构决策、门禁清单与事故回放。页面只做索引，不复制正文。</p>
+    </section>
+
+    <main class="kbx-wrap">
+      <div class="kbx-toolbar">
+        <input id="kbx-q" type="search" placeholder="输入能力名、卡号或关键词筛选" aria-label="检索" />
+        <button type="button" data-filter="all" class="is-active">全部</button><button type="button" data-filter="立项">立项</button><button type="button" data-filter="准入">准入</button><button type="button" data-filter="上线">上线</button><button type="button" data-filter="运营">运营</button><button type="button" data-filter="退役">退役</button>
+      </div>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">立项 · 可行性、边界与架构决策</h2>
+        <p class="kbx-stage-lead">先定边界与可承诺的 SLO，再谈实现；决策要留下可查询的记录。</p>
+        <article class="kbx-dim kbx-stage-card" data-cat="立项">
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.31" title="微服务拆分与 DDD 边界：什么时候该合并回去？"><b>C10.31</b>微服务拆分与 DDD 边界：什么时候该合并回去？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.32" title="容量规划与 SLO 分解：从「压测通过」到「可承诺的容量」"><b>C10.32</b>容量规划与 SLO 分解：从「压测通过」到「可承</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.34" title="平台工程 / IDP：黄金路径怎么设计才不会变成新瓶颈？"><b>C10.34</b>平台工程 / IDP：黄金路径怎么设计才不会变成</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.18" title="单元化 / 异地多活：故障域与流量调度怎么定架构决策？"><b>C09.18</b>单元化 / 异地多活：故障域与流量调度怎么定架构</a><a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.11" title="Java 25+ 运行时演进：哪些能力值得为生产升级付成本？"><b>C04.11</b>Java 25+ 运行时演进：哪些能力值得为生产</a><a class="kbx-link" href="chapter-14-databases.html#C14.15" title="数据治理与指标口径统一：为什么「同名不同数」是架构问题？"><b>C14.15</b>数据治理与指标口径统一：为什么「同名不同数」是架</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.32" title="非 AI 成本治理 / FinOps：基础设施成本如何变成可归因的工程指标？"><b>C11.32</b>非 AI 成本治理 / FinOps：基础设施成</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.02" title="技术债治理与架构评审门禁：让「为什么这样设计」可查"><b>G11.02</b>技术债治理与架构评审门禁：让「为什么这样设计」可</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.02" title="LLMOps 体系：模型 / Prompt / 数据集 / 评测集的版本、血缘与责任归属"><b>A33.02</b>LLMOps 体系：模型 / Prompt / </a><a class="kbx-link" href="chapter-core-methodology.html#M14.F15" title="算力/FinOps 工程抓手（GPU 利用率·调度·二阶成本）"><b>M14.F15</b>算力/FinOps 工程抓手（GPU 利用率·调</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.33" title="云原生交付平台化：K8s / CI-CD 如何从工具变成门禁？"><b>C10.33</b>云原生交付平台化：K8s / CI-CD 如何从</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.15" title="分布式系统的容灾与多活架构如何设计？"><b>C09.15</b>分布式系统的容灾与多活架构如何设计？</a>
+          </div>
+        </article>
+      </section>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">准入 · 评测集、数据与合规门禁</h2>
+        <p class="kbx-stage-lead">把「能不能上线」变成可复核的卡点：评测回归、数据血缘、权限边界、执行隔离。</p>
+        <article class="kbx-dim kbx-stage-card" data-cat="准入">
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.01" title="轨迹级评测（trajectory eval）：为什么结果正确不等于过程可信？"><b>A33.01</b>轨迹级评测（trajectory eval）：为</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.33" title="RAG 评测集最小闭环：上线前至少跑哪些回归？"><b>C12.33</b>RAG 评测集最小闭环：上线前至少跑哪些回归？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.44" title="数据生命周期治理：数据集版本/漂移/集管理如何用 Spring AI 工程化？"><b>C12.44</b>数据生命周期治理：数据集版本/漂移/集管理如何用</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.46" title="受监管合规工程落地：不可变审计/PII 脱敏/决策可回放如何做？"><b>C12.46</b>受监管合规工程落地：不可变审计/PII 脱敏/决</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.48" title="模型网关作为平台层，统一契约应该包含哪些能力？"><b>C12.48</b>模型网关作为平台层，统一契约应该包含哪些能力？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.36" title="语义校验网关：结构化输出之后还缺哪一层？"><b>C12.36</b>语义校验网关：结构化输出之后还缺哪一层？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.38" title="身份网关注入与 ExecutionContext：模型为何拿不到身份？"><b>C12.38</b>身份网关注入与 ExecutionContext</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.07" title="沙箱与执行隔离：Agent 写代码、跑工具时边界怎么划？"><b>A33.07</b>沙箱与执行隔离：Agent 写代码、跑工具时边界</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.03" title="团队级 AI 研发效能治理：从个人提效到组织可度量"><b>A33.03</b>团队级 AI 研发效能治理：从个人提效到组织可度</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.02" title="LLMOps 体系：模型 / Prompt / 数据集 / 评测集的版本、血缘与责任归属"><b>A33.02</b>LLMOps 体系：模型 / Prompt / </a><a class="kbx-link" href="chapter-engineering-practices.html#G09.01" title="数据集版本与漂移门禁清单"><b>G09.01</b>数据集版本与漂移门禁清单</a><a class="kbx-link" href="chapter-engineering-practices.html#G09.02" title="数据血缘与可复现清单"><b>G09.02</b>数据血缘与可复现清单</a><a class="kbx-link" href="chapter-engineering-practices.html#G09.03" title="受监管合规工程化清单"><b>G09.03</b>受监管合规工程化清单</a><a class="kbx-link" href="chapter-engineering-practices.html#G07.01" title="制品全版本化"><b>G07.01</b>制品全版本化</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.29" title="LLM 评测集构建与 CI 质量卡门：如何防劣化上线？"><b>C12.29</b>LLM 评测集构建与 CI 质量卡门：如何防劣化</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.37" title="工具调用幂等与重试预算：为什么只能由一层重试？"><b>C12.37</b>工具调用幂等与重试预算：为什么只能由一层重试？</a>
+          </div>
+        </article>
+      </section>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">上线 · 发布、灰度、回滚与容量</h2>
+        <p class="kbx-stage-lead">渐进式交付 + 可演练回滚 + 背压降级，任一项缺失都不算生产就绪。</p>
+        <article class="kbx-dim kbx-stage-card" data-cat="上线">
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-12-ai-engineering.html#C12.34" title="Prompt/工具变更如何灰度：流量、影子与回滚点？"><b>C12.34</b>Prompt/工具变更如何灰度：流量、影子与回滚</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.47" title="高并发 × 大模型长响应的异步任务架构怎么定顶层骨架？"><b>C12.47</b>高并发 × 大模型长响应的异步任务架构怎么定顶层</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.35" title="模型超时与降级开关：值班时如何避免雪崩？"><b>C12.35</b>模型超时与降级开关：值班时如何避免雪崩？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.37" title="工具调用幂等与重试预算：为什么只能由一层重试？"><b>C12.37</b>工具调用幂等与重试预算：为什么只能由一层重试？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.43" title="混沌注入与 kill switch 的 Spring 落地"><b>C12.43</b>混沌注入与 kill switch 的 Spri</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.33" title="云原生交付平台化：K8s / CI-CD 如何从工具变成门禁？"><b>C10.33</b>云原生交付平台化：K8s / CI-CD 如何从</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.32" title="容量规划与 SLO 分解：从「压测通过」到「可承诺的容量」"><b>C10.32</b>容量规划与 SLO 分解：从「压测通过」到「可承</a><a class="kbx-link" href="chapter-engineering-practices.html#G01.01" title="发布三要素：灰度·卡点·回滚"><b>G01.01</b>发布三要素：灰度·卡点·回滚</a><a class="kbx-link" href="chapter-engineering-practices.html#G01.02" title="配置变更当发布"><b>G01.02</b>配置变更当发布</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.30" title="模型版本灰度发布与 A/B 实验架构：平滑升级与效果如何度量？"><b>C12.30</b>模型版本灰度发布与 A/B 实验架构：平滑升级与</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.08" title="Token 成本与延迟联合治理：为什么单看单价会做错决策？"><b>A33.08</b>Token 成本与延迟联合治理：为什么单看单价会</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.48" title="模型网关作为平台层，统一契约应该包含哪些能力？"><b>C12.48</b>模型网关作为平台层，统一契约应该包含哪些能力？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.26" title="Token 成本爆炸治理：语义缓存/分级路由/上下文裁剪如何落地？"><b>C12.26</b>Token 成本爆炸治理：语义缓存/分级路由/上</a><a class="kbx-link" href="chapter-engineering-practices.html#G03.01" title="应用与编排同一容量模型"><b>G03.01</b>应用与编排同一容量模型</a>
+          </div>
+        </article>
+      </section>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">运营 · 可观测、事故、成本与漂移</h2>
+        <p class="kbx-stage-lead">把模型行为变化、成本漂移与静默失效变成可告警信号，并让复盘产出阻断机制。</p>
+        <article class="kbx-dim kbx-stage-card" data-cat="运营">
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-12-ai-engineering.html#C12.40" title="语义 SRE 埋点：Micrometer 自定义指标与行为基线"><b>C12.40</b>语义 SRE 埋点：Micrometer 自定义</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.41" title="故障快照回放与 Bad Case 回写评测集"><b>C12.41</b>故障快照回放与 Bad Case 回写评测集</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.39" title="语义缓存的全维度哈希与投毒防护"><b>C12.39</b>语义缓存的全维度哈希与投毒防护</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.42" title="记忆写入闸门：事件、审计表与谱系"><b>C12.42</b>记忆写入闸门：事件、审计表与谱系</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A28.01" title="静默失效四型与 fail-plausible"><b>A28.01</b>静默失效四型与 fail-plausible</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.08" title="Token 成本与延迟联合治理：为什么单看单价会做错决策？"><b>A33.08</b>Token 成本与延迟联合治理：为什么单看单价会</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.09" title="人在环（HITL）治理：审批点设在哪、如何不变成流程摆设？"><b>A33.09</b>人在环（HITL）治理：审批点设在哪、如何不变成</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.01" title="MTTR 与事故复盘 SOP：从信号到根因到预防机制"><b>G11.01</b>MTTR 与事故复盘 SOP：从信号到根因到预防</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.03" title="跨团队推动与团队赋能清单：把个人经验变成组织默认路径"><b>G11.03</b>跨团队推动与团队赋能清单：把个人经验变成组织默认</a><a class="kbx-link" href="chapter-production-pitfalls.html#K09.01" title="数据漂移无人值守事故：信号与回放"><b>K09.01</b>数据漂移无人值守事故：信号与回放</a><a class="kbx-link" href="chapter-production-pitfalls.html#K10.01" title="合规留痕缺失事故：信号与回放"><b>K10.01</b>合规留痕缺失事故：信号与回放</a><a class="kbx-link" href="chapter-engineering-practices.html#G02.02" title="排障标准动作"><b>G02.02</b>排障标准动作</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.26" title="Token 成本爆炸治理：语义缓存/分级路由/上下文裁剪如何落地？"><b>C12.26</b>Token 成本爆炸治理：语义缓存/分级路由/上</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.01" title="轨迹级评测（trajectory eval）：为什么结果正确不等于过程可信？"><b>A33.01</b>轨迹级评测（trajectory eval）：为</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.43" title="混沌注入与 kill switch 的 Spring 落地"><b>C12.43</b>混沌注入与 kill switch 的 Spri</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.35" title="模型超时与降级开关：值班时如何避免雪崩？"><b>C12.35</b>模型超时与降级开关：值班时如何避免雪崩？</a>
+          </div>
+        </article>
+      </section>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">退役 · 资产归档、入口关闭与留痕</h2>
+        <p class="kbx-stage-lead">退役不是删模型：关入口、解别名、停账单、归档权重与决策记录，并保留回滚窗口。</p>
+        <article class="kbx-dim kbx-stage-card" data-cat="退役">
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-engineering-practices.html#G10.03" title="模型退役与人在环清单"><b>G10.03</b>模型退役与人在环清单</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A33.02" title="LLMOps 体系：模型 / Prompt / 数据集 / 评测集的版本、血缘与责任归属"><b>A33.02</b>LLMOps 体系：模型 / Prompt / </a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.44" title="数据生命周期治理：数据集版本/漂移/集管理如何用 Spring AI 工程化？"><b>C12.44</b>数据生命周期治理：数据集版本/漂移/集管理如何用</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.46" title="受监管合规工程落地：不可变审计/PII 脱敏/决策可回放如何做？"><b>C12.46</b>受监管合规工程落地：不可变审计/PII 脱敏/决</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.48" title="模型网关作为平台层，统一契约应该包含哪些能力？"><b>C12.48</b>模型网关作为平台层，统一契约应该包含哪些能力？</a><a class="kbx-link" href="chapter-production-pitfalls.html#K10.02" title="模型未退役幽灵服务事故：信号与回放"><b>K10.02</b>模型未退役幽灵服务事故：信号与回放</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A29.02" title='数据集管理与可复现：为什么"同输入同输出"必须可验证？'><b>A29.02</b>数据集管理与可复现：为什么&quot;同输入同输出&quot;必须可</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.02" title="技术债治理与架构评审门禁：让「为什么这样设计」可查"><b>G11.02</b>技术债治理与架构评审门禁：让「为什么这样设计」可</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.30" title="模型版本灰度发布与 A/B 实验架构：平滑升级与效果如何度量？"><b>C12.30</b>模型版本灰度发布与 A/B 实验架构：平滑升级与</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A23.01" title="模型 / Prompt 版本管理与回滚"><b>A23.01</b>模型 / Prompt 版本管理与回滚</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.01" title="MTTR 与事故复盘 SOP：从信号到根因到预防机制"><b>G11.01</b>MTTR 与事故复盘 SOP：从信号到根因到预防</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.41" title="故障快照回放与 Bad Case 回写评测集"><b>C12.41</b>故障快照回放与 Bad Case 回写评测集</a>
+          </div>
+        </article>
+      </section>
+      <p id="kbx-empty" class="kbx-empty">当前条件下没有匹配项，请调整筛选或关键词。</p>
+    </main>
+
+    <div class="site-page-nav site-page-nav--bottom">
+      <nav class="chapter-nav">
+        <a href="../index.html" class="nav-home">← 返回总目录</a>
+        <span class="nav-center"></span>
+        <a href="index.html" class="nav-next">知识库导航 →</a>
+      </nav>
+    </div>
+    <script>
+      (function () {
+        var q = document.getElementById('kbx-q');
+        var buttons = Array.prototype.slice.call(document.querySelectorAll('.kbx-toolbar button[data-filter]'));
+        var cards = Array.prototype.slice.call(document.querySelectorAll('.kbx-dim, .kbx-stage-card'));
+        var empty = document.getElementById('kbx-empty');
+        var active = 'all';
+        function paint() {
+          var needle = (q.value || '').trim().toLowerCase();
+          var shown = 0;
+          cards.forEach(function (el) {
+            var okFilter = active === 'all' || el.getAttribute('data-cat') === active;
+            var hay = (el.textContent || '').toLowerCase();
+            var okText = !needle || hay.indexOf(needle) >= 0;
+            var visible = okFilter && okText;
+            el.style.display = visible ? '' : 'none';
+            if (visible) shown += 1;
+          });
+          empty.style.display = shown ? 'none' : 'block';
+        }
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            active = b.getAttribute('data-filter');
+            buttons.forEach(function (x) { x.classList.toggle('is-active', x === b); });
+            paint();
+          });
+        });
+        q.addEventListener('input', paint);
+        paint();
+      })();
+    </script>
+    <script src="assets/nav.js"></script>
+  </body>
+</html>

@@ -73,6 +73,9 @@
           <li>
             <a href="#C09.17"><span class="toc-number">C09.17</span>分布式锁误用排查</a>
           </li>
+          <li>
+            <a href="#C09.18"><span class="toc-number">C09.18</span>单元化与异地多活架构决策</a>
+          </li>
         </ol>
       </aside>
 
@@ -85,13 +88,13 @@
           <p class="chapter-subtitle">本篇先钉一致与事务模型，再走消息、锁/ID、时钟、可观测与多活——分布式是取舍题，不是组件堆砌题。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-07">M07</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：17</span>
+            <span>题目数：18</span>
             <span class="meta-divider">|</span>
             <span>高级 ×7</span>
             <span class="meta-divider">|</span>
             <span>架构 ×8</span>
             <span class="meta-divider">|</span>
-            <span>专家 ×2</span>
+            <span>专家 ×3</span>
             <span class="meta-divider">|</span>
             <span>预计复习：205 分钟</span>
           </div>
@@ -2972,6 +2975,61 @@ flowchart LR
               <p>解锁报错优先查 owner 不匹配与时钟/TTL；锁太久查续期失败与业务 RT。锁失败率突增时先降并发再改代码。</p>
               <p>正确性底线：DB 唯一约束/版本号兜底；锁只是互斥优化，不是事务替代。</p>
               <p>量化：TTL 应 ≥ 业务 P99 耗时 × 3 且必须开 watchdog 续期；锁获取失败率 > 1% 或持锁时长 P99 突增 50%，先降并发再看代码。演进：高正确性场景（资金 / 库存）加 fencing token，并保留 DB 唯一约束 / 版本号作最终兜底；「解锁校验 owner」封装成工具方法强制走，禁止裸 DEL。</p>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C09.18" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C09.18</div>
+            <div class="content-question">单元化 / 异地多活：故障域与流量调度怎么定架构决策？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>「多活」不是把同一套服务在两个机房各部署一份。真正的单元化要求<strong>请求在入口就被路由到某个封闭单元，单元内完成读写闭环，跨单元流量是可控的少数</strong>。否则异地机房只是热备，故障时仍要面对跨地域写延迟、数据冲突与脑裂。</p>
+              <p>本题要在一致性、可用性、成本三者之间给出可执行的取舍：单元划分键、流量调度层级、数据归属与跨单元补偿、故障切换的判定与演练。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 主备</strong>：异地冷备/温备，RTO 以小时计，平时资源闲置。</p>
+              <p><strong>阶段 2 · 双活读</strong>：读流量两地分担，写仍回主，跨地域写延迟与主从延迟成为主要矛盾。</p>
+              <p><strong>阶段 3 · 按用户分片多活</strong>：以 uid / tenant 为单元键，入口路由把用户固定到单元，单元内读写闭环；跨单元用户交互走异步消息与补偿。</p>
+              <p><strong>阶段 4 · 单元化 + 全局服务</strong>：把配置、账号、库存/额度等强全局状态抽成独立全局服务并单独设一致性策略，其余业务在单元内自治。</p>
+              <p><strong>阶段 5 · 常态切流演练</strong>：把单元故障切换变成定期演练能力，用真实流量验证路由、数据、对账与回滚，而不是文档里的预案。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>故障域要正交</strong>：单元边界应同时隔离机房电力/网络、中间件集群与发布批次。若两个「单元」共用同一套数据库主库或同一套配置中心，则故障域并未分离，多活只是部署副本数翻倍。</p>
+              <p><strong>单元键决定一致性成本</strong>：选 uid 意味着同一用户的数据只在一个单元写，冲突面最小；选商品/订单维度会把库存、优惠、额度变成跨单元强一致问题，成本呈数量级上升。经验判据：跨单元写比例 > 5% 时，先重新审视单元键。</p>
+              <p><strong>路由必须前置且稳定</strong>：在 DNS / 边缘网关层按单元键做一致性哈希并写入路由凭证（cookie / token），后续请求全程携带；路由表变更需要灰度与版本化，禁止按请求实时查库决定单元。</p>
+              <p><strong>切换判据要可观测、可回滚</strong>：以「单元内错误率 + 依赖可用性 + 数据延迟」组合判定，而不是单机房 ping 不通就切；切换后要有全局开关禁止双写，并对账补单。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>分层调度：①边缘层按单元键分流量（可灰度调权）；②服务层单元内闭环，跨单元调用必须显式声明并计入预算；③数据层每单元独立主库 + 单向汇总到全局数仓，汇总链路只做分析不做写回；④对账层按天比对单元间资金/订单/额度差异并驱动补偿。</p>
+              <p>量化起点：单元内跨城调用占比目标 < 1%；单元故障切换 RTO ≤ 5 分钟、RPO 视业务在 0～30s 之间分级（资金类 0）；演练频率至少每季度一次真实切流，覆盖「单单元整体不可用」与「单元间网络分区」两种场景。</p>
+              <p>Java / Spring 落点：路由凭证用 ThreadLocal / ScopedValue 传递单元上下文（C04.10），消息中间件按单元建 topic 后缀，分布式任务与定时 job 必须绑定单元避免跨单元重复执行；灰度发布按单元滚动，禁止全单元同时发版。</p>
+              <p>与容量治理衔接（C10.32）：每单元按「可承载全站 N 分之一 + 接管余量」预留容量，平时水位 ≤ 40%，否则切流后接管单元会立刻被打满——这是多活方案最常见的纸面漏洞。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body"></div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>共用全局配置中心或统一发版批次：一次配置错误同时打挂两个单元，多活形同虚设。</p>
+              <p>单元键选错导致大量跨单元强一致：库存超卖、重复扣款，最后不得不退回单主写。</p>
+              <p>切流后未关闭原单元写入：网络恢复瞬间出现双写与数据分叉，补偿对账耗时数天。</p>
+              <p>容量只按常态规划：切流后接管单元 CPU 与连接池瞬间饱和，故障从 A 单元扩散到 B 单元。</p>
+              <p><strong>向下回指</strong>：C09.15 / S08.01 / G03 / K03 / C10.32 / M14.F08。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
             </div>
           </div>
         </div>

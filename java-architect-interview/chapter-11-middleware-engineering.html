@@ -112,6 +112,12 @@
           <li>
             <a href="#C11.30"><span class="toc-number">C11.30</span>GraphQL 在 BFF 层的落地与治理</a>
           </li>
+          <li>
+            <a href="#C11.31"><span class="toc-number">C11.31</span>事件驱动架构顶层决策</a>
+          </li>
+          <li>
+            <a href="#C11.32"><span class="toc-number">C11.32</span>非 AI 成本治理与 FinOps</a>
+          </li>
         </ol>
       </aside>
 
@@ -124,11 +130,11 @@
           <p class="chapter-subtitle">本篇把中间件当可产品化能力：流程/规则与认证，经 CI/CD·可观测·FinOps，再到搜索/消息/调度与流处理值班闭环。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-11">M11</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：30</span>
+            <span>题目数：32</span>
             <span class="meta-divider">|</span>
             <span>高级 ×10</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×18</span>
+            <span>架构 ×20</span>
             <span class="meta-divider">|</span>
             <span>专家 ×2</span>
             <span class="meta-divider">|</span>
@@ -4927,6 +4933,123 @@ env.<span class="fn">getCheckpointConfig</span>().<span class="fn">setMinPauseBe
             <div class="content-layer-body">
               <p><strong>官方主线</strong>：GraphQL Specification（graphql.org）——类型系统、执行语义、Validation 规则；Spring for GraphQL Reference——<code class="inline-code">@SchemaMapping</code>、DataLoader 注册、Instrumentation；graphql-java 文档——<code class="inline-code">MaxQueryDepth</code> / <code class="inline-code">MaxQueryComplexity</code> 实现。</p>
               <p><strong>与全站交叉</strong>：同步接口选型与 gRPC 对照见 <a href="chapter-questions-eight-part.html#E08.04">E08.04</a>；网关与鉴权见 <a href="chapter-10-microservice-cloud.html#C10.02">C10.02</a>；API 安全与越权防护见 <a href="chapter-questions-eight-part.html#E09.01">E09.01</a>。</p>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C11.31" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C11.31</div>
+            <div class="content-question">事件驱动架构的顶层决策：什么时候用消息，什么时候不该用？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>消息队列常被当成「解耦万能药」，但引入它就引入了<strong>至少一次投递、乱序、重复消费、延迟不可见与可观测性分散</strong>五类新成本。顶层决策要回答：这段协作是否真的允许异步与最终一致，若不允许，同步调用 + 本地事务反而更简单可靠。</p>
+              <p>本题要给出通信方式的选择矩阵、事件契约与幂等设计，以及事件链路的 SLO 与回放能力。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 同步编排</strong>：一个服务顺序调 N 个下游，链路延迟叠加且任一失败即整体失败。</p>
+              <p><strong>阶段 2 · 引入 MQ 异步化</strong>：把非关键路径（通知、审计、索引）挪到事件，核心链路仍同步。</p>
+              <p><strong>阶段 3 · 事件协作</strong>：上下游只依赖事件契约，配合 Outbox / Saga 做一致性；此时幂等与回放成为主要工程问题。</p>
+              <p><strong>阶段 4 · 契约治理</strong>：schema 注册与版本化、消费者驱动契约、死信与重放流程标准化。</p>
+              <p><strong>阶段 5 · 流批一体与可回放</strong>：事件日志成为事实来源，支持按位点重放重建视图与离线评测数据集。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>一致性需求决定通信方式</strong>：用例内必须强一致（扣款与记账、库存与订单）放同一事务边界；可容忍秒级/分钟级延迟的走事件。把强一致拆成事件链，最后往往要靠对账补偿兜底，复杂度不降反升。</p>
+              <p><strong>至少一次投递 ⇒ 消费必须幂等</strong>：以业务键（orderId + eventId）建去重表或用唯一约束，配合「先落状态再发事件」的 Outbox 保证原子性；只依赖 MQ 的 exactly-once 宣传在生产里最常见翻车。</p>
+              <p><strong>事件是契约不是日志</strong>：事件 schema 带版本、语义明确的 past tense 命名（OrderCreated 而非 CreateOrder）、包含 <code>event_id / occurred_at / producer_ver / causation_id</code>；字段只增不删，破坏性变更发新主题。</p>
+              <p><strong>延迟也是 SLO</strong>：异步链路要监控端到端投递延迟与积压，不能只监控「消息有没有发出去」；积压增长到阈值必须触发限流或扩容，而不是等消费者自己追上。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>选择矩阵：①需要立即拿到结果 → 同步 API；②跨上下文且可接受最终一致 → 事件；③同一上下文内的多步写 → 本地事务；④高吞吐日志/特征采集 → 流平台并允许乱序；⑤外部系统不可控 → 事件 + 对账补偿。</p>
+              <p>Java 落点：Spring 事务内写业务表与 outbox 表，独立 relay 进程按位点投递并标记已发；消费端用 <code>@Transactional</code> + 去重表保证「处理 + 记录 eventId」原子；重试按 1s/10s/60s 退避，超次数进死信队列并带全链路 traceId。</p>
+              <p>可观测四项：生产速率 / 消费速率 / 积压量 / 端到端延迟分位数；事件链路要有 trace 贯通（消息头透传 traceparent），否则排障时无法把「用户投诉」映射到「哪条事件卡住」。</p>
+              <p>与 AI 工程衔接：Agent 的工具调用、长响应任务状态变更（C12.47）本质是事件流，按位点重放可重建任务轨迹，也是步级评测（A33.01）的数据来源。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么事件溯源（Event Sourcing）在业务系统里要谨慎？它把「当前状态」变成派生视图，带来强大的回放与审计能力，但要求所有读路径接受最终一致、并承担 schema 演进与快照管理成本；适合审计/评测/账本类，不适合高频简单 CRUD。</p>
+              <p>乱序如何处理？按聚合键分区保证同键有序，跨键乱序用版本号或向量时钟做幂等丢弃；不要用「睡一会儿再处理」掩盖乱序。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把强一致用例改成事件链：出现中间态暴露给用户，最终靠定时对账修补。</p>
+              <p>消费端不幂等：一次网络抖动重投，产生重复扣款或重复发券。</p>
+              <p>事件 schema 无版本：生产者加字段/改含义，所有消费者静默误解数据。</p>
+              <p>只监控发送不监控积压：积压几小时后才被发现，业务视图早已过期。</p>
+              <p><strong>向下回指</strong>：C11.20 / C09.15 / S06.01 / G06 / C10.31 / K07.09。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C11.32" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C11.32</div>
+            <div class="content-question">非 AI 成本治理 / FinOps：基础设施成本如何变成可归因的工程指标？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>云账单里最大的浪费通常不是单价，而是<strong>无人认领的资源</strong>：闲置副本、过度预留、跨区流量、没有生命周期的日志与快照。FinOps 的工程内核是把成本拆到「谁、哪个服务、哪次变更」三个维度，并让优化动作进入常规迭代而非年度专项。</p>
+              <p>本题要给出成本模型、归因标签体系、单位成本指标与治理闭环，并说明它与 AI token 成本治理（C12.26 / A33.08）如何共用一套账本。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 只看总账单</strong>：月底财务给一个数，工程侧无法定位到服务。</p>
+              <p><strong>阶段 2 · 标签归因</strong>：资源打 team/service/env 标签，能出部门账单，但缺少业务量分母。</p>
+              <p><strong>阶段 3 · 单位成本</strong>：定义每千次请求、每订单、每 GB 的成本，成本随业务量归一化，可观测趋势。</p>
+              <p><strong>阶段 4 · 预算与门禁</strong>：异常增长告警、非生产环境自动回收、容量变更带成本评估（C10.32）。</p>
+              <p><strong>阶段 5 · 统一账本</strong>：基础设施成本与模型 token 成本进同一账本，按 tenant / biz_tag 出全口径毛利视图。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>没有分母的成本不可治理</strong>：绝对金额上升可能是业务增长，单位成本（cost per 1k req）上升才是效率退化；指标必须带业务量分母与统计窗口。</p>
+              <p><strong>归因要落到变更</strong>：成本突增要能关联到某次发布、某次扩容或某个新租户，否则只能事后猜测；成本标签与发布单、追踪 ID 需要在同一命名空间。</p>
+              <p><strong>闲置比超配更贵</strong>：非生产环境夜间与周末自动缩容、临时资源设 TTL、日志与快照设生命周期，通常比谈判单价见效更快。</p>
+              <p><strong>成本是 SLO 的约束条件</strong>：优化不能以击穿可用性为代价，容量水位与故障接管余量（C09.18 / C10.32）属于不可削减项。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>标签体系：<code>team / service / env / tenant / biz_tag / cost_center / change_id</code> 七项强制，未打标签的资源在创建阶段被平台拒绝（C10.34）；账单按天回流，异常阈值设为相对 7 日中位数 ±20%。</p>
+              <p>单位成本看板：每千次请求的计算/存储/网络/中间件分项成本、每租户成本、每次发布的边际成本；AI 应用追加每千次调用的 token 成本与缓存命中率，与基础设施成本在同一看板对齐（C12.48 成本归因字段复用）。</p>
+              <p>治理闭环：周一出上周单位成本趋势 → 超阈项指派 owner → 优化动作进迭代（缩容、索引优化、缓存命中提升、日志降采样）→ 下周复核收益并沉淀为平台默认配置。禁止「一次性运动式降本」。</p>
+              <p>与容量治理联动：扩容审批同时给出 SLO 收益与成本增量；缩容前用压测基线验证 P95 不劣化，避免把成本优化做成稳定性事故。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么共享资源难归因？网关、K8s 系统组件、共享缓存的成本要按可观测用量（请求数、字节数、CPU 秒）分摊，而不是按副本数均摊；分摊规则本身要版本化并可复算。</p>
+              <p>AI 时代的新变化：token 成本是变动成本且单次方差极大，传统按实例分摊的模型失效；账本必须记录单价版本、cache_hit、model_alias 与 taskId，才能解释「同一个功能为什么这次贵 5 倍」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>只看总额不做单位成本：业务增长被误判为效率恶化，或效率恶化被增长掩盖。</p>
+              <p>标签可选填：三个月后 30% 资源无主，账单无法下钻。</p>
+              <p>为降本压掉故障接管余量：一次机房切流导致全站不可用，节省远小于损失。</p>
+              <p>把 token 成本与基础设施成本分开记账：无法回答「这个 AI 功能到底赚不赚钱」。</p>
+              <p><strong>向下回指</strong>：C11.20 / C12.26 / A22.01 / G03 / C10.32 / C12.48。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
             </div>
           </div>
         </div>

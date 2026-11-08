@@ -112,6 +112,18 @@
           <li>
             <a href="#C10.30"><span class="toc-number">C10.30</span>配置刷新安全回滚值班</a>
           </li>
+          <li>
+            <a href="#C10.31"><span class="toc-number">C10.31</span>微服务拆分与 DDD 边界</a>
+          </li>
+          <li>
+            <a href="#C10.32"><span class="toc-number">C10.32</span>容量规划与 SLO 分解</a>
+          </li>
+          <li>
+            <a href="#C10.33"><span class="toc-number">C10.33</span>云原生交付平台化门禁</a>
+          </li>
+          <li>
+            <a href="#C10.34"><span class="toc-number">C10.34</span>平台工程 / IDP 黄金路径</a>
+          </li>
         </ol>
       </aside>
 
@@ -124,13 +136,13 @@
           <p class="chapter-subtitle">本篇从发现/配置与治理走到 K8s/Mesh、SLO 与平台，再用 Spring Cloud 调用链把生产坑钉死：同步有预算，发布用错误预算说话。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-09">M09</a> / <a href="chapter-core-methodology.html#m-group-06">M06</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：30</span>
+            <span>题目数：34</span>
             <span class="meta-divider">|</span>
             <span>高级 ×9</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×18</span>
+            <span>架构 ×19</span>
             <span class="meta-divider">|</span>
-            <span>专家 ×3</span>
+            <span>专家 ×6</span>
             <span class="meta-divider">|</span>
             <span>预计复习：306 分钟</span>
           </div>
@@ -5766,6 +5778,240 @@ flowchart TD
               <p>@RefreshScope 只刷新代理 Bean；静态字段、连接池、本地缓存不会自动跟。回滚要核对配置中心版本与实例实际生效值。</p>
               <p>清单：刷新范围、失败实例、是否需滚动重启、回滚后的只读校验。</p>
               <p>量化：推送后 15 分钟内订阅滞后实例比例 > 5% 或快照版本不一致，即暂停放量；@RefreshScope 只覆盖被代理 Bean，静态字段 / 连接池 / 本地缓存需滚动重启才生效。演进：把「配置版本 + 生效实例清单 + 需重启实例数」写入变更单，需重启实例数为 0 才认刷新成功；回滚默认退配置快照而非重推修复值，限流 / 鉴权 / 路由类开关设双人复核。</p>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C10.31" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.31</div>
+            <div class="content-question">微服务拆分与 DDD 边界：什么时候该合并回去？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>拆分不是把代码按名词切开放到不同仓库，而是<strong>让变化频率、数据所有权与一致性边界对齐</strong>。判据若只看「业务模块有几个」，得到的多半是分布式单体：一次变更要跨 4 个服务发版、一条链路有 3 次同步调用与 2 处分布式事务。</p>
+              <p>本题要给出可复核的拆分判据、限界上下文与数据所有权的映射，以及反向的合并（re-monolith）触发条件——后者在规模化生产里往往比继续拆更值钱。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 按技术层拆</strong>：controller/service/dao 各成服务，任何业务变更都跨服务，延迟与故障面同时放大。</p>
+              <p><strong>阶段 2 · 按业务名词拆</strong>：用户/订单/商品各一服务，但共享同一数据库，数据所有权仍然模糊。</p>
+              <p><strong>阶段 3 · 限界上下文 + 数据私有</strong>：每个上下文拥有自己的库与发布节奏，跨上下文只通过契约事件或显式 API。</p>
+              <p><strong>阶段 4 · 按变化频率与团队边界校准</strong>：把高频共同变更的上下文合并，把高吞吐/高隔离需求的能力单独拆出（如推理任务、计费）。</p>
+              <p><strong>阶段 5 · 平台化治理</strong>：服务模板、契约注册、依赖拓扑与变更影响分析进平台，拆与合都成为可审计的决策（衔接 C10.34）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>数据所有权优先于服务数量</strong>：一张表只能有一个写入方。若两个服务都要写同一张订单表，边界就是错的，拆得再细也只是把事务问题搬进网络。</p>
+              <p><strong>一致性边界决定通信方式</strong>：同一用例内必须强一致的放一个上下文内用本地事务；可容忍秒级最终一致的跨上下文走事件与补偿（C09.15）。把强一致需求做成跨服务同步调用 + 分布式事务，是尾延迟的主要来源。</p>
+              <p><strong>变化耦合度是可测量判据</strong>：统计近 6 个月提交记录，若两个服务的共同变更率 > 30%、或一次发布必须同步上线，说明它们属于同一上下文；继续拆分只增加协调成本。</p>
+              <p><strong>合并不等于倒退</strong>：当跨服务调用链占比过高、单请求网络跳数 > 5、或团队规模不足以支撑 N 套独立运维时，合并能同时降低尾延迟与事故率。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>拆分评审清单：①数据所有权是否唯一；②跨上下文调用是同步还是事件；③是否存在跨服务强一致事务；④共同变更率与发布耦合；⑤故障域是否与业务重要性对齐；⑥是否有独立扩容/隔离需求（如 AI 长响应任务，见 C12.47）。六项有两项不满足即暂缓拆分。</p>
+              <p>契约治理：对外 API / 事件 schema 进注册表并版本化，消费者驱动契约（CDC）测试进 CI；破坏性变更必须双写过渡与消费者迁移窗口，禁止「先改生产者再看谁挂」。</p>
+              <p>Java 落点：Spring Cloud 服务内用模块化（Maven module / Spring Modulith）先做逻辑边界，验证稳定后再物理拆分，避免一开始就把网络引入所有调用；领域事件用 Outbox 保证「本地事务 + 事件发出」的原子性。</p>
+              <p>与单元化衔接（C09.18）：服务边界若跨单元键，切流时会把跨城调用放大；拆分评审要同时检查「该服务能否在单元内闭环」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么 DDD 的限界上下文常与组织边界不一致？因为上下文按语言与模型一致性划分，团队按汇报线划分；康威定律会让架构向组织收敛。实践上应把「上下文 owner」显式指定到团队，并在组织架构调整时重新评审边界。</p>
+              <p>聚合根粒度如何影响并发？聚合过大导致乐观锁冲突率上升，过小则跨聚合一致性要靠 Saga；以「一个用例内必须一起改变的实体集合」为界，比按实体关系图切分更稳定。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>共享数据库：一个服务改表结构打挂另一个服务，且无法独立发布与回滚。</p>
+              <p>把同步调用链当作「服务化」：链路每多一跳，P99 至少叠加该跳的 P99，可用性按乘积下降。</p>
+              <p>按组织架构拆服务：团队重组后边界立即失效，留下无人维护的孤儿服务。</p>
+              <p>只拆不合：服务数逐年上升、变更协调成本超过拆分收益，却无人负责触发合并评审。</p>
+              <p><strong>向下回指</strong>：C10.01 / C10.28 / M08 / S06.01 / C09.18 / M14.F08。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C10.32" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.32</div>
+            <div class="content-question">容量规划与 SLO 分解：从「压测通过」到「可承诺的容量」<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>压测报告写「可承载 5000 QPS」不等于生产能承诺 5000 QPS：压测用的是均匀流量、无依赖故障、无灰度与无长尾请求。容量规划要回答的是<strong>在给定 SLO 与故障假设下，系统能承诺多少并发，以及超出时按什么顺序降级</strong>。</p>
+              <p>本题把容量从「一次测试」升级为「一条可复核的链路」：SLO 分解 → 资源模型 → 排队论估算 → 全链路压测 → 水位与预算 → 限流降级预案。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 单机经验值</strong>：按机器数估算 QPS，无依赖与长尾建模，扩容靠拍脑袋。</p>
+              <p><strong>阶段 2 · 基准压测</strong>：有峰值 QPS 数字，但只测无状态接口，忽略数据库、缓存、消息与第三方。</p>
+              <p><strong>阶段 3 · 全链路压测 + SLO 分解</strong>：按真实流量模型压到依赖侧，各段独立设延迟与错误预算。</p>
+              <p><strong>阶段 4 · 水位与容量预算</strong>：常态水位、突发余量、故障接管余量分开核算，容量变更进预算审批。</p>
+              <p><strong>阶段 5 · 自适应</strong>：按队列深度、TTFT、错误率动态限流与扩容，容量成为运行时控制量（与 C12.47 背压联动）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>利用率越高尾延迟越长</strong>：排队论里等待时间随 ρ→1 急剧上升。经验水位：CPU ≤ 60%、连接池 ≤ 70%、队列深度 ≤ 目标排队时长 × 吞吐；为了「省机器」把水位推到 85% 会在流量抖动时直接击穿 SLO。</p>
+              <p><strong>容量必须按木桶最短板核算</strong>：网关连接数、线程池、DB 连接池、缓存带宽、供应商 TPM、垃圾回收暂停，任一成为瓶颈时其余扩容无效；扩容前先定位约束资源。</p>
+              <p><strong>SLO 要可分解才可归因</strong>：端到端 P95 = 排队 + 业务处理 + 依赖调用 + 回传，各段单独设目标与错误预算；否则一次延迟劣化无法判断该扩哪一段（C12.47 的四段分解同理）。</p>
+              <p><strong>故障接管余量是硬约束</strong>：多活/单元化场景平时水位 ≤ 40%，否则切流后接管单元立刻饱和（C09.18）；这部分「闲置」不是浪费，是可用性成本。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>建立资源模型：<code>可承诺并发 = min(各约束资源上限 ÷ 单请求消耗)</code>。AI 链路里最常见的新约束是供应商 TPM：<code>单租户并发上限 = TPM ÷ 平均单请求 token</code>，它往往比 CPU 早成为瓶颈。</p>
+              <p>压测流量模型必须包含：热点 key、大 payload、慢消费者、重试风暴、依赖 5xx 注入、以及长响应请求与短请求混合。只压均匀短请求会低估尾延迟与队列堆积。</p>
+              <p>容量看板四项：各段延迟分位数、约束资源利用率、队列深度与拒绝数、错误预算消耗速率。错误预算消耗过快时冻结非必要发布，把容量留给稳定性修复。</p>
+              <p>降级阶梯按「保核心、弃长尾」排序：先降非核心功能与 max_tokens，再限低优先级租户，最后拒绝新请求并保留已受理任务；每一级都要有开关、观测与回退演练记录。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么压测通过而生产仍雪崩？因为生产有重试放大与依赖退化两个正反馈：超时→重试→负载上升→更易超时。限流必须在入口按租户配额做，且重试预算要与任务层共享（C12.37）。</p>
+              <p>如何给 AI 链路定 SLO？把 TTFT 与总生成时长分开承诺：前者主要由排队与网关决定，可给严格 SLO；后者受模型与输出长度影响，宜用分档承诺 + 流式进度反馈，避免用单一超时值覆盖两类语义。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>只压无状态接口：数据库与供应商限流在真实流量下先崩，压测结论完全失效。</p>
+              <p>用平均延迟而非分位数做容量结论：P99 已劣化数倍，均值仍好看。</p>
+              <p>扩容不看约束资源：加 10 个应用副本，DB 连接池打满，故障面反而扩大。</p>
+              <p>常态水位贴着上限：一次机房切流或促销尖峰就触发级联超时。</p>
+              <p><strong>向下回指</strong>：C12.47 / G03 / C09.15 / K03 / C09.18 / M14.F08。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C10.33" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.33</div>
+            <div class="content-question">云原生交付平台化：K8s / CI-CD 如何从工具变成门禁？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>有 K8s 不等于有云原生交付能力。若发布仍靠手工改 YAML、镜像无 provenance、回滚靠重新打 tag、环境差异靠口头约定，那么编排平台只是更贵的部署脚本。岗位要求里的 K8s / CI-CD 实际指向<strong>可审计、可复现、可回滚的交付流水线</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 脚本部署</strong>：手工 kubectl apply，无版本与回滚记录。</p>
+              <p><strong>阶段 2 · 流水线打包</strong>：CI 出镜像、CD 部署，但配置散在环境里，回滚靠人记命令。</p>
+              <p><strong>阶段 3 · 声明式与不可变</strong>：镜像 digest 固定、manifest 版本化（GitOps）、配置与镜像分离且带版本。</p>
+              <p><strong>阶段 4 · 门禁化</strong>：镜像扫描、单测/契约测试、评测回归、容量基线、变更审批都成为流水线卡点。</p>
+              <p><strong>阶段 5 · 渐进式交付</strong>：金丝雀/蓝绿 + 自动指标判定回滚，发布与故障处置共用同一套可观测信号。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>不可变与可复现</strong>：生产只部署镜像 digest，禁止 <code>latest</code>；manifest、配置、密钥引用共同构成一个发布版本，能在一分钟内重建出完全相同的环境。</p>
+              <p><strong>门禁前移</strong>：越晚发现的缺陷成本越高。供应链扫描、SBOM、签名验证放构建阶段；契约与回归评测放部署前；容量与 SLO 校验放灰度阶段。</p>
+              <p><strong>回滚是发布的一部分</strong>：任何发布必须先定义回滚动作与判定指标（错误率、P95、业务指标），且回滚演练要定期做；没有验证过的回滚等于没有回滚。</p>
+              <p><strong>配置即变更</strong>：模型别名、限流阈值、feature flag 的修改与代码发布同等级别，需要版本、审批、灰度与审计（与 C12.48 控制面一致）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>流水线卡点建议：①构建：单测 + 依赖漏洞扫描 + SBOM + 镜像签名；②部署前：消费者驱动契约、数据库迁移兼容性（先扩后改）、AI 评测集回归（G07 / A17.01）；③灰度：1%→5%→25%→100%，每档观察错误率、P95、资源水位与业务转化；④自动回滚：任一指标越界即回退到上一 digest 并冻结发布。</p>
+              <p>K8s 侧关键配置：requests/limits 与 HPA 指标要基于压测基线（C10.32），PodDisruptionBudget 保证滚动期间最小可用副本，readiness 必须覆盖依赖健康而非只查端口；preStop + 优雅停机保证长连接在发布期间能排空（AI 长响应场景尤其重要）。</p>
+              <p>AI 制品进流水线：Prompt / 数据集 / 评测集 / 模型别名映射都当版本化制品，发布单里必须带 <code>prompt_ver / dataset_ver / eval_ver / alias_ver</code> 四个字段（A33.02 LLMOps），否则出问题无法复现当时的行为。</p>
+              <p>与平台工程衔接（C10.34）：把上述门禁做成平台默认模板，业务团队按需声明而非各自实现；平台提供黄金路径，同时保留逃生舱与审计。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么「灰度 1%」在 AI 应用里不够？因为模型输出质量不是二值指标，1% 流量可能覆盖不到长尾意图；需要按意图分层抽样并跑离线评测集，把统计功效纳入灰度设计。</p>
+              <p>GitOps 的收益与代价：声明式带来可审计与自动收敛，但要求所有变更（含密钥轮换、紧急开关）都走仓库，紧急故障处置需要设计受控的 break-glass 流程并事后补齐审计。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>用 latest tag 或就地改容器：无法回答「线上跑的到底是哪一版」。</p>
+              <p>回滚只回代码不回配置/模型别名：回退后行为仍异常，误判为回滚无效。</p>
+              <p>readiness 只查端口：依赖已不可用时仍接流量，滚动发布期间错误率飙升。</p>
+              <p>发布不做优雅排空：长连接任务被强杀，用户侧表现为随机中断与重复提交。</p>
+              <p><strong>向下回指</strong>：C10.28 / G01 / G07 / A25.01 / C10.34 / K02.02。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C10.34" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C10.34</div>
+            <div class="content-question">平台工程 / IDP：黄金路径怎么设计才不会变成新瓶颈？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>内部开发者平台（IDP）的价值是<strong>把「正确做法」变成默认路径</strong>：新建服务自动带日志、指标、链路、限流、发布门禁、成本标签与安全基线。若平台只提供一套强制脚手架，团队绕开它自建流水线，IDP 就从赋能变成审批瓶颈。</p>
+              <p>本题考察平台边界：哪些能力必须集中（身份、配额、审计、成本、发布门禁），哪些必须下放（业务配置、领域模型、发布节奏），以及怎么衡量平台是否真的降低了认知负荷。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 文档约定</strong>：规范写在 wiki，靠评审执行，落地率随团队规模衰减。</p>
+              <p><strong>阶段 2 · 脚手架</strong>：生成项目模板，但模板更新后老服务不跟随，规范碎片化。</p>
+              <p><strong>阶段 3 · 平台 API</strong>：把日志/指标/限流/发布/配额做成声明式 API，服务用配置声明需求，平台负责实现与升级。</p>
+              <p><strong>阶段 4 · 自助服务目录</strong>：环境、数据库、模型别名、消息队列、评测集都可自助申请且自动带治理属性。</p>
+              <p><strong>阶段 5 · 以度量驱动演进</strong>：用交付前置时间、变更失败率、恢复时长与平台采用率决定下一步投入。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>集中控制面、下放数据面</strong>：身份、配额、审计、成本归因、发布门禁必须集中（否则无法全局治理）；业务逻辑、领域模型、发布节奏应下放（否则平台成为变更瓶颈）。</p>
+              <p><strong>默认安全而非强制审批</strong>：把规范做成模板内建能力，团队走默认路径即合规；需要人工审批的只保留高风险例外，并给出可解释的判定规则。</p>
+              <p><strong>平台要有产品思维</strong>：以「从需求到上线的步骤数 / 等待时间」为北极星指标，采用率是结果指标而非考核指标；强制采用但体验糟糕会催生影子基础设施。</p>
+              <p><strong>可逃逸且不失控</strong>：提供逃生舱（临时绕过某门禁）但必须留痕、限时、自动回收，避免「要么全管、要么全放」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>服务声明示例：<code>service.yaml</code> 里声明 tier、owner、SLO、配额、依赖、数据分级、模型别名、成本标签；平台控制器据此生成监控看板、告警规则、限流配置、发布流水线与预算告警，业务不手写这些 YAML。</p>
+              <p>与 AI 平台衔接：模型网关（C12.48）、LLMOps 资产注册（A33.02）、评测门禁（G07）都应作为平台能力暴露，业务通过 <code>alias_ver / eval_ver</code> 声明，而不是各自接供应商 SDK。这是把「AI 工程化」从项目实践升级为组织能力的关键一步。</p>
+              <p>度量建议：新服务从创建到首次生产发布的中位时间、变更失败率、MTTR（G11.01）、平台默认模板覆盖率、绕过门禁的例外数与回收时长。每季度评审一次，若例外数持续上升说明默认路径设计有问题。</p>
+              <p>Java 生态落点：Spring Boot starter 内置 tracing / metrics / 限流 / 配置版本上报，配合 buildpack 或统一基础镜像，把平台能力随依赖升级自动下发到存量服务。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p>为什么「统一脚手架」常失败？因为一次性生成的产物无法随平台演进；声明式平台 API 的优势在于平台侧升级能自动作用于全部服务，治理能力是可累积的。</p>
+              <p>认知负荷如何量化？可用「上线一个改动需要理解的系统数量」「需要跨几个团队协调」「文档与平台行为不一致次数」三项做季度问卷与工单分析，比单纯统计部署频次更能反映平台质量。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把业务配置也收归平台：每次调限流阈值都要平台团队发版，交付前置时间反而变长。</p>
+              <p>只做模板不做持续升级：两年后存量服务与平台规范脱节，安全基线无法统一修补。</p>
+              <p>用采用率考核团队：出现「形式上接入、实际另起一套」的影子流水线。</p>
+              <p>没有逃生舱或逃生舱无回收：紧急绕过变成永久例外，审计口径失效。</p>
+              <p><strong>向下回指</strong>：C10.28 / A25.01 / G01 / G07 / C10.33 / C12.48。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
             </div>
           </div>
         </div>

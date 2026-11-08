@@ -123,7 +123,7 @@
 
 - **定位**：与方法论并列的工程门禁手册，卡数以 `kb-counts.json` → `engineering` 为准，ID 前缀 `G`（如 `G01.01`）；题目总量口径 = `total`（C+A+E+S+D）；工程化为专篇键，不设全站合计。
 - **卡片**：与方法论相同三层（`insight` / `principle` / `application`）。
-- **分组**：G01～G10 十组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全，另含数据生命周期治理、端侧与多模态/退役与人在环）；每组正文载体为 `<section class="eng-group" id="G0N">`。
+- **分组**：G01～G11 十一组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全，另含数据生命周期治理、端侧与多模态/退役与人在环，以及 G11 组织治理与架构决策）；每组正文载体为 `<section class="eng-group" id="GNN">`。
 - **目录**：侧栏分组标题必须为 `<a class="toc-group-title" href="#G0N">`（禁止 `div`），与组 `id` 一一对应。
 - **导航**：顶/底一致；左 `nav-prev`「← 核心方法论」、右 `nav-next`「优先级总览 →」；中间 `nav-center` 为「全部章节」（勿再重复链核心方法论）。
 
@@ -154,7 +154,7 @@
 
 ## <a id="8"></a>8. 生产踩坑 / AI 纵深 / 垂直领域 / 速查清单
 
-- **生产踩坑 `chapter-production-pitfalls.html`（K）**：与工程化同款三层卡（insight/principle/application）；G01～G10 对位的 K01～K10；专篇键 `pitfalls`，不进 `total`；侧栏组锚 `#K01`～`#K10`。
+- **生产踩坑 `chapter-production-pitfalls.html`（K）**：与工程化同款三层卡（insight/principle/application）；G01～G10 对位的 K01～K10（G11 为新增组织治理组，K 篇暂无对位）；专篇键 `pitfalls`，不进 `total`；侧栏组锚 `#K01`～`#K10`。
 - **AI 工程纵深 `chapter-question-ai-engineering-deep.html`（A）**：独立轴，ID `A##.##`，组锚 `#a-group-NN`（A01–A26）；进 `total`（键 `ai_engineering_deep`）；须带难度/优先级；落位 overview。
 - **垂直领域 `chapter-questions-domain.html`（D）**：ID `D##.##`，组锚 `#group-N`；进 `total`（键 `domain_questions`）；卡片变体接近场景轴；须带难度/优先级。
 - **速查清单 `nav-overview-quick-list.html`**：`nav-` 聚合页，按知识点清单导航，转发宿主锚点；无独立题号体系。

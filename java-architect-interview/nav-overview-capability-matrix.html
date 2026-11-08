@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>能力矩阵索引导航 | Java 工程能力知识库</title>
+    <script src="assets/theme-init.js"></script>
+    <link rel="stylesheet" href="assets/design-system.css" />
+    <style>
+      .kbx-wrap { max-width: 1100px; margin: 0 auto; padding: 0 var(--space-md) var(--space-xl); }
+      .kbx-hero { max-width: 1100px; margin: 0 auto; padding: var(--space-lg) var(--space-md) var(--space-md); text-align: center; }
+      .kbx-hero h1 { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: var(--space-xs); background: linear-gradient(135deg, var(--accent), var(--accent-alt)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+      .kbx-hero .kbx-subtitle { font-size: 1rem; color: var(--muted); max-width: 760px; margin: 0 auto; line-height: 1.75; }
+      .kbx-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; margin-bottom: var(--space-lg); padding: var(--space-sm) var(--space-md); background: var(--bg-card); border: 1px solid var(--rule); border-radius: var(--radius-md); }
+      .kbx-toolbar input { flex: 1 1 240px; min-width: 180px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: var(--radius-sm, 6px); background: var(--bg-page); color: var(--ink); font-size: 0.9rem; }
+      .kbx-toolbar button { padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--bg-page); color: var(--muted); cursor: pointer; font-size: 0.8rem; }
+      .kbx-toolbar button.is-active { border-color: var(--accent); color: var(--accent); background: var(--bg-card); }
+      .kbx-group { margin-bottom: var(--space-lg); }
+      .kbx-group-title { font-size: 1.15rem; font-weight: 700; color: var(--ink); padding-bottom: var(--space-xs); margin-bottom: var(--space-sm); border-bottom: 2px solid var(--rule); }
+      .kbx-dim { background: var(--bg-card); border: 1px solid var(--rule); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); }
+      .kbx-dim-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+      .kbx-dim-name { font-weight: 700; color: var(--ink); font-size: 0.98rem; }
+      .kbx-grade { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+      .kbx-grade-strong { color: var(--code-c); border-color: var(--code-c); }
+      .kbx-grade-up { color: var(--accent-alt); border-color: var(--accent-alt); }
+      .kbx-new { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--accent); color: var(--accent); }
+      .kbx-links { display: flex; flex-wrap: wrap; gap: 6px; }
+      .kbx-link { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; text-decoration: none; color: var(--muted); border: 1px solid var(--rule); border-radius: var(--radius-sm, 6px); padding: 3px 8px; background: var(--bg-page); }
+      .kbx-link:hover { color: var(--accent); border-color: var(--accent); }
+      .kbx-link b { color: var(--code-c); font-family: var(--font-mono); font-weight: 600; }
+      .kbx-link.is-new b { color: var(--accent-alt); }
+      .kbx-stage-lead { color: var(--muted); font-size: 0.88rem; margin-bottom: var(--space-sm); }
+      .kbx-empty { display: none; color: var(--muted); text-align: center; padding: var(--space-lg); }
+      @media (max-width: 768px) { .kbx-hero h1 { font-size: 1.55rem; } .kbx-wrap { padding: 0 var(--space-sm) var(--space-lg); } }
+    </style>
+  </head>
+  <body>
+    <div class="site-page-nav site-page-nav--top">
+      <nav class="chapter-nav-top">
+        <a href="../index.html" class="nav-home">← 返回总目录</a>
+        <span class="nav-center"></span>
+        <a href="nav-overview-priority.html" class="nav-next">优先级总览 →</a>
+      </nav>
+    </div>
+
+    <section class="kbx-hero">
+      <h1>岗位能力矩阵 · 检索视图</h1>
+      <p class="kbx-subtitle">以能力维度为入口，直达分散在各篇章的顶层整合卡与支撑卡。标注判档变化的能力已在本轮补齐整合卡与交叉引用，可据此从「要评估什么」直接定位到具体卡片。</p>
+    </section>
+
+    <main class="kbx-wrap">
+      <div class="kbx-toolbar">
+        <input id="kbx-q" type="search" placeholder="输入能力名、卡号或关键词筛选" aria-label="检索" />
+        <button type="button" data-filter="all" class="is-active">全部</button><button type="button" data-filter="Java 底座与运行时">Java 底座</button><button type="button" data-filter="微服务与规模化生产">微服务与规模化</button><button type="button" data-filter="AI / Agent 工程与生产落地">AI / Agent</button><button type="button" data-filter="工程化交付与组织">工程化与组织</button>
+      </div>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">Java 底座与运行时</h2>
+        <article class="kbx-dim" data-cat="Java 底座与运行时">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">JVM / GC / 运行时调优</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.01" title="JVM 运行时数据区如何划分？各区域作用与 OOM 场景？"><b>C01.01</b>JVM 运行时数据区如何划分？各区域作用与 OO</a><a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.03" title="类加载机制与双亲委派模型为何被设计成这样？"><b>C01.03</b>类加载机制与双亲委派模型为何被设计成这样？</a><a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.07" title="Java 对象的引用类型与 GC 回收？"><b>C01.07</b>Java 对象的引用类型与 GC 回收？</a><a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.08" title="JDK 9 模块系统(JPMS) 对类加载的影响？"><b>C01.08</b>JDK 9 模块系统(JPMS) 对类加载的影响</a><a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.09" title="JVM JIT 编译器（C1/C2/GraalVM）的工作原理与调优？"><b>C01.09</b>JVM JIT 编译器（C1/C2/GraalV</a><a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.10" title="JDK 17/21/25 新特性：Records/Sealed/Pattern Matchi"><b>C01.10</b>JDK 17/21/25 新特性：Records</a><a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.11" title="操作系统内存管理：虚拟内存、分页/分段、页表与 TLB 如何支撑 JVM 堆？"><b>C01.11</b>操作系统内存管理：虚拟内存、分页/分段、页表与 </a><a class="kbx-link" href="chapter-02-gc-performance.html#C02.01" title="GC Roots 可达性分析与三种 GC 算法的本质权衡？"><b>C02.01</b>GC Roots 可达性分析与三种 GC 算法的</a><a class="kbx-link" href="chapter-02-gc-performance.html#C02.02" title="CMS/G1/ZGC/Shenandoah 四个收集器的核心差异与选型？"><b>C02.02</b>CMS/G1/ZGC/Shenandoah 四个</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="Java 底座与运行时">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Java 并发 / 虚拟线程</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.04" title="JMM 的 happens-before 规则如何保证可见性与有序性？"><b>C01.04</b>JMM 的 happens-before 规则如</a><a class="kbx-link" href="chapter-03-concurrency-locks.html#C03.02" title="synchronized 的锁升级过程是怎样的？"><b>C03.02</b>synchronized 的锁升级过程是怎样的？</a><a class="kbx-link" href="chapter-03-concurrency-locks.html#C03.03" title="AQS 的 CLH 队列与 CAS 如何实现同步？"><b>C03.03</b>AQS 的 CLH 队列与 CAS 如何实现同步</a><a class="kbx-link" href="chapter-03-concurrency-locks.html#C03.04" title="CAS 与 ABA 问题如何解决？"><b>C03.04</b>CAS 与 ABA 问题如何解决？</a><a class="kbx-link" href="chapter-03-concurrency-locks.html#C03.06" title="ConcurrentHashMap 的并发安全如何保证？"><b>C03.06</b>ConcurrentHashMap 的并发安全如</a><a class="kbx-link" href="chapter-03-concurrency-locks.html#C03.08" title="Java 并发集合有哪些？各自的使用场景？"><b>C03.08</b>Java 并发集合有哪些？各自的使用场景？</a><a class="kbx-link" href="chapter-03-concurrency-locks.html#C03.11" title="Disruptor 无锁队列的设计原理与高性能实现？"><b>C03.11</b>Disruptor 无锁队列的设计原理与高性能实</a><a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.01" title="线程池 7 个参数如何调优？拒绝策略如何选？"><b>C04.01</b>线程池 7 个参数如何调优？拒绝策略如何选？</a><a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.02" title="线程池的工作流程与状态流转？"><b>C04.02</b>线程池的工作流程与状态流转？</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="Java 底座与运行时">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Java 新版本演进</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-04-threadpool-virtual-threads.html#C04.11" title="Java 25+ 运行时演进：哪些能力值得为生产升级付成本？"><b>C04.11</b>Java 25+ 运行时演进：哪些能力值得为生产</a><a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.10" title="ScopedValue：虚拟线程时代如何安全传递上下文"><b>C04.10</b>ScopedValue：虚拟线程时代如何安全传递</a><a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.10" title="JDK 17/21/25 新特性：Records/Sealed/Pattern Matchi"><b>C01.10</b>JDK 17/21/25 新特性：Records</a><a class="kbx-link" href="chapter-02-gc-performance.html#C02.08" title="JDK Flight Recorder(JFR) 与异步 profiling 如何用于性能分"><b>C02.08</b>JDK Flight Recorder(JFR)</a><a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.04" title="Virtual Threads(Java 21/25)如何重构并发模型？"><b>C04.04</b>Virtual Threads(Java 21/</a><a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.08" title="Structured Concurrency(结构化并发)如何管理并发任务？"><b>C04.08</b>Structured Concurrency(结</a><a class="kbx-link" href="chapter-13-network-io.html#C13.11" title="Linux io_uring 异步 IO 接口与 JDK Project Loom 的关系？"><b>C13.11</b>Linux io_uring 异步 IO 接口与</a><a class="kbx-link" href="chapter-14-databases.html#C14.07" title="图数据库如何建模？Cypher 模式匹配如何高效？Neo4j 何时该用？"><b>C14.07</b>图数据库如何建模？Cypher 模式匹配如何高效</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A06.03" title="灰度发布非劣效界值与 Java 落地 EvalRecord"><b>A06.03</b>灰度发布非劣效界值与 Java 落地 EvalR</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="Java 底座与运行时">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Spring 生态 / 自动配置</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.05" title="Virtual Threads 在 Spring Boot 中如何落地？"><b>C04.05</b>Virtual Threads 在 Spring</a><a class="kbx-link" href="chapter-05-spring-core.html#C05.01" title="Spring IoC 容器的启动流程与 Bean 生命周期？"><b>C05.01</b>Spring IoC 容器的启动流程与 Bean</a><a class="kbx-link" href="chapter-05-spring-core.html#C05.03" title="Spring AOP 的 JDK 动态代理与 CGLIB 如何选择？"><b>C05.03</b>Spring AOP 的 JDK 动态代理与 C</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.01" title="Spring Boot 自动配置的 SPI 机制如何工作？"><b>C06.01</b>Spring Boot 自动配置的 SPI 机制</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.02" title="Spring Boot 3.x/4.x 的 AOT 与 GraalVM Native Ima"><b>C06.02</b>Spring Boot 3.x/4.x 的 AO</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.03" title="如何设计一个自定义 Spring Boot Starter？"><b>C06.03</b>如何设计一个自定义 Spring Boot St</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.05" title="Spring Boot 的启动流程与事件机制是怎样的？"><b>C06.05</b>Spring Boot 的启动流程与事件机制是怎</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.07" title="Spring Boot Actuator 的监控端点与自定义？"><b>C06.07</b>Spring Boot Actuator 的监控</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.08" title="Spring Boot 的配置加载机制与优先级？"><b>C06.08</b>Spring Boot 的配置加载机制与优先级？</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="Java 底座与运行时">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">网络 / IO / 通信协议</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.06" title="直接内存(Direct Memory)与 NIO 的关系？"><b>C01.06</b>直接内存(Direct Memory)与 NIO</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.15" title="gRPC + Protobuf 高性能通信原理？"><b>C11.15</b>gRPC + Protobuf 高性能通信原理？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.25" title="流式 SSE 响应中途断连恢复与背压：长连接稳定性如何保证？"><b>C12.25</b>流式 SSE 响应中途断连恢复与背压：长连接稳定</a><a class="kbx-link" href="chapter-13-network-io.html#C13.01" title="OSI 七层与 TCP/IP 四层模型如何映射？各层核心协议与数据封装过程？"><b>C13.01</b>OSI 七层与 TCP/IP 四层模型如何映射？</a><a class="kbx-link" href="chapter-13-network-io.html#C13.02" title="TCP 三次握手与四次挥手完整状态机？TIME_WAIT 与 CLOSE_WAIT 根因？"><b>C13.02</b>TCP 三次握手与四次挥手完整状态机？TIME_</a><a class="kbx-link" href="chapter-13-network-io.html#C13.03" title="HTTP/1.1 vs HTTP/2 vs HTTP/3 核心差异与选型依据？"><b>C13.03</b>HTTP/1.1 vs HTTP/2 vs HT</a><a class="kbx-link" href="chapter-13-network-io.html#C13.04" title="HTTPS/TLS 1.2 与 1.3 握手流程差异？证书链验证与前向安全？"><b>C13.04</b>HTTPS/TLS 1.2 与 1.3 握手流程</a><a class="kbx-link" href="chapter-13-network-io.html#C13.05" title="Java NIO 核心原理：Selector、Channel、Buffer 如何协同工作？"><b>C13.05</b>Java NIO 核心原理：Selector、C</a><a class="kbx-link" href="chapter-13-network-io.html#C13.06" title="Netty 线程模型与 ChannelPipeline 设计哲学？"><b>C13.06</b>Netty 线程模型与 ChannelPipel</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="Java 底座与运行时">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">关系库 / 分库分表</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-07-mysql-deep.html#C07.01" title="InnoDB 的 B+树索引为何比 B树更适合数据库？"><b>C07.01</b>InnoDB 的 B+树索引为何比 B树更适合数</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.06" title="索引设计原则与优化策略？"><b>C07.06</b>索引设计原则与优化策略？</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.07" title="分库分表如何设计与落地？"><b>C07.07</b>分库分表如何设计与落地？</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.08" title="MySQL 主从复制原理与延迟优化？"><b>C07.08</b>MySQL 主从复制原理与延迟优化？</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.09" title="MySQL 高可用方案如何选型？"><b>C07.09</b>MySQL 高可用方案如何选型？</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.10" title="MySQL 的执行计划(EXPLAIN)如何解读？"><b>C07.10</b>MySQL 的执行计划(EXPLAIN)如何解读</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.11" title="MySQL 的死锁检测原理与排查实战？"><b>C07.11</b>MySQL 的死锁检测原理与排查实战？</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.13" title="MySQL 隐式类型转换如何导致索引失效？如何规避（含自增主键空洞）"><b>C07.13</b>MySQL 隐式类型转换如何导致索引失效？如何规</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.14" title="Elasticsearch 倒排索引、分片与集群架构？"><b>C11.14</b>Elasticsearch 倒排索引、分片与集群</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="Java 底座与运行时">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">NoSQL / 搜索 / 向量库</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-05-spring-core.html#C05.07" title="BeanPostProcessor 与 BeanFactoryPostProcessor 的"><b>C05.07</b>BeanPostProcessor 与 Bean</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.06" title="Spring Session 如何实现分布式 Session？"><b>C06.06</b>Spring Session 如何实现分布式 S</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.12" title="Spring Boot 优雅停机与 K8s 滚动发布协同（探针/Lifecycle/PreS"><b>C06.12</b>Spring Boot 优雅停机与 K8s 滚动</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.14" title="微服务测试策略如何分层：Testcontainers、契约测试与架构守护如何组合？"><b>C06.14</b>微服务测试策略如何分层：Testcontaine</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.04" title="容器化与 Kubernetes 如何部署 Java 应用？"><b>C10.04</b>容器化与 Kubernetes 如何部署 Jav</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.05" title="Service Mesh(Istio) 如何解耦微服务治理？"><b>C10.05</b>Service Mesh(Istio) 如何解耦</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.10" title="Serverless 架构的适用场景与挑战？"><b>C10.10</b>Serverless 架构的适用场景与挑战？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.18" title="Spring Cloud 服务调用链路：为什么 @LoadBalanced 的 RestTe"><b>C10.18</b>Spring Cloud 服务调用链路：为什么 </a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.21" title="Bootstrap 上下文与 @RefreshScope 动态刷新代理原理"><b>C10.21</b>Bootstrap 上下文与 @RefreshS</a>
+          </div>
+        </article>
+      </section>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">微服务与规模化生产</h2>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">微服务拆分 / DDD</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-10-microservice-cloud.html#C10.31" title="微服务拆分与 DDD 边界：什么时候该合并回去？"><b>C10.31</b>微服务拆分与 DDD 边界：什么时候该合并回去？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.34" title="平台工程 / IDP：黄金路径怎么设计才不会变成新瓶颈？"><b>C10.34</b>平台工程 / IDP：黄金路径怎么设计才不会变成</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.14" title="微服务测试策略如何分层：Testcontainers、契约测试与架构守护如何组合？"><b>C06.14</b>微服务测试策略如何分层：Testcontaine</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.01" title="微服务架构的服务注册发现与配置中心如何选型？"><b>C10.01</b>微服务架构的服务注册发现与配置中心如何选型？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.02" title="API 网关在微服务中的核心职责？"><b>C10.02</b>API 网关在微服务中的核心职责？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.05" title="Service Mesh(Istio) 如何解耦微服务治理？"><b>C10.05</b>Service Mesh(Istio) 如何解耦</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.06" title="单体到微服务的架构演进路径如何规划？"><b>C10.06</b>单体到微服务的架构演进路径如何规划？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.08" title="微服务配置中心的设计与选型？"><b>C10.08</b>微服务配置中心的设计与选型？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.11" title="微服务间数据一致性如何保证？"><b>C10.11</b>微服务间数据一致性如何保证？</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">服务治理 / 限流熔断</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.01" title="微服务架构的服务注册发现与配置中心如何选型？"><b>C10.01</b>微服务架构的服务注册发现与配置中心如何选型？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.02" title="API 网关在微服务中的核心职责？"><b>C10.02</b>API 网关在微服务中的核心职责？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.03" title="高并发系统的限流算法与熔断降级策略？"><b>C10.03</b>高并发系统的限流算法与熔断降级策略？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.05" title="Service Mesh(Istio) 如何解耦微服务治理？"><b>C10.05</b>Service Mesh(Istio) 如何解耦</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.19" title='OpenFeign 深度：@FeignClient 接口如何变成能发 HTTP 的"实现类"'><b>C10.19</b>OpenFeign 深度：@FeignClien</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.24" title="Spring Cloud 常见生产 7 大坑：Feign 传文件、LoadBalanced "><b>C10.24</b>Spring Cloud 常见生产 7 大坑：F</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.29" title="网关超时链路怎么拆：从客户端到下游每一跳的超时与排查顺序？"><b>C10.29</b>网关超时链路怎么拆：从客户端到下游每一跳的超时与</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.12" title="API 网关的核心设计（限流、熔断、灰度发布）？"><b>C11.12</b>API 网关的核心设计（限流、熔断、灰度发布）？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.18" title="LLM 调用限流/熔断/降级/超时治理：模型服务抖动如何不拖垮主链路？"><b>C12.18</b>LLM 调用限流/熔断/降级/超时治理：模型服务</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">分布式事务 / 一致性</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-08-redis-cache.html#C08.04" title="缓存与数据库一致性如何保证？"><b>C08.04</b>缓存与数据库一致性如何保证？</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.01" title="CAP 定理的证明与 BASE 理论如何指导实践？"><b>C09.01</b>CAP 定理的证明与 BASE 理论如何指导实践</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.02" title="分布式事务的 2PC/3PC/TCC/Seata AT/SAGA 原理与选型？"><b>C09.02</b>分布式事务的 2PC/3PC/TCC/Seata</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.07" title="一致性哈希如何解决分布式缓存的数据分布？"><b>C09.07</b>一致性哈希如何解决分布式缓存的数据分布？</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.08" title="接口幂等设计如何实现？"><b>C09.08</b>接口幂等设计如何实现？</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.12" title="分布式缓存的一致性如何保障？"><b>C09.12</b>分布式缓存的一致性如何保障？</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.16" title="分布式事务新演进与最新选型？"><b>C09.16</b>分布式事务新演进与最新选型？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.11" title="微服务间数据一致性如何保证？"><b>C10.11</b>微服务间数据一致性如何保证？</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.23" title="如何保证分布式定时任务不重不漏？幂等、动态分片、故障转移与多机房如何处理？"><b>C11.23</b>如何保证分布式定时任务不重不漏？幂等、动态分片、</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">消息队列 / 事件驱动</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-11-middleware-engineering.html#C11.31" title="事件驱动架构的顶层决策：什么时候用消息，什么时候不该用？"><b>C11.31</b>事件驱动架构的顶层决策：什么时候用消息，什么时候</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.20" title="成本优化 / FinOps：云账单失控背景下如何体系化降本与用云责任共担"><b>C11.20</b>成本优化 / FinOps：云账单失控背景下如何</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.15" title="分布式系统的容灾与多活架构如何设计？"><b>C09.15</b>分布式系统的容灾与多活架构如何设计？</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.11" title="Redis Stream 作为消息队列的设计与实战？"><b>C08.11</b>Redis Stream 作为消息队列的设计与实</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.04" title="Kafka 如何保证高吞吐、可靠投递与消息顺序？"><b>C09.04</b>Kafka 如何保证高吞吐、可靠投递与消息顺序？</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.09" title="消息队列如何保证可靠投递与顺序？"><b>C09.09</b>消息队列如何保证可靠投递与顺序？</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.11" title="消息队列 Kafka 的高可用架构与 Exactly-Once 语义如何保证？"><b>C11.11</b>消息队列 Kafka 的高可用架构与 Exact</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.18" title="Kafka 与 RocketMQ 如何选型？事务消息/延迟队列场景对比"><b>C11.18</b>Kafka 与 RocketMQ 如何选型？事务</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.24" title="Kafka Streams 如何做有状态流处理？拓扑、状态存储、EOS 与 Flink 如何"><b>C11.24</b>Kafka Streams 如何做有状态流处理？</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">缓存 / Redis</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-05-spring-core.html#C05.02" title="三级缓存如何解决循环依赖？为何需要三级？"><b>C05.02</b>三级缓存如何解决循环依赖？为何需要三级？</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.14" title="MyBatis 一级/二级缓存、插件(Interceptor)机制与 #{} vs ${} "><b>C07.14</b>MyBatis 一级/二级缓存、插件(Inter</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.01" title="Redis 的 5+4 种数据结构与应用场景？"><b>C08.01</b>Redis 的 5+4 种数据结构与应用场景？</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.02" title="Redis RDB 与 AOF 持久化的权衡？"><b>C08.02</b>Redis RDB 与 AOF 持久化的权衡？</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.03" title="缓存穿透/击穿/雪崩的区别与解决方案？"><b>C08.03</b>缓存穿透/击穿/雪崩的区别与解决方案？</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.04" title="缓存与数据库一致性如何保证？"><b>C08.04</b>缓存与数据库一致性如何保证？</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.05" title="Redisson 分布式锁如何实现可重入与看门狗？"><b>C08.05</b>Redisson 分布式锁如何实现可重入与看门狗</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.06" title="多级缓存架构如何设计？"><b>C08.06</b>多级缓存架构如何设计？</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.07" title="Redis Cluster 的工作原理？"><b>C08.07</b>Redis Cluster 的工作原理？</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">高并发 / 容量规划</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-12-ai-engineering.html#C12.47" title="高并发 × 大模型长响应的异步任务架构怎么定顶层骨架？"><b>C12.47</b>高并发 × 大模型长响应的异步任务架构怎么定顶层</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.32" title="容量规划与 SLO 分解：从「压测通过」到「可承诺的容量」"><b>C10.32</b>容量规划与 SLO 分解：从「压测通过」到「可承</a><a class="kbx-link" href="chapter-08-redis-cache.html#C08.10" title="Redis 在高并发场景的常见问题与优化？"><b>C08.10</b>Redis 在高并发场景的常见问题与优化？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.03" title="高并发系统的限流算法与熔断降级策略？"><b>C10.03</b>高并发系统的限流算法与熔断降级策略？</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.26" title="消息消费积压怎么分级处置：扩容、跳过、降速还是切备？"><b>C11.26</b>消息消费积压怎么分级处置：扩容、跳过、降速还是切</a><a class="kbx-link" href="chapter-core-methodology.html#M08.04" title="水平扩展"><b>M08.04</b>水平扩展</a><a class="kbx-link" href="chapter-core-methodology.html#M08.11" title="高并发设计流程"><b>M08.11</b>高并发设计流程</a><a class="kbx-link" href="chapter-production-pitfalls.html#K03.08" title="弹性扩容触发风暴启动"><b>K03.08</b>弹性扩容触发风暴启动</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A17.02" title="工具契约 / 防死循环 / 并发压测 + 故障注入"><b>A17.02</b>工具契约 / 防死循环 / 并发压测 + 故障注</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">高可用 / 容灾 / SLO</span><span class="kbx-grade kbx-grade-strong">强</span><span class="kbx-new">已补整合卡</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-09-distributed-systems.html#C09.18" title="单元化 / 异地多活：故障域与流量调度怎么定架构决策？"><b>C09.18</b>单元化 / 异地多活：故障域与流量调度怎么定架构</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.15" title="分布式系统的容灾与多活架构如何设计？"><b>C09.15</b>分布式系统的容灾与多活架构如何设计？</a><a class="kbx-link" href="chapter-questions-scenario.html#S08.01" title="异地多活架构设计：核心交易系统如何实现 RTO&amp;lt;1min、RPO=0 的跨城容灾"><b>S08.01</b>异地多活架构设计：核心交易系统如何实现 RTO&amp;</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.09" title="MySQL 高可用方案如何选型？"><b>C07.09</b>MySQL 高可用方案如何选型？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.07" title="高可用架构设计的核心原则与实践？"><b>C10.07</b>高可用架构设计的核心原则与实践？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.17" title="SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？"><b>C10.17</b>SLO/SLI 工程实践：如何用错误预算驱动发布</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.10" title="混沌工程如何验证系统韧性？"><b>C11.10</b>混沌工程如何验证系统韧性？</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.11" title="消息队列 Kafka 的高可用架构与 Exactly-Once 语义如何保证？"><b>C11.11</b>消息队列 Kafka 的高可用架构与 Exact</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.23" title="如何保证分布式定时任务不重不漏？幂等、动态分片、故障转移与多机房如何处理？"><b>C11.23</b>如何保证分布式定时任务不重不漏？幂等、动态分片、</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">云原生 / K8s / CI-CD</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-10-microservice-cloud.html#C10.33" title="云原生交付平台化：K8s / CI-CD 如何从工具变成门禁？"><b>C10.33</b>云原生交付平台化：K8s / CI-CD 如何从</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.34" title="平台工程 / IDP：黄金路径怎么设计才不会变成新瓶颈？"><b>C10.34</b>平台工程 / IDP：黄金路径怎么设计才不会变成</a><a class="kbx-link" href="chapter-05-spring-core.html#C05.01" title="Spring IoC 容器的启动流程与 Bean 生命周期？"><b>C05.01</b>Spring IoC 容器的启动流程与 Bean</a><a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.12" title="Spring Boot 优雅停机与 K8s 滚动发布协同（探针/Lifecycle/PreS"><b>C06.12</b>Spring Boot 优雅停机与 K8s 滚动</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.04" title="容器化与 Kubernetes 如何部署 Java 应用？"><b>C10.04</b>容器化与 Kubernetes 如何部署 Jav</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.05" title="Service Mesh(Istio) 如何解耦微服务治理？"><b>C10.05</b>Service Mesh(Istio) 如何解耦</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.12" title="云原生 CI/CD 与 GitOps 实践？"><b>C10.12</b>云原生 CI/CD 与 GitOps 实践？</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.06" title="CI/CD 流水线如何设计标准化？"><b>C11.06</b>CI/CD 流水线如何设计标准化？</a><a class="kbx-link" href="chapter-core-methodology.html#M12.04" title="JVM 落区归因与容器预算"><b>M12.04</b>JVM 落区归因与容器预算</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="微服务与规模化生产">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">可观测性 / 链路追踪</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-02-gc-performance.html#C02.12" title="GC/JVM 指标监控闭环：Micrometer+Prometheus+Grafana 采集"><b>C02.12</b>GC/JVM 指标监控闭环：Micrometer</a><a class="kbx-link" href="chapter-09-distributed-systems.html#C09.11" title="分布式系统的链路追踪与可观测性如何落地？"><b>C09.11</b>分布式系统的链路追踪与可观测性如何落地？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.15" title="可观测性三大支柱与工程实践？"><b>C10.15</b>可观测性三大支柱与工程实践？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.22" title="Sleuth→Micrometer Tracing 链路追踪演进：B3/W3C 传播、采样率"><b>C10.22</b>Sleuth→Micrometer Tracin</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.08" title="全链路 TraceId 如何在多线程与跨服务间透传？"><b>C11.08</b>全链路 TraceId 如何在多线程与跨服务间透</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.09" title="可观测性三支柱（Metrics/Traces/Logs）与 OpenTelemetry 如何"><b>C11.09</b>可观测性三支柱（Metrics/Traces/L</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.19" title="eBPF 无侵入可观测：内核级采集与 OTel/Agent 边界"><b>C11.19</b>eBPF 无侵入可观测：内核级采集与 OTel/</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.40" title="语义 SRE 埋点：Micrometer 自定义指标与行为基线"><b>C12.40</b>语义 SRE 埋点：Micrometer 自定义</a><a class="kbx-link" href="chapter-core-methodology.html#M06.07" title="可观测性三支柱"><b>M06.07</b>可观测性三支柱</a>
+          </div>
+        </article>
+      </section>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">AI / Agent 工程与生产落地</h2>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Spring AI / Agent 框架</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.06" title="Spring AI / Agent 框架的顶层选型：抽象该停在哪一层？"><b>A33.06</b>Spring AI / Agent 框架的顶层选</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.01" title="Spring AI 的核心架构与整合模式？"><b>C12.01</b>Spring AI 的核心架构与整合模式？</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A12.01" title="五代演进：Prompt → Context → Harness → Loop → Graph"><b>A12.01</b>五代演进：Prompt → Context → </a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.06" title="Spring AI 的 Function Calling 如何让 LLM 调用工具？"><b>C12.06</b>Spring AI 的 Function Cal</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.07" title="Agent 框架与 MCP 协议如何构建自主智能体？"><b>C12.07</b>Agent 框架与 MCP 协议如何构建自主智能</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.11" title="Spring AI Alibaba Graph 编排与阿里云生态集成？"><b>C12.11</b>Spring AI Alibaba Graph </a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.13" title="LangChain4j AiServices 与多模型集成？"><b>C12.13</b>LangChain4j AiServices 与</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.14" title="LangGraph4j StateGraph 图编排与 MultiAgent？"><b>C12.14</b>LangGraph4j StateGraph 图</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.16" title="LLM 流式响应处理：Spring AI stream() API 与 SSE 端点设计？"><b>C12.16</b>LLM 流式响应处理：Spring AI str</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">模型网关 / 多模型路由降级</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-12-ai-engineering.html#C12.48" title="模型网关作为平台层，统一契约应该包含哪些能力？"><b>C12.48</b>模型网关作为平台层，统一契约应该包含哪些能力？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.20" title="多模型路由与故障转移架构：单供应商故障如何容灾、成本如何最优？"><b>C12.20</b>多模型路由与故障转移架构：单供应商故障如何容灾、</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A07.03" title="Spring AI 安全层与大模型网关"><b>A07.03</b>Spring AI 安全层与大模型网关</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.13" title="LangChain4j AiServices 与多模型集成？"><b>C12.13</b>LangChain4j AiServices 与</a><a class="kbx-link" href="chapter-core-methodology.html#M14.S11" title="LLM 网关与模型路由"><b>M14.S11</b>LLM 网关与模型路由</a><a class="kbx-link" href="chapter-engineering-practices.html#G07.08" title="模型降级开关演练"><b>G07.08</b>模型降级开关演练</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A14.02" title="ChatModel / ToolCallback SPI：多模型方言适配与可替换实现"><b>A14.02</b>ChatModel / ToolCallback</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A15.01" title="ChatClient 多模型路由与 BeanOutputConverter 结构化输出"><b>A15.01</b>ChatClient 多模型路由与 BeanOu</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A22.01" title="Token 预算 / 语义缓存命中率 / 按成本模型路由"><b>A22.01</b>Token 预算 / 语义缓存命中率 / 按成本</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">RAG / 检索增强</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-12-ai-engineering.html#C12.02" title="RAG 检索增强生成的完整流程与各环节优化？"><b>C12.02</b>RAG 检索增强生成的完整流程与各环节优化？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.03" title="向量 Embedding 与相似度检索的数学原理？"><b>C12.03</b>向量 Embedding 与相似度检索的数学原理</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.04" title="文档分块(Chunking)策略如何影响 RAG 效果？"><b>C12.04</b>文档分块(Chunking)策略如何影响 RAG</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.17" title="RAG 召回率低与幻觉的生产级治理：检索质量、Grounding、引用溯源如何落地？"><b>C12.17</b>RAG 召回率低与幻觉的生产级治理：检索质量、G</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.21" title="十亿级向量库选型与性能调优：Milvus/Qdrant 实战参数如何调？"><b>C12.21</b>十亿级向量库选型与性能调优：Milvus/Qdr</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.22" title="Embedding 模型升级迁移：向量重算成本与一致性如何治理？"><b>C12.22</b>Embedding 模型升级迁移：向量重算成本与</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.27" title="RAG 知识库增量更新与向量一致性同步：数据时效与一致如何保证？"><b>C12.27</b>RAG 知识库增量更新与向量一致性同步：数据时效</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.33" title="RAG 评测集最小闭环：上线前至少跑哪些回归？"><b>C12.33</b>RAG 评测集最小闭环：上线前至少跑哪些回归？</a><a class="kbx-link" href="chapter-14-databases.html#C14.02" title="为何用 MongoDB 做向量检索？Atlas Vector Search 的 ANN 原理"><b>C14.02</b>为何用 MongoDB 做向量检索？Atlas </a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Agent 范式 / Harness / 编排</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.06" title="CompletableFuture 如何编排异步任务？"><b>C04.06</b>CompletableFuture 如何编排异步</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.19" title="eBPF 无侵入可观测：内核级采集与 OTel/Agent 边界"><b>C11.19</b>eBPF 无侵入可观测：内核级采集与 OTel/</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.07" title="Agent 框架与 MCP 协议如何构建自主智能体？"><b>C12.07</b>Agent 框架与 MCP 协议如何构建自主智能</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.11" title="Spring AI Alibaba Graph 编排与阿里云生态集成？"><b>C12.11</b>Spring AI Alibaba Graph </a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.12" title="AgentScope-Java Agentic 框架与 ReAct 范式？"><b>C12.12</b>AgentScope-Java Agentic </a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.14" title="LangGraph4j StateGraph 图编排与 MultiAgent？"><b>C12.14</b>LangGraph4j StateGraph 图</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.23" title="Agent 工具调用失败/死循环/超预算治理：自主调用的资损风险如何防？"><b>C12.23</b>Agent 工具调用失败/死循环/超预算治理：自</a><a class="kbx-link" href="chapter-13-network-io.html#C13.02" title="TCP 三次握手与四次挥手完整状态机？TIME_WAIT 与 CLOSE_WAIT 根因？"><b>C13.02</b>TCP 三次握手与四次挥手完整状态机？TIME_</a><a class="kbx-link" href="chapter-15-reactive.html#C15.01" title="Project Reactor 核心原理与背压机制？"><b>C15.01</b>Project Reactor 核心原理与背压机</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">上下文工程 / 记忆</span><span class="kbx-grade kbx-grade-up">中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-01-jvm-memory-classloading.html#C01.06" title="直接内存(Direct Memory)与 NIO 的关系？"><b>C01.06</b>直接内存(Direct Memory)与 NIO</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.31" title="长记忆/会话存储与隐私合规：数据留存/脱敏/合规如何治理？"><b>C12.31</b>长记忆/会话存储与隐私合规：数据留存/脱敏/合规</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.42" title="记忆写入闸门：事件、审计表与谱系"><b>C12.42</b>记忆写入闸门：事件、审计表与谱系</a><a class="kbx-link" href="chapter-core-methodology.html#M14.F12" title="记忆生命周期治理（腐化 / 遗忘权 / 继任可移植）"><b>M14.F12</b>记忆生命周期治理（腐化 / 遗忘权 / 继任可移</a><a class="kbx-link" href="chapter-core-methodology.html#M14.S18" title="记忆写入闸门与谱系（合并原 S14）"><b>M14.S18</b>记忆写入闸门与谱系（合并原 S14）</a><a class="kbx-link" href="chapter-core-methodology.html#M14.S19" title="AI 资产退役标准作业（模型/知识库/记忆 无感下线 + 遗忘权销毁）"><b>M14.S19</b>AI 资产退役标准作业（模型/知识库/记忆 无感</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A02.01" title="上下文工程本质：Context Assembler 与 Token 预算"><b>A02.01</b>上下文工程本质：Context Assemble</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A02.02" title="Context Rot 与上下文压缩策略"><b>A02.02</b>Context Rot 与上下文压缩策略</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A02.03" title="记忆工程：分层 / 生命周期 / 存储三态"><b>A02.03</b>记忆工程：分层 / 生命周期 / 存储三态</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">工具调用 / MCP</span><span class="kbx-grade kbx-grade-up">中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-12-ai-engineering.html#C12.06" title="Spring AI 的 Function Calling 如何让 LLM 调用工具？"><b>C12.06</b>Spring AI 的 Function Cal</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.07" title="Agent 框架与 MCP 协议如何构建自主智能体？"><b>C12.07</b>Agent 框架与 MCP 协议如何构建自主智能</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.23" title="Agent 工具调用失败/死循环/超预算治理：自主调用的资损风险如何防？"><b>C12.23</b>Agent 工具调用失败/死循环/超预算治理：自</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.37" title="工具调用幂等与重试预算：为什么只能由一层重试？"><b>C12.37</b>工具调用幂等与重试预算：为什么只能由一层重试？</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A04.01" title="工具调用分层：FC / MCP / Skills / A2A"><b>A04.01</b>工具调用分层：FC / MCP / Skills</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A04.02" title="MCP 的本质：N×M → N+M 的连接协议"><b>A04.02</b>MCP 的本质：N×M → N+M 的连接协议</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A04.03" title="生产级工具接入 Checklist 与 Skills 渐进披露"><b>A04.03</b>生产级工具接入 Checklist 与 Skil</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A04.04" title="工具调用三层可靠性契约"><b>A04.04</b>工具调用三层可靠性契约</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A10.01" title="Function Calling 本质与训练（SFT + RLHF）"><b>A10.01</b>Function Calling 本质与训练（S</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Eval / 评测 / 回放</span><span class="kbx-grade kbx-grade-strong">强</span><span class="kbx-new">已补整合卡</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.01" title="轨迹级评测（trajectory eval）：为什么结果正确不等于过程可信？"><b>A33.01</b>轨迹级评测（trajectory eval）：为</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A17.01" title="非确定性断言与 Golden Set + RAGAS/DeepEval + CI"><b>A17.01</b>非确定性断言与 Golden Set + RAG</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.41" title="故障快照回放与 Bad Case 回写评测集"><b>C12.41</b>故障快照回放与 Bad Case 回写评测集</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.28" title="平台工程与内部开发者平台（IDP）：Golden Path、自助交付与平台团队边界如何设计？"><b>C10.28</b>平台工程与内部开发者平台（IDP）：Golden</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.29" title="LLM 评测集构建与 CI 质量卡门：如何防劣化上线？"><b>C12.29</b>LLM 评测集构建与 CI 质量卡门：如何防劣化</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.33" title="RAG 评测集最小闭环：上线前至少跑哪些回归？"><b>C12.33</b>RAG 评测集最小闭环：上线前至少跑哪些回归？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.46" title="受监管合规工程落地：不可变审计/PII 脱敏/决策可回放如何做？"><b>C12.46</b>受监管合规工程落地：不可变审计/PII 脱敏/决</a><a class="kbx-link" href="chapter-14-databases.html#C14.12" title="如何设计端到端 CDC 管道？Debezium/Canal → Kafka → 湖仓/ES/"><b>C14.12</b>如何设计端到端 CDC 管道？Debezium/</a><a class="kbx-link" href="chapter-core-methodology.html#M14.D02" title="以评测为中心（eval-first）"><b>M14.D02</b>以评测为中心（eval-first）</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Agent 可观测 / 静默失效</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-new">已补整合卡</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A28.01" title="静默失效四型与 fail-plausible"><b>A28.01</b>静默失效四型与 fail-plausible</a><a class="kbx-link" href="chapter-core-methodology.html#M14.D06" title="知识会静默失效：语义时态是第一公民"><b>M14.D06</b>知识会静默失效：语义时态是第一公民</a><a class="kbx-link" href="chapter-core-methodology.html#M14.S05" title="静默失效立法"><b>M14.S05</b>静默失效立法</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">AI 安全 / 合规 / 审计</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-12-ai-engineering.html#C12.15" title="LLM 应用安全防护与 Guardrails：Prompt Injection 防御与护栏框"><b>C12.15</b>LLM 应用安全防护与 Guardrails：P</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.19" title="Prompt 注入/越狱/数据泄露防护：AI 安全纵深如何构建？"><b>C12.19</b>Prompt 注入/越狱/数据泄露防护：AI 安</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.31" title="长记忆/会话存储与隐私合规：数据留存/脱敏/合规如何治理？"><b>C12.31</b>长记忆/会话存储与隐私合规：数据留存/脱敏/合规</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.42" title="记忆写入闸门：事件、审计表与谱系"><b>C12.42</b>记忆写入闸门：事件、审计表与谱系</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.46" title="受监管合规工程落地：不可变审计/PII 脱敏/决策可回放如何做？"><b>C12.46</b>受监管合规工程落地：不可变审计/PII 脱敏/决</a><a class="kbx-link" href="chapter-core-methodology.html#M14.F10" title="合规按功能叠加"><b>M14.F10</b>合规按功能叠加</a><a class="kbx-link" href="chapter-core-methodology.html#M14.F14" title="受监管行业 AI 合规检查清单（合规按功能叠加）"><b>M14.F14</b>受监管行业 AI 合规检查清单（合规按功能叠加）</a><a class="kbx-link" href="chapter-engineering-practices.html#G05.05" title="热点 key 预热与护栏"><b>G05.05</b>热点 key 预热与护栏</a><a class="kbx-link" href="chapter-engineering-practices.html#G08.08" title="生产访问审计抽检"><b>G08.08</b>生产访问审计抽检</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">沙箱 / 执行隔离</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.07" title="沙箱与执行隔离：Agent 写代码、跑工具时边界怎么划？"><b>A33.07</b>沙箱与执行隔离：Agent 写代码、跑工具时边界</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A10.04" title="工具容错五阶段 / 沙箱隔离 / Skill 三层加载"><b>A10.04</b>工具容错五阶段 / 沙箱隔离 / Skill 三</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.28" title="多租户 AI 应用隔离/配额/计费：资源争抢与成本归因如何治理？"><b>C12.28</b>多租户 AI 应用隔离/配额/计费：资源争抢与成</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.02" title="MVCC 如何实现 RC 和 RR 两种隔离级别？"><b>C07.02</b>MVCC 如何实现 RC 和 RR 两种隔离级别</a><a class="kbx-link" href="chapter-core-methodology.html#M06.03" title="隔离原则（故障/资源/数据）"><b>M06.03</b>隔离原则（故障/资源/数据）</a><a class="kbx-link" href="chapter-core-methodology.html#M07.01" title="一致模型先行与故障域隔离"><b>M07.01</b>一致模型先行与故障域隔离</a><a class="kbx-link" href="chapter-core-methodology.html#M14.F07" title="多租户隔离与资产退役"><b>M14.F07</b>多租户隔离与资产退役</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A20.02" title="AOP 审计 / 多租户隔离 + 被遗忘权 / 网关治理"><b>A20.02</b>AOP 审计 / 多租户隔离 + 被遗忘权 / </a><a class="kbx-link" href="chapter-questions-domain.html#D05.01" title="多租户架构：隔离模型选型与租户路由"><b>D05.01</b>多租户架构：隔离模型选型与租户路由</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">Token 成本 / 延迟 / FinOps</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.08" title="Token 成本与延迟联合治理：为什么单看单价会做错决策？"><b>A33.08</b>Token 成本与延迟联合治理：为什么单看单价会</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.26" title="Token 成本爆炸治理：语义缓存/分级路由/上下文裁剪如何落地？"><b>C12.26</b>Token 成本爆炸治理：语义缓存/分级路由/上</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A31.01" title='算力 FinOps 深证：把"算得贵"变成"算得值"的关键杠杆'><b>A31.01</b>算力 FinOps 深证：把&quot;算得贵&quot;变成&quot;算得</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.08" title="MySQL 主从复制原理与延迟优化？"><b>C07.08</b>MySQL 主从复制原理与延迟优化？</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.20" title="成本优化 / FinOps：云账单失控背景下如何体系化降本与用云责任共担"><b>C11.20</b>成本优化 / FinOps：云账单失控背景下如何</a><a class="kbx-link" href="chapter-core-methodology.html#M05.18" title="FinOps 闭环"><b>M05.18</b>FinOps 闭环</a><a class="kbx-link" href="chapter-core-methodology.html#M14.F15" title="算力/FinOps 工程抓手（GPU 利用率·调度·二阶成本）"><b>M14.F15</b>算力/FinOps 工程抓手（GPU 利用率·调</a><a class="kbx-link" href="chapter-engineering-practices.html#G07.07" title="Token/算力成本配额"><b>G07.07</b>Token/算力成本配额</a><a class="kbx-link" href="chapter-questions-scenario.html#S10.05" title="高并发连接池调优与网络延迟优化：微服务下游调用性能治理"><b>S10.05</b>高并发连接池调优与网络延迟优化：微服务下游调用性</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">人在环 / 人机协同</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.09" title="人在环（HITL）治理：审批点设在哪、如何不变成流程摆设？"><b>A33.09</b>人在环（HITL）治理：审批点设在哪、如何不变成</a><a class="kbx-link" href="chapter-core-methodology.html#M14.S20" title="人在环模式目录（HITL pattern catalog）"><b>M14.S20</b>人在环模式目录（HITL pattern cat</a><a class="kbx-link" href="chapter-engineering-practices.html#G10.03" title="模型退役与人在环清单"><b>G10.03</b>模型退役与人在环清单</a><a class="kbx-link" href="chapter-core-methodology.html#M14.S12" title="人机协同模式"><b>M14.S12</b>人机协同模式</a><a class="kbx-link" href="chapter-engineering-practices.html#G04.06" title="数据修复双人审批"><b>G04.06</b>数据修复双人审批</a><a class="kbx-link" href="chapter-production-pitfalls.html#K10.03" title="人在环缺失自动驾驶翻车事故：信号与回放"><b>K10.03</b>人在环缺失自动驾驶翻车事故：信号与回放</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">长响应 / 异步 / 流式</span><span class="kbx-grade kbx-grade-strong">强</span><span class="kbx-new">已补整合卡</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-12-ai-engineering.html#C12.47" title="高并发 × 大模型长响应的异步任务架构怎么定顶层骨架？"><b>C12.47</b>高并发 × 大模型长响应的异步任务架构怎么定顶层</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A24.01" title="水平扩展 / 会话亲和 / 限流排队 / 多租户配额 QoS"><b>A24.01</b>水平扩展 / 会话亲和 / 限流排队 / 多租户</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.37" title="工具调用幂等与重试预算：为什么只能由一层重试？"><b>C12.37</b>工具调用幂等与重试预算：为什么只能由一层重试？</a><a class="kbx-link" href="chapter-04-threadpool-virtual-threads.html#C04.06" title="CompletableFuture 如何编排异步任务？"><b>C04.06</b>CompletableFuture 如何编排异步</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.16" title="事务超时与长事务止血：从锁等到回滚的值班路径？"><b>C07.16</b>事务超时与长事务止血：从锁等到回滚的值班路径？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.29" title="网关超时链路怎么拆：从客户端到下游每一跳的超时与排查顺序？"><b>C10.29</b>网关超时链路怎么拆：从客户端到下游每一跳的超时与</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.25" title="Flink 有状态流计算如何落地？Checkpoint/Savepoint、Watermar"><b>C11.25</b>Flink 有状态流计算如何落地？Checkpo</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.16" title="LLM 流式响应处理：Spring AI stream() API 与 SSE 端点设计？"><b>C12.16</b>LLM 流式响应处理：Spring AI str</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.18" title="LLM 调用限流/熔断/降级/超时治理：模型服务抖动如何不拖垮主链路？"><b>C12.18</b>LLM 调用限流/熔断/降级/超时治理：模型服务</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">多模态 / 语音</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">弱 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.05" title="多模态 / 语音生产链路：对齐、评测、溯源与成本延迟的取舍"><b>A33.05</b>多模态 / 语音生产链路：对齐、评测、溯源与成本</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A32.01" title="多模态工程深证：对齐与评测为什么比纯文本更难？"><b>A32.01</b>多模态工程深证：对齐与评测为什么比纯文本更难？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.10" title="多模态 LLM 与 AI 应用的未来趋势？"><b>C12.10</b>多模态 LLM 与 AI 应用的未来趋势？</a><a class="kbx-link" href="chapter-core-methodology.html#M14.S13" title="多模态（文本/图像/音频统一表征与对齐）"><b>M14.S13</b>多模态（文本/图像/音频统一表征与对齐）</a><a class="kbx-link" href="chapter-engineering-practices.html#G10.02" title="多模态评测与引用清单"><b>G10.02</b>多模态评测与引用清单</a><a class="kbx-link" href="chapter-production-pitfalls.html#K09.03" title="多模态对齐失效事故：信号与回放"><b>K09.03</b>多模态对齐失效事故：信号与回放</a><a class="kbx-link" href="chapter-questions-domain.html#D08.02" title="内容审核：机审人审协同、多模态与举报闭环"><b>D08.02</b>内容审核：机审人审协同、多模态与举报闭环</a><a class="kbx-link" href="chapter-questions-scenario.html#S11.05" title="数据湖仓一体架构设计与治理：5 PB 级多模态数据统一存储与分析"><b>S11.05</b>数据湖仓一体架构设计与治理：5 PB 级多模态数</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">私有化部署 / 推理服务</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">弱 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.04" title="私有化推理服务工程：vLLM / 量化 / GPU 调度 / Java×Python 混合部"><b>A33.04</b>私有化推理服务工程：vLLM / 量化 / GP</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A18.01" title="GraalVM / K8s + HPA 与 Java×Python 混合部署（推理服务选型）"><b>A18.01</b>GraalVM / K8s + HPA 与 Ja</a><a class="kbx-link" href="chapter-core-methodology.html#M14.F15" title="算力/FinOps 工程抓手（GPU 利用率·调度·二阶成本）"><b>M14.F15</b>算力/FinOps 工程抓手（GPU 利用率·调</a><a class="kbx-link" href="chapter-questions-domain.html#D05.05" title="私有化部署与版本治理：一套代码的多形态交付"><b>D05.05</b>私有化部署与版本治理：一套代码的多形态交付</a><a class="kbx-link" href="chapter-questions-scenario.html#S10.03" title="HTTP/2、gRPC、QUIC 协议选型与落地：微服务内网通信协议升级"><b>S10.03</b>HTTP/2、gRPC、QUIC 协议选型与落地</a><a class="kbx-link" href="chapter-questions-scenario.html#S11.06" title="云/GPU FinOps 失控治理：账单翻倍下的归因、责任制与弹性降本"><b>S11.06</b>云/GPU FinOps 失控治理：账单翻倍下的</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="AI / Agent 工程与生产落地">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">AI 研发效能 / 编码智能体</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-question-ai-engineering-deep.html#A33.03" title="团队级 AI 研发效能治理：从个人提效到组织可度量"><b>A33.03</b>团队级 AI 研发效能治理：从个人提效到组织可度</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A11.01" title="AI 编程三模式与需求描述规范（Vibe vs Spec）"><b>A11.01</b>AI 编程三模式与需求描述规范（Vibe vs </a><a class="kbx-link" href="chapter-engineering-practices.html#G07.09" title="AI 辅助研发的工程治理红线"><b>G07.09</b>AI 辅助研发的工程治理红线</a>
+          </div>
+        </article>
+      </section>
+      <section class="kbx-group">
+        <h2 class="kbx-group-title">工程化交付与组织</h2>
+        <article class="kbx-dim" data-cat="工程化交付与组织">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">发布 / 灰度 / 回滚</span><span class="kbx-grade kbx-grade-strong">强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link" href="chapter-06-spring-boot-modern.html#C06.12" title="Spring Boot 优雅停机与 K8s 滚动发布协同（探针/Lifecycle/PreS"><b>C06.12</b>Spring Boot 优雅停机与 K8s 滚动</a><a class="kbx-link" href="chapter-07-mysql-deep.html#C07.16" title="事务超时与长事务止血：从锁等到回滚的值班路径？"><b>C07.16</b>事务超时与长事务止血：从锁等到回滚的值班路径？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.09" title="灰度发布与蓝绿部署如何设计？"><b>C10.09</b>灰度发布与蓝绿部署如何设计？</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.17" title="SLO/SLI 工程实践：如何用错误预算驱动发布与运维决策？"><b>C10.17</b>SLO/SLI 工程实践：如何用错误预算驱动发布</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.30" title="配置刷新安全回滚值班：@RefreshScope 之外还要核对什么？"><b>C10.30</b>配置刷新安全回滚值班：@RefreshScope</a><a class="kbx-link" href="chapter-11-middleware-engineering.html#C11.12" title="API 网关的核心设计（限流、熔断、灰度发布）？"><b>C11.12</b>API 网关的核心设计（限流、熔断、灰度发布）？</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.30" title="模型版本灰度发布与 A/B 实验架构：平滑升级与效果如何度量？"><b>C12.30</b>模型版本灰度发布与 A/B 实验架构：平滑升级与</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.34" title="Prompt/工具变更如何灰度：流量、影子与回滚点？"><b>C12.34</b>Prompt/工具变更如何灰度：流量、影子与回滚</a><a class="kbx-link" href="chapter-core-methodology.html#M05.11" title="发布决策树与灰度"><b>M05.11</b>发布决策树与灰度</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="工程化交付与组织">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">故障复盘 / 技术债 / 规范</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">弱 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-engineering-practices.html#G11.01" title="MTTR 与事故复盘 SOP：从信号到根因到预防机制"><b>G11.01</b>MTTR 与事故复盘 SOP：从信号到根因到预防</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.02" title="技术债治理与架构评审门禁：让「为什么这样设计」可查"><b>G11.02</b>技术债治理与架构评审门禁：让「为什么这样设计」可</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.03" title="跨团队推动与团队赋能清单：把个人经验变成组织默认路径"><b>G11.03</b>跨团队推动与团队赋能清单：把个人经验变成组织默认</a><a class="kbx-link" href="chapter-13-network-io.html#C13.02" title="TCP 三次握手与四次挥手完整状态机？TIME_WAIT 与 CLOSE_WAIT 根因？"><b>C13.02</b>TCP 三次握手与四次挥手完整状态机？TIME_</a><a class="kbx-link" href="chapter-core-methodology.html#M05.05" title="技术债管理"><b>M05.05</b>技术债管理</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A11.03" title="AI 排障：报错位置 ≠ 根因 / 测试覆盖变异测试"><b>A11.03</b>AI 排障：报错位置 ≠ 根因 / 测试覆盖变异</a><a class="kbx-link" href="chapter-questions-scenario.html#S08.06" title="全链路可观测性建设：大促前订单链路偶发超时根因定位与告警降噪"><b>S08.06</b>全链路可观测性建设：大促前订单链路偶发超时根因定</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="工程化交付与组织">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">团队赋能 / 架构决策</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">弱 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-engineering-practices.html#G11.03" title="跨团队推动与团队赋能清单：把个人经验变成组织默认路径"><b>G11.03</b>跨团队推动与团队赋能清单：把个人经验变成组织默认</a><a class="kbx-link" href="chapter-engineering-practices.html#G11.02" title="技术债治理与架构评审门禁：让「为什么这样设计」可查"><b>G11.02</b>技术债治理与架构评审门禁：让「为什么这样设计」可</a><a class="kbx-link" href="chapter-10-microservice-cloud.html#C10.34" title="平台工程 / IDP：黄金路径怎么设计才不会变成新瓶颈？"><b>C10.34</b>平台工程 / IDP：黄金路径怎么设计才不会变成</a><a class="kbx-link" href="chapter-core-methodology.html#M05.03" title="架构决策记录（ADR）"><b>M05.03</b>架构决策记录（ADR）</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="工程化交付与组织">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">数据治理 / 数仓 / 指标</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">弱 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-14-databases.html#C14.15" title="数据治理与指标口径统一：为什么「同名不同数」是架构问题？"><b>C14.15</b>数据治理与指标口径统一：为什么「同名不同数」是架</a><a class="kbx-link" href="chapter-12-ai-engineering.html#C12.44" title="数据生命周期治理：数据集版本/漂移/集管理如何用 Spring AI 工程化？"><b>C12.44</b>数据生命周期治理：数据集版本/漂移/集管理如何用</a><a class="kbx-link" href="chapter-question-ai-engineering-deep.html#A29.01" title="数据生命周期治理深证：版本/漂移/血缘为什么是可靠性主轴？"><b>A29.01</b>数据生命周期治理深证：版本/漂移/血缘为什么是可</a><a class="kbx-link" href="chapter-14-databases.html#C14.11" title="Apache Doris / StarRocks 与 ClickHouse 如何选型？MPP"><b>C14.11</b>Apache Doris / StarRocks</a><a class="kbx-link" href="chapter-core-methodology.html#M05.15" title="数据治理"><b>M05.15</b>数据治理</a><a class="kbx-link" href="chapter-questions-domain.html#D02.04" title="监管合规与数据治理：等保、分级、脱敏与审计"><b>D02.04</b>监管合规与数据治理：等保、分级、脱敏与审计</a><a class="kbx-link" href="chapter-questions-scenario.html#S08.07" title="分布式追踪专项：异构系统 TraceId 传递断裂与海量 Trace 数据治理"><b>S08.07</b>分布式追踪专项：异构系统 TraceId 传递断</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="工程化交付与组织">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">平台工程 / IDP（补充维度）</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-10-microservice-cloud.html#C10.34" title="平台工程 / IDP：黄金路径怎么设计才不会变成新瓶颈？"><b>C10.34</b>平台工程 / IDP：黄金路径怎么设计才不会变成</a>
+          </div>
+        </article>
+        <article class="kbx-dim" data-cat="工程化交付与组织">
+          <div class="kbx-dim-head"><span class="kbx-dim-name">成本治理 / FinOps（补充维度）</span><span class="kbx-grade kbx-grade-up">中偏强</span><span class="kbx-grade">中 → 中偏强</span></div>
+          <div class="kbx-links">
+            <a class="kbx-link is-new" href="chapter-11-middleware-engineering.html#C11.32" title="非 AI 成本治理 / FinOps：基础设施成本如何变成可归因的工程指标？"><b>C11.32</b>非 AI 成本治理 / FinOps：基础设施成</a>
+          </div>
+        </article>
+      </section>
+      <p id="kbx-empty" class="kbx-empty">当前条件下没有匹配项，请调整筛选或关键词。</p>
+    </main>
+
+    <div class="site-page-nav site-page-nav--bottom">
+      <nav class="chapter-nav">
+        <a href="../index.html" class="nav-home">← 返回总目录</a>
+        <span class="nav-center"></span>
+        <a href="index.html" class="nav-next">知识库导航 →</a>
+      </nav>
+    </div>
+    <script>
+      (function () {
+        var q = document.getElementById('kbx-q');
+        var buttons = Array.prototype.slice.call(document.querySelectorAll('.kbx-toolbar button[data-filter]'));
+        var cards = Array.prototype.slice.call(document.querySelectorAll('.kbx-dim, .kbx-stage-card'));
+        var empty = document.getElementById('kbx-empty');
+        var active = 'all';
+        function paint() {
+          var needle = (q.value || '').trim().toLowerCase();
+          var shown = 0;
+          cards.forEach(function (el) {
+            var okFilter = active === 'all' || el.getAttribute('data-cat') === active;
+            var hay = (el.textContent || '').toLowerCase();
+            var okText = !needle || hay.indexOf(needle) >= 0;
+            var visible = okFilter && okText;
+            el.style.display = visible ? '' : 'none';
+            if (visible) shown += 1;
+          });
+          empty.style.display = shown ? 'none' : 'block';
+        }
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function () {
+            active = b.getAttribute('data-filter');
+            buttons.forEach(function (x) { x.classList.toggle('is-active', x === b); });
+            paint();
+          });
+        });
+        q.addEventListener('input', paint);
+        paint();
+      })();
+    </script>
+    <script src="assets/nav.js"></script>
+  </body>
+</html>

@@ -64,6 +64,9 @@
           <li>
             <a href="#C14.14"><span class="toc-number">C14.14</span>数据库存储与文件系统：从页缓存到 WAL 的双向指导</a>
           </li>
+          <li>
+            <a href="#C14.15"><span class="toc-number">C14.15</span>数据治理与指标口径统一</a>
+          </li>
         </ol>
       </aside>
 
@@ -76,11 +79,11 @@
           <p class="chapter-subtitle">本篇用负载形状选引擎：文档/向量、分布式 SQL 与列存 OLAP，再到图/时序/CDC——引擎边界先于 ORM 习惯。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-10">M10</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：14</span>
+            <span>题目数：15</span>
             <span class="meta-divider">|</span>
             <span>高级 ×4</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×7</span>
+            <span>架构 ×8</span>
             <span class="meta-divider">|</span>
             <span>专家 ×3</span>
             <span class="meta-divider">|</span>
@@ -2508,6 +2511,61 @@ repo.upsert(pk, event.payload(), event.sourcePos());
             <div class="content-layer-body">
               <p>失败模式：误以为 buffer pool 已落盘（实际还在 page cache，掉电丢数据）；O_DIRECT 未开导致双缓存把内存吃满；大事务长事务让 fsync 堆积、提交 RT 飙升；单表过大撑爆 inode/文件上限。回滚点：调低 fsync 频率需先确认副本/备份能兜住 RPO；分离存储先验证网络与一致性窗口。</p>
               <p>反向设计要点：顺序写优先（LSM-tree 比 B+树更贴文件系统顺序写特性）、页对齐、批量 fsync、借 OS 预读但更靠自身预读避免 page cache 污染、mmap 大文件会挤占 page cache 反而拖慢。</p>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C14.15" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C14.15</div>
+            <div class="content-question">数据治理与指标口径统一：为什么「同名不同数」是架构问题？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>当「日活」「成功率」「成本」在不同报表里给出不同数字，问题通常不在 SQL 写错，而在<strong>指标定义、时间口径、数据源与去重规则没有被当作契约管理</strong>。2026 年岗位要求里的「企业数据体系规划、指标口径统一、数据质量治理」指向的正是这层平台能力。</p>
+              <p>本题要给出从业务口径到物理表的分层设计，以及让口径不可漂移的工程机制（版本、血缘、校验、责任人）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1 · 报表直连业务库</strong>：每张报表自己写 SQL，同名指标随开发者理解漂移。</p>
+              <p><strong>阶段 2 · 数仓分层</strong>：ODS/DWD/DWS/ADS 分层（C14.11），但指标定义仍散落在各层 SQL 注释里。</p>
+              <p><strong>阶段 3 · 指标注册与版本</strong>：指标作为一等资产登记（业务定义、口径 SQL、维度、单位、责任人、版本），报表只引用指标 ID。</p>
+              <p><strong>阶段 4 · 血缘与质量门禁</strong>：字段级血缘贯通，空值率/主键唯一性/同比波动/跨表一致性进 CI 卡点，异常阻断发布。</p>
+              <p><strong>阶段 5 · 数据服务化</strong>：对外只暴露指标服务 API 与语义层，业务不得直连明细表；AI / Agent 取数也走同一语义层（衔接 C12.44 数据生命周期）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>一个指标只有一个权威定义</strong>：口径必须包含四要素——统计对象、时间窗口与事件时间口径、过滤/去重规则、维度与单位。缺任一要素，两张报表「都正确」但不可比。</p>
+              <p><strong>口径变更等价于接口变更</strong>：改名或改口径要发新版本并保留旧版本一段时间，历史报表按版本复现；禁止原地覆盖定义让历史数据静默改变含义。</p>
+              <p><strong>质量是可验证属性</strong>：主键唯一、非空率、枚举域、跨表主外键一致、分区完整性、同比环比波动阈值都要有断言与责任人，异常要阻断下游而非只发告警。</p>
+              <p><strong>语义层是 AI 取数的准入点</strong>：让大模型直接生成 SQL 查明细表，会把口径漂移放大成不可审计的决策；Agent 应调用受限的指标服务，返回带 metric_id、version 与数据时间的结构化结果。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>分层契约：ODS 只做原始落地与留痕（不可改）；DWD 做清洗、去重与统一时间口径；DWS 按主题域聚合出可复用粒度；ADS/指标服务只消费 DWS 并绑定 metric_id。每层写入都带 <code>data_time / ingest_time / source_ver / job_run_id</code> 四个审计字段。</p>
+              <p>指标注册表字段：<code>metric_id / name / biz_def / sql_template / dims / unit / owner / version / effective_from / deprecated_at / quality_rules</code>。报表与 Agent 工具只能按 metric_id + version 取数，禁止在调用侧拼接业务过滤条件。</p>
+              <p>质量门禁示例：主键唯一性 = 100%、关键字段非空率 ≥ 99.9%、分区行数相对 7 日中位数波动 ≤ ±30%、跨表金额合计差异 ≤ 0.01%；任一失败即冻结下游任务并通知 owner，同时保留上一版可用快照供报表降级。</p>
+              <p>与 AI 工程衔接：RAG / Agent 用到的知识快照、评测集、成本账本都应注册为指标或数据集资产，带版本与血缘（C12.44、A33.02 LLMOps）；否则「评测通过率上升」可能只是数据集被悄悄替换。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body"></div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>用视图或 BI 工具里的「计算字段」承载口径：定义无法版本化、无法血缘追踪，人员交接即失传。</p>
+              <p>原地修改指标定义：历史报表数字被重算，复盘时无法解释「当时为什么这么报」。</p>
+              <p>质量校验只发告警不阻断：下游报表与模型训练照常消费脏数据，问题在几天后才被发现。</p>
+              <p>让 Agent 直接生成 SQL 查明细：口径与安全边界同时失守，且无法回答「这个数是怎么来的」。</p>
+              <p><strong>向下回指</strong>：C14.11 / M05.15 / D02.04 / S08.07 / C12.44 / G09.01。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
             </div>
           </div>
         </div>
