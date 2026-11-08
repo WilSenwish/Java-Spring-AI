@@ -332,9 +332,26 @@ index.html                                # 章节索引
      计数胶囊右缘集合须为 `{1035}` / `{346}`；出现两个以上取值即说明有分支未覆盖。
    > 复测脚本：`scripts/probe_section_style.js`（逐 section 导出结构与计算样式，按「有无 `.dir-group`」分类比对）。
 
+9. **卫星站宽表必须组件内横滑（2026-11-08 补，实测事故）**：三子站共用
+   `docs/shared/style/satellite-base.css` 的 `table { width:100% }` 挡不住 `min-content` 撑破——
+   Laws 站六列主表在 375px 视口实测右缘 391px，整页文档横向溢出 **16px**；
+   A/B 还原到改动前同样 FAIL，与目录 FAB / 朗读组件无关。
+   - 统一口径：**所有卫星站宽表一律用 `<div class="table-scroll">` 包裹**。Core 站早已有此容器
+     （11 处 + 站内 `assets/style.css` 定义），Laws 站 7 张裸表此前漏包，属「同体系漏实现」而非新方案。
+     样式留在各站 `assets/style.css`（共享 CSS 不动，避免影响其它子站；禁写进页面内联 `<style>`）。
+   - 禁用 `table { display:block; overflow-x:auto }` 图省事：会让 `thead` / `tbody` 列宽失配。
+     也别用 `table-layout: fixed` 硬压列宽——六列表在 331px 容器里每列不到 60px，不可读。
+   - 样式只引用 `satellite-base.css` 已有令牌（`var(--line)` / `var(--shadow-sm)` 等），
+     不得新增 hex（红线 13）。`@media print` 须还原 `overflow: visible`，否则打印截断表格。
+   - 验收口径：`check_mobile_overflow.js --path <page> <w> <h>` 在 320 / 375 / 414 / 768 全 PASS；
+     该脚本的 `clipped()` 会**沿祖先链**排除 `overflow-x:auto` 容器，判据是 `docScrollOver=0`。
+     不要用「元素 rect 右缘 > 视口」误判——横滑容器内的 `table` / `th` / `td` 本就超界（设计内），
+     而 `tmp/diag_satellite_overflow.js` 只查元素自身 `overflowX`，会列出这批假阳性。
+
 ### 8.4 验收清单（改样式必过）
 
 - [ ] ≤768px 无整页横向滚动（代码块/表允许组件内横滑）
+- [ ] 卫星站宽表均由 `.table-scroll` 包裹并组件内横滑；四个视口 `check_mobile_overflow.js --path` 全 PASS，桌面宽屏不出现多余横滑容器
 - [ ] 长英文 token（包名/路径/方法签名/命令行参数）可断行，不撑破卡片
 - [ ] 代码块统一 `<div class="code-block"><pre><code>…</code></pre></div>` 包裹；裸 `<pre>` 无深色样式也无横滑，属缺陷
 - [ ] 列表 marker（圆点/数字）落在内容区内：既未压到卡片内边距、更未越出卡片；列表内容相对正文有明显缩进层次
