@@ -19,7 +19,7 @@
 
 ## <a id="1"></a>1. 核心方法论 chapter-core-methodology（M 系列）
 
-- **定位**：全库框。C/E/S 是领域细枝，G 是门禁化的器，K 是器失效的反例；本篇提供可挂载的道/法/术/势（器**不单列** Module）。势已独立为 **M16 维度**（势定律 11 卡）。开篇含五层定义、同一词跨层三例（`#hang-cross`）与四种错位（`#hang-misalign`）；**不再维护**全库挂网总表（`#hang-master`）、组级 `.mod-hang` 五列下挂、图 0d 层带（`.layer-hang`）——导航以侧栏 TOC / 卡号锚点 / 开篇竖切为准（2026-10-27 清除）。<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">179</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 **`M01~M16` 共 16 组**分层侧边目录。
+- **定位**：全库框。C/E/S 是领域细枝，G 是门禁化的器，K 是器失效的反例；本篇提供可挂载的道/法/术/势（器**不单列** Module）。势已独立为 **M16 维度**（势定律 11 卡）。开篇含五层定义、同一词跨层三例（`#hang-cross`）与四种错位（`#hang-misalign`）；**不再维护**全库挂网总表（`#hang-master`）、组级 `.mod-hang` 五列下挂、图 0d 层带（`.layer-hang`）——导航以侧栏 TOC / 卡号锚点 / 开篇竖切为准（2026-10-27 清除）。<span class="kb-count" data-kb-count="methodology" data-kb-pos="P16">185</span> 张卡片，ID 前缀 `M`（如 `M01.01`），按模块 **`M01~M16` 共 16 组**分层侧边目录。
 - **卡片**：仍用 `.content-card`，但**不采用标准六层**，改用三层**单向堆叠**：
 
   | data-layer | 层标题 | 职责 |
@@ -28,7 +28,7 @@
   | `principle` | 原理映射 | 把公理落到工程化手段 |
   | `application` | 工程表达 | 技术沟通中的表达话术 / 姿态 |
 
-- **难度**：**不适用 —— M 卡不分难度等级**（2026-09-16 长官决策：移除 `data-difficulty`、难度计数键与「方法论难度三级求和」不变式）。本篇合计 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P17">179</span> 卡。
+- **难度**：**不适用 —— M 卡不分难度等级**（2026-09-16 长官决策：移除 `data-difficulty`、难度计数键与「方法论难度三级求和」不变式）。本篇合计 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P17">185</span> 卡。
 - **优先级**：**属性侧**仅部分卡片携带 `data-priority`（分子/分母以 SSOT 键 `methodology_with_priority` / `methodology` 为准，**勿写死**；展示位在 `format-shared.md` §3.2）；**可见徽标侧不呈现**（同日决策：M/G/K 去等级与优先级徽标）。不属于全站题目优先级口径（P0/P1/P2 统计进入 `total` 的 C+A+E+S+D）。
 - **题目头**：`content-badge`（M01.01）+ `content-question`（条目标题，**不带难度/优先级徽标**）。
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
@@ -46,7 +46,7 @@
   ov-stats（ov-stat-num 顶部项数 = len(ov_stat_order)，当前 12；顺序见 `kb-counts.json` → `ov_stat_order`）
   ├─ 总量 / P0 / P1 / P2 / 专家 / 架构 / 高级
   ├─ 篇章C / AI纵深A / 核心原理E / 场景S / 垂直领域D
-  ├─ （方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P18">179</span> 卡不在本页统计条，只在专篇页与各 index 呈现）
+  ├─ （方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P18">185</span> 卡不在本页统计条，只在专篇页与各 index 呈现）
   ├─ ov-group（按优先级 P0/P1/P2）×3
   │    ├─ ov-group-title
   │    └─ ov-group-body
@@ -122,7 +122,7 @@
 
 - **定位**：与方法论并列的工程门禁手册，卡数以 `kb-counts.json` → `engineering` 为准，ID 前缀 `G`（如 `G01.01`）；题目总量口径 = `total`（C+A+E+S+D）；工程化为专篇键，不设全站合计。
 - **卡片**：与方法论相同三层（`insight` / `principle` / `application`）。
-- **分组**：G01～G08 八组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全）；每组正文载体为 `<section class="eng-group" id="G0N">`。
+- **分组**：G01～G10 十组（发布回滚、可观测、容量、数据、缓存、调用预算、AI、安全，另含数据生命周期治理、端侧与多模态/退役与人在环）；每组正文载体为 `<section class="eng-group" id="G0N">`。
 - **目录**：侧栏分组标题必须为 `<a class="toc-group-title" href="#G0N">`（禁止 `div`），与组 `id` 一一对应。
 - **导航**：顶/底一致；左 `nav-prev`「← 核心方法论」、右 `nav-next`「优先级总览 →」；中间 `nav-center` 为「全部章节」（勿再重复链核心方法论）。
 
@@ -153,7 +153,7 @@
 
 ## <a id="8"></a>8. 生产踩坑 / AI 纵深 / 垂直领域 / 速查清单
 
-- **生产踩坑 `chapter-production-pitfalls.html`（K）**：与工程化同款三层卡（insight/principle/application）；G01～G08 对位的 K01～K08；专篇键 `pitfalls`，不进 `total`；侧栏组锚 `#K01`～`#K08`。
+- **生产踩坑 `chapter-production-pitfalls.html`（K）**：与工程化同款三层卡（insight/principle/application）；G01～G10 对位的 K01～K10；专篇键 `pitfalls`，不进 `total`；侧栏组锚 `#K01`～`#K10`。
 - **AI 工程纵深 `chapter-question-ai-engineering-deep.html`（A）**：独立轴，ID `A##.##`，组锚 `#a-group-NN`（A01–A26）；进 `total`（键 `ai_engineering_deep`）；须带难度/优先级；落位 overview。
 - **垂直领域 `chapter-questions-domain.html`（D）**：ID `D##.##`，组锚 `#group-N`；进 `total`（键 `domain_questions`）；卡片变体接近场景轴；须带难度/优先级。
 - **速查清单 `nav-overview-quick-list.html`**：`nav-` 聚合页，按知识点清单导航，转发宿主锚点；无独立题号体系。

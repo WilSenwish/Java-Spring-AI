@@ -151,6 +151,15 @@
           <li>
             <a href="#C12.43"><span class="toc-number">C12.43</span>混沌注入与 kill switch 的 Spring 落地</a>
           </li>
+          <li>
+            <a href="#C12.44"><span class="toc-number">C12.44</span>数据生命周期治理：版本/漂移/集管理</a>
+          </li>
+          <li>
+            <a href="#C12.45"><span class="toc-number">C12.45</span>端侧与边缘 AI 推理：量化/下发/协同</a>
+          </li>
+          <li>
+            <a href="#C12.46"><span class="toc-number">C12.46</span>受监管合规工程落地：审计/脱敏/回放</a>
+          </li>
         </ol>
       </aside>
 
@@ -163,11 +172,11 @@
           <p class="chapter-subtitle">本篇按「检索先于生成、工具有契约、变更必回归」组织：Spring AI/RAG/Agent，经 Guardrails 与成本/多租户，到评测灰度与生产开关。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-14">M14</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：43</span>
+            <span>题目数：46</span>
             <span class="meta-divider">|</span>
-            <span>高级 ×6</span>
+            <span>高级 ×7</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×24</span>
+            <span>架构 ×26</span>
             <span class="meta-divider">|</span>
             <span>专家 ×13</span>
             <span class="meta-divider">|</span>
@@ -6466,6 +6475,204 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="content-layer-title">常见陷阱</div>
             <div class="content-layer-body">
               <p>开关从未演练；注入直连生产流量；只注入超时不注入语义错；开关无审计与版本号；演练无回滚点；把演练通过当作永久有效的证明。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.44" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.44</div>
+            <div class="content-question">数据生命周期治理：数据集版本/漂移/集管理如何用 Spring AI 工程化？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>数据不是静态资产。RAG 的召回质量、微调的效果、评测的可复现性，最终都取决于<strong>数据集版本、数据漂移、训练/评测/生产数据的隔离</strong>。本题考察把"数据治理"落成可工程化的机制，而非口头约定。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1：无管理</strong>。脚本直接读最新 CSV/PDF，今天能跑明天结果变，事故无法回放。</p>
+              <p><strong>阶段 2：数据集版本化</strong>。引入 LakeFS / DVC，数据集像代码一样打 tag、可回滚，复现某次评测用的是哪个版本数据。</p>
+              <p><strong>阶段 3：Embedding 与模型版本绑定</strong>。Embedding 模型一升级，旧向量语义漂移，必须让"文档版本 × Embedding 版本 × 模型版本"三元组可追溯。</p>
+              <p><strong>阶段 4：漂移监控 + 血缘</strong>。生产数据分布偏移实时告警，特征/文档到答案全链路血缘可查。</p>
+              <p><strong>阶段 5：数据生命周期闸门</strong>。入库即版本化、评测集与生产集隔离、漂移超阈即阻断重训，形成闭环（与 M14.F13 治理框架同构）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>数据集即代码</strong>：任何进入系统的数据都有版本号与指纹（hash），模型/向量与数据集版本强绑定，缺失绑定即不可复现。</p>
+              <p><strong>漂移是静默失效源</strong>：训练-服务偏斜（training-serving skew）与分布漂移不会抛异常，只让指标缓慢劣化，必须靠监控而非人眼发现。</p>
+              <p><strong>三集隔离</strong>：训练集、评测集、生产样本必须物理/逻辑隔离，评测集被生产数据污染等于自欺欺人。</p>
+              <p><strong>血缘可回放</strong>：从一条线上答案能反查到它依赖的文档版本、切分方式、Embedding 版本、模型版本，才能定位"为什么这次错了"。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p><strong>版本化写入注册表</strong>：文档入库时携带 datasetVersion + embeddingModelVersion，写入向量库与元数据表，查询时一并回显。Spring AI 可用 Advisor 在文档落库前注入版本指纹：</p>
+              <div class="code-block">
+                <pre><code><span class="com">// 文档入库前注入数据生命周期元数据（版本指纹 + 血缘）</span>
+<span class="kw">public class</span> <span class="type">DataLifecycleAdvisor</span> <span class="kw">implements</span> <span class="type">DocumentTransformer</span> {
+    <span class="kw">private final</span> <span class="type">String</span> datasetVersion;
+    <span class="kw">private final</span> <span class="type">String</span> embeddingModelVersion;
+
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">Document</span>&gt; <span class="type">apply</span>(<span class="type">List</span>&lt;<span class="type">Document</span>&gt; docs) {
+        <span class="kw">for</span> (<span class="type">Document</span> d : docs) {
+            d.getMetadata().put(<span class="str">"dataset_version"</span>, datasetVersion);
+            d.getMetadata().put(<span class="str">"embedding_version"</span>, embeddingModelVersion);
+            d.getMetadata().put(<span class="str">"ingest_ts"</span>, <span class="type">Instant</span>.now().toString());
+        }
+        <span class="kw">return</span> docs;
+    }
+}</code></pre>
+              </div>
+              <p><strong>漂移监控</strong>：对生产查询/文档切片的分布（长度、主题、embedding 质心）计算偏移，超阈用 Micrometer 打点告警；结合 C12.29 评测集做周期性回归。</p>
+              <p><strong>三集隔离落地</strong>：评测集只读且独立仓库，CI 每次评测锁定 datasetVersion 快照，禁止评测脚本直连生产库。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">反模式与陷阱</div>
+            <div class="content-layer-body">
+              <p>只版本化代码不版本化数据 → 事故不可复现；Embedding 模型升级不重算旧向量 → 语义漂移静默发生；评测集被生产数据污染 → 指标虚高；血缘只记到文档不记到切分方式 → 定位不到根因。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">要点收敛</div>
+            <div class="content-layer-body">
+              <p>数据生命周期治理 = <strong>版本化指纹 + 漂移监控 + 三集隔离 + 全链路血缘</strong>。它是 RAG/微调可复现与可回放的底座，与 M14.F13 治理框架对应。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.45" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.45</div>
+            <div class="content-question">端侧与边缘 AI 推理：量化/下发/端云协同如何落地？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>把模型放到设备/边缘节点，是为了解决云端推理的<strong>延迟、带宽、隐私、离线</strong>四类硬约束。本题考察端侧推理的工程化：量化压缩、模型下发与灰度、端云协同闭环，以及在受限硬件上如何保住可用性。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1：纯云端</strong>。所有推理走服务端大模型，端上只发请求；弱网/离线即不可用。</p>
+              <p><strong>阶段 2：模型量化</strong>。FP32→FP16/INT8 量化，体积降数倍、端侧可跑，代价是精度轻微损失需评测兜底。</p>
+              <p><strong>阶段 3：跨端运行时</strong>。ONNX / TFLite 统一中间表示，Java 侧用 ONNX Runtime 加载，规避端侧框架碎片。</p>
+              <p><strong>阶段 4：端云协同</strong>。边缘节点做轻推理/缓存，云端做重训练与编排，结果回传形成反馈闭环。</p>
+              <p><strong>阶段 5：端侧 Agent</strong>。端上跑小型 Agent 做本地决策，仅在必要时上云，隐私与延迟最优（与 M14.S14 边缘主题同构）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>端侧四约束</strong>：算力、内存、能耗、离线。任何端侧方案都先问"这四样够不够"，而不是"模型效果够不够好"。</p>
+              <p><strong>量化换体积换精度</strong>：量化是 Pareto 权衡，必须用量化前后评测集对比锁定可接受损失区间，禁止拍脑袋量化。</p>
+              <p><strong>下发即发布</strong>：端侧模型下发等同一次灰度发布，需版本表、签名校验、分批灰度、失败回滚，否则"脏模型"铺满设备难回收。</p>
+              <p><strong>端云职责切分</strong>：端侧做低延迟轻推理与本地隐私数据不出端；云端做重训练、复杂推理与全局编排。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p><strong>ONNX 推理封装</strong>：Java 侧用 ONNX Runtime 加载量化后模型，输入输出做张量对齐：</p>
+              <div class="code-block">
+                <pre><code><span class="com">// 端侧量化模型推理封装（ONNX Runtime Java），带版本与超时</span>
+<span class="kw">public class</span> <span class="type">EdgeOnnxPredictor</span> {
+    <span class="kw">private final</span> <span class="type">OrtSession</span> session;
+    <span class="kw">private final</span> <span class="type">String</span> modelVersion;
+
+    <span class="kw">public</span> <span class="type">float</span>[] predict(<span class="type">float</span>[] input) <span class="kw">throws</span> <span class="type">Exception</span> {
+        <span class="kw">try</span> (<span class="type">OrtTensor</span> t = <span class="type">OrtTensor</span>.createTensor(env, input)) {
+            <span class="type">OrtSession</span>.<span class="type">Result</span> r = session.run(<span class="kw">null</span>, <span class="kw">new</span> <span class="type">String</span>[]{<span class="str">"input"</span>}, t);
+            <span class="kw">return</span> (<span class="type">float</span>[]) r.get(<span class="str">"output"</span>).get().getValue();
+        }
+    }
+}</code></pre>
+              </div>
+              <p><strong>模型下发与灰度</strong>：设备拉取模型前先查版本表与签名，分批灰度（1%→10%→全量），拉取失败回退到上一代模型而非崩溃；下发通道加签名校验防篡改。</p>
+              <p><strong>离线降级</strong>：弱网/离线时端侧用缓存结果或轻模型兜底，云端恢复后补传反馈数据做闭环。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">反模式与陷阱</div>
+            <div class="content-layer-body">
+              <p>端云模型版本不一致 → 预测偏差无从排查；量化过度 → 精度崩塌业务不可用；边缘节点无离线降级 → 断网即全瘫；模型下发无签名 → 被植入脏模型；只在实验室跑通不在真机低内存验证 → 上线 OOM。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">要点收敛</div>
+            <div class="content-layer-body">
+              <p>端侧/边缘 AI = <strong>量化压缩 + 版本化灰度下发 + 端云协同闭环 + 离线降级</strong>。约束优先于效果，下发即发布需门禁。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.46" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.46</div>
+            <div class="content-question">受监管合规工程落地：不可变审计/PII 脱敏/决策可回放如何做？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>受监管行业（金融、医疗、政务）要求 AI 应用<strong>可审计、数据合规、留痕不可篡改、决策可解释</strong>。合规不是写文档，而是可验证的工程属性。本题考察把合规落成拦截器与门禁。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>阶段 1：无合规</strong>。日志只记正常路径，监管来查时拿不出证据。</p>
+              <p><strong>阶段 2：审计日志</strong>。记录请求/响应，但只记成功不记拒绝，视角残缺。</p>
+              <p><strong>阶段 3：PII 脱敏与加密</strong>。存储前脱敏、传输加密，但脱敏只在展示层做，库内仍是裸数据。</p>
+              <p><strong>阶段 4：决策可回放</strong>。每次模型决策记录依据（检索片段、工具调用、规则命中），可事后复盘。</p>
+              <p><strong>阶段 5：合规清单门禁</strong>。consent 校验、留痕不可变、监管报送自动化，未过清单不许上线（与 M14.F14 合规清单同构）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>合规可验证</strong>：监管要的是"能证明你做了"，所以留痕必须不可改、覆盖全路径（含拒绝）。</p>
+              <p><strong>PII 默认脱敏</strong>：敏感字段在入库/落库边界即脱敏，而非展示时，避免库内裸数据被拖库即违规。</p>
+              <p><strong>决策可回放</strong>：模型的每一步依据都要可查，否则"不可解释"在监管场景等于"不可上线"。</p>
+              <p><strong>最小权限与数据驻留</strong>：按 consent 范围取数，跨境/跨域数据遵循驻留要求，越权即阻断。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p><strong>审计拦截 Advisor</strong>：环绕每次调用，记录 who/what/when/why 与决策依据到<strong>只追加（append-only）</strong>日志：</p>
+              <div class="code-block">
+                <pre><code><span class="com">// 不可变审计拦截：记录请求/决策依据/工具调用，落只追加存储</span>
+<span class="kw">public class</span> <span class="type">AuditAdvisor</span> <span class="kw">implements</span> <span class="type">AroundAdvisor</span> {
+    <span class="kw">public</span> <span class="type">AdvisedResponse</span> <span class="type">aroundCall</span>(<span class="type">AdvisedRequest</span> req, <span class="type">Call</span> chain) {
+        <span class="type">AdvisedResponse</span> r = chain.next(req);
+        auditLog.append(<span class="kw">new</span> <span class="type">AuditRecord</span>(
+            req.user(), req.prompt().hashCode(), r.response(),
+            req.toolCalls(), <span class="type">Instant</span>.now()));   <span class="com">// 含拒绝路径</span>
+        <span class="kw">return</span> r;
+    }
+}</code></pre>
+              </div>
+              <p><strong>PII 脱敏 Advisor</strong>：在落库/外发前用正则/NER 识别并脱敏身份证、手机号、病历号，脱敏规则可配置、可审计。</p>
+              <p><strong>Consent 闸门</strong>：调用前校验用户授权范围，越权字段直接拒绝并记录拒绝原因，与审计日志闭环。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">反模式与陷阱</div>
+            <div class="content-layer-body">
+              <p>审计只记成功不记拒绝 → 监管视角缺失；PII 脱敏在展示层不做在存储层 → 库内裸数据；留痕可改 → 监管不认；决策无依据 → 不可解释被否；consent 校验形同虚设 → 越权取数。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">要点收敛</div>
+            <div class="content-layer-body">
+              <p>受监管合规工程化 = <strong>不可变审计 + PII 存储边界脱敏 + 决策可回放 + consent 闸门</strong>。与 M14.F14 合规清单一一对应。</p>
             </div>
           </div>
         </div>

@@ -7,8 +7,8 @@
 | 前缀 | 宿主页 | 说明 |
 |------|--------|------|
 | **M** | `chapter-core-methodology.html` | M01~M16；道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16；卡数见 `methodology`；专篇键，不进 `total` |
-| **G** | `chapter-engineering-practices.html` | G01~G08；三层 insight/principle/application；键 `engineering` |
-| **K** | `chapter-production-pitfalls.html` | K01~K08；与 G 同款三层；键 `pitfalls` |
+| **G** | `chapter-engineering-practices.html` | G01~G10；三层 insight/principle/application；键 `engineering` |
+| **K** | `chapter-production-pitfalls.html` | K01~K10；与 G 同款三层；键 `pitfalls` |
 | **C** | `chapter-01~15-*.html` | 标准六层 QA；计入 `chapters_core` |
 | **E** | `chapter-questions-eight-part.html` | 核心原理 epq；键 `basics` |
 | **S** | `chapter-questions-scenario.html` | 场景卡；按 `group-N` 归组；键 `scenarios` |
@@ -489,7 +489,7 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 - 每张卡片底部 `card-foot` 计数口径（改题后必须同步）：
   - **篇章卡 mind-01~15**：`章节 N` = 对应 `chapter-NN` 的 C 卡数；`原理 N` / `场景 N` = 该 mind 页 `<summary>` 中实际列出的 E / S 卡数（无则省略该 chip）。
   - **方法论卡**：`145 卡 · 16 组`（M01~M16）。
-  - **工程化卡**：`65 卡 · 8 组`（G01~G08）。
+  - **工程化卡**：`71 卡 · 10 组`（G01~G10）。
   - **安全手册卡**：`手册 7 章` + 该 mind 页并入的原理/场景数。
 - `idx-meta` 题量表达式形如 `篇章+原理+场景`（取值见 COUNTS，勿写死旧数）。
 
@@ -500,14 +500,14 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **585** = 篇章C 260 + AI纵深A 97 + 核心原理 74 + 场景 74 + 垂直领域 80
-- 优先级 **P0=136 / P1=357 / P2=92**（求和 = 585）
-- 难度 **专家 72 / 架构师 281 / 高级开发 232**（求和 = 585；覆盖 C/E/S/A/D，M/G/K 不分级）
-- 方法论 **179 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
-- 工程化 **65 卡**（G01~G08，专篇键 engineering；**不分难度等级**）
-- 生产踩坑 **65 卡**（K01~K08，专篇键 pitfalls；**不分难度等级**）
+- 题目总量 **594** = 篇章C 263 + AI纵深A 103 + 核心原理 74 + 场景 74 + 垂直领域 80
+- 优先级 **P0=136 / P1=366 / P2=92**（求和 = 594）
+- 难度 **专家 72 / 架构师 286 / 高级开发 236**（求和 = 594；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 方法论 **185 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
+- 工程化 **71 卡**（G01~G10，专篇键 engineering；**不分难度等级**）
+- 生产踩坑 **71 卡**（K01~K10，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章C+AI纵深A+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 0/179（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 0/185（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
