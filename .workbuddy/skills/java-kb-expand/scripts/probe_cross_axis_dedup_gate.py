@@ -64,6 +64,18 @@ def write_exempt(items):
 
 
 
+def strip_test_pair_exempt():
+    """测试隔离：注入前临时移除测试对的基线豁免，使门禁能检出「基线+注入」叠加的重叠。
+    finally 会还原 orig（含基线豁免），不改变站点正常运行态。"""
+    s0 = open(SSOT, encoding="utf-8").read()
+    s, e = exempt_span(s0)
+    items = json.loads(s0[s:e])
+    kept = [x for x in items
+            if frozenset({x.get("a"), x.get("b")}) != frozenset((SRC, DST))]
+    if len(kept) != len(items):
+        write_exempt(kept)
+
+
 def run_gate():
     r = subprocess.run([sys.executable, GATE, "--json"], cwd=BASE,
                        capture_output=True, text=True)
@@ -142,6 +154,7 @@ def main():
         ok &= expect(rc == 0, "基线 PASS", f"rc={rc}")
 
         print("=== 2) 注入 4 句逐字复制（验证 exact_fail）应 FAIL ===")
+        strip_test_pair_exempt()
         inject(C_HOST, DST, sents[:4])
         rc, data = run_gate()
         hit = [v for v in data.get("violations", [])
@@ -155,6 +168,7 @@ def main():
         ok &= expect(rc == 0, "还原必 PASS", f"rc={rc}")
 
         print("=== 4) 注入 12 句整段复制（验证 jaccard/near 判据）应 FAIL ===")
+        strip_test_pair_exempt()
         inject(C_HOST, DST, sents[:12])
         rc, data = run_gate()
         hit = [v for v in data.get("violations", [])

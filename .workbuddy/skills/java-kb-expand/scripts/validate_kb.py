@@ -253,7 +253,7 @@ def run_chapter_meta_difficulty_check():
         if bn == "chapter-questions-eight-part.html":
             card_pat = r'<div class="[^"]*card[^"]*"\s+id="E\d{2}\.\d{2}"[^>]*>'
         else:
-            card_pat = r'<div class="content-card(?:\s+[^"]*)?"\s+id="[CMES]\d{2}\.\d{2}"[^>]*>'
+            card_pat = r'<div class="content-card(?:\s+[^"]*)?"\s+id="[CMES]\d{2}\.[A-Za-z0-9]+"[^>]*>'
         cards = re.findall(card_pat, raw)
         cnt = {"senior": 0, "architect": 0, "expert": 0}
         for cm in cards:
@@ -1225,7 +1225,7 @@ def main():
 
     # 8) 卡片 id 二方一致性：章节正文 ↔ 章节 TOC；id 总数=各域分计之和（非对外「全站合计」）
     #    导图站已于 2026-09-21 下线，不再做导图引用悬空检查
-    IDPAT = r"((?:M|C|E|S|D|G|K|A)\d{2}\.\d{2})"
+    IDPAT = r"((?:M|C|E|S|D|G|K|A)\d{2}\.[A-Za-z0-9]+)"
     body_ids, toc_ids = set(), set()
     for p in chap_files:
         t = read(p)

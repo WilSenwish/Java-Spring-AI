@@ -90,7 +90,7 @@ def scan_files(exts):
 
 
 # ---------------- 1) 实测：全站 content-card 数（自动识别宿主页，不写死文件名） ----------------
-CARD_RE = re.compile(r'<div class="content-card"\s+id="(M\d\d\.\d\d)"')
+CARD_RE = re.compile(r'<div class="content-card"\s+id="(M\d\d\.[A-Za-z0-9]+)"')
 cards = {}          # id -> rel（首个定义文件）
 dups = []
 hosts = collections.Counter()
