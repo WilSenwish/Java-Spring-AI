@@ -808,7 +808,13 @@
         'background:var(--bg-card,#ffffff);color:var(--ink,var(--text,#4c4f69));' +
         'border:1px solid var(--rule,var(--line,#ccd0da));' +
         'box-shadow:var(--shadow-md,0 4px 12px rgba(15,23,42,.12));pointer-events:none;white-space:normal}' +
-        '.kb-listen__hint[hidden]{display:none !important}';
+        '.kb-listen__hint[hidden]{display:none !important}' +
+        /* 小屏：提示气泡右移离开左下 FAB 列；朗读启动后再抬到面板之上，
+           避免与目录 FAB / 暂停面板互相遮挡（目录 FAB 的避让写在三份样式表） */
+        '@media (max-width:1024px){' +
+        '.kb-listen__hint{left:60px;max-width:min(260px,calc(100vw - 120px))}' +
+        'html.kb-listen-open .kb-listen__hint{bottom:100px}' +
+        '}';
       document.head.appendChild(style);
     }
 
@@ -1079,6 +1085,8 @@
       btn.setAttribute('title', label);
       btn.innerHTML = icon;
       panel.hidden = !(playing || paused);
+      /* 面板展开时同步状态类：CSS 据此把小屏目录 FAB 再上移一层，避免重叠 */
+      document.documentElement.classList.toggle('kb-listen-open', playing || paused);
       toggleBtn.textContent = paused ? '继续' : '暂停';
       toggleBtn.setAttribute('aria-label', paused ? '继续朗读' : '暂停朗读');
       toggleBtn.setAttribute('title', toggleBtn.getAttribute('aria-label'));
