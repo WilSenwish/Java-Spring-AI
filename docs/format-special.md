@@ -33,9 +33,10 @@
 - **题目头**：`content-badge`（M01.01）+ `content-question`（条目标题，**不带难度/优先级徽标**）。
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
   - 十六组 → `#m-group-01`～`#m-group-16`（与 Module 编号一致）
-  - 条目锚点仍为 `M##.##`
+  - 条目锚点：通用组仍为 `M##.##`；**M14 例外** —— 按 道 / 法 / 术 三段分别用 `M14.D##` / `M14.F##` / `M14.S##`，术段 `M14.S01`～`M14.S20` 连续（原 `M14.01`～`M14.09` 已并入术段更名为 `M14.S01`～`M14.S09`）
 - **导航**：顶/底 `chapter-nav-top` / `chapter-nav` 内容一致；左 `nav-home`「← 返回目录」、右 `nav-next`「工程化要点 →」；中间 `nav-center` 为「全部章节」（勿与左右重复链工程化）。
-- 单条新增规则：`id = M{模块}.{序}`；`insight → principle → application` 三层层序固定。
+- 单条新增规则：`id = M{模块}.{序}`（M14 按上面的 D/F/S 段）；`insight → principle → application` 三层层序固定。
+- **M14 侧栏二级分组**：单个 `toc-group` 内用 `<a class="toc-subgroup-title code-m" href="#m14-dao|#m14-fa|#m14-shu">` 分出 道 / 法 / 术 三段，每段紧跟一个 `<ol>`（**仍须是 `.toc-group` 的直接子级**，保证 ≤1024 抽屉折叠生效）；视觉只在 `assets/design-system.css`。历史规划文档 `docs/m14-*-plan.md` / `docs/ai-*plan.md` 保留规划期编号叙述，勿据其判读当前卡号。
 
 ## <a id="2"></a>2. 优先级大盘 nav-overview-priority（ov 组件）
 

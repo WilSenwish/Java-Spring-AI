@@ -161,6 +161,7 @@
 - **小屏（≤1024）**：不 `display:none` 砍目录；改为**左下「目录」FAB（`.toc-fab`）+ 左侧抽屉**（同一 `.sidebar-toc` off-canvas）+ `.toc-backdrop` 遮罩。`theme-init.js` 注入开关；点遮罩 / Esc / 条目锚点后关闭；`html.toc-drawer-open` 锁滚。有 `.toc-group` 时默认收起子列表，仅 `.is-expanded`（含当前高亮组）展开；分组标题首次点展开、已展开再点跳转并关闭。
 - **必须**写成可点击锚点：`<a class="toc-group-title" href="#…">…</a>`。**禁止** `<div class="toc-group-title">`（`nav.js` 只高亮带 `href="#id"` 的链接，div 无法参与高亮同步）。
 - **体系色钩子**：分组标题加 `code-c|m|e|g|d|s|k|a|sec`（与卡号体系一致）；场景用 `code-s`、垂直领域用 `code-d`，勿误用 `code-g`。
+- **二级分组**（M14 道 / 法 / 术）：同一 `.toc-group` 内可用 `a.toc-subgroup-title` 再分一层；**每个子列表仍须是 `.toc-group` 的直接 `<ol>`**（≤1024 的 `.toc-group > ol` 折叠依赖直接子级），子标题随 `.is-expanded` 一起收起；视觉仍只在 `design-system.css`。
 - 目标锚点须在正文存在对应 `id`（组导读 / `section` / `m-subgroup-title` 等），并建议带 `scroll-margin-top`（`design-system.css` 已覆盖 `.epq-group-head` / `.scenario-group` / `.eng-group` / `.m-subgroup-title[id]` / `.dimension-section[id]`）。
 - 有分组的页面一览：
 
