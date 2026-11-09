@@ -31,10 +31,10 @@ agent_created: true
 2. **禁止重复**：先核查覆盖度，不得新增与现有卡片/场景题重复的题。同源重复内容应补入现有卡（不新增计数）或不入库。
 3. **P3 优先级已废除**：`data-priority` 仅 P0/P1/P2 三级。
 4. 共享样式集中在 `assets/design-system.css`，优先改共享 CSS，不逐卡内联。
-5. **手机小屏强制（MOBILE-MANDATORY）**：全站必须适配 ≤768/≤480；细则 `docs/format-shared.md` §8；`validate_kb` 校验 CSS 标记、viewport、根/导图小屏媒体查询。
-6. **主题 / 暗黑模式**：用户页须在 CSS 前引入 `theme-init.js`；令牌换肤见 `docs/format-shared.md` §9；切换器与回顶/去底由 `theme-init.js` 注入。
-7. **顶/底章节导航**：仅根 / 章节 `index.html` 无导航；其余页顶栏贴 `body` 首、底栏在脚本前；壳层 `.site-page-nav`；细则 `docs/format-shared.md` §4.2。
-8. **HTML Prettier + Mermaid**：改 HTML 后 `npm run format:html`；每个 `<div class="mermaid">` 上一行 `<!-- prettier-ignore -->`；见 `docs/format-shared.md` §10。
+5. **手机小屏强制（MOBILE-MANDATORY）**：全站必须适配 ≤768/≤480；细则 `docs/specs/format-shared.md` §8；`validate_kb` 校验 CSS 标记、viewport、根/导图小屏媒体查询。
+6. **主题 / 暗黑模式**：用户页须在 CSS 前引入 `theme-init.js`；令牌换肤见 `docs/specs/format-shared.md` §9；切换器与回顶/去底由 `theme-init.js` 注入。
+7. **顶/底章节导航**：仅根 / 章节 `index.html` 无导航；其余页顶栏贴 `body` 首、底栏在脚本前；壳层 `.site-page-nav`；细则 `docs/specs/format-shared.md` §4.2。
+8. **HTML Prettier + Mermaid**：改 HTML 后 `npm run format:html`；每个 `<div class="mermaid">` 上一行 `<!-- prettier-ignore -->`；见 `docs/specs/format-shared.md` §10。
 
 权威计数口径（以 `ov-stat-num` 与根 index / 章节 index 为权威源，须与 SSOT 一致）：
 - 总量 `total` = 篇章C + AI纵深A + 核心原理E + 场景S + 垂直领域D
@@ -66,11 +66,11 @@ agent_created: true
 | P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
 | P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
-| P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
-| P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
-| P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `docs/format-special.md` | docs/format-special.md 专篇合计段 |
-| P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
+| P14 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分子 |
+| P15 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分母 |
+| P16 | `docs/specs/format-special.md` | docs/specs/format-special.md 定位段 |
+| P17 | `docs/specs/format-special.md` | docs/specs/format-special.md 专篇合计段 |
+| P18 | `docs/specs/format-special.md` | docs/specs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章 C 题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
@@ -486,6 +486,27 @@ agent_created: true
 | P575 | `index.html` | 根 index D 篇章 dir-subtitle 垂直领域题数（2026-11-06 升格裸计数） |
 | P576 | `index.html` | 批次 4 新增 A27 概率性系统与控制面 dir-group 题数（5 卡） |
 | P577 | `index.html` | 批次 4 新增 A28 静默失效、反模式与落地路径 dir-group 题数（3 卡） |
+| P578 | `docs/README.md` | docs/README 矩阵 C01 章卡片数（2026-11-09 由裸计数升格注册） |
+| P579 | `docs/README.md` | docs/README 矩阵 C02 章卡片数（2026-11-09 由裸计数升格注册） |
+| P580 | `docs/README.md` | docs/README 矩阵 C03 章卡片数（2026-11-09 由裸计数升格注册） |
+| P581 | `docs/README.md` | docs/README 矩阵 C04 章卡片数（2026-11-09 由裸计数升格注册） |
+| P582 | `docs/README.md` | docs/README 矩阵 C05 章卡片数（2026-11-09 由裸计数升格注册） |
+| P583 | `docs/README.md` | docs/README 矩阵 C06 章卡片数（2026-11-09 由裸计数升格注册） |
+| P584 | `docs/README.md` | docs/README 矩阵 C07 章卡片数（2026-11-09 由裸计数升格注册） |
+| P585 | `docs/README.md` | docs/README 矩阵 C08 章卡片数（2026-11-09 由裸计数升格注册） |
+| P586 | `docs/README.md` | docs/README 矩阵 C09 章卡片数（2026-11-09 由裸计数升格注册） |
+| P587 | `docs/README.md` | docs/README 矩阵 C10 章卡片数（2026-11-09 由裸计数升格注册） |
+| P588 | `docs/README.md` | docs/README 矩阵 C11 章卡片数（2026-11-09 由裸计数升格注册） |
+| P589 | `docs/README.md` | docs/README 矩阵 C12 章卡片数（2026-11-09 由裸计数升格注册） |
+| P590 | `docs/README.md` | docs/README 矩阵 C13 章卡片数（2026-11-09 由裸计数升格注册） |
+| P591 | `docs/README.md` | docs/README 矩阵 C14 章卡片数（2026-11-09 由裸计数升格注册） |
+| P592 | `docs/README.md` | docs/README 矩阵 C15 章卡片数（2026-11-09 由裸计数升格注册） |
+| P593 | `docs/README.md` | docs/README 矩阵 G 篇工程化卡数（2026-11-09 升格注册，键纠偏 65→74 同步真值） |
+| P594 | `docs/README.md` | docs/README 矩阵 K 篇踩坑卡数（2026-11-09 升格注册，键纠偏 65→71 同步真值） |
+| P595 | `docs/README.md` | docs/README 矩阵 E 篇核心原理题数（2026-11-09 升格注册） |
+| P596 | `docs/README.md` | docs/README 矩阵 S 篇场景题数（2026-11-09 升格注册） |
+| P597 | `docs/README.md` | docs/README 矩阵 A 篇 AI 纵深题数（2026-11-09 升格注册，74→112 同步真值） |
+| P598 | `docs/README.md` | docs/README 矩阵 D 篇垂直领域题数（2026-11-09 升格注册，72→80 同步真值） |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -596,7 +617,7 @@ agent_created: true
 - **overview `ov-stat-num` 须按 `ov_stat_order` 全改**（当前 12 项：总量/P0–P2/难度三级/篇章C/AI纵深A/核心原理/场景/垂直领域；**不含方法论**）。另须同步组标题/`ov-nav-cnt`/页头副标题。
 - **禁止全站合计**：跨大篇章/聚合只动 total（C+A+E+S+D）；加 M/G/K 只 bump 对应键，**不要**再维护 sum_all（已废除）。
 - **`dir-group-count` / `group-count` / 篇章 `dir-count` 必须等于实际卡片数**；M12 禁止嵌套进「一、高并发」。
-- **散文裸值不受 `sync_counts` 管辖（2026-09-20 实测）**：`docs/format-special.md` 与 `references/conventions.md` 各有一处**写死的 `75/127`**（不在标记位内、`positions` 未登记）——真源改数后 `sync_counts.py apply` 与 `check` 均**不会**触及，`check` 仍全绿而文档已陈旧。**改任何 `methodology*` 计数后，须手改这两处**。同类风险：`Software-Engineering-Laws-Theories-Principles-and-Patterns/index.html` 有 `145 卡 / 145 方法论` 的引用文案（外部子站，不在校验范围；改 methodology 计数后须手改）。
+- **散文裸值不受 `sync_counts` 管辖（2026-09-20 实测）**：`docs/specs/format-special.md` 与 `references/conventions.md` 各有一处**写死的 `75/127`**（不在标记位内、`positions` 未登记）——真源改数后 `sync_counts.py apply` 与 `check` 均**不会**触及，`check` 仍全绿而文档已陈旧。**改任何 `methodology*` 计数后，须手改这两处**。同类风险：`Software-Engineering-Laws-Theories-Principles-and-Patterns/index.html` 有 `145 卡 / 145 方法论` 的引用文案（外部子站，不在校验范围；改 methodology 计数后须手改）。
 - **M 卡批量同步的坑**：① 卡清单容器类名不统一（根 `index.html` 用 `ul.q-list` 等），批量脚本的容器定位不可写死；② `sync_counts.py check` 只校验已登记计数位——真源与站点同为旧值时可能全绿而内容陈旧，须人工核对新增卡落位；③ 改根 index 的 M 组计数即须 bump 对应 `struct.root.dir_group_*` 真源键。导图站已下线，勿再同步 mind 文件。
 - **多文件批量写盘一律「先算后写」（2026-09-18 实测）**：把各文件的替换与断言全部在内存跑完（`[(path, new_text, msg), …]`），**全部通过后才逐个 `open(...,'w')`**。本轮 4 文件同步首版按「算一个写一个」，`sync_root` 已写盘、`sync_mind` 断言失败，留下半写状态；改「先算后写」后同类失败零副作用。
 - **悬空卡号核查须逐号精确匹配（2026-09-18 实测）**：用 `M0[12]\.0[47]` 这类字符组会把**合法卡号** `M01.04`/`M02.07` 一并吞入造成假阳性；重编号后核查须逐个写全 `M01.07`、`M02.04`。
@@ -692,4 +713,4 @@ agent_created: true
 - `scripts/probe_index_badge_gate.py` — 上条门禁的**正向验证**（**自包含**，2026-09-21 改写摆脱对 tmp/ 历史快照的依赖；**不写项目真实文件**，只用系统临时沙箱）：从当前项目复制 `index.html` + `nav-overview-priority.html` 进沙箱，① 徽标缺陷（剥一个 `ov-item` 的 `class="ov-badges"`）→ 断言 gate exit 1 且命中「缺 .ov-badges 包裹」；② 留白缺陷（删 ≤768 段 `.dir-container {…}` 规则）→ 断言命中「≤768 段缺 .dir-container 规则」；③ 对齐缺陷（删 `.dir-count {…}` 规则）→ 断言命中「缺 .dir-count 规则」；④ 干净树 → `exit=0`。**每轮断言该类的签名串**，防止「缺陷换了类别但总数没变」造成假通过；前几轮不 FAIL ⇒ 门禁恒真、④ FAIL ⇒ 误杀。任一轮不符即 exit 1。沙箱用完即清。
 - `scripts/probe_root_index_whitespace.js` — 根 index 小屏几何**实测**（CDP，零依赖）：逐级打印 `.dir-container/.dir-section/.dir-group/.q-list/.q-item` 的 padding/margin 与 left 留白、列表可用宽、页高，并支持 `--url <file>`（对改前备份做对照）、`--expand N`（展开前 N 个面板）、`--shot-section --clip <选择器> --pad-top N --height N --tag X`（按元素裁图）。**页面总高极大时不要整页截图**（曾因 62066px 挂死，已加高度护栏）。
 - `scripts/probe_section_style.js` — 根 index **逐 section 结构与计算样式**导出（CDP，零依赖）：对全部 `.dir-section` 输出「是否含 `.dir-group`」+ 边框/头部底色/各层横向内缩/题号左缘/计数胶囊左右缘与装饰线，用于**按分支分类比对**。**它专为抓「同一页面两类区块风格分叉」而写**：只看单个样本会漏掉另一类（实测 `{17}` vs `{1}` 的题号左缘分叉被漏测两轮）。`node probe_section_style.js [1200,375] [--url <file>]`。
-- 仓库根：`npm run format:html` / `format:html:check`；规范正文见 `docs/format-shared.md` §4.2 / §10。
+- 仓库根：`npm run format:html` / `format:html:check`；规范正文见 `docs/specs/format-shared.md` §4.2 / §10。

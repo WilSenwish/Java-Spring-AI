@@ -75,7 +75,7 @@ os.makedirs(BACKUP, exist_ok=True)
 #        struct.root.dir_group_N
 #   [R5] ⚠ 「组数」键勿误伤：struct.misc…meth-groups_1 /
 #        struct.chap.idx.meta_1 承载的都是【组数 16】（M01~M16），M01 卡数 16→15 时这三个键【不变】。
-#   [R6] ⚠ 散文裸值不受 sync_counts 管辖：docs/format-special.md 与 references/conventions.md
+#   [R6] ⚠ 散文裸值不受 sync_counts 管辖：docs/specs/format-special.md 与 references/conventions.md
 #        各有一处写死的 `75/127`（未登记 positions）→ 改数后必须手改为 `74/126`；check 全绿也查不出。
 # =====================================================================================
 

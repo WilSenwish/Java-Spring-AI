@@ -22,6 +22,7 @@ E/F/G/H 自包含注入临时 derived 规则 + items，靶区为方法论开篇 
 """
 import io
 import json
+import signal
 import os
 import re
 import subprocess
@@ -29,6 +30,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
+
+
+# 安全加固（2026-11-09）：SIGTERM 默认终止不执行 finally，注入态会残留污染。
+# 转 SystemExit 使 finally 还原逻辑在超时/被杀时仍能运行。
+def _sigterm_to_exit(*_):
+    raise SystemExit(1)
+
+signal.signal(signal.SIGTERM, _sigterm_to_exit)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "audit_count_drift.py")

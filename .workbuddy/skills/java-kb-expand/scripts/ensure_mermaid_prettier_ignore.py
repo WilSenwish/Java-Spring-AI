@@ -7,7 +7,7 @@
   python3 .workbuddy/skills/java-kb-expand/scripts/ensure_mermaid_prettier_ignore.py --check
 
 随后建议: npm run format:html && python3 …/validate_kb.py
-规范: docs/format-shared.md §10
+规范: docs/specs/format-shared.md §10
 """
 from __future__ import annotations
 

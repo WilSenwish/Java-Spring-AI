@@ -13,20 +13,29 @@
 """
 import glob
 import os
+import signal
 import subprocess
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _SKILL_SCRIPTS = os.path.normpath(os.path.join(
-    _HERE, "..", ".workbuddy", "skills", "java-kb-expand", "scripts"))
+    _HERE, "..", "..", ".workbuddy", "skills", "java-kb-expand", "scripts"))
 sys.path.insert(0, _SKILL_SCRIPTS)
 from _kbroot import find_root  # noqa: E402
+
+
+# 安全加固（2026-11-09）：SIGTERM 默认终止不执行 finally，注入态会残留污染。
+# 转 SystemExit 使 finally 还原逻辑在超时/被杀时仍能运行。
+def _sigterm_to_exit(*_):
+    raise SystemExit(1)
+
+signal.signal(signal.SIGTERM, _sigterm_to_exit)
 
 BASE = find_root(__file__)
 if not BASE:
     raise SystemExit("定位失败：未找到项目根")
 
-AUDIT = os.path.join(BASE, "docs", "audit_catppuccin.py")
+AUDIT = os.path.join(BASE, "docs", "scripts", "audit_catppuccin.py")
 CSS_TARGET = os.path.join(BASE, "java-architect-interview", "assets", "design-system.css")
 
 _chapters = sorted(glob.glob(os.path.join(

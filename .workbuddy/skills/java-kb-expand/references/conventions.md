@@ -524,11 +524,11 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
 | P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
-| P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
-| P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
-| P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `docs/format-special.md` | docs/format-special.md 专篇合计段 |
-| P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
+| P14 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分子 |
+| P15 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分母 |
+| P16 | `docs/specs/format-special.md` | docs/specs/format-special.md 定位段 |
+| P17 | `docs/specs/format-special.md` | docs/specs/format-special.md 专篇合计段 |
+| P18 | `docs/specs/format-special.md` | docs/specs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章 C 题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
@@ -944,11 +944,32 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P575 | `index.html` | 根 index D 篇章 dir-subtitle 垂直领域题数（2026-11-06 升格裸计数） |
 | P576 | `index.html` | 批次 4 新增 A27 概率性系统与控制面 dir-group 题数（5 卡） |
 | P577 | `index.html` | 批次 4 新增 A28 静默失效、反模式与落地路径 dir-group 题数（3 卡） |
+| P578 | `docs/README.md` | docs/README 矩阵 C01 章卡片数（2026-11-09 由裸计数升格注册） |
+| P579 | `docs/README.md` | docs/README 矩阵 C02 章卡片数（2026-11-09 由裸计数升格注册） |
+| P580 | `docs/README.md` | docs/README 矩阵 C03 章卡片数（2026-11-09 由裸计数升格注册） |
+| P581 | `docs/README.md` | docs/README 矩阵 C04 章卡片数（2026-11-09 由裸计数升格注册） |
+| P582 | `docs/README.md` | docs/README 矩阵 C05 章卡片数（2026-11-09 由裸计数升格注册） |
+| P583 | `docs/README.md` | docs/README 矩阵 C06 章卡片数（2026-11-09 由裸计数升格注册） |
+| P584 | `docs/README.md` | docs/README 矩阵 C07 章卡片数（2026-11-09 由裸计数升格注册） |
+| P585 | `docs/README.md` | docs/README 矩阵 C08 章卡片数（2026-11-09 由裸计数升格注册） |
+| P586 | `docs/README.md` | docs/README 矩阵 C09 章卡片数（2026-11-09 由裸计数升格注册） |
+| P587 | `docs/README.md` | docs/README 矩阵 C10 章卡片数（2026-11-09 由裸计数升格注册） |
+| P588 | `docs/README.md` | docs/README 矩阵 C11 章卡片数（2026-11-09 由裸计数升格注册） |
+| P589 | `docs/README.md` | docs/README 矩阵 C12 章卡片数（2026-11-09 由裸计数升格注册） |
+| P590 | `docs/README.md` | docs/README 矩阵 C13 章卡片数（2026-11-09 由裸计数升格注册） |
+| P591 | `docs/README.md` | docs/README 矩阵 C14 章卡片数（2026-11-09 由裸计数升格注册） |
+| P592 | `docs/README.md` | docs/README 矩阵 C15 章卡片数（2026-11-09 由裸计数升格注册） |
+| P593 | `docs/README.md` | docs/README 矩阵 G 篇工程化卡数（2026-11-09 升格注册，键纠偏 65→74 同步真值） |
+| P594 | `docs/README.md` | docs/README 矩阵 K 篇踩坑卡数（2026-11-09 升格注册，键纠偏 65→71 同步真值） |
+| P595 | `docs/README.md` | docs/README 矩阵 E 篇核心原理题数（2026-11-09 升格注册） |
+| P596 | `docs/README.md` | docs/README 矩阵 S 篇场景题数（2026-11-09 升格注册） |
+| P597 | `docs/README.md` | docs/README 矩阵 A 篇 AI 纵深题数（2026-11-09 升格注册，74→112 同步真值） |
+| P598 | `docs/README.md` | docs/README 矩阵 D 篇垂直领域题数（2026-11-09 升格注册，72→80 同步真值） |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
 
-- **放置（硬约束，与 `docs/format-shared.md` §4.2 一致）**：
+- **放置（硬约束，与 `docs/specs/format-shared.md` §4.2 一致）**：
   - 有导航页：`body` 首子块 = `<div class="site-page-nav site-page-nav--top">` → `<nav class="chapter-nav-top">`；正文与 `<footer>`（若有）之后、**所有** `<script>` 之前 = `site-page-nav--bottom` → `chapter-nav`。
   - **无导航页**：仅根 `index.html`、章节站 `java-architect-interview/index.html`；导图 `index.html` 与其余内容页均须有顶底导航。
   - 壳层 `.site-page-nav--top/--bottom` 上下 `padding` 对称；首屏 hero（`.map-hero` / `.ov-hero`）勿再叠加大 `padding-top`。
@@ -958,14 +979,14 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
   - 右：`nav-next`（下一篇 →）或收束用 `nav-home`（返回目录 →）
 - **章节站阅读链路**：`核心方法论 → 工程化要点 → 生产踩坑 → C01…C15 → 服务端安全 → 核心原理速查 → 高频场景题`；导图站同序 `mind-*`。
 - 箭头统一字面量 `←` / `→`；回目录文案统一「返回目录」（禁止「返回首页」）；左右已链过的目标勿在 `nav-center` 重复。
-- **侧栏分组标题**：凡带 `toc-group` 的页面，`toc-group-title` 必须是 `<a href="#…">`（禁止 `div`）；`nav.js` 会在条目高亮时同步给同组 `a.toc-group-title` 加 `.active`。锚点约定见 `docs/format-shared.md` §4.1。
+- **侧栏分组标题**：凡带 `toc-group` 的页面，`toc-group-title` 必须是 `<a href="#…">`（禁止 `div`）；`nav.js` 会在条目高亮时同步给同组 `a.toc-group-title` 加 `.active`。锚点约定见 `docs/specs/format-shared.md` §4.1。
 - 导图页居中组：全部章节 / 导图总览 / 本导图对应章节（`nav-mind`）；首篇左已是导图总览时，居中去掉「导图总览」。
 - 顶部/底部按钮 `padding`/`font-size`/`gap` 须同步一致，避免高度差。
 - 两站共用 `java-architect-interview/assets/design-system.css`、`theme-init.js` 与 `nav.js`，一处修改惠及全部。
 
 ## 7.1 手机小屏强制（MOBILE-MANDATORY）
 
-与 `AGENTS.md` 硬红线第 6 条、`docs/format-shared.md` §8 同级：
+与 `AGENTS.md` 硬红线第 6 条、`docs/specs/format-shared.md` §8 同级：
 
 - 全站页面必须适配 ≤768px（主）与 ≤480px（极小屏）；必须含 viewport。
 - 共享基线在 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段；页面内联桌面布局必须自带 `@media` 覆盖。
@@ -973,7 +994,7 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 
 ## 7.2 HTML 格式化与 Mermaid（Prettier）
 
-与 `docs/format-shared.md` §10 同级：
+与 `docs/specs/format-shared.md` §10 同级：
 
 - 44 个用户可见 HTML 用仓库根 `npm run format:html`（Prettier 3 + `normalize_html_closers.py`）统一格式；配置见 `.prettierrc.json`（`printWidth: 10000`）。
 - **每个** `<div class="mermaid">` 上一行必须 `<!-- prettier-ignore -->`，禁止格式化塌缩图源码；缺省可跑 `ensure_mermaid_prettier_ignore.py`。
@@ -983,8 +1004,8 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 
 ## 8. 章节站首页（`java-architect-interview/index.html`）
 
-- **卡片顺序人工编排**：勿按文件名自动重排；现序为 导图 → 方法论 → 工程化 → 核心原理 → 场景 → 优先级总览 → ch01～15 → 安全。细则见 `docs/format-special.md` §7。
-- **难度徽标**：可按目标页 `data-difficulty` 实计的卡片均写 **专家 → 架构 → 高级** 的 `×N`（0 档省略）；导图入口 / 安全等无难度题卡的只标档位。详见 `docs/format-special.md` §7。
+- **卡片顺序人工编排**：勿按文件名自动重排；现序为 导图 → 方法论 → 工程化 → 核心原理 → 场景 → 优先级总览 → ch01～15 → 安全。细则见 `docs/specs/format-special.md` §7。
+- **难度徽标**：可按目标页 `data-difficulty` 实计的卡片均写 **专家 → 架构 → 高级** 的 `×N`（0 档省略）；导图入口 / 安全等无难度题卡的只标档位。详见 `docs/specs/format-special.md` §7。
 - **技术栈全景 / 最新技术趋势**：`<details class="tag-cloud|trend-section index-fold">`，**默认折叠**（不加 `open`）。
 
 ## 8.7 跨轴卡片去重门禁（2026-11-07 新增）

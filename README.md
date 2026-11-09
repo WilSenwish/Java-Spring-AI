@@ -11,7 +11,8 @@
 ```
 Java-Spring-AI/
 ├── index.html                              # 根索引（全站聚合，三权威源之一）
-├── java-architect-interview/              # ① 章节主站 · 26 HTML
+├── interview.html                          # 独立能力索引页
+├── java-architect-interview/              # ① 章节主站 · 28 HTML
 │   ├── chapter-01~15-*.html                # 15 篇章（C）
 │   ├── chapter-core-methodology.html       #   方法论（M）
 │   ├── chapter-engineering-practices.html  #   工程化（G）
@@ -23,6 +24,8 @@ Java-Spring-AI/
 │   ├── nav-overview-priority.html          #   优先级×难度×类型大盘
 │   ├── nav-overview-quick-list.html        #   知识点速查清单
 │   ├── nav-server-security-checkpoint.html #   服务端安全检查点
+│   ├── nav-overview-capability-matrix.html #   能力矩阵索引导航
+│   ├── nav-overview-lifecycle.html         #   生产生命周期检索视图导航
 │   ├── assets/                             #   design-system.css · nav.js · theme-init.js
 │   └── index.html                          # 章节索引
 ├── java-design-patterns-principles/       # ② 设计原则 & 超越 GoF 23
@@ -36,13 +39,14 @@ Java-Spring-AI/
 │       ├── validate_kb.py     # 全量校验（红线 / SSOT / 计数覆盖 / 落位 / 结构 …）
 │       └── audit_*.py / probe_*.py / scan_*.py   # 辅助审计与门禁脚本
 ├── docs/
-│   ├── kb-counts.json         # 单一真源（counts + struct，驱动全站 299 个计数位）
+│   ├── kb-counts.json         # 单一真源（counts + struct，驱动全站全部 data-kb-pos 计数位）
+│   ├── catppuccin-tokens.json # 配色唯一色源 SSOT（palette / derived / 豁免台账）
 │   ├── shared/                # 全站共用 fonts / js（mermaid · echarts · d3 · three，按需）
 │   ├── facts/                 # 官方参考文档归档（只读）
-│   ├── format-shared/special/std-qa.md  # 内容格式规范
-│   ├── assets/satellite-base.css  # ②③④ 三子站共用基础样式（各站 @import ../../docs/shared/style/satellite-base.css）
-│   ├── scripts/               # 站点构建/校验脚本（build_search_index.py 等）
-│   ├── search-index.json      # 静态搜索索引（docs/build_search_index.py 生成）
+│   ├── specs/                 # 内容格式规范（format-shared / std-qa / special / colors）
+│   ├── shared/style/satellite-base.css  # ②③④ 三子站共用基础样式（各站 @import ../../docs/shared/style/satellite-base.css）
+│   ├── scripts/               # 站点构建/校验脚本（audit_catppuccin · build_search_index · build_xinchuang_site 等）
+│   ├── search-index.json      # 静态搜索索引（docs/scripts/build_search_index.py 生成）
 │   └── README.md
 ├── .nojekyll                  # GitHub Pages 防 Liquid 误伤 Spring AI 模板占位符
 └── AGENTS.md                  # 项目常驻硬约束（红线 / 禁用词 / 工具链约定）
@@ -56,12 +60,12 @@ Java-Spring-AI/
 
 | 域 | 编号 | 数量 |
 |---|---|---|
-| 篇章 | `C01.01 ~ C15.xx` | 252 |
-| AI 工程纵深 | `A01.01 ~ Axx.xx` | 74 |
+| 篇章 | `C01.01 ~ C15.xx` | 274 |
+| AI 工程纵深 | `A01.01 ~ Axx.xx` | 112 |
 | 核心原理 | `E01.01 ~ Exx.xx` | 74 |
 | 场景题 | `S01.01 ~ Sxx.xx` | 74 |
-| 垂直领域 | `D01.01 ~ Dxx.xx` | 72 |
-| **合计** | | **546** |
+| 垂直领域 | `D01.01 ~ Dxx.xx` | 80 |
+| **合计** | | **614** |
 
 > **口径说明**：方法论 / 工程化 / 踩坑为**专篇卡**，独立计数、不进 `total`。真源：`docs/kb-counts.json`（改数走 `sync_counts.py bump`）。
 
@@ -69,17 +73,17 @@ Java-Spring-AI/
 
 | 域 | 编号 | 数量 | 组数 |
 |---|---|---|---|
-| 方法论 | `M01.01 ~ M16.xx` | 145 | 16 |
-| 工程化要点 | `G01.01 ~ G08.xx` | 65 | 8 |
-| 生产踩坑 | `K01.01 ~ K08.xx` | 65 | 8 |
+| 方法论 | `M01.01 ~ M16.xx` | 185 | 16 |
+| 工程化要点 | `G01.01 ~ G11.xx` | 74 | 11 |
+| 生产踩坑 | `K01.01 ~ K10.xx` | 71 | 10 |
 
 ### 优先级 × 难度（求和 = `total`）
 
 | 优先级 | 题数 | | 难度 | 题数 |
 |---|---|---|---|---|
-| P0 | 124 | | 专家 | 65 |
-| P1 | 337 | | 架构 | 260 |
-| P2 | 85 | | 高级 | 221 |
+| P0 | 139 | | 专家 | 79 |
+| P1 | 382 | | 架构 | 297 |
+| P2 | 93 | | 高级 | 238 |
 
 ---
 
@@ -91,9 +95,11 @@ Java-Spring-AI/
 | 章节索引 | `java-architect-interview/index.html` | 15 篇章 + 方法论 + 工程化 + 踩坑 + 核心原理 + 场景 |
 | 优先级聚合 | `java-architect-interview/nav-overview-priority.html` | P0 → P1 → P2 三级分组，内按难度 / 类型再拆 |
 | 安全检查点 | `java-architect-interview/nav-server-security-checkpoint.html` | 服务端开发安全速查 |
-| 方法论 | `java-architect-interview/chapter-core-methodology.html` | 道法术势十六组（145 卡） |
-| 工程化要点 | `java-architect-interview/chapter-engineering-practices.html` | 8 组工程化实践（65 卡） |
-| 生产踩坑 | `java-architect-interview/chapter-production-pitfalls.html` | 8 组真实故障复盘（65 卡） |
+| 能力矩阵索引 | `java-architect-interview/nav-overview-capability-matrix.html` | 2026 岗位能力对标检索 |
+| 生产生命周期检索 | `java-architect-interview/nav-overview-lifecycle.html` | 按生产阶段检索知识点 |
+| 方法论 | `java-architect-interview/chapter-core-methodology.html` | 道法术势十六组（185 卡） |
+| 工程化要点 | `java-architect-interview/chapter-engineering-practices.html` | 11 组工程化实践（74 卡） |
+| 生产踩坑 | `java-architect-interview/chapter-production-pitfalls.html` | 10 组真实故障复盘（71 卡） |
 | 设计原则 & GoF 23 | `java-design-patterns-principles/` | 设计原则 + 超越 GoF 23 |
 | 软件定律 / 理论 / 原则 / 模式 | `Software-Engineering-Laws-Theories-Principles-and-Patterns/` | 24 条 + 7 类 + 13 类 + 6 类索引 |
 | 软件工程「道法术器势」| `Software-Engineering-Core-Philosophical-Principles-and-Methodologies/` | 核心哲学原理完整篇 |
@@ -113,7 +119,7 @@ Java-Spring-AI/
 
 ## 单一真源与工具链
 
-全站数字**唯一写源**：`docs/kb-counts.json`，包含 `counts`（全局总量）与 `struct`（每章节/卡片位的精确计数）。所有 299 个计数位（以 `data-kb-pos="P01~P398"` 标记）均由它驱动。
+全站数字**唯一写源**：`docs/kb-counts.json`，包含 `counts`（全局总量）与 `struct`（每章节/卡片位的精确计数）。所有 `data-kb-pos` 计数位（2026-11-09 达 452 个，随内容扩展增长）均由它驱动。
 
 ### 三条硬约束（详见 `AGENTS.md`）
 
@@ -153,6 +159,6 @@ python3 .workbuddy/skills/java-kb-expand/scripts/sync_counts.py bump \
 
 ## 更新频率与维护
 
-- 计数真源 `docs/kb-counts.json` 最近更新：**2026-09-21**
+- 计数真源 `docs/kb-counts.json` 最近更新：**2026-11-09**
 - 每次入库新卡 / 调整分组结构后，必须同步 `kb-counts.json` 并跑 `validate_kb.py`
 - 红线 `data-page-node-id=0` 禁止任何预览，任何改动后须全局扫描确认

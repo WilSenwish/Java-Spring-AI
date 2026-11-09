@@ -155,9 +155,10 @@
 ## <a id="8"></a>8. 生产踩坑 / AI 纵深 / 垂直领域 / 速查清单
 
 - **生产踩坑 `chapter-production-pitfalls.html`（K）**：与工程化同款三层卡（insight/principle/application）；G01～G10 对位的 K01～K10（G11 为新增组织治理组，K 篇暂无对位）；专篇键 `pitfalls`，不进 `total`；侧栏组锚 `#K01`～`#K10`。
-- **AI 工程纵深 `chapter-question-ai-engineering-deep.html`（A）**：独立轴，ID `A##.##`，组锚 `#a-group-NN`（A01–A26）；进 `total`（键 `ai_engineering_deep`）；须带难度/优先级；落位 overview。
+- **AI 工程纵深 `chapter-question-ai-engineering-deep.html`（A）**：独立轴，ID `A##.##`，组锚 `#a-group-NN`（A01–A33）；进 `total`（键 `ai_engineering_deep`）；须带难度/优先级；落位 overview。
 - **垂直领域 `chapter-questions-domain.html`（D）**：ID `D##.##`，组锚 `#group-N`；进 `total`（键 `domain_questions`）；卡片变体接近场景轴；须带难度/优先级。
 - **速查清单 `nav-overview-quick-list.html`**：`nav-` 聚合页，按知识点清单导航，转发宿主锚点；无独立题号体系。
+- **能力矩阵索引 `nav-overview-capability-matrix.html` / 生产生命周期检索视图 `nav-overview-lifecycle.html`**（2026-11-07）：`nav-` 聚合页，纯索引转发宿主锚点（不复制正文）；**不进 `total`、不带 `data-kb-pos` 计数位、不带难度/优先级徽标、无新增 hex**；入口只挂根 `index.html`（章节站 `index.html` 不挂）。
 
 ---
 
@@ -175,6 +176,8 @@
 | chapter-questions-domain | – | 领域卡 | `D##.##` | ✔ | ✔ | ✔ |
 | nav-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |
 | nav-overview-quick-list | – | 速查清单 | – | – | – | ✔ |
+| nav-overview-capability-matrix | – | 索引清单 | – | – | – | ✔ |
+| nav-overview-lifecycle | – | 索引清单 | – | – | – | ✔ |
 | nav-server-security-checkpoint | page-wrapper + sidebar | h2/h3 + compare-table + checklist | – | – | – | ✔ |
 | index | – | chapter-card / meta-stats / index-fold | – | 可计卡带 ×N | – | ✔ |
 

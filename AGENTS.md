@@ -1,18 +1,18 @@
 # AGENTS.md — 项目常驻规则（Codex / Cursor / 所有支持 AGENTS.md 的 Agent 通用）
 
 本文件是**精简版硬约束**。完整约定见 `.workbuddy/memory/MEMORY.md`（WorkBuddy 专用，其他工具可不读）。
-详细格式规范见 `docs/`（README / format-shared / format-std-qa / format-special）。
+详细格式规范见 `docs/`（README / specs/ 下 format-shared / format-std-qa / format-special / format-colors）。
 
 ## 1. 项目是什么
 
 《Java 专家 · 架构师 · 高级开发 工程能力知识库》——**纯静态 HTML 站点**（GitHub Pages 发布），无后端、无构建步骤。
 
 - `index.html`：站点总目录（聚合统计页，三权威源之一）
-- `java-architect-interview/`：章节站（26 个 HTML）。
+- `java-architect-interview/`：章节站（28 个 HTML）。
   - 专篇：`chapter-core-methodology.html`（M）、`chapter-engineering-practices.html`（G）、`chapter-production-pitfalls.html`（K）
   - 篇章：`chapter-01~15-*.html`（C）
   - 题集：`chapter-questions-eight-part.html`（E）、`chapter-questions-scenario.html`（S）、`chapter-question-ai-engineering-deep.html`（A）、`chapter-questions-domain.html`（D）
-  - 导航聚合（`nav-` 前缀=非篇章题宿主）：`nav-overview-priority.html`、`nav-overview-quick-list.html`、`nav-server-security-checkpoint.html`
+  - 导航聚合（`nav-` 前缀=非篇章题宿主）：`nav-overview-priority.html`、`nav-overview-quick-list.html`、`nav-server-security-checkpoint.html`、`nav-overview-capability-matrix.html`（能力矩阵索引）、`nav-overview-lifecycle.html`（生产生命周期检索视图）
   - 索引：`index.html`
 - 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`；按需图表/字体在 `docs/shared/`（章节页相对路径 `../docs/shared/`）
 
@@ -21,14 +21,14 @@
 ## 2. 硬红线（违反即返工）
 
 1. **禁止预览/打开任何 HTML 做可视化确认**。预览服务会持有文件并回写注入 `data-page-node-id` 属性（历史上单文件被注入 6517 处）。交付方式：**绝对路径 + 文字结论**。
-2. **`data-page-node-id` 全站必须为 0**。改动后必须扫描确认（章节站 26 个 HTML + 根 index 等；以扫描结果为准）。
+2. **`data-page-node-id` 全站必须为 0**。改动后必须扫描确认（章节站 28 个 HTML + 根 index 等；以扫描结果为准）。
 3. **禁用词**：`面试`、`面试官`、`八股`。全站已清除，新增内容一律不得出现。
    术语映射：面试→知识点/技术沟通；面试题→知识点；八股→核心原理；层名「面试应用」→「工程表达」（`data-layer="application"` 英文值不动）。
 4. **`docs/facts/` 只读**：下载的官方参考文档归档，不在任何修改范围内。
 5. **同文件多处修改禁止并行编辑**（会静默丢更新）；须串行修改或整文件重写后重新校验。
-6. **全站手机小屏样式强制优化**（违反即返工）：所有对用户可见的页面必须在 ≤768px（及 ≤480px 极小屏）下可读、可点、无横向撑破；共享样式以 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段为准，页面内联桌面规则必须自带对应 `@media` 覆盖。细则见 `docs/format-shared.md` §8。交付仍遵守红线 1（禁止预览注入），用绝对路径 + 文字结论说明适配点。
+6. **全站手机小屏样式强制优化**（违反即返工）：所有对用户可见的页面必须在 ≤768px（及 ≤480px 极小屏）下可读、可点、无横向撑破；共享样式以 `assets/design-system.css` 的 `MOBILE-MANDATORY` 段为准，页面内联桌面规则必须自带对应 `@media` 覆盖。细则见 `docs/specs/format-shared.md` §8。交付仍遵守红线 1（禁止预览注入），用绝对路径 + 文字结论说明适配点。
    - **列表缩进兜底不得删改**：共享 CSS 的零特异度 `:where(ul, ol) { padding-inline-start: 1.25rem }` 必须保留，且**不得退化为裸选择器 `ul, ol { … }`**。原因是顶部 reset（`* { margin: 0; padding: 0 }`）把 `ul`/`ol` 的 UA 默认缩进一并归零，凡未匹配到类规则的列表 `padding-left` 即为 0，而 `list-style-position: outside` 的圆点/数字绘制在内容盒之外 —— 桌面「列表无缩进、圆点贴卡片边缘」，小屏直接越出卡片（实测核心原理页 20 处、安全检查页 1 处）。校验：`validate_kb` 项 **1h** + `.workbuddy/skills/java-kb-expand/scripts/check_list_indent.js`。
-7. **主题 / 暗黑模式**：新页须在 CSS 前引入 `theme-init.js`；换肤只改 CSS 变量；切换器、阅读进度（顶栏细条 + 浮动环）、回顶/去底与**小屏目录抽屉**（左下 FAB + 复用 `.sidebar-toc`）由 `theme-init.js` 注入（进度环在主题切换上方；`nav.js` 仅兜底）。细则见 `docs/format-shared.md` §4.1 / §9。
+7. **主题 / 暗黑模式**：新页须在 CSS 前引入 `theme-init.js`；换肤只改 CSS 变量；切换器、阅读进度（顶栏细条 + 浮动环）、回顶/去底与**小屏目录抽屉**（左下 FAB + 复用 `.sidebar-toc`）由 `theme-init.js` 注入（进度环在主题切换上方；`nav.js` 仅兜底）。细则见 `docs/specs/format-shared.md` §4.1 / §9。
 8. **顶/底章节导航**：仅根 `index.html` 与章节站 `index.html` 无导航；其余页顶栏为 `body` 首块（`.site-page-nav--top`），底栏在脚本前（`.site-page-nav--bottom`），顶底同文、壳层间距对称。细则见 `format-shared.md` §4.2。
 9. **HTML Prettier + Mermaid**：用户可见 HTML 用 `npm run format:html:prepare`（补 ignore）→ `npm run format:html`（根 2 HTML + 章节站 + 三子站；Mermaid 靠 prettier-ignore 跳过）；稳态检查 `npm run format:html:check`。每个 `<div class="mermaid">` 上一行必须 `<!-- prettier-ignore -->`。细则见 `format-shared.md` §10。
     - **三子站基础门禁**：`java-design-patterns-principles` / `Software-Engineering-Core-Philosophical-Principles-and-Methodologies` / `Software-Engineering-Laws-Theories-Principles-and-Patterns` → `npm run validate:satellites`（亦由 `validate_kb.py` 0s 步调用）：`data-page-node-id` / 禁用词 / viewport / charset / Mermaid-ignore / **须 `@import` `docs/shared/style/satellite-base.css`**（各站 `assets/style.css` 用 `../../docs/shared/style/satellite-base.css`）。
@@ -37,10 +37,10 @@
 11. **计数位必须可校验，且校验口径必须来自 SSOT**（2026-09-21 长官指令「登记的位置点的计数得有正确性校验」）：注册 `data-kb-pos` 的每个键**必须**能在 `guard.sources` 被某条规则或 `manual` 覆盖，否则 0c2 步 FAIL；**门禁脚本内禁止写死**任何编码子集（组号区间 / 文件名 / 容器名 / 单位词 / 白名单 / 项目根层级 / 家目录绝对路径）——写死一个子集必然遗漏集合外的一切，全部配置归 SSOT `guard`，项目根唯一实现 `.workbuddy/skills/java-kb-expand/scripts/_kbroot.py::find_root`。**禁止**为让门禁过而调阈值、关兜底（`fallback.enabled` / `prose.enabled`）、或把真值口径改写成当前值。改门禁必跑对应 probe 双向验证（注入必 FAIL、还原必 PASS），否则视为假绿。
 12. **根目录保持整洁（2026-10-29 长官指令）**：仓库根**只允许**存放项目级约定/配置与内容站点目录，**不得**在根目录随意新增文件或目录；共享构建产物与支撑资源统一收纳于 `docs/`：
     - 三子站共用基础样式 `docs/shared/style/satellite-base.css`（各站 `assets/style.css` 以 `@import "../../docs/shared/style/satellite-base.css"` 引用）；
-    - 静态搜索索引 `docs/search-index.json`（由 `docs/build_search_index.py` 生成，`--check` 比对 `source_hash` 与条目）；
-    - 站点构建/校验脚本置于 `docs/`。
+    - 静态搜索索引 `docs/search-index.json`（由 `docs/scripts/build_search_index.py` 生成，`--check` 比对 `source_hash` 与条目）；
+    - 站点构建/校验脚本置于 `docs/scripts/`。
     - 根目录允许保留：`README.md` / `AGENTS.md` / `index.html` / `interview.html` / 四个内容站点目录 / `rk/`（全局忽略）/ `xinchuang/`（独立 HTML 站点 + 12 篇 md 源文档，非 KB 站群，已在根 `index.html` 挂站群入口）/ 配置类点文件（`.gitignore`、`.nojekyll`、`.prettierrc.json`、`.prettierignore`）/ `package.json` / `package-lock.json` / `.workbuddy/`；`node_modules/` 与 `tmp/` 属 gitignored 临时产物，不计入源树整洁约束。
-13. **配色单一色源（2026-11-03 长官指令）**：站点样式与图表内联 hex 只允许 **Catppuccin Latte/Mocha 官方色**，及 SSOT `docs/catppuccin-tokens.json` 登记的派生值（带 reason）与豁免（台账，非后门）；规约见 `docs/format-colors.md`。交付前必跑 `python3 docs/audit_catppuccin.py`（ALL PASS），门禁扫描范围/palette/派生/豁免全部数据化于该 JSON，脚本不写死色值与路径（根定位走 `_kbroot.find_root`）；改门禁后必跑 `python3 docs/probe_catppuccin_gate.py` 双向验证（注入必 FAIL、还原必 PASS）。图表新增内联 `fill:`/`stroke:` 色必须同步登记 `theme-init.js` 的 RETINT 两 map（门禁第 2 项强制校验）。
+13. **配色单一色源（2026-11-03 长官指令）**：站点样式与图表内联 hex 只允许 **Catppuccin Latte/Mocha 官方色**，及 SSOT `docs/catppuccin-tokens.json` 登记的派生值（带 reason）与豁免（台账，非后门）；规约见 `docs/specs/format-colors.md`。交付前必跑 `python3 docs/scripts/audit_catppuccin.py`（ALL PASS），门禁扫描范围/palette/派生/豁免全部数据化于该 JSON，脚本不写死色值与路径（根定位走 `_kbroot.find_root`）；改门禁后必跑 `python3 docs/scripts/probe_catppuccin_gate.py` 双向验证（注入必 FAIL、还原必 PASS）。图表新增内联 `fill:`/`stroke:` 色必须同步登记 `theme-init.js` 的 RETINT 两 map（门禁第 2 项强制校验）。
 
 ## 3. 权威计数（单一真源驱动）
 
@@ -81,11 +81,11 @@
 | P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
 | P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
-| P14 | `docs/format-shared.md` | docs/format-shared.md 分子 |
-| P15 | `docs/format-shared.md` | docs/format-shared.md 分母 |
-| P16 | `docs/format-special.md` | docs/format-special.md 定位段 |
-| P17 | `docs/format-special.md` | docs/format-special.md 专篇合计段 |
-| P18 | `docs/format-special.md` | docs/format-special.md ov-stats 段 |
+| P14 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分子 |
+| P15 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分母 |
+| P16 | `docs/specs/format-special.md` | docs/specs/format-special.md 定位段 |
+| P17 | `docs/specs/format-special.md` | docs/specs/format-special.md 专篇合计段 |
+| P18 | `docs/specs/format-special.md` | docs/specs/format-special.md ov-stats 段 |
 | P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章 C 题数 |
 | P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
 | P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
@@ -501,6 +501,27 @@
 | P575 | `index.html` | 根 index D 篇章 dir-subtitle 垂直领域题数（2026-11-06 升格裸计数） |
 | P576 | `index.html` | 批次 4 新增 A27 概率性系统与控制面 dir-group 题数（5 卡） |
 | P577 | `index.html` | 批次 4 新增 A28 静默失效、反模式与落地路径 dir-group 题数（3 卡） |
+| P578 | `docs/README.md` | docs/README 矩阵 C01 章卡片数（2026-11-09 由裸计数升格注册） |
+| P579 | `docs/README.md` | docs/README 矩阵 C02 章卡片数（2026-11-09 由裸计数升格注册） |
+| P580 | `docs/README.md` | docs/README 矩阵 C03 章卡片数（2026-11-09 由裸计数升格注册） |
+| P581 | `docs/README.md` | docs/README 矩阵 C04 章卡片数（2026-11-09 由裸计数升格注册） |
+| P582 | `docs/README.md` | docs/README 矩阵 C05 章卡片数（2026-11-09 由裸计数升格注册） |
+| P583 | `docs/README.md` | docs/README 矩阵 C06 章卡片数（2026-11-09 由裸计数升格注册） |
+| P584 | `docs/README.md` | docs/README 矩阵 C07 章卡片数（2026-11-09 由裸计数升格注册） |
+| P585 | `docs/README.md` | docs/README 矩阵 C08 章卡片数（2026-11-09 由裸计数升格注册） |
+| P586 | `docs/README.md` | docs/README 矩阵 C09 章卡片数（2026-11-09 由裸计数升格注册） |
+| P587 | `docs/README.md` | docs/README 矩阵 C10 章卡片数（2026-11-09 由裸计数升格注册） |
+| P588 | `docs/README.md` | docs/README 矩阵 C11 章卡片数（2026-11-09 由裸计数升格注册） |
+| P589 | `docs/README.md` | docs/README 矩阵 C12 章卡片数（2026-11-09 由裸计数升格注册） |
+| P590 | `docs/README.md` | docs/README 矩阵 C13 章卡片数（2026-11-09 由裸计数升格注册） |
+| P591 | `docs/README.md` | docs/README 矩阵 C14 章卡片数（2026-11-09 由裸计数升格注册） |
+| P592 | `docs/README.md` | docs/README 矩阵 C15 章卡片数（2026-11-09 由裸计数升格注册） |
+| P593 | `docs/README.md` | docs/README 矩阵 G 篇工程化卡数（2026-11-09 升格注册，键纠偏 65→74 同步真值） |
+| P594 | `docs/README.md` | docs/README 矩阵 K 篇踩坑卡数（2026-11-09 升格注册，键纠偏 65→71 同步真值） |
+| P595 | `docs/README.md` | docs/README 矩阵 E 篇核心原理题数（2026-11-09 升格注册） |
+| P596 | `docs/README.md` | docs/README 矩阵 S 篇场景题数（2026-11-09 升格注册） |
+| P597 | `docs/README.md` | docs/README 矩阵 A 篇 AI 纵深题数（2026-11-09 升格注册，74→112 同步真值） |
+| P598 | `docs/README.md` | docs/README 矩阵 D 篇垂直领域题数（2026-11-09 升格注册，72→80 同步真值） |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

@@ -1,4 +1,4 @@
-/* xinchuang/assets/search-data.js · 由 docs/build_xinchuang_site.py 生成，勿手改 */
+/* xinchuang/assets/search-data.js · 由 docs/scripts/build_xinchuang_site.py 生成，勿手改 */
 window.XC_SEARCH = [
   {
     "t": "研究总纲",

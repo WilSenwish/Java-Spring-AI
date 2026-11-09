@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """Build or check the static search index (titles + body text).
 
-Writes <project-root>/docs/search-index.json.
-  python3 docs/build_search_index.py          # write
-  python3 docs/build_search_index.py --check  # compare hash + records, exit 1 on drift
+Writes <project-root>/docs/search-index.json.（脚本位于 docs/scripts/）
+  python3 docs/scripts/build_search_index.py          # write
+  python3 docs/scripts/build_search_index.py --check  # compare hash + records, exit 1 on drift
 
 Indexed:
   - interview.html and java-architect-interview/*.html that contain .content-card
@@ -23,13 +23,15 @@ from html.parser import HTMLParser
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(
     0,
-    os.path.join(
-        os.path.dirname(os.path.dirname(_HERE)),
+    os.path.normpath(os.path.join(
+        _HERE,
+        "..",
+        "..",
         ".workbuddy",
         "skills",
         "java-kb-expand",
         "scripts",
-    ),
+    )),
 )
 from _kbroot import require_root  # noqa: E402
 

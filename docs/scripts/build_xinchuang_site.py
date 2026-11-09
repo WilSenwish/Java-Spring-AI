@@ -6,7 +6,7 @@
   1. 自包含：站点只引用自身 assets/ 下的 CSS/JS，不引用 docs/ 或
      java-architect-interview/ 的任何资源；xinchuang/ 可整体拷贝单独部署。
   2. 视觉复用：基础样式由 docs/shared/style/satellite-base.css 复制而来
-     （Catppuccin Latte/Mocha 官方色，已通过 docs/audit_catppuccin.py），
+     （Catppuccin Latte/Mocha 官方色，已通过 docs/scripts/audit_catppuccin.py），
      仅改写文件头注释，保证与 Laws 子站同款 toolbar / hero / toc / 卡片 / 表格 / 暗色令牌。
   3. 独立：不改动 KB 站群任何 SSOT、门禁配置、package.json 或根 index.html；
      构建脚本按红线 12 置于 docs/。
@@ -14,8 +14,8 @@
   5. 不预览 HTML（红线 1）；本脚本只写文件，可视化确认一律禁止。
 
 用法：
-  python3 docs/build_xinchuang_site.py            # 生成站点
-  python3 docs/build_xinchuang_site.py --check   # 幂等检查：生成结果与磁盘比对，不写文件
+  python3 docs/scripts/build_xinchuang_site.py            # 生成站点
+  python3 docs/scripts/build_xinchuang_site.py --check   # 幂等检查：生成结果与磁盘比对，不写文件
 
 产物（均落在 xinchuang/）：
   index.html + 10 篇专题页 + appendix.html
@@ -31,7 +31,7 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "xinchuang"
 ASSETS = SRC / "assets"
 BASE_CSS_SRC = ROOT / "docs" / "shared" / "style" / "satellite-base.css"
@@ -1107,7 +1107,7 @@ def base_css_text() -> str:
  * 站点要求「完全自包含」，故复制一份到站内 assets/，不跨目录引用任何共享资源；
  * 色值与规则与来源保持一致，视觉对齐 Software-Engineering-Laws-Theories-Principles-and-Patterns。
  * 注意：这是独立副本，上游基础样式更新时不会自动同步；如需同步请重新运行
- *       python3 docs/build_xinchuang_site.py
+ *       python3 docs/scripts/build_xinchuang_site.py
  * 主题：浅色 :root + html[data-theme="dark"]；系统偏好由 assets/app.js 处理。
  */
 """
@@ -1123,7 +1123,7 @@ def build_search_data(all_tocs: dict[str, list[dict[str, str]]]) -> str:
         items.append({"t": p["nav"], "p": p["html"], "a": "", "d": "%s %s" % (p["num"], p["nav"])})
         for e in all_tocs.get(p["html"], []):
             items.append({"t": e["text"], "p": p["html"], "a": e["id"], "d": "%s %s" % (p["num"], p["nav"])})
-    return ("/* xinchuang/assets/search-data.js · 由 docs/build_xinchuang_site.py 生成，勿手改 */\n"
+    return ("/* xinchuang/assets/search-data.js · 由 docs/scripts/build_xinchuang_site.py 生成，勿手改 */\n"
             "window.XC_SEARCH = " + json.dumps(items, ensure_ascii=False, indent=2) + ";\n")
 
 

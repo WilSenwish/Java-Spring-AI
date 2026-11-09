@@ -2,7 +2,7 @@
 
 > 适用范围：根 `index.html`、`interview.html`、`java-architect-interview/`（章节站）、三个子站（`Software-Engineering-*` / `java-design-patterns-principles`）及其共享样式。
 > **唯一色源（SSOT）**：`docs/catppuccin-tokens.json`。本文色表仅为速查，若与 JSON 冲突以 JSON 为准。
-> 门禁：`python3 docs/audit_catppuccin.py`（交付前必须 ALL PASS，见 §7）。
+> 门禁：`python3 docs/scripts/scripts/audit_catppuccin.py`（交付前必须 ALL PASS，见 §7）。
 
 ## 1. 色彩体系
 
@@ -102,7 +102,7 @@ html[data-theme="dark"] {          /* 显式暗黑 = Mocha */
 ## 7. 门禁
 
 ```bash
-python3 docs/audit_catppuccin.py
+python3 docs/scripts/audit_catppuccin.py
 ```
 
 检查项：
@@ -115,14 +115,14 @@ python3 docs/audit_catppuccin.py
 probe 双向验证（改门禁后必跑）：
 
 ```bash
-python3 docs/probe_catppuccin_gate.py
+python3 docs/scripts/probe_catppuccin_gate.py
 ```
 
 用例：注入非 palette hex 到 CSS → 必 FAIL；注入未登记的内联图表 hex 到 HTML → 必 FAIL；还原后 → 必 PASS。注入使用 try/finally 还原，不依赖临时目录夹具。
 
 ## 8. 交付前自查清单（配色维度）
 
-1. `python3 docs/audit_catppuccin.py` → ALL PASS；
-2. 若改过门禁脚本或 JSON 结构 → 加跑 `python3 docs/probe_catppuccin_gate.py` → 双向 PASS；
+1. `python3 docs/scripts/audit_catppuccin.py` → ALL PASS；
+2. 若改过门禁脚本或 JSON 结构 → 加跑 `python3 docs/scripts/probe_catppuccin_gate.py` → 双向 PASS；
 3. 新增图表内联色 → 已同步登记 RETINT 与（如为派生值）JSON `derived`；
 4. 注释与文档中的示例色也必须合规（门禁会扫注释里的 hex）。

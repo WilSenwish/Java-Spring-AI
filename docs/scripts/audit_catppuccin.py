@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """audit_catppuccin · 配色单一色源门禁
 
-检查（细则见 docs/format-colors.md §7）：
+检查（细则见 docs/specs/format-colors.md §7）：
   1. hex 全量扫描：站点自有文件中「颜色上下文」出现的每个 hex，
      必须 ∈ palette ∪ derived ∪ exempt（SSOT：docs/catppuccin-tokens.json）。
   2. RETINT 覆盖：HTML 内联图表 colon 形 fill:/stroke: hex，
@@ -20,7 +20,7 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _SKILL_SCRIPTS = os.path.normpath(os.path.join(
-    _HERE, "..", ".workbuddy", "skills", "java-kb-expand", "scripts"))
+    _HERE, "..", "..", ".workbuddy", "skills", "java-kb-expand", "scripts"))
 sys.path.insert(0, _SKILL_SCRIPTS)
 from _kbroot import find_root  # noqa: E402
 
