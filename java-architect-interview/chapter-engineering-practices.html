@@ -338,6 +338,7 @@
             卡。与方法论「怎么想」互补——本篇回答「不上线会出事的红线是什么」。
           </p>
           <p class="meth-frame">门禁是<strong>器</strong>；怎么想见 <a href="chapter-core-methodology.html#prologue">核心方法论</a>。以器代术是四种错位之一。</p>
+          <p class="chapter-subtitle chapter-reading-note">阅读口径：本篇是平台门禁速查卡，每张只写一条可阻断的红线及其验收方式。「写进变更模板与脚手架」「与同组门禁互锁」「评审缺证据即阻断」「抽检最近变更」「关联事故卡做反例」这些共性做法统一在此说明，不在卡内逐条复读；门禁的价值在于能否被流水线自动拦下，而不是条款是否写全。与 K 篇配对读：G 给准入条件，K 给绕过之后的止血动作。</p>
           <div class="chapter-meta">
             <span><span class="kb-count" data-kb-count="engineering_groups" data-kb-pos="P292">11</span> 组 · <span class="kb-count" data-kb-count="engineering" data-kb-pos="P25">74</span> 卡</span>
             <span class="meta-divider">|</span>
@@ -555,8 +556,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：金丝雀比例表、自动回滚阈值、人工覆盖审批人、回滚演练记录。评审问「触发什么立刻回」。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>自动回滚的验收要注入一次真实的业务成功率下跌并看是否触发：若只验「演练做过」而不验「阈值到时真的回」，演练记录与回滚能力是两回事。人工覆盖必须留痕，且与自动回滚共用同一套信号口径。</p>
               </div>
             </div>
           </div>
@@ -570,14 +570,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>变更单缺回滚点、观察指标、负责人不得合入发布流水线。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>变更是契约：字段不全等于不可审计。与灰度/回滚互锁。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -585,9 +583,7 @@
               <div class="content-layer-body">
                 <p>门禁：模板校验、缺字段阻断、抽检变更单完整率。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>抽检变更单完整率时要按「能否据此完成一次回滚」判合格，而不是只查字段非空；缺回滚点的单子即使填了负责人也不可执行。平台侧应让缺字段直接阻断流水线，事后抽检只用来发现绕过。</li>
                 </ul>
               </div>
             </div>
@@ -602,14 +598,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>灰度流量必须端到端染色（网关→服务→MQ→任务），否则观察窗失真。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>染色丢失=对照组污染。异步边界是断裂高发区。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -617,9 +611,7 @@
               <div class="content-layer-body">
                 <p>门禁：染色传递验收用例；MQ/线程池包装器清单。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>染色验收要在 MQ 消费端与线程池任务里各放一条断言，验证标签跨异步边界仍在；只在入口与出口比对会被中间透传掩盖。对照组一旦被污染，金丝雀与全量的指标差异就失去统计意义。</li>
                 </ul>
               </div>
             </div>
@@ -634,14 +626,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>代码回滚不等于数据回滚；有副作用变更必须附数据修复/补偿方案。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>状态机与外部账单不会随镜像回退。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -649,9 +639,7 @@
               <div class="content-layer-body">
                 <p>门禁：修复脚本评审、演练记录、冻结写路径开关。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>有副作用变更的验收必须包含一次「代码回滚 + 数据补偿」联合演练：状态机与外部账单不会随镜像回退，只验镜像能退等于没验。补偿脚本还要可回放、可中断，否则修复本身成为新的资损入口。</li>
                 </ul>
               </div>
             </div>
@@ -828,8 +816,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：脚手架默认注入变更单号；抽检一条请求能从 Trace 钻到变更单。缺字段阻断发布。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>抽一条生产请求验证能否从 Trace 里的变更单号反查发布单，反向也要能从发布单拉出该次变更的全部请求；单向注入在跨服务调用后极易丢字段。缺字段应阻断发布，而不是靠日志检索补。</p>
               </div>
             </div>
           </div>
@@ -843,14 +830,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>每个关键服务必须有对外 SLO 与错误预算看板，发布前先看预算。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>没有预算的稳定性讨论是空谈。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -858,9 +843,7 @@
               <div class="content-layer-body">
                 <p>门禁：看板链接进变更单；预算红线自动冻结非紧急变更。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>错误预算门禁的可证伪点是「预算耗尽时流水线是否真的冻结」；看板存在不等于有否决权。预算窗口也要写清按自然月还是滚动窗口，否则大促前累积的消耗会被一次重置抹平。</li>
                 </ul>
               </div>
             </div>
@@ -875,14 +858,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>结构化日志默认脱敏；全量 Debug 采样禁止进生产常开。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>日志既是证据也是泄露面与成本面。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -890,9 +871,7 @@
               <div class="content-layer-body">
                 <p>门禁：字段字典、脱敏规则单测、采样策略 ADR。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>脱敏规则要有字段级单测与抽样回放：新增字段能否被自动拦截，比规则文档是否齐全更能说明门禁有效性。全量 Debug 采样须带自动失效时长，否则临时开关会长期常驻并绕过脱敏路径。</li>
                 </ul>
               </div>
             </div>
@@ -907,14 +886,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>季度至少一次真实排障演练（含取证与复盘），否则 Runbook 是假的。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>演练发现断链比故障时发现便宜。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -922,9 +899,7 @@
               <div class="content-layer-body">
                 <p>门禁：演练记录、缺口进平台债、未演练服务限制发布级别。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>演练验收看「是否发现过断链并进平台债」，而不是看演练是否顺利完成；全程无缺口的演练多半是照 Runbook 走形式。未演练服务应限制发布级别，让制度对发布行为产生实际约束。</li>
                 </ul>
               </div>
             </div>
@@ -1036,7 +1011,7 @@
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>演练重点：缓存击穿、热点账户、消息堆积、慢 SQL、线程池打满、依赖超时雪崩。错误预算与大促窗口绑定，发布冻结有明文。</p>
-                <p>与 G01 发布门禁、G03.01 容量模型、G05 热点治理形成闭环：压测发现的参数变更仍走发布与回滚，禁止「演练现场改死参数」。</p>
+                <p>与 G01 发布门禁、G03.01 容量模型、G05 热点治理共用同一份参数来源：压测发现的参数变更仍走发布与回滚，禁止「演练现场改死参数」。</p>
                 <p>混沌与故障注入（可选）验证：单依赖超时、缓存全挂、从库延迟——失败模式应符合预期降级，而非雪崩。</p>
                 <p>发布冻结窗口与错误预算绑定：冻结不是形式，而是变更审批流真的关掉非预案通道。</p>
                 <p>依赖函证内容：峰值 QPS、超时与拒绝策略、降级约定、值班联系人、升级路径。邮件「OK」无数据视为未函证。</p>
@@ -1101,8 +1076,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：租户配额表、超限拒绝可观测、大促前核对 TopN 租户预算。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>配额验收要注入一个大客户超限流量，看其他租户的延迟与拒绝率是否保持平稳；只测「超限被拒绝」会漏掉拒绝前的资源争抢。租户维度的用量必须可观测，否则嘈杂邻居发生时无法归因到具体来源。</p>
               </div>
             </div>
           </div>
@@ -1116,14 +1090,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>容量评审必须含关键依赖拓扑与各自瓶颈，不只看本服务 CPU。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>假可用常出在下游单点。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1131,9 +1103,7 @@
               <div class="content-layer-body">
                 <p>门禁：依赖图、下游配额、故障域标注。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>容量评审材料必须给出每个关键依赖的瓶颈值与扩容耗时：只报本服务 CPU 的评审无法发现「假可用」。判据是抽一条下游单点做故障注入，验证容量结论是否随之失效。</li>
                 </ul>
               </div>
             </div>
@@ -1148,14 +1118,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>应用线程/虚拟线程并发与 DB/Redis/HTTP 连接池必须联合设上限。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>只扩线程不扩连接=打穿下游。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1163,9 +1131,7 @@
               <div class="content-layer-body">
                 <p>门禁：联合预算表、拒绝可观测、压测验收。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>联合预算表要把线程并发、连接池、下游最大连接数三者一起列，单边扩容的评审直接退回。压测时若先出现获取连接超时而非 CPU 饱和，说明预算表没被真正执行，只是文档里的一项。</li>
                 </ul>
               </div>
             </div>
@@ -1180,14 +1146,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>HPA/自适应扩缩必须设冷却与防抖，避免抖动放大事故。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>抖动是容量控制系统的常见失效模式。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1195,9 +1159,7 @@
               <div class="content-layer-body">
                 <p>门禁：冷却参数、扩缩事件审计、大促前演练。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>冷却与防抖的验收要看指标短时抖动下实例数是否收敛，而不是看扩容能否成功；抖动放大只在连续扩缩事件里显现。冷却窗口应大于实例冷启动耗时，否则新实例未就绪又触发下一轮。</li>
                 </ul>
                 <p>法侧原则见 <a href="chapter-core-methodology.html#M06.02">M06.02 迟滞阈值与稳定窗口</a>。</p>
               </div>
@@ -1375,8 +1337,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：副本延迟指标与告警、读路径降级开关、验收用「写后读」用例。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>「写后读」用例要在副本延迟超阈时验证是否切主读或降级，能返回旧值而不报错才是最危险的形态。业务契约需写明可接受的延迟窗口与补偿动作，缺窗口定义的「最终一致」等于无限延迟。</p>
               </div>
             </div>
           </div>
@@ -1390,14 +1351,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>生产数据修复必须双人审批+可回放脚本，禁止控制台手改当常态。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>手改不可审计、不可回滚。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1405,9 +1364,7 @@
               <div class="content-layer-body">
                 <p>门禁：工单、脚本仓库、执行窗口与回滚包。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>数据修复脚本要能在演练库重放并校验影响行数，双人审批须覆盖执行窗口而非只在提交时签字。判据是控制台直连账号是否仍具备写权限——只要旁路存在，工单制度就形同虚设。</li>
                 </ul>
               </div>
             </div>
@@ -1422,14 +1379,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>大表变更只允许白名单工具/策略（gh-ost/pt-osc 等），禁止裸 ALTER。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>锁表是可预期事故。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1437,9 +1392,7 @@
               <div class="content-layer-body">
                 <p>门禁：工具白名单、副本延迟观察、取消预案。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>白名单工具之外还要验副本延迟观察点与取消预案：在线 DDL 的真风险不是锁表本身，而是无法中途停止。抽一次大表变更做分批中断演练，能停在批次边界才算有取消能力。</li>
                 </ul>
               </div>
             </div>
@@ -1454,14 +1407,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>备份存在≠可恢复；恢复 RTO/RPO 必须演练出数。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>未演练的备份是安慰剂。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1469,9 +1420,7 @@
               <div class="content-layer-body">
                 <p>门禁：季度恢复演练、耗时记录、失败即阻断高危变更。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>恢复演练要产出实测 RTO 与 RPO 并与业务目标比对，「恢复成功」四字不构成证据；还要校验恢复后的行数与关键单据。未达目标即冻结高危变更，否则演练退化为例行勾选。</li>
                 </ul>
               </div>
             </div>
@@ -1644,8 +1593,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：热点清单、预热脚本可回放、单 key QPS/带宽告警、击穿开关演练。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>预热验收要让预热脚本人为失败一次，看单 key 护栏能否挡住回源洪峰；只验预热成功会漏掉降级路径。热点清单应由历史峰值反推而非人工猜，大促前的清单有效期要随流量结构更新。</p>
               </div>
             </div>
           </div>
@@ -1659,14 +1607,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>缓存击穿穿透雪崩必须有演练与开关，而不是文档里的理论。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>过期瞬间与恶意 key 是常态风险。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1674,9 +1620,7 @@
               <div class="content-layer-body">
                 <p>门禁：演练记录、单飞锁/空值缓存/逻辑过期验收。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>演练须分别注入过期瞬间与恶意不存在的 key，逐项验单飞锁、空值缓存、逻辑过期是否生效；只在文档里列三种缓存问题、无演练记录，故障时必然找不到开关。判据是注入后回源 QPS 是否被压住。</li>
                 </ul>
               </div>
             </div>
@@ -1691,14 +1635,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>本地+分布式多级缓存必须有失效广播与版本策略。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>节点间旧值会造成诡异脏读。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1706,9 +1648,7 @@
               <div class="content-layer-body">
                 <p>门禁：广播通道、版本字段、失效失败重试。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>失效广播验收要人为丢弃一次消息，看各节点是否仍收敛到同一版本；节点间旧值造成的脏读很难复现，常被误判为偶发。重试与版本字段缺一不可，只靠广播到达不保证一致。</li>
                 </ul>
               </div>
             </div>
@@ -1723,14 +1663,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>缓存容量、淘汰策略、大 key 限制必须进容量评审。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>内存打满比打满 CPU 更突然。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1738,9 +1676,7 @@
               <div class="content-layer-body">
                 <p>门禁：maxmemory 策略、大 key 扫描、淘汰命中监控。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>淘汰策略评审要给出内存打满时的行为预期：是先拒绝写入还是先淘汰热点，两者对命中率的影响完全不同。大 key 扫描结果与淘汰命中率监控同时缺失时，内存打满会比 CPU 打满更突然。</li>
                 </ul>
               </div>
             </div>
@@ -1913,8 +1849,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：半开比例、成功阈值、失败再开、参数可回滚；变更单写清观察窗。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>半开验收要注入「下游刚恢复但成功率不足」的场景，验证是否再次打开而非直接全量；无观察窗的立即全开会造成二次打穿。成功阈值、失败再开与参数回滚点都要能在演练里被触发一次。</p>
               </div>
             </div>
           </div>
@@ -1928,14 +1863,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>同步链路超时必须可加总并入库为契约表，禁止拍脑袋。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>超时倒挂是雪崩温床。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1943,9 +1876,7 @@
               <div class="content-layer-body">
                 <p>门禁：预算表评审、网关/服务/下游对齐检查。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>预算表要可被代码读取而非只写在文档里：抽一条同步链路，逐段核对实际生效的超时值，并验上游剩余时限是否大于下游总时限。超时倒挂的根因常是各层独立配置、无人做加总校验。</li>
                 </ul>
               </div>
             </div>
@@ -1960,14 +1891,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>写接口幂等键格式、存储与过期策略必须平台规范。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>无幂等的重试是重复扣款。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -1975,9 +1904,7 @@
               <div class="content-layer-body">
                 <p>门禁：规范文档、拦截器默认、抽检关键写路径。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>拦截器默认注入的幂等键须由业务自然键生成并落唯一索引；重启后重放同一写请求，若产生第二条流水即判不合规。抽检关键写路径比抽检全量接口更能暴露「规范有、实现没接」的落差。</li>
                 </ul>
               </div>
             </div>
@@ -1992,14 +1919,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>异步最终一致链路必须有对账任务与 SLA（窗口、告警、补偿）。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>无对账的 Outbox 仍是赌运气。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -2007,9 +1932,7 @@
               <div class="content-layer-body">
                 <p>门禁：对账看板、超窗告警、红线冻结开关。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>对账门禁要验任务失败时是否告警并冻结相关发布，而不只是看对账看板存在。判据是人为停掉对账任务后差异表是否仍被允许无限累积；无 SLA 的 Outbox 只是把不一致延后。</li>
                 </ul>
               </div>
             </div>
@@ -2180,8 +2103,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：黄金集 diff 报告、阈值阈值、失败阻断；与 G07.02 互锁。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>回归报告要贴黄金集 diff 与阈值，且发布单与报告一一绑定；「文案小改」能否绕过流水线直接热更，是这套门禁最容易被击穿的地方。无回归的 Prompt 变更应按生产事故定级，而非按配置调整放行。</p>
               </div>
             </div>
           </div>
@@ -2195,14 +2117,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>黄金集必须监测分布漂移与刷分；分数 alone 不能放行。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>过拟合评测=线上静默塌方。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -2210,9 +2130,7 @@
               <div class="content-layer-body">
                 <p>门禁：集外抽样、影子对比、漂移告警。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>漂移检测的可证伪点是集外抽样与影子对比是否随集内分数同向；分数上升而集外指标不动，说明过拟合评测正在让门禁持续放行。评测集写权限须与模型发布权分离，否则刷分无从约束。</li>
                 </ul>
               </div>
             </div>
@@ -2227,14 +2145,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>模型调用成本必须进配额与门禁，超限降级而非账单惊吓。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>AI 成本是容量问题。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -2242,9 +2158,7 @@
               <div class="content-layer-body">
                 <p>门禁：配额表、超限策略、FinOps 看板。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>配额验收要注入成本突增，看是否触发降级而非只出账单；按自然月核账意味着发现时损失已发生。单位任务成本应作为实时指标并绑模型别名，超限动作要落在切小模型或限流上。</li>
                 </ul>
               </div>
             </div>
@@ -2259,14 +2173,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>模型超时/质量降级开关必须演练到用户可感路径。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>开关不演=故障时找不到。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -2274,9 +2186,7 @@
               <div class="content-layer-body">
                 <p>门禁：演练记录、文案/兜底、回滚点。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>降级开关演练要打到用户可感路径：文案、兜底内容与回滚点都验过才算通过。只验配置项存在，故障时仍会出现「开关开了但没生效」；验收判据是开关触发后前端能否给出可理解的提示。</li>
                 </ul>
               </div>
             </div>
@@ -2484,8 +2394,7 @@
               <div class="content-layer-title">工程表达</div>
               <div class="content-layer-body">
                 <p>门禁：双钥窗口时长、吊销检查清单、演练记录；告警绑轮换 Runbook。</p>
-                <p>验收：金丝雀/发布演练必须至少触发一次自动回滚或人工覆盖留痕；信号与业务成功数同向校验。</p>
-                <p>关联：错误预算看板、变更窗口、回滚后数据修复门禁；禁止只看 CPU 放量。</p>
+                <p>双密钥窗口的验收点在新旧密钥同时通过校验、且吊销旧钥前能确认无在途请求仍用旧钥；单钥硬切是计划内中断。窗口长度应按最长请求时长与缓存有效期定，而非拍一个固定小时数。</p>
               </div>
             </div>
           </div>
@@ -2499,14 +2408,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>密钥与令牌权限必须最小集，定期审查过权。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>过权密钥泄漏爆炸半径更大。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -2514,9 +2421,7 @@
               <div class="content-layer-body">
                 <p>门禁：权限矩阵、季度审查、吊销演练。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>权限矩阵要与实际授权逐项比对并留季度审查记录：判据是是否存在超出调用方所需的权限且无回收计划。过权密钥泄漏的爆炸半径由权限而非密钥强度决定，故吊销演练比轮换频率更关键。</li>
                 </ul>
               </div>
             </div>
@@ -2531,14 +2436,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>依赖 CVE 必须按严重级别绑定修复时限与豁免到期。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>无时限的漏洞单等于永久带病。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -2546,9 +2449,7 @@
               <div class="content-layer-body">
                 <p>门禁：SLA 表、自动催办、到期阻断。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>修复时限要按严重级别自动计算并接入发布阻断；判据是豁免到期后是否真的拦截了发布。无时限、无到期自动升级的漏洞单会长期停在「已接受风险」，把临时例外变成永久状态。</li>
                 </ul>
               </div>
             </div>
@@ -2563,14 +2464,12 @@
               <div class="content-layer-title">核心洞察</div>
               <div class="content-layer-body">
                 <p>生产人工访问必须审计并可抽检，禁止共享超级账号常态化。</p>
-                <p>生产默认：写进变更模板与脚手架，而不是靠个人经验临时想起来。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="principle">
               <div class="content-layer-title">原理映射</div>
               <div class="content-layer-body">
                 <p>无审计的生产访问不可追责。</p>
-                <p>与同组既有门禁互锁：缺一则「看起来有流程、出事时用不上」。</p>
               </div>
             </div>
             <div class="content-layer" data-layer="application">
@@ -2578,9 +2477,7 @@
               <div class="content-layer-body">
                 <p>门禁：堡垒机、会话录制、抽检报告。</p>
                 <ul>
-                  <li>评审话术：缺证据/缺演练/缺回滚点即阻断。</li>
-                  <li>验收：抽检最近一次变更是否带齐字段与指标。</li>
-                  <li>关联：对应 K 组事故卡做反例教学。</li>
+                  <li>审计要能抽检到具体自然人及其操作回放：判据是会话录制能否与工单一一对应。共享超级账号常态化时，所有审计字段都指向同一个主体，追责与最小权限回收同时失效。</li>
                 </ul>
               </div>
             </div>
@@ -2762,7 +2659,7 @@
                 <p>预防项必须可验收：每条动作写成「检测 / 阻断 / 演练」三类之一并带 owner 与截止日，例如「发布单强制关联 change_id」「单元切流演练每季度一次」「慢查询基线进 CI」。禁止以「加强意识」「后续关注」结案。</p>
                 <p>度量四项：MTTD、MTTF 定位段、MTTR 总时长、同类事故 90 天复发率；复盘报告里必须给出这四项的本期值与趋势，否则无法判断改进是否生效。</p>
                 <p>验收：任取一次历史事故，能在 10 分钟内从告警反查到当时全部版本与变更单；每条预防项都能在门禁或演练记录里找到对应证据。</p>
-                <p><strong>向下回指</strong>：G02.02 / G02.08 / K02.01 / M05.05 / C10.33 / C10.32。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+                <p><strong>向下回指</strong>：G02.02 / G02.08 / K02.01 / M05.05 / C10.33 / C10.32。本卡定度量口径与结案标准；日志与 Trace 的字段注入、告警可达性、演练制度由所引卡各自负责，验收时须能对一次历史事故逐项指出证据落在哪条流水线记录里。</p>
               </div>
             </div>
           </div>
@@ -2790,7 +2687,7 @@
                 <p>门禁化清单：①分层依赖与禁用 API 由静态检查阻断；②跨服务同步调用链跳数超阈值告警；③新增外部依赖需许可证与漏洞扫描；④AI 生成代码标注来源并过同等审查；⑤例外需登记有效期与回收责任人（平台自动到期回收）。</p>
                 <p>技术债台账按「影响面 × 复发频率 × 修复成本」排序，每季度挑 Top N 进迭代，禁止无限累积；对已偿还项记录前后指标（变更失败率、P95、评审耗时），避免「重构完说不清收益」。</p>
                 <p>验收：随机抽 5 个近季度架构决策，均能找到 ADR、对应约束在平台配置或 CI 规则中的落点、以及最近一次复审记录。</p>
-                <p><strong>向下回指</strong>：M05.05 / G07.09 / K07.01 / M14.F15 / C10.34 / A33.03。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+                <p><strong>向下回指</strong>：M05.05 / G07.09 / K07.01 / M14.F15 / C10.34 / A33.03。本卡定台账排序与回收责任；临时豁免、评测门禁、变更规范由所引卡各自负责，判据是每条已偿还债务都能给出前后指标对比，只有「重构完成」的结论不算数。</p>
               </div>
             </div>
           </div>
@@ -2818,7 +2715,7 @@
                 <p>赋能资产四项：服务模板（内置可观测 / 限流 / 成本标签）、门禁规则库、事故 runbook 与演练脚本、决策记录（ADR）模板。每项带 owner、版本与更新节奏，避免文档上线即腐烂。</p>
                 <p>度量：新服务首次上线前置时间、平台默认模板覆盖率、门禁例外数与回收时长、跨团队规范一致性抽检通过率；季度评审时若例外持续上升，先改默认路径而非加强考核。</p>
                 <p>验收：任取一项跨团队规范，能指出它在哪个平台默认配置里生效、哪些团队已接入、例外如何登记与回收、以及最近一次按反馈做的调整。</p>
-                <p><strong>向下回指</strong>：M14.F15 / G07.09 / A26.02 / A33.03 / C10.34 / G11.01。顶层卡给出选型与边界，上列清单卡负责逐条验收。</p>
+                <p><strong>向下回指</strong>：M14.F15 / G07.09 / A26.02 / A33.03 / C10.34 / G11.01。本卡定规范如何变成平台默认；决策记录、团队采纳、准入红线由所引卡各自负责，判据是例外数上升时先改默认路径，而不是把达标压力转给考核。</p>
               </div>
             </div>
           </div>
