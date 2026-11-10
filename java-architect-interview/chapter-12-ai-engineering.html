@@ -166,6 +166,30 @@
           <li>
             <a href="#C12.48"><span class="toc-number">C12.48</span>模型网关平台层统一契约</a>
           </li>
+          <li>
+            <a href="#C12.49"><span class="toc-number">C12.49</span>Spring AI 最小可运行 Agent</a>
+          </li>
+          <li>
+            <a href="#C12.50"><span class="toc-number">C12.50</span>Java AI 框架三实现对照</a>
+          </li>
+          <li>
+            <a href="#C12.51"><span class="toc-number">C12.51</span>Java MCP Server 实现</a>
+          </li>
+          <li>
+            <a href="#C12.52"><span class="toc-number">C12.52</span>Agent 评测 CI 流水线</a>
+          </li>
+          <li>
+            <a href="#C12.53"><span class="toc-number">C12.53</span>AI 编程工具工程工作流</a>
+          </li>
+          <li>
+            <a href="#C12.54"><span class="toc-number">C12.54</span>对账数字员工端到端落地</a>
+          </li>
+          <li>
+            <a href="#C12.55"><span class="toc-number">C12.55</span>Java × Python 混合部署</a>
+          </li>
+          <li>
+            <a href="#C12.56"><span class="toc-number">C12.56</span>控制台与 SSE 对接</a>
+          </li>
         </ol>
       </aside>
 
@@ -179,15 +203,15 @@
           <p class="chapter-subtitle chapter-reading-note">阅读口径：本篇生产落地卡片中的压测、容量、成本与时延数值均为示意基线，用来说明量级、阈值推导与故障推演方法，不是生产实测报告；落地时须按自身流量、机型与供应商定价重新标定，不宜直接引用为经验值。本篇各卡不再重复「评测集回归、成本限额、提示与模型版本绑定」这组上线门禁与「先给可观测证据与门禁、再谈实现细节」的表达提纲，统一按此执行。文中框架 GA 日期、规范修订日期与提案编号只作版本定位，发布节奏与变更内容以官方文档为准，不作为当前基线的事实断言。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-14">M14</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：48</span>
+            <span>题目数：56</span>
             <span class="meta-divider">|</span>
-            <span>高级 ×7</span>
+            <span>高级 ×10</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×28</span>
+            <span>架构 ×31</span>
             <span class="meta-divider">|</span>
-            <span>专家 ×13</span>
+            <span>专家 ×15</span>
             <span class="meta-divider">|</span>
-            <span>预计复习：640 分钟</span>
+            <span>预计复习：750 分钟</span>
           </div>
 
           <div class="chapter-lead">
@@ -6937,6 +6961,528 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="content-layer-body">
               <p>一句话：模型网关的契约 = 固定别名 + 租户配额 + 全路径审计 + 成本归因 + 可回滚灰度；它是平台层的一致性边界，不是流量转发层。</p>
               <p><strong>向下回指</strong>：C12.20 / M14.S11 / A07.03 / A15.01 / K07.09 / C12.47。本卡定平台层的一致性边界；别名与配额实现、审计落点、成本归因、灰度回滚由所引卡各自负责，判据是换供应商时业务侧无需改动任何调用代码。</p>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C12.49" data-difficulty="senior" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.49</div>
+            <div class="content-question">Spring AI 最小可运行 Agent：依赖、工具与 SSE 端点如何一次跑通？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>框架认知与工程落地之间存在一道常被忽略的鸿沟：能讲清 <code class="inline-code">ChatClient</code>、<code class="inline-code">Advisor</code>、<code class="inline-code">ToolCallback</code> 的职责，不等于能在空仓库里跑通一次带工具调用的流式对话。本题考察的是<strong>最小可运行闭环</strong>的组装顺序：依赖坐标、自动配置边界、工具注册、流式端点、超时与密钥外置，缺任一项都会在本地演示成功、在生产首次调用失败。判据不是代码行数，而是这份工程能否被另一位工程师按同样步骤复现。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>自动配置只负责装配，不负责契约</strong>：Starter 依据 classpath 与配置项创建模型 Bean，但工具的描述文本、参数校验、幂等语义必须由业务侧显式给出，模型看不到的方法不会自动变得可调用。<strong>工具循环归属于编排层</strong>：由 <code class="inline-code">ChatClient</code> 的 Advisor 链统一驱动，业务代码不应手写 while 循环反复拼消息，否则结构化输出重试、评测循环与工具调用会三套机制各自为政。<strong>流式是协议而非返回类型</strong>：SSE 端点要单独处理心跳、断连、背压与取消，不能把同步 <code class="inline-code">call()</code> 换成 <code class="inline-code">stream()</code> 就认为改造完成。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>依赖坐标与配置外置：模型凭据、基址、超时统一放配置中心或环境变量，通过 <code class="inline-code">application.yml</code> 的占位符注入，禁止把密钥写进代码或镜像层。工具方法用描述性的 <code class="inline-code">@Tool</code> 注解声明，参数用 Bean Validation 约束，返回值只暴露业务所需字段。</p>
+              <div class="code-block">
+                <pre><code><span class="com">// 最小闭环：ChatClient + 工具注册 + SSE 端点（凭据与超时全部外置）</span>
+<span class="kw">@Configuration</span>
+<span class="kw">public class</span> <span class="type">AgentConfig</span> {
+  <span class="kw">@Bean</span>
+  <span class="kw">public</span> <span class="type">ChatClient</span> <span class="fn">agentClient</span>(<span class="type">ChatClient.Builder</span> builder,
+                                    <span class="type">OrderTool</span> orderTool) {
+    <span class="kw">return</span> builder
+        .defaultTools(orderTool)
+        .defaultAdvisors(<span class="kw">new</span> <span class="type">SimpleLoggerAdvisor</span>())
+        .build();
+  }
+}
+
+<span class="kw">@Component</span>
+<span class="kw">public class</span> <span class="type">OrderTool</span> {
+  <span class="kw">@Tool</span>(description = <span class="str">"按订单号查询订单状态与金额，只读，可重复调用"</span>)
+  <span class="kw">public</span> <span class="type">OrderView</span> <span class="fn">query</span>(<span class="kw">@ToolParam</span> <span class="type">String</span> orderId) {
+    <span class="kw">return</span> orderService.find(orderId); <span class="com">// 只读、幂等、带权限上下文</span>
+  }
+}
+
+<span class="kw">@RestController</span>
+<span class="kw">public class</span> <span class="type">AgentController</span> {
+  <span class="kw">private final</span> <span class="type">ChatClient</span> client;
+  <span class="kw">@GetMapping</span>(value = <span class="str">"/agent/stream"</span>, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  <span class="kw">public</span> <span class="type">Flux</span>&lt;<span class="type">String</span>&gt; <span class="fn">stream</span>(<span class="kw">@RequestParam</span> <span class="type">String</span> q,
+                              <span class="kw">@RequestHeader</span>(<span class="str">"X-Tenant-Id"</span>) <span class="type">String</span> tenant) {
+    <span class="kw">return</span> client.prompt(q)
+        .advisors(a -&gt; a.param(<span class="str">"tenant"</span>, tenant))
+        .stream().content();
+  }
+}</code></pre>
+              </div>
+              <p>验收顺序固定：先跑一次无工具的纯文本调用验证凭据与网络，再跑一次工具调用验证描述文本与参数绑定，最后跑流式端点验证首字节时延与取消行为。每步都记录 <code class="inline-code">taskId</code>、模型别名、提示模板版本与工具版本，缺了这四项，后续评测集无法回放同一次调用。配置基线随代码入库，凭据不入库；本地用环境变量覆盖，生产由配置中心下发。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把密钥写死在示例里再提交仓库：凭据轮换时只能改代码重新发版，且历史提交已泄露。手写工具循环：模型返回工具调用后自己拼消息再请求，会绕过 Advisor 链里的审计与重试，出现「有响应无留痕」。用同步调用承载长响应：线程池被慢请求占满，前端表现为整页卡死。工具描述写成「查询订单」而不写只读、幂等与参数格式：模型在不确定时反复调用，成本与延迟同时失控。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：最小可运行 Agent = 外置配置的模型 Bean + 有契约的工具 + 归属编排层的工具循环 + 独立治理的 SSE 端点，四者齐备才谈得上可复现、可评测、可上线。</p>
+              <p><strong>向下回指</strong>：C12.01 讲架构分层，C12.16 讲流式端点，C12.24 讲结构化输出兜底，A15.01 讲生产范式；本卡只负责把四者组装成一次跑通的闭环，判据是换一位工程师照步骤能复现出同样的调用链与留痕。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.50" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.50</div>
+            <div class="content-question">LangChain4j / Spring AI Alibaba / AgentScope 同一任务三实现如何对照选型？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>招聘要求常写成「熟悉至少一种 Java AI 框架并有项目实践」，但真正的架构判断不是熟记某套 API，而是能回答：<strong>同一业务任务在三种框架下分别落在哪个抽象层、改动成本在哪里、退出路径有多长</strong>。本题用一个固定任务（带工具调用的多轮问答 + 状态可恢复）做三实现对照，把选型从「文档好不好读」拉回「抽象停在哪一层、锁定成本多高」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>抽象位置决定可替换性</strong>：声明式接口封装（AiServices）把模型调用藏进动态代理，开发快但调试与横切治理要靠框架提供的扩展点；Advisor/图编排把每一步暴露成节点，观测与回放天然可插桩，代价是概念更多。<strong>状态归属决定恢复能力</strong>：把会话状态放在框架内存里，进程重启即丢失；把状态外置为可序列化快照并绑定版本号，才能做断点续跑与灰度回放。<strong>依赖方向决定锁定成本</strong>：业务代码只依赖自有的端口接口、框架作为适配器实现，更换框架时改动收敛在适配层；业务代码直接继承框架基类或散布框架注解，替换即全量改造。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>先把业务端口定死，再让三套框架各写一份适配器。三者对同一端口的实现分别体现：接口式声明、Advisor 链式装配、图节点式状态机。对照时记录依赖坐标、最低运行时版本、扩展点名称、状态持久化方式与退出时改动文件数，形成可复核的选型台账，而不是凭示例篇幅下结论。</p>
+              <div class="code-block">
+                <pre><code><span class="com">// 业务端口：与框架无关，替换实现只改 Adapter</span>
+<span class="kw">public interface</span> <span class="type">AgentPort</span> {
+  <span class="type">AgentReply</span> <span class="fn">run</span>(<span class="type">AgentRequest</span> req, <span class="type">RunContext</span> ctx);
+}
+
+<span class="com">// 形态一 · 声明式接口：框架生成代理，工具与记忆由注解/配置注入</span>
+<span class="kw">interface</span> <span class="type">OrderAssistant</span> {
+  <span class="type">String</span> <span class="fn">chat</span>(<span class="kw">@MemoryId</span> <span class="type">String</span> session, <span class="kw">@UserMessage</span> <span class="type">String</span> q);
+}
+<span class="com">// OrderAssistant a = AiServices.builder(OrderAssistant.class)</span>
+<span class="com">//     .chatLanguageModel(model).tools(orderTool).chatMemoryProvider(p -&gt; ...).build();</span>
+
+<span class="com">// 形态二 · Advisor 链：横切能力显式排序，便于审计与重试插桩</span>
+<span class="type">ChatClient</span> c = builder
+    .defaultAdvisors(<span class="kw">new</span> <span class="type">AuditAdvisor</span>(), <span class="kw">new</span> <span class="type">MemoryAdvisor</span>())
+    .defaultTools(orderTool).build();
+
+<span class="com">// 形态三 · 图编排：节点与边显式建模，Checkpoint 外置</span>
+<span class="type">StateGraph</span>&lt;<span class="type">AgentState</span>&gt; g = <span class="kw">new</span> <span class="type">StateGraph</span>&lt;&gt;(AgentState.class)
+    .addNode(<span class="str">"plan"</span>, planNode).addNode(<span class="str">"tool"</span>, toolNode)
+    .addConditionalEdges(<span class="str">"plan"</span>, router, Map.of(<span class="str">"tool"</span>, <span class="str">"tool"</span>, <span class="str">"done"</span>, END));</code></pre>
+              </div>
+              <p>对照结论要落到决策边界：以快速交付内部工具为主、横切治理要求不高时，声明式接口的性价比最高；需要统一审计、重试、成本归因与多模型路由时，可插桩的链式扩展点更合适；长流程、可恢复、需要人工介入节点时，图编排的状态机是必要条件。无论选哪种，业务侧都只依赖 <code class="inline-code">AgentPort</code>，框架版本升级与替换在适配层内闭环。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>按 API 相似度选型：只看「谁的代码更短」，忽略可观测、状态持久化与权限透传的扩展点是否存在。把框架注解写满业务实体：迁移时连领域模型都要改。用框架内置内存态承载长流程：实例重启后会话丢失且无法回放。忽略版本基线与破坏性变更记录：升级后出现工具描述不兼容、状态快照反序列化失败，线上表现为随机失败而非明确报错。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：框架选型的判据是「抽象停在哪一层、状态放在哪里、依赖指向何方」，业务端口自有、框架只做适配器，三者差异才不会变成迁移债务。</p>
+              <p><strong>向下回指</strong>：C12.11 至 C12.14 给出各框架的能力定位，A13.01 讨论自建与引入的决策边界，A15.01 给出 Spring AI 生产范式；本卡只负责把定位差异变成同一任务下的可对照实现与退出路径台账。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.51" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.51</div>
+            <div class="content-question">Java MCP Server 从工具注册到权限透传如何落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>把内部业务能力封装为 Agent 可调用的工具，难点从来不是暴露一个 HTTP 接口，而是：<strong>工具成为跨进程共享契约之后，描述、版本、权限、副作用分级与失败语义由谁负责</strong>。MCP 的价值是把连接复杂度从 N×M 收敛为 N+M，但协议本身不替业务定义契约。本题考察 Java 侧实现 MCP Server 时，如何把「能调通」升级为「可治理、可审计、可拒绝」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>工具描述是模型可见的唯一契约</strong>：名称、用途、参数结构、是否只读、幂等范围与错误码必须写进描述，模型无法从实现细节推断副作用。<strong>身份随调用链流动</strong>：租户、用户、权限预算要在协议上下文里透传并在 Server 侧二次校验，只在网关做一次鉴权等于把信任交给了网络位置。<strong>传输方式决定部署形态</strong>：本地进程用 stdio 最简，跨服务必须走可流式 HTTP 并自己处理会话、超时与断连；把 stdio 用在多副本生产环境会得到无法水平扩展的单点。<strong>渐进披露控制上下文膨胀</strong>：工具数量增长后全量注册会挤占上下文并降低选择准确率，应按会话索引、按需暴露。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>实现顺序：先定义工具契约（含副作用等级与幂等键），再实现权限透传与审计，最后选择传输方式。工具方法只做参数校验与业务委托，横切逻辑放在统一拦截器；高风险操作必须返回「待人工确认」而非直接执行。</p>
+              <div class="code-block">
+                <pre><code><span class="com">// MCP Server：工具契约 + 身份透传 + 副作用分级（示意，非完整依赖清单）</span>
+<span class="kw">@Service</span>
+<span class="kw">public class</span> <span class="type">BizMcpTools</span> {
+  <span class="kw">private final</span> <span class="type">OrderService</span> orderService;
+  <span class="kw">private final</span> <span class="type">ToolAudit</span> audit;
+
+  <span class="kw">@McpTool</span>(name = <span class="str">"query_order"</span>,
+      description = <span class="str">"按订单号查询状态；只读、幂等；返回状态与金额；不返回证件号"</span>)
+  <span class="kw">public</span> <span class="type">OrderView</span> <span class="fn">queryOrder</span>(<span class="kw">@McpToolParam</span> <span class="type">String</span> orderId,
+                                <span class="type">McpContext</span> ctx) {
+    <span class="type">String</span> tenant = ctx.requireHeader(<span class="str">"X-Tenant-Id"</span>);
+    <span class="kw">if</span> (!ctx.can(<span class="str">"order:read"</span>)) <span class="kw">throw new</span> <span class="type">ToolDeniedException</span>(<span class="str">"E_PERM"</span>);
+    audit.read(ctx.taskId(), tenant, <span class="str">"query_order"</span>, orderId);
+    <span class="kw">return</span> orderService.findForTenant(tenant, orderId);
+  }
+
+  <span class="kw">@McpTool</span>(name = <span class="str">"refund"</span>,
+      description = <span class="str">"退款；写操作、需幂等键；必须人工确认后执行"</span>)
+  <span class="kw">public</span> <span class="type">ToolResult</span> <span class="fn">refund</span>(<span class="kw">@McpToolParam</span> <span class="type">String</span> orderId,
+                              <span class="kw">@McpToolParam</span> <span class="type">String</span> idemKey, <span class="type">McpContext</span> ctx) {
+    <span class="kw">if</span> (!ctx.hasApproval(<span class="str">"refund"</span>, orderId)) <span class="kw">return</span> ToolResult.pendingHuman();
+    audit.write(ctx.taskId(), <span class="str">"refund"</span>, idemKey);
+    <span class="kw">return</span> orderService.refundIdempotent(orderId, idemKey);
+  }
+}</code></pre>
+              </div>
+              <p>契约台账字段建议包含：工具名、版本、副作用等级、幂等键来源、权限动作、超时预算、返回字段白名单、降级策略、负责人。Server 启动时按台账自检工具描述与实现是否一致，不一致则拒绝注册； skills 层按会话索引工具目录，只把当前任务相关子集暴露给模型。跨服务部署用可流式 HTTP，并配置连接空闲超时、心跳与最大并发，避免长连接被网关静默回收。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>工具无副作用标注：模型把退款当成查询反复重试，产生真实资损。身份只在调用方校验：Server 被其他入口直连时越权可见全租户数据。把 stdio 部署到多副本：会话与进程绑定，扩容后请求飘移导致上下文丢失。工具描述随代码随口改：未升版本、未回归评测集，模型侧已学到的调用习惯与新契约不匹配，表现为间歇性参数错误。高风险操作直接执行而不返回待确认态，人机协同退化成事后追责。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：MCP Server 的工程内核是「工具契约 + 身份透传 + 副作用分级 + 渐进披露」，协议只解决连接，治理必须自己补齐。</p>
+              <p><strong>向下回指</strong>：A04.02 讲协议收敛的本质，A10.02 讲传输与版本，A12.03 讲 Skills 渐进披露，C12.31 讲工具合约与幂等作用域；本卡只负责把这些口径落到一份可注册的 Java 实现上。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.52" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.52</div>
+            <div class="content-question">Agent 评测 CI 流水线：Golden Set、非劣效门禁与防偏差怎么做？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>非确定性系统不能用「单元测试全绿」当作准出依据。一次提示词改动可能让整体正确率不变、却把高风险场景的成功率打掉一半；一次模型别名升级可能让成本下降、却让工具调用链多绕一轮。本题考察把评测做成<strong>可重复、可判定、可阻断发布</strong>的工程流水线：评测集怎么建、指标怎么定、判定边界怎么划、评估器本身如何防偏差。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>评测与监控分工不同</strong>：评测是上线前对固定输入集合的离线判定，监控是上线后对真实流量的持续观测；把两者混为一谈，就会用线上波动替代码变更背书。<strong>过程与结果都要评</strong>：只判最终答案会放过「答案对但工具调用越权、多绕几轮、引用错片段」的轨迹，轨迹级评测必须检查工具序列、权限边界与中间状态。<strong>非劣效而非显著提升</strong>：大多数变更的目标是不退化，判定应基于预置界值与置信区间，而不是看均值有没有涨。<strong>评估器可信度是前提</strong>：用同一模型自评自己的输出会产生同源偏差，评估器要与被测系统解耦，并定期用人工标注校准。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>流水线分四段：评测集版本化入库、双轨指标计算、非劣效判定、门禁与 Bad Case 回写。每条用例固定输入、期望工具序列、禁用的高风险动作、参考答案与归属风险面；变更提示词、工具描述、模型别名或检索策略时都必须触发全量回归，而不是只跑新增用例。</p>
+              <div class="code-block">
+                <pre><code><span class="com"># 评测门禁流水线（示意）：版本绑定 + 双轨指标 + 非劣效判定</span>
+<span class="attr">stages</span>:
+  - <span class="attr">name</span>: eval
+    <span class="attr">image</span>: agent-eval:${EVAL_IMAGE_TAG}
+    <span class="attr">env</span>:
+      <span class="attr">PROMPT_VER</span>: ${PROMPT_VER}
+      <span class="attr">MODEL_ALIAS</span>: ${MODEL_ALIAS}
+      <span class="attr">GOLDEN_SET_VER</span>: ${GOLDEN_SET_VER}
+    <span class="attr">script</span>:
+      - eval run --set $GOLDEN_SET_VER --trace on --judge external
+      - eval compare --baseline main --delta -0.02 --confidence 0.95
+      - eval gate --require trajectory_pass --require no_forbidden_tool
+      - eval report --out eval-record.json
+
+<span class="com">// 判定记录：与发布单绑定，缺任一版本字段即拒绝准出</span>
+<span class="kw">public record</span> <span class="type">EvalRecord</span>(
+    <span class="type">String</span> promptVer, <span class="type">String</span> modelAlias, <span class="type">String</span> toolVer,
+    <span class="type">String</span> goldenSetVer, <span class="type">double</span> passRate, <span class="type">double</span> trajectoryRate,
+    <span class="type">double</span> delta, <span class="type">boolean</span> nonInferior, <span class="type">String</span> decision) {}</code></pre>
+              </div>
+              <p>指标至少覆盖：答案通过率、检索命中与引用正确性、轨迹合规率、禁用的高风险动作命中数、单任务成本与首字节时延。判定用「相对基线的非劣效界值 + 置信下限」而不是裸均值比较；高风险面的用例不允许被总体均值稀释，需单独设硬门禁。评估器采用与被测模型不同族的外部裁判，并对同一批样本做人工抽检校准，记录一致率；发现评估漂移时先修评估器，再谈系统效果。未通过用例自动沉淀为 Bad Case 并回流评测集，形成闭环。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>用线上日志随机抽样当评测集：输入分布随时间漂移，两次运行结果不可比。只测最终答案：工具越权与多余调用被判为通过。用被测模型自评：同源偏好把退化判定为改善。评测集随业务随手改、不绑版本：基线失效，非劣效判定失去意义。为赶发布调宽界值或关闭轨迹门禁：门禁仍显示全绿，但已不再拦截任何真实退化，属于典型的假绿。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：评测流水线 = 版本化 Golden Set + 结果/轨迹双轨指标 + 非劣效判定 + 外部校准的评估器，判据是「任何变更都能被同一把尺子阻断」。</p>
+              <p><strong>向下回指</strong>：A06.02 讲 Golden Set 与裁判防偏差，A06.03 讲非劣效界值与落地记录，A33.01 讲轨迹级评测，C12.29 讲质量卡门；本卡只负责把四者串成一条可执行的发布流水线。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.53" data-difficulty="senior" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.53</div>
+            <div class="content-question">AI 编程工具工程工作流：规约、上下文与独立审 Diff 怎么组织？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p2">P2</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>把需求一句句丢给编码助手，在小型脚本上效率很高，在有多层约定与既有风格约束的工程里却容易产出「能跑但不合规范」的改动。本题考察把辅助编码从即兴对话升级为<strong>可复现的工程工作流</strong>：规约如何写、上下文如何裁剪、生成结果由谁判定、怎样防止把验证责任交回给生成方自己。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>上下文是稀缺预算</strong>：把整个仓库塞进会话会淹没真正相关的约定，应按任务切片，只提供改动点周边文件、项目规约与验收条件。<strong>规约先于生成</strong>：先写清任务边界、禁止改动范围、命名与分层约束、验收断言，再让工具生成，否则所有规范只能在审查阶段补救。<strong>验证必须来自硬证据</strong>：由独立的 Oracle（测试、编译、静态检查、格式门禁）判定，不能让生成方自己宣布完成。<strong>变更可回滚才有迭代速度</strong>：每轮改动保持单一目的、可单独 review 与回退，避免一次会话混杂重构、功能与格式调整。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>规约文件建议分为项目常驻约定、本轮任务清单、验收 Oracle 三部分；常驻部分稳定不随任务改写，任务部分逐条可勾选，验收部分写成命令与断言而非自然语言期望。上下文按「改动点 + 直接依赖 + 相关测试 + 规约」组织，明确列出禁止触碰的目录与文件。</p>
+              <div class="code-block">
+                <pre><code><span class="com"># 任务规约（示意）：边界、约束、验收三段式</span>
+<span class="attr">goal</span>: 为订单查询补幂等参数校验，不改返回结构
+<span class="attr">scope</span>:
+  <span class="attr">allow</span>: [OrderController.java, OrderService.java, OrderServiceTest.java]
+  <span class="attr">deny</span>: [docs/, build files, 其它模块]
+<span class="attr">constraints</span>:
+  - 沿用现有封装体与异常模式，不新增第三方依赖
+  - 新增方法补注释；禁止在 Controller 层写业务
+  - 同文件多处修改串行提交，改完复跑格式检查
+<span class="attr">oracle</span>:
+  - mvn -q test -Dtest=OrderServiceTest
+  - 断言：重复请求返回同一结果且不产生第二条流水
+  - 静态检查与格式稳态检查全绿
+<span class="attr">delivery</span>: 单目的改动 + 逐条勾选的任务清单 + 独立审 Diff 记录</code></pre>
+              </div>
+              <p>执行节奏：先让工具输出改动计划与影响面，确认后再生成；生成后由人工逐处审 Diff，重点核对是否越界改了未授权文件、是否引入未约定的依赖、是否删改了无关注释。验收阶段跑编译、单元与集成测试、格式稳态与项目门禁；对关键逻辑追加变异测试，确认测试真的能杀死错误实现，而不是只覆盖 happy path。度量上记录返工轮次、越界改动数与门禁失败原因分布，用它调整规约模板，而不是只看生成速度。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把生成结果直接合入主干：无独立 Oracle，错误实现与测试一起被生成出来，形成自洽的假绿。让工具自评完成度：验证责任回到生成方，缺少硬证据。一次会话混杂功能、重构与格式调整：Diff 无法逐处裁决，出问题时只能整体回滚。规约里写「尽量」「参考风格」这类软约束：模型会按最常见写法而非本仓库约定实现。上下文塞入过期文档：工具照着旧接口生成，编译才暴露，返工成本高于手写。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：辅助编码的工程化 = 规约先行 + 上下文切片 + 单目的改动 + 独立 Oracle 判定，效率来自可验证，而不是来自生成量。</p>
+              <p><strong>向下回指</strong>：A11.01 讨论需求描述规范，A11.04 给出编码设施的构成，A25.02 讨论研发效能治理；本卡只负责把方法论落成一份可逐条勾选、可复核 Diff 的日常工作流。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.54" data-difficulty="expert" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.54</div>
+            <div class="content-question">对账数字员工从需求到上线的端到端证据链如何构建？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>业务方要的从来不是「一个会聊天的助手」，而是「差异能被找出来、结论能被复核、动作能被追责」。对账场景同时具备强规则、强审计、强金额敏感性，是检验 Agent 工程化是否成立的试金石。本题考察从需求拆解、工具封装、人在环审批到灰度复盘的完整证据链：<strong>哪些环节交给模型、哪些环节必须交给确定性系统与人工</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>计算与判断分离</strong>：金额核对、日切、汇总属于确定性计算，必须由规则引擎与数据库完成；模型只负责意图识别、异常归类、证据组织与报告表达，绝不参与算术。<strong>高风险动作必须过人</strong>：调账、挂账、对外发函一律返回待确认态，由具备权限的人审批后由业务系统执行，Agent 不持有写权限。<strong>证据先于结论</strong>：每条差异结论都要绑定原始流水、规则版本、检索片段与工具调用记录，可事后回放；没有证据链的结论在监管场景等于没有结论。<strong>不确定性要显式表达</strong>：低置信度样本进入人工队列而非强行给答案，宁可少自动化一轮，不可把猜测写成事实。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>链路按「采集 → 确定性核对 → 差异分类 → 证据组装 → 报告生成 → 人工确认 → 动作执行 → 归档回放」拆分。前三段与后两段是系统职责，模型只在分类、证据组织与表达三段发挥作用；每段输出绑定 <code class="inline-code">taskId</code>、规则版本与数据快照版本，形成可串联的审计链。</p>
+              <div class="code-block">
+                <pre><code><span class="com">// 编排骨架：模型只做分类与表达，计算与写操作都在确定性系统内</span>
+<span class="kw">public</span> <span class="type">ReconResult</span> <span class="fn">run</span>(<span class="type">ReconRequest</span> req, <span class="type">RunContext</span> ctx) {
+  <span class="type">Snapshot</span> snap = reconStore.freeze(req.bizDate(), req.tenant()); <span class="com">// 数据快照定版</span>
+  <span class="type">List</span>&lt;<span class="type">Diff</span>&gt; diffs = ruleEngine.compare(snap);        <span class="com">// 确定性核对，无模型参与</span>
+  <span class="type">List</span>&lt;<span class="type">Classified</span>&gt; cs = classifier.classify(diffs, ctx);  <span class="com">// 模型：异常归类</span>
+  <span class="type">Report</span> report = reporter.render(cs, snap.version());  <span class="com">// 模型：证据组织与表达</span>
+  <span class="kw">if</span> (report.hasLowConfidence() || report.hasHighRiskAction()) {
+    <span class="kw">return</span> hitl.submit(report, ctx.approver());            <span class="com">// 待人工确认，不自动执行</span>
+  }
+  audit.append(ctx.taskId(), snap.version(), ruleVer, report.evidence());
+  <span class="kw">return</span> reconStore.archive(report);                     <span class="com">// 只读归档，可回放</span>
+}
+
+<span class="com">// 准出断言：无证据不得出结论，写操作必须带审批号</span>
+assert report.everyConclusionHasEvidence();
+assert !report.containsRawArithmeticByModel();
+assert approvalNo != null || !report.hasHighRiskAction();</code></pre>
+              </div>
+              <p>上线路径按影子运行、只读灰度、低风险动作放开、高风险动作长期保留人工确认四阶段推进。影子期把模型分类结果与业务专家标注比对，用一致率与差异漏检率决定是否进下一阶段；每阶段都保留回滚点与评测集回归结果。复盘材料包含失败案例、误判归因、人工介入率、单笔处理成本与端到端时延，用这些指标判断自动化边界是否需要收缩，而不是用「回答看起来合理」放行。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>让模型核对金额或做汇总：非确定性计算无法复现，月末对不上账且无法定位是哪一轮生成出错。把写权限直接给 Agent：一次误分类可能触发真实调账。结论不带证据：审计来查时只能给出一段自然语言解释。低置信度样本强行作答：把猜测混进正式报告，人工复核成本反而高于全人工。影子期只看整体准确率：高风险子类被均值稀释，上线后在长尾场景集中爆发。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：业务场景的交付物不是 Agent 本身，而是一条「快照定版 → 确定性计算 → 证据绑定 → 人在环 → 可回放」的证据链；模型的职责边界由可追责性反推，而不是由能力上限决定。</p>
+              <p><strong>向下回指</strong>：A26.01 给场景选型与价值度量，C12.46 给不可变审计与决策回放，M14.S20 给人在环模式目录，A20.02 给合规落地；本卡只负责把这些口径组装成一个可对账、可复盘的具体业务闭环。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.55" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.55</div>
+            <div class="content-question">Java × Python 混合部署：推理服务、容器与调用链怎么划边界？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>业务服务跑在 JVM，模型推理生态集中在 Python，强行把两者塞进同一进程通常两头受损：GPU 调度、量化与推理引擎依赖 Python 生态，而事务、权限、编排与微服务治理依赖 Java 体系。本题考察的不是「谁替代谁」，而是<strong>边界怎么划、契约怎么定、失败怎么隔离</strong>：把推理能力做成独立服务，让 Java 侧像调用任何有 SLA 的下游一样治理它。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>按资源特性拆进程</strong>：GPU 密集型推理需要独立的扩缩容、批处理与显存配额，CPU 密集的业务服务按 QPS 扩容，两者伸缩曲线不同就不能共部署。<strong>契约必须含版本</strong>：模型名、权重版本、量化精度、分词器版本、提示模板版本共同决定输出，响应里缺版本字段就无法复现与回滚。<strong>失败要可隔离</strong>：推理抖动不能拖垮主链路，超时、熔断、降级、排队与配额都要在 Java 侧前置，不能依赖推理服务自律。<strong>成本与容量联动</strong>：单实例并发、批处理大小与显存占用决定单位成本，扩容决策要同时看延迟指标与成本指标。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>Python 侧只提供薄封装：加载推理引擎、暴露健康检查与生成接口、返回结构化结果与版本字段；业务规则、权限、审计与编排全部留在 Java 侧。容器层面把模型权重做成只读挂载或镜像层，服务本身无状态，便于按 GPU 资源横向扩展。</p>
+              <div class="code-block">
+                <pre><code><span class="com"># 推理服务（示意）：薄封装 + 版本字段 + 健康检查</span>
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, HTTPException
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">import</span> os
+
+app = FastAPI()
+ENGINE = load_engine(os.environ[<span class="str">"MODEL_PATH"</span>], os.environ[<span class="str">"QUANT"</span>])
+
+<span class="kw">class</span> <span class="type">GenRequest</span>(BaseModel):
+    prompt: str
+    max_tokens: int = 512
+    task_id: str
+
+<span class="kw">@app.post</span>(<span class="str">"/v1/generate"</span>)
+<span class="kw">def</span> <span class="fn">generate</span>(r: GenRequest):
+    out = ENGINE.generate(r.prompt, max_tokens=r.max_tokens)
+    <span class="kw">return</span> {<span class="str">"text"</span>: out.text, <span class="str">"model_ver"</span>: ENGINE.model_ver,
+            <span class="str">"quant_ver"</span>: ENGINE.quant_ver, <span class="str">"task_id"</span>: r.task_id}
+
+<span class="kw">@app.get</span>(<span class="str">"/healthz"</span>)
+<span class="kw">def</span> <span class="fn">health</span>(): <span class="kw">return</span> {<span class="str">"ready"</span>: ENGINE.ready, <span class="str">"gpu"</span>: ENGINE.gpu_used()}</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code><span class="com"># 容器编排（示意）：GPU 资源配额 + 就绪探针 + 权重只读挂载</span>
+<span class="attr">resources</span>:
+  <span class="attr">limits</span>:
+    <span class="attr">nvidia.com/gpu</span>: 1
+  <span class="attr">requests</span>:
+    <span class="attr">cpu</span>: <span class="str">"2"</span>
+    <span class="attr">memory</span>: 4Gi
+<span class="attr">readinessProbe</span>:
+  <span class="attr">httpGet</span>: { <span class="attr">path</span>: /healthz, <span class="attr">port</span>: 8000 }
+  <span class="attr">periodSeconds</span>: 10
+<span class="attr">volumeMounts</span>:
+  - { <span class="attr">name</span>: weights, <span class="attr">mountPath</span>: /models, <span class="attr">readOnly</span>: <span class="kw">true</span> }</code></pre>
+              </div>
+              <p>Java 侧用非阻塞客户端调用，配置连接超时、读取超时、并发上限与独立线程池隔离；熔断后按「备用模型别名 → 小模型低预算 → 明确失败」的固定顺序降级，并在响应中标注实际使用的模型与版本。按租户记录调用量、显存时长与成本归因，扩容策略同时参考队列深度、首字节时延与单请求成本，避免只看 CPU 指标盲目扩副本。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>用同步阻塞客户端调用长响应：业务线程池被推理延迟耗尽，故障从推理侧扩散到全站。无版本字段：模型悄悄换版后输出风格变化，评测集与线上表现对不上。权重随镜像反复打包：镜像体积失控，回滚一次要拉全量模型。GPU 无配额与队列：多副本同时抢占显存，表现为随机 OOM 而非可解释的容量不足。把降级做成静默切小模型：响应不标注，成本与效果归因全部失真。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：混合部署的边界是「Python 管算力与版本、Java 管契约与治理」，独立伸缩、显式版本、前置容错，三者齐备才不会把推理抖动变成业务事故。</p>
+              <p><strong>向下回指</strong>：A33.04 讨论私有化推理的工程选型，C12.20 给多模型路由与故障转移，C12.47 给异步任务顶层骨架；本卡只负责把边界落成可部署的服务骨架与调用链治理。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.56" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.56</div>
+            <div class="content-question">控制台与 SSE 对接：流式事件、断线续传与状态机怎么实现？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>很多对话界面把服务端返回的文本逐字追加到页面上，看起来「流式」，实质上没有状态模型：中断后无法续传、工具调用的中间态被当成最终答案、刷新后上下文全丢。本题考察前端侧的最小工程闭环：<strong>把 SSE 当成有序事件流而非字符串流，用显式状态机驱动渲染，并为断线与取消设计恢复路径</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>事件带类型</strong>：文本增量、工具开始、工具结果、引用片段、错误、完成应有各自的事件类型，混在一段文本里前端就无法区分「正在思考」与「已经答完」。<strong>状态机先于渲染</strong>：一次任务在待提交、生成中、工具执行中、待人工确认、完成、失败之间迁移，界面只渲染当前状态与已确认事件，避免中间态被误读为结论。<strong>服务端持有可恢复锚点</strong>：每个事件带序号，断线后用最后序号与任务标识续传；仅靠浏览器自动重连会丢事件或重复追加。<strong>取消是业务动作</strong>：用户中断要通知服务端停止生成并结算已用成本，不能只关掉前端连接。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>优先用带类型的事件流：声明式接口用 <code class="inline-code">EventSource</code> 处理简单单向流，需要请求体、鉴权头与取消控制时用可读流读取；两种写法都要处理心跳、事件序号与终态事件。工作流编排视图复用同一套状态机，只是把工具节点与审批节点一并渲染出来。</p>
+              <div class="code-block">
+                <pre><code><span class="com">// 控制台：带类型的 SSE 事件 → 显式状态机 → 幂等渲染</span>
+<span class="kw">const</span> ctrl = <span class="kw">new</span> <span class="type">AbortController</span>();
+<span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">"/agent/stream?q="</span> + encodeURIComponent(q), {
+  method: <span class="str">"GET"</span>, signal: ctrl.signal,
+  headers: { <span class="str">"X-Tenant-Id"</span>: tenant, <span class="str">"Last-Event-ID"</span>: lastSeq }
+});
+<span class="kw">const</span> reader = res.body.getReader();
+<span class="kw">const</span> decoder = <span class="kw">new</span> <span class="type">TextDecoder</span>();
+<span class="kw">let</span> buf = <span class="str">""</span>;
+<span class="kw">while</span> (<span class="kw">true</span>) {
+  <span class="kw">const</span> { done, value } = <span class="kw">await</span> reader.read();
+  <span class="kw">if</span> (done) <span class="kw">break</span>;
+  buf += decoder.decode(value, { stream: <span class="kw">true</span> });
+  <span class="kw">const</span> chunks = buf.split(<span class="str">"
+
+"</span>); buf = chunks.pop();
+  <span class="kw">for</span> (<span class="kw">const</span> chunk <span class="kw">of</span> chunks) {
+    <span class="kw">const</span> ev = parseEvent(chunk);           <span class="com">// { id, type, data }</span>
+    <span class="kw">if</span> (ev.id &lt;= lastSeq) <span class="kw">continue</span>;   <span class="com">// 序号去重，断线重放不重复追加</span>
+    lastSeq = ev.id;
+    <span class="kw">switch</span> (ev.type) {
+      <span class="kw">case</span> <span class="str">"delta"</span>:      appendText(ev.data); <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">"tool_start"</span>: setState(<span class="str">"TOOL"</span>); <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">"approval"</span>:   setState(<span class="str">"HITL"</span>); <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">"error"</span>:      setState(<span class="str">"FAILED"</span>); <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">"done"</span>:       setState(<span class="str">"DONE"</span>); <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="str">"ping"</span>:       <span class="kw">break</span>;          <span class="com">// 心跳仅保活，不触发渲染</span>
+    }
+  }
+}
+<span class="com">// 取消：通知服务端停生成并结算，而非仅关闭连接</span>
+<span class="kw">function</span> <span class="fn">cancel</span>() { ctrl.abort(); fetch(<span class="str">"/agent/cancel?taskId="</span> + taskId, { method: <span class="str">"POST"</span> }); }</code></pre>
+              </div>
+              <p>事件序号与任务标识由服务端签发并在会话存储中保留，刷新后可从最后序号续传；服务端需保证重放窗口内的事件可重发且带相同序号，前端按序号去重。首字节时延、每轮工具耗时与终态原因分别展示，便于用户理解「为什么还在转」；错误态给出可操作的重试或转人工入口，而不是只显示一段报错文本。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把所有事件当纯文本追加：工具调用提示与引用片段混进答案，用户看到的是一段无法解释的草稿。只依赖浏览器自动重连：不带事件序号，重连后内容重复或缺失。用双向长连接承载单向生成：多引入一套连接生命周期与鉴权，收益却只有推送文本。取消只断开前端请求：服务端继续生成并计费，成本归因出现无法解释的缺口。把待人工确认态渲染成完成态：用户以为已执行，实际动作仍在审批队列。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：控制台的工程内核是「带类型与序号的事件流 + 显式状态机 + 可续传锚点」，流式体验的判据不是文字出现得快，而是中断、取消与中间态都可解释。</p>
+              <p><strong>向下回指</strong>：C12.16 讲流式端点设计，C12.25 讲断连恢复与背压，A24.04 讲流式保活与首字节优化；本卡只负责把服务端契约在浏览器侧正确落地。</p>
             </div>
           </div>
         </div>

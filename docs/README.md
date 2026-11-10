@@ -74,7 +74,7 @@
 | `chapter-09-distributed-systems` | 分布式系统 | `C09.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c09.n" data-kb-pos="P586">18</span> | 标准QA（共用） |
 | `chapter-10-microservice-cloud` | 微服务与云原生 | `C10.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c10.n" data-kb-pos="P587">34</span> | 标准QA（共用） |
 | `chapter-11-middleware-engineering` | 中间件工程化 | `C11.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c11.n" data-kb-pos="P588">32</span> | 标准QA（共用） |
-| `chapter-12-ai-engineering` | AI 工程化 | `C12.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c12.n" data-kb-pos="P589">48</span> | 标准QA（共用） |
+| `chapter-12-ai-engineering` | AI 工程化 | `C12.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c12.n" data-kb-pos="P589">56</span> | 标准QA（共用） |
 | `chapter-13-network-io` | 网络与 IO | `C13.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c13.n" data-kb-pos="P590">14</span> | 标准QA（共用） |
 | `chapter-14-databases` | 数据库扩展 | `C14.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c14.n" data-kb-pos="P591">15</span> | 标准QA（共用） |
 | `chapter-15-reactive` | 响应式编程 | `C15.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c15.n" data-kb-pos="P592">12</span> | 标准QA（共用） |
