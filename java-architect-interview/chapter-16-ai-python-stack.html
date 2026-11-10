@@ -108,6 +108,12 @@
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你是否清楚「什么时候该用 Python、什么时候必须回到 Java/JVM」——而非把 Python 当银弹。核心是：AI 推理、数据处理、科研原型天然适合 Python；高并发网关、事务一致性、既有中台仍由 Java 主导；二者是协同而非替代。</p></div>
           </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>Python 在 AI 生产栈的角色经历过四段跃迁：① <strong>科研脚本期</strong>（2010s，NumPy/PyTorch 单机实验，无服务化）；② <strong>Web 封装期</strong>（Flask/Django 把模型包成 HTTP，但同步阻塞、无批处理）；③ <strong>异步服务期</strong>（2020 FastAPI + asyncio，承接高并发 IO）；④ <strong>AI 专用运行时期</strong>（2023 vLLM/Triton/RAY Serve 出现，推理与编排解耦，连续批处理与多模型治理成为一等公民）。关键转折点是「模型即服务（MaaS）」——Python 从「写模型的工具」变为「跑模型的运行时」，与 Java 中台形成外挂式协作。</p>
+            </div>
+          </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
             <div class="content-layer-body"><p><strong>栈分工原则</strong>：① 计算密集且生态在 Python 侧（PyTorch、transformers、vLLM）的<strong>推理与特征工程</strong>放 Python 服务；② 需要稳定连接池、分布式事务、服务治理的<strong>接入层与业务编排</strong>留 Java；③ 二者通过 gRPC/HTTP 边界解耦，各自独立伸缩。</p></div>
@@ -124,6 +130,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>栈选型不是语言偏好，是「团队能力 × 生态成熟度 × 伸缩模型」的权衡。把 Python 当成 JVM 生态的推理外挂，而非重写整个中台，规模化落地阻力最小。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>把 Python 当银弹重写中台</strong>：事务、强一致写、长流程编排应留在 Java/JVM，Python 只做推理与特征外挂，否则在 GIL 与生态上双重吃亏。</li>
+                <li><strong>在 Python 侧做长事务 / 强一致写</strong>：缺乏成熟的分布式事务与连接池治理体系，容易把弱一致 bug 埋进生产。</li>
+                <li><strong>边界用散落 JSON 约定而非 IDL</strong>：Python↔Java 接口靠口头/文档约定，字段漂移无人发现，跨语言调用变成排查黑洞。</li>
+                <li><strong>原型单体直接上生产</strong>：允许原型期 Python 单体，但生产必须切「模型服务 + 独立网关」两点架构，否则鉴权/限流/计费无处安放。</li>
+                <li><strong>用 Python 扛起高并发网关</strong>：GIL 决定了它不擅长海量同步连接，网关/接入层交给 Java 才稳。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.02 -->
         <div class="content-card" id="C16.02" data-difficulty="architect" data-priority="p0">
@@ -134,6 +152,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你是否理解「裸模型」与「生产推理服务」之间的工程鸿沟。核心是：模型权重本身不可直接上线，需要服务框架承担批处理、并发、健康探活、指标暴露，并针对场景选对运行时。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>裸模型到生产推理服务的演进：① <strong>自写封装</strong>（FastAPI 包 transformers，无批处理、无指标、无健康探活）；② <strong>通用 Web 框架</strong>（Flask/FastAPI 异步，易上手但吞吐受限于 Python 层）；③ <strong>专用推理服务器</strong>（NVIDIA Triton 支持 TF/PyTorch/ONNX 多框架 + 动态批 + 多模型仓库）；④ <strong>高吞吐 LLM 引擎</strong>（vLLM 以 PagedAttention + 连续批处理把 GPU 利用率推到极限）；⑤ <strong>推理编排网关</strong>（RAY Serve / 各家 MaaS，承担多模型路由、版本灰度、自动扩缩）。选型主线是「吞吐需求与多模型治理复杂度」逐级上升。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -151,6 +175,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>服务化不是「包一层 API」，而是把批处理、KV 缓存、显存、并发隔离这些基础设施前置设计。选错运行时会在流量上来后被吞吐与显存双重卡死。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>FastAPI + transformers 裸跑大模型</strong>：吞吐差、显存易溢出，还缺连续批处理，流量一上来就被卡死。</li>
+                <li><strong>预处理/后处理全塞推理进程</strong>：CPU 密集的 decode/tokenizer 阻塞 GPU 主线程，GPU 利用率虚低。</li>
+                <li><strong>不暴露 /healthz 与 /metrics</strong>：网关无法探活与熔断，实例假死仍接流量。</li>
+                <li><strong>模型路径硬编码</strong>：换版本要改代码发版，应走模型仓库 + 配置中心动态加载。</li>
+                <li><strong>把 vLLM 当普通 HTTP 服务用</strong>：忽略 max_num_seqs / max_num_batched_tokens 等连续批参数，吞吐与延迟都打折扣。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.03 -->
         <div class="content-card" id="C16.03" data-difficulty="senior" data-priority="p0">
@@ -161,6 +197,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你对「显存是稀缺资源」的工程直觉。核心是：模型加载时机、权重精度、多副本显存占用、冷启动与热更新都要可预测，否则一台 80G 卡可能被悄悄打满。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>显存管理演进：① <strong>单卡单模型全精度常驻</strong>（早期，浪费严重）；② <strong>量化压缩</strong>（FP16→INT8→INT4，砍权重但不砍 KV 缓存）；③ <strong>KV 分页</strong>（vLLM PagedAttention 把 KV 缓存像虚拟内存一样分页，解耦「并发数」与「显存占用」）；④ <strong>显存配额隔离</strong>（多模型共享一卡时按配额互不影响）；⑤ <strong>优先级抢占与 MIG 切分</strong>（把一卡切成多实例，故障半径与资源都可控）。核心是从「能装下」走向「可预算、可隔离、可抢占」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -178,6 +220,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>OOM 从来不是「加显存」能根治的，而是「显存预算 + 并发配额 + 优先级抢占」的系统性设计。把显存当 CPU 一样做容量规划，才算 senior。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>把 OOM 当「加显存」治标</strong>：根因往往是显存预算 + 并发配额缺失，加卡只是推迟爆雷。</li>
+                <li><strong>启动不预热</strong>：首请求触发权重/ CUDA 上下文加载，超时被网关摘流量，冷启动即雪崩。</li>
+                <li><strong>多模型共享卡不隔离配额</strong>：一个模型把整卡吃满，邻居全部被拖垮。</li>
+                <li><strong>版本切换无双缓冲</strong>：新权重没加载完就切流量，或加载期间服务不可用。</li>
+                <li><strong>只监控利用率不监控显存占用</strong>：显存 >85% 才告警已经来不及，应把显存做一级健康度。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.04 -->
         <div class="content-card" id="C16.04" data-difficulty="architect" data-priority="p1">
@@ -188,6 +242,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你是否知道「推理吞吐靠批不靠并发连接」。核心是：GPU 算一个样本和算一批样本的单步成本接近，动态批处理把时间窗口内的请求聚合成批，是 LLM 服务吞吐的命门。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>批处理演进：① <strong>静态批</strong>（固定批次大小，凑不满就空等，GPU 浪费）；② <strong>动态批</strong>（时间窗口内聚合请求，Triton 代表）；③ <strong>连续批 / continuous batching</strong>（vLLM 按 token 级调度，不同请求在不同阶段进入同一批，显存利用率远高于静态）；④ <strong>分块预填充 chunked prefill</strong>（把长 prompt 的 prefill 与 decode 解耦，降低首 token 延迟）；⑤ <strong>推测解码 / 并行采样</strong>（进一步提升吞吐与降本）。主线是「批的粒度从请求级细化到 token 级」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -205,6 +265,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>批处理是「吞吐 vs 延迟」的旋钮。会调 batch 参数是 architect，能按 SLA 把吞吐推到硬件极限又不破延迟红线，才是真懂推理服务。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>盲目拉满 batch</strong>：批太大反而拖长首 token 延迟，破 P99 SLA，应按延迟目标反推上限。</li>
+                <li><strong>只按 QPS 限流漏掉长生成</strong>：应叠加「并发 + token 速率」双指标，否则长文本把整批拖死。</li>
+                <li><strong>在线/离线流量同一批策略</strong>：低延迟在线与高吞吐离线应走不同实例池与批策略。</li>
+                <li><strong>只看 QPS 不看重批实际大小</strong>：批长期偏小说明并发不足或请求被过早打散，吞吐没吃满。</li>
+                <li><strong>把批处理当并发连接数</strong>：GPU 算一个样本与一批样本单步成本接近，吞吐靠批不靠连接数。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.05 -->
         <div class="content-card" id="C16.05" data-difficulty="architect" data-priority="p1">
@@ -215,6 +287,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你是否把「推理」当成一个流水线而非单点。核心是：tokenizer、图像解码、后处理（解析/过滤/格式化）往往比矩阵乘更占墙钟时间，必须和 GPU 计算重叠。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>推理流水线演进：① <strong>同步单点</strong>（请求进来，预处理→推理→后处理串行，GPU 大部分时间在等 CPU）；② <strong>线程池预处理</strong>（numpy/PIL 释放 GIL 的操作移出主线程）；③ <strong>异步重叠</strong>（asyncio 让预处理、GPU 推理、后处理三段流水线化，互不空等）；④ <strong>流式输出 SSE</strong>（首块尽早返回，后处理随流进行）；⑤ <strong>算子级调度</strong>（RAY / LangGraph 把多步 Agent 编排成可观测的 DAG）。主线是「从单点推理到三段重叠的流式流水线」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -232,6 +310,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>模型快不代表服务快。把流水线各段重叠、把阻塞移出关键路径，往往比换更大模型带来的收益更实在。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>tokenizer/图像解码/后处理放推理主线程</strong>：阻塞 GPU，这是多数「模型快服务慢」的真相。</li>
+                <li><strong>后处理同步做拖长 TTFT</strong>：JSON 解析、业务规则、安全过滤应异步或随流做。</li>
+                <li><strong>大响应一次性返回</strong>：不流式，用户端长时间空白，体感差且易超时。</li>
+                <li><strong>不画火焰图定位非 GPU 瓶颈</strong>：多数慢请求卡在预处理/序列化而非矩阵乘，凭感觉优化无效。</li>
+                <li><strong>把流水线当黑盒</strong>：各段不重叠、阻塞点不隔离，GPU 利用率与吞吐都上不去。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.06 -->
         <div class="content-card" id="C16.06" data-difficulty="architect" data-priority="p1">
@@ -242,6 +332,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察 RAG 体系里 Python 服务承上启下的角色。核心是：embedding 生成、向量库读写、召回重排的边界划分；Python 侧负责 embedding 与重排，向量库独立部署。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>RAG 检索栈演进：① <strong>关键词检索</strong>（BM25，召回靠字面匹配）；② <strong>稠密向量</strong>（FAISS 内存索引，语义召回但难扩展）；③ <strong>独立向量库</strong>（Milvus / pgvector / Qdrant，承担 ANN 索引与持久化）；④ <strong>Embedding 服务化</strong>（Python 侧批量/实时分池生成向量）；⑤ <strong>召回-粗排-重排三段</strong> + <strong>混合检索</strong>（BM25 + 向量融合，rerank 模型在 Top-K 上二次打分）。主线是「从单一召回走向可量化、可重排、可回滚的检索工程」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -259,6 +355,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>RAG 的质量天花板在「召回相关性 × 重排精度 × 上下文裁剪」，不在模型参数量。Python 侧的价值是把这三段工程化、可观测、可回滚。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>embedding 与检索模型版本耦合</strong>：改一个牵动全链路，应解耦独立版本。</li>
+                <li><strong>批量与实时 embedding 混跑</strong>：应分池，否则实时低延迟被批量任务拖慢。</li>
+                <li><strong>向量库查询无元数据过滤</strong>：业务域/时间不过滤，候选集爆炸，重排压力陡增。</li>
+                <li><strong>召回后直接返回不做重排</strong>：Top-K 精度差，RAG 答案质量上不去。</li>
+                <li><strong>RAG 质量只堆模型参数量</strong>：天花板在「召回相关性 × 重排精度 × 上下文裁剪」，不在参数。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.07 -->
         <div class="content-card" id="C16.07" data-difficulty="architect" data-priority="p1">
@@ -269,6 +377,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你是否真懂 asyncio 而不是「加了 async 就快了」。核心是：Python 推理服务的并发靠事件循环 + 多进程，阻塞调用（numpy 同步、PIL、同步 IO）会卡死整个 loop。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>Python 并发模型演进：① <strong>同步阻塞</strong>（requests 串行，吞吐极低）；② <strong>多线程</strong>（受 GIL 限制，CPU 密集仍串行，仅为 IO 并发）；③ <strong>多进程</strong>（gunicorn/uvicorn workers，绕过 GIL 吃满多核多卡）；④ <strong>asyncio 协程</strong>（单进程内大量等待中的 IO 并发）；⑤ <strong>线程池隔离阻塞</strong>（loop.run_in_executor 把不释放 GIL 的纯 Python 重计算移出事件循环）。主线是「进程×协程×线程池」三级并发的成型。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -286,6 +400,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>asyncio 的陷阱是「看起来并发其实串行」——任何一个未隔离的同步阻塞都会把整池请求拖垮。会分层并发（进程×协程×线程池）才算掌握。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>以为加 async 就快</strong>：未隔离的同步阻塞仍把整池请求串行拖垮，看起来并发其实串行。</li>
+                <li><strong>handler 里同步阻塞 GPU 推理</strong>：必须用异步/线程池封装模型调用。</li>
+                <li><strong>用 requests 等默认阻塞 SDK</strong>：必须显式换成 aiohttp / httpx 异步版。</li>
+                <li><strong>numpy/OpenCV 未走线程池</strong>：释放 GIL 的操作也应进 executor，纯 Python 重计算要换进程。</li>
+                <li><strong>executor 不设上限</strong>：线程爆炸把机器打满，应设容量上限。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.08 -->
         <div class="content-card" id="C16.08" data-difficulty="architect" data-priority="p1">
@@ -296,6 +422,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你对「Python 并发的物理边界」的理解。核心是：GIL 让单进程内多线程无法并行 Python 字节码，推理服务的并行必须靠多进程；每个 worker 独立持有一份模型与一张卡（或分卡）。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>部署拓扑演进：① <strong>单进程单线程</strong>（开发期）；② <strong>多进程 workers</strong>（gunicorn/uvicorn，绕过 GIL）；③ <strong>每 worker 绑一卡</strong>（单卡单 worker 最稳，或单卡多 worker 分时）；④ <strong>K8s device-plugin 调度</strong>（每 worker 调度到独立 GPU）；⑤ <strong>NUMA 绑卡 + MIG 切分</strong>（减少跨片延迟、把一卡安全分给多负载）。主线是「并行单位从线程回归到进程，再到进程×卡的确定性拓扑」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -313,6 +445,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>GIL 决定了 Python 服务的并行单位是「进程」不是「线程」。把部署拓扑当成容量规划的一部分（woker×卡×批），而非启动参数随手填，是 senior 的体感。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>workers 数 &gt; 卡数 oversubscribe</strong>：多 worker 争抢同一卡/显存，相互抖动。</li>
+                <li><strong>worker 间共享内存状态</strong>：会话/缓存必须外置 Redis/向量库，否则无法水平扩。</li>
+                <li><strong>启动探针只判进程活</strong>：未加载完权重就标 ready，接流量即崩。</li>
+                <li><strong>不绑 NUMA</strong>：跨节点内存访问延迟在高负载时明显拖累吞吐。</li>
+                <li><strong>把并行单位当线程</strong>：GIL 下 Python 的并行单位是进程，部署拓扑要当容量规划的一部分。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.09 -->
         <div class="content-card" id="C16.09" data-difficulty="senior" data-priority="p1">
@@ -323,6 +467,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察跨语言链路的可靠性设计。核心是：Python 推理服务与 Java 网关/中台之间的边界要契约化、超时化、可观测，不能把 Python 的慢当成 Java 的慢。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>跨语言通信演进：① <strong>REST/JSON</strong>（易调试但序列化重、字段易漂移）；② <strong>gRPC/Protobuf</strong>（IDL 契约化、二进制高效、流式支持）；③ <strong>服务网格</strong>（istio 统一 mTLS/重试/熔断）；④ <strong>W3C tracecontext</strong>（跨栈链路追踪标准）；⑤ <strong>舱壁隔离 + 降级兜底</strong>（Java 侧对推理调用独立连接池/信号量，失败时返回缓存/规则结果）。主线是「从字符串约定到契约化、可观测、可降级的生产链路」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -340,6 +490,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>跨语言链路的脆弱点永远是「边界」：超时、契约、降级、追踪。这些不在模型里，却是生产稳定的真正护城河。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>Python 慢挂起不超时</strong>：拖垮 Java 线程池，必须带 deadline 快速 504。</li>
+                <li><strong>Java 侧无舱壁隔离</strong>：推理慢直接拖垮主链路，应有独立连接池/信号量。</li>
+                <li><strong>用裸 JSON 跨语言</strong>：序列化开销 + 字段漂移，应走 Protobuf。</li>
+                <li><strong>无降级策略</strong>：推理不可用时主流程跟着崩，应返回缓存/规则结果并打标。</li>
+                <li><strong>跨栈链路无 trace</strong>：慢点定位不到，Java 与 Python 互相甩锅。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.10 -->
         <div class="content-card" id="C16.10" data-difficulty="expert" data-priority="p1">
@@ -350,6 +512,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你能否把「黑盒模型」变成「可观测服务」。核心是：除了常规 RED（速率/错误/时延），推理服务还要暴露 token 级指标、批大小、显存、队列深度，并与业务 trace 打通。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>可观测性演进：① <strong>print 日志</strong>（无结构、不可检索）；② <strong>RED 指标</strong>（速率/错误/时延，QPS 视角）；③ <strong>分布式 trace</strong>（Jaeger 串调用链）；④ <strong>推理专属指标</strong>（TTFT 首 token、TPOT token 间、批实际大小、KV 缓存占用、队列深度、显存利用率——比通用 QPS 更贴近体验）；⑤ <strong>统一 backend（OTel）</strong> + <strong>异常输出埋点</strong>（空响应/超长生成单独追踪，反推数据或提示词问题）。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -367,6 +535,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>可观测性决定你能多快从「用户说慢」走到「第几段 pipeline 慢」。推理服务的观测维度比普通 CRUD 更细，这是 expert 与「能跑起来」的分界线。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>把 prompt 原文打进日志</strong>：合规与隐私风险，应只记 request_id/模型/延迟/ token。</li>
+                <li><strong>告警按平均延迟</strong>：长尾用户感知不到，应基于 TTFT/P99。</li>
+                <li><strong>trace 不串 Java→Python→向量库</strong>：慢点盲，定位靠猜。</li>
+                <li><strong>异常输出不单独埋点</strong>：空响应/超长生成无法归因到数据或提示词。</li>
+                <li><strong>只监控通用 QPS</strong>：忽略推理专属黄金信号，容量与质量都看不准。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.11 -->
         <div class="content-card" id="C16.11" data-difficulty="architect" data-priority="p2">
@@ -377,6 +557,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察模型迭代的发布工程。核心是：模型权重像代码一样要版本化、可回滚、可并行服务多版本，流量按比例灰度而非全量切换。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>模型发布演进：① <strong>手工重启换权重</strong>（无版本、无回滚）；② <strong>权重版本化</strong>（模型仓库 + hash，可溯源）；③ <strong>同进程多版本</strong>（或按流量路由多实例）；④ <strong>独立灰度批次</strong>（小流量 1%-5% 对比旧版延迟与质量）；⑤ <strong>A/B 实验框架</strong>（对比准确率/满意度/成本等业务指标再放量，上一版热待命秒级回切）。主线是「从换权重到带业务指标的灰度实验」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -394,6 +580,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>模型发布比代码更危险（效果不可直观 diff）。把它当成「带业务指标的灰度实验」而不是「重启换权重」，是生产级 AI 服务的门槛。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>全量切换权重</strong>：无法归因、无法回滚，出问题只能硬扛。</li>
+                <li><strong>权重与推理代码不一起进 CI</strong>：回滚时两者不一致，雪上加霜。</li>
+                <li><strong>偷偷换模型无实验框架</strong>：效果不可 diff，问题无法归因。</li>
+                <li><strong>不保留上一版热待命</strong>：异常时回切慢，故障窗口拉长。</li>
+                <li><strong>只看延迟不看业务质量</strong>：准确率/满意度下降比延迟更致命。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.12 -->
         <div class="content-card" id="C16.12" data-difficulty="architect" data-priority="p2">
@@ -404,6 +602,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察成本与稳定性的平衡。核心是：推理贵且慢，重复/近似请求要能命中缓存；极端情况下能降级到「次优但可用」的结果。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>缓存与降级演进：① <strong>无缓存</strong>（每请求都跑模型，贵且慢）；② <strong>结果缓存</strong>（相同输入命中）；③ <strong>KV 缓存</strong>（推理引擎内按前缀复用，降低重复 prompt 计算）；④ <strong>语义缓存</strong>（向量近似检索，问法不同意图相同也命中）；⑤ <strong>分级缓存 + 降级兜底</strong>（Redis + 内存分级，模型超时返回检索片段/规则结果并提示不完整）。主线是「用确定性（命中/降级）换成本与稳定性」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -421,6 +625,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>缓存是「用确定性换成本」的杠杆。会区分 KV 缓存（引擎内）与语义缓存（业务层），并在故障时优雅降级，才算把 AI 服务当成生产系统运营。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>高重复问答不建语义缓存</strong>：白白烧 token 又加延迟。</li>
+                <li><strong>KV 缓存不按会话/前缀管理</strong>：长对话上下文膨胀，显存与计算双浪费。</li>
+                <li><strong>无降级链路</strong>：模型超时直接全链路失败，应返回检索片段兜底。</li>
+                <li><strong>缓存无 TTL/版本标签</strong>：模型大版本升级后返回脏数据。</li>
+                <li><strong>混淆 KV 缓存与语义缓存职责</strong>：KV 是引擎内前缀复用，语义是业务层意图命中，二者层次不同。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.13 -->
         <div class="content-card" id="C16.13" data-difficulty="senior" data-priority="p2">
@@ -431,6 +647,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你对「AI 服务烧钱速度」的敏感度。核心是：token 是硬成本，必须按租户/场景做配额、计费、限流，并把成本摊到业务指标上看 ROI。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>成本治理演进：① <strong>不计费</strong>（全员无限制烧钱）；② <strong>按调用次数</strong>（粗，掩盖长生成）；③ <strong>按 token 计量</strong>（input/output 分别计入）；④ <strong>按租户/功能归因</strong>（成本摊到业务线看 ROI）；⑤ <strong>并发 + token 双限流</strong> + <strong>成本看板</strong>（GPU 利用率、单位请求成本作为一级健康度，小模型够用就不上大模型）。主线是「AI 服务的 SRE 第一指标从可用变成成本/有效结果」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -448,6 +670,18 @@
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>AI 服务的 SRE 第一指标是「成本/有效结果」。能把 token 当资源一样做配额、归因、优化，才真正具备规模化运营能力。</p></div>
           </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>全员无限制烧钱</strong>：无账单，月底才发现某租户异常。</li>
+                <li><strong>只按 QPS 限流</strong>：漏掉长生成，应叠加并发 + token 速率。</li>
+                <li><strong>不分模型档位</strong>：简单任务也上大模型，成本翻倍。</li>
+                <li><strong>成本异常不告警</strong>：某租户突增 10 倍也无人知晓，可能是 bug 或被刷。</li>
+                <li><strong>成本不摊到业务指标</strong>：看不到 ROI，优化无靶心。</li>
+              </ol>
+            </div>
+          </div>
         </div>
         <!-- C16.14 -->
         <div class="content-card" id="C16.14" data-difficulty="senior" data-priority="p2">
@@ -458,6 +692,12 @@
           <div class="content-layer" data-layer="essence">
             <div class="content-layer-title">本质问题</div>
             <div class="content-layer-body"><p>考察你对「AI 栈攻击面」的覆盖。核心是：Python 依赖庞杂、模型可被提示注入、输出可能泄露，必须当生产服务做供应链与内容安全。</p></div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p>AI 栈安全演进：① <strong>裸 pip 无管控</strong>（供应链投毒风险）；② <strong>依赖锁定</strong>（poetry lock / 私有源）；③ <strong>CVE 扫描</strong>（pip-audit/Snyk 进 CI）；④ <strong>输入防护</strong>（提示注入检测、越权工具调用拦截）；⑤ <strong>输出收敛</strong>（PII 脱敏、内容安全、防训练数据泄露）+ <strong>沙箱执行</strong>（用户自定义脚本禁直连内网/本地文件）。主线是「攻击面从依赖扩到提示词、工具调用、输出，防护须全链路默认收敛」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
@@ -474,6 +714,18 @@
           <div class="content-layer" data-layer="deep">
             <div class="content-layer-title">深层辨析</div>
             <div class="content-layer-body"><p>AI 栈的攻击面比传统服务宽：依赖、提示词、工具调用、输出都可能是入口。安全不是事后加 WAF，而是从供应链到输出的全链路默认收敛。</p></div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <ol>
+                <li><strong>依赖不锁/用公共源</strong>：供应链投毒，一个恶意包拖垮整链。</li>
+                <li><strong>对外接口无提示注入检测</strong>：越权工具调用/数据外泄无人拦截。</li>
+                <li><strong>输出不脱敏</strong>：模型把内部数据/密钥吐给用户，合规爆雷。</li>
+                <li><strong>用户脚本直连内网/本地文件</strong>：无沙箱，权限横向移动。</li>
+                <li><strong>安全只靠事后 WAF</strong>：应从供应链到输出全链路默认收敛。</li>
+              </ol>
+            </div>
           </div>
         </div>
       </main>
