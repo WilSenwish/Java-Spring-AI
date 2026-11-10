@@ -156,11 +156,13 @@ check.failed = 0
 
 def all_chapter_files():
     fs = []
-    for p in glob.glob(f"{CHAPTER_DIR}/chapter-*.html"):
-        b = os.path.basename(p)
-        if b in ("index.html", "nav-overview-priority.html"):
-            continue
-        fs.append(p)
+    # 章节页含 chapter-* 与专题页 topic-*（专题页为独立内容页，卡片遵循同一套 id/双编码约定）
+    for _pat in (f"{CHAPTER_DIR}/chapter-*.html", f"{CHAPTER_DIR}/topic-*.html"):
+        for p in glob.glob(_pat):
+            b = os.path.basename(p)
+            if b in ("index.html", "nav-overview-priority.html"):
+                continue
+            fs.append(p)
     return fs
 
 def run_sync_counts_check():
@@ -1256,7 +1258,8 @@ def main():
 
     # 8) 卡片 id 二方一致性：章节正文 ↔ 章节 TOC；id 总数=各域分计之和（非对外「全站合计」）
     #    导图站已于 2026-09-21 下线，不再做导图引用悬空检查
-    IDPAT = r"((?:M|C|E|S|D|G|K|A)\d{2}\.[A-Za-z0-9]+)"
+    # 专题页卡片采用 HD.NN 编号（单点号），与章节 C/S/E 等不同；纳入 id 一致性扫描
+    IDPAT = r"((?:HD\.\d{2}|[MCEGKASD]\d{2}\.[A-Za-z0-9]+))"
     body_ids, toc_ids = set(), set()
     for p in chap_files:
         t = read(p)

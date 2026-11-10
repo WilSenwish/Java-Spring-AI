@@ -57,14 +57,14 @@
 分组/篇章可见计数（`dir-count` / `dir-group-count` / `group-count` / ）须与实际卡片数一致；细则见 `docs/` 与 `.workbuddy/skills/java-kb-expand/references/conventions.md` §5。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **622** = 篇章C 282 + AI纵深A 112 + 核心原理 74 + 场景 74 + 垂直领域 80
-- 优先级 **P0=142 / P1=386 / P2=94**（求和 = 622）
-- 难度 **专家 81 / 架构师 300 / 高级开发 241**（求和 = 622；覆盖 C/E/S/A/D，M/G/K 不分级）
-- 方法论 **185 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
-- 工程化 **74 卡**（G01~G11，专篇键 engineering；**不分难度等级**）
-- 生产踩坑 **71 卡**（K01~K10，专篇键 pitfalls；**不分难度等级**）
+- 题目总量 **682** = 篇章C 332 + AI纵深A 112 + 核心原理 74 + 场景 74 + 垂直领域 90
+- 优先级 **P0=161 / P1=414 / P2=107**（求和 = 682）
+- 难度 **专家 88 / 架构师 335 / 高级开发 259**（求和 = 682；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 方法论 **205 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
+- 工程化 **88 卡**（G01~G13，专篇键 engineering；**不分难度等级**）
+- 生产踩坑 **82 卡**（K01~K10，专篇键 pitfalls；**不分难度等级**）
 - 口径（程序约束）：题目总量 total=篇章C+AI纵深A+核心原理+场景+垂直领域；M/G/K 为专篇键，不进 total；结构计数见 struct；**禁止 kb-count-local；禁止页面用自然语言声明口径**
-- 方法论细分：带优先级 0/185（2026-09-16 起 M/G/K 不设难度计数）
+- 方法论细分：带优先级 0/205（2026-09-16 起 M/G/K 不设难度计数）
 
 计数位（改数须全部同步，由 sync_counts.py check 自动核查）：
 
@@ -146,7 +146,7 @@
 | P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |
-| P109 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_2 |
+| P109 | `index.html` | 站点统计「页面篇章」——与章节页数同一真源（chapters_pages，file_count 规则） |
 | P114 | `index.html` | 升格 local:dir-group → struct.root.dir_group_4 |
 | P115 | `index.html` | 升格 local:dir-group → struct.root.dir_group_5 |
 | P116 | `index.html` | 升格 local:dir-group → struct.root.dir_group_6 |
@@ -522,6 +522,54 @@
 | P596 | `docs/README.md` | docs/README 矩阵 S 篇场景题数（2026-11-09 升格注册） |
 | P597 | `docs/README.md` | docs/README 矩阵 A 篇 AI 纵深题数（2026-11-09 升格注册，74→112 同步真值） |
 | P598 | `docs/README.md` | docs/README 矩阵 D 篇垂直领域题数（2026-11-09 升格注册，72→80 同步真值） |
+| P599 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c17.n |
+| P600 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.expert |
+| P601 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.architect |
+| P602 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.senior |
+| P603 | `index.html` | 升格 local:dir-count → struct.root.dir_count_22 |
+| P900 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 题数 |
+| P901 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 高级 |
+| P902 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 架构 |
+| P903 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 专家 |
+| P604 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c16.n |
+| P605 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.expert |
+| P606 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.architect |
+| P607 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.senior |
+| P608 | `index.html` | 升格 local:dir-count → struct.root.dir_count_23 |
+| P904 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 题数 |
+| P905 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 高级 |
+| P906 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 架构 |
+| P907 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 专家 |
+| P609 | `java-architect-interview/index.html` | 升格 local:topic-footer → struct.topic.idx.t01.n |
+| P610 | `java-architect-interview/index.html` | 升格 local:topic-footer-diff → struct.topic.idx.t01.expert |
+| P611 | `java-architect-interview/index.html` | 升格 local:topic-footer-diff → struct.topic.idx.t01.architect |
+| P612 | `java-architect-interview/index.html` | 升格 local:topic-footer-diff → struct.topic.idx.t01.senior |
+| P613 | `index.html` | 升格 local:dir-count → struct.root.dir_count_24 |
+| P910 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 题数 |
+| P911 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 高级 |
+| P912 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 架构 |
+| P913 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 专家 |
+| P914 | `java-architect-interview/nav-overview-priority.html` | 专题 HD 卡片独立类型块计数（overview 排序 C→E→S→A→D→HD） |
+| P915 | `java-architect-interview/nav-overview-priority.html` | 专题 HD 卡片独立类型块计数（overview 排序 C→E→S→A→D→HD） |
+| P916 | `java-architect-interview/nav-overview-priority.html` | 专题 HD 卡片独立类型块计数（overview 排序 C→E→S→A→D→HD） |
+| P614 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c18.n |
+| P615 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.expert |
+| P616 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.architect |
+| P617 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.senior |
+| P618 | `index.html` | 升格 local:dir-count → struct.root.dir_count_25 |
+| P917 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 题数 |
+| P918 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 高级 |
+| P919 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 架构 |
+| P920 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 专家 |
+| P921 | `index.html` | 根 index M17 组题数 |
+| P922 | `index.html` | 根 index G12 组题数 |
+| P923 | `index.html` | 根 index G13 组题数 |
+| P924 | `index.html` | 根 index K11 组题数 |
+| P925 | `index.html` | 根 index K12 组题数 |
+| P926 | `index.html` | 根 index D13 组题数 |
+| P927 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
+| P928 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M17 |
+| P929 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 D13 组题数 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

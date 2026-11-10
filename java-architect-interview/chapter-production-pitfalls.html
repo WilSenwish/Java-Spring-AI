@@ -313,21 +313,64 @@
             </li>
           </ol>
         </div>
-      </aside>
+              <div class="toc-group">
+          <a class="toc-group-title code-k" href="#K11">十一、K11 Java×Python 边界生产事故</a>
+          <ol>
+            <li>
+              <a href="#K11.01"><span class="toc-number">K11.01</span>序列化语义不一致：看似同名字段，实际两套类型</a>
+            </li>
+            <li>
+              <a href="#K11.02"><span class="toc-number">K11.02</span>字符编码与换行：跨平台文本处理事故</a>
+            </li>
+            <li>
+              <a href="#K11.03"><span class="toc-number">K11.03</span>时区与时间戳：日切对不上的根因</a>
+            </li>
+            <li>
+              <a href="#K11.04"><span class="toc-number">K11.04</span>超时与重试叠加：一个慢调用拖垮整条链</a>
+            </li>
+            <li>
+              <a href="#K11.05"><span class="toc-number">K11.05</span>连接池与进程模型：并发度被悄悄改写</a>
+            </li>
+            <li>
+              <a href="#K11.06"><span class="toc-number">K11.06</span>异常语义与错误码：可重试被当成失败丢弃</a>
+            </li>
+          </ol>
+        </div>
+        <div class="toc-group">
+          <a class="toc-group-title code-k" href="#K12">十二、K12 AI / 模型服务生产事故</a>
+          <ol>
+            <li>
+              <a href="#K12.01"><span class="toc-number">K12.01</span>冷启动与权重加载：扩容窗口里的事故</a>
+            </li>
+            <li>
+              <a href="#K12.02"><span class="toc-number">K12.02</span>模型版本漂移：同一接口换了行为</a>
+            </li>
+            <li>
+              <a href="#K12.03"><span class="toc-number">K12.03</span>Token 计费失控：重试与长上下文的乘积</a>
+            </li>
+            <li>
+              <a href="#K12.04"><span class="toc-number">K12.04</span>上下文溢出：静默截断比报错更危险</a>
+            </li>
+            <li>
+              <a href="#K12.05"><span class="toc-number">K12.05</span>降级与兜底失效：备用链路也没被演练过</a>
+            </li>
+          </ol>
+        </div>
+</aside>
       <main class="content-main">
         <div class="chapter-header">
           <div class="chapter-number">PRODUCTION PITFALLS / 生产踩坑</div>
           <h1 class="chapter-title">生产踩坑</h1>
           <p class="chapter-subtitle">
             与工程化门禁同域的事故翻车专篇：十组共
-            <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P94">71</span> 卡（K 前缀）。回答「线上真实怎么翻车、如何识别与止血」——门禁在 G，叙事与值班动作在 K。
+            <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P94">82</span> 卡（K 前缀）。回答「线上真实怎么翻车、如何识别与止血」——门禁在 G，叙事与值班动作在 K。
           </p>
           <p class="meth-frame">事故是<strong>反器</strong>；骨架见 <a href="chapter-core-methodology.html#prologue">核心方法论</a>。</p>
           <p class="chapter-subtitle chapter-reading-note">阅读口径：本篇是事故速查卡，每张按「事故叙事 → 识别要点 → 止血与复盘」给出该事故独有的信号与动作；分区归因、复盘三问、补门禁字段与季度抽检这类共性方法统一在此说明，不逐卡复述。判据是能否凭卡内信号在监控上复现这次事故，而不是卡面是否覆盖了所有检查项；对应的准入门禁见 G 篇。</p>
           <div class="chapter-meta">
-            <span><span class="kb-count" data-kb-count="pitfalls_groups" data-kb-pos="P348">10</span> 组 · <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P92">71</span> 卡</span>
+            <span><span class="kb-count" data-kb-count="pitfalls_groups" data-kb-pos="P348">12</span> 组 · <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P92">82</span> 卡</span>
             <span class="meta-divider">|</span>
-            <span>题目总量（C+A+E+S+D）<span class="kb-count" data-kb-count="total" data-kb-pos="P98">622</span></span>
+            <span>题目总量（C+A+E+S+D）<span class="kb-count" data-kb-count="total" data-kb-pos="P98">682</span></span>
             <span class="meta-divider">|</span>
             <span>ID 前缀 K</span>
             <span class="meta-divider">|</span>
@@ -2163,6 +2206,258 @@
             </div>
           </div>
         </section>
+        <section class="eng-group" id="K11">
+          <h2 class="eng-group-title">十一、K11 Java×Python 边界生产事故</h2>
+          <p class="eng-group-lead">覆盖双栈边界上六类静默事故：序列化语义、编码换行、时区日切、超时重试叠加、连接池与进程模型、异常与错误码。识别信号看「两端都成功但结果不一致」；止血先补显式契约与拒绝路径，再回放差异。</p>
+          <div class="content-card" id="K11.01">
+            <div class="content-header">
+              <div class="content-badge code-k">K11.01</div>
+              <div class="content-question">序列化语义不一致：看似同名字段，实际两套类型</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>Java 侧把金额用长整型分单位传递，Python 侧按浮点元解析并做了四舍五入，对账时差额散在大量小额订单里；日志里两边都显示成功，直到清算才发现累计偏差。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>跨语言边界必须有一份中立的契约定义，且每端各自做契约校验。同名不等于同义：整数与浮点、时间戳与字符串、可选与缺失，在不同运行时里的默认值都不一样。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：先在边界加显式校验与拒绝路径，禁止静默转换；对已产生的数据按契约重算并留痕。</p>
+                <p>把字段类型、单位、精度、可空性写进 IDL，生成各端代码，禁止手写结构体各自解释。</p>
+                <p>回放：按同一批样本在两端做往返序列化比对，把差异作为常态门禁。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K11.02">
+            <div class="content-header">
+              <div class="content-badge code-k">K11.02</div>
+              <div class="content-question">字符编码与换行：跨平台文本处理事故</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>Python 侧按系统默认编码读取上游文件，换到另一批容器后默认编码变化，含中文的字段变成乱码；Java 侧按固定编码解析，两边对同一主键生成了不同的哈希，缓存与库里出现两套记录。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>编码是契约的一部分，不能依赖运行时默认值。换行、BOM、Unicode 归一化同样会改变字节序列，凡参与哈希、签名、去重的字段都要显式约定。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：统一显式编码并固定规范化形式，对已分裂的主键做映射合并，禁止直接覆盖。</p>
+                <p>所有读写显式指定编码，参与签名或哈希前先做规范化，并在契约里写清。</p>
+                <p>回放：用含多语言字符与特殊换行的样本做双端一致性测试，纳入发布门禁。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K11.03">
+            <div class="content-header">
+              <div class="content-badge code-k">K11.03</div>
+              <div class="content-question">时区与时间戳：日切对不上的根因</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>Java 服务按带偏移的时间戳上报，Python 批处理按本地时区解析并做日切聚合，跨时区节点的订单被算进相邻日期；日报与流水对不上，且只在特定时段出现。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>时间戳必须区分「时刻」与「本地日期」，二者不可互推。存储用带时区的时刻，聚合维度用明确的业务时区与日切规则，跨语言传递时禁止丢偏移。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：冻结受影响报表，按统一业务时区重算并标注重算版本。</p>
+                <p>接口只传带偏移的 ISO 时刻或明确的 UTC 毫秒值，日切规则写进契约并单测覆盖边界。</p>
+                <p>回放：构造跨日切、跨夏令时样本做双端比对，验证聚合口径一致。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K11.04">
+            <div class="content-header">
+              <div class="content-badge code-k">K11.04</div>
+              <div class="content-question">超时与重试叠加：一个慢调用拖垮整条链</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>Java 侧网关设了超时与重试，Python 侧内部调用也设了一层，下游抖动时实际请求量被乘开；线程池被等待占满，健康检查也开始超时，实例被反复摘挂。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>重试预算属于整条链路，不属于单个客户端。每层各自设重试，会把局部抖动放大成全局拥塞；超时必须沿调用链递减，并保留预算供最外层决策。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：先关掉内层重试、保留熔断与降级，让下游有恢复窗口，再逐步放量。</p>
+                <p>统一超时预算，下游超时应小于上游剩余预算；重试只在最外层按预算执行并带抖动退避。</p>
+                <p>回放：在演练中注入下游延迟，实测总请求倍数与线程池占用，验证不会自激。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K11.05">
+            <div class="content-header">
+              <div class="content-badge code-k">K11.05</div>
+              <div class="content-question">连接池与进程模型：并发度被悄悄改写</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>Python 服务用多进程加每进程连接池，Java 侧按线程数估算并发并扩容；实际连接数是进程数乘池大小，数据库连接被打满，报错却表现为零星超时而非明确拒绝。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>并发模型不可跨运行时互推：线程、协程、进程各自的池语义不同，容量口径必须换算到共享资源（连接数、文件描述符、内存）上统一核算。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：限制总连接数并启用排队与快速失败，先恢复数据库，再重算各实例配额。</p>
+                <p>按共享资源总量反推每实例池上限，并把连接数作为一等监控指标与扩容约束。</p>
+                <p>回放：在预发用同等进程数与实例数做峰值验证，观察连接数而非只看吞吐。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K11.06">
+            <div class="content-header">
+              <div class="content-badge code-k">K11.06</div>
+              <div class="content-question">异常语义与错误码：可重试被当成失败丢弃</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>Java 侧把某类业务拒绝映射为异常，Python 侧捕获后统一记为失败并丢弃消息；实际上其中一部分是明确可重试的限流，流量恢复后本应补投，最终造成静默数据缺失。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>错误码要区分「业务拒绝 / 可重试 / 不可恢复」，并跨语言映射到同一枚举。用异常类型承载语义，在不同运行时里必然失真。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：暂停丢弃路径，把可疑消息转入待重投队列，按幂等键去重后补放。</p>
+                <p>契约里定义统一错误码与可重试标记，各端按表映射，禁止靠异常类名判断。</p>
+                <p>回放：构造三类错误样本做双端联调，验证重试、落库与告警路径各自正确。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="eng-group" id="K12">
+          <h2 class="eng-group-title">十二、K12 AI / 模型服务生产事故</h2>
+          <p class="eng-group-lead">覆盖冷启动、版本漂移、计费失控、上下文溢出、降级失效五类模型服务特有事故；共同点是技术监控全绿而业务结果已经受损。止血先恢复有界返回与可回放版本，再把护栏写进就绪探针与请求级门禁。</p>
+          <div class="content-card" id="K12.01">
+            <div class="content-header">
+              <div class="content-badge code-k">K12.01</div>
+              <div class="content-question">冷启动与权重加载：扩容窗口里的事故</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>流量突增触发扩容，新实例进程已就绪但权重与词表仍在加载，就绪探针只看端口存活就放行；请求打进来后迟迟不返回，上游超时重试又把负载推高。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>「进程活着」不等于「可服务」。模型类服务的就绪条件必须包含依赖加载完成与一次轻量推理通过，扩容策略也要给预热留出窗口。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：把新实例从负载中摘出，保留最小常驻副本，待预热完成后再渐进放量。</p>
+                <p>就绪探针区分存活与可服务，预热完成前返回未就绪；扩容预留缓冲副本。</p>
+                <p>回放：在演练中同时触发扩容与流量突增，验证就绪门槛与放量曲线。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K12.02">
+            <div class="content-header">
+              <div class="content-badge code-k">K12.02</div>
+              <div class="content-question">模型版本漂移：同一接口换了行为</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>模型服务灰度切到新版权重，接口与字段完全未变，但分类阈值附近的样本大量改判；下游规则引擎按旧分布设的阈值失效，误拒率上升却没有任何发布变更记录可查。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>模型是行为变更，不是配置变更。任何权重、提示模板、后处理阈值的调整都要有版本、灰度与业务指标回归，不能因为「接口没变」就跳过发布门禁。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：按版本维度快速回切上一版权重，同时冻结依赖该输出的下游规则。</p>
+                <p>把权重、模板、阈值打进同一版本标识，灰度按业务指标判定放量而非只看技术健康度。</p>
+                <p>回放：保留一批固定评测集，每次版本变更输出分布对比，超阈值即阻断。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K12.03">
+            <div class="content-header">
+              <div class="content-badge code-k">K12.03</div>
+              <div class="content-question">Token 计费失控：重试与长上下文的乘积</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>某个上游超时触发自动重试，每次重试又携带完整历史上下文，单次会话的消耗被放大数倍；账单异常在月末才被发现，期间没有单请求维度的成本告警。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>成本是运行时指标，不能只靠事后账单。上下文长度、重试次数、并发量三者相乘，任一失控都会把预算迅速打穿，需要在请求维度设上限与告警。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：对单请求设置上下文与调用次数上限，暂停异常来源并回滚重试策略。</p>
+                <p>按请求记录输入长度、输出长度、重试次数与估算成本，超阈值实时告警并熔断。</p>
+                <p>回放：用最长上下文加压测重试，验证成本护栏在极端组合下仍然生效。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K12.04">
+            <div class="content-header">
+              <div class="content-badge code-k">K12.04</div>
+              <div class="content-question">上下文溢出：静默截断比报错更危险</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>长会话超过窗口后，框架按默认策略静默截掉了中间一段，关键约束被丢弃，模型给出与前文矛盾的答案；服务端日志只有正常返回，没有任何溢出痕迹。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>截断是一种数据丢失，必须显式、可观测、可决策。把溢出当普通限流处理，会让错误以「回答看起来合理」的形式出现，最难在事后定位。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：关闭静默截断，超限即返回明确错误并要求上层做摘要或分段。</p>
+                <p>记录上下文长度、保留策略与被丢弃片段标识，把溢出率纳入监控。</p>
+                <p>回放：构造超长会话样本，验证关键约束在摘要后仍被保留且可被检索。</p>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" id="K12.05">
+            <div class="content-header">
+              <div class="content-badge code-k">K12.05</div>
+              <div class="content-question">降级与兜底失效：备用链路也没被演练过</div>
+            </div>
+            <div class="content-layer" data-layer="insight">
+              <div class="content-layer-title">事故叙事</div>
+              <div class="content-layer-body"><p>主模型超时后切到备用规则，但该规则依赖的下游缓存早已下线，降级请求同样卡住；两级都失败时没有默认响应，用户侧表现为长时间无返回。</p></div>
+            </div>
+            <div class="content-layer" data-layer="principle">
+              <div class="content-layer-title">识别要点</div>
+              <div class="content-layer-body"><p>降级路径是生产链路的一部分，却通常不在常规压测覆盖内。备用链路需要有独立健康检查、独立的超时预算，以及最终可返回的确定结果。</p></div>
+            </div>
+            <div class="content-layer" data-layer="application">
+              <div class="content-layer-title">止血与复盘</div>
+              <div class="content-layer-body">
+                <p>止血：直接启用静态兜底结果，绕开失效的备用依赖，先恢复可返回性。</p>
+                <p>给每层降级配独立健康探测与超时，并定义最终默认响应，保证一定有界返回。</p>
+                <p>回放：定期注入主链路故障，实际走一遍降级链，验证兜底在演练中可用。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
       </main>
     </div>
 
