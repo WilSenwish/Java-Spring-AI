@@ -876,7 +876,7 @@
       return String(n) + '×';
     }
 
-    function showListenHint(msg) {
+    function showListenHint(mark, msg) {
       if (!listenHintEl) {
         listenHintEl = document.createElement('div');
         listenHintEl.className = 'kb-listen__hint';
@@ -888,7 +888,7 @@
         window.clearTimeout(listenHintEl.__t);
         listenHintEl.__t = window.setTimeout(function () {
           if (listenHintEl) listenHintEl.hidden = true;
-        }, 6000);
+        }, ((mark === -1) ? 6000 : 3000));
       } catch (e) {}
     }
 
@@ -1062,7 +1062,7 @@
       cachedVoice = best;
       if (!warnedNoVoice && voices.length && !best) {
         warnedNoVoice = true;
-        showListenHint('本机未安装中文语音：设置 → 辅助功能 → 朗读内容 → 嗓音，下载“中文(中国)”后可正常朗读');
+        showListenHint(-1, '本机未安装中文语音：设置 → 辅助功能 → 朗读内容 → 嗓音，下载“中文(中国)”后可正常朗读');
       }
     }
 
@@ -1127,7 +1127,7 @@
     function armBlocked() {
       stop(false);
       if (autoOn()) btn.classList.add('is-armed');
-      showListenHint('浏览器未允许自动朗读，点左下角“听本页”按钮即可开始');
+      showListenHint(0, '浏览器未允许自动朗读，点左下角“听本页”按钮即可开始');
       paint();
     }
 
