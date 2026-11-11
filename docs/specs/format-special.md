@@ -137,10 +137,11 @@
   3. 核心方法论（通栏）
   4. 第 01～15 篇（网格）
   5. 高频核心原理 / 高频真实场景题
-  6. AI 工程纵深
-  7. 工程化要点 / 生产踩坑
-  8. 垂直领域
-  9. 服务端安全 Checkpoint
+   6. AI 工程纵深
+   7. 混合部署专篇（H）
+   8. 工程化要点 / 生产踩坑
+   9. 垂直领域
+   10. 服务端安全 Checkpoint
 - **Hero `.meta-stats`**：多格统计（方法论 / 深度 Q&A / 核心原理 / 场景 / AI 纵深 / 工程化 / 踩坑 / 垂直领域等），键与 `data-kb-pos` 以 SSOT `positions` 为准。
 - **组件**：
   - `chapter-card`：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`；**M/G/K 三张专篇卡不带 `card-tags`**

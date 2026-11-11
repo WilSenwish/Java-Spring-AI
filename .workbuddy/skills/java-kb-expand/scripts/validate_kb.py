@@ -84,11 +84,12 @@ EXPECT = {k: _cfg["counts"][k] for k in
            "methodology", "chapters", "chapters_core", "ai_engineering_deep",
            "basics", "scenarios", "domain_questions")}
 # 跨大篇章/聚合口径 total=篇章C+AI纵深A+核心原理+场景+垂直领域（五级；chapters=C+A 合计）；
-# M/G/K 单独计数，不设全站合计
+# M/G/K/H 单独计数，不设全站合计
 ENGINEERING = _cfg["counts"].get("engineering", 0)
 PITFALLS = _cfg["counts"].get("pitfalls", 0)
+HYBRID = _cfg["counts"].get("hybrid", 0)
 # 内部一致性：章节站卡片 id 总数（不对外展示为「全站合计」）
-CARDS_IN_CHAPTERS = EXPECT["total"] + EXPECT["methodology"] + ENGINEERING + PITFALLS
+CARDS_IN_CHAPTERS = EXPECT["total"] + EXPECT["methodology"] + ENGINEERING + PITFALLS + HYBRID
 
 # ====== 待填：本轮新增/改动题号（用于落位+双编码校验）======
 # 注意：方法论/工程化卡默认不进 overview；含 M/G 时跳过 overview 落位检查
@@ -1073,7 +1074,7 @@ def main():
     # 3b2) overview 类型五级（篇章/核心原理/场景题/AI 纵深/垂直领域）ov-type-count = 该块 ov-item 数
     _ov_type_fail = 0
     _ov_type_missing = 0
-    _type_pref = {"篇章": "C", "核心原理": "E", "场景题": "S", "AI 纵深": "A", "垂直领域": "D"}
+    _type_pref = {"篇章": "C", "核心原理": "E", "场景题": "S", "AI 纵深": "A", "垂直领域": "D", "混合部署": "H"}
     for _gm in re.finditer(
         r'<section class="ov-group"[^>]*id="(group-p\d)"[^>]*>(.*?)</section>',
         texts["overview"],
@@ -1092,7 +1093,7 @@ def main():
             for _tb in _type_blocks:
                 _tbody = _tb.group(1)
                 _thm = re.search(
-                    rf'<h4 class="ov-type-title">\s*(篇章|核心原理|场景题|AI 纵深|垂直领域)'
+                    rf'<h4 class="ov-type-title">\s*(篇章|核心原理|场景题|AI 纵深|垂直领域|混合部署)[^<]*'
                     rf'<span class="ov-type-count">\s*{_KB_NUM}\s*题</span>\s*</h4>',
                     _tbody,
                 )
@@ -1258,8 +1259,8 @@ def main():
 
     # 8) 卡片 id 二方一致性：章节正文 ↔ 章节 TOC；id 总数=各域分计之和（非对外「全站合计」）
     #    导图站已于 2026-09-21 下线，不再做导图引用悬空检查
-    # 专题页卡片采用 HD.NN 编号（单点号），与章节 C/S/E 等不同；纳入 id 一致性扫描
-    IDPAT = r"((?:HD\.\d{2}|[MCEGKASD]\d{2}\.[A-Za-z0-9]+))"
+    # 专篇 H 卡片采用 H.NN 编号（单点号），与章节 C/S/E 等不同；纳入 id 一致性扫描
+    IDPAT = r"((?:H\.\d{2}|[MCEGKASD]\d{2}\.[A-Za-z0-9]+))"
     body_ids, toc_ids = set(), set()
     for p in chap_files:
         t = read(p)
