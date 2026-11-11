@@ -888,7 +888,7 @@
         window.clearTimeout(listenHintEl.__t);
         listenHintEl.__t = window.setTimeout(function () {
           if (listenHintEl) listenHintEl.hidden = true;
-        }, ((mark === -1) ? 6000 : 3000));
+        }, ((mark === -1) ? 6000 : 1500));
       } catch (e) {}
     }
 
