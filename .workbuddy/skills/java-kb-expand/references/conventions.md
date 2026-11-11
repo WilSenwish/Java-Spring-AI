@@ -1010,6 +1010,7 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P927 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
 | P928 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M17 |
 | P929 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 D13 组题数 |
+| P930 | `index.html` | 根 index H 专篇目录副标题题数（原与章节站共用 P609，拆分独立计数位） |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
