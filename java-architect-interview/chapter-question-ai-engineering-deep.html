@@ -1300,7 +1300,7 @@
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>从私有 Function Call 到协议标准化</strong>：早期各家模型私有 FC 格式互不兼容，工具接入随模型切换重写；2024-11 Anthropic 开源 MCP（Model Context Protocol）统一「模型 ↔ 工具」连接标准，被称「AI 界 USB-C」；2025-04 Google 发布 A2A 补齐「Agent ↔ Agent」横向协作（Agent Card / Task 生命周期 / Message & Artifact，基于 HTTP+JSON+SSE，支持异步长任务），2025-06 起移交 Linux Foundation 托管（治理细节与时间以官方公告为准，需核实）。Skills 则由 Claude Code 等实践沉淀为「声明式任务说明」形态（<code class="inline-code">SKILL.md</code>）。四层概念至此齐备。</p>
+              <p><strong>从私有 Function Call 到协议标准化</strong>：早期各家模型私有 FC 格式互不兼容，工具接入随模型切换重写；2024-11 Anthropic 开源 MCP（Model Context Protocol）统一「模型 ↔ 工具」连接标准，被称「AI 界 USB-C」；2025-04 Google 发布 A2A 补齐「Agent ↔ Agent」横向协作（Agent Card / Task 生命周期 / Message & Artifact，基于 HTTP+JSON+SSE，支持异步长任务），2025-06 起移交 Linux Foundation 托管（治理细节与时间以官方公告为准，需核实）。Skills 则由 AI 编程工具实践沉淀为「声明式任务说明」形态（<code class="inline-code">SKILL.md</code>）。四层概念至此齐备。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -1584,7 +1584,7 @@
           <div class="content-layer" data-layer="evolution">
             <div class="content-layer-title">演进脉络</div>
             <div class="content-layer-body">
-              <p><strong>从串行链到图编排</strong>：初期多 Agent 就是「A 调 B 调 C」串行链——慢、无存档、难暂停审批、难表达复杂分工。LangGraph（2024）把「图」显式化（StateGraph + 条件边 + 持久化）；Spring AI Alibaba 对齐同一套概念（OverAllState + KeyStrategyFactory + addConditionalEdges + MemorySaver/RedisSaver 持久化 + interruptBefore 人机协同；类名与模块随版本演进，以所用版本官方文档为准，需核实）。Claude Code 的 subagent / hook / workflow 也是同一思想的实现变体。</p>
+              <p><strong>从串行链到图编排</strong>：初期多 Agent 就是「A 调 B 调 C」串行链——慢、无存档、难暂停审批、难表达复杂分工。LangGraph（2024）把「图」显式化（StateGraph + 条件边 + 持久化）；Spring AI Alibaba 对齐同一套概念（OverAllState + KeyStrategyFactory + addConditionalEdges + MemorySaver/RedisSaver 持久化 + interruptBefore 人机协同；类名与模块随版本演进，以所用版本官方文档为准，需核实）。AI 编程工具的 subagent / hook / workflow 也是同一思想的实现变体。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -1871,6 +1871,62 @@
                 <li><strong>监控双轨</strong>：固定快照回归（查改动回归）+ 实时能力探针（查真实世界适应）；告警基于历史基线 / 控制图，而非拍脑袋阈值。</li>
                 <li><strong>启动路径</strong>：先建 20–50 条真实轨迹小评测集把「猜」变「看」，再逐步扩分层覆盖。</li>
               </ul>
+
+              <p><strong>Python：离线评测 + 灰度 + 漂移监控四类评测的最小可执行骨架</strong></p>
+              <div class="code-block">
+                <pre><code># eval/offline.py —— 离线评测：自建 Golden Set 而非公开 benchmark
+import json, statistics
+from pathlib import Path
+
+def load_golden(path="eval/golden.jsonl"):
+    return [json.loads(l) for l in Path(path).read_text().splitlines() if l.strip()]
+
+def evaluate(predict_fn, golden=None):
+    rows = []
+    for case in golden or load_golden():
+        out = predict_fn(case["question"])
+        rows.append({
+            "id": case["id"],
+            "exact": out.strip() == case["expected"].strip(),
+            "faithful": contains_evidence(out, case["references"]),
+            "latency_ms": out.meta.get("latency_ms", 0),
+        })
+    return {
+        "n": len(rows),
+        "exact_rate": sum(r["exact"] for r in rows) / len(rows),
+        "faithfulness": sum(r["faithful"] for r in rows) / len(rows),
+        "p95_ms": statistics.quantiles([r["latency_ms"] for r in rows], n=20)[18],
+    }
+
+# 线上漂移监控：只观察分布，不做阻断；与离线门禁职责分离
+def drift(baseline, window):
+    return {k: abs(window[k] - baseline[k]) / max(baseline[k], 1e-9)
+            for k in ("exact_rate", "faithfulness", "p95_ms")}
+
+if __name__ == "__main__":
+    print(json.dumps(evaluate(predict), ensure_ascii=False, indent=2))</code></pre>
+              </div>
+              <p><strong>Java：CI 回归门禁，把评测结果变成可机器判定的发布闸口</strong></p>
+              <div class="code-block">
+                <pre><code>// Java / JUnit 5：读取 Python 评测产物，非劣效判定后决定是否放行
+@Test
+void evalGateIsNonInferior() throws Exception {
+  EvalReport cur = mapper.readValue(Path.of("target/eval/current.json").toFile(),
+                                    EvalReport.class);
+  EvalReport base = mapper.readValue(Path.of("eval/baseline.json").toFile(),
+                                     EvalReport.class);
+
+  double delta = 0.02;   // 允许的回归幅度
+  assert cur.n() &gt;= 100 : "样本量不足，门禁不生效";
+  assert cur.faithfulness() &gt;= base.faithfulness() - delta
+      : "忠实度回归超过阈值";
+  assert cur.p95Ms() &lt;= base.p95Ms() * 1.10
+      : "p95 时延劣化超过 10%";
+}
+
+record EvalReport(int n, double exactRate, double faithfulness, double p95Ms) {}
+// CI：python eval/offline.py &gt; target/eval/current.json &amp;&amp; mvn -q test</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -3548,7 +3604,7 @@
                 <li><strong>按任务形态选层</strong>：五层不是替代是包含——先判断任务处于哪一档，从该档最小投入起步；「杀鸡用牛刀」与「拿螺丝刀挖地基」都是选层错误。</li>
                 <li><strong>修复落点法建 Harness</strong>：每次 Agent 犯错，修复落到对应层（漏上下文 → 上下文层、用错工具 → 工具层、步骤乱 → 编排层、跨天失忆 → 状态层、无法判断好坏 → 评估层、一失败就崩 → 约束恢复层）——六层随时间一寸寸长大。</li>
                 <li><strong>Loop 值不值得建</strong>？值得——每周重复的活、有自动裁判（测试 / 类型检查 / 构建）、Token 预算扛得住、Agent 能跑自己写的代码、你打算 review 产出；不值得——一锤子买卖、没有裁判、预算紧张、高风险活（架构 / 鉴权 / 支付 / 生产部署）。</li>
-                <li><strong>编排工具选型</strong>：LangGraph（代码框架，精细控制）/ Claude Code workflow（产品内置，低门槛）/ 自写调度（深度定制）——都是节点 + 边 + 状态的实现，做 graph engineering 不限于任何框架。</li>
+                <li><strong>编排工具选型</strong>：LangGraph（代码框架，精细控制）/ 工具内置 workflow（低门槛）/ 自写调度（深度定制）——都是节点 + 边 + 状态的实现，做 graph engineering 不限于任何框架。</li>
               </ul>
             </div>
           </div>
@@ -3630,7 +3686,7 @@
               <ul>
                 <li><strong>Loop 最小四件套</strong>：automation（心跳）+ skill（项目背景）+ 状态文件（STATE.md 或接 issue 系统）+ 闸门（测试 / 类型检查 / 构建——loop 唯一挡住烂活的关卡）；另配常驻目标文件（VISION.md / AGENTS.md）管方向。<strong>顺序不能反</strong>：先手动跑稳 → 沉淀成 skill → 包成 loop → 才接自动调度。</li>
                 <li><strong>晨间 triage loop 实战</strong>：定时触发 → 分诊 skill 读 CI 失败 / issue → worktree 隔离派 sub-agent 修复 → 第二个 sub-agent 审查 → connector 开 PR → 搞不定进收件箱 → 写回状态文件；内层 loop 干活 + 外层 loop 吸收 review 反馈（复利吃满）。</li>
-                <li><strong>Graph 落地两路</strong>：LangGraph（StateGraph + 条件边 + compile）；Claude Code 免框架玩法——subagent 文件 = 节点、hook = 强制检查、workflow = 调度脚本；<code class="inline-code">/deep-research</code> 即投产的 graph 工作流（拆解 → 并行搜索 → 抓取 → 验证 → 综合）。</li>
+                <li><strong>Graph 落地两路</strong>：LangGraph（StateGraph + 条件边 + compile）；免框架玩法——subagent 文件 = 节点、hook = 强制检查、workflow = 调度脚本；深度研究类 workflow 即投产的 graph 工作流（拆解 → 并行搜索 → 抓取 → 验证 → 综合）。</li>
                 <li><strong>失败模式对照</strong>：上下文焦虑（模型误判窗口将尽就着急收尾）→ context reset + 状态外化；自评永远乐观 → 三角分工 Planner / Generator / Evaluator，验收方必须摸到真实世界；Ralph Wiggum loop（无客观 gate 的空转）→ 硬性 stop + 独立判定。</li>
               </ul>
             </div>
@@ -3642,7 +3698,7 @@
                 <li><strong>为什么「闸门」是 loop 的灵魂</strong>？没有客观裁判（测试 / 类型检查 / 构建）的 loop 无法区分「干完了」和「跑完了」——产物质量完全靠运气；先确认有裁判，再谈自动化。</li>
                 <li><strong>理解债如何量化管理</strong>？盯「每个被接受的改动的成本」——接受率 &lt; 50% 即亏本（十改九废）；坚持读 diff + 抽查闸门，产出越顺滑越要抽查。</li>
                 <li><strong>AGENTS.md 为什么要「每行对应一个失败案例」</strong>？经验只有挂接在具体失败上才可验证、可维护；泛泛的最佳实践（「代码要优雅」）对模型无约束力。</li>
-                <li><strong>工具无关化的价值</strong>？Codex 与 Claude Code 部件几乎一一对应——值得积累的是 loop 设计图纸（五大件组合方式），不是对某家工具的肌肉记忆。</li>
+                <li><strong>工具无关化的价值</strong>？Cursor 与 Codex 部件几乎一一对应——值得积累的是 loop 设计图纸（五大件组合方式），不是对某家工具的肌肉记忆。</li>
               </ul>
             </div>
           </div>
@@ -4640,6 +4696,46 @@
                 <li><strong>快照基线纪律</strong>：模型或 Prompt 升级必须先跑 Golden Set 全量回归，diff 报告人工确认后才允许更新基线快照——防止「顺手更新基线」掩盖真实回退。</li>
                 <li><strong>Java 侧实现</strong>：RAGAS/DeepEval 的 Java 绑定，或用 <code class="inline-code">ChatClient</code> 自研 LLM-as-Judge 打分（注意 Judge 自身的偏差校准，见 A06.02）。</li>
               </ul>
+
+              <p><strong>Python：非确定性输出改用「结构 + 语义 + 规则」三层断言</strong></p>
+              <div class="code-block">
+                <pre><code># test_llm_assertions.py
+import json, re
+from ragas.metrics import faithfulness, answer_relevancy
+
+def test_structure_and_rules():
+    out = predict("订单 12345 能退吗？")
+    # ① 结构合法：必须能被业务层解析
+    payload = json.loads(out)
+    assert {"answer", "citations", "need_human"} &lt;= payload.keys()
+    # ② 规则约束：高风险场景必须转人工
+    assert payload["need_human"] is True
+    # ③ 禁止逐字断言：assertEquals(out, "……") 会因采样温度脆断
+    assert not re.search(r"保证|一定可以", payload["answer"])
+
+def test_semantic_metrics():
+    score = faithfulness.score(
+        answer=predict("订单 12345 能退吗？"),
+        contexts=["退款规则：签收 7 日内可申请"],
+    )
+    assert score &gt;= 0.85, "忠实度低于门禁阈值"</code></pre>
+              </div>
+              <p><strong>Java：JUnit 5 动态测试把 Golden Set 每一行变成独立用例</strong></p>
+              <div class="code-block">
+                <pre><code>// Java：评测集驱动的动态测试，失败可定位到具体 case
+@TestFactory
+Stream&lt;DynamicTest&gt; goldenSetCases() throws Exception {
+  List&lt;GoldenCase&gt; cases = mapper.readValue(
+      Path.of("eval/golden.jsonl").toFile(), new TypeReference&lt;&gt;() {});
+  return cases.stream().map(c -&gt; DynamicTest.dynamicTest(c.id(), () -&gt; {
+    Answer a = agent.answer(c.question());
+    assertTrue(a.structured(), "输出不可被业务层解析: " + c.id());
+    assertTrue(a.citations().size() &gt; 0, "缺少引用: " + c.id());
+    assertFalse(a.text().contains("保证"), "绝对化措辞: " + c.id());
+  }));
+}
+record GoldenCase(String id, String question, String expected) {}</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -5040,6 +5136,60 @@
                 <li><strong>日志字段规范</strong>：强制 trace_id 贯穿 + 节点名 + 输入摘要 + 输出摘要 + 耗时 + Token，敏感字段脱敏后记录。</li>
                 <li><strong>Grafana 看板分角色</strong>：值班看稳定性（错误率 / 熔断 / 排队），算法看质量（召回率 / 忠实度趋势），业务看用量（Token 成本 / 会话量）。</li>
               </ul>
+
+              <p><strong>Java：Micrometer + Actuator 暴露 AI 专属指标</strong></p>
+              <div class="code-block">
+                <pre><code>// Java / Spring Boot 3：AI 指标与 JVM 指标分开命名、分开告警
+@Configuration
+public class AiMetricsConfig {
+  @Bean
+  MeterBinder aiMetrics() {
+    return registry -&gt; {
+      Counter.builder("ai.model.requests")
+          .tag("model", "qwen-max").description("模型调用次数")
+          .register(registry);
+      Timer.builder("ai.model.first.token")
+          .description("首 token 时延")
+          .publishPercentiles(0.5, 0.95, 0.99)
+          .register(registry);
+      Gauge.builder("ai.queue.depth", queue, Queue::size)
+          .description("限流排队深度").register(registry);
+    };
+  }
+}
+
+// application.yml
+// management.endpoints.web.exposure.include: health,metrics,prometheus
+// management.endpoint.health.group.readiness.include: vectorStore,modelGateway,redis</code></pre>
+              </div>
+              <p><strong>Python：LangFuse 作为 AI 链路平台，与 SkyWalking 双栈并用（器维横切组件）</strong></p>
+              <div class="code-block">
+                <pre><code># Python：系统拓扑看 SkyWalking，AI 节点级输入输出看 LangFuse
+import os
+from langfuse import Langfuse
+from langfuse.decorators import observe, langfuse_context
+
+lf = Langfuse(public_key=os.environ["LANGFUSE_PK"],
+              secret_key=os.environ["LANGFUSE_SK"])
+
+@observe(name="rag.answer")
+def answer(question: str) -&gt; str:
+    # ① 改写节点
+    with lf.trace(name="rag.answer", input={"q": question}) as t:
+        rewritten = t.span(name="rewrite").end(output=question)
+        # ② 召回节点：记录文档 ID 与相似度，供「答非所问」定位
+        docs = retrieve(rewritten)
+        t.span(name="retrieve").end(output=[d.id for d in docs])
+        # ③ 生成节点：Token 与成本归到该 generation
+        gen = t.generation(name="chat", model="qwen-max",
+                           input={"docs": [d.id for d in docs]})
+        text = do_generate(question, docs)
+        gen.end(output=text, usage={"input": 820, "output": 156})
+        langfuse_context.score_current_trace(name="faithfulness", value=0.91)
+        return text
+    # 结构化日志仍须带 trace_id；LangFuse 管质量，ELK 管排障原始字段
+</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -5123,6 +5273,60 @@
                 <li><strong>流量保护观测</strong>：ZSET 排队深度、Lua 抢占成功率、分布式信号量占用持续监控，防突发流量压垮模型。</li>
                 <li><strong>Bad Case 周会制</strong>：每周固定评审新增 Bad Case，归因分类统计，Top 类别驱动当周优化优先级。</li>
               </ul>
+
+              <p><strong>Java：Observation API 定义 Run/Node 级嵌套 Span</strong></p>
+              <div class="code-block">
+                <pre><code>// Java / Micrometer Observation：Run -&gt; Node 两级，字段与 LangFuse 对齐
+@Service
+public class RagObservation {
+  private final ObservationRegistry registry;
+  RagObservation(ObservationRegistry r) { this.registry = r; }
+
+  public String answer(String q) {
+    return Observation.createNotStarted("rag.run", registry)
+        .lowCardinalityKeyValue("scene", "faq")
+        .observe(() -&gt; {
+          var docs = Observation.createNotStarted("rag.node", registry)
+              .lowCardinalityKeyValue("node", "retrieve")
+              .observe(() -&gt; vectorStore.similaritySearch(q));
+          return Observation.createNotStarted("rag.node", registry)
+              .lowCardinalityKeyValue("node", "generate")
+              .observe(() -&gt; chatClient.prompt()
+                  .user(q + "
+" + docs).call().content());
+        });
+  }
+}
+// 导出：OTel Bridge 把 observation 转 span，traceparent 透传给 Python 侧</code></pre>
+              </div>
+              <p><strong>Python：影子路由与 Bad Case 闭环，观测数据反哺 Golden Set（器维组件）</strong></p>
+              <div class="code-block">
+                <pre><code># Python：影子路由 + 失败 case 自动沉淀为评测集
+from langfuse import Langfuse
+import json
+from pathlib import Path
+
+lf = Langfuse()
+
+def shadow_route(question: str, chosen_docs: list, trace_id: str):
+    """用户手动选文档时，后台静默跑完整路由并对比命中率。"""
+    silent = retrieve(question, top_k=5)
+    hit = len({d.id for d in silent} &amp; {d.id for d in chosen_docs}) / max(len(chosen_docs), 1)
+    lf.score(trace_id=trace_id, name="shadow_route_hit_rate", value=hit)
+
+def collect_bad_case(trace_id: str, reason: str):
+    """Trace + 用户反馈 + 回答溯源沉淀 Golden Set，形成闭环。"""
+    t = lf.fetch_trace(trace_id)
+    row = {"id": trace_id, "question": t.input["q"],
+           "references": t.output.get("doc_ids", []),
+           "expected": None, "reason": reason,
+           "status": "pending_label"}     # 待标注，不自动当标准答案
+    with Path("eval/bad_cases.jsonl").open("a") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "
+")
+
+# bad_cases.jsonl 经人工标注后合入 golden.jsonl，参与下次 CI 回归</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">

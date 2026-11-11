@@ -42,9 +42,9 @@ agent_created: true
 - 难度三级（覆盖 C/E/S/A/D）：专家 / 架构师 / 高级开发（求和 = `total`）。**标签位文案一律短表 专家 / 架构 / 高级**；M/G/K 不分难度等级。
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **682** = 篇章C 332 + AI纵深A 112 + 核心原理 74 + 场景 74 + 垂直领域 90
-- 优先级 **P0=161 / P1=414 / P2=107**（求和 = 682）
-- 难度 **专家 88 / 架构师 335 / 高级开发 259**（求和 = 682；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 题目总量 **685** = 篇章C 335 + AI纵深A 112 + 核心原理 74 + 场景 74 + 垂直领域 90
+- 优先级 **P0=158 / P1=419 / P2=108**（求和 = 685）
+- 难度 **专家 90 / 架构师 334 / 高级开发 261**（求和 = 685；覆盖 C/E/S/A/D，M/G/K 不分级）
 - 方法论 **205 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **88 卡**（G01~G13，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **82 卡**（K01~K10，专篇键 pitfalls；**不分难度等级**）
@@ -525,18 +525,15 @@ agent_created: true
 | P905 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 高级 |
 | P906 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 架构 |
 | P907 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 专家 |
-| P609 | `java-architect-interview/index.html` | 升格 local:topic-footer → struct.topic.idx.t01.n |
-| P610 | `java-architect-interview/index.html` | 升格 local:topic-footer-diff → struct.topic.idx.t01.expert |
-| P611 | `java-architect-interview/index.html` | 升格 local:topic-footer-diff → struct.topic.idx.t01.architect |
-| P612 | `java-architect-interview/index.html` | 升格 local:topic-footer-diff → struct.topic.idx.t01.senior |
+| P609 | `java-architect-interview/index.html` | 升格 local:hybrid-footer → struct.hybrid.idx.h01.n |
+| P610 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.expert |
+| P611 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.architect |
+| P612 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.senior |
 | P613 | `index.html` | 升格 local:dir-count → struct.root.dir_count_24 |
-| P910 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 题数 |
-| P911 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 高级 |
-| P912 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 架构 |
-| P913 | `java-architect-interview/chapter-hybrid-deployment.html` | 专题文件头 专家 |
-| P914 | `java-architect-interview/nav-overview-priority.html` | 专题 HD 卡片独立类型块计数（overview 排序 C→E→S→A→D→HD） |
-| P915 | `java-architect-interview/nav-overview-priority.html` | 专题 HD 卡片独立类型块计数（overview 排序 C→E→S→A→D→HD） |
-| P916 | `java-architect-interview/nav-overview-priority.html` | 专题 HD 卡片独立类型块计数（overview 排序 C→E→S→A→D→HD） |
+| P910 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 题数 |
+| P911 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 高级 |
+| P912 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 架构 |
+| P913 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 专家 |
 | P614 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c18.n |
 | P615 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.expert |
 | P616 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.architect |

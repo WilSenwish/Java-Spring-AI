@@ -190,6 +190,39 @@
           <li>
             <a href="#C12.56"><span class="toc-number">C12.56</span>控制台与 SSE 对接</a>
           </li>
+          <li>
+            <a href="#C12.57"><span class="toc-number">C12.57</span>模型接入层三段式边界</a>
+          </li>
+          <li>
+            <a href="#C12.58"><span class="toc-number">C12.58</span>文档解析管道与结构保真</a>
+          </li>
+          <li>
+            <a href="#C12.59"><span class="toc-number">C12.59</span>工具注册中心与渐进披露</a>
+          </li>
+          <li>
+            <a href="#C12.60"><span class="toc-number">C12.60</span>代码沙箱隔离边界</a>
+          </li>
+          <li>
+            <a href="#C12.61"><span class="toc-number">C12.61</span>Trace 观测平台选型与自托管</a>
+          </li>
+          <li>
+            <a href="#C12.62"><span class="toc-number">C12.62</span>Prompt 版本与标注闭环</a>
+          </li>
+          <li>
+            <a href="#C12.63"><span class="toc-number">C12.63</span>GenAI 观测与 OTel 底座分工</a>
+          </li>
+          <li>
+            <a href="#C12.64"><span class="toc-number">C12.64</span>PII 脱敏与内容审计台账</a>
+          </li>
+          <li>
+            <a href="#C12.65"><span class="toc-number">C12.65</span>LLM 缓存分层与成本账单</a>
+          </li>
+          <li>
+            <a href="#C12.66"><span class="toc-number">C12.66</span>推理服务选型与版本治理</a>
+          </li>
+          <li>
+            <a href="#C12.67"><span class="toc-number">C12.67</span>AI 发布流水线三段门禁</a>
+          </li>
         </ol>
       </aside>
 
@@ -203,15 +236,15 @@
           <p class="chapter-subtitle chapter-reading-note">阅读口径：本篇生产落地卡片中的压测、容量、成本与时延数值均为示意基线，用来说明量级、阈值推导与故障推演方法，不是生产实测报告；落地时须按自身流量、机型与供应商定价重新标定，不宜直接引用为经验值。本篇各卡不再重复「评测集回归、成本限额、提示与模型版本绑定」这组上线门禁与「先给可观测证据与门禁、再谈实现细节」的表达提纲，统一按此执行。文中框架 GA 日期、规范修订日期与提案编号只作版本定位，发布节奏与变更内容以官方文档为准，不作为当前基线的事实断言。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#m-group-14">M14</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>题目数：56</span>
+            <span>题目数：67</span>
             <span class="meta-divider">|</span>
-            <span>高级 ×10</span>
+            <span>高级 ×12</span>
             <span class="meta-divider">|</span>
-            <span>架构 ×31</span>
+            <span>架构 ×37</span>
             <span class="meta-divider">|</span>
-            <span>专家 ×15</span>
+            <span>专家 ×18</span>
             <span class="meta-divider">|</span>
-            <span>预计复习：750 分钟</span>
+            <span>预计复习：915 分钟</span>
           </div>
 
           <div class="chapter-lead">
@@ -1329,6 +1362,47 @@ flowchart LR
                 <div class="callout-title">最佳实践</div>
                 <p>Prompt 设计四原则（CRISPE）：① <strong>Capacity</strong> 角色定位；② <strong>Role</strong> 明确指令与约束；③ <strong>Insight</strong> 给背景/示例；④ <strong>Schema</strong> 指定输出格式；⑤ <strong>Experiment</strong> 迭代评测。复杂任务用 CoT + 分解；结构化用 JSON Mode/Function Calling；安全用输入隔离 + 输出校验。</p>
               </div>
+
+              <p><strong>Python：Prompt 版本中心（LangFuse Prompt Management）按标签拉取并回归</strong></p>
+              <div class="code-block">
+                <pre><code># Prompt 从代码里搬进版本中心：改 Prompt 不发版，但必须过回归
+import os
+from langfuse import Langfuse
+from langfuse.decorators import observe
+
+lf = Langfuse(public_key=os.environ["LANGFUSE_PK"],
+              secret_key=os.environ["LANGFUSE_SK"])
+
+@observe(name="answer")
+def answer(question: str, context: str) -&gt; str:
+    # production / staging 标签隔离，支持灰度与一键回滚
+    prompt = lf.get_prompt("rag/answer", label="production")
+    compiled = prompt.compile(question=question, context=context)
+    # prompt.version 与 trace 绑定，评测回归可定位到具体版本
+    text = do_call(compiled)
+    return text
+
+# 发布流程：新版本先打 staging -&gt; 跑 Golden Set -&gt; 非劣效才提升为 production
+# lf.create_prompt(name="rag/answer", prompt="...", labels=["staging"])</code></pre>
+              </div>
+              <p><strong>Java：Spring AI 侧把模板版本化，与平台标签保持一致</strong></p>
+              <div class="code-block">
+                <pre><code>// Java / Spring AI：模板资源带版本号，配置中心下发标签，禁止散落硬编码
+@Bean
+@RefreshScope
+PromptTemplate answerTemplate(@Value("${ai.prompt.version:v3}") String version) {
+  Resource r = new ClassPathResource("prompts/rag-answer-" + version + ".st");
+  return new PromptTemplate(r);
+}
+
+public String answer(String question, String context) {
+  Prompt p = answerTemplate.create(Map.of("question", question, "context", context));
+  // 把版本写进 Observation，便于与 LangFuse 的 prompt.version 对齐追溯
+  return Observation.createNotStarted("rag.answer", registry)
+      .lowCardinalityKeyValue("prompt.version", version)
+      .observe(() -&gt; chatClient.prompt(p).call().content());
+}</code></pre>
+              </div>
             </div>
           </div>
 
@@ -1620,8 +1694,8 @@ flowchart TB
               <ul>
                 <li><strong>解决的问题</strong>：每个 LLM 应用要接 N 个工具，M×N 集成爆炸。MCP 统一工具/资源/Prompt 的<strong>发现与调用接口</strong>，变成 M+N。</li>
                 <li><strong>三大原语</strong>：<strong>Tools</strong>（可执行函数，如查库存）、<strong>Resources</strong>（可读数据，如文件/数据库）、<strong>Prompts</strong>（可复用 Prompt 模板）。</li>
-                <li><strong>架构</strong>：MCP Server（工具提供方，独立进程）↔ MCP Client（Agent/IDE，如 Claude Desktop/Cursor）经 JSON-RPC 2.0 通信。一个 Client 可连多个 Server，一个 Server 可被多个 Client 复用。传输层支持 stdio（本地子进程）与 Streamable HTTP（远程/多 Client 共享）两种，二者均基于 JSON-RPC 2.0，Client 与 Server 解耦于具体传输方式。</li>
-                <li><strong>价值</strong>：工具<strong>一次封装到处可用</strong>——同一个"查库存"MCP Server，Claude/Cursor/Spring AI Agent 都能调，无需重复集成。</li>
+                <li><strong>架构</strong>：MCP Server（工具提供方，独立进程）↔ MCP Client（Agent/IDE，如 Cursor 等桌面端工具）经 JSON-RPC 2.0 通信。一个 Client 可连多个 Server，一个 Server 可被多个 Client 复用。传输层支持 stdio（本地子进程）与 Streamable HTTP（远程/多 Client 共享）两种，二者均基于 JSON-RPC 2.0，Client 与 Server 解耦于具体传输方式。</li>
+                <li><strong>价值</strong>：工具<strong>一次封装到处可用</strong>——同一个"查库存"MCP Server，各类 MCP Client（IDE 插件 / 桌面端助手 / Spring AI Agent）都能调，无需重复集成。</li>
                 <li><strong>生产鉴权与治理（必补）</strong>：远程 MCP（Streamable HTTP）须鉴权——按现行规范（如 2026-07-28）走 OAuth 2.1 / OIDC 资源服务器或 mTLS，禁止“内网裸奔 JSON-RPC”；按工具声明 <code class="inline-code">risk_level</code> / ACL（租户、角色、只读 vs 写/资金类）；短时会话与凭证轮换；调用全链路审计（谁、调了什么、参数摘要、结果码）。进程内 stdio 也要防“Agent 进程被劫持=工具全集沦陷”。细节与副作用分级见 <a href="#C12.32">C12.32</a>、<a href="#C12.23">C12.23</a>。</li>
                 <li><strong>落地调用链（Java）</strong>：① Agent/ChatClient 决策要调工具 → ② MCP Client 按协议发现 Tools 列表 → ③ JSON-RPC 调用目标 MCP Server → ④ Server 执行并返回结构化结果 → ⑤ 结果回填模型上下文继续推理。错误治理：工具超时/4xx/5xx 要可区分重试与熔断；资金类工具强制幂等键 + 人工闸。</li>
               </ul>
@@ -1632,7 +1706,7 @@ flowchart TB
 flowchart LR
     subgraph Clients["MCP Clients 消费方"]
         C1["Spring AI Agent"]
-        C2["Claude Desktop"]
+        C2["桌面端 AI 助手"]
         C3["Cursor IDE"]
     end
     subgraph Protocol["MCP 协议 JSON-RPC"]
@@ -1841,6 +1915,67 @@ flowchart LR
               <div class="callout callout-tip">
                 <div class="callout-title">最佳实践</div>
                 <p>评估体系建设四步：① <strong>建评测集</strong>——200-500 题覆盖核心场景与边界 case，含标准答案；② <strong>自动化评测</strong>——RAGAS + LLM-as-Judge 跑批，CI 集成防回归；③ <strong>线上监控</strong>——Langfuse/LangSmith 采集 Trace，监控业务/质量/工程指标；④ <strong>闭环反哺</strong>——线上失败 case 反哺评测集，持续迭代。无评测不上线，无监控不生产。</p>
+              </div>
+
+              <p><strong>Python：LangSmith / LangFuse 全流程组件接入（Trace → Dataset → Eval → 监控）</strong></p>
+              <div class="code-block">
+                <pre><code># LLMOps 横切组件：一次接入覆盖「开发 → 评测 → 发布 → 线上监控 → 回归」
+import os
+from langsmith import Client, traceable
+from langchain_core.runnables import RunnableLambda
+
+ls = Client(api_key=os.environ["LANGCHAIN_API_KEY"])
+
+@traceable(run_type="chain", name="rag.answer", tags=["prod", "v3"])
+def answer(question: str) -&gt; dict:
+    docs = retrieve(question)
+    return {"answer": do_generate(question, docs), "doc_ids": [d.id for d in docs]}
+
+# ① 数据集：把 Golden Set 注册成平台资产，版本可追溯
+dataset = ls.create_dataset("rag-golden-2026Q4",
+                            description="业务自建评测集，含低频致命失败")
+ls.create_examples(inputs=[{"question": q} for q in questions],
+                   outputs=[{"answer": a} for a in expected],
+                   dataset_id=dataset.id)
+
+# ② 评测：平台托管跑批 + 非劣效门禁
+def correctness(run, example) -&gt; dict:
+    return {"key": "correctness",
+            "score": float(run.outputs["answer"].strip() == example.outputs["answer"].strip())}
+
+results = ls.evaluate(
+    RunnableLambda(lambda x: answer(x["question"])),
+    data=dataset.name,
+    evaluators=[correctness],
+    experiment_prefix="rag-v4",
+)
+# ③ 线上 Trace 持续采集，失败 case 反哺数据集（见 A19.02）</code></pre>
+              </div>
+              <p><strong>Java：OTel GenAI 语义约定打点，与 LLMOps 平台共用一套 trace_id</strong></p>
+              <div class="code-block">
+                <pre><code>// Java / OTel：按 GenAI 语义约定命名，保证 LangFuse/LangSmith/Phoenix 可消费
+@Component
+public class GenAiTracing {
+  private final Tracer tracer;
+  GenAiTracing(OpenTelemetry otel) { this.tracer = otel.getTracer("rag.java"); }
+
+  public String chat(String model, String prompt) {
+    Span span = tracer.spanBuilder("chat " + model).startSpan();
+    try (Scope s = span.makeCurrent()) {
+      span.setAttribute("gen_ai.system", "qwen");
+      span.setAttribute("gen_ai.request.model", model);
+      span.setAttribute("gen_ai.request.temperature", 0.2);
+      span.setAttribute("gen_ai.usage.input_tokens", prompt.length());
+      String out = client.call(prompt);
+      span.setAttribute("gen_ai.usage.output_tokens", out.length());
+      span.setAttribute("ai.trace.id", Span.current().getSpanContext().getTraceId());
+      return out;
+    } finally {
+      span.end();
+    }
+  }
+}
+// 同一 trace_id 串联：Java 网关 -&gt; Python 推理 -&gt; LangFuse 质量评分</code></pre>
               </div>
             </div>
           </div>
@@ -2223,7 +2358,7 @@ flowchart LR
               </table>
               <p><strong>关键原理：模态对齐</strong>。多模态的核心难题是"让文本'猫'与图像'猫'在同一语义空间对齐"。CLIP 用<strong>对比学习</strong>——拉近"猫"文本向量与猫图片向量、推远不匹配对，在 4 亿图文对上训练，学到跨模态统一空间。LLaVA 用视觉编码器（CLIP ViT）提图像特征，经投影层映射为 LLM 的"视觉 token"，与文本 token 拼接送 LLM 处理——本质是"<strong>把图像翻译成 LLM 能读的词</strong>"。</p>
               <p><strong>具身智能原理</strong>：传统机器人是"感知→规则控制→执行"的硬编码 pipeline；具身智能用<strong>VLA（Vision-Language-Action）模型</strong>把三者统一——视觉+语言指令作为输入，直接输出动作序列（关节角/末端位姿）。RT-2 把动作离散化为 token，像生成文本一样生成动作；π0 用 Flow Matching 生成连续动作。核心是"<strong>用大模型的常识与规划能力驱动物理行动</strong>"，让机器人从"只会编程设定的动作"变"能听懂指令自主完成任务"。</p>
-              <p><strong>AI Agent 平台化趋势</strong>：Agent 从"应用内嵌"走向"平台化"——MCP 让工具标准化复用，Agent Runtime（如 Dify/Coze/自建平台）让 Agent 可视化编排、发布、托管，Agent Store 让 Agent 像 App 一样分发。类比：Agent 像微服务，MCP 像 RPC 协议，Agent 平台像 K8s——AI 应用的基础设施正在成型。</p>
+              <p><strong>AI Agent 平台化趋势</strong>：Agent 从"应用内嵌"走向"平台化"——MCP 让工具标准化复用，Agent Runtime（如 Dify/自建平台）让 Agent 可视化编排、发布、托管，Agent Store 让 Agent 像 App 一样分发。类比：Agent 像微服务，MCP 像 RPC 协议，Agent 平台像 K8s——AI 应用的基础设施正在成型。</p>
             </div>
           </div>
 
@@ -7208,6 +7343,49 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
     <span class="type">double</span> delta, <span class="type">boolean</span> nonInferior, <span class="type">String</span> decision) {}</code></pre>
               </div>
               <p>指标至少覆盖：答案通过率、检索命中与引用正确性、轨迹合规率、禁用的高风险动作命中数、单任务成本与首字节时延。判定用「相对基线的非劣效界值 + 置信下限」而不是裸均值比较；高风险面的用例不允许被总体均值稀释，需单独设硬门禁。评估器采用与被测模型不同族的外部裁判，并对同一批样本做人工抽检校准，记录一致率；发现评估漂移时先修评估器，再谈系统效果。未通过用例自动沉淀为 Bad Case 并回流评测集，形成闭环。</p>
+
+              <p><strong>Python：Golden Set 非劣效门禁 + 防偏差，输出机器可判定的评测产物</strong></p>
+              <div class="code-block">
+                <pre><code># eval/ci.py
+import json, hashlib, random
+from pathlib import Path
+
+DELTA = 0.02          # 忠实度允许回归幅度
+SEED = 20261111       # 固定随机种子，防「挑样本」偏差
+
+def load(name):
+    return [json.loads(l) for l in Path(name).read_text().splitlines() if l]
+
+def run_eval(predict, cases):
+    rows = []
+    for c in cases:
+        out = predict(c["question"])
+        rows.append({"id": c["id"],
+                     "faithful": all(ref in out for ref in c["references"]),
+                     "latency_ms": out.meta["latency_ms"]})
+    return {"n": len(rows),
+            "faithfulness": sum(r["faithful"] for r in rows) / len(rows),
+            "p95_ms": sorted(r["latency_ms"] for r in rows)[int(len(rows) * .95)]}
+
+def gate(cur, base):
+    reasons = []
+    if cur["n"] &lt; 100: reasons.append("样本量不足")
+    if cur["faithfulness"] &lt; base["faithfulness"] - DELTA: reasons.append("忠实度回归")
+    if cur["p95_ms"] &gt; base["p95_ms"] * 1.10: reasons.append("p95 劣化")
+    return {"pass": not reasons, "reasons": reasons,
+            "dataset_sha256": hashlib.sha256(
+                Path("eval/golden.jsonl").read_bytes()).hexdigest()}
+
+if __name__ == "__main__":
+    random.seed(SEED)
+    cases = load("eval/golden.jsonl")
+    cur = run_eval(predict, cases)
+    base = json.loads(Path("eval/baseline.json").read_text())
+    verdict = gate(cur, base)
+    Path("target/eval/current.json").write_text(json.dumps(cur))
+    Path("target/eval/verdict.json").write_text(json.dumps(verdict))
+    raise SystemExit(0 if verdict["pass"] else 1)</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="pitfall">
@@ -7397,6 +7575,105 @@ ENGINE = load_engine(os.environ[<span class="str">"MODEL_PATH"</span>], os.envir
   - { <span class="attr">name</span>: weights, <span class="attr">mountPath</span>: /models, <span class="attr">readOnly</span>: <span class="kw">true</span> }</code></pre>
               </div>
               <p>Java 侧用非阻塞客户端调用，配置连接超时、读取超时、并发上限与独立线程池隔离；熔断后按「备用模型别名 → 小模型低预算 → 明确失败」的固定顺序降级，并在响应中标注实际使用的模型与版本。按租户记录调用量、显存时长与成本归因，扩容策略同时参考队列深度、首字节时延与单请求成本，避免只看 CPU 指标盲目扩副本。</p>
+
+              <p><strong>Python：requirements.txt 与 pytest，补上原先唯一双栈锚点缺失的依赖与测试</strong></p>
+              <div class="code-block">
+                <pre><code># requirements.txt（与 C16.02 同一份版本钉死策略）
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+httpx==0.28.1
+pytest==8.3.4
+
+# test_service.py —— CI 无 GPU，导入前替换推理引擎（同 C16.02 替身写法）
+import sys, types
+fake = types.ModuleType("vllm")
+fake.LLM = lambda *a, **k: types.SimpleNamespace(
+    generate=lambda *a, **k: [types.SimpleNamespace(
+        prompt_token_ids=[1], outputs=[types.SimpleNamespace(text="ok")])])
+fake.SamplingParams = lambda **k: k
+sys.modules["vllm"] = fake
+
+from fastapi.testclient import TestClient
+from app import app
+client = TestClient(app)
+
+def test_healthz_and_contract():
+    assert client.get("/healthz").status_code == 200
+    r = client.post("/v1/generate", json={"prompt": "ping", "max_tokens": 8})
+    assert r.status_code in (200, 503)
+    if r.status_code == 200:
+        assert {"text", "prompt_tokens", "latency_ms"} &lt;= r.json().keys()
+
+# 运行：pip install -r requirements.txt &amp;&amp; pytest -q test_service.py</code></pre>
+              </div>
+              <p><strong>Dockerfile 与 compose 双镜像：Java 网关 + Python 推理一次拉起</strong></p>
+              <div class="code-block">
+                <pre><code># compose.yaml
+services:
+  java-gateway:
+    build: ./gateway
+    ports: ["8080:8080"]
+    environment:
+      INFERENCE_PYTHON_BASE_URL: http://python-infer:8000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      python-infer:
+        condition: service_healthy
+  python-infer:
+    build: ./infer
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: 1, capabilities: [gpu]}]
+    environment:
+      MODEL_PATH: /models/qwen2.5-7b-instruct
+    volumes: ["./models:/models:ro"]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 15s
+      timeout: 3s
+      retries: 3</code></pre>
+              </div>
+              <p><strong>Java：调用该 Python 服务的客户端（超时、重试、熔断与 trace 透传）</strong></p>
+              <div class="code-block">
+                <pre><code>// Java / Spring Boot 3：双栈闭环的 Java 侧，补上原先缺失的调用代码
+@Configuration
+public class PythonInferClientConfig {
+  @Bean
+  RestClient pythonInfer(RestClient.Builder b,
+                         @Value("${inference.python.base-url}") String url) {
+    return b.baseUrl(url)
+        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+        .requestInterceptor((req, body, exec) -&gt; {
+          req.getHeaders().set("x-trace-id", MDC.get("traceId"));
+          return exec.execute(req, body);
+        })
+        .build();
+  }
+}
+
+@Service
+public class InferService {
+  private final RestClient client;
+  private final CircuitBreaker cb;   // Resilience4j，按依赖隔离
+  InferService(RestClient c, CircuitBreakerRegistry r) {
+    this.client = c; this.cb = r.circuitBreaker("python-infer");
+  }
+
+  public Answer generate(String prompt) {
+    return Try.ofSupplier(CircuitBreaker.decorateSupplier(cb, () -&gt;
+        client.post().uri("/v1/generate")
+            .body(Map.of("prompt", prompt, "max_tokens", 256))
+            .retrieve().body(Answer.class)))
+        .recover(Throwable.class, e -&gt; Answer.fallback())
+        .get();
+  }
+}
+record Answer(String text, int promptTokens, long latencyMs) {
+  static Answer fallback() { return new Answer("服务暂不可用", 0, 0); }
+}</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="pitfall">
@@ -7470,6 +7747,44 @@ ENGINE = load_engine(os.environ[<span class="str">"MODEL_PATH"</span>], os.envir
 <span class="kw">function</span> <span class="fn">cancel</span>() { ctrl.abort(); fetch(<span class="str">"/agent/cancel?taskId="</span> + taskId, { method: <span class="str">"POST"</span> }); }</code></pre>
               </div>
               <p>事件序号与任务标识由服务端签发并在会话存储中保留，刷新后可从最后序号续传；服务端需保证重放窗口内的事件可重发且带相同序号，前端按序号去重。首字节时延、每轮工具耗时与终态原因分别展示，便于用户理解「为什么还在转」；错误态给出可操作的重试或转人工入口，而不是只显示一段报错文本。</p>
+
+              <p><strong>Python：SSE 客户端断线续传与状态机，与前端同样的事件语义</strong></p>
+              <div class="code-block">
+                <pre><code># Python：Last-Event-ID 续传 + 事件状态机，验证后端 SSE 契约
+import json, httpx
+
+class StreamState:
+    def __init__(self):
+        self.last_event_id = None
+        self.done = False
+        self.chunks = []
+
+def consume(url: str, payload: dict, state: StreamState | None = None):
+    state = state or StreamState()
+    headers = {"Accept": "text/event-stream"}
+    if state.last_event_id:
+        headers["Last-Event-ID"] = state.last_event_id
+    with httpx.stream("POST", url, json=payload, headers=headers,
+                      timeout=httpx.Timeout(10.0, read=None)) as r:
+        event, data = None, []
+        for line in r.iter_lines():
+            if line.startswith("id:"):
+                state.last_event_id = line[3:].strip()
+            elif line.startswith("event:"):
+                event = line[6:].strip()
+            elif line.startswith("data:"):
+                data.append(line[5:].strip())
+            elif line == "":
+                if event == "delta":
+                    state.chunks.append("".join(data))
+                elif event == "done":
+                    state.done = True
+                    return state
+                elif event == "error":
+                    raise RuntimeError("".join(data))
+                event, data = None, []
+    return state   # 断线：带上 last_event_id 重新调用即可续传</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="pitfall">
@@ -7483,6 +7798,1032 @@ ENGINE = load_engine(os.environ[<span class="str">"MODEL_PATH"</span>], os.envir
             <div class="content-layer-body">
               <p>一句话：控制台的工程内核是「带类型与序号的事件流 + 显式状态机 + 可续传锚点」，流式体验的判据不是文字出现得快，而是中断、取消与中间态都可解释。</p>
               <p><strong>向下回指</strong>：C12.16 讲流式端点设计，C12.25 讲断连恢复与背压，A24.04 讲流式保活与首字节优化；本卡只负责把服务端契约在浏览器侧正确落地。</p>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C12.57" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.57</div>
+            <div class="content-question">模型接入层三段式：SDK、网关与高级路由的职责边界怎么划？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>把「接一个大模型」当成一次 SDK 调用，是 AI 应用最早出现也最难偿还的架构债。凭据散落在每个服务的配置里、重试与超时各写一套、限流按实例不按租户、换供应商要改业务代码——这些症状的根因是同一个：<strong>协议层、治理层与流量层的职责被压进了一层</strong>。本题考察把接入层拆成 LLM Client SDK、Model Gateway、高级路由三段后，各自的契约与不可越界之处。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>SDK 只负责协议与消息构造</strong>：把系统提示、工具声明、流式解析、结构化输出收敛成与供应商无关的调用接口，它不应持有生产凭据，也不应决定重试次数。<strong>网关收口所有非功能性关注点</strong>：密钥集中托管、别名解析、超时重试、限流熔断、模型降级、token 计量与基础缓存，是平台层的一致性边界；业务侧只认别名，不认供应商真实名。<strong>路由层只管流量策略</strong>：灰度分流、按租户配额、模型池调度、影子流量，属于发布与成本治理，不能下沉到 SDK。<strong>别名是唯一稳定契约</strong>：模型版本、量化精度、供应商变更都收敛在别名映射表内，换供应商时业务代码零改动。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>落地顺序：先在 Java 侧把 <code class="inline-code">ChatClient</code> 与 Python 侧的 OpenAI 兼容 SDK 收敛为同一套别名调用，再由网关统一解析；最后把灰度与配额从网关配置里独立成路由策略。网关可选 LiteLLM、Spring AI Gateway 或商用模型网关（Portkey / Helicone 一类），判据是能否自托管、能否按租户出账单、能否输出结构化审计事件，而不是功能清单长度。</p>
+              <p>Java 与 Python 双栈共用同一别名，是验证分层是否成立的硬指标：任一侧还需要写供应商真实名，就说明网关收口不完整。</p>
+              <div class="code-block">
+                <pre><code># 网关侧：别名 → 供应商池 + 租户配额 + 降级链（示意配置，非完整清单）
+model_aliases:
+  chat-main:
+    primary: qwen-max@2026-11
+    fallback: [deepseek-v3, qwen-turbo]
+    timeout_ms: 20000
+    retry: { max: 2, on: [429, 503, timeout] }
+    quota: { per_tenant_tpm: 120000, per_tenant_qps: 40 }
+    audit: { emit: true, fields: [task_id, tenant, alias, tokens, latency] }
+  chat-cheap:
+    primary: qwen-turbo
+    fallback: [cache-only]
+
+# 影子路由：新别名复制 5% 流量，只记录不返回
+shadow_rules:
+  - alias: chat-main
+    shadow_to: qwen-max@2026-12-rc
+    percent: 5
+    compare: [answer_pass_rate, p95_latency, cost_per_task]</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code>// Java 侧：只认别名，凭据与超时由网关持有
+@Bean
+ChatClient chatClient(ChatClient.Builder b) {
+  return b.defaultAdvisors(new TraceAdvisor()).build();
+}
+// 调用：model 参数固定别名，禁止出现供应商真实名
+ChatResponse r = chatClient.prompt(p)
+    .options(ChatOptions.builder().model("chat-main").build())
+    .call().chatResponse();
+
+// 网关侧按租户做二次配额校验（业务侧不重复实现）
+if (!quota.tryAcquire(tenant, "chat-main", estimatedTokens)) {
+    throw new QuotaExceededException(tenant);
+}</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Python 侧：同一别名，OpenAI 兼容 SDK 指向网关基址
+from openai import OpenAI
+client = OpenAI(base_url=GATEWAY_BASE_URL, api_key=GATEWAY_TOKEN)
+resp = client.chat.completions.create(
+    model="chat-main",
+    messages=[{"role": "user", "content": prompt}],
+    extra_headers={"X-Tenant-Id": tenant, "X-Task-Id": task_id},
+)</code></pre>
+              </div>
+              <p>验收判据有三条：换供应商时两侧业务代码都不改；网关下线一个供应商后降级链自动生效且响应里标注实际使用的别名；按租户拉取的 token 账单能与网关审计事件逐条对账。三条任一不满足，说明分层只是目录上的，不是契约上的。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>业务代码直连供应商 SDK：密钥与重试散落，轮换一次要全量发版。把业务语义塞进网关：网关开始理解订单与退款，平台层被业务变更拖着走。用模型真实名当路由键：供应商改名或升版本即引发全站改动。配额只做全局不限租户：单租户突发把共享池打满，表现为无关业务集体超时。影子流量参与返回：评测对比被污染，灰度结论不可信。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：接入层 = SDK 管协议、网关管治理、路由管流量，别名是三者之间唯一稳定契约；判据是换供应商时业务侧零改动、租户账单可逐条对账。</p>
+              <p><strong>向下回指</strong>：C12.01 讲分层架构，C12.09 讲成本与缓存，C12.20 讲多模型路由与故障转移，C12.48 讲平台层统一契约；本卡只负责把三段的职责边界与不可越界之处写清楚。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.58" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.58</div>
+            <div class="content-question">文档解析管道：PDF 表格、扫描件与增量入库如何不丢结构？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>RAG 效果的天花板常常不在检索模型，而在入库前那一刻：表格被拍平成一段乱码文字、跨页表头丢失、扫描件直接产出空串、文档换了版本却没人重新入库。检索阶段再精妙的重排序也救不回已经丢失的结构。本题考察把「文档解析」当作一条独立管道来治理：<strong>结构保真、可判定失败、可增量重跑</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>解析产物是结构化文档对象，不是字符串</strong>：标题层级、表格行列、图表说明、页码与来源坐标都要保留，分块阶段才能按语义边界切而不切断表格。<strong>失败必须可判定</strong>：乱码率、空页比例、表格单元格数与预期不符时直接进人工队列，不能静默入库污染向量库。<strong>文档身份与内容版本分离</strong>：同一文档的内容哈希变了才重解析，仅元数据变更不触发；增量同步以哈希为幂等键，避免全量重建。<strong>解析与分块解耦</strong>：Java 侧负责稳定接入与编排，Python 侧负责版面分析模型，中间用统一 JSON 契约传递，任一侧升级不牵动另一侧。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>管道分四段：探测（格式/是否扫描件）→ 解析（版面与表格）→ 结构校验（断言）→ 分块入库。Java 侧用 Apache Tika 做格式探测与常规文本抽取，复杂版面交给 Python 侧 Docling 或 Unstructured；三者输出统一成含 <code class="inline-code">blocks</code>、<code class="inline-code">tables</code>、<code class="inline-code">page</code>、<code class="inline-code">bbox</code> 的中间 JSON。</p>
+              <div class="code-block">
+                <pre><code>// Java 侧：Tika 探测 + 结构校验，失败即阻断入库
+Parser parser = new AutoDetectParser();
+BodyContentHandler handler = new BodyContentHandler(-1);
+Metadata meta = new Metadata();
+try (InputStream in = Files.newInputStream(path)) {
+    parser.parse(in, handler, meta, new ParseContext());
+}
+ParseResult r = ParseResult.of(handler.toString(), meta);
+// 乱码率 / 空页 / 表格数三重断言，任一不过进人工队列
+if (r.replacementRatio() &gt; 0.02 || r.emptyPageRatio() &gt; 0.1
+        || r.tableCount() &lt; expectedTableCount) {
+    reviewQueue.submit(docId, r.diagnostics());
+    return;
+}
+String hash = DigestUtils.sha256Hex(Files.readAllBytes(path));
+if (!ingestStore.changed(docId, hash)) return;   // 内容哈希幂等
+ingestStore.upsert(docId, hash, toCanonicalJson(r));</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Python 侧：Docling 版面解析 → 统一中间 JSON（表格按行列保真）
+from docling.document_converter import DocumentConverter
+
+conv = DocumentConverter()
+doc = conv.convert(pdf_path).document
+payload = {
+    "doc_id": doc_id,
+    "source_hash": sha256(pdf_path),
+    "blocks": [
+        {"type": b.type, "text": b.text,
+         "page": b.page_no, "bbox": b.bbox, "heading_level": b.level}
+        for b in doc.blocks
+    ],
+    "tables": [
+        {"page": t.page_no, "header": t.header,
+         "rows": t.rows, "caption": t.caption}
+        for t in doc.tables
+    ],
+}
+validate_or_quarantine(payload)   # 行列数/表头/坐标断言
+emit_to_java_ingest(payload)     # 跨栈契约：同一份 JSON</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 增量同步：只重解析内容哈希变化的文档，删除同步做墓碑标记
+for doc in manifest:
+    cur = sha256(doc.path)
+    if store.get(doc.id) != cur:
+        rebuild(doc.id, cur)
+for doc_id in store.ids_not_in(manifest):
+    tombstone(doc_id)   # 向量库按 doc_id 批量失效，不留孤儿分块</code></pre>
+              </div>
+              <p>分块阶段以中间 JSON 的标题层级与表格边界为准，表格整块不切、超长表格按行组切并重复表头；每个分块携带 <code class="inline-code">doc_id</code>、<code class="inline-code">source_hash</code>、<code class="inline-code">page</code> 与 <code class="inline-code">bbox</code>，检索结果才能回指原文位置。文档权限在这一步写入分块元数据，禁止等到检索时再靠业务层过滤。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把 PDF 直接转纯字符串：表格变成无分隔的数字串，答案引用找不到出处。解析失败静默入库：向量库里躺着一堆空分块，召回率下降却查不到原因。用文件修改时间做增量键：仅改权限或重命名就触发全量重建，成本失控且产生重复分块。删除文档只删业务库不删向量：孤儿分块继续被召回，形成权限穿透。跨栈用字符串而非结构化 JSON：Python 侧升级版面模型后 Java 侧解析全崩。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：文档解析管道 = 结构化中间产物 + 失败可判定 + 内容哈希幂等的增量同步；判据是每个分块都能回指原页原表，且文档变更只重跑变化的那一份。</p>
+              <p><strong>向下回指</strong>：C12.02 讲 RAG 全链路与混合检索，S06.03 讲文档解析场景，C12.44 讲数据版本治理；本卡只负责入库前的结构保真与增量重跑。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.59" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.59</div>
+            <div class="content-question">工具注册中心：工具版本、A/B 与渐进披露怎么治理？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>工具数量从十几个涨到几百个后，把全量工具清单塞进每次请求的上下文会同时拖垮三件事：token 成本、工具选择准确率、权限面。更麻烦的是工具描述随代码随口改，模型已学到的调用习惯与新契约不匹配，线上表现为间歇性参数错误。本题考察把工具从「代码里的注解」升级为「有版本、有 owner、可灰度、可按需暴露的注册资产」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>工具描述是模型可见的唯一契约</strong>：名称、参数结构、副作用等级、幂等语义、错误码、返回字段白名单必须版本化，描述变更等价于接口变更。<strong>注册与暴露分离</strong>：注册中心持有全量工具目录，编排层按会话意图、租户权限与风险等级检索出子集再暴露，避免全量注册。<strong>身份与版本随调用链流动</strong>：每次调用记录工具版本与调用方身份，评测集才能回放同一组合；缺版本字段的轨迹无法归因。<strong>A/B 是工具级而非应用级</strong>：同一工具的两个描述版本按租户或会话分流，用工具选择正确率与参数错误率判定，而不是看整体答案通过率。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>注册中心最小字段：工具名、语义标签、版本、参数 JSON Schema、副作用等级、权限动作、超时预算、返回字段白名单、负责人、生效状态。启动时按台账自检「描述与实现是否一致」，不一致拒绝注册。运行时按会话做两级检索：先用语义标签召回候选，再按权限与风险等级过滤，最终只把十余个工具交给模型。</p>
+              <div class="code-block">
+                <pre><code>// 工具注册契约：版本 + 副作用 + 权限 + 语义标签（Java 侧）
+public record ToolSpec(
+    String name, String version, String description,
+    JsonNode paramSchema, RiskLevel risk,
+    String permission, Set&lt;String&gt; returnWhitelist,
+    Duration timeout, List&lt;String&gt; semanticTags, String owner) {}
+
+@Component
+public class ToolRegistry {
+  public List&lt;ToolSpec&gt; expose(RunContext ctx, String intent) {
+    var candidates = index.search(intent, 30);          // 语义召回
+    return candidates.stream()
+        .filter(t -&gt; ctx.can(t.permission()))            // 权限过滤
+        .filter(t -&gt; ctx.riskBudget().allows(t.risk()))  // 风险预算
+        .filter(ToolSpec::enabled)                       // 灰度状态
+        .limit(12)                                       // 上下文预算
+        .toList();
+  }
+  public ToolSpec abPick(String name, String tenant) {
+    return abRouter.pick(name, tenant, "desc-v2", 0.1); // 10% 新描述
+  }
+}</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 注册台账（配置即代码，随服务发版，禁止运行时热改）
+tools:
+  - name: query_order
+    version: v3
+    description: 按订单号查询状态与金额；只读、幂等；不返回证件号
+    risk: read_only
+    permission: order:read
+    return_whitelist: [order_id, status, amount]
+    semantic_tags: [订单, 查询, 状态]
+    owner: order-platform
+  - name: refund
+    version: v2
+    risk: write_high
+    permission: refund:approve
+    description: 退款；写操作、需幂等键；必须人工确认后执行
+
+ab_experiments:
+  - tool: query_order
+    baseline: v3
+    candidate: v4
+    traffic: 0.1
+    metrics: [tool_select_acc, param_error_rate, retry_count]</code></pre>
+              </div>
+              <p>准出判据：任一工具版本变更必须触发评测集回归；A/B 结论以工具级指标为准且样本量达标才允许全量；调用轨迹里工具名与版本缺一即拒绝归档。注册中心与 MCP Server 的关系是「目录与实例」——MCP 负责连接与调用，注册中心负责契约与生命周期。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>全量注册几百个工具：上下文被挤占，模型选择准确率随数量下降。描述随代码热改不升版本：模型侧习惯与新契约错配，表现为随机参数错误。只在网关做一次权限校验：工具被其他入口直连时越权可见。A/B 用整体答案通过率判定：工具级退化被均值稀释。台账与实现对不上仍允许启动：注册的是一份假契约，审计与评测全部失真。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：工具注册中心 = 版本化契约 + 按需渐进披露 + 工具级 A/B + 轨迹留版本；判据是任何一次调用都能回放「当时用的是哪版描述」。</p>
+              <p><strong>向下回指</strong>：C12.31 讲工具合约与幂等作用域，C12.51 讲 MCP Server 实现，A12.03 讲渐进披露，A10.02 讲传输与版本；本卡只负责工具作为注册资产的生命周期治理。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.60" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.60</div>
+            <div class="content-question">代码沙箱（Code Interpreter）：隔离边界、资源配额与逃逸面怎么定？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>让 Agent 执行代码做数据分析，等于把「模型输出的不可信字符串」变成「主机上的真实进程」。这类能力不是所有 Agent 都需要，但一旦开放，风险面就从提示注入升级为资源耗尽、数据外带与横向移动。本题考察的判据不是「能不能跑通 E2B 或 K8s Pod」，而是<strong>逃逸面是否被逐项收敛、每次执行是否可追责、失败是否能被业务链路安全降级</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>执行环境是一次性的</strong>：一个任务一个沙箱，退出即销毁，不复用容器、不复用临时目录，避免跨任务残留与状态污染。<strong>默认全禁再按需放开</strong>：无出网、无凭据、无宿主挂载、无特权、非 root，只挂载任务输入与只读依赖；出网需按域名白名单显式开启并审计。<strong>资源配额先于代码执行</strong>：CPU、内存、进程数、磁盘、墙钟时限在启动参数里定死，超限由运行时终止而不是靠业务超时。<strong>输出是可控数据而非可执行物</strong>：只回传结构化结果与白名单文件，禁止把生成代码直接送进宿主流水线执行。<strong>双层隔离</strong>：容器只做资源边界，系统调用面还要靠 seccomp / gVisor 一类机制收窄。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>落地形态二选一：托管沙箱服务（E2B 一类）适合快速接入与弹性，自研 K8s 隔离 Pod 适合数据不出域与统一审计。无论哪种，编排层都应把「执行代码」当作普通工具，带 <code class="inline-code">task_id</code>、租户、超时预算与副作用等级，高风险任务强制人工确认。</p>
+              <div class="code-block">
+                <pre><code># 自研 K8s 隔离 Pod（示意）：默认全禁 + 硬配额 + 一次性
+apiVersion: v1
+kind: Pod
+metadata:
+  labels: { sandbox-task-id: TASK_ID, tenant: TENANT }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: runner
+      image: sandbox-runner:pin
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      resources:
+        limits: { cpu: "1", memory: 512Mi, ephemeral-storage: 256Mi }
+      env:
+        - { name: EGRESS_MODE, value: "deny" }
+        - { name: WALL_CLOCK_MS, value: "15000" }
+      volumeMounts:
+        - { name: input, mountPath: /work/input, readOnly: true }
+        - { name: tmp, mountPath: /tmp }
+  restartPolicy: Never
+  activeDeadlineSeconds: 20</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 编排侧：把沙箱当普通工具，结果白名单 + 全程审计（Python 侧）
+def run_code_task(code: str, ctx: RunContext) -&gt; SandboxResult:
+    if ctx.risk_budget.denies("code_exec"):
+        return SandboxResult.denied("risk budget")
+    audit.append(ctx.task_id, ctx.tenant, "sandbox_start", sha256(code))
+    try:
+        out = sandbox.run(
+            code=code,
+            timeout_ms=15_000,
+            egress_allowlist=[],
+            mounts=[("input", ctx.input_ref, "ro")],
+            output_whitelist=["result.json", "chart.png"],
+        )
+    except SandboxLimitExceeded as e:
+        return SandboxResult.failed(e.reason)   # 业务链路安全降级
+    finally:
+        sandbox.destroy(ctx.task_id)             # 一次性，绝不复用
+    audit.append(ctx.task_id, "sandbox_done", out.exit_code, out.resources)
+    return SandboxResult.ok(out.artifacts)</code></pre>
+              </div>
+              <p>必测四类逃逸面：出网 DNS/HTTP 试探、读取宿主环境变量与元数据服务、进程数耗尽与 fork 炸弹、超大输出打爆内存。测试以红队用例进 CI，任一通过即视为门禁失败。生产按租户设并发上限与总配额，低置信度的生成代码进人工复核队列而非直接执行。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>复用沙箱容器做「性能优化」：上一任务的临时文件与凭据残留被下一任务读到。只做容器隔离不收窄系统调用：内核面成为逃逸通道。出网默认放开：模型被间接注入后把输入数据外带。用业务侧超时兜底而不设运行时硬限：进程仍在后台跑并继续计费。把生成代码直接送进宿主流水线：沙箱形同虚设。执行结果无审计：出问题只能靠猜。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：代码沙箱 = 一次性环境 + 默认全禁 + 硬资源配额 + 输出白名单 + 全程审计；判据是四类逃逸用例全部被拦，且失败时业务链路能安全降级。</p>
+              <p><strong>向下回指</strong>：A10.04 讨论工具执行边界，A33.07 讨论高风险能力准入，C12.51 讲 MCP 工具副作用分级，C12.54 讲人在环审批；本卡只负责代码执行这一类高危能力的隔离规格。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.61" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.61</div>
+            <div class="content-question">Trace 观测平台选型：LangFuse / LangSmith / Opik / Phoenix 的自托管边界？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>线上一次回答错了，要能回答「模型入参是什么、检索回了哪几段、工具调了几次、哪一环耗时异常」——没有 Trace，排查只能靠复述用户描述。但把全量提示词与检索原文上报给第三方 SaaS，在很多业务里本身就是合规红线。本题考察选型时真正决定成败的不是界面功能，而是<strong>数据主权、埋点侵入性、与通用 OTel 底座的关系、以及评测数据能否同平台闭环</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>观测数据比普通日志更敏感</strong>：提示词、检索片段、工具参数可能含个人信息与业务机密，采集范围与脱敏策略必须先于平台选型定下来。<strong>埋点应走标准协议</strong>：优先基于 OpenTelemetry GenAI 语义约定上报，平台作为后端可替换；SDK 深度绑定的方案会把迁移成本写进每一行业务代码。<strong>Trace 与评测同源</strong>：线上 Bad Case 要能一键转成评测集样本，否则「观测」与「回归」永远是两套数据。<strong>采样是可调策略而非常量</strong>：全量Trace 成本高，按错误、慢请求、低置信度与固定比例组合采样，且采样决策要可解释。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>四个候选的定位差异：LangFuse 自托管友好、Prompt 与 Dataset 一体，适合数据不出域；LangSmith 与编排框架集成深、托管体验完整，适合无自托管要求；Opik 开源自托管、评测与实验管理并重；Arize Phoenix 偏评测与向量检索诊断、基于 OTel 生态。判据按「能否自托管 / 是否兼容 OTel / SDK 是否可替换 / 数据集与评测是否同平台 / 采样与脱敏是否可配」逐项打分，而不是按功能数量。</p>
+              <div class="code-block">
+                <pre><code># 自托管编排（示意）：平台本体与业务数据库同域，出网默认关闭
+services:
+  trace-platform:
+    image: langfuse/langfuse:pin
+    environment:
+      - DATABASE_URL=${TRACE_DB_URL}
+      - NEXTAUTH_SECRET=${TRACE_SECRET}
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=${TRACE_BUCKET}
+    depends_on: [trace-db]
+    networks: [internal]
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:pin
+    volumes: [./otel-config.yaml:/etc/otel/config.yaml:ro]
+    networks: [internal]
+networks: { internal: { internal: true } }</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Java 侧：基于 OTel 语义约定埋点，平台后端可替换
+@Bean
+ObservationRegistry obs(ObservationRegistry r) {
+  return r.observationConfig()
+      .observationHandler(new GenAiTraceHandler())   // 只写标准属性
+      .build();
+}
+// span 属性：gen_ai.system / gen_ai.request.model / gen_ai.usage.*
+// 检索与工具调用作为子 span，traceparent 跨 Java/Python 透传
+Observation obs = Observation.createNotStarted("gen_ai.chat", registry)
+    .lowCardinalityKeyValue("gen_ai.request.model", alias)
+    .lowCardinalityKeyValue("tenant_id", tenant)
+    .start();
+try (Scope s = obs.openScope()) { return callGateway(alias, prompt); }
+finally { obs.stop(); }</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Python 侧：同一 traceparent，Trace → Bad Case → Dataset 闭环
+from opentelemetry import trace
+tracer = trace.get_tracer(__name__)
+with tracer.start_as_current_span("gen_ai.rag.retrieve") as sp:
+    sp.set_attribute("retrieval.doc_ids", ",".join(doc_ids))
+    sp.set_attribute("retrieval.top_k", len(doc_ids))
+    chunks = retriever.search(query)
+
+def promote_bad_case(trace_id: str, reason: str) -&gt; None:
+    item = trace_client.get(trace_id)      # 含入参/上下文/工具链
+    dataset.add(item.redacted(), reason=reason, split="regression")
+    # 脱敏后才入评测集，禁止把原文直接沉淀</code></pre>
+              </div>
+              <p>上线前必做三项验证：断网自托管实例仍能完整记录一次工具调用链；把同一批 span 导出到另一个后端无需改业务代码；从线上一条低置信度 Trace 生成评测样本并成功驱动一次回归。三项任一失败，说明平台锁死了数据或锁死了代码。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把全量提示词原文上报第三方：合规评审卡在数据流图那一关。SDK 深度侵入业务代码：换平台等于重写埋点层。Trace 只记结果与耗时：看不到检索上下文与工具链，问题仍然定位不了。观测与评测两套数据：Bad Case 无法自动回流，回归集长期不更新。采样只按固定比例：错误与慢请求被随机漏掉，恰好抽不到要查的那条。脱敏放在展示层：原始敏感数据已经落库。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：Trace 平台选型的判据是「数据主权 + 标准埋点 + Trace 与评测同源 + 可解释采样」；判据的硬验证是断网可用、后端可换、Bad Case 能一键进回归集。</p>
+              <p><strong>向下回指</strong>：C12.08 讲可观测与评测体系，C12.23 讲链路追踪，C12.56 讲 Bad Case 回流，C12.63 讲 GenAI 观测与 OTel 底座分工；本卡只负责平台选型的边界条件。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.62" data-difficulty="expert" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.62</div>
+            <div class="content-question">Prompt 版本、批量离线评测与人工标注队列如何形成闭环？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>提示词改一个词，整体正确率可能不变而高风险子类掉一半；没有版本与回归机制，这类退化只会在客诉里被发现。另一头，线上人工反馈如果只停留在工单系统，评测集就永远不增长。本题考察把 Prompt 当作可发布资产来治理：<strong>版本化、可 A/B、可批量离线评测、可把人工标注回流成回归样本</strong>，四段构成一条闭环。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>Prompt 是发布物而非配置片段</strong>：模板、变量 schema、模型别名、解码参数、检索策略共同决定输出，必须作为一个不可变版本整体发布，单独改模板不改版本等于无法回放。<strong>离线评测先于线上实验</strong>：候选版本先在 Golden Set 上批量跑完并拿到非劣效结论，才允许分配小流量；顺序反了会让真实用户承担回归风险。<strong>标注队列是数据源不是工单</strong>：每条人工判定要带原始输入、Trace、判定理由与标签人，脱敏后才进评测集，且记录来源版本以便日后剔除过期样本。<strong>A/B 判定以版本为单位</strong>：同一时刻只允许一组对照变量，多版本与多模型同时变更会让结论无法归因。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>闭环五段：版本登记（Prompt + 参数 + 依赖别名）→ 批量离线评测（全量 Golden Set + 高风险子集）→ 小流量 A/B → 人工标注队列（低置信度、差评、客诉）→ 样本脱敏回流评测集。版本元数据可用 MLflow 一类实验登记或自研版本中心承载，标注队列可用 LabelStudio 或平台内置标注能力，关键是产出统一的样本 schema。</p>
+              <div class="code-block">
+                <pre><code># 版本登记（示意）：Prompt 与全部依赖整体不可变
+prompt_versions:
+  - id: triage-v7
+    template_ref: prompts/triage@v7.j2
+    variables_schema: schemas/triage-input.json
+    model_alias: chat-main
+    decode: { temperature: 0.0, max_tokens: 800 }
+    retrieval: { top_k: 6, rerank: bge-v2 }
+    owner: ai-platform
+    immutable: true
+
+offline_eval:
+  dataset: golden-set@2026-11
+  suites: [full, high_risk, injection, long_context]
+  judge: external
+  gate: { delta: -0.02, confidence: 0.95, hard: [injection, high_risk] }</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 批量离线评测 + 非劣效门禁（Python 侧）
+def evaluate(candidate: str, baseline: str) -&gt; EvalVerdict:
+    ds = dataset.load("golden-set@2026-11", redacted=True)
+    runs = {v: batch_run(v, ds, concurrency=8) for v in (baseline, candidate)}
+    report = compare(runs, judge="external", bootstrap=1000)
+    for suite in ("high_risk", "injection"):
+        if report[suite].delta &lt; 0:            # 高风险面硬门禁
+            return EvalVerdict.block(suite, report[suite])
+    if not report.non_inferior(delta=-0.02, confidence=0.95):
+        return EvalVerdict.block("overall", report)
+    return EvalVerdict.pass_with(report.as_evidence())
+
+# 标注队列回流：脱敏 + 来源版本 + 去重
+def promote(label: HumanLabel) -&gt; None:
+    trace = trace_client.get(label.trace_id)
+    sample = Sample(
+        input=redact(trace.input),
+        context=redact(trace.retrieved_chunks),
+        expected=label.expected,
+        reason=label.reason,
+        source_prompt_ver=trace.prompt_ver,
+        source_model_alias=trace.model_alias,
+        annotator=label.annotator,
+    )
+    dataset.add_if_absent(sample, key=sha256(sample.input))</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code>// Java 侧：发布单绑定版本，缺任一字段拒绝准出
+public record PromptRelease(
+    String promptVer, String modelAlias, String retrievalVer,
+    String goldenSetVer, String evalEvidenceId,
+    double delta, boolean nonInferior, String approver) {}
+
+public void release(PromptRelease r) {
+  if (r.promptVer() == null || r.evalEvidenceId() == null
+      || !r.nonInferior() || r.approver() == null) {
+    throw new ReleaseGateException("评测证据或审批缺失");
+  }
+  router.setCanary(r.promptVer(), 0.05);   // 离线通过后才给 5% 流量
+}</code></pre>
+              </div>
+              <p>评测集治理要防两件事：样本被线上流量稀释（新增样本必须带来源与难度标签）、以及过期样本拖住新版本（标记来源版本，模型与检索策略大版本升级时做一次分层复评）。标注一致率定期用双人抽检校准，一致率下降时先修标注规范，再谈效果结论。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>Prompt 写在代码常量里随发版热改：无版本号，线上问题无法回放是哪版。跳过离线评测直接上 A/B：把回归风险转嫁给真实用户。A/B 同时改模板和模型：结论无法归因，最后谁也不知道是哪个变量起作用。标注原文直接进评测集：个人信息沉淀进测试资产，合规与数据生命周期双重失控。为赶发布调宽非劣效界值：门禁仍全绿但已不拦截真实退化，属于典型假绿。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：Prompt 治理闭环 = 不可变版本 + 离线批量评测门禁 + 小流量 A/B + 脱敏标注回流；判据是任何一次效果变化都能定位到唯一版本与对应评测证据。</p>
+              <p><strong>向下回指</strong>：C12.29 讲评测集与质量卡门，C12.52 讲非劣效 CI 流水线，C12.05 讲 Prompt 工程，C12.56 讲 Bad Case 回流；本卡只负责版本发布与标注回流这两段。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.63" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.63</div>
+            <div class="content-question">GenAI 观测与通用 OTel 底座怎么分工而不双写？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>很多团队同时上了 LLM Trace 平台和通用链路追踪，结果同一条请求在业务代码里埋两遍点、出两份互相对不上的耗时，故障排查时反而要先判断该看哪个系统。根因是把「AI 语义观测」和「全栈链路追踪」当成了两套体系。本题考察用一份埋点、两类后端消费：<strong>语义归 GenAI 平台，拓扑归通用追踪后端，指标归时序库</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>一份事实，多种投影</strong>：同一次调用只产生一组 span 与一组指标，按 OTel GenAI 语义约定命名属性；Trace 平台消费语义属性，Tempo / Jaeger / SigNoz 一类后端消费拓扑与耗时，Prometheus 消费聚合指标。禁止为不同后端各埋一次点。<strong>跨栈靠 traceparent 连续</strong>：Java 业务服务、模型网关、Python 推理服务必须共享同一 trace id，否则 AI 链路与数据库、RPC、网关链路断成两截。<strong>高基数属性不进指标</strong>：提示词、检索片段、用户输入只进 Trace 且受采样与脱敏约束；指标侧只保留低基数标签（别名、租户档位、结果码），避免时序库被打爆。<strong>采样决策在 Collector 统一做</strong>：错误、慢请求、低置信度强制保留，其余按比例采样，业务代码不感知策略变化。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>落地形态是「应用埋点 → OTel Collector → 三路导出」：Trace 平台、通用追踪后端、指标存储各接一路 exporter。Collector 同时承担脱敏（丢弃或掩码敏感属性）与采样，策略变更只改配置不改业务代码。</p>
+              <div class="code-block">
+                <pre><code># OTel Collector（示意）：一次采集，三路导出 + 集中脱敏采样
+processors:
+  attributes/redact:
+    actions:
+      - { key: gen_ai.prompt, action: delete }
+      - { key: retrieval.chunk_text, action: delete }
+      - { key: user.input, action: hash }
+  tail_sampling:
+    decision_wait: 10s
+    policies:
+      - { name: errors, type: status_code, status_code: { status_codes: [ERROR] } }
+      - { name: slow, type: latency, latency: { threshold_ms: 3000 } }
+      - { name: baseline, type: probabilistic, probabilistic: { sampling_percentage: 10 } }
+exporters:
+  otlp/trace-platform: { endpoint: "${GENAI_TRACE_ENDPOINT}" }
+  otlp/tempo:          { endpoint: "${TEMPO_ENDPOINT}" }
+  prometheus:          { endpoint: "0.0.0.0:9464" }
+service:
+  pipelines:
+    traces:  { receivers: [otlp], processors: [attributes/redact, tail_sampling],
+              exporters: [otlp/trace-platform, otlp/tempo] }
+    metrics: { receivers: [otlp], processors: [attributes/redact],
+              exporters: [prometheus] }</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code>// Java 侧：标准属性 + 低基数指标，跨栈透传 traceparent
+@Bean
+MeterBinder genAiMetrics() {
+  return registry -&gt; Gauge.builder("gen_ai.tokens.total", tokenCounter,
+          AtomicLong::get)
+      .tag("model_alias", alias)      // 低基数
+      .tag("result", "ok|error")
+      .register(registry);
+}
+// 调用 Python 推理服务时显式透传上下文（HTTP header）
+HttpHeaders h = new HttpHeaders();
+h.set("traceparent", W3CPropagation.current());
+h.set("X-Tenant-Id", tenant);
+restClient.post().uri(inferUrl).headers(x -&gt; x.addAll(h)).retrieve();</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Python 侧：从 traceparent 续接同一 trace，不新建根 span
+from opentelemetry.propagate import extract
+from opentelemetry import trace
+
+ctx = extract(headers)             # 读取 Java 侧透传的 traceparent
+tracer = trace.get_tracer(__name__)
+with tracer.start_as_current_span("gen_ai.inference", context=ctx) as sp:
+    sp.set_attribute("gen_ai.request.model", model_alias)
+    sp.set_attribute("gen_ai.usage.input_tokens", n_in)
+    sp.set_attribute("gen_ai.usage.output_tokens", n_out)
+    result = engine.generate(prompt)</code></pre>
+              </div>
+              <p>验收判据：随机取一个 <code class="inline-code">task_id</code>，能在通用追踪后端看到从网关到数据库、RPC、Python 推理的完整拓扑，同时能在 Trace 平台看到同一次调用的提示词版本、检索片段与工具序列，且两侧 trace id 一致；指标侧的 P95、错误率、token 消耗、缓存命中率、检索耗时与日志可对账。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>为两个后端各埋一次点：耗时统计互相矛盾，业务代码里两套 SDK 交织。把提示词原文当指标标签：高基数直接打爆时序库。采样写死在应用里：策略调整要全量发版。脱敏只做在展示层：原始敏感属性已进 Collector 与存储。traceparent 在跨语言调用处断开：AI 链路与后端链路对不上，故障定位仍靠人工拼时间线。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：分工 = 一份 OTel 埋点、Collector 统一脱敏采样、三路后端各取所需；判据是同一个 task_id 在语义 Trace 与全栈拓扑里是同一条链。</p>
+              <p><strong>向下回指</strong>：C12.08 讲可观测体系，C12.23 讲链路追踪，C12.61 讲 Trace 平台选型，C18 相关卡讲 traceparent 跨栈透传；本卡只负责 GenAI 语义观测与通用底座的边界。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.64" data-difficulty="architect" data-priority="p0">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.64</div>
+            <div class="content-question">PII 脱敏与内容审计台账：入模前掩码、水印与溯源怎么落地？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p0">P0</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>把身份证号、手机号、银行卡原样传给模型，既是合规底线问题，也是数据生命周期问题：一旦进入第三方日志与 Trace 存储，撤回几乎不可能。另一头，AI 生成内容进入业务文档后，监管与审计会追问「这段是谁在什么版本下生成的」。本题考察把两件事合成一条链：<strong>入模前自动脱敏，出模后可溯源，全程留不可变台账</strong>。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>脱敏发生在出域之前</strong>：在应用侧或网关侧完成，不能依赖模型自觉忽略，也不能等到日志展示层再遮。<strong>可逆与不可逆分开设计</strong>：多数分析场景只需不可逆掩码或格式保留令牌；确需还原的场景用独立密钥管理的令牌化服务，且还原动作单独授权与审计，禁止把映射表放进业务库。<strong>识别要分层</strong>：规则（正则/校验位）+ 命名实体识别（Presidio 一类）+ 业务字典，三层并用；只用正则会漏掉自由文本里的姓名与地址。<strong>台账是不可变事实</strong>：记录任务、租户、模型别名、Prompt 版本、脱敏策略版本、输入摘要、输出摘要、水印标识与审批号，只追加不修改。<strong>水印是溯源手段不是安全边界</strong>：能辅助判定内容来源，但不应被当作防篡改或防泄漏的保证。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>链路顺序固定：输入 → PII 识别 → 策略化脱敏 → 入模 → 输出护栏 → 内容标记/水印 → 审计台账追加。脱敏策略本身要版本化并纳入评测集，策略升级后必须回归「业务可用性」与「漏检率」两个指标，避免为了合规把关键字段全抹掉导致答案失效。</p>
+              <div class="code-block">
+                <pre><code>// Java 侧：入模前强制过脱敏闸门，未过即拒绝调用
+@Component
+public class PiiGate {
+  public SafePrompt apply(RawPrompt raw, TenantPolicy policy) {
+    List&lt;PiiHit&gt; hits = detectors.detect(raw.text(), policy.locale());
+    if (hits.isEmpty()) return SafePrompt.clean(raw, policy.version());
+    String masked = policy.mask(raw.text(), hits);   // 掩码 / 令牌化二选一
+    audit.append(raw.taskId(), "pii_masked", hits.types(), policy.version());
+    return SafePrompt.of(masked, hits.tokenMap(), policy.version());
+  }
+}
+
+// 调用点：脱敏结果作为唯一入参，原文本不出应用边界
+SafePrompt safe = piiGate.apply(raw, tenantPolicy);
+if (safe.hasResidualRisk()) throw new ComplianceGateException(raw.taskId());
+ChatResponse r = gateway.call(alias, safe.text());
+String out = guardrail.scan(r.text());
+audit.append(raw.taskId(), "model_io", alias, promptVer,
+             sha256(safe.text()), sha256(out), outWatermarkId);</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Python 侧：Presidio 三层识别 + 策略化脱敏（示意）
+from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+from presidio_anonymizer import AnonymizerEngine
+from presidio_anonymizer.entities import OperatorConfig
+
+registry = RecognizerRegistry()
+registry.add_business_dict("internal_customer_id", pattern=r"CUST-\d{8}")
+analyzer = AnalyzerEngine(registry=registry)
+anonymizer = AnonymizerEngine()
+
+def redact(text: str, policy: str) -&gt; RedactResult:
+    hits = analyzer.analyze(text=text, language="zh", score_threshold=0.6)
+    ops = {
+        "PHONE_NUMBER": OperatorConfig("mask", {"masking_char": "*", "chars_to_mask": 4}),
+        "ID_NUMBER":    OperatorConfig("replace", {"new_value": "&lt;ID_REDACTED&gt;"}),
+        "BANK_ACCOUNT": OperatorConfig("replace", {"new_value": "&lt;ACCT_REDACTED&gt;"}),
+    }
+    out = anonymizer.anonymize(text=text, analyzer_results=hits, operators=ops)
+    return RedactResult(out.text, hits, policy_ver=policy)</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 审计台账：只追加、带版本号、输入只留摘要
+audit_events:
+  - event: pii_masked
+    fields: [task_id, tenant, pii_types, policy_ver, ts]
+  - event: model_io
+    fields: [task_id, model_alias, prompt_ver, input_digest, output_digest,
+              watermark_id, approval_no, ts]
+  - event: content_restore
+    fields: [task_id, approver, reason, ts]   # 令牌还原单独授权
+retention: { immutable: true, append_only: true }</code></pre>
+              </div>
+              <p>必测三类漏检：自由文本中的姓名与地址、图片/OCR 文本里的证件号、检索文档携带的间接注入与个人信息。间接注入属于输入护栏而非脱敏，但同样要在入模前处理（见 C12.15 / C12.19）。评测集里为脱敏策略单设一组用例，指标是漏检率与业务字段可用率，两者都要过门禁。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>只在前端展示层打码：原文已进入模型、日志与第三方 Trace。用单一正则覆盖所有类型：自由文本中的姓名地址大量漏检。把令牌映射表放业务库并给应用直读权限：脱敏形同可逆明文。审计台账允许更新：追溯链可被事后改写，失去证据效力。把水印当防泄漏手段：水印只能辅助溯源，挡不住复制与截屏。间接注入只当内容问题不当安全问题：检索文档里的指令会绕过输入护栏。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：安全链路 = 入模前分层脱敏 + 出模后护栏与内容标记 + 不可变审计台账；判据是原文不出应用边界、任何一段生成内容都能回指任务与版本。</p>
+              <p><strong>向下回指</strong>：C12.15 讲 Prompt 注入与护栏，C12.19 讲间接注入，C12.31 讲数据权限，C12.39 讲合规落地，C12.46 讲不可变审计；本卡只负责 PII 与内容溯源这一段。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.65" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.65</div>
+            <div class="content-question">LLM 缓存分层与成本账单：精确缓存、语义缓存与按租户归因怎么对账？<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>缓存命中率上去之后，财务却问不出「省了谁的钱」：精确缓存、语义缓存、Embedding 缓存混在一个 Redis 里，命中记一条日志但不带租户与别名，成本账单只能按总调用量摊。更隐蔽的是语义缓存阈值设松了，把不同用户的相似问法返回同一答案，效果事故被当成成本优化。本题考察把缓存当成<strong>有分层、有判据、可归因</strong>的工程组件，而不是一个开关。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>精确缓存与语义缓存判据不同</strong>：前者要求规范化后的请求完全一致（含模型别名、Prompt 版本、解码参数、工具清单、检索策略版本），后者是相似度判定，必须带业务边界与置信度阈值，且高风险场景禁用。<strong>缓存键必须含全部影响输出的变量</strong>：漏掉 Prompt 版本或检索版本，改版后仍返回旧答案，是最典型的静默错误。<strong>命中也是一次调用</strong>：要记录任务、租户、别名、节省 token、命中层级与判定依据，否则成本归因断链。<strong>账单维度先于缓存设计</strong>：按租户、业务线、别名、任务类型四个维度聚合，网关审计事件与账单共用同一份事实。<strong>Embedding 缓存单独计量</strong>：文档入库与查询向量是两笔成本，混在 LLM 账单里会误判优化方向。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>三层分开：L1 精确缓存（Redis，规范化请求哈希）、L2 语义缓存（向量相似 + 阈值 + 业务隔离）、L3 Embedding 缓存（文本哈希 → 向量，按模型与版本分桶）。任一层命中都要产出统一结构的计量事件，供账单与看板消费。</p>
+              <div class="code-block">
+                <pre><code>// Java 侧：缓存键含全部影响输出的变量，避免改版后返回旧答案
+public String exactKey(ChatRequest r) {
+  Canonical c = Canonical.of(
+      r.alias(), r.promptVer(), r.normalizedMessages(),
+      r.decodeParams(), r.toolVersions(), r.retrievalVer(),
+      r.tenantPolicyVer());              // 权限策略变化也要失效
+  return "llm:exact:" + sha256(c.json());
+}
+
+public CacheHit lookup(ChatRequest r) {
+  var hit = redis.get(exactKey(r));
+  if (hit != null) return CacheHit.exact(hit);
+  if (r.riskLevel().forbidsSemanticCache()) return CacheHit.miss();
+  var near = semanticIndex.search(r.embedding(), r.tenant(),
+                                  r.bizScope(), 0.92);
+  return near.map(CacheHit::semantic).orElse(CacheHit.miss());
+}
+
+// 命中也发计量事件：账单与网关审计共用同一事实
+metering.emit(MeteringEvent.of(taskId, tenant, bizLine, alias,
+        hit.level(), hit.savedTokens(), hit.score(), promptVer));</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Python 侧：Embedding 缓存按模型与版本分桶，入库/查询分别计量
+def embed(texts: list[str], model_ver: str, usage: str) -&gt; list[list[float]]:
+    bucket = f"emb:{model_ver}"
+    keys = [sha256(t) for t in texts]
+    cached = cache.mget(bucket, keys)
+    missing = [t for t, v in zip(texts, cached) if v is None]
+    fresh = client.embed(missing, model=model_ver) if missing else []
+    cache.mset(bucket, [sha256(t) for t in missing], fresh)
+    metering.emit(usage=usage, cached=len(texts) - len(missing),
+                 computed=len(missing), model_ver=model_ver)
+    return merge(cached, fresh)</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 成本账单聚合维度（与网关审计事件同源）
+bill_dimensions: [tenant, biz_line, model_alias, task_type]
+bill_metrics:
+  - input_tokens
+  - output_tokens
+  - cached_tokens_saved            # 精确 + 语义分层小计
+  - embedding_calls_cached
+  - cost_cny
+reconcile:
+  source: gateway_audit_events
+  rule: sum(cost_cny) == vendor_invoice_amount within_tolerance: 0.005
+alerts:
+  - { metric: cost_per_task, condition: pct_increase &gt; 0.3, window: 1h }
+  - { metric: tenant_quota_used, condition: ratio &gt; 0.8, scope: per_tenant }</code></pre>
+              </div>
+              <p>语义缓存上线前必须用评测集验证「相似但答案不同」的对抗样本（同名不同人、同问题不同租户、时间敏感问法），命中错误率超阈即收缩适用范围。每月做一次账单对账：网关审计事件聚合金额与供应商发票差异需落在容差内，差异来自采样丢失或计量事件缺字段，都是可定位的工程缺陷而非财务误差。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>缓存键漏 Prompt 版本或检索版本：改版后仍返回旧答案，表现为「发布没生效」。语义缓存跨租户共享：不同租户的相似问法互相命中，形成数据越界。高风险场景开语义缓存：金额、审批、医疗类问题被近似答案覆盖。命中不记计量事件：成本归因断链，账单只能按总量摊派。Embedding 缓存不分模型版本：换 Embedding 模型后旧向量被复用，检索质量静默下降。只按全局限额不按租户：单租户突发打满共享配额。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：缓存分层 = 精确/语义/Embedding 三层各自判据 + 全变量缓存键 + 命中也计量的统一事实；判据是按租户账单能与供应商发票对账。</p>
+              <p><strong>向下回指</strong>：C12.09 讲成本与缓存权衡，C12.18 讲语义缓存，C12.26 讲成本归因，S12.02 讲成本翻倍排查；本卡只负责三层缓存的判据与账单可归因。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.66" data-difficulty="expert" data-priority="p2">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.66</div>
+            <div class="content-question">私有推理服务选型与模型版本治理：vLLM / TGI / BentoML 与 LoRA 热切换？<span class="difficulty difficulty-expert">专家</span><span class="priority priority-p2">P2</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>调用云上 API 的团队不需要这一层；一旦决定私有化部署，就要同时面对显存、批处理、扩缩容、权重版本与多租户 LoRA，复杂度跳一个数量级。常见失误是把推理引擎当成「一个更慢的 HTTP 服务」，按 CPU 指标扩容，结果随机 OOM 且无法解释。本题考察按资源特性选型，并把模型版本与适配器热切换纳入发布治理。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>选型看调度能力而非接口形态</strong>：vLLM 的连续批处理与 PagedAttention 面向高并发显存复用，SGLang 面向复杂解码与结构化生成，TGI 偏生产稳定与生态兼容，BentoML 一类更适合做多模型打包与部署编排；判据是目标负载下的单 token 成本与 P95，不是 benchmark 峰值吞吐。<strong>伸缩曲线与 GPU 绑定</strong>：扩容信号应取队列深度、首字节时延与显存占用，HPA 自定义指标而非 CPU。<strong>权重、量化、分词器、模板共构一个版本</strong>：任一变化都要升版本并进评测集，响应里必须回带版本字段。<strong>LoRA 是发布单元</strong>：动态加载要按租户与命名空间隔离，加载失败回退基座而非返回错误；热切换也要可灰度、可回滚、可审计。<strong>无状态服务 + 只读权重挂载</strong>：模型权重不随镜像反复打包，回滚才不会变成拉全量模型。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>版本登记可用 MLflow Model Registry 一类模型注册中心或自研台账，字段至少含基座、量化精度、分词器版本、提示模板版本、适配器清单与评测证据 id。运行时按别名解析到具体版本，与 L1 的网关别名形成两级映射。</p>
+              <div class="code-block">
+                <pre><code># 推理服务编排（示意）：GPU 配额 + 就绪探针 + 权重只读挂载 + 自定义指标扩容
+resources:
+  limits: { nvidia.com/gpu: 1, memory: 32Gi }
+  requests: { cpu: "4", memory: 16Gi }
+env:
+  - { name: MODEL_ALIAS, value: "chat-private-v3" }
+  - { name: MAX_NUM_SEQS, value: "64" }
+  - { name: GPU_MEMORY_UTILIZATION, value: "0.90" }
+volumeMounts:
+  - { name: weights, mountPath: /models, readOnly: true }
+  - { name: adapters, mountPath: /adapters, readOnly: true }
+readinessProbe:
+  httpGet: { path: /healthz, port: 8000 }
+  periodSeconds: 10
+---
+# HPA：按队列深度与首字节时延扩容，不看 CPU
+metrics:
+  - type: Pods
+    pods: { metric: { name: inference_queue_depth }, target: { type: AverageValue, averageValue: "8" } }
+  - type: Pods
+    pods: { metric: { name: ttft_p95_ms }, target: { type: AverageValue, averageValue: "800" } }
+behavior:
+  scaleDown: { stabilizationWindowSeconds: 300 }   # 防权重反复加载抖动</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># Python 侧：版本字段 + 动态 LoRA 按租户隔离 + 失败回退基座（示意）
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+app = FastAPI()
+engine = load_engine(MODEL_ALIAS)       # 由注册中心解析到具体版本
+
+class GenReq(BaseModel):
+    prompt: str
+    tenant: str
+    adapter: str | None = None
+    task_id: str
+
+@app.post("/v1/generate")
+def generate(r: GenReq):
+    try:
+        lora = registry.resolve(r.tenant, r.adapter) if r.adapter else None
+        out = engine.generate(r.prompt, lora=lora)
+    except AdapterNotFoundError:
+        out = engine.generate(r.prompt, lora=None)   # 回退基座并告警
+        audit.warn(r.task_id, "adapter_fallback", r.adapter)
+    return {
+        "text": out.text,
+        "model_ver": engine.model_ver,       # 四元组版本字段
+        "quant_ver": engine.quant_ver,
+        "tokenizer_ver": engine.tokenizer_ver,
+        "template_ver": engine.template_ver,
+        "adapter_ver": lora.version if lora else "base",
+        "task_id": r.task_id,
+    }</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 模型注册台账：版本四元组 + 评测证据 + 灰度状态
+models:
+  - alias: chat-private-v3
+    base: Qwen2.5-32B-Instruct
+    quant: awq-int4
+    tokenizer_ver: v3
+    template_ver: 2026-11
+    engine: vllm
+    eval_evidence: eval-2026-11-03
+    status: canary-10
+adapters:
+  - { name: finance-qa, tenant: t-fin, ver: v5, status: active }
+  - { name: finance-qa, tenant: t-fin, ver: v6, status: canary-5 }</code></pre>
+              </div>
+              <p>准出判据：任一版本四元组变化触发评测集回归；灰度按别名与租户双维度分流，回滚只改映射表不重新拉权重；所有响应携带版本字段，缺字段即拒绝归档到 Trace 与账单。容量演练用真实批大小压测，记录显存峰值与队列深度的关系，而不是只看单请求延迟。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>按 CPU 指标扩容 GPU 服务：CPU 很低但显存已满，扩容不触发而请求持续排队。权重随镜像打包：回滚一次要拉数十 GB，RTO 不可接受。响应不带版本字段：换权重后输出风格变化，评测集与线上表现对不上且无法归因。动态 LoRA 不做租户隔离：A 租户加载的适配器被 B 租户命中，形成数据越界。适配器加载失败直接报错：本可回退基座的请求变成全线失败。连续批处理不设上限：显存被突发长序列打满，表现为随机 OOM。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：私有推理层 = 按资源特性选引擎 + 版本四元组进注册中心 + 权重只读无状态 + LoRA 作为可灰度的发布单元；判据是任何一次生成都能回指确切版本并一键回滚。</p>
+              <p><strong>向下回指</strong>：C12.02 讲 RAG 与向量库，C12.55 讲 Java × Python 混合部署，C16 相关卡讲 vLLM 显存与动态批，A33.04 讲私有化推理选型；本卡只负责模型服务层的版本治理与热切换。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card" id="C12.67" data-difficulty="architect" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C12.67</div>
+            <div class="content-question">AI 专属发布流水线：非劣效门禁、金丝雀与影子路由怎么串？<span class="difficulty difficulty-architect">架构</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>传统 CI/CD 的准出依据是「测试全绿 + 构建成功」，而 AI 应用即使单测全绿，也可能因为换模型别名、改 Prompt 或调检索策略让高风险子类成功率腰斩。把 AI 专属回归评测直接塞进普通流水线，又会因为评测耗时与成本让每次提交都变慢。本题考察三段式准出：<strong>离线评测门禁、影子路由、按维度金丝雀</strong>，以及每段的回滚锚点。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>两段准出而非一次判定</strong>：代码变更走快速单测与契约测试，效果变更（Prompt / 别名 / 检索 / 工具版本）额外触发评测集回归，非劣效结论作为发布单的必需证据。<strong>影子流量不参与返回</strong>：新版处理复制流量，只记录输出与指标用于对比，用户侧零风险；影子结论达标才进入真实灰度。<strong>灰度维度要可切</strong>：按租户、业务线、任务类型或模型别名切分，禁止只按随机百分比——否则长尾风险面被均值稀释。<strong>回滚锚点是一组版本而非一个镜像 tag</strong>：Prompt 版本、模型别名、检索策略、工具版本、评测集版本共同定版，任一回滚都要整体回到同一组合。<strong>发布与评测共用事实源</strong>：Trace 里的线上指标与离线评测指标用同一套定义，才谈得上「线上验证离线结论」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p>流水线分五段：构建与单测 → 效果变更检测 → 离线批量评测（非劣效门禁）→ 影子运行 → 金丝雀放量。效果变更检测靠版本清单比对，没有效果变更时跳过评测以降低流水线成本，但每周至少跑一次全量基线回归防止评测集自身漂移。</p>
+              <div class="code-block">
+                <pre><code># CI 流水线（示意）：效果变更检测 + 非劣效门禁 + 发布单定版
+stages:
+  - name: build
+    script: [mvn -q test, npm run format:html:check]
+  - name: effect-change-detect
+    script:
+      - release diff --fields prompt_ver,model_alias,retrieval_ver,tool_vers
+      - release need-eval || echo "no effect change; weekly baseline only"
+  - name: offline-eval
+    rules: [{ when: need_eval }]
+    script:
+      - eval run --set golden-set@${GOLDEN_SET_VER} --judge external
+      - eval compare --baseline main --delta -0.02 --confidence 0.95
+      - eval gate --hard high_risk --hard injection --require trajectory_pass
+  - name: shadow
+    script: [release shadow --percent 5 --compare-only]
+  - name: canary
+    script: [release canary --dimension tenant --percent 5 --step 5]
+
+release_manifest:
+  prompt_ver: triage-v8
+  model_alias: chat-main
+  retrieval_ver: hybrid-v3
+  tool_vers: { query_order: v3, refund: v2 }
+  golden_set_ver: golden-set@2026-11
+  eval_evidence_id: eval-2026-11-11-01</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code>// Java 侧：发布单校验 —— 缺评测证据或审批即拒绝准出
+public void deploy(ReleaseManifest m) {
+  if (!m.effectChanged()) { deployPlain(m); return; }
+  if (m.evalEvidenceId() == null || !m.nonInferior()
+      || m.approver() == null || m.goldenSetVer() == null) {
+    throw new ReleaseGateException("AI 效果变更缺少评测证据链");
+  }
+  router.enableShadow(m, 0.05);      // 影子只记录不返回
+  if (shadowReport(m).passes()) router.enableCanary(m, 0.05);
+}
+
+// 回滚：整组版本一起回退，禁止只回退镜像
+public void rollback(ReleaseManifest current) {
+  ReleaseManifest prev = manifestStore.previousOf(current);
+  router.applyAll(prev.versionTuple());
+  audit.append(current.id(), "rollback", prev.versionTuple());
+}</code></pre>
+              </div>
+              <div class="code-block">
+                <pre><code># 金丝雀路由（示意）：按租户维度切分 + 自动止损
+canary:
+  dimension: tenant
+  buckets: [t-pilot-a, t-pilot-b]
+  steps: [5, 15, 50, 100]
+  observe_minutes: 30
+  guard_metrics:
+    - { name: answer_pass_rate, min_delta: -0.02 }
+    - { name: p95_latency_ms, max_delta: 0.15 }
+    - { name: cost_per_task, max_delta: 0.10 }
+    - { name: forbidden_tool_hits, max: 0 }        # 硬止损
+  on_breach: rollback_all_versions</code></pre>
+              </div>
+              <p>影子期与灰度期都要按高风险子类单独看指标，不允许被总体均值稀释；止损条件触发时自动整组回滚并把该批次样本沉淀为 Bad Case。每周全量基线回归用于发现评测集自身漂移与评估器偏差，这两类问题会表现为「离线全绿、线上退化」。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">陷阱与反例</div>
+            <div class="content-layer-body">
+              <p>把效果变更当普通代码变更：只跑单测就发布，回归完全靠线上客诉发现。影子流量参与返回：对比数据被污染，用户已承担风险。只按随机百分比灰度：长尾与高风险租户被均值稀释，放量后才集中爆发。回滚只回退镜像：Prompt 与模型别名仍是新版，版本组合不自洽。为赶发布调宽界值或关闭轨迹门禁：门禁全绿但不再拦截真实退化。离线与线上指标定义不一致：无法验证离线结论是否成立。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="summary">
+            <div class="content-layer-title">一句话结论</div>
+            <div class="content-layer-body">
+              <p>一句话：AI 发布流水线 = 效果变更检测 → 离线非劣效门禁 → 影子对比 → 按维度金丝雀 → 整组版本回滚；判据是任何一次放量都有对应评测证据，任何一次回滚都回到自洽的版本组合。</p>
+              <p><strong>向下回指</strong>：C12.29 讲质量卡门，C12.52 讲非劣效 CI 流水线，C12.62 讲 Prompt 版本发布，C12.20 讲故障转移；本卡只负责把评测证据接进发布与灰度链路。</p>
             </div>
           </div>
         </div>

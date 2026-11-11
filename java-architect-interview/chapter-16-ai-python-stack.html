@@ -22,20 +22,48 @@
       <aside class="sidebar-toc sidebar-code-c">
         <h3>本篇目录</h3>
         <ol>
-          <li><a href="#C16.01"><span class="toc-number">C16.01</span>Python 在 AI 服务生产栈的定位与边界</a></li>
-          <li><a href="#C16.02"><span class="toc-number">C16.02</span>推理服务化：FastAPI / vLLM / Triton 如何选型接入</a></li>
-          <li><a href="#C16.03"><span class="toc-number">C16.03</span>模型加载与 GPU 显存管理怎么做才不 OOM</a></li>
-          <li><a href="#C16.04"><span class="toc-number">C16.04</span>批处理（batching）与动态批处理如何提升吞吐</a></li>
-          <li><a href="#C16.05"><span class="toc-number">C16.05</span>推理流水线编排（预处理/后处理）怎么不成为瓶颈</a></li>
-          <li><a href="#C16.06"><span class="toc-number">C16.06</span>向量检索与 Embedding 服务（Python 侧）如何落地</a></li>
-          <li><a href="#C16.07"><span class="toc-number">C16.07</span>异步并发模型与事件循环陷阱如何避坑</a></li>
-          <li><a href="#C16.08"><span class="toc-number">C16.08</span>进程模型与 GIL：多进程/多 worker 部署如何设计</a></li>
-          <li><a href="#C16.09"><span class="toc-number">C16.09</span>与 Java 后端的服务间通信（gRPC/HTTP）如何稳定</a></li>
-          <li><a href="#C16.10"><span class="toc-number">C16.10</span>推理服务可观测性：日志/指标/Trace 如何接入</a></li>
-          <li><a href="#C16.11"><span class="toc-number">C16.11</span>模型版本与 A/B、灰度发布如何不翻车</a></li>
-          <li><a href="#C16.12"><span class="toc-number">C16.12</span>缓存与降级（KV 缓存、语义缓存）如何设计</a></li>
-          <li><a href="#C16.13"><span class="toc-number">C16.13</span>成本与限流（token 计费、并发配额）如何落地</a></li>
-          <li><a href="#C16.14"><span class="toc-number">C16.14</span>Python 服务的安全与供应链如何守住</a></li>
+          <li>
+            <a href="#C16.01"><span class="toc-number">C16.01</span>Python 在 AI 服务生产栈的定位与边界</a>
+          </li>
+          <li>
+            <a href="#C16.02"><span class="toc-number">C16.02</span>推理服务化：FastAPI / vLLM / Triton 如何选型接入</a>
+          </li>
+          <li>
+            <a href="#C16.03"><span class="toc-number">C16.03</span>模型加载与 GPU 显存管理怎么做才不 OOM</a>
+          </li>
+          <li>
+            <a href="#C16.04"><span class="toc-number">C16.04</span>批处理（batching）与动态批处理如何提升吞吐</a>
+          </li>
+          <li>
+            <a href="#C16.05"><span class="toc-number">C16.05</span>推理流水线编排（预处理/后处理）怎么不成为瓶颈</a>
+          </li>
+          <li>
+            <a href="#C16.06"><span class="toc-number">C16.06</span>向量检索与 Embedding 服务（Python 侧）如何落地</a>
+          </li>
+          <li>
+            <a href="#C16.07"><span class="toc-number">C16.07</span>异步并发模型与事件循环陷阱如何避坑</a>
+          </li>
+          <li>
+            <a href="#C16.08"><span class="toc-number">C16.08</span>进程模型与 GIL：多进程/多 worker 部署如何设计</a>
+          </li>
+          <li>
+            <a href="#C16.09"><span class="toc-number">C16.09</span>与 Java 后端的服务间通信（gRPC/HTTP）如何稳定</a>
+          </li>
+          <li>
+            <a href="#C16.10"><span class="toc-number">C16.10</span>推理服务可观测性：日志/指标/Trace 如何接入</a>
+          </li>
+          <li>
+            <a href="#C16.11"><span class="toc-number">C16.11</span>模型版本与 A/B、灰度发布如何不翻车</a>
+          </li>
+          <li>
+            <a href="#C16.12"><span class="toc-number">C16.12</span>缓存与降级（KV 缓存、语义缓存）如何设计</a>
+          </li>
+          <li>
+            <a href="#C16.13"><span class="toc-number">C16.13</span>成本与限流（token 计费、并发配额）如何落地</a>
+          </li>
+          <li>
+            <a href="#C16.14"><span class="toc-number">C16.14</span>Python 服务的安全与供应链如何守住</a>
+          </li>
         </ol>
       </aside>
 
@@ -116,14 +144,77 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>栈分工原则</strong>：① 计算密集且生态在 Python 侧（PyTorch、transformers、vLLM）的<strong>推理与特征工程</strong>放 Python 服务；② 需要稳定连接池、分布式事务、服务治理的<strong>接入层与业务编排</strong>留 Java；③ 二者通过 gRPC/HTTP 边界解耦，各自独立伸缩。</p></div>
+            <div class="content-layer-body">
+              <p><strong>栈分工原则</strong>：① 计算密集且生态在 Python 侧（PyTorch、transformers、vLLM）的<strong>推理与特征工程</strong>放 Python 服务；② 需要稳定连接池、分布式事务、服务治理的<strong>接入层与业务编排</strong>留 Java；③ 二者通过 gRPC/HTTP 边界解耦，各自独立伸缩。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>在 Python 服务里只放「模型 + 轻量预处理」，把鉴权、限流、计费交给 Java 网关。</li><li>用统一的 IDL（Protobuf）约束 Python↔Java 接口，避免散落的 JSON 约定漂移。</li><li>明确「什么不能放 Python」：长事务、强一致写、重 CPU 的非模型逻辑优先 Java。</li><li>原型期允许 Python 单体，但生产期必须切到「模型服务 + 独立网关」两点架构。</li>
+                <li>在 Python 服务里只放「模型 + 轻量预处理」，把鉴权、限流、计费交给 Java 网关。</li>
+                <li>用统一的 IDL（Protobuf）约束 Python↔Java 接口，避免散落的 JSON 约定漂移。</li>
+                <li>明确「什么不能放 Python」：长事务、强一致写、重 CPU 的非模型逻辑优先 Java。</li>
+                <li>原型期允许 Python 单体，但生产期必须切到「模型服务 + 独立网关」两点架构。</li>
               </ol>
+
+              <p><strong>Java 侧按契约调用 Python 推理服务，边界只认 DTO 与超时，不感知 Python 运行时</strong></p>
+              <div class="code-block">
+                <pre><code>// Java / Spring Boot 3：Python 服务只暴露 HTTP 契约，Java 侧不感知其运行时
+@RestController
+public class InferenceController {
+  private final RestClient python;
+
+  public InferenceController(RestClient.Builder b,
+                             @Value("${inference.python.base-url}") String url) {
+    this.python = b.baseUrl(url)
+        .requestFactory(new SimpleClientHttpRequestFactory() {{
+          setConnectTimeout(Duration.ofMillis(300));
+          setReadTimeout(Duration.ofSeconds(8));
+        }})
+        .build();
+  }
+
+  @PostMapping("/v1/ask")
+  public Answer ask(@RequestBody AskRequest req) {
+    return python.post().uri("/v1/generate")
+        .body(new GenerateRequest(req.question(), req.traceId()))
+        .retrieve()
+        .onStatus(s -&gt; s.is5xxServerError(), (rq, rs) -&gt; {
+          throw new InferenceUnavailableException(rs.getStatusCode());
+        })
+        .body(Answer.class);
+  }
+}
+public record GenerateRequest(String question, String traceId) {}
+public record Answer(String text, int promptTokens, long latencyMs) {}</code></pre>
+              </div>
+              <p><strong>Python 侧把「模型 + 业务胶水」收在同一进程入口，健康检查与指标是契约的一部分</strong></p>
+              <div class="code-block">
+                <pre><code># Python：最小服务入口（依赖见 C16.02）
+from fastapi import FastAPI
+from pydantic import BaseModel, Field
+
+app = FastAPI(title="inference-python")
+
+class GenerateRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=4096)
+    trace_id: str | None = None
+
+class Answer(BaseModel):
+    text: str
+    prompt_tokens: int
+    latency_ms: int
+
+@app.get("/healthz")
+def healthz() -&gt; dict[str, str]:
+    return {"status": "ok", "runtime": "cpython"}
+
+@app.post("/v1/generate", response_model=Answer)
+def generate(req: GenerateRequest) -&gt; Answer:
+    # 真实实现委托给推理引擎；此处保留契约与计时边界
+    return Answer(text="", prompt_tokens=0, latency_ms=0)</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -161,14 +252,134 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>运行时分层</strong>：① <strong>FastAPI</strong> 适合轻量封装、快速暴露 HTTP 接口、做预处理/后处理编排；② <strong>vLLM</strong> 主打高吞吐 LLM 推理（PagedAttention、连续批处理）；③ <strong>Triton</strong> 适合多框架（TF/PyTorch/ONNX）统一推理、动态批与多模型编排。选型看「是否需要极致吞吐 + 多模型治理」。</p></div>
+            <div class="content-layer-body">
+              <p><strong>运行时分层</strong>：① <strong>FastAPI</strong> 适合轻量封装、快速暴露 HTTP 接口、做预处理/后处理编排；② <strong>vLLM</strong> 主打高吞吐 LLM 推理（PagedAttention、连续批处理）；③ <strong>Triton</strong> 适合多框架（TF/PyTorch/ONNX）统一推理、动态批与多模型编排。选型看「是否需要极致吞吐 + 多模型治理」。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>LLM 对话/生成类直接上 vLLM，吞吐与显存利用率远胜自写 FastAPI+transformers。</li><li>FastAPI 更适合「模型 + 业务胶水」型服务；不要把 FastAPI 当推理引擎裸跑大模型。</li><li>所有推理服务统一暴露 /healthz、/metrics，并接入网关探活与熔断。</li><li>用 Triton 当多模型推理网关时，模型仓库与版本用配置中心管理，杜绝硬编码路径。</li>
+                <li>LLM 对话/生成类直接上 vLLM，吞吐与显存利用率远胜自写 FastAPI+transformers。</li>
+                <li>FastAPI 更适合「模型 + 业务胶水」型服务；不要把 FastAPI 当推理引擎裸跑大模型。</li>
+                <li>所有推理服务统一暴露 /healthz、/metrics，并接入网关探活与熔断。</li>
+                <li>用 Triton 当多模型推理网关时，模型仓库与版本用配置中心管理，杜绝硬编码路径。</li>
               </ol>
+
+              <p><strong>requirements.txt：版本钉死，镜像与本地用同一份依赖清单</strong></p>
+              <div class="code-block">
+                <pre><code>fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+vllm==0.6.6.post1
+prometheus-client==0.21.1
+opentelemetry-sdk==1.29.0
+opentelemetry-exporter-otlp==1.29.0
+httpx==0.28.1
+pytest==8.3.4</code></pre>
+              </div>
+              <p><strong>FastAPI 服务：/v1/generate、/healthz、/metrics 三端点 + 启动命令</strong></p>
+              <div class="code-block">
+                <pre><code># app.py
+import time, os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
+
+app = FastAPI()
+REQS = Counter("infer_requests_total", "requests", ["model", "status"])
+LAT = Histogram("infer_latency_seconds", "latency", buckets=(.1, .5, 1, 2, 5))
+
+class Req(BaseModel):
+    prompt: str = Field(min_length=1, max_length=8192)
+    max_tokens: int = Field(default=256, ge=1, le=4096)
+
+class Resp(BaseModel):
+    text: str
+    prompt_tokens: int
+    latency_ms: int
+
+# vLLM 引擎在进程启动时加载一次，避免每请求重复加载权重
+from vllm import LLM, SamplingParams
+engine = LLM(model=os.environ["MODEL_PATH"],
+             gpu_memory_utilization=0.90,
+             max_model_len=8192,
+             max_num_seqs=64)
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok", "model": os.environ["MODEL_PATH"]}
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+@app.post("/v1/generate", response_model=Resp)
+def generate(req: Req):
+    t0 = time.perf_counter()
+    try:
+        out = engine.generate([req.prompt],
+                              SamplingParams(max_tokens=req.max_tokens, temperature=0.2))
+        REQS.labels("vllm", "ok").inc()
+        return Resp(text=out[0].outputs[0].text,
+                    prompt_tokens=len(out[0].prompt_token_ids),
+                    latency_ms=int((time.perf_counter() - t0) * 1000))
+    except Exception:
+        REQS.labels("vllm", "error").inc()
+        raise HTTPException(status_code=503, detail="inference failed")
+    finally:
+        LAT.observe(time.perf_counter() - t0)
+
+# 启动：uvicorn app:app --host 0.0.0.0 --port 8000 --workers 1
+# vLLM 自带连续批处理，务必单 worker；多 worker 会重复占用显存</code></pre>
+              </div>
+              <p><strong>Dockerfile 与 pytest：把「示意级」补成可复现闭环</strong></p>
+              <div class="code-block">
+                <pre><code># Dockerfile
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+WORKDIR /srv
+RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends python3.11 python3-pip \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+COPY app.py .
+ENV MODEL_PATH=/models/qwen2.5-7b-instruct
+EXPOSE 8000
+HEALTHCHECK --interval=15s --timeout=3s --retries=3 \
+  CMD python3 -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"
+CMD ["python3", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]</code></pre>
+              </div>
+              <p><strong>Python 侧契约测试：无 GPU 环境用替身加载，验证端点与结构化返回</strong></p>
+              <div class="code-block">
+                <pre><code># test_app.py —— CI 无 GPU，导入前用替身替换推理引擎
+import sys, types
+from fastapi.testclient import TestClient
+
+class FakeOut:
+    prompt_token_ids = [1, 2, 3]
+    outputs = [type("O", (), {"text": "ok"})()]
+
+fake = types.ModuleType("vllm")
+fake.LLM = lambda *a, **k: types.SimpleNamespace(generate=lambda *a, **k: [FakeOut()])
+fake.SamplingParams = lambda **k: k
+sys.modules["vllm"] = fake
+
+from app import app          # 此时 LLM(...) 不会真加载权重
+client = TestClient(app)
+
+def test_healthz():
+    assert client.get("/healthz").json()["status"] == "ok"
+
+def test_generate_contract():
+    r = client.post("/v1/generate", json={"prompt": "hi", "max_tokens": 8})
+    assert r.status_code == 200
+    body = r.json()
+    assert {"text", "prompt_tokens", "latency_ms"} &lt;= body.keys()
+    assert body["text"] == "ok"
+
+# 运行：pip install -r requirements.txt &amp;&amp; pytest -q test_app.py</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -206,14 +417,45 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>显存预算公式</strong>：常驻显存 ≈ 权重(精度相关) + KV 缓存(并发×序列长) + 激活/临时。量化（FP16→INT8/INT4）可砍权重但不砍 KV 缓存；并发上涨时 KV 缓存才是真正瓶颈。</p></div>
+            <div class="content-layer-body">
+              <p><strong>显存预算公式</strong>：常驻显存 ≈ 权重(精度相关) + KV 缓存(并发×序列长) + 激活/临时。量化（FP16→INT8/INT4）可砍权重但不砍 KV 缓存；并发上涨时 KV 缓存才是真正瓶颈。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>启动即预热：服务起来后先跑一次 dummy 推理，把权重与 CUDA 上下文常驻，避免首请求超时被摘流量。</li><li>用 nvidia-smi / DCGM 暴露显存与利用率指标，设「显存 >85% 即告警」。</li><li>多模型共享一张卡时，按显存配额隔离，禁止某模型把整卡吃满拖垮邻居。</li><li>权重用 mmap/懒加载 + 量化，缩短冷启动；版本切换走双缓冲（新权重加载完再切流量）。</li>
+                <li>启动即预热：服务起来后先跑一次 dummy 推理，把权重与 CUDA 上下文常驻，避免首请求超时被摘流量。</li>
+                <li>用 nvidia-smi / DCGM 暴露显存与利用率指标，设「显存 >85% 即告警」。</li>
+                <li>多模型共享一张卡时，按显存配额隔离，禁止某模型把整卡吃满拖垮邻居。</li>
+                <li>权重用 mmap/懒加载 + 量化，缩短冷启动；版本切换走双缓冲（新权重加载完再切流量）。</li>
               </ol>
+
+              <p><strong>Python：显存预算先算再加载，量化与 gpu_memory_utilization 是硬闸门</strong></p>
+              <div class="code-block">
+                <pre><code># 显存粗算：权重 + KV Cache + 激活 + 框架预留
+def estimate_weights_gb(params_b: float, dtype_bytes: int = 2) -&gt; float:
+    return params_b * dtype_bytes  # 7B FP16 约 14 GB
+
+def kv_cache_gb(layers: int, heads: int, head_dim: int, seq_len: int,
+                batch: int, dtype_bytes: int = 2) -&gt; float:
+    # 2 = K + V
+    return 2 * layers * heads * head_dim * seq_len * batch * dtype_bytes / 1024**3
+
+if __name__ == "__main__":
+    w = estimate_weights_gb(7.0)
+    kv = kv_cache_gb(layers=28, heads=28, head_dim=128, seq_len=8192, batch=64)
+    print(f"weights={w:.1f}GB kv={kv:.1f}GB 需显存 &gt;= {w + kv + 2:.1f}GB")
+
+# 加载闸门：AWQ/GPTQ 量化把权重压到 4bit，并限制 KV 占用
+from vllm import LLM
+llm = LLM(model="/models/qwen2.5-7b-instruct-awq",
+          quantization="awq",
+          gpu_memory_utilization=0.85,   # 预留给激活与碎片
+          max_model_len=4096,            # 直接约束 KV 上限
+          enforce_eager=False,
+          swap_space=4)</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -251,14 +493,44 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>连续批处理（continuous batching）</strong>：vLLM 按 token 级调度，不同请求在不同阶段进入同一批，显存利用率远高于静态批。关键参数是 <strong>max_num_seqs / max_num_batched_tokens</strong>，决定并发与单批上限。</p></div>
+            <div class="content-layer-body">
+              <p><strong>连续批处理（continuous batching）</strong>：vLLM 按 token 级调度，不同请求在不同阶段进入同一批，显存利用率远高于静态批。关键参数是 <strong>max_num_seqs / max_num_batched_tokens</strong>，决定并发与单批上限。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>按 P99 延迟目标反推批大小，而非盲目拉满；批太大反而拖长首 token 延迟。</li><li>用动态批的「最大批 token 数」做背压：接近上限时网关侧开始排队/限流。</li><li>区分在线（低延迟）与离线（高吞吐）流量，走不同批策略甚至不同实例池。</li><li>监控「批实际大小分布」，长期偏小说明并发不足或请求被过早打散。</li>
+                <li>按 P99 延迟目标反推批大小，而非盲目拉满；批太大反而拖长首 token 延迟。</li>
+                <li>用动态批的「最大批 token 数」做背压：接近上限时网关侧开始排队/限流。</li>
+                <li>区分在线（低延迟）与离线（高吞吐）流量，走不同批策略甚至不同实例池。</li>
+                <li>监控「批实际大小分布」，长期偏小说明并发不足或请求被过早打散。</li>
               </ol>
+
+              <p><strong>Python：连续批处理参数与压测对照，用实测吞吐而不是拍脑袋调参</strong></p>
+              <div class="code-block">
+                <pre><code># vLLM 动态批：三个参数决定「吞吐 / 时延 / 显存」三角
+from vllm import LLM, SamplingParams
+llm = LLM(model="/models/qwen2.5-7b-instruct",
+          max_num_seqs=128,              # 并发序列上限
+          max_num_batched_tokens=16384,  # 单步可打包的 token 上限
+          enable_chunked_prefill=True,   # 长 prompt 分块，避免阻塞 decode
+          gpu_memory_utilization=0.90)
+
+import time
+prompts = [f"请总结第 {i} 段文档" for i in range(200)]
+t0 = time.perf_counter()
+outs = llm.generate(prompts, SamplingParams(max_tokens=128, temperature=0))
+elapsed_seconds = time.perf_counter() - t0
+total_tokens = sum(len(o.outputs[0].token_ids) for o in outs)
+print("output tok/s ≈", total_tokens / elapsed_seconds)
+
+# 压测对照：固定并发梯度，观察 p99 与吞吐拐点
+# python3 -m vllm.entrypoints.openai.api_server ... &amp;
+# hey -z 60s -c 32 -m POST -H 'Content-Type: application/json' \
+#     -d '{"model":"qwen2.5-7b-instruct","prompt":"hi","max_tokens":64}' \
+#     http://127.0.0.1:8000/v1/completions</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -296,13 +568,18 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>重叠执行</strong>：预处理在 CPU 线程池做、GPU 推理异步进行、后处理再异步收尾，三者流水线化。用 asyncio / 多进程把阻塞的 numpy/PIL 操作移出事件循环。</p></div>
+            <div class="content-layer-body">
+              <p><strong>重叠执行</strong>：预处理在 CPU 线程池做、GPU 推理异步进行、后处理再异步收尾，三者流水线化。用 asyncio / 多进程把阻塞的 numpy/PIL 操作移出事件循环。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>预处理（解码、归一化、tokenizer）用独立 worker 池，别阻塞推理主线程。</li><li>后处理（JSON 解析、业务规则、安全过滤）放到推理返回后异步做，缩短 TTFT。</li><li>对大响应做流式输出（SSE），首块尽早返回，后处理随流进行。</li><li>用火焰图定位「非 GPU」耗时，多数慢请求瓶颈在预处理/序列化而非模型。</li>
+                <li>预处理（解码、归一化、tokenizer）用独立 worker 池，别阻塞推理主线程。</li>
+                <li>后处理（JSON 解析、业务规则、安全过滤）放到推理返回后异步做，缩短 TTFT。</li>
+                <li>对大响应做流式输出（SSE），首块尽早返回，后处理随流进行。</li>
+                <li>用火焰图定位「非 GPU」耗时，多数慢请求瓶颈在预处理/序列化而非模型。</li>
               </ol>
             </div>
           </div>
@@ -341,14 +618,64 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>分层</strong>：① Embedding 服务（Python）把文本/图像转向量，复用推理服务的批处理与量化；② 向量库（Milvus/pgvector/Qdrant）独立承担 ANN 索引与查询；③ 重排（rerank）模型常在 Python 侧二次打分提升精度。</p></div>
+            <div class="content-layer-body">
+              <p><strong>分层</strong>：① Embedding 服务（Python）把文本/图像转向量，复用推理服务的批处理与量化；② 向量库（Milvus/pgvector/Qdrant）独立承担 ANN 索引与查询；③ 重排（rerank）模型常在 Python 侧二次打分提升精度。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>Embedding 模型与检索模型解耦版本，避免改一个牵动全链路。</li><li>批量 embedding 走批接口，单条实时 embedding 走低延迟实例，分池。</li><li>向量库查询带元数据过滤（业务域/时间），减少无关候选，降低重排压力。</li><li>召回→粗排→重排三段式，重排只在 Top-K 上做，控制算力成本。</li>
+                <li>Embedding 模型与检索模型解耦版本，避免改一个牵动全链路。</li>
+                <li>批量 embedding 走批接口，单条实时 embedding 走低延迟实例，分池。</li>
+                <li>向量库查询带元数据过滤（业务域/时间），减少无关候选，降低重排压力。</li>
+                <li>召回→粗排→重排三段式，重排只在 Top-K 上做，控制算力成本。</li>
               </ol>
+
+              <p><strong>Python：切分 → 批量 Embedding → 向量库写入的完整脚本</strong></p>
+              <div class="code-block">
+                <pre><code># pip install pymilvus sentence-transformers langchain-text-splitters
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from sentence_transformers import SentenceTransformer
+from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType
+
+splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=64,
+                                          separators=["\n\n", "\n", "。", ""])
+encoder = SentenceTransformer("BAAI/bge-m3")
+connections.connect(alias="default", host="milvus", port="19530")
+
+fields = [
+    FieldSchema(name="id", dtype=DataType.VARCHAR, max_length=64, is_primary=True),
+    FieldSchema(name="doc_id", dtype=DataType.VARCHAR, max_length=64),
+    FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=2048),
+    FieldSchema(name="vec", dtype=DataType.FLOAT_VECTOR, dim=1024),
+]
+schema = CollectionSchema(fields, description="kb_chunks")
+col = Collection("kb_chunks", schema=schema)
+col.create_index("vec", {"index_type": "HNSW", "metric_type": "COSINE",
+                         "params": {"M": 16, "efConstruction": 200}})
+col.load()
+
+def ingest(doc_id: str, raw: str) -&gt; int:
+    chunks = splitter.split_text(raw)
+    # 批量编码，避免逐条调用导致 GPU 空转
+    vectors = encoder.encode(chunks, batch_size=64, normalize_embeddings=True)
+    rows = [
+        [f"{doc_id}-{i}" for i in range(len(chunks))],
+        [doc_id] * len(chunks),
+        chunks,
+        vectors.tolist(),
+    ]
+    col.insert(rows)
+    col.flush()
+    return len(chunks)
+
+# 检索：与 Java 侧 VectorStore 使用同一 metric / dim，否则相似度不可比
+def search(q: str, top_k: int = 5):
+    v = encoder.encode([q], normalize_embeddings=True).tolist()
+    return col.search(v, "vec", {"metric_type": "COSINE", "params": {"ef": 64}},
+                      limit=top_k, output_fields=["doc_id", "text"])</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -386,14 +713,46 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>两段并发</strong>：① 进程级——多 worker（uvicorn --workers）吃满多核与多卡；② 协程级——单进程内 asyncio 处理大量等待中的 IO。两者正交，必须同时存在。</p></div>
+            <div class="content-layer-body">
+              <p><strong>两段并发</strong>：① 进程级——多 worker（uvicorn --workers）吃满多核与多卡；② 协程级——单进程内 asyncio 处理大量等待中的 IO。两者正交，必须同时存在。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>所有模型调用走异步/线程池封装，绝不在 handler 里同步阻塞 GPU 推理。</li><li>numpy/OpenCV 等释放 GIL 的操作用线程池；不释放 GIL 的纯 Python 重计算要换进程。</li><li>警惕「隐式同步」：requests、某些 SDK 默认阻塞，必须显式换成 aiohttp/httpx 异步版。</li><li>用 loop.run_in_executor 隔离阻塞点，并给 executor 设上限防止线程爆炸。</li>
+                <li>所有模型调用走异步/线程池封装，绝不在 handler 里同步阻塞 GPU 推理。</li>
+                <li>numpy/OpenCV 等释放 GIL 的操作用线程池；不释放 GIL 的纯 Python 重计算要换进程。</li>
+                <li>警惕「隐式同步」：requests、某些 SDK 默认阻塞，必须显式换成 aiohttp/httpx 异步版。</li>
+                <li>用 loop.run_in_executor 隔离阻塞点，并给 executor 设上限防止线程爆炸。</li>
               </ol>
+
+              <p><strong>Python：asyncio 中 CPU 密集与阻塞 IO 必须出事件循环，附陷阱复现</strong></p>
+              <div class="code-block">
+                <pre><code>import asyncio, time
+from concurrent.futures import ProcessPoolExecutor
+
+async def call_llm(prompt: str) -&gt; str:
+    # 正确：异步 HTTP 客户端，等待期间事件循环可服务其他请求
+    await asyncio.sleep(0.05)
+    return prompt.upper()
+
+async def cpu_bound(text: str) -&gt; int:
+    # 正确：CPU 密集交给进程池，绕开 GIL
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(POOL, len, text * 1000)
+
+POOL = ProcessPoolExecutor(max_workers=4)
+
+async def main():
+    t0 = time.perf_counter()
+    results = await asyncio.gather(*(call_llm(f"q{i}") for i in range(50)))
+    print("50 并发耗时", round(time.perf_counter() - t0, 3), "s", len(results))
+    # 反例：在协程里直接 time.sleep / 同步 requests，会串行化全部并发
+    # for i in range(50): time.sleep(0.05)   # 耗时约 2.5s，且阻塞整个 loop
+
+asyncio.run(main())</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -431,14 +790,43 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>部署拓扑</strong>：① 单卡单 worker（独占，延迟最稳）；② 单卡多 worker 分时（吞吐高但相互争抢显存/算力）；③ 多卡多 worker（每 worker 绑一卡，K8s 用 device-plugin 调度）。生产优先「一 worker 一卡」的可预测性。</p></div>
+            <div class="content-layer-body">
+              <p><strong>部署拓扑</strong>：① 单卡单 worker（独占，延迟最稳）；② 单卡多 worker 分时（吞吐高但相互争抢显存/算力）；③ 多卡多 worker（每 worker 绑一卡，K8s 用 device-plugin 调度）。生产优先「一 worker 一卡」的可预测性。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>用 gunicorn/uvicorn 的 workers 数 = 卡数（或按显存余量），避免 oversubscribe。</li><li>worker 间不共享内存状态，会话/缓存走外部（Redis/向量库），保证可水平扩。</li><li>启动探针区分「进程活着」与「模型可用」，未加载完权重不算 ready。</li><li>用 CPU 亲和 +  NUMA 绑卡减少跨片延迟，高负载时收益明显。</li>
+                <li>用 gunicorn/uvicorn 的 workers 数 = 卡数（或按显存余量），避免 oversubscribe。</li>
+                <li>worker 间不共享内存状态，会话/缓存走外部（Redis/向量库），保证可水平扩。</li>
+                <li>启动探针区分「进程活着」与「模型可用」，未加载完权重不算 ready。</li>
+                <li>用 CPU 亲和 + NUMA 绑卡减少跨片延迟，高负载时收益明显。</li>
               </ol>
+
+              <p><strong>Python / Shell：多 worker 部署与 GIL 陷阱复现</strong></p>
+              <div class="code-block">
+                <pre><code># GIL 陷阱复现：CPU 密集用线程反而更慢
+import threading, time
+
+def burn(n):
+    s = 0
+    for i in range(n):
+        s += i * i
+    return s
+
+N = 20_000_000
+t0 = time.perf_counter(); burn(N); burn(N)
+print("串行", round(time.perf_counter() - t0, 2), "s")
+t0 = time.perf_counter()
+ts = [threading.Thread(target=burn, args=(N,)) for _ in range(2)]
+[t.start() for t in ts]; [t.join() for t in ts]
+print("双线程", round(time.perf_counter() - t0, 2), "s  # 不快反慢")
+
+# 部署：CPU 密集用多进程；vLLM 已占用 GPU，禁止多 worker 重复加载权重
+# gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+# 若单卡 vLLM：uvicorn app:app --workers 1（靠引擎内部连续批处理提吞吐）</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -476,14 +864,103 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>边界纪律</strong>：① 用 Protobuf/gRPC 统一 IDL，避免 JSON 隐式约定；② Java 侧设「推理调用」独立超时与熔断，失败时走降级（缓存结果/规则兜底）；③ 跨语言链路用 W3C trace 串联，定位跨栈慢点。</p></div>
+            <div class="content-layer-body">
+              <p><strong>边界纪律</strong>：① 用 Protobuf/gRPC 统一 IDL，避免 JSON 隐式约定；② Java 侧设「推理调用」独立超时与熔断，失败时走降级（缓存结果/规则兜底）；③ 跨语言链路用 W3C trace 串联，定位跨栈慢点。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>所有跨语言调用带 deadline，Python 侧超时就快速 504，绝不挂起拖垮 Java 线程池。</li><li>Java 侧对推理做舱壁隔离（独立连接池/信号量），防止 Python 慢拖垮主链路。</li><li>协议用 Protobuf 而非裸 JSON，减少序列化开销与字段漂移。</li><li>降级策略前置：推理不可用时返回缓存/规则结果并打标，保证主流程不崩。</li>
+                <li>所有跨语言调用带 deadline，Python 侧超时就快速 504，绝不挂起拖垮 Java 线程池。</li>
+                <li>Java 侧对推理做舱壁隔离（独立连接池/信号量），防止 Python 慢拖垮主链路。</li>
+                <li>协议用 Protobuf 而非裸 JSON，减少序列化开销与字段漂移。</li>
+                <li>降级策略前置：推理不可用时返回缓存/规则结果并打标，保证主流程不崩。</li>
               </ol>
+
+              <p><strong>跨语言契约：.proto 单源，Java 与 Python 生成同一份 stub</strong></p>
+              <div class="code-block">
+                <pre><code>// proto/inference.proto
+syntax = "proto3";
+package ai.inference.v1;
+option java_package = "com.example.ai.inference.grpc";
+option java_outer_classname = "InferenceProto";
+
+service InferenceService {
+  rpc Generate (GenerateRequest) returns (GenerateReply);
+}
+message GenerateRequest {
+  string trace_id = 1;      // 跨栈 Trace 透传
+  string prompt = 2;
+  int32 max_tokens = 3;
+}
+message GenerateReply {
+  string text = 1;
+  int32 prompt_tokens = 2;
+  int64 latency_ms = 3;     // int64 在 JSON 中须转 string，见 C18.09
+}</code></pre>
+              </div>
+              <p><strong>Python gRPC server：把超时、取消与 trace_id 一起收进上下文</strong></p>
+              <div class="code-block">
+                <pre><code># python -m grpc_tools.protoc -I proto --python_out=. --grpc_python_out=. proto/inference.proto
+from concurrent import futures
+import grpc, time
+import inference_pb2 as pb, inference_pb2_grpc as pbg
+
+class Inference(pbg.InferenceServiceServicer):
+    def Generate(self, request, context):
+        t0 = time.perf_counter()
+        if not request.prompt:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "prompt required")
+        # context 可透传 deadline；超时后引擎侧应停止生成，避免 GPU 空转
+        text = f"echo:{request.prompt}"
+        return pb.GenerateReply(
+            text=text,
+            prompt_tokens=len(request.prompt),
+            latency_ms=int((time.perf_counter() - t0) * 1000),
+        )
+
+server = grpc.server(futures.ThreadPoolExecutor(max_workers=8),
+                     options=[("grpc.max_receive_message_length", 8 * 1024 * 1024)])
+pbg.add_InferenceServiceServicer_to_server(Inference(), server)
+server.add_insecure_port("[::]:50051")
+server.start(); server.wait_for_termination()</code></pre>
+              </div>
+              <p><strong>Java gRPC stub：deadline、幂等重试与 trace_id 透传</strong></p>
+              <div class="code-block">
+                <pre><code>// Spring Boot 侧：由 proto 生成的阻塞 stub + Deadline
+@Configuration
+public class GrpcConfig {
+  @Bean
+  InferenceServiceGrpc.InferenceServiceBlockingStub stub(
+      @Value("${inference.grpc.target}") String target) {
+    ManagedChannel ch = ManagedChannelBuilder.forTarget(target)
+        .usePlaintext()
+        .enableRetry()
+        .maxRetryAttempts(2)
+        .build();
+    return InferenceServiceGrpc.newBlockingStub(ch);
+  }
+}
+
+@Service
+public class InferenceGateway {
+  private final InferenceServiceGrpc.InferenceServiceBlockingStub stub;
+  InferenceGateway(InferenceServiceGrpc.InferenceServiceBlockingStub s) { this.stub = s; }
+
+  public GenerateReply generate(String prompt, String traceId) {
+    return stub.withDeadlineAfter(3, TimeUnit.SECONDS)
+        .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(meta(traceId)))
+        .generate(GenerateRequest.newBuilder()
+            .setTraceId(traceId).setPrompt(prompt).setMaxTokens(256).build());
+  }
+  private Metadata meta(String traceId) {
+    Metadata m = new Metadata();
+    m.put(Metadata.Key.of("x-trace-id", Metadata.ASCII_STRING_MARSHALLER), traceId);
+    return m;
+  }
+}</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -521,14 +998,63 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>专属指标</strong>：TTFT（首 token）、TPOT（token 间）、批实际大小、KV 缓存占用、队列等待时长、显存利用率。这些才是推理服务的「黄金信号」，比通用 QPS 更贴近用户体验。</p></div>
+            <div class="content-layer-body">
+              <p><strong>专属指标</strong>：TTFT（首 token）、TPOT（token 间）、批实际大小、KV 缓存占用、队列等待时长、显存利用率。这些才是推理服务的「黄金信号」，比通用 QPS 更贴近用户体验。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>统一日志结构（request_id、model、latency、tokens），禁止把 prompt 原文打进日志。</li><li>指标用 Prometheus 暴露，告警阈值按 TTFT/P99 而非平均延迟设。</li><li>trace 串起「Java 网关 → Python 推理 → 向量库」，慢点一眼定位。</li><li>对异常输出（空响应、超长生成）单独埋点，反推数据/提示词问题。</li>
+                <li>统一日志结构（request_id、model、latency、tokens），禁止把 prompt 原文打进日志。</li>
+                <li>指标用 Prometheus 暴露，告警阈值按 TTFT/P99 而非平均延迟设。</li>
+                <li>trace 串起「Java 网关 → Python 推理 → 向量库」，慢点一眼定位。</li>
+                <li>对异常输出（空响应、超长生成）单独埋点，反推数据/提示词问题。</li>
               </ol>
+
+              <p><strong>Python：OTel + Prometheus + LangFuse 三层埋点（器维横切组件接入）</strong></p>
+              <div class="code-block">
+                <pre><code># pip install opentelemetry-sdk opentelemetry-exporter-otlp langfuse
+import os, time
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from prometheus_client import Histogram, Counter
+from langfuse import Langfuse
+
+provider = TracerProvider()
+provider.add_span_processor(BatchSpanProcessor(
+    OTLPSpanExporter(endpoint=os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"], insecure=True)))
+trace.set_tracer_provider(provider)
+tracer = trace.get_tracer("inference.python")
+
+# LLMOps 平台：Run/Node 级 Trace、 Token 成本、评分统一回写
+lf = Langfuse(public_key=os.environ["LANGFUSE_PK"],
+              secret_key=os.environ["LANGFUSE_SK"],
+              host=os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"))
+
+LAT = Histogram("model_call_seconds", "model latency", ["model"])
+TOK = Counter("model_tokens_total", "tokens", ["model", "kind"])
+
+def generate(prompt: str, model: str) -&gt; str:
+    with tracer.start_as_current_span("llm.generate") as span:
+        span.set_attribute("llm.model", model)
+        span.set_attribute("llm.prompt_tokens", len(prompt))
+        trace_obj = lf.trace(name="generate", input={"prompt": prompt})
+        gen = trace_obj.generation(name="chat", model=model,
+                                   model_parameters={"temperature": 0.2})
+        t0 = time.perf_counter()
+        try:
+            text = do_call(prompt)             # 真实模型调用
+            gen.end(output=text, usage={"input": len(prompt), "output": len(text)})
+            trace_obj.score(name="quality", value=0.9)
+            TOK.labels(model, "output").inc(len(text))
+            return text
+        finally:
+            LAT.labels(model).observe(time.perf_counter() - t0)
+            lf.flush()</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -566,13 +1092,18 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>版本治理</strong>：① 权重与推理代码分离版本，权重走模型仓库（带 hash）；② 推理服务支持「同进程多版本」或「按流量路由多实例」；③ 灰度按用户/场景分桶，对比业务指标（准确率、满意度、成本）再放量。</p></div>
+            <div class="content-layer-body">
+              <p><strong>版本治理</strong>：① 权重与推理代码分离版本，权重走模型仓库（带 hash）；② 推理服务支持「同进程多版本」或「按流量路由多实例」；③ 灰度按用户/场景分桶，对比业务指标（准确率、满意度、成本）再放量。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>每次上线新模型先小流量（1%-5%）灰度，对比旧版的延迟与质量指标。</li><li>模型与推理代码一起进 CI，权重 hash 进发布单，可一键回滚。</li><li>A/B 用统一实验框架，避免「偷偷换模型」导致问题无法归因。</li><li>保留上一版实例「热待命」一段时间，异常时秒级切回。</li>
+                <li>每次上线新模型先小流量（1%-5%）灰度，对比旧版的延迟与质量指标。</li>
+                <li>模型与推理代码一起进 CI，权重 hash 进发布单，可一键回滚。</li>
+                <li>A/B 用统一实验框架，避免「偷偷换模型」导致问题无法归因。</li>
+                <li>保留上一版实例「热待命」一段时间，异常时秒级切回。</li>
               </ol>
             </div>
           </div>
@@ -611,13 +1142,18 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>两级缓存</strong>：① <strong>KV 缓存</strong>（推理引擎内）复用前缀，降低重复 prompt 的计算；② <strong>语义缓存</strong>（向量近似检索）对「问法不同但意图相同」的请求返回历史结果。降级则在前置层返回规则/检索兜底。</p></div>
+            <div class="content-layer-body">
+              <p><strong>两级缓存</strong>：① <strong>KV 缓存</strong>（推理引擎内）复用前缀，降低重复 prompt 的计算；② <strong>语义缓存</strong>（向量近似检索）对「问法不同但意图相同」的请求返回历史结果。降级则在前置层返回规则/检索兜底。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>对高重复度的固定问答建语义缓存，命中即返回，省 token 又降延迟。</li><li>KV 缓存按会话/前缀管理，长对话复用历史，控制上下文膨胀。</li><li>降级链路：模型超时 → 返回检索片段 + 提示「结果可能不完整」。</li><li>缓存带 TTL 与版本标签，模型大版本升级时整池失效避免脏数据。</li>
+                <li>对高重复度的固定问答建语义缓存，命中即返回，省 token 又降延迟。</li>
+                <li>KV 缓存按会话/前缀管理，长对话复用历史，控制上下文膨胀。</li>
+                <li>降级链路：模型超时 → 返回检索片段 + 提示「结果可能不完整」。</li>
+                <li>缓存带 TTL 与版本标签，模型大版本升级时整池失效避免脏数据。</li>
               </ol>
             </div>
           </div>
@@ -656,14 +1192,60 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>成本闭环</strong>：① 每条请求记录 input/output token 并归因到租户/功能；② 按配额限流（QPM、并发、token/分钟），超限走排队或降级；③ 成本看板与质量/收入同屏，指导模型选型（小模型够用就不上大模型）。</p></div>
+            <div class="content-layer-body">
+              <p><strong>成本闭环</strong>：① 每条请求记录 input/output token 并归因到租户/功能；② 按配额限流（QPM、并发、token/分钟），超限走排队或降级；③ 成本看板与质量/收入同屏，指导模型选型（小模型够用就不上大模型）。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>token 用量接入计费系统，按租户出账单，避免「全员无限制烧钱」。</li><li>限流维度用「并发 + token 速率」双指标，单纯 QPS 会漏掉长生成。</li><li>对不同场景设模型档位：简单任务路由小模型，复杂任务才上大模型。</li><li>成本异常（某租户突增 10 倍）即告警，排查是 bug 还是被刷。</li>
+                <li>token 用量接入计费系统，按租户出账单，避免「全员无限制烧钱」。</li>
+                <li>限流维度用「并发 + token 速率」双指标，单纯 QPS 会漏掉长生成。</li>
+                <li>对不同场景设模型档位：简单任务路由小模型，复杂任务才上大模型。</li>
+                <li>成本异常（某租户突增 10 倍）即告警，排查是 bug 还是被刷。</li>
               </ol>
+
+              <p><strong>Python：token 计费与并发配额，成本口径与 Java 网关对齐</strong></p>
+              <div class="code-block">
+                <pre><code>import threading, time
+from collections import defaultdict
+
+RATE_PER_1K = {"qwen2.5-7b": 0.002, "qwen-max": 0.012}  # 单位：元 / 1K token
+
+class BudgetGuard:
+    def __init__(self, qps: int = 20, daily_quota: float = 500.0):
+        self.qps, self.daily_quota = qps, daily_quota
+        self.cost = defaultdict(float)
+        self._sem = threading.BoundedSemaphore(qps)
+        self._lock = threading.Lock()
+
+    def acquire(self) -&gt; bool:
+        return self._sem.acquire(timeout=0.5)
+
+    def charge(self, tenant: str, model: str, in_tok: int, out_tok: int) -&gt; float:
+        amount = (in_tok + out_tok) / 1000 * RATE_PER_1K[model]
+        with self._lock:
+            if self.cost[tenant] + amount &gt; self.daily_quota:
+                raise PermissionError("daily quota exceeded")
+            self.cost[tenant] += amount
+        return amount
+
+    def release(self):
+        self._sem.release()
+
+# 使用：超限快速失败，避免 GPU 空转后才发现超预算
+guard = BudgetGuard()
+def handle(tenant, model, prompt):
+    if not guard.acquire():
+        raise RuntimeError("429 too many requests")
+    try:
+        text = do_call(prompt)
+        cost = guard.charge(tenant, model, len(prompt), len(text))
+        return {"text": text, "cost_cny": round(cost, 6)}
+    finally:
+        guard.release()</code></pre>
+              </div>
             </div>
           </div>
           <div class="content-layer" data-layer="deep">
@@ -701,13 +1283,18 @@
           </div>
           <div class="content-layer" data-layer="principle">
             <div class="content-layer-title">第一性原理</div>
-            <div class="content-layer-body"><p><strong>三层防护</strong>：① <strong>供应链</strong>——锁依赖（hash/poetry lock）、私有源、定期扫 CVE；② <strong>输入</strong>——提示注入过滤、越权工具调用拦截；③ <strong>输出</strong>——敏感信息脱敏、内容安全审核、防止训练数据泄露。</p></div>
+            <div class="content-layer-body">
+              <p><strong>三层防护</strong>：① <strong>供应链</strong>——锁依赖（hash/poetry lock）、私有源、定期扫 CVE；② <strong>输入</strong>——提示注入过滤、越权工具调用拦截；③ <strong>输出</strong>——敏感信息脱敏、内容安全审核、防止训练数据泄露。</p>
+            </div>
           </div>
           <div class="content-layer" data-layer="practice">
             <div class="content-layer-title">工程落地</div>
             <div class="content-layer-body">
               <ol>
-                <li>依赖用锁定文件 + 私有镜像源，CI 接入 pip-audit/Snyk 扫漏洞。</li><li>对外暴露的推理接口做提示注入检测，高危操作（调用工具/写库）需显式授权。</li><li>输出层做 PII 脱敏与内容安全，避免模型把内部数据/密钥吐给用户。</li><li>沙箱化执行用户自定义脚本/插件，禁直连内网与本地文件。</li>
+                <li>依赖用锁定文件 + 私有镜像源，CI 接入 pip-audit/Snyk 扫漏洞。</li>
+                <li>对外暴露的推理接口做提示注入检测，高危操作（调用工具/写库）需显式授权。</li>
+                <li>输出层做 PII 脱敏与内容安全，避免模型把内部数据/密钥吐给用户。</li>
+                <li>沙箱化执行用户自定义脚本/插件，禁直连内网与本地文件。</li>
               </ol>
             </div>
           </div>
@@ -730,7 +1317,7 @@
         </div>
       </main>
     </div>
-  
+
     <div class="site-page-nav site-page-nav--bottom">
       <nav class="chapter-nav-bottom">
         <a href="chapter-15-reactive.html" class="nav-prev">← 第 15 篇 · 响应式编程与系统设计</a>
