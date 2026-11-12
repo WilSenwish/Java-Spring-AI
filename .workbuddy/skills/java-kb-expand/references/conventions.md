@@ -1033,7 +1033,6 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 
 - **卡片顺序人工编排**：勿按文件名自动重排；现序为 导图 → 方法论 → 工程化 → 核心原理 → 场景 → 优先级总览 → ch01～15 → 安全。细则见 `docs/specs/format-special.md` §7。
 - **难度徽标**：可按目标页 `data-difficulty` 实计的卡片均写 **专家 → 架构 → 高级** 的 `×N`（0 档省略）；导图入口 / 安全等无难度题卡的只标档位。详见 `docs/specs/format-special.md` §7。
-- **技术栈全景 / 最新技术趋势**：`<details class="tag-cloud|trend-section index-fold">`，**默认折叠**（不加 `open`）。
 
 ## 8.7 跨轴卡片去重门禁（2026-11-07 新增）
 

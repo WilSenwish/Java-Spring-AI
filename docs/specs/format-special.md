@@ -146,7 +146,6 @@
 - **组件**：
   - `chapter-card`：`card-number` + `card-title` + `card-desc` + `card-tags` + `card-footer`；**M/G/K 三张专篇卡不带 `card-tags`**
   - `stat-item` / `stat-label` / `stat-number`：统计区
-  - `tag-cloud` / `trend-section`：须用 `<details class="… index-fold">` 包裹且默认折叠
 - **难度徽标（`card-tags`）约定**：
   - **统一顺序**：有计数时按 **专家 → 架构 → 高级**；某档为 0 则省略。
   - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心原理、场景、AI 纵深、垂直领域、优先级总览（总览口径 = `total`）。**M/G/K 不写 `card-tags`**。
@@ -180,6 +179,6 @@
 | nav-overview-capability-matrix | – | 索引清单 | – | – | – | ✔ |
 | nav-overview-lifecycle | – | 索引清单 | – | – | – | ✔ |
 | nav-server-security-checkpoint | page-wrapper + sidebar | h2/h3 + compare-table + checklist | – | – | – | ✔ |
-| index | – | chapter-card / meta-stats / index-fold | – | 可计卡带 ×N | – | ✔ |
+| index | – | chapter-card / meta-stats | – | 可计卡带 ×N | – | ✔ |
 
 （「不呈现」= 页面不显示难度/优先级徽标；M/G/K 三行同一口径。）
