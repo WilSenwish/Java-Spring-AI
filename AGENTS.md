@@ -73,7 +73,6 @@
 | P01 | `index.html` | 根 index 方法论统计卡 |
 | P02 | `index.html` | 根 index 方法论分组题数 |
 | P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
-| P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论） |
 | P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
@@ -101,7 +100,6 @@
 | P36 | `index.html` | 根 index 题目总数 |
 | P38 | `index.html` | 根 index 核心原理统计 |
 | P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
-| P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
 | P43 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
 | P44 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题篇章 C 题数 |
 | P45 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题核心原理数 |
@@ -131,8 +129,6 @@
 | P92 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
 | P94 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
 | P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 题目总量（C+A+E+S+D=total）参照 |
-| P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
-| P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |
 | P109 | `index.html` | 站点统计「页面篇章」——与章节页数同一真源（chapters_pages，file_count 规则） |
 | P114 | `index.html` | 升格 local:dir-group → struct.root.dir_group_4 |
@@ -282,7 +278,6 @@
 | P263 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.expert |
 | P264 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.architect |
 | P265 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.senior |
-| P266 | `java-architect-interview/index.html` | 升格 local:chap-desc-local → struct.misc.chap_index.chap-desc-local_1 |
 | P267 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c10.n |
 | P268 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c10.expert |
 | P269 | `java-architect-interview/index.html` | 章节索引页第 10 篇「架构」数 → chapter-10-microservice-cloud.html 内 difficulty-architect 数 |
@@ -468,7 +463,6 @@
 | P559 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段垂直领域 D 题数 |
 | P560 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段题目总量 |
 | P561 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题 AI 纵深 A 题数 |
-| P562 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc AI 纵深 A 题数 |
 | P563 | `java-architect-interview/nav-overview-priority.html` | 垂直领域 P2·架构 ov-type 计数（2026-11-06 新增类型块） |
 | P564 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 题目数（2026-11-06 升格裸计数） |
 | P565 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 高级数（2026-11-06 升格裸计数） |
@@ -523,7 +517,6 @@
 | P905 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 高级 |
 | P906 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 架构 |
 | P907 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 专家 |
-| P609 | `java-architect-interview/index.html` | 升格 local:hybrid-footer → struct.hybrid.idx.h01.n |
 | P610 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.expert |
 | P611 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.architect |
 | P612 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.senior |

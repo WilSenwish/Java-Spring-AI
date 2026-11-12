@@ -1209,11 +1209,15 @@ def main():
             root_eng = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">工程化</div>', texts["root"])
         check(root_eng == ENGINEERING, f"[根index] 工程化={root_eng} 期望 {ENGINEERING}")
 
-    # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站 N 道
+    # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站题量
     chap_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
     chap_a = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">AI 工程纵深', texts["chap_idx"])
     chap_d = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">垂直领域', texts["chap_idx"])
     chap_all = stat(rf'全站\s*{_STAT_N}\s*道', texts["chap_idx"])
+    if chap_all is None:
+        # 散文「全站 N 道」表述下线后，改由页首结构化统计卡（stat-number + 题目总数）取值；
+        # 该位已注册 data-kb-pos 并受真源审计保护，锚点比散文更严谨。散文正则保留作兼容兜底。
+        chap_all = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">题目总数</div>', texts["chap_idx"])
     check(chap_ch == EXPECT["chapters_core"], f"[章节index] 深度Q&A(篇章C)={chap_ch} 期望 {EXPECT['chapters_core']}")
     if chap_a is not None and EXPECT.get("ai_engineering_deep") is not None:
         check(chap_a == EXPECT["ai_engineering_deep"], f"[章节index] AI工程纵深={chap_a} 期望 {EXPECT['ai_engineering_deep']}")
