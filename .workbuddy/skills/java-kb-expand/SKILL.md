@@ -58,7 +58,6 @@ agent_created: true
 | P01 | `index.html` | 根 index 方法论统计卡 |
 | P02 | `index.html` | 根 index 方法论分组题数 |
 | P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
-| P04 | `java-architect-interview/index.html` | 章节 index card-footer 方法论数 |
 | P05 | `java-architect-interview/index.html` | 章节 index card-footer 篇章题数 |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论） |
@@ -83,12 +82,10 @@ agent_created: true
 | P29 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段场景题数 |
 | P30 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段核心原理数 |
 | P33 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 meta 题目数 |
-| P34 | `java-architect-interview/index.html` | 章节 index 核心原理卡标题 |
 | P35 | `index.html` | 根 index 核心原理 dir-count |
 | P36 | `index.html` | 根 index 题目总数 |
 | P38 | `index.html` | 根 index 核心原理统计 |
 | P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
-| P40 | `java-architect-interview/index.html` | 章节 index 工程化卡散文总量 |
 | P41 | `java-architect-interview/index.html` | 章节 index overview 卡散文总量 |
 | P43 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
 | P44 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题篇章 C 题数 |
@@ -107,27 +104,18 @@ agent_created: true
 | P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章 C 题数 |
 | P61 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文篇章题数 |
 | P62 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页副标题卡数 |
-| P63 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 卡数 |
-| P64 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 题数 |
 | P65 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 专家数 |
 | P66 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 架构数 |
 | P67 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 高级数 |
-| P68 | `java-architect-interview/index.html` | 章节 index 场景卡 desc 题数 |
-| P69 | `java-architect-interview/index.html` | 章节 index 核心原理卡 footer 题数 |
-| P70 | `java-architect-interview/index.html` | 章节 index 场景卡 footer 题数 |
 | P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 题目总量（C+A+E+S+D=total）参照 |
 | P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
 | P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
-| P86 | `java-architect-interview/index.html` | 章节 index 方法论卡 desc 篇章 C 题数 |
-| P87 | `java-architect-interview/index.html` | 章节 index 工程化卡 desc 卡数 |
 | P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
 | P90 | `index.html` | 根 index 踩坑统计卡 |
 | P91 | `java-architect-interview/index.html` | 章节 index 踩坑统计卡 |
 | P92 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
 | P94 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
-| P95 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 卡数 |
 | P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 题目总量（C+A+E+S+D=total）参照 |
-| P102 | `java-architect-interview/index.html` | 章节 index 踩坑卡 desc 卡数 |
 | P106 | `java-architect-interview/index.html` | 章节 index 工程化卡 footer 组数 |
 | P107 | `java-architect-interview/index.html` | 章节 index 踩坑卡 footer 组数 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |
@@ -367,7 +355,6 @@ agent_created: true
 | P402 | `index.html` | 根 index 方法论 M16(势) 组卡数 |
 | P405 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
 | P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
-| P429 | `java-architect-interview/index.html` | 章节 index 方法论卡 footer「15 篇」篇章页数（2026-09-21 由正文裸数字升格） |
 | P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
 | P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
@@ -395,8 +382,6 @@ agent_created: true
 | P459 | `index.html` | 升格 local:dir-group → struct.root.dir_group_63 |
 | P460 | `index.html` | 升格 local:dir-group → struct.root.dir_group_64 |
 | P461 | `index.html` | 根 index 统计卡「垂直领域题」题数 |
-| P462 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片 desc 题数 |
-| P463 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片 footer 题数 |
 | P464 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 expert |
 | P465 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 architect |
 | P466 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 senior |
@@ -418,11 +403,9 @@ agent_created: true
 | P492 | `index.html` | 升格 local:dir-group → struct.root.dir_group_71 |
 | P493 | `index.html` | 升格 local:dir-group → struct.root.dir_group_72 |
 | P502 | `java-architect-interview/index.html` | 章节 index meta-stats 垂直领域统计卡 |
-| P510 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片题数 |
 | P511 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 expert |
 | P512 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 architect |
 | P513 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 senior |
-| P514 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片 footer 题数 |
 | P515 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·专家 题数 |
 | P516 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·架构 题数 |
 | P517 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·高级 题数 |
@@ -553,6 +536,11 @@ agent_created: true
 | P928 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M17 |
 | P929 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 D13 组题数 |
 | P930 | `index.html` | 根 index H 专篇目录副标题题数（原与章节站共用 P609，拆分独立计数位） |
+| P931 | `index.html` | 根 index dir-stats-sub H 编号体系聚合计数 |
+| P932 | `java-architect-interview/index.html` | 章节站 index meta-stats H 编号体系聚合计数 |
+| P933 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 编号体系 |
+| P934 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 页面篇章 |
+| P935 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 题目总数 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
