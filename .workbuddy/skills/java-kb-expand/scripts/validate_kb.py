@@ -1188,8 +1188,10 @@ def main():
         m = re.search(pat, t)
         return int(m.group(1)) if m else None
     _STAT_N = rf'(?:<span[^>]*class="[^"]*kb-count[^"]*"[^>]*>)?(\d+)(?:</span>)?'
-    # 「深度 Q&A」统计卡现口径 = 篇章 C（chapters_core）；AI 纵深 A 独立展示
-    root_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["root"])
+    # 「深度 Q&A / 技术栈 Q&A」统计卡现口径 = 篇章 C（chapters_core）；AI 纵深 A 独立展示
+    # 两站统计卡文案曾由「深度 Q&A」改为「技术栈 Q&A」，锚点须同时兼容，避免静默取 None
+    _LABEL_C = r'(?:深度|技术栈) Q&amp;A'
+    root_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">{_LABEL_C}', texts["root"])
     root_a = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">AI 工程纵深', texts["root"])
     root_d = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">垂直领域题', texts["root"])
     root_all = stat(rf'全站\s*{_STAT_N}\s*题', texts["root"])   # 「全站 N 题」= total（C+A+E+S+D），非 M/G/K 加总
@@ -1210,7 +1212,7 @@ def main():
         check(root_eng == ENGINEERING, f"[根index] 工程化={root_eng} 期望 {ENGINEERING}")
 
     # 5) 章节 index stat-number（同结构，允许 </div> 与 <div> 间换行）+ 全站题量
-    chap_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">深度 Q&amp;A', texts["chap_idx"])
+    chap_ch = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">{_LABEL_C}', texts["chap_idx"])
     chap_a = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">AI 工程纵深', texts["chap_idx"])
     chap_d = stat(rf'{_STAT_N}\s*</div>\s*<div class="stat-label">垂直领域', texts["chap_idx"])
     chap_all = stat(rf'全站\s*{_STAT_N}\s*道', texts["chap_idx"])
@@ -1274,8 +1276,9 @@ def main():
 
     # 8) 卡片 id 二方一致性：章节正文 ↔ 章节 TOC；id 总数=各域分计之和（非对外「全站合计」）
     #    导图站已于 2026-09-21 下线，不再做导图引用悬空检查
-    # 专篇 H 卡片采用 H.NN 编号（单点号），与章节 C/S/E 等不同；纳入 id 一致性扫描
-    IDPAT = r"((?:H\.\d{2}|[MCEGKASD]\d{2}\.[A-Za-z0-9]+))"
+    # 专篇 H 卡片采用 H01.NN 两段编号（宿主 chapter-hybrid-deployment.html），
+    # 与 C/E/S/A/D 的 X##.## 同构；与 M/G/K 一样纳入 id 一致性扫描
+    IDPAT = r"((?:H\d{2}\.\d{2}|[MCEGKASD]\d{2}\.[A-Za-z0-9]+))"
     body_ids, toc_ids = set(), set()
     for p in chap_files:
         t = read(p)
