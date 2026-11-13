@@ -70,9 +70,9 @@
 
 | 编号 | 载体 | 说明 |
 |---|---|---|
-| P01 | `index.html` | 根 index 方法论统计卡 |
-| P02 | `index.html` | 根 index 方法论分组题数 |
-| P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡 |
+| P01 | `index.html` | 根 index 方法论统计卡（M 篇局部 164；体系合计 205 另由 sum_key 求） |
+| P02 | `index.html` | 根 index 方法论分组题数（M 篇局部 164；体系合计 205 另由 sum_key 求） |
+| P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡（M 篇局部 164；体系合计 205 另由 sum_key 求） |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论） |
 | P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
@@ -357,7 +357,6 @@
 | P347 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_12 |
 | P348 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 组数（pitfalls_groups） |
 | P399 | `index.html` | 根 index 方法论 M13 组卡数 |
-| P400 | `index.html` | 根 index 方法论 M14 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
 | P402 | `index.html` | 根 index 方法论 M16(势) 组卡数 |
 | P405 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
@@ -562,6 +561,11 @@
 | P973 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
 | P974 | `java-architect-interview/chapter-core-methodology-ai.html` | L 专篇 合计卡数（与页头 methodology_l 同值） |
 | P975 | `index.html` | 根 index 独立 L 专篇 section 的章节计数胶囊 |
+| P976 | `index.html` | 根 index 次统计行 L 专篇卡数（AI 方法论） |
+| P977 | `java-architect-interview/index.html` | 章节站次统计行 L 专篇卡数（AI 方法论） |
+| P978 | `index.html` | 根 index L01 道层组卡数（DOM 实测） |
+| P979 | `index.html` | 根 index L02 法层组卡数（DOM 实测） |
+| P980 | `index.html` | 根 index L03 术层组卡数（DOM 实测） |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

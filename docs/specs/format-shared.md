@@ -63,7 +63,9 @@
 > - Hero subtitle 文字描述中的体系枚举
 > - meta-stats / dir-stats-sub 等统计卡数字呈现顺序
 > - dir-legend 体系图例字母顺序
-> - ov-stats 编号体系行（总数 + C→E→S→A→D；M/L/G/K/H/SEC 无独立统计位时自然缺位 —— L 的卡数已含在 methodology 体系合计内，另立统计格会重复计数）
+> - dir-stats-sub 编号体系行：两站均按 M→L→C→E→S→A→H→G→K→D 十格全列；M 格取 `methodology_m`（M 篇实体数）、L 格取 `methodology_l`（L 专篇数），两格之和 = `methodology`（体系合计）。**禁止 M 格直填体系合计**——会与 L 格重复计数
+> - ov-stats 编号体系行（总数 + C→E→S→A→D；M/L/G/K/H/SEC 无独立统计位时自然缺位）
+> - 根 index 的 L 专篇目录按道/法/术分 3 个 `dir-group`，组计数经 `struct.root.dir_group_12x` 由 `root_dir_group` DOM 实测规则锚定
 > - ov-subtitle 中的体系枚举
 > - CSS `--code-*` 令牌在 :root 中的声明顺序
 >
