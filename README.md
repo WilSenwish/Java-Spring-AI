@@ -99,7 +99,7 @@ Java-Spring-AI/
 | 能力矩阵索引 | `java-architect-interview/nav-overview-capability-matrix.html` | 2026 岗位能力对标检索 |
 | 生产生命周期检索 | `java-architect-interview/nav-overview-lifecycle.html` | 按生产阶段检索知识点 |
 | AI 应用组件分层检索 | `java-architect-interview/nav-overview-ai-component-stack.html` | 九层组件 × 必备/生产刚需/增强，每个组件直达卡片 |
-| 方法论 | `java-architect-interview/chapter-core-methodology.html` | 道法术势十六组（185 卡） |
+| 方法论 | `java-architect-interview/chapter-core-methodology.html` | 道法术器势纪六层 · 十六组（164 卡） |
 | 工程化要点 | `java-architect-interview/chapter-engineering-practices.html` | 11 组工程化实践（74 卡） |
 | 生产踩坑 | `java-architect-interview/chapter-production-pitfalls.html` | 10 组真实故障复盘（71 卡） |
 | 设计原则 & GoF 23 | `java-design-patterns-principles/` | 设计原则 + 超越 GoF 23 |
