@@ -17,7 +17,7 @@
 
 - **`total` = C + A + E + S + D**；M/G/K 专篇单独计数。
 - 目录层级：页面篇章 / 分组 / 题号。
-- 导航聚合页前缀 **`nav-`**：`nav-overview-priority.html` / `nav-overview-quick-list.html` / `nav-server-security-checkpoint.html`（非题号宿主）。
+- 导航聚合页前缀 **`nav-`**：`nav-overview-priority.html` / `nav-knowledge-quick-list.html` / `nav-server-security-checkpoint.html`（非题号宿主）。
 
 ## 2. 篇章/核心原理卡片结构（`.content-card`）
 

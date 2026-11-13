@@ -22,7 +22,7 @@ Java-Spring-AI/
 │   ├── chapter-question-ai-engineering-deep.html  # AI 工程纵深（A）
 │   ├── chapter-questions-domain.html       #   垂直领域（D）
 │   ├── nav-overview-priority.html          #   优先级×难度×类型大盘
-│   ├── nav-overview-quick-list.html        #   知识点速查清单
+│   ├── nav-knowledge-quick-list.html       #   知识点速查清单
 │   ├── nav-server-security-checkpoint.html #   服务端安全检查点
 │   ├── nav-overview-capability-matrix.html #   能力矩阵索引导航
 │   ├── nav-overview-lifecycle.html         #   生产生命周期检索视图导航

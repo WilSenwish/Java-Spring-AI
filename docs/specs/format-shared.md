@@ -217,7 +217,7 @@ chapter-production-pitfalls.html           # 生产踩坑（K）
 chapter-questions-{eight-part|scenario|domain}.html  # E / S / D 题集
 chapter-question-ai-engineering-deep.html  # AI 工程纵深（A；单数 question-）
 chapter-hybrid-deployment.html             # 专题页（HD 轴；chapter- 前缀但无 NN 编号，不占 C 章序号）
-nav-overview-{priority|quick-list}.html    # 导航聚合（nav- 前缀）
+nav-{overview-priority|knowledge-quick-list}.html  # 导航聚合（nav- 前缀）
 nav-server-security-checkpoint.html       # 安全 Checkpoint（nav- 前缀）
 index.html                                # 章节索引
 ```
@@ -235,7 +235,7 @@ index.html                                # 章节索引
 | `D##.##` | 垂直领域题号 | `D01.01` | chapter-questions-domain |
 | `K##.##` | 生产踩坑条目 | `K01.01` | chapter-production-pitfalls |
 
-约定：前缀字母标识内容类型；两位数字为「主题组 . 题序」。首页 / `nav-overview-priority.html` / `nav-overview-quick-list.html` 按 `#题号` 转发。**`total` 口径 = C+A+E+S+D**（难度与 P0–P2 覆盖此五类）；M/G/K 专篇不进 total。
+约定：前缀字母标识内容类型；两位数字为「主题组 . 题序」。首页 / `nav-overview-priority.html` / `nav-knowledge-quick-list.html` 按 `#题号` 转发。**`total` 口径 = C+A+E+S+D**（难度与 P0–P2 覆盖此五类）；M/G/K 专篇不进 total。
 
 ## 7. 通用注意事项（历史踩坑沉淀）
 

@@ -20,7 +20,7 @@ agent_created: true
   - 专篇 M/G/K：`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`
   - 篇章 C：`chapter-01~15-*.html`
   - 题集 E/S/A/D：`chapter-questions-eight-part` / `chapter-questions-scenario` / `chapter-question-ai-engineering-deep` / `chapter-questions-domain`
-  - 导航聚合 `nav-*`：`nav-overview-priority` / `nav-overview-quick-list` / `nav-server-security-checkpoint`
+  - 导航聚合 `nav-*`：`nav-overview-priority` / `nav-knowledge-quick-list` / `nav-server-security-checkpoint`
   - 索引：`index.html`
 - **项目根** `index.html`：全部题目的扁平全量快照（每题一个 `q-item` li；进入 `total` 的 C/E/S/A/D 带难度 + `priority-pX` 徽标；**M/G/K 区块无任何徽标**）。
 

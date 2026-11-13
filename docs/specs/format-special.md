@@ -133,7 +133,7 @@
 - **定位**：章节站入口导航页（`java-architect-interview/index.html`）。卡片顺序**允许人工编排**，不以文件名自然序强制重排；Agent 改卡时**保持现有 DOM 顺序**，除非用户明确要求调整位置。
 - **当前卡片顺序**（手工编排，改动须同步本条；以页面 DOM 为准）：
   1. 全站题目优先级排序总览（`nav-overview-priority`）
-  2. 知识点速查手册（`nav-overview-quick-list`）
+  2. 知识点速查手册（`nav-knowledge-quick-list`）
   3. 核心方法论（通栏）
   4. 第 01～15 篇（网格）
   5. 高频核心原理 / 高频真实场景题
@@ -150,14 +150,14 @@
   - **统一顺序**：有计数时按 **专家 → 架构 → 高级**；某档为 0 则省略。
   - **凡可按 `data-difficulty` 实计的卡片均须带 ×N**：篇章 01～15、核心原理、场景、AI 纵深、垂直领域、优先级总览（总览口径 = `total`）。**M/G/K 不写 `card-tags`**。
   - **无法实计的卡**（安全 Checkpoint 等）：只标档位文案，不写 ×N。
-- 引用更新规则：任何章节文件改名，须同步根 `index.html` 与本目录 `index.html`、`nav-overview-*.html`。
+- 引用更新规则：任何章节文件改名，须同步根 `index.html` 与本目录 `index.html`、`nav-*.html`。
 
 ## <a id="8"></a>8. 生产踩坑 / AI 纵深 / 垂直领域 / 速查清单
 
 - **生产踩坑 `chapter-production-pitfalls.html`（K）**：与工程化同款三层卡（insight/principle/application）；G01～G10 对位的 K01～K10（G11 为新增组织治理组，K 篇暂无对位）；专篇键 `pitfalls`，不进 `total`；侧栏组锚 `#K01`～`#K10`。
 - **AI 工程纵深 `chapter-question-ai-engineering-deep.html`（A）**：独立轴，ID `A##.##`，组锚 `#a-group-NN`（A01–A33）；进 `total`（键 `ai_engineering_deep`）；须带难度/优先级；落位 overview。
 - **垂直领域 `chapter-questions-domain.html`（D）**：ID `D##.##`，组锚 `#group-N`；进 `total`（键 `domain_questions`）；卡片变体接近场景轴；须带难度/优先级。
-- **速查清单 `nav-overview-quick-list.html`**：`nav-` 聚合页，按知识点清单导航，转发宿主锚点；无独立题号体系。
+- **速查清单 `nav-knowledge-quick-list.html`**：`nav-` 聚合页，按知识点清单导航，转发宿主锚点；无独立题号体系。
 - **能力矩阵索引 `nav-overview-capability-matrix.html` / 生产生命周期检索视图 `nav-overview-lifecycle.html`**（2026-11-07）：`nav-` 聚合页，纯索引转发宿主锚点（不复制正文）；**不进 `total`、不带 `data-kb-pos` 计数位、不带难度/优先级徽标、无新增 hex**；入口只挂根 `index.html`（章节站 `index.html` 不挂）。
 
 ---
@@ -175,7 +175,7 @@
 | chapter-question-ai-engineering-deep | – | 纵深卡 / epq 组头 | `A##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-domain | – | 领域卡 | `D##.##` | ✔ | ✔ | ✔ |
 | nav-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |
-| nav-overview-quick-list | – | 速查清单 | – | – | – | ✔ |
+| nav-knowledge-quick-list | – | 速查清单 | – | – | – | ✔ |
 | nav-overview-capability-matrix | – | 索引清单 | – | – | – | ✔ |
 | nav-overview-lifecycle | – | 索引清单 | – | – | – | ✔ |
 | nav-server-security-checkpoint | page-wrapper + sidebar | h2/h3 + compare-table + checklist | – | – | – | ✔ |
