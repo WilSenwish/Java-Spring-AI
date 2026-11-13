@@ -6772,7 +6772,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p><strong>阶段 2：数据集版本化</strong>。引入 LakeFS / DVC，数据集像代码一样打 tag、可回滚，复现某次评测用的是哪个版本数据。</p>
               <p><strong>阶段 3：Embedding 与模型版本绑定</strong>。Embedding 模型一升级，旧向量语义漂移，必须让"文档版本 × Embedding 版本 × 模型版本"三元组可追溯。</p>
               <p><strong>阶段 4：漂移监控 + 血缘</strong>。生产数据分布偏移实时告警，特征/文档到答案全链路血缘可查。</p>
-              <p><strong>阶段 5：数据生命周期闸门</strong>。入库即版本化、评测集与生产集隔离、漂移超阈即阻断重训，并把触发记录回写到数据血缘（与 M14.F13 治理框架同构）。</p>
+              <p><strong>阶段 5：数据生命周期闸门</strong>。入库即版本化、评测集与生产集隔离、漂移超阈即阻断重训，并把触发记录回写到数据血缘（与 L02.13 治理框架同构）。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -6817,7 +6817,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
           <div class="content-layer" data-layer="summary">
             <div class="content-layer-title">要点收敛</div>
             <div class="content-layer-body">
-              <p>数据生命周期治理 = <strong>版本化指纹 + 漂移监控 + 三集隔离 + 全链路血缘</strong>。它是 RAG/微调可复现与可回放的底座，与 M14.F13 治理框架对应。</p>
+              <p>数据生命周期治理 = <strong>版本化指纹 + 漂移监控 + 三集隔离 + 全链路血缘</strong>。它是 RAG/微调可复现与可回放的底座，与 L02.13 治理框架对应。</p>
 
               <p><strong>版本与漂移</strong>：数据集按 <code>dataset_ver = 内容哈希 + 采集规则版本 + 时间窗口</code> 生成，写入即不可变；漂移监测覆盖意图分布、长度分位、语言占比、标签分布与片段来源五项，相对 7 日基线超阈值即冻结下游训练与评测。</p>
               <p><strong>工程落点</strong>：Spring AI 的 ETL / VectorStore 写入路径前加 Advisor 做去重、PII 扫描与来源标注；索引重建按蓝绿双索引切换，避免重建期间查询结果混合两版数据。切换点记录 <code>index_ver</code> 并进发布单。</p>
@@ -6851,7 +6851,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p><strong>阶段 2：模型量化</strong>。FP32→FP16/INT8 量化，体积降数倍、端侧可跑，代价是精度轻微损失需评测兜底。</p>
               <p><strong>阶段 3：跨端运行时</strong>。ONNX / TFLite 统一中间表示，Java 侧用 ONNX Runtime 加载，规避端侧框架碎片。</p>
               <p><strong>阶段 4：端云协同</strong>。边缘节点做轻推理/缓存，云端做重训练与编排，结果回传形成反馈闭环。</p>
-              <p><strong>阶段 5：端侧 Agent</strong>。端上跑小型 Agent 做本地决策，仅在必要时上云，隐私与延迟最优（与 M14.S14 边缘主题同构）。</p>
+              <p><strong>阶段 5：端侧 Agent</strong>。端上跑小型 Agent 做本地决策，仅在必要时上云，隐私与延迟最优（与 L03.14 边缘主题同构）。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -6928,7 +6928,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
               <p><strong>阶段 2：审计日志</strong>。记录请求/响应，但只记成功不记拒绝，视角残缺。</p>
               <p><strong>阶段 3：PII 脱敏与加密</strong>。存储前脱敏、传输加密，但脱敏只在展示层做，库内仍是裸数据。</p>
               <p><strong>阶段 4：决策可回放</strong>。每次模型决策记录依据（检索片段、工具调用、规则命中），可事后复盘。</p>
-              <p><strong>阶段 5：合规清单门禁</strong>。consent 校验、留痕不可变、监管报送自动化，未过清单不许上线（与 M14.F14 合规清单同构）。</p>
+              <p><strong>阶段 5：合规清单门禁</strong>。consent 校验、留痕不可变、监管报送自动化，未过清单不许上线（与 L02.14 合规清单同构）。</p>
             </div>
           </div>
           <div class="content-layer" data-layer="principle">
@@ -6969,7 +6969,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
           <div class="content-layer" data-layer="summary">
             <div class="content-layer-title">要点收敛</div>
             <div class="content-layer-body">
-              <p>受监管合规工程化 = <strong>不可变审计 + PII 存储边界脱敏 + 决策可回放 + consent 闸门</strong>。与 M14.F14 合规清单一一对应。</p>
+              <p>受监管合规工程化 = <strong>不可变审计 + PII 存储边界脱敏 + 决策可回放 + consent 闸门</strong>。与 L02.14 合规清单一一对应。</p>
 
               <p><strong>不可变留痕</strong>：审计事件采用 append-only 存储 + 哈希链（每条含前一条摘要），覆盖成功、拒绝、降级、人工放行四类路径；关键字段在入库边界即脱敏，令牌化后的原值放独立受限域，避免展示层脱敏而库内裸数据。</p>
               <p><strong>回放能力</strong>：按 run_id 可重放当时的输入、检索片段、工具调用、规则命中与模型版本；回放结果要与当时留痕一致，不一致说明存在未纳管的可变输入（如实时时间、外部接口）。监管报送从审计视图自动生成，不手工汇总。</p>
@@ -7037,7 +7037,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：把长响应从「连接问题」升格为「任务问题」——状态机持久化、队列背压、幂等取消、SLO 四段分解，四者缺一，高并发下就一定会以超时、重复计费或雪崩的形式还回来。</p>
-              <p><strong>向下回指</strong>：C12.18 / C12.25 / C12.37 / A24.01 / A24.02 / M14.S05。本卡把「长响应」定位为任务问题而非连接问题；限流熔断参数、重试预算归属、回放快照与 SLO 埋点由所引卡各自负责，验收时须分别给出任务驻留时长与连接耗时两条曲线。</p>
+              <p><strong>向下回指</strong>：C12.18 / C12.25 / C12.37 / A24.01 / A24.02 / L03.05。本卡把「长响应」定位为任务问题而非连接问题；限流熔断参数、重试预算归属、回放快照与 SLO 埋点由所引卡各自负责，验收时须分别给出任务驻留时长与连接耗时两条曲线。</p>
             </div>
           </div>
         </div>
@@ -7095,7 +7095,7 @@ public TransferResult transfer(TransferArgs args, String idempotencyKey) { ... }
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：模型网关的契约 = 固定别名 + 租户配额 + 全路径审计 + 成本归因 + 可回滚灰度；它是平台层的一致性边界，不是流量转发层。</p>
-              <p><strong>向下回指</strong>：C12.20 / M14.S11 / A07.03 / A15.01 / K07.09 / C12.47。本卡定平台层的一致性边界；别名与配额实现、审计落点、成本归因、灰度回滚由所引卡各自负责，判据是换供应商时业务侧无需改动任何调用代码。</p>
+              <p><strong>向下回指</strong>：C12.20 / L03.11 / A07.03 / A15.01 / K07.09 / C12.47。本卡定平台层的一致性边界；别名与配额实现、审计落点、成本归因、灰度回滚由所引卡各自负责，判据是换供应商时业务侧无需改动任何调用代码。</p>
             </div>
           </div>
         </div>
@@ -7511,7 +7511,7 @@ assert approvalNo != null || !report.hasHighRiskAction();</code></pre>
             <div class="content-layer-title">一句话结论</div>
             <div class="content-layer-body">
               <p>一句话：业务场景的交付物不是 Agent 本身，而是一条「快照定版 → 确定性计算 → 证据绑定 → 人在环 → 可回放」的证据链；模型的职责边界由可追责性反推，而不是由能力上限决定。</p>
-              <p><strong>向下回指</strong>：A26.01 给场景选型与价值度量，C12.46 给不可变审计与决策回放，M14.S20 给人在环模式目录，A20.02 给合规落地；本卡只负责把这些口径组装成一个可对账、可复盘的具体业务闭环。</p>
+              <p><strong>向下回指</strong>：A26.01 给场景选型与价值度量，C12.46 给不可变审计与决策回放，L03.20 给人在环模式目录，A20.02 给合规落地；本卡只负责把这些口径组装成一个可对账、可复盘的具体业务闭环。</p>
             </div>
           </div>
         </div>
