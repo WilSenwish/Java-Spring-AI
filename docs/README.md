@@ -37,6 +37,8 @@
 │   ├── index.html                          # 章节索引
 │   ├── chapter-01~15-*.html                # 标准 QA 篇章 ×15（C）
 │   ├── chapter-core-methodology.html       # 方法论（M）
+│   ├── chapter-core-methodology-ai.html     # AI 方法论专篇（L）
+│   ├── chapter-hybrid-deployment.html       # 混合部署专题页（H）
 │   ├── chapter-engineering-practices.html  # 工程化（G）
 │   ├── chapter-production-pitfalls.html    # 生产踩坑（K）
 │   ├── chapter-questions-eight-part.html   # 核心原理（E）
@@ -79,7 +81,9 @@
 | `chapter-13-network-io` | 网络与 IO | `C13.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c13.n" data-kb-pos="P590">14</span> | 标准QA（共用） |
 | `chapter-14-databases` | 数据库扩展 | `C14.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c14.n" data-kb-pos="P591">15</span> | 标准QA（共用） |
 | `chapter-15-reactive` | 响应式编程 | `C15.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c15.n" data-kb-pos="P592">12</span> | 标准QA（共用） |
-| `chapter-core-methodology` | 核心方法论 | `M##.##` | <span class="kb-count" data-kb-count="methodology" data-kb-pos="P10">205</span> | 独享（方法论三层卡） |
+| `chapter-core-methodology` | 核心方法论（M 篇）| `M##.##` | <span class="kb-count" data-kb-count="methodology_m" data-kb-pos="P40">164</span> | 独享（M 篇三层卡）|
+| `chapter-core-methodology-ai` | AI 方法论专篇（L）| `L##.##` | <span class="kb-count" data-kb-count="methodology_l" data-kb-pos="P41">41</span> | 独享（L 专篇三层卡；与 M 篇合计 methodology=205）|
+| `chapter-hybrid-deployment` | 混合部署专篇（H）| `H01.##` | <span class="kb-count" data-kb-count="hybrid" data-kb-pos="P42">8</span> | 独享（H 专题页）|
 | `chapter-engineering-practices` | 工程化要点 | `G##.##` | <span class="kb-count" data-kb-count="engineering" data-kb-pos="P593">88</span> | 独享（工程化三层卡） |
 | `chapter-production-pitfalls` | 生产踩坑 | `K##.##` | <span class="kb-count" data-kb-count="pitfalls" data-kb-pos="P594">82</span> | 独享（踩坑三层卡） |
 | `chapter-questions-eight-part` | 核心原理速查 | `E##.##` | <span class="kb-count" data-kb-count="basics" data-kb-pos="P595">74</span> | 独享（epq 速查） |
@@ -104,7 +108,7 @@
 ### 3.2 全站难度 / 优先级分布（按卡片）
 
 - 难度三级：`senior`(高级) / `expert`(专家) / `architect`(架构)。**覆盖进入 `total` 的五类（C/A/E/S/D）**：专家 / 架构师 / 高级开发求和 = `total`。**文案双轨**：标签位一律短表 **专家 / 架构 / 高级**，正文用 **专家 / 架构师 / 高级开发**（见 `specs/format-shared.md` §3.1）。
-- **M/G/K 三专篇不分难度等级**（2026-09-16）：无 `data-difficulty`、无专篇难度计数键。方法论 <span class="kb-count" data-kb-count="methodology" data-kb-pos="P11">205</span> 卡另计，不与题目难度加总。
+- **M/G/K 三专篇不分难度等级**（2026-09-16）：无 `data-difficulty`、无专篇难度计数键。方法论（M 篇 + L 专篇）<span class="kb-count" data-kb-count="methodology" data-kb-pos="P11">205</span> 卡另计，不与题目难度加总。
 - 优先级：`P0`–`P2`；C/A/E/S/D **全部携带**（求和 = `total`）；方法论属性侧优先级分子/分母为 <span class="kb-count" data-kb-count="methodology_with_priority" data-kb-pos="P12">0</span>/<span class="kb-count" data-kb-count="methodology" data-kb-pos="P13">205</span>；安全手册**不含**优先级。
 - **口径**：`total` = 篇章C + AI纵深A + 核心原理E + 场景S + 垂直领域D；M/G/K 专篇键不进 total。
 

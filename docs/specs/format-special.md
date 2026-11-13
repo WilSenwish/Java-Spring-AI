@@ -33,10 +33,10 @@
 - **题目头**：`content-badge`（M01.01）+ `content-question`（条目标题，**不带难度/优先级徽标**）。
 - **目录**：按模块分组的多段侧边目录；**分组标题必须**为 `<a class="toc-group-title" href="#…">`（禁止 `div`）：
   - 十六组 → `#m-group-01`～`#m-group-16`（与 Module 编号一致）
-  - 条目锚点：通用组仍为 `M##.##`；**M14 例外** —— 按 道 / 法 / 术 三段分别用 `M14.D##` / `M14.F##` / `M14.S##`，术段 `M14.S01`～`M14.S20` 连续（原 `M14.01`～`M14.09` 已并入术段更名为 `M14.S01`～`M14.S09`）
+  - 条目锚点：通用组仍为 `M##.##`；**原 M14（AI/Agent 方法论）已独立为 L 专篇** `chapter-core-methodology-ai.html`，按 道 / 法 / 术 三段用 `L01.##` / `L02.##` / `L03.##`（L01 道 6 卡 / L02 法 15 卡 / L03 术 20 卡，共 41 卡），侧栏为三个顶层 `toc-group`（`#l-group-01`～`#l-group-03`）。
 - **导航**：顶/底 `chapter-nav-top` / `chapter-nav` 内容一致；左 `nav-home`「← 返回目录」、右 `nav-next`「工程化要点 →」；中间 `nav-center` 为「全部章节」（勿与左右重复链工程化）。
-- 单条新增规则：`id = M{模块}.{序}`（M14 按上面的 D/F/S 段）；`insight → principle → application` 三层层序固定。
-- **M14 侧栏二级分组**：单个 `toc-group` 内用 `<a class="toc-subgroup-title code-m" href="#m14-dao|#m14-fa|#m14-shu">` 分出 道 / 法 / 术 三段，每段紧跟一个 `<ol>`（**仍须是 `.toc-group` 的直接子级**，保证 ≤1024 抽屉折叠生效）；视觉只在 `assets/design-system.css`。历史规划文档 `docs/m14-*-plan.md` / `docs/ai-*plan.md` 保留规划期编号叙述，勿据其判读当前卡号。
+- 单条新增规则：`id = M{模块}.{序}`（L 专篇按上面的 `L01/L02/L03` 三段）；`insight → principle → application` 三层层序固定。
+- **L 专篇侧栏**：三个顶层 `toc-group`（`#l-group-01` 道 / `#l-group-02` 法 / `#l-group-03` 术），各组直接挂条目；折叠逻辑同 M 篇（≤1024 抽屉）。视觉只在 `assets/design-system.css`。历史规划文档 `docs/m14-*-plan.md` / `docs/ai-*plan.md` 保留规划期编号叙述，勿据其判读当前卡号。
 
 ## <a id="2"></a>2. 优先级大盘 nav-overview-priority（ov 组件）
 
@@ -134,7 +134,7 @@
 - **当前卡片顺序**（手工编排，改动须同步本条；以页面 DOM 为准）：
   1. 全站题目优先级排序总览（`nav-overview-priority`）
   2. 知识点速查手册（`nav-knowledge-quick-list`）
-  3. 核心方法论（通栏）
+  3. 核心方法论 / AI 方法论专篇（M 篇 · L 专篇，通栏）
   4. 第 01～15 篇（网格）
   5. 高频核心原理 / 高频真实场景题
    6. AI 工程纵深
@@ -157,6 +157,7 @@
 - **生产踩坑 `chapter-production-pitfalls.html`（K）**：与工程化同款三层卡（insight/principle/application）；G01～G10 对位的 K01～K10（G11 为新增组织治理组，K 篇暂无对位）；专篇键 `pitfalls`，不进 `total`；侧栏组锚 `#K01`～`#K10`。
 - **AI 工程纵深 `chapter-question-ai-engineering-deep.html`（A）**：独立轴，ID `A##.##`，组锚 `#a-group-NN`（A01–A33）；进 `total`（键 `ai_engineering_deep`）；须带难度/优先级；落位 overview。
 - **垂直领域 `chapter-questions-domain.html`（D）**：ID `D##.##`，组锚 `#group-N`；进 `total`（键 `domain_questions`）；卡片变体接近场景轴；须带难度/优先级。
+- **混合部署专篇 `chapter-hybrid-deployment.html`（H）**：独立专题轴，文件名 `chapter-` 前缀但无 NN 编号、不占 C 章序号；ID 单点号 `H01.01`～`H01.08`（共 8 卡，键 `hybrid`），落位 overview 的 H 轴；须带难度/优先级（同 A/D 轴口径）。overview 中 H 轴序为 9，必须放在子组最后一个独立 `.ov-type` 块（`C→E→S→A→D→H` 升序），不得塞进 `code-c`；每个 H 类型块自成 `data-kb-count`+`data-kb-pos` 并与 `code-c` 拆账。SSOT 命名空间 `struct.hybrid.idx.h01.*`（非 `chap.idx.cNN`），且须在 `guard.sources.manual` 声明真源。
 - **速查清单 `nav-knowledge-quick-list.html`**：`nav-` 聚合页，按知识点清单导航，转发宿主锚点；无独立题号体系。
 - **能力矩阵索引 `nav-overview-capability-matrix.html` / 生产生命周期检索视图 `nav-overview-lifecycle.html`**（2026-11-07）：`nav-` 聚合页，纯索引转发宿主锚点（不复制正文）；**不进 `total`、不带 `data-kb-pos` 计数位、不带难度/优先级徽标、无新增 hex**；入口只挂根 `index.html`（章节站 `index.html` 不挂）。
 - **AI 应用组件分层检索视图 `nav-overview-ai-component-stack.html`**（2026-11-11）：同为 `nav-` 纯索引转发页，九层组件 × 必备/生产刚需/增强；红线同上；入口只挂根 `index.html`。页面由生成器 `tmp/gen_component_stack_page.py` 拥有，**只改生成器重跑、禁手改 HTML**；新增章节须同步生成器的 `EXTRA_REFS` 代表卡。
@@ -170,12 +171,14 @@
 |------|------|----------|:---:|:---:|:---:|:---:|
 | chapter-01~15（标准） | page-wrapper + sidebar | `content-card` 六层 | `C##.##` | ✔ | ✔ | ✔ |
 | chapter-core-methodology | 同标准外壳 | `content-card` 三层 | `M##.##` | 不呈现 | 不呈现 | ✔ |
+| chapter-core-methodology-ai | 同标准外壳 | `content-card` 三层 | `L##.##` | 不呈现 | 不呈现 | ✔ |
 | chapter-engineering-practices | 同标准外壳 | `content-card` 三层 | `G##.##` | 不呈现 | 不呈现 | ✔ |
 | chapter-production-pitfalls | 同标准外壳 | `content-card` 三层 | `K##.##` | 不呈现 | 不呈现 | ✔ |
 | chapter-questions-eight-part | – | `epq-*` | `E##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-scenario | – | `content-card` 场景层 | `S##.##` | ✔ | ✔ | ✔ |
 | chapter-question-ai-engineering-deep | – | 纵深卡 / epq 组头 | `A##.##` | ✔ | ✔ | ✔ |
 | chapter-questions-domain | – | 领域卡 | `D##.##` | ✔ | ✔ | ✔ |
+| chapter-hybrid-deployment | – | 专题卡 | `H01.##` | ✔ | ✔ | ✔ |
 | nav-overview-priority | – | `ov-*` 矩阵 | – | ✔ | ✔ | ✔ |
 | nav-knowledge-quick-list | – | 速查清单 | – | – | – | ✔ |
 | nav-overview-capability-matrix | – | 索引清单 | – | – | – | ✔ |

@@ -219,7 +219,7 @@ chapter-engineering-practices.html         # 工程化（G）
 chapter-production-pitfalls.html           # 生产踩坑（K）
 chapter-questions-{eight-part|scenario|domain}.html  # E / S / D 题集
 chapter-question-ai-engineering-deep.html  # AI 工程纵深（A；单数 question-）
-chapter-hybrid-deployment.html             # 专题页（HD 轴；chapter- 前缀但无 NN 编号，不占 C 章序号）
+chapter-hybrid-deployment.html             # 混合部署专篇（H 轴；chapter- 前缀但无 NN 编号，不占 C 章序号；ID 单点号 H01.01~H01.08）
 nav-{overview-priority|knowledge-quick-list}.html  # 导航聚合（nav- 前缀）
 nav-server-security-checkpoint.html       # 安全 Checkpoint（nav- 前缀）
 index.html                                # 章节索引
@@ -231,12 +231,14 @@ index.html                                # 章节索引
 |------|------|------|----------|
 | `C##.##` | 标准 QA 题号（Chapter.编号） | `C01.01` | chapter-01 ~ 15 |
 | `M##.##` | 核心方法论条目 | `M01.01` | chapter-core-methodology |
+| `L##.##` | AI 方法论专篇条目（道/法/术三段 `L01/L02/L03`） | `L01.01` | chapter-core-methodology-ai |
 | `G##.##` | 工程化要点条目 | `G01.01` | chapter-engineering-practices |
 | `E##.##` | 核心原理速查条目 | `E01.01` | chapter-questions-eight-part |
 | `S##.##` | 场景题条目 | `S01.01` | chapter-questions-scenario |
 | `A##.##` | AI 工程纵深独立轴题号 | `A01.01` | chapter-question-ai-engineering-deep |
 | `D##.##` | 垂直领域题号 | `D01.01` | chapter-questions-domain |
 | `K##.##` | 生产踩坑条目 | `K01.01` | chapter-production-pitfalls |
+| `H01.##` | 混合部署专题条目（单点号，H 轴） | `H01.01` | chapter-hybrid-deployment |
 
 约定：前缀字母标识内容类型；两位数字为「主题组 . 题序」。首页 / `nav-overview-priority.html` / `nav-knowledge-quick-list.html` 按 `#题号` 转发。**`total` 口径 = C+A+E+S+D**（难度与 P0–P2 覆盖此五类）；M/G/K 专篇不进 total。
 
