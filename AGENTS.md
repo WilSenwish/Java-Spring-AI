@@ -12,7 +12,7 @@
   - 专篇：`chapter-core-methodology.html`（M）、`chapter-engineering-practices.html`（G）、`chapter-production-pitfalls.html`（K）
   - 篇章：`chapter-01~15-*.html`（C）
   - 题集：`chapter-questions-eight-part.html`（E）、`chapter-questions-scenario.html`（S）、`chapter-question-ai-engineering-deep.html`（A）、`chapter-questions-domain.html`（D）
-  - 导航聚合（`nav-` 前缀=非篇章题宿主）：`nav-overview-priority.html`、`nav-knowledge-quick-list.html`、`nav-server-security-checkpoint.html`、`nav-overview-capability-matrix.html`（能力矩阵索引）、`nav-overview-lifecycle.html`（生产生命周期检索视图）
+  - 导航聚合（`nav-` 前缀=非篇章题宿主）：`nav-overview-priority.html`、`nav-knowledge-quick-list.html`、`nav-server-security-checkpoint.html`、`nav-overview-capability-matrix.html`（能力矩阵索引）、`nav-overview-lifecycle.html`（生产生命周期检索视图）、`nav-overview-ai-component-stack.html`（AI 应用组件分层检索视图，生成器 `tmp/gen_component_stack_page.py`）
   - 索引：`index.html`
 - 共享资源：`java-architect-interview/assets/design-system.css`、`java-architect-interview/assets/theme-init.js`、`java-architect-interview/assets/nav.js`；按需图表/字体在 `docs/shared/`（章节页相对路径 `../docs/shared/`）
 

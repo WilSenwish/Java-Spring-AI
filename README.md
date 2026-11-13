@@ -26,6 +26,7 @@ Java-Spring-AI/
 │   ├── nav-server-security-checkpoint.html #   服务端安全检查点
 │   ├── nav-overview-capability-matrix.html #   能力矩阵索引导航
 │   ├── nav-overview-lifecycle.html         #   生产生命周期检索视图导航
+│   ├── nav-overview-ai-component-stack.html  #   AI 应用组件分层检索视图导航
 │   ├── assets/                             #   design-system.css · nav.js · theme-init.js
 │   └── index.html                          # 章节索引
 ├── java-design-patterns-principles/       # ② 设计原则 & 超越 GoF 23
@@ -97,6 +98,7 @@ Java-Spring-AI/
 | 安全检查点 | `java-architect-interview/nav-server-security-checkpoint.html` | 服务端开发安全速查 |
 | 能力矩阵索引 | `java-architect-interview/nav-overview-capability-matrix.html` | 2026 岗位能力对标检索 |
 | 生产生命周期检索 | `java-architect-interview/nav-overview-lifecycle.html` | 按生产阶段检索知识点 |
+| AI 应用组件分层检索 | `java-architect-interview/nav-overview-ai-component-stack.html` | 九层组件 × 必备/生产刚需/增强，每个组件直达卡片 |
 | 方法论 | `java-architect-interview/chapter-core-methodology.html` | 道法术势十六组（185 卡） |
 | 工程化要点 | `java-architect-interview/chapter-engineering-practices.html` | 11 组工程化实践（74 卡） |
 | 生产踩坑 | `java-architect-interview/chapter-production-pitfalls.html` | 10 组真实故障复盘（71 卡） |

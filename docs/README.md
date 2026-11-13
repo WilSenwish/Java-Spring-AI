@@ -48,6 +48,7 @@
 │   ├── nav-server-security-checkpoint.html # 安全 Checkpoint
 │   ├── nav-overview-capability-matrix.html # 能力矩阵索引导航
 │   ├── nav-overview-lifecycle.html         # 生产生命周期检索视图导航
+│   ├── nav-overview-ai-component-stack.html # AI 应用组件分层检索视图导航
 │   └── assets/                             # design-system.css · nav.js · theme-init.js
 ├── java-design-patterns-principles/        # 子站② 设计原则 & 超越 GoF 23
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/          # 子站③ 定律 / 理论 / 原则 / 模式索引
@@ -90,6 +91,7 @@
 | `nav-server-security-checkpoint` | 服务端安全自检 | 章节式 `h2/h3` | – | 独享（独立单页） |
 | `nav-overview-capability-matrix` | 能力矩阵索引（2026 岗位能力对标检索） | 清单导航 | – | 独享（索引聚合，不进 total、无计数位） |
 | `nav-overview-lifecycle` | 生产生命周期检索视图 | 清单导航 | – | 独享（索引聚合，不进 total、无计数位） |
+| `nav-overview-ai-component-stack` | AI 应用组件分层检索视图 | 组件清单导航 | – | 独享（索引聚合，不进 total、无计数位；由 `tmp/gen_component_stack_page.py` 生成） |
 
 > 表内计数位一律带 `data-kb-pos` 由 SSOT `docs/kb-counts.json` 驱动（2026-11-09 注册，`sync_counts check` 逐位校验），**规范文中禁止裸写易漂移数字**。
 
