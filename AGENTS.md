@@ -151,7 +151,6 @@
 | P131 | `index.html` | 升格 local:dir-group → struct.root.dir_group_20 |
 | P132 | `index.html` | 升格 local:dir-group → struct.root.dir_group_21 |
 | P133 | `index.html` | 升格 local:dir-group → struct.root.dir_group_22 |
-| P134 | `index.html` | 升格 local:dir-group → struct.root.dir_group_23 |
 | P135 | `index.html` | 升格 local:dir-count → struct.root.dir_count_3 |
 | P136 | `index.html` | 升格 local:dir-group → struct.root.dir_group_24 |
 | P137 | `index.html` | 升格 local:dir-group → struct.root.dir_group_25 |
@@ -160,7 +159,6 @@
 | P140 | `index.html` | 升格 local:dir-group → struct.root.dir_group_28 |
 | P141 | `index.html` | 升格 local:dir-group → struct.root.dir_group_29 |
 | P142 | `index.html` | 升格 local:dir-group → struct.root.dir_group_30 |
-| P143 | `index.html` | 升格 local:dir-group → struct.root.dir_group_31 |
 | P144 | `index.html` | 升格 local:dir-group → struct.root.dir_group_32 |
 | P145 | `index.html` | 升格 local:dir-group → struct.root.dir_group_33 |
 | P146 | `index.html` | 升格 local:dir-group → struct.root.dir_group_34 |
@@ -340,7 +338,6 @@
 | P327 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_10 |
 | P328 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_11 |
 | P329 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_12 |
-| P330 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M14 组头卡数（原键 theme_count_1，2026-09-20 归一为 group_N） |
 | P331 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M15 组头卡数（原键 theme_count_2，2026-09-20 归一为 group_N） |
 | P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16（势定律）组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
 | P333 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
@@ -370,7 +367,6 @@
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
 | P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
 | P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M13 |
-| P440 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M14 |
 | P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M15 |
 | P442 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M16 |
 | P443 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页副标题题数 |
@@ -468,16 +464,7 @@
 | P565 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 高级数（2026-11-06 升格裸计数） |
 | P566 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 架构数（2026-11-06 升格裸计数） |
 | P567 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 专家数（2026-11-06 升格裸计数） |
-| P568 | `index.html` | 根 index M 篇章 dir-subtitle 方法论卡数（2026-11-06 升格裸计数） |
-| P569 | `index.html` | 根 index C 篇章 dir-subtitle 篇章题数（2026-11-06 升格裸计数） |
-| P570 | `index.html` | 根 index E 篇章 dir-subtitle 核心原理数（2026-11-06 升格裸计数） |
-| P571 | `index.html` | 根 index S 篇章 dir-subtitle 场景题数（2026-11-06 升格裸计数） |
-| P572 | `index.html` | 根 index A 篇章 dir-subtitle AI 纵深数（2026-11-06 升格裸计数） |
-| P573 | `index.html` | 根 index G 篇章 dir-subtitle 工程化卡数（2026-11-06 升格裸计数） |
-| P574 | `index.html` | 根 index K 篇章 dir-subtitle 踩坑卡数（同键第二展示位，2026-11-06 升格裸计数） |
-| P575 | `index.html` | 根 index D 篇章 dir-subtitle 垂直领域题数（2026-11-06 升格裸计数） |
 | P576 | `index.html` | 批次 4 新增 A27 概率性系统与控制面 dir-group 题数（5 卡） |
-| P577 | `index.html` | 批次 4 新增 A28 静默失效、反模式与落地路径 dir-group 题数（3 卡） |
 | P578 | `docs/README.md` | docs/README 矩阵 C01 章卡片数（2026-11-09 由裸计数升格注册） |
 | P579 | `docs/README.md` | docs/README 矩阵 C02 章卡片数（2026-11-09 由裸计数升格注册） |
 | P580 | `docs/README.md` | docs/README 矩阵 C03 章卡片数（2026-11-09 由裸计数升格注册） |
@@ -543,12 +530,38 @@
 | P927 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
 | P928 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M17 |
 | P929 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 D13 组题数 |
-| P930 | `index.html` | 根 index H 专篇目录副标题题数（原与章节站共用 P609，拆分独立计数位） |
 | P931 | `index.html` | 根 index dir-stats-sub H 编号体系聚合计数 |
 | P932 | `java-architect-interview/index.html` | 章节站 index meta-stats H 编号体系聚合计数 |
 | P933 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 编号体系 |
 | P934 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 页面篇章 |
 | P935 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 题目总数 |
+| P936 | `index.html` | 根 index H 专篇 H01 组题数（与 section 级 P613 同键的第二展示位） |
+| P937 | `index.html` | 根 index A28 静默失效与反模式（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P938 | `index.html` | 根 index A29 生产部署与运维纵深（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P939 | `index.html` | 根 index A30 评测与观测纵深（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P940 | `index.html` | 根 index A31 治理与成本纵深（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P941 | `index.html` | 根 index A32 工程化与交付纵深（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P942 | `index.html` | 根 index A33 安全与合规纵深（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P943 | `index.html` | 根 index G08 安全运营与密钥治理（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P944 | `index.html` | 根 index G09 合规与数据治理（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P945 | `index.html` | 根 index G10 AI 制品与部署清单（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P946 | `index.html` | 根 index G11 组织与团队治理（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P947 | `index.html` | 根 index K08 安全应急踩坑（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P948 | `index.html` | 根 index K09 AI 数据与合规事故（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P949 | `index.html` | 根 index K10 AI 制品与部署事故（合并组拆分后独立分组，实体 li.q-item 计数） |
+| P963 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P964 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P965 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P966 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P960 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P961 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P962 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P970 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P971 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P972 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P973 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P974 | `java-architect-interview/chapter-core-methodology-ai.html` | L 专篇 合计卡数（与页头 methodology_l 同值） |
+| P975 | `index.html` | 根 index 独立 L 专篇 section 的章节计数胶囊 |
 <!-- COUNTS:END -->
 ## 4. 常用操作约定
 

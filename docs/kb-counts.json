@@ -4878,6 +4878,16 @@
       "nth": 1,
       "key": "methodology_l",
       "desc": "L 专篇 合计卡数（与页头 methodology_l 同值）"
+    },
+    {
+      "id": "P975_s_methodology_l_root",
+      "file": "index.html",
+      "pattern": "data-kb-pos=\"P975\"[^>]*>(\\d+)</span>",
+      "kind": "number",
+      "group": 1,
+      "nth": 1,
+      "key": "methodology_l",
+      "desc": "根 index 独立 L 专篇 section 的章节计数胶囊"
     }
   ],
   "guard": {
@@ -5206,7 +5216,7 @@
           "file": "index.html",
           "block_re": "<section class=\"dir-section\"",
           "count_re": "<li class=\"q-item\"",
-          "key_re": "^(methodology|chapters|chapters_core|basics|struct\\.root\\.dir_count_(2|3|4|20|21))$",
+          "key_re": "^(chapters|chapters_core|basics|struct\\.root\\.dir_count_(2|3|4|20|21))$",
           "desc": "根 index 每个方向块的题数 = 该块内 li.q-item 数（section 级：8 个 section 各 1 个 dir-count；anchor_re 指定 dir-count 锚点，避免被同块 dir-subtitle 锚点抢占）",
           "anchor_re": "<span class=\"dir-count\">\\s*<span class=\"kb-count\" data-kb-count=\"([^\"]+)\"[^>]*data-kb-pos=\"(P\\d+)\"[^>]*>(\\d+)<"
         },
@@ -5293,15 +5303,30 @@
               "key": "hybrid",
               "file": "java-architect-interview/chapter-hybrid-deployment.html",
               "count_re": "<div class=\"content-card"
+            },
+            {
+              "key": "methodology_m",
+              "file": "java-architect-interview/chapter-core-methodology.html",
+              "count_re": "<div class=\"content-card\""
+            },
+            {
+              "key": "methodology_l",
+              "file": "java-architect-interview/chapter-core-methodology-ai.html",
+              "count_re": "<div class=\"content-card\""
             }
           ],
-          "key_re": "^(engineering|pitfalls|basics|hybrid)$",
-          "desc": "专题页题数 = 该专题页 content-card 数（含 H 混合部署专篇）"
+          "key_re": "^(engineering|pitfalls|basics|hybrid|methodology_m|methodology_l)$",
+          "desc": "专题页题数 = 该专题页 content-card 数（含 H 混合部署专篇、M 篇与 L 专篇局部卡数）"
         },
         {
           "id": "sum_key",
           "type": "sum",
           "items": [
+            {
+              "key": "methodology",
+              "terms": "^(methodology_m|methodology_l)$",
+              "desc": "方法论体系合计 = M 篇卡数 + L 专篇卡数（L 目录独立后不再由单块 DOM 实测）"
+            },
             {
               "key": "chapters",
               "terms": "^struct\\.(chap\\.idx\\.(c\\d\\d|ca))\\.n$",
@@ -5363,7 +5388,7 @@
               "desc": "AI 纵深题数 = A 轴 ca.n"
             }
           ],
-          "key_re": "^(chapters|chapters_core|ai_engineering_deep|scenarios|domain_questions|total|expert|architect|senior|p0|p1|p2)$",
+          "key_re": "^(methodology|chapters|chapters_core|ai_engineering_deep|scenarios|domain_questions|total|expert|architect|senior|p0|p1|p2)$",
           "desc": "语义键 = 若干从属键之和（恒等式）"
         },
         {
@@ -5445,7 +5470,7 @@
       "manual": [
         {
           "key_re": "^struct\\.misc\\.index\\.site-meta_1$",
-          "evidence": "站点统计「编号体系 9」——口径为站内编号体系类别数（M/C/E/S/A/H/G/K/D），无可实测的 DOM 结构"
+          "evidence": "站点统计「编号体系 10」——口径为站内编号体系类别数（M/L/C/E/S/A/H/G/K/D），L 专篇独立成体系；无可实测的 DOM 结构"
         },
         {
           "key_re": "^struct\\.chap\\.idx\\.meta_2$",
@@ -5462,7 +5487,7 @@
             "docs/specs/format-special.md",
             "docs/specs/format-shared.md"
           ],
-          "evidence": "规范文档内引用方法论卡数——无独立真源，值由 SSOT 自身决定（sync_counts check 已保证一致）"
+          "evidence": "规范文档内引用方法论体系合计（M 篇 + L 专篇）；真值由 sum_key 规则实测，此处仅覆盖文档引用位"
         },
         {
           "key_re": "^(methodology|methodology_with_priority)$",
@@ -5881,7 +5906,7 @@
     "meth.theme_3": 50,
     "meth.theme_4": 50,
     "misc.chap_chapter_core_methodology.meth-groups_1": 17,
-    "misc.index.site-meta_1": 9,
+    "misc.index.site-meta_1": 10,
     "misc.index.site-meta_3": 7,
     "misc.index.site-meta_4": 4,
     "ov.subgroup_1": 27,
