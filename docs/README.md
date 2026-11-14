@@ -66,7 +66,7 @@
 | 文件 | 主题 | ID 体系 | 卡片数 | 格式规则类型 |
 |------|------|---------|-------|--------------|
 | `../index.html` | 全站首页（导航/统计/标签云） | – | – | 独享（首页专属组件） |
-| `chapter-01-jvm-memory-classloading` | JVM 内存与类加载 | `C01.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c01.n" data-kb-pos="P578">12</span> | 标准QA（共用） |
+| `chapter-01-jvm-memory-classloading` | JVM 内存与类加载 | `C01.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c01.n" data-kb-pos="P578">13</span> | 标准QA（共用） |
 | `chapter-02-gc-performance` | GC 算法与性能调优 | `C02.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c02.n" data-kb-pos="P579">12</span> | 标准QA（共用） |
 | `chapter-03-concurrency-locks` | 并发与锁 | `C03.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c03.n" data-kb-pos="P580">12</span> | 标准QA（共用） |
 | `chapter-04-threadpool-virtual-threads` | 线程池与虚拟线程 | `C04.##` | <span class="kb-count" data-kb-count="struct.chap.idx.c04.n" data-kb-pos="P581">11</span> | 标准QA（共用） |

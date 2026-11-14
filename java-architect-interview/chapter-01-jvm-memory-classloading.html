@@ -58,6 +58,9 @@
           <li>
             <a href="#C01.12"><span class="toc-number">C01.12</span>Leyden / CDS / 启动优化</a>
           </li>
+          <li>
+            <a href="#C01.13"><span class="toc-number">C01.13</span>反射线程安全与 MethodHandle 选型</a>
+          </li>
         </ol>
       </aside>
 
@@ -70,13 +73,13 @@
           <p class="chapter-subtitle">本篇按「分区归因 → 对象与引用 → 类加载/JPMS → JMM 可见性 → JIT/启动与升级」串起 JVM 排障与调优地基。</p>
           <p class="meth-frame">骨架见 <a href="chapter-core-methodology.html#M12.03">M12.03</a> / <a href="chapter-core-methodology.html#m-group-01">M01</a>。本篇只补领域细枝，框在 <a href="chapter-core-methodology.html#prologue">核心方法论 · 开篇</a>。</p>
           <div class="chapter-meta">
-            <span>卡片合计：<span class="kb-count" data-kb-count="struct.chap.idx.c01.n" data-kb-pos="P981">12</span></span>
+            <span>卡片合计：<span class="kb-count" data-kb-count="struct.chap.idx.c01.n" data-kb-pos="P981">13</span></span>
             <span class="meta-divider">|</span>
             <span>专家 ×<span class="kb-count" data-kb-count="struct.chap.idx.c01.expert" data-kb-pos="P982">1</span></span>
             <span class="meta-divider">|</span>
             <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.c01.architect" data-kb-pos="P983">5</span></span>
             <span class="meta-divider">|</span>
-            <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.c01.senior" data-kb-pos="P984">6</span></span>
+            <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.c01.senior" data-kb-pos="P984">7</span></span>
             <span class="meta-divider">|</span>
             <span>预计阅读时间：120 分钟</span>
           </div>
@@ -1982,6 +1985,163 @@ java -XX:SharedArchiveFile=app.jsa -jar app.jar</code></pre>
                   <li><strong>忽略动态代理/反射</strong>：需配合 AOT 提示或 Leyden 约束，否则优化被打穿。</li>
                 </ul>
               </div>
+            </div>
+          </div>
+        </div>
+        <div class="content-card" id="C01.13" data-difficulty="senior" data-priority="p1">
+          <div class="content-header">
+            <div class="content-badge code-c">C01.13</div>
+            <div class="content-question">Java 反射线程安全与 MethodHandle 选型：setAccessible 竞态、缓存规范与跨 JDK 兼容<span class="difficulty difficulty-senior">高级</span><span class="priority priority-p1">P1</span></div>
+          </div>
+          <div class="content-layer" data-layer="essence">
+            <div class="content-layer-title">本质问题</div>
+            <div class="content-layer-body">
+              <p>反射本身<strong>不是线程安全</strong>的：风险集中在 <code class="inline-code">Field/Method/Constructor</code> 的 <code class="inline-code">setAccessible</code>、全局缓存、目标对象可变性、动态代理与模块访问校验；单纯查询元数据（<code class="inline-code">getDeclaredXXX</code>）大多是安全的。核心心智模型：<code class="inline-code">override</code>（accessible 标记）是反射对象身上的<strong>普通可变成员变量</strong>，无任何同步保护——「多线程写它」是唯一根因，「只写一次、后续只读」即可根除。</p>
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>对象</th>
+                    <th>线程安全</th>
+                    <th>说明</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code class="inline-code">Class&lt;?&gt;</code></td>
+                    <td>✅ 安全</td>
+                    <td>类元数据全局唯一，只读</td>
+                  </tr>
+                  <tr>
+                    <td><code class="inline-code">Field</code></td>
+                    <td>❌ 非安全</td>
+                    <td>含可变内部状态：<code class="inline-code">override</code> 标记、<code class="inline-code">root</code> 等</td>
+                  </tr>
+                  <tr>
+                    <td><code class="inline-code">Method</code> / <code class="inline-code">Constructor</code></td>
+                    <td>❌ 非安全</td>
+                    <td>同 Field，另有参数注解缓存等懒加载字段</td>
+                  </tr>
+                  <tr>
+                    <td><code class="inline-code">MethodHandle</code></td>
+                    <td>✅ 安全</td>
+                    <td>调用无状态、无可变标记，高并发优先</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="evolution">
+            <div class="content-layer-title">演进脉络</div>
+            <div class="content-layer-body">
+              <p><strong>JDK 8</strong>：Class 级 <code class="inline-code">ReflectionData</code> 懒加载缓存反射元数据；并发首次访问可能重复初始化（多副本浪费内存，极端版本注解缓存错乱）。</p>
+              <p><strong>JDK 9+</strong>：模块化强封装（详见 <a href="#C01.08">C01.08</a>），<code class="inline-code">setAccessible(true)</code> 除改 override 外还要过模块校验，未 opens 直接抛 <code class="inline-code">InaccessibleObjectException</code>；引入 <code class="inline-code">VarHandle</code>（JEP 193，内存访问语义，见 C01.04）。</p>
+              <p><strong>JDK 18</strong>：JEP 416 将 core reflection 底层改由 MethodHandle 实现——框架侧「缓存 MethodHandle 替代反射」成为主流（Spring/MyBatis 均完成迁移）。</p>
+              <p><strong>JDK 17/21+</strong>：SecurityManager 废弃（其安全检查也有并发竞争）；虚拟线程下反射规则不变——setAccessible 竞态坑不会因 VT 自动消失。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="principle">
+            <div class="content-layer-title">第一性原理</div>
+            <div class="content-layer-body">
+              <p><strong>1. 竞态根因 = 写 override</strong>：同一 Field/Method 实例被多线程交替 <code class="inline-code">setAccessible(true/false)</code>，会出现「明明开了 accessible 调用却抛 <code class="inline-code">IllegalAccessException</code>」的偶发难复现故障。缓存构建阶段单线程一次性 setAccessible、之后全链路只读调用，这一类坑彻底消失。</p>
+              <p><strong>2. 目标对象并发不归反射管</strong>：<code class="inline-code">field.set</code>/<code class="inline-code">method.invoke</code> 本质等价普通赋值/调用——反射不自动加锁、不保证 volatile 可见性；共享 bean 并发读写是独立并发问题（见 C01.04）。</p>
+              <p><strong>3. JDK 内部懒加载缓存的弱风险</strong>：注解/泛型元数据首次并发读取在部分 JDK 版本可能重复创建（不抛访问异常，业务难感知），启动预热即可规避。</p>
+              <p><strong>4. 动态代理</strong>：<code class="inline-code">Proxy.newProxyInstance</code> 内部有同步、不会重复生成代理类，但高并发下有锁竞争抖动；<code class="inline-code">InvocationHandler</code> 的线程安全完全由使用者保证（机制与选型见 <a href="../java-architect-interview/chapter-05-spring-core.html#C05.03">C05.03</a>）。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="practice">
+            <div class="content-layer-title">工程实践</div>
+            <div class="content-layer-body">
+              <p><strong>1. 缓存规范（框架同款）</strong>：缓存 key = <code class="inline-code">Class + 字段/方法签名</code>；初始化必须原子（<code class="inline-code">ConcurrentHashMap.computeIfAbsent</code> 的 lambda 恰好执行一次）；<strong>存入缓存后全链路禁止再调 setAccessible</strong>。禁止手写 get-then-put 懒加载——两个线程可能拿到同一 Field 实例各自 setAccessible。</p>
+              <pre class="code-block"><code>// ✅ 正确：computeIfAbsent 原子初始化，缓存后只读调用
+private static final Map&lt;Class&lt;?&gt;, Field&gt; CACHE = new ConcurrentHashMap&lt;&gt;();
+static Field fieldOf(Class&lt;?&gt; cls, String name) throws Exception {
+    return CACHE.computeIfAbsent(cls, k -&gt; {
+        try {
+            Field f = k.getDeclaredField(name);
+            f.setAccessible(true);          // 只在初始化执行这一次
+            return f;
+        } catch (Exception e) { throw new IllegalStateException(e); }
+    });
+}
+// ❌ 错误：static 全局 Field，多线程一边 setAccessible 一边 invoke
+// ❌ 错误：cache.get() 判空后 getDeclaredField + setAccessible + put（非原子）</code></pre>
+              <p>
+                <strong>2. MethodHandle 三条路径</strong>：① Java 8 可直接 <code class="inline-code">findGetter/findSetter</code>（含私有）；② <strong>Java 9+ 业务代码首选 <code class="inline-code">unreflectGetter/unreflectSetter</code></strong>——先反射拿 Field 一次性 setAccessible 再转 MH，转完弃 Field 缓存 MH，跨 JDK 8~25 稳定；③ 框架级 <code class="inline-code">privateLookupIn</code>（需目标模块 opens，业务不推荐）。
+              </p>
+              <p><strong>3. invokeExact vs invoke</strong>：invokeExact 严格类型匹配（基础类型不能传包装类）性能最好，热点链路优先；invoke 自动装箱适配、通用工具用，性能略降。</p>
+              <p><strong>4. 启动预热</strong>：单线程提前触发反射元数据 + 注解/泛型懒加载，避免请求期首次访问竞争。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="deep">
+            <div class="content-layer-title">深度追问</div>
+            <div class="content-layer-body">
+              <p><strong>追问 1：为什么缓存后绝不能再 setAccessible？</strong>override 是实例级可变标记，缓存后的并发写就是竞态源——「只写一次」是整条规范的核心，而非性能取舍。</p>
+              <p><strong>追问 2：unreflect 方案的隐藏代价？</strong>初始化仍走反射（GraalVM Native 依旧需要反射 hint）；invokeExact 强类型约束写通用工具易踩坑。它换取的是并发链路彻底脱离 Field。</p>
+              <p><strong>追问 3：反射与 VarHandle 什么关系？</strong>不同维度：VarHandle 管字段内存访问语义与内存序（C01.04），MethodHandle 管动态调用替代反射 API；CAS 场景用 VarHandle（见 E02），反射替代场景用 MethodHandle。</p>
+              <p><strong>追问 4：虚拟线程会改变什么？</strong>什么都不变——反射规则与 pinning 无关，setAccessible 竞态在 VT 下原样存在。</p>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="pitfall">
+            <div class="content-layer-title">常见陷阱</div>
+            <div class="content-layer-body">
+              <div class="callout callout-danger">
+                <div class="callout-title">踩坑警告</div>
+                <ul>
+                  <li><strong>static 全局 Field/Method 反复 setAccessible</strong>：高 QPS 下偶发 IllegalAccessException，难复现、难定位——生产经典坑。</li>
+                  <li><strong>手写双重检查懒加载缓存写错</strong>：get-then-put 非原子，多线程对同一反射实例重复 setAccessible。</li>
+                  <li><strong>误以为反射调用自带锁</strong>：invoke/get/set 无任何同步；共享目标对象的并发读写照常竞态。</li>
+                  <li><strong>混淆 exports 与 opens</strong>：exports 管编译/运行可见，opens 才管反射可见（详见 C01.08）；模块化叠加并发时偶发 InaccessibleObjectException 要先分清权限问题还是竞态。</li>
+                  <li><strong>全局缓存异常对象</strong>：反射抛出的异常每次新建，缓存异常对象本身会造成误导。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="content-layer" data-layer="extension">
+            <div class="content-layer-title">扩展补全</div>
+            <div class="content-layer-body">
+              <p><strong>缓存 Field vs MethodHandle 选型</strong>（前提共识：只做 get/set、缓存构建单线程、之后只读）：</p>
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>维度</th>
+                    <th>缓存 Field（一次 setAccessible）</th>
+                    <th>MethodHandle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>并发模型</td>
+                    <td>安全但有约束：缓存后禁再碰 setAccessible</td>
+                    <td>无可变标记，从根源消除，无记忆负担</td>
+                  </tr>
+                  <tr>
+                    <td>JIT 与性能</td>
+                    <td>native 入口有固定校验分支，热点差距明显</td>
+                    <td>绑定后更易内联，热点链路更快；低频测不出差距</td>
+                  </tr>
+                  <tr>
+                    <td>类型检查</td>
+                    <td>运行时抛类型异常</td>
+                    <td>findSetter 绑定阶段即校验类型，错误前移</td>
+                  </tr>
+                  <tr>
+                    <td>上手成本</td>
+                    <td>API 直白，团队熟</td>
+                    <td>需理解 Lookup/调用形式，异常栈较绕</td>
+                  </tr>
+                  <tr>
+                    <td>Java 9+ 私有字段</td>
+                    <td>无障碍</td>
+                    <td>默认 lookup 拿不到 private，需 unreflect 兜底或模块 opens</td>
+                  </tr>
+                  <tr>
+                    <td>GraalVM Native</td>
+                    <td>需反射 hint</td>
+                    <td>unreflect 方案同样需要（初始化仍走反射）；privateLookupIn 可免但需 opens</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p><strong>分场景结论</strong>：Java 8、非极致热点（DTO 转换、ORM 结果映射、一次请求几十次以内）→ 缓存 Field 足够，维护成本最低；热点核心链路（序列化、高性能 ORM、一次请求上百次字段访问）、自研框架（防人为误改）且能解决私有 Lookup → MethodHandle；跨 JDK 8~25 一套代码 → unreflectGetter/unreflectSetter + 缓存 MH 是业务最稳解。两套缓存逻辑不要混用。</p>
             </div>
           </div>
         </div>

@@ -500,9 +500,9 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 ## 6. 权威计数示例（2026-09-03 OPT-A 后固化）
 
 <!-- COUNTS:BEGIN 由 scripts/sync_counts.py render 生成，勿手改 -->
-- 题目总量 **685** = 篇章C 335 + AI纵深A 112 + 核心原理 74 + 场景 74 + 垂直领域 90
-- 优先级 **P0=158 / P1=419 / P2=108**（求和 = 685）
-- 难度 **专家 90 / 架构师 334 / 高级开发 261**（求和 = 685；覆盖 C/E/S/A/D，M/G/K 不分级）
+- 题目总量 **686** = 篇章C 336 + AI纵深A 112 + 核心原理 74 + 场景 74 + 垂直领域 90
+- 优先级 **P0=158 / P1=420 / P2=108**（求和 = 686）
+- 难度 **专家 90 / 架构师 334 / 高级开发 262**（求和 = 686；覆盖 C/E/S/A/D，M/G/K 不分级）
 - 方法论 **205 卡**（M01~M16：道 M01–M02 / 法 M03–M07 / 术 M08–M15 / 势 M16，专篇键 methodology；**不分难度等级**）
 - 工程化 **88 卡**（G01~G13，专篇键 engineering；**不分难度等级**）
 - 生产踩坑 **82 卡**（K01~K10，专篇键 pitfalls；**不分难度等级**）
@@ -518,10 +518,12 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡（M 篇局部 164；体系合计 205 另由 sum_key 求） |
 | P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
 | P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论） |
-| P10 | `docs/README.md` | docs/README.md 文件表方法论数 |
 | P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
 | P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
+| P40 | `docs/README.md` | docs/README.md 文件表 M 篇卡数 |
+| P41 | `docs/README.md` | docs/README.md 文件表 L 专篇卡数 |
+| P42 | `docs/README.md` | docs/README.md 文件表 H 专篇卡数 |
 | P14 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分子 |
 | P15 | `docs/specs/format-shared.md` | docs/specs/format-shared.md 分母 |
 | P16 | `docs/specs/format-special.md` | docs/specs/format-special.md 定位段 |
@@ -808,9 +810,9 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
 | P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
 | P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
-| P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M13 |
-| P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M15 |
-| P442 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M16 |
+| P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M13 |
+| P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M14 |
+| P442 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M15 |
 | P443 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页副标题题数 |
 | P444 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页开篇散文题数（防漂移） |
 | P445 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_1 |
@@ -970,7 +972,7 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P925 | `index.html` | 根 index K12 组题数 |
 | P926 | `index.html` | 根 index D13 组题数 |
 | P927 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
-| P928 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十七组卡数表 M17 |
+| P928 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M16 |
 | P929 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 D13 组题数 |
 | P931 | `index.html` | 根 index dir-stats-sub H 编号体系聚合计数 |
 | P932 | `java-architect-interview/index.html` | 章节站 index meta-stats H 编号体系聚合计数 |
@@ -1009,6 +1011,77 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 | P978 | `index.html` | 根 index L01 道层组卡数（DOM 实测） |
 | P979 | `index.html` | 根 index L02 法层组卡数（DOM 实测） |
 | P980 | `index.html` | 根 index L03 术层组卡数（DOM 实测） |
+| P981 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 卡片合计 |
+| P982 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 专家 |
+| P983 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 架构 |
+| P984 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 高级 |
+| P985 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 卡片合计 |
+| P986 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 专家 |
+| P987 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 架构 |
+| P988 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 高级 |
+| P989 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 卡片合计 |
+| P990 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 专家 |
+| P991 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 架构 |
+| P992 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 高级 |
+| P993 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 卡片合计 |
+| P994 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 专家 |
+| P995 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 架构 |
+| P996 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 高级 |
+| P997 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 卡片合计 |
+| P998 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 专家 |
+| P999 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 架构 |
+| P1000 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 高级 |
+| P1001 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 卡片合计 |
+| P1002 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 专家 |
+| P1003 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 架构 |
+| P1004 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 高级 |
+| P1005 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 卡片合计 |
+| P1006 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 专家 |
+| P1007 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 架构 |
+| P1008 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 高级 |
+| P1009 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 卡片合计 |
+| P1010 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 专家 |
+| P1011 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 架构 |
+| P1012 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 高级 |
+| P1013 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 卡片合计 |
+| P1014 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 专家 |
+| P1015 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 架构 |
+| P1016 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 高级 |
+| P1017 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 卡片合计 |
+| P1018 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 专家 |
+| P1019 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 架构 |
+| P1020 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 高级 |
+| P1021 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 卡片合计 |
+| P1022 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 专家 |
+| P1023 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 架构 |
+| P1024 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 高级 |
+| P1025 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 卡片合计 |
+| P1026 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 专家 |
+| P1027 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 架构 |
+| P1028 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 高级 |
+| P1029 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 卡片合计 |
+| P1030 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 专家 |
+| P1031 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 架构 |
+| P1032 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 高级 |
+| P1033 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 卡片合计 |
+| P1034 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 专家 |
+| P1035 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 架构 |
+| P1036 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 高级 |
+| P1037 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 卡片合计 |
+| P1038 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 专家 |
+| P1039 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 架构 |
+| P1040 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 高级 |
+| P1041 | `java-architect-interview/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 专家 |
+| P1042 | `java-architect-interview/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 架构 |
+| P1043 | `java-architect-interview/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 高级 |
+| P1044 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 卡片合计 |
+| P1045 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 专家 |
+| P1046 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 架构 |
+| P1047 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 高级 |
+| P1048 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 卡片合计 |
+| P1049 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 专家 |
+| P1050 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 架构 |
+| P1051 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 高级 |
 <!-- COUNTS:END -->
 
 ## 7. 双站导航约定（简述）
