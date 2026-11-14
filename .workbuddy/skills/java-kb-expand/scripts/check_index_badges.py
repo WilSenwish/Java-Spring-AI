@@ -69,7 +69,7 @@ if not BASE or not os.path.isdir(BASE):
     print("FAIL 无法定位项目根（请显式传入：check_index_badges.py <项目根>）")
     sys.exit(2)
 IDX = os.path.join(BASE, "index.html")
-OV = os.path.join(BASE, "java-architect-interview/nav-overview-priority.html")
+OV = os.path.join(BASE, "core/nav-overview-priority.html")
 for _p in (IDX, OV):
     if not os.path.isfile(_p):
         print(f"FAIL 目标文件不存在：{_p}")

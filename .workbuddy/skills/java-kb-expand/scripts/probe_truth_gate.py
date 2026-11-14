@@ -53,8 +53,8 @@ if not ROOT:
     sys.exit(2)
 
 SSOT = os.path.join(ROOT, "docs", "kb-counts.json")
-OV = os.path.join(ROOT, "java-architect-interview", "nav-overview-priority.html")
-CHAP_IDX = os.path.join(ROOT, "java-architect-interview", "index.html")
+OV = os.path.join(ROOT, "core", "nav-overview-priority.html")
+CHAP_IDX = os.path.join(ROOT, "core", "index.html")
 
 ok = True
 

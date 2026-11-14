@@ -9,7 +9,7 @@
 - **语言 / 字符**：`<html lang="zh-CN">`，`<meta charset="UTF-8">`。
 - **单文件**：每个页面把结构、内容、所需的 `<style>` 内联样式全部封装在一个 `.html` 文件中；仅在多处复用的全局样式抽到 `assets/design-system.css`，页面复用功能抽到 `assets/nav.js`。
 - **资源目录**：
-  - `java-architect-interview/assets/`：`design-system.css`（全站设计系统 / 设计令牌）、`nav.js` / `theme-init.js`。
+  - `core/assets/`：`design-system.css`（全站设计系统 / 设计令牌）、`nav.js` / `theme-init.js`。
   - `docs/shared/js/`：`echarts.min.js`、`mermaid.min.js`（及 d3 / three 等，按需引入）；章节页路径为 `../docs/shared/js/…`。
   - `docs/shared/fonts/`：JetBrainsMono、WorkSans（`design-system.css` 经 `../../docs/shared/fonts/` 引用）。
 - **按需载入原则**：某页面若不含图表则不引入 `mermaid.min.js` / `echarts.min.js`；避免无关资源加载（见 `specs/format-shared.md` 第 4 节）。每个 Mermaid 节点须带 `<!-- prettier-ignore -->`（§10）。
@@ -33,7 +33,7 @@
 │   ├── shared/                             # 全站共用 fonts · js（echarts/mermaid 等，按需）
 │   └── facts/                              # 官方参考文档归档（只读）
 ├── tmp/                                    # 临时文件/备份（已 gitignore）
-├── java-architect-interview/               # 主知识库（标准 QA + 特殊章节 + nav 聚合）
+├── core/               # 主知识库（标准 QA + 特殊章节 + nav 聚合）
 │   ├── index.html                          # 章节索引
 │   ├── chapter-01~15-*.html                # 标准 QA 篇章 ×15（C）
 │   ├── chapter-core-methodology.html       # 方法论（M）

@@ -26,8 +26,8 @@ from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死�
 B = find_root(__file__) or sys.exit(2)
 PY = sys.executable
 GATE = os.path.join(HERE, "validate_kb.py")
-CSS = os.path.join(B, "java-architect-interview/assets/design-system.css")
-PAGE = os.path.join(B, "java-architect-interview/nav-server-security-checkpoint.html")
+CSS = os.path.join(B, "core/assets/design-system.css")
+PAGE = os.path.join(B, "core/nav-server-security-checkpoint.html")
 
 
 def read(p):

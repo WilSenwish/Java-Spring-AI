@@ -1,6 +1,6 @@
 ---
 name: java-kb-expand
-description: 当用户提供外部链接（豆包/知乎/CSDN/技术博客等）并询问"内容可补充到哪个篇章/以何种形式补充"，或要求把链接内容入库到 java-architect-interview 知识库时使用。本技能固化"抓取链接→归属判定与覆盖度核查→给出形式候选（确认式）→用户确认后全量同步 7 文件→全量校验"的标准流程，内置双站结构、4 份聚合统计页、data-page-node-id 红线与可复用校验脚本，任何 Agent 均可据此独立完成同样的题库拓展任务。
+description: 当用户提供外部链接（豆包/知乎/CSDN/技术博客等）并询问"内容可补充到哪个篇章/以何种形式补充"，或要求把链接内容入库到 core 知识库时使用。本技能固化"抓取链接→归属判定与覆盖度核查→给出形式候选（确认式）→用户确认后全量同步 7 文件→全量校验"的标准流程，内置双站结构、4 份聚合统计页、data-page-node-id 红线与可复用校验脚本，任何 Agent 均可据此独立完成同样的题库拓展任务。
 agent_created: true
 ---
 
@@ -8,7 +8,7 @@ agent_created: true
 
 ## Overview
 
-把一篇外部技术链接（豆包 thread / 知乎 / CSDN / 官方文档等）的内容，按需入库到 `java-architect-interview` 静态 HTML 知识库。流程核心是**先核查覆盖度、再确认形式、后全量同步并校验**，绝不盲目新增重复卡片。
+把一篇外部技术链接（豆包 thread / 知乎 / CSDN / 官方文档等）的内容，按需入库到 `core` 静态 HTML 知识库。流程核心是**先核查覆盖度、再确认形式、后全量同步并校验**，绝不盲目新增重复卡片。
 
 本技能编码了该项目题库的全部结构约定、权威计数口径、红线与坑位，使任意 Agent 无需先验知识即可复现。详细的 HTML 卡片/导图节点模板与聚合页字段名见 `references/conventions.md`；校验脚本见 `scripts/validate_kb.py`。
 
@@ -16,7 +16,7 @@ agent_created: true
 
 题库为**纯静态 HTML 双站**，两站经导航互链：
 
-- **章节站** `java-architect-interview/`（26 HTML）：
+- **章节站** `core/`（26 HTML）：
   - 专篇 M/G/K：`chapter-core-methodology` / `chapter-engineering-practices` / `chapter-production-pitfalls`
   - 篇章 C：`chapter-01~15-*.html`
   - 题集 E/S/A/D：`chapter-questions-eight-part` / `chapter-questions-scenario` / `chapter-question-ai-engineering-deep` / `chapter-questions-domain`
@@ -57,9 +57,9 @@ agent_created: true
 |---|---|---|
 | P01 | `index.html` | 根 index 方法论统计卡（M 篇局部 164；体系合计 205 另由 sum_key 求） |
 | P02 | `index.html` | 根 index 方法论分组题数（M 篇局部 164；体系合计 205 另由 sum_key 求） |
-| P03 | `java-architect-interview/index.html` | 章节 index 方法论统计卡（M 篇局部 164；体系合计 205 另由 sum_key 求） |
-| P06 | `java-architect-interview/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
-| P07 | `java-architect-interview/nav-overview-priority.html` | overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论） |
+| P03 | `core/index.html` | 章节 index 方法论统计卡（M 篇局部 164；体系合计 205 另由 sum_key 求） |
+| P06 | `core/chapter-core-methodology.html` | 方法论页页头副标题卡数 |
+| P07 | `core/nav-overview-priority.html` | overview ov-stat-num 12 项（顺序见 ov_stat_order；不含方法论） |
 | P11 | `docs/README.md` | docs/README.md 难度口径段 |
 | P12 | `docs/README.md` | docs/README.md 方法论带优先级数（分子） |
 | P13 | `docs/README.md` | docs/README.md 方法论带优先级数（分母） |
@@ -71,51 +71,51 @@ agent_created: true
 | P16 | `docs/specs/format-special.md` | docs/specs/format-special.md 定位段 |
 | P17 | `docs/specs/format-special.md` | docs/specs/format-special.md 专篇合计段 |
 | P18 | `docs/specs/format-special.md` | docs/specs/format-special.md ov-stats 段 |
-| P19 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 篇章 C 题数 |
-| P20 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 核心原理数 |
-| P21 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 场景题数 |
-| P22 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 题目总量 |
+| P19 | `core/nav-overview-priority.html` | overview 页脚 篇章 C 题数 |
+| P20 | `core/nav-overview-priority.html` | overview 页脚 核心原理数 |
+| P21 | `core/nav-overview-priority.html` | overview 页脚 场景题数 |
+| P22 | `core/nav-overview-priority.html` | overview 页脚 题目总量 |
 | P23 | `index.html` | 根 index 工程化统计卡 |
-| P24 | `java-architect-interview/index.html` | 章节 index 工程化统计卡 |
-| P25 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页页头 meta 卡数 |
-| P27 | `java-architect-interview/chapter-questions-scenario.html` | 场景页开篇散文题数（防漂移） |
-| P28 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段篇章 C 题数 |
-| P29 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段场景题数 |
-| P30 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段核心原理数 |
-| P33 | `java-architect-interview/chapter-questions-eight-part.html` | 核心原理页 meta 题目数 |
+| P24 | `core/index.html` | 章节 index 工程化统计卡 |
+| P25 | `core/chapter-engineering-practices.html` | 工程化页页头 meta 卡数 |
+| P27 | `core/chapter-questions-scenario.html` | 场景页开篇散文题数（防漂移） |
+| P28 | `core/chapter-core-methodology.html` | 方法论页来源段篇章 C 题数 |
+| P29 | `core/chapter-core-methodology.html` | 方法论页来源段场景题数 |
+| P30 | `core/chapter-core-methodology.html` | 方法论页来源段核心原理数 |
+| P33 | `core/chapter-questions-eight-part.html` | 核心原理页 meta 题目数 |
 | P35 | `index.html` | 根 index 核心原理 dir-count |
 | P36 | `index.html` | 根 index 题目总数 |
 | P38 | `index.html` | 根 index 核心原理统计 |
-| P39 | `java-architect-interview/index.html` | 章节 index 核心原理统计卡 |
-| P43 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
-| P44 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题篇章 C 题数 |
-| P45 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题核心原理数 |
-| P46 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题场景题数 |
-| P47 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P0 题数 |
-| P48 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P1 题数 |
-| P49 | `java-architect-interview/nav-overview-priority.html` | overview 顶栏导航 P2 题数 |
-| P50 | `java-architect-interview/nav-overview-priority.html` | overview P0 组标题题数（含 A 轴） |
-| P51 | `java-architect-interview/nav-overview-priority.html` | overview P1 组标题题数（含 A 轴） |
-| P52 | `java-architect-interview/nav-overview-priority.html` | overview P2 组标题题数（含 A 轴） |
+| P39 | `core/index.html` | 章节 index 核心原理统计卡 |
+| P43 | `core/nav-overview-priority.html` | overview 页头副标题题目总量（防漂移） |
+| P44 | `core/nav-overview-priority.html` | overview 页头副标题篇章 C 题数 |
+| P45 | `core/nav-overview-priority.html` | overview 页头副标题核心原理数 |
+| P46 | `core/nav-overview-priority.html` | overview 页头副标题场景题数 |
+| P47 | `core/nav-overview-priority.html` | overview 顶栏导航 P0 题数 |
+| P48 | `core/nav-overview-priority.html` | overview 顶栏导航 P1 题数 |
+| P49 | `core/nav-overview-priority.html` | overview 顶栏导航 P2 题数 |
+| P50 | `core/nav-overview-priority.html` | overview P0 组标题题数（含 A 轴） |
+| P51 | `core/nav-overview-priority.html` | overview P1 组标题题数（含 A 轴） |
+| P52 | `core/nav-overview-priority.html` | overview P2 组标题题数（含 A 轴） |
 | P53 | `index.html` | 根 index 深度 Q&A（篇章 C）统计 |
 | P54 | `index.html` | 根 index 场景题统计 |
-| P55 | `java-architect-interview/index.html` | 章节 index 深度 Q&A（篇章 C）统计卡 |
-| P56 | `java-architect-interview/index.html` | 章节 index 场景题统计 |
-| P60 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题篇章 C 题数 |
-| P61 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文篇章题数 |
-| P62 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页副标题卡数 |
-| P65 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 专家数 |
-| P66 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 架构数 |
-| P67 | `java-architect-interview/index.html` | 章节 index overview 卡 footer 高级数 |
-| P82 | `java-architect-interview/chapter-engineering-practices.html` | 工程化页 meta 题目总量（C+A+E+S+D=total）参照 |
-| P84 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
-| P85 | `java-architect-interview/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
-| P88 | `java-architect-interview/chapter-questions-scenario.html` | 场景页副标题题数 |
+| P55 | `core/index.html` | 章节 index 深度 Q&A（篇章 C）统计卡 |
+| P56 | `core/index.html` | 章节 index 场景题统计 |
+| P60 | `core/chapter-core-methodology.html` | 方法论页副标题篇章 C 题数 |
+| P61 | `core/chapter-core-methodology.html` | 方法论页正文篇章题数 |
+| P62 | `core/chapter-engineering-practices.html` | 工程化页副标题卡数 |
+| P65 | `core/index.html` | 章节 index overview 卡 footer 专家数 |
+| P66 | `core/index.html` | 章节 index overview 卡 footer 架构数 |
+| P67 | `core/index.html` | 章节 index overview 卡 footer 高级数 |
+| P82 | `core/chapter-engineering-practices.html` | 工程化页 meta 题目总量（C+A+E+S+D=total）参照 |
+| P84 | `core/chapter-core-methodology.html` | 方法论页 meta 合计卡数 |
+| P85 | `core/chapter-core-methodology.html` | 方法论页统计表合计卡数 |
+| P88 | `core/chapter-questions-scenario.html` | 场景页副标题题数 |
 | P90 | `index.html` | 根 index 踩坑统计卡 |
-| P91 | `java-architect-interview/index.html` | 章节 index 踩坑统计卡 |
-| P92 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
-| P94 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
-| P98 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 题目总量（C+A+E+S+D=total）参照 |
+| P91 | `core/index.html` | 章节 index 踩坑统计卡 |
+| P92 | `core/chapter-production-pitfalls.html` | 踩坑页页头 meta 卡数 |
+| P94 | `core/chapter-production-pitfalls.html` | 踩坑页副标题卡数 |
+| P98 | `core/chapter-production-pitfalls.html` | 踩坑页 meta 题目总量（C+A+E+S+D=total）参照 |
 | P108 | `index.html` | 升格 local:site-meta → struct.misc.index.site-meta_1 |
 | P109 | `index.html` | 站点统计「页面篇章」——与章节页数同一真源（chapters_pages，file_count 规则） |
 | P114 | `index.html` | 升格 local:dir-group → struct.root.dir_group_4 |
@@ -186,206 +186,206 @@ agent_created: true
 | P181 | `index.html` | 升格 local:dir-count → struct.root.dir_count_17 |
 | P182 | `index.html` | 升格 local:dir-count → struct.root.dir_count_18 |
 | P183 | `index.html` | 升格 local:dir-count → struct.root.dir_count_19 |
-| P186 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_1 |
-| P187 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_1 |
-| P188 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_2 |
-| P189 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_3 |
-| P190 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_2 |
-| P191 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_4 |
-| P192 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_5 |
-| P193 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_6 |
-| P194 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_3 |
-| P195 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_7 |
-| P196 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_8 |
-| P197 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_9 |
-| P198 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_4 |
-| P199 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_10 |
-| P200 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_11 |
-| P201 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_12 |
-| P202 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_5 |
-| P203 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_13 |
-| P204 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_14 |
-| P205 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_15 |
-| P206 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_6 |
-| P207 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_16 |
-| P208 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_17 |
-| P209 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_18 |
-| P210 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_7 |
-| P211 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_19 |
-| P212 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_20 |
-| P213 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_8 |
-| P214 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_21 |
-| P215 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_22 |
-| P216 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_23 |
-| P217 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_9 |
-| P218 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_24 |
-| P219 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_25 |
-| P220 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_26 |
-| P224 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「专家」数 → chapter-questions-eight-part.html 内 difficulty-expert 数 |
-| P225 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「架构」数 → 该页内 difficulty-architect 数 |
-| P226 | `java-architect-interview/index.html` | 章节索引页「核心原理」卡「高级」数 → 该页内 difficulty-senior 数（2026-09-21 真值修正 39→40） |
-| P227 | `java-architect-interview/index.html` | 章节索引页「场景」卡「专家」数 → chapter-questions-scenario.html 内 difficulty-expert 数 |
-| P228 | `java-architect-interview/index.html` | 章节索引页「场景」卡「架构」数 → 该页内 difficulty-architect 数（2026-09-21 真值修正 49→50） |
-| P229 | `java-architect-interview/index.html` | 章节索引页「场景」卡「高级」数 → 该页内 difficulty-senior 数 |
-| P230 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c01.n |
-| P231 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.expert |
-| P232 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.architect |
-| P233 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.senior |
-| P234 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c02.n |
-| P235 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c02.expert |
-| P236 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c02.architect |
-| P237 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c02.senior |
-| P238 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c03.n |
-| P239 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c03.expert |
-| P240 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c03.architect |
-| P241 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c03.senior |
-| P242 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c04.n |
-| P243 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c04.expert |
-| P244 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c04.architect |
-| P245 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c04.senior |
-| P246 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c05.n |
-| P247 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c05.expert |
-| P248 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c05.architect |
-| P249 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c05.senior |
-| P250 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c06.n |
-| P251 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.expert |
-| P252 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.architect |
-| P253 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.senior（2026-09-21 真值修正 8→9） |
-| P254 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c07.n |
-| P255 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.expert |
-| P256 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.architect |
-| P257 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.senior（2026-09-21 真值修正 10→11） |
-| P258 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c08.n |
-| P259 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.expert |
-| P260 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.architect |
-| P261 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.senior（2026-09-21 真值修正 7→8） |
-| P262 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c09.n |
-| P263 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.expert |
-| P264 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.architect |
-| P265 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.senior |
-| P267 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c10.n |
-| P268 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c10.expert |
-| P269 | `java-architect-interview/index.html` | 章节索引页第 10 篇「架构」数 → chapter-10-microservice-cloud.html 内 difficulty-architect 数 |
-| P270 | `java-architect-interview/index.html` | 章节索引页第 10 篇「高级」数 → 该篇内 difficulty-senior 数（2026-09-21 真值修正 7→9） |
-| P271 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c11.n |
-| P272 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.expert |
-| P273 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.architect |
-| P274 | `java-architect-interview/index.html` | 章节索引页第 11 篇「高级」数 → chapter-11-middleware-engineering.html 内 difficulty-senior 数（2026-09-21 真值修正 7→10） |
-| P275 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c12.n |
-| P276 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.expert |
-| P277 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.architect |
-| P278 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.senior（2026-09-21 真值修正 1→4） |
-| P279 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c13.n |
-| P280 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.expert |
-| P281 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.architect |
-| P282 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.senior（2026-09-21 真值修正 4→5） |
-| P283 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c14.n |
-| P284 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.expert |
-| P285 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.architect |
-| P286 | `java-architect-interview/index.html` | 章节索引页第 14 篇「高级」数 → chapter-14-databases.html 内 difficulty-senior 数（2026-09-21 真值修正 3→4） |
-| P287 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c15.n |
-| P288 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.expert |
-| P289 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.architect |
-| P290 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.senior（2026-09-21 真值修正 3→4） |
-| P291 | `java-architect-interview/index.html` | 安全手册章节数（7 章）——升格 local:chap-index-meta → struct.chap.idx.meta_2 |
-| P292 | `java-architect-interview/chapter-engineering-practices.html` | 升格 local:eng-groups → engineering_groups |
-| P293 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_1 |
-| P294 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_1 |
-| P295 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_1 |
-| P297 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_2 |
-| P298 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_2 |
-| P299 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_2 |
-| P300 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_1 |
-| P301 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_2 |
-| P302 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_3 |
-| P303 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_4 |
-| P304 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_5 |
-| P305 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_6 |
-| P306 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_7 |
-| P307 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_8 |
-| P308 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_9 |
-| P309 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_10 |
-| P310 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_11 |
-| P311 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_12 |
-| P312 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_3 |
-| P313 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_3 |
-| P314 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_3 |
-| P315 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_4 |
-| P316 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_4 |
-| P317 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_4 |
-| P318 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_1 |
-| P319 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_2 |
-| P320 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_3 |
-| P321 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_4 |
-| P322 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_5 |
-| P323 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_6 |
-| P324 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_7 |
-| P325 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_8 |
-| P326 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_9 |
-| P327 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_10 |
-| P328 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_11 |
-| P329 | `java-architect-interview/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_12 |
-| P331 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M15 组头卡数（原键 theme_count_2，2026-09-20 归一为 group_N） |
-| P332 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M16（势定律）组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
-| P333 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
-| P334 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 卡数（原键 theme_count_5，改为复用 canonical group_13） |
-| P335 | `java-architect-interview/chapter-core-methodology.html` | 方法论页『G 组数』对照（与工程化页同源 canonical 键 engineering_groups；2026-09-21 统一键形） |
-| P336 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_1 |
-| P337 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_2 |
-| P338 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_3 |
-| P339 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_4 |
-| P340 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_5 |
-| P341 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_6 |
-| P342 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_7 |
-| P343 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_8 |
-| P344 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_9 |
-| P345 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_10 |
-| P346 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_11 |
-| P347 | `java-architect-interview/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_12 |
-| P348 | `java-architect-interview/chapter-production-pitfalls.html` | 踩坑页 meta 组数（pitfalls_groups） |
+| P186 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_1 |
+| P187 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_1 |
+| P188 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_2 |
+| P189 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_3 |
+| P190 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_2 |
+| P191 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_4 |
+| P192 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_5 |
+| P193 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_6 |
+| P194 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_3 |
+| P195 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_7 |
+| P196 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_8 |
+| P197 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_9 |
+| P198 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_4 |
+| P199 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_10 |
+| P200 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_11 |
+| P201 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_12 |
+| P202 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_5 |
+| P203 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_13 |
+| P204 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_14 |
+| P205 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_15 |
+| P206 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_6 |
+| P207 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_16 |
+| P208 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_17 |
+| P209 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_18 |
+| P210 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_7 |
+| P211 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_19 |
+| P212 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_20 |
+| P213 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_8 |
+| P214 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_21 |
+| P215 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_22 |
+| P216 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_23 |
+| P217 | `core/nav-overview-priority.html` | 升格 local:ov-subgroup → struct.ov.subgroup_9 |
+| P218 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_24 |
+| P219 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_25 |
+| P220 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_26 |
+| P224 | `core/index.html` | 章节索引页「核心原理」卡「专家」数 → chapter-questions-eight-part.html 内 difficulty-expert 数 |
+| P225 | `core/index.html` | 章节索引页「核心原理」卡「架构」数 → 该页内 difficulty-architect 数 |
+| P226 | `core/index.html` | 章节索引页「核心原理」卡「高级」数 → 该页内 difficulty-senior 数（2026-09-21 真值修正 39→40） |
+| P227 | `core/index.html` | 章节索引页「场景」卡「专家」数 → chapter-questions-scenario.html 内 difficulty-expert 数 |
+| P228 | `core/index.html` | 章节索引页「场景」卡「架构」数 → 该页内 difficulty-architect 数（2026-09-21 真值修正 49→50） |
+| P229 | `core/index.html` | 章节索引页「场景」卡「高级」数 → 该页内 difficulty-senior 数 |
+| P230 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c01.n |
+| P231 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.expert |
+| P232 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.architect |
+| P233 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c01.senior |
+| P234 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c02.n |
+| P235 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c02.expert |
+| P236 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c02.architect |
+| P237 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c02.senior |
+| P238 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c03.n |
+| P239 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c03.expert |
+| P240 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c03.architect |
+| P241 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c03.senior |
+| P242 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c04.n |
+| P243 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c04.expert |
+| P244 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c04.architect |
+| P245 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c04.senior |
+| P246 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c05.n |
+| P247 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c05.expert |
+| P248 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c05.architect |
+| P249 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c05.senior |
+| P250 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c06.n |
+| P251 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.expert |
+| P252 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.architect |
+| P253 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c06.senior（2026-09-21 真值修正 8→9） |
+| P254 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c07.n |
+| P255 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.expert |
+| P256 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.architect |
+| P257 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c07.senior（2026-09-21 真值修正 10→11） |
+| P258 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c08.n |
+| P259 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.expert |
+| P260 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.architect |
+| P261 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c08.senior（2026-09-21 真值修正 7→8） |
+| P262 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c09.n |
+| P263 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.expert |
+| P264 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.architect |
+| P265 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c09.senior |
+| P267 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c10.n |
+| P268 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c10.expert |
+| P269 | `core/index.html` | 章节索引页第 10 篇「架构」数 → chapter-10-microservice-cloud.html 内 difficulty-architect 数 |
+| P270 | `core/index.html` | 章节索引页第 10 篇「高级」数 → 该篇内 difficulty-senior 数（2026-09-21 真值修正 7→9） |
+| P271 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c11.n |
+| P272 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.expert |
+| P273 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c11.architect |
+| P274 | `core/index.html` | 章节索引页第 11 篇「高级」数 → chapter-11-middleware-engineering.html 内 difficulty-senior 数（2026-09-21 真值修正 7→10） |
+| P275 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c12.n |
+| P276 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.expert |
+| P277 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.architect |
+| P278 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c12.senior（2026-09-21 真值修正 1→4） |
+| P279 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c13.n |
+| P280 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.expert |
+| P281 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.architect |
+| P282 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c13.senior（2026-09-21 真值修正 4→5） |
+| P283 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c14.n |
+| P284 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.expert |
+| P285 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c14.architect |
+| P286 | `core/index.html` | 章节索引页第 14 篇「高级」数 → chapter-14-databases.html 内 difficulty-senior 数（2026-09-21 真值修正 3→4） |
+| P287 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c15.n |
+| P288 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.expert |
+| P289 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.architect |
+| P290 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c15.senior（2026-09-21 真值修正 3→4） |
+| P291 | `core/index.html` | 安全手册章节数（7 章）——升格 local:chap-index-meta → struct.chap.idx.meta_2 |
+| P292 | `core/chapter-engineering-practices.html` | 升格 local:eng-groups → engineering_groups |
+| P293 | `core/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_1 |
+| P294 | `core/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_1 |
+| P295 | `core/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_1 |
+| P297 | `core/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_2 |
+| P298 | `core/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_2 |
+| P299 | `core/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_2 |
+| P300 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_1 |
+| P301 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_2 |
+| P302 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_3 |
+| P303 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_4 |
+| P304 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_5 |
+| P305 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_6 |
+| P306 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_7 |
+| P307 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_8 |
+| P308 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_9 |
+| P309 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_10 |
+| P310 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_11 |
+| P311 | `core/chapter-core-methodology.html` | 升格 local:meth-table → struct.meth.table_12 |
+| P312 | `core/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_3 |
+| P313 | `core/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_3 |
+| P314 | `core/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_3 |
+| P315 | `core/chapter-core-methodology.html` | 升格 local:meth-meta → struct.meth.meta_4 |
+| P316 | `core/chapter-core-methodology.html` | 升格 local:meth-theme → struct.meth.theme_4 |
+| P317 | `core/chapter-core-methodology.html` | 升格 local:meth-appendix → struct.meth.appendix_4 |
+| P318 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_1 |
+| P319 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_2 |
+| P320 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_3 |
+| P321 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_4 |
+| P322 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_5 |
+| P323 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_6 |
+| P324 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_7 |
+| P325 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_8 |
+| P326 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_9 |
+| P327 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_10 |
+| P328 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_11 |
+| P329 | `core/chapter-core-methodology.html` | 升格 local:meth-group-count → struct.meth.group_12 |
+| P331 | `core/chapter-core-methodology.html` | 方法论页 M15 组头卡数（原键 theme_count_2，2026-09-20 归一为 group_N） |
+| P332 | `core/chapter-core-methodology.html` | 方法论页 M16（势定律）组头卡数（原键 theme_count_3，2026-09-20 归一为 group_N） |
+| P333 | `core/chapter-core-methodology.html` | 方法论页『势』的五个横坐标数（原键 theme_count_4，改为语义单一键） |
+| P334 | `core/chapter-core-methodology.html` | 方法论页 M13 卡数（原键 theme_count_5，改为复用 canonical group_13） |
+| P335 | `core/chapter-core-methodology.html` | 方法论页『G 组数』对照（与工程化页同源 canonical 键 engineering_groups；2026-09-21 统一键形） |
+| P336 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_1 |
+| P337 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_2 |
+| P338 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_3 |
+| P339 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_4 |
+| P340 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_5 |
+| P341 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_6 |
+| P342 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_7 |
+| P343 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_8 |
+| P344 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_9 |
+| P345 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_10 |
+| P346 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_11 |
+| P347 | `core/chapter-questions-scenario.html` | 升格 local:group-count → struct.scenario.group_12 |
+| P348 | `core/chapter-production-pitfalls.html` | 踩坑页 meta 组数（pitfalls_groups） |
 | P399 | `index.html` | 根 index 方法论 M13 组卡数 |
 | P401 | `index.html` | 根 index 方法论 M15 组卡数 |
 | P402 | `index.html` | 根 index 方法论 M16(势) 组卡数 |
-| P405 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
-| P403 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
-| P430 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
-| P431 | `java-architect-interview/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
-| P434 | `java-architect-interview/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
-| P437 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
-| P439 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M13 |
-| P441 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M14 |
-| P442 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M15 |
-| P443 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页副标题题数 |
-| P444 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页开篇散文题数（防漂移） |
-| P445 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_1 |
-| P446 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_2 |
-| P447 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_3 |
-| P448 | `java-architect-interview/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_4 |
-| P449 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_27（垂直领域 P0 专家） |
-| P450 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_28（垂直领域 P0 架构） |
-| P451 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_29（垂直领域 P1 专家） |
-| P452 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_30（垂直领域 P1 架构） |
-| P453 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_31（垂直领域 P1 高级） |
-| P454 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_32（垂直领域 P2 专家） |
-| P455 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_33（垂直领域 P2 高级） |
+| P405 | `core/chapter-core-methodology.html` | 方法论页 势(M16) 卡数 |
+| P403 | `core/chapter-core-methodology.html` | 方法论页 M13 组头卡数（原缺失：正文自证『已在组头』而组头为空） |
+| P430 | `core/nav-overview-priority.html` | overview 页头副标题「15 篇章」篇章页数（2026-09-21 升格） |
+| P431 | `core/nav-overview-priority.html` | overview 页脚「15 章深度 Q&A」篇章页数（2026-09-21 升格） |
+| P434 | `core/chapter-core-methodology.html` | 方法论页正文「本库不是 15 篇平行说明书」篇章页数（2026-09-21 升格） |
+| P437 | `core/chapter-core-methodology.html` | 方法论页 chapter-meta 势卡数 |
+| P439 | `core/chapter-core-methodology.html` | 方法论页 十六组卡数表 M13 |
+| P441 | `core/chapter-core-methodology.html` | 方法论页 十六组卡数表 M14 |
+| P442 | `core/chapter-core-methodology.html` | 方法论页 十六组卡数表 M15 |
+| P443 | `core/chapter-questions-domain.html` | 垂直领域页副标题题数 |
+| P444 | `core/chapter-questions-domain.html` | 垂直领域页开篇散文题数（防漂移） |
+| P445 | `core/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_1 |
+| P446 | `core/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_2 |
+| P447 | `core/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_3 |
+| P448 | `core/chapter-questions-domain.html` | 升格 local:group-count → struct.domain.group_4 |
+| P449 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_27（垂直领域 P0 专家） |
+| P450 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_28（垂直领域 P0 架构） |
+| P451 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_29（垂直领域 P1 专家） |
+| P452 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_30（垂直领域 P1 架构） |
+| P453 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_31（垂直领域 P1 高级） |
+| P454 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_32（垂直领域 P2 专家） |
+| P455 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_33（垂直领域 P2 高级） |
 | P456 | `index.html` | 升格 local:dir-count → struct.root.dir_count_20（垂直领域题） |
 | P457 | `index.html` | 升格 local:dir-group → struct.root.dir_group_61 |
 | P458 | `index.html` | 升格 local:dir-group → struct.root.dir_group_62 |
 | P459 | `index.html` | 升格 local:dir-group → struct.root.dir_group_63 |
 | P460 | `index.html` | 升格 local:dir-group → struct.root.dir_group_64 |
 | P461 | `index.html` | 根 index 统计卡「垂直领域题」题数 |
-| P464 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 expert |
-| P465 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 architect |
-| P466 | `java-architect-interview/index.html` | 章节索引 D 篇章卡片难度分布 senior |
-| P471 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 5 组（垂直领域）组计数 |
-| P472 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 6 组（垂直领域）组计数 |
-| P473 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 7 组（垂直领域）组计数 |
-| P474 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 8 组（垂直领域）组计数 |
-| P475 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 9 组（垂直领域）组计数 |
-| P476 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 10 组（垂直领域）组计数 |
-| P477 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 11 组（垂直领域）组计数 |
-| P478 | `java-architect-interview/chapter-questions-domain.html` | D 篇第 12 组（垂直领域）组计数 |
-| P481 | `java-architect-interview/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_36（垂直领域 P0 高级） |
+| P464 | `core/index.html` | 章节索引 D 篇章卡片难度分布 expert |
+| P465 | `core/index.html` | 章节索引 D 篇章卡片难度分布 architect |
+| P466 | `core/index.html` | 章节索引 D 篇章卡片难度分布 senior |
+| P471 | `core/chapter-questions-domain.html` | D 篇第 5 组（垂直领域）组计数 |
+| P472 | `core/chapter-questions-domain.html` | D 篇第 6 组（垂直领域）组计数 |
+| P473 | `core/chapter-questions-domain.html` | D 篇第 7 组（垂直领域）组计数 |
+| P474 | `core/chapter-questions-domain.html` | D 篇第 8 组（垂直领域）组计数 |
+| P475 | `core/chapter-questions-domain.html` | D 篇第 9 组（垂直领域）组计数 |
+| P476 | `core/chapter-questions-domain.html` | D 篇第 10 组（垂直领域）组计数 |
+| P477 | `core/chapter-questions-domain.html` | D 篇第 11 组（垂直领域）组计数 |
+| P478 | `core/chapter-questions-domain.html` | D 篇第 12 组（垂直领域）组计数 |
+| P481 | `core/nav-overview-priority.html` | 升格 local:ov-type → struct.ov.type_36（垂直领域 P0 高级） |
 | P486 | `index.html` | 升格 local:dir-group → struct.root.dir_group_65 |
 | P487 | `index.html` | 升格 local:dir-group → struct.root.dir_group_66 |
 | P488 | `index.html` | 升格 local:dir-group → struct.root.dir_group_67 |
@@ -394,22 +394,22 @@ agent_created: true
 | P491 | `index.html` | 升格 local:dir-group → struct.root.dir_group_70 |
 | P492 | `index.html` | 升格 local:dir-group → struct.root.dir_group_71 |
 | P493 | `index.html` | 升格 local:dir-group → struct.root.dir_group_72 |
-| P502 | `java-architect-interview/index.html` | 章节 index meta-stats 垂直领域统计卡 |
-| P511 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 expert |
-| P512 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 architect |
-| P513 | `java-architect-interview/index.html` | 章节索引 A 篇章卡片难度分布 senior |
-| P515 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·专家 题数 |
-| P516 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·架构 题数 |
-| P517 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P0·高级 题数 |
-| P518 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P1·专家 题数 |
-| P519 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P1·架构 题数 |
-| P520 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P1·高级 题数 |
-| P521 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·专家 题数 |
-| P522 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·架构 题数 |
-| P523 | `java-architect-interview/nav-overview-priority.html` | overview AI 纵深组 P2·高级 题数 |
+| P502 | `core/index.html` | 章节 index meta-stats 垂直领域统计卡 |
+| P511 | `core/index.html` | 章节索引 A 篇章卡片难度分布 expert |
+| P512 | `core/index.html` | 章节索引 A 篇章卡片难度分布 architect |
+| P513 | `core/index.html` | 章节索引 A 篇章卡片难度分布 senior |
+| P515 | `core/nav-overview-priority.html` | overview AI 纵深组 P0·专家 题数 |
+| P516 | `core/nav-overview-priority.html` | overview AI 纵深组 P0·架构 题数 |
+| P517 | `core/nav-overview-priority.html` | overview AI 纵深组 P0·高级 题数 |
+| P518 | `core/nav-overview-priority.html` | overview AI 纵深组 P1·专家 题数 |
+| P519 | `core/nav-overview-priority.html` | overview AI 纵深组 P1·架构 题数 |
+| P520 | `core/nav-overview-priority.html` | overview AI 纵深组 P1·高级 题数 |
+| P521 | `core/nav-overview-priority.html` | overview AI 纵深组 P2·专家 题数 |
+| P522 | `core/nav-overview-priority.html` | overview AI 纵深组 P2·架构 题数 |
+| P523 | `core/nav-overview-priority.html` | overview AI 纵深组 P2·高级 题数 |
 | P525 | `index.html` | 根 index 统计卡「AI 工程纵深」题数 |
 | P526 | `index.html` | 根 index AI 工程纵深 dir-count |
-| P524 | `java-architect-interview/index.html` | 章节 index meta-stats AI 工程纵深统计卡 |
+| P524 | `core/index.html` | 章节 index meta-stats AI 工程纵深统计卡 |
 | P527 | `index.html` | 升格 local:dir-group → struct.root.dir_group_73 |
 | P528 | `index.html` | 升格 local:dir-group → struct.root.dir_group_74 |
 | P529 | `index.html` | 升格 local:dir-group → struct.root.dir_group_75 |
@@ -437,19 +437,19 @@ agent_created: true
 | P551 | `index.html` | 升格 local:dir-group → struct.root.dir_group_97 |
 | P552 | `index.html` | 升格 local:dir-group → struct.root.dir_group_98 |
 | P553 | `index.html` | C wrapper section 级 dir-count（纯 C01~C15 平铺题数，不含 A 轴） |
-| P554 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题 AI 纵深 A 题数 |
-| P555 | `java-architect-interview/nav-overview-priority.html` | overview 页头副标题垂直领域 D 题数 |
-| P556 | `java-architect-interview/nav-overview-priority.html` | overview 页脚 AI 纵深 A 题数 |
-| P557 | `java-architect-interview/nav-overview-priority.html` | overview 页脚垂直领域 D 题数 |
-| P558 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段 AI 纵深 A 题数 |
-| P559 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段垂直领域 D 题数 |
-| P560 | `java-architect-interview/chapter-core-methodology.html` | 方法论页来源段题目总量 |
-| P561 | `java-architect-interview/chapter-core-methodology.html` | 方法论页副标题 AI 纵深 A 题数 |
-| P563 | `java-architect-interview/nav-overview-priority.html` | 垂直领域 P2·架构 ov-type 计数（2026-11-06 新增类型块） |
-| P564 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 题目数（2026-11-06 升格裸计数） |
-| P565 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 高级数（2026-11-06 升格裸计数） |
-| P566 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 架构数（2026-11-06 升格裸计数） |
-| P567 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 chapter-meta 专家数（2026-11-06 升格裸计数） |
+| P554 | `core/nav-overview-priority.html` | overview 页头副标题 AI 纵深 A 题数 |
+| P555 | `core/nav-overview-priority.html` | overview 页头副标题垂直领域 D 题数 |
+| P556 | `core/nav-overview-priority.html` | overview 页脚 AI 纵深 A 题数 |
+| P557 | `core/nav-overview-priority.html` | overview 页脚垂直领域 D 题数 |
+| P558 | `core/chapter-core-methodology.html` | 方法论页来源段 AI 纵深 A 题数 |
+| P559 | `core/chapter-core-methodology.html` | 方法论页来源段垂直领域 D 题数 |
+| P560 | `core/chapter-core-methodology.html` | 方法论页来源段题目总量 |
+| P561 | `core/chapter-core-methodology.html` | 方法论页副标题 AI 纵深 A 题数 |
+| P563 | `core/nav-overview-priority.html` | 垂直领域 P2·架构 ov-type 计数（2026-11-06 新增类型块） |
+| P564 | `core/chapter-questions-domain.html` | 垂直领域页 chapter-meta 题目数（2026-11-06 升格裸计数） |
+| P565 | `core/chapter-questions-domain.html` | 垂直领域页 chapter-meta 高级数（2026-11-06 升格裸计数） |
+| P566 | `core/chapter-questions-domain.html` | 垂直领域页 chapter-meta 架构数（2026-11-06 升格裸计数） |
+| P567 | `core/chapter-questions-domain.html` | 垂直领域页 chapter-meta 专家数（2026-11-06 升格裸计数） |
 | P576 | `index.html` | 批次 4 新增 A27 概率性系统与控制面 dir-group 题数（5 卡） |
 | P578 | `docs/README.md` | docs/README 矩阵 C01 章卡片数（2026-11-09 由裸计数升格注册） |
 | P579 | `docs/README.md` | docs/README 矩阵 C02 章卡片数（2026-11-09 由裸计数升格注册） |
@@ -472,55 +472,55 @@ agent_created: true
 | P596 | `docs/README.md` | docs/README 矩阵 S 篇场景题数（2026-11-09 升格注册） |
 | P597 | `docs/README.md` | docs/README 矩阵 A 篇 AI 纵深题数（2026-11-09 升格注册，74→112 同步真值） |
 | P598 | `docs/README.md` | docs/README 矩阵 D 篇垂直领域题数（2026-11-09 升格注册，72→80 同步真值） |
-| P599 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c17.n |
-| P600 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.expert |
-| P601 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.architect |
-| P602 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.senior |
+| P599 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c17.n |
+| P600 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.expert |
+| P601 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.architect |
+| P602 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c17.senior |
 | P603 | `index.html` | 升格 local:dir-count → struct.root.dir_count_22 |
-| P900 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 题数 |
-| P901 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 高级 |
-| P902 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 架构 |
-| P903 | `java-architect-interview/chapter-17-testing-system.html` | 章文件头 C17 专家 |
-| P604 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c16.n |
-| P605 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.expert |
-| P606 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.architect |
-| P607 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.senior |
+| P900 | `core/chapter-17-testing-system.html` | 章文件头 C17 题数 |
+| P901 | `core/chapter-17-testing-system.html` | 章文件头 C17 高级 |
+| P902 | `core/chapter-17-testing-system.html` | 章文件头 C17 架构 |
+| P903 | `core/chapter-17-testing-system.html` | 章文件头 C17 专家 |
+| P604 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c16.n |
+| P605 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.expert |
+| P606 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.architect |
+| P607 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c16.senior |
 | P608 | `index.html` | 升格 local:dir-count → struct.root.dir_count_23 |
-| P904 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 题数 |
-| P905 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 高级 |
-| P906 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 架构 |
-| P907 | `java-architect-interview/chapter-16-ai-python-stack.html` | 章文件头 C16 专家 |
-| P610 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.expert |
-| P611 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.architect |
-| P612 | `java-architect-interview/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.senior |
+| P904 | `core/chapter-16-ai-python-stack.html` | 章文件头 C16 题数 |
+| P905 | `core/chapter-16-ai-python-stack.html` | 章文件头 C16 高级 |
+| P906 | `core/chapter-16-ai-python-stack.html` | 章文件头 C16 架构 |
+| P907 | `core/chapter-16-ai-python-stack.html` | 章文件头 C16 专家 |
+| P610 | `core/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.expert |
+| P611 | `core/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.architect |
+| P612 | `core/index.html` | 升格 local:hybrid-footer-diff → struct.hybrid.idx.h01.senior |
 | P613 | `index.html` | 升格 local:dir-count → struct.root.dir_count_24 |
-| P910 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 题数 |
-| P911 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 高级 |
-| P912 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 架构 |
-| P913 | `java-architect-interview/chapter-hybrid-deployment.html` | 专篇文件头 专家 |
-| P614 | `java-architect-interview/index.html` | 升格 local:chap-footer → struct.chap.idx.c18.n |
-| P615 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.expert |
-| P616 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.architect |
-| P617 | `java-architect-interview/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.senior |
+| P910 | `core/chapter-hybrid-deployment.html` | 专篇文件头 题数 |
+| P911 | `core/chapter-hybrid-deployment.html` | 专篇文件头 高级 |
+| P912 | `core/chapter-hybrid-deployment.html` | 专篇文件头 架构 |
+| P913 | `core/chapter-hybrid-deployment.html` | 专篇文件头 专家 |
+| P614 | `core/index.html` | 升格 local:chap-footer → struct.chap.idx.c18.n |
+| P615 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.expert |
+| P616 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.architect |
+| P617 | `core/index.html` | 升格 local:chap-footer-diff → struct.chap.idx.c18.senior |
 | P618 | `index.html` | 升格 local:dir-count → struct.root.dir_count_25 |
-| P917 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 题数 |
-| P918 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 高级 |
-| P919 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 架构 |
-| P920 | `java-architect-interview/chapter-18-multilang-runtime.html` | 章文件头 C18 专家 |
+| P917 | `core/chapter-18-multilang-runtime.html` | 章文件头 C18 题数 |
+| P918 | `core/chapter-18-multilang-runtime.html` | 章文件头 C18 高级 |
+| P919 | `core/chapter-18-multilang-runtime.html` | 章文件头 C18 架构 |
+| P920 | `core/chapter-18-multilang-runtime.html` | 章文件头 C18 专家 |
 | P921 | `index.html` | 根 index M17 组题数 |
 | P922 | `index.html` | 根 index G12 组题数 |
 | P923 | `index.html` | 根 index G13 组题数 |
 | P924 | `index.html` | 根 index K11 组题数 |
 | P925 | `index.html` | 根 index K12 组题数 |
 | P926 | `index.html` | 根 index D13 组题数 |
-| P927 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
-| P928 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 十六组卡数表 M16 |
-| P929 | `java-architect-interview/chapter-questions-domain.html` | 垂直领域页 D13 组题数 |
+| P927 | `core/chapter-core-methodology.html` | 方法论页 M17 组头卡数 |
+| P928 | `core/chapter-core-methodology.html` | 方法论页 十六组卡数表 M16 |
+| P929 | `core/chapter-questions-domain.html` | 垂直领域页 D13 组题数 |
 | P931 | `index.html` | 根 index dir-stats-sub H 编号体系聚合计数 |
-| P932 | `java-architect-interview/index.html` | 章节站 index meta-stats H 编号体系聚合计数 |
-| P933 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 编号体系 |
-| P934 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 页面篇章 |
-| P935 | `java-architect-interview/index.html` | 章节站 index dir-stats 主行 题目总数 |
+| P932 | `core/index.html` | 章节站 index meta-stats H 编号体系聚合计数 |
+| P933 | `core/index.html` | 章节站 index dir-stats 主行 编号体系 |
+| P934 | `core/index.html` | 章节站 index dir-stats 主行 页面篇章 |
+| P935 | `core/index.html` | 章节站 index dir-stats 主行 题目总数 |
 | P936 | `index.html` | 根 index H 专篇 H01 组题数（与 section 级 P613 同键的第二展示位） |
 | P937 | `index.html` | 根 index A28 静默失效与反模式（合并组拆分后独立分组，实体 li.q-item 计数） |
 | P938 | `index.html` | 根 index A29 生产部署与运维纵深（合并组拆分后独立分组，实体 li.q-item 计数） |
@@ -535,95 +535,95 @@ agent_created: true
 | P947 | `index.html` | 根 index K08 安全应急踩坑（合并组拆分后独立分组，实体 li.q-item 计数） |
 | P948 | `index.html` | 根 index K09 AI 数据与合规事故（合并组拆分后独立分组，实体 li.q-item 计数） |
 | P949 | `index.html` | 根 index K10 AI 制品与部署事故（合并组拆分后独立分组，实体 li.q-item 计数） |
-| P963 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
-| P964 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
-| P965 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
-| P966 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
-| P960 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
-| P961 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
-| P962 | `java-architect-interview/chapter-core-methodology-ai.html` | auto-synced from HTML |
-| P970 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
-| P971 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
-| P972 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
-| P973 | `java-architect-interview/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
-| P974 | `java-architect-interview/chapter-core-methodology-ai.html` | L 专篇 合计卡数（与页头 methodology_l 同值） |
+| P963 | `core/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P964 | `core/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P965 | `core/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P966 | `core/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P960 | `core/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P961 | `core/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P962 | `core/chapter-core-methodology-ai.html` | auto-synced from HTML |
+| P970 | `core/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P971 | `core/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P972 | `core/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P973 | `core/chapter-core-methodology.html` | 方法论页 纪层卡数（M16 研发前段流程与软技能） |
+| P974 | `core/chapter-core-methodology-ai.html` | L 专篇 合计卡数（与页头 methodology_l 同值） |
 | P975 | `index.html` | 根 index 独立 L 专篇 section 的章节计数胶囊 |
 | P976 | `index.html` | 根 index 次统计行 L 专篇卡数（AI 方法论） |
-| P977 | `java-architect-interview/index.html` | 章节站次统计行 L 专篇卡数（AI 方法论） |
+| P977 | `core/index.html` | 章节站次统计行 L 专篇卡数（AI 方法论） |
 | P978 | `index.html` | 根 index L01 道层组卡数（DOM 实测） |
 | P979 | `index.html` | 根 index L02 法层组卡数（DOM 实测） |
 | P980 | `index.html` | 根 index L03 术层组卡数（DOM 实测） |
-| P981 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 卡片合计 |
-| P982 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 专家 |
-| P983 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 架构 |
-| P984 | `java-architect-interview/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 高级 |
-| P985 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 卡片合计 |
-| P986 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 专家 |
-| P987 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 架构 |
-| P988 | `java-architect-interview/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 高级 |
-| P989 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 卡片合计 |
-| P990 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 专家 |
-| P991 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 架构 |
-| P992 | `java-architect-interview/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 高级 |
-| P993 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 卡片合计 |
-| P994 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 专家 |
-| P995 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 架构 |
-| P996 | `java-architect-interview/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 高级 |
-| P997 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 卡片合计 |
-| P998 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 专家 |
-| P999 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 架构 |
-| P1000 | `java-architect-interview/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 高级 |
-| P1001 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 卡片合计 |
-| P1002 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 专家 |
-| P1003 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 架构 |
-| P1004 | `java-architect-interview/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 高级 |
-| P1005 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 卡片合计 |
-| P1006 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 专家 |
-| P1007 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 架构 |
-| P1008 | `java-architect-interview/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 高级 |
-| P1009 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 卡片合计 |
-| P1010 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 专家 |
-| P1011 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 架构 |
-| P1012 | `java-architect-interview/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 高级 |
-| P1013 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 卡片合计 |
-| P1014 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 专家 |
-| P1015 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 架构 |
-| P1016 | `java-architect-interview/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 高级 |
-| P1017 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 卡片合计 |
-| P1018 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 专家 |
-| P1019 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 架构 |
-| P1020 | `java-architect-interview/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 高级 |
-| P1021 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 卡片合计 |
-| P1022 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 专家 |
-| P1023 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 架构 |
-| P1024 | `java-architect-interview/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 高级 |
-| P1025 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 卡片合计 |
-| P1026 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 专家 |
-| P1027 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 架构 |
-| P1028 | `java-architect-interview/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 高级 |
-| P1029 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 卡片合计 |
-| P1030 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 专家 |
-| P1031 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 架构 |
-| P1032 | `java-architect-interview/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 高级 |
-| P1033 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 卡片合计 |
-| P1034 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 专家 |
-| P1035 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 架构 |
-| P1036 | `java-architect-interview/chapter-14-databases.html` | chapter-14-databases chapter-meta 高级 |
-| P1037 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 卡片合计 |
-| P1038 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 专家 |
-| P1039 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 架构 |
-| P1040 | `java-architect-interview/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 高级 |
-| P1041 | `java-architect-interview/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 专家 |
-| P1042 | `java-architect-interview/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 架构 |
-| P1043 | `java-architect-interview/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 高级 |
-| P1044 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 卡片合计 |
-| P1045 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 专家 |
-| P1046 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 架构 |
-| P1047 | `java-architect-interview/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 高级 |
-| P1048 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 卡片合计 |
-| P1049 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 专家 |
-| P1050 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 架构 |
-| P1051 | `java-architect-interview/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 高级 |
+| P981 | `core/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 卡片合计 |
+| P982 | `core/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 专家 |
+| P983 | `core/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 架构 |
+| P984 | `core/chapter-01-jvm-memory-classloading.html` | chapter-01-jvm-memory-classloading chapter-meta 高级 |
+| P985 | `core/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 卡片合计 |
+| P986 | `core/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 专家 |
+| P987 | `core/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 架构 |
+| P988 | `core/chapter-02-gc-performance.html` | chapter-02-gc-performance chapter-meta 高级 |
+| P989 | `core/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 卡片合计 |
+| P990 | `core/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 专家 |
+| P991 | `core/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 架构 |
+| P992 | `core/chapter-03-concurrency-locks.html` | chapter-03-concurrency-locks chapter-meta 高级 |
+| P993 | `core/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 卡片合计 |
+| P994 | `core/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 专家 |
+| P995 | `core/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 架构 |
+| P996 | `core/chapter-04-threadpool-virtual-threads.html` | chapter-04-threadpool-virtual-threads chapter-meta 高级 |
+| P997 | `core/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 卡片合计 |
+| P998 | `core/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 专家 |
+| P999 | `core/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 架构 |
+| P1000 | `core/chapter-05-spring-core.html` | chapter-05-spring-core chapter-meta 高级 |
+| P1001 | `core/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 卡片合计 |
+| P1002 | `core/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 专家 |
+| P1003 | `core/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 架构 |
+| P1004 | `core/chapter-06-spring-boot-modern.html` | chapter-06-spring-boot-modern chapter-meta 高级 |
+| P1005 | `core/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 卡片合计 |
+| P1006 | `core/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 专家 |
+| P1007 | `core/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 架构 |
+| P1008 | `core/chapter-07-mysql-deep.html` | chapter-07-mysql-deep chapter-meta 高级 |
+| P1009 | `core/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 卡片合计 |
+| P1010 | `core/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 专家 |
+| P1011 | `core/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 架构 |
+| P1012 | `core/chapter-08-redis-cache.html` | chapter-08-redis-cache chapter-meta 高级 |
+| P1013 | `core/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 卡片合计 |
+| P1014 | `core/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 专家 |
+| P1015 | `core/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 架构 |
+| P1016 | `core/chapter-09-distributed-systems.html` | chapter-09-distributed-systems chapter-meta 高级 |
+| P1017 | `core/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 卡片合计 |
+| P1018 | `core/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 专家 |
+| P1019 | `core/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 架构 |
+| P1020 | `core/chapter-10-microservice-cloud.html` | chapter-10-microservice-cloud chapter-meta 高级 |
+| P1021 | `core/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 卡片合计 |
+| P1022 | `core/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 专家 |
+| P1023 | `core/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 架构 |
+| P1024 | `core/chapter-11-middleware-engineering.html` | chapter-11-middleware-engineering chapter-meta 高级 |
+| P1025 | `core/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 卡片合计 |
+| P1026 | `core/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 专家 |
+| P1027 | `core/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 架构 |
+| P1028 | `core/chapter-12-ai-engineering.html` | chapter-12-ai-engineering chapter-meta 高级 |
+| P1029 | `core/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 卡片合计 |
+| P1030 | `core/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 专家 |
+| P1031 | `core/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 架构 |
+| P1032 | `core/chapter-13-network-io.html` | chapter-13-network-io chapter-meta 高级 |
+| P1033 | `core/chapter-14-databases.html` | chapter-14-databases chapter-meta 卡片合计 |
+| P1034 | `core/chapter-14-databases.html` | chapter-14-databases chapter-meta 专家 |
+| P1035 | `core/chapter-14-databases.html` | chapter-14-databases chapter-meta 架构 |
+| P1036 | `core/chapter-14-databases.html` | chapter-14-databases chapter-meta 高级 |
+| P1037 | `core/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 卡片合计 |
+| P1038 | `core/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 专家 |
+| P1039 | `core/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 架构 |
+| P1040 | `core/chapter-15-reactive.html` | chapter-15-reactive chapter-meta 高级 |
+| P1041 | `core/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 专家 |
+| P1042 | `core/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 架构 |
+| P1043 | `core/chapter-questions-eight-part.html` | chapter-questions-eight-part chapter-meta 高级 |
+| P1044 | `core/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 卡片合计 |
+| P1045 | `core/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 专家 |
+| P1046 | `core/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 架构 |
+| P1047 | `core/chapter-questions-scenario.html` | chapter-questions-scenario chapter-meta 高级 |
+| P1048 | `core/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 卡片合计 |
+| P1049 | `core/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 专家 |
+| P1050 | `core/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 架构 |
+| P1051 | `core/chapter-question-ai-engineering-deep.html` | chapter-question-ai-engineering-deep chapter-meta 高级 |
 <!-- COUNTS:END -->
 
 ## Workflow（标准 5 步）
@@ -718,14 +718,14 @@ agent_created: true
 | `chapter-xx-*.html` | meta 题目数 / 难度计数 / 复习分钟 +N；TOC 加条目；导航前插卡片（双编码一致） |
 | `nav-overview-priority.html` | 新增 ov-item（插入见 `conventions.md` §5.1.1）；`ov-stat-num` **全部** `ov_stat_order` 项须同步（当前 12）；子组/组标题/`ov-nav-cnt`/页头「全站 N 道」+N；类型含 C/E/S/A/D |
 | `index.html`（根） | 类型计数 /「全站」=total（C+A+E+S+D）/ M·G·K 各自统计卡；`dir-count` + `dir-group-count` +N；新增 q-item li |
-| `java-architect-interview/index.html` | stat-number +N（C/E/S 与 M/G/K 分卡）；「全站」仅=total；章节 card-footer +N（**不枚举单题 ID**）；**M/G/K 三张专篇卡的 `card-tags` 已移除**（不呈现等级徽标，2026-09-16） |
+| `core/index.html` | stat-number +N（C/E/S 与 M/G/K 分卡）；「全站」仅=total；章节 card-footer +N（**不枚举单题 ID**）；**M/G/K 三张专篇卡的 `card-tags` 已移除**（不呈现等级徽标，2026-09-16） |
 | `nav-knowledge-quick-list.html`（速查篇） | **章节级汇总卡粒度**（C 段一章一卡；M/L/E/S/A/H/D/G/K/SEC 按维度一卡一主题）：新卡入库后在对应汇总卡补 1–2 条 `cheat-bullet` 要点；该文件**无 `data-kb-pos`、不进计数门禁**，漏改无门禁报警，必须人工纳入清单（2026-11-14 C01.13 实测漏） |
 | ~~`mind-xx-*.html`~~ | **导图站已下线（SKILL.md:598），勿再同步 mind 文件**，全项目 `mind-*.html`=0 |
 
 ## 坑位速查（高频踩坑）
 
 - **Edit 大数字竞态**：overview 的 `ov-stat-num` 用 `Edit` 报成功却未落盘，改用 Python 脚本替换。
-- **章节导航页不枚举单题 ID**：`java-architect-interview/index.html` 只列章节卡片与统计，不含 `Cxx.xx`/`Sxx.xx` 条目——校验时"落位=False"属预期。
+- **章节导航页不枚举单题 ID**：`core/index.html` 只列章节卡片与统计，不含 `Cxx.xx`/`Sxx.xx` 条目——校验时"落位=False"属预期。
 - **新卡漏同步速查篇（2026-11-14 长官实测）**：`nav-knowledge-quick-list.html` 为章节级汇总卡粒度，且**无 `data-kb-pos`、不进任何计数门禁**——C01.13 入库时 3 聚合页全同步，速查篇漏补，门禁全绿也查不出。**形式1/2/3 落盘清单必须含速查篇**：在对应章节汇总卡补 1–2 条 `<div class="cheat-bullet"><strong>标签</strong>：…</div>`；改后跑 `npm run format:html`（稳态）+ 红线词检查；速查篇自身完整性三查 = 卡 ID 唯一 / TOC href 全命中 / HTML 标签平衡（html.parser 栈）。
 - **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家/架构/高级），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
 - **overview 新卡落位排序（2026-09-13 硬约束）**：P0→P2 → 专家→架构→高级 → 子组内 **C→E→S** → **题号升序**。详见 `conventions.md` §5.1.1。`validate_kb.py` 校验子组内 `ov-num` 单调；曾因「插在同 priority 某 E 卡后」导致 E10 跑到 E09 前。三类占比见 §5.1.2（**不要求各桶均分**，按内容定级）。
@@ -757,7 +757,7 @@ agent_created: true
   - **删除类改动的连带面**：删挂网 / 层带时须同步注销 SSOT `positions`（曾用 P424–P428）、`struct…layer_hang_*`、`guard.derived.items` 与 `sources.rules[id=derived]`，并改写 `probe_count_drift_gate` 的 derived 夹具，否则真源 / probe 假绿或基线红。
 - **历史设计/登记文档的重编号残留不要机械替换（2026-09-18 实测）**：`docs/plans/*.md`、`方法论篇章重构建议.md`、`方法论篇章落地追踪.md` 中的旧卡号属**规划期编号与映射记录**，且规划期编号与最终编号**并不同构**（如 id-map 的 `M01.07` 指「稳态与闭环反馈」、建议文档 §元认知层指「定性定量」，落地后才是「技术债管理」）；机械替换会制造语义错误并摧毁可追溯性。**这类残留应保留**，只清站点（HTML）内的悬空引用。散文里的「原 M01.07」「（升法）」类批注才属须清除的内部标记。
 - **`</spa` 误判**：截断检测用负向前瞻排除合法 `</span>`（正则 `</spa(?!n>)`）。
-- **路径双层**：`arch-codex/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
+- **路径双层**：`arch-codex/index.html` 是项目根全量快照，与子目录 `core/index.html` 是不同文件，全局核对须覆盖根那一层。
 - **Bash 内置 `grep` 受 `_zshz` 干扰**：交叉验证用 `Grep` 工具或 `git grep`。
 - **校验提取正则必须覆盖新编号空间（2026-09-04 实测）**：升层重编号后若用旧模式（如 `M0[1-7]\.\d{2}`）提取 after 集合做多重集断言，会"看不见" M08+ 的新号而误报不一致（替换其实已成功）；after 一律用宽模式 `M\d{2}\.\d{2}`。
 - **Mermaid 被格式化压成一行（2026-09-15）**：每个 `<div class="mermaid">` 必须带上一行 `<!-- prettier-ignore -->`；统一用 `npm run format:html`。缺 ignore 时 Prettier 会塌缩图源码，`validate_kb` 会拦。

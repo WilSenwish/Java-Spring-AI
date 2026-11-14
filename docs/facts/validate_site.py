@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""java-architect-interview 全站交叉校验脚本。
+"""core 全站交叉校验脚本。
 覆盖：标签配平 / 内部锚点一致性 / 跨文件引用 / 全局锚点悬空孤儿 / 量化数字扫描。
 """
 import os, re, sys
 from html.parser import HTMLParser
 
-ROOT = "/Users/chenjunbing/Develop/Project/Personal/arch-codex/java-architect-interview"
+ROOT = "/Users/chenjunbing/Develop/Project/Personal/arch-codex/core"
 
 # ---------- 1. 标签配平 ----------
 VOID = {"area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"}

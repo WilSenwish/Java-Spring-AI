@@ -49,7 +49,7 @@ if not BASE:
     sys.exit(2)
 PY3 = sys.executable
 SSOT = os.path.join(BASE, "docs", "kb-counts.json")
-CORE = os.path.join(BASE, "java-architect-interview/chapter-core-methodology.html")
+CORE = os.path.join(BASE, "core/chapter-core-methodology.html")
 # 夹具键（仅 probe 注入，不在基线 SSOT）
 DK = "misc.chap_chapter_core_methodology.probe_hang_cross_li"
 DK_FULL = "struct." + DK
@@ -67,14 +67,14 @@ DERIVED_RULE = {
 }
 DERIVED_ITEM = {
     "key": DK_FULL,
-    "file": "java-architect-interview/chapter-core-methodology.html",
+    "file": "core/chapter-core-methodology.html",
     "region": CROSS_REGION,
     "count": r"<li>",
     "desc": "probe：开篇三例竖切 <li> 数",
 }
 POS_ENTRY = {
     "id": POS_PROBE + "_probe_hang_cross_li",
-    "file": "java-architect-interview/chapter-core-methodology.html",
+    "file": "core/chapter-core-methodology.html",
     "pattern": r'data-kb-pos="' + POS_PROBE + r'"[^>]*>(\d+)</span>',
     "key": DK_FULL,
     "desc": "probe 临时展示位",
@@ -242,7 +242,7 @@ def _orphan(c):
     c["struct"]["misc.chap_chapter_core_methodology.probe_orphan"] = 3
     c["guard"]["derived"]["items"] = [{
         "key": "struct.misc.chap_chapter_core_methodology.probe_orphan",
-        "file": "java-architect-interview/chapter-core-methodology.html",
+        "file": "core/chapter-core-methodology.html",
         "region": CROSS_REGION,
         "count": r"<li>",
         "desc": "probe：无展示位的派生计数",

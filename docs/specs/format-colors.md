@@ -1,6 +1,6 @@
 # format-colors — 站点配色规约（Catppuccin Latte / Mocha）
 
-> 适用范围：根 `index.html`、`interview.html`、`java-architect-interview/`（章节站）、三个子站（`Software-Engineering-*` / `java-design-patterns-principles`）及其共享样式。
+> 适用范围：根 `index.html`、`interview.html`、`core/`（章节站）、三个子站（`Software-Engineering-*` / `java-design-patterns-principles`）及其共享样式。
 > **唯一色源（SSOT）**：`docs/catppuccin-tokens.json`。本文色表仅为速查，若与 JSON 冲突以 JSON 为准。
 > 门禁：`python3 docs/scripts/scripts/audit_catppuccin.py`（交付前必须 ALL PASS，见 §7）。
 
@@ -31,7 +31,7 @@ html[data-theme="dark"] {          /* 显式暗黑 = Mocha */
 }
 ```
 
-- 新页必须在 CSS 之前加载 `java-architect-interview/assets/theme-init.js`（防闪白，红线 7）。
+- 新页必须在 CSS 之前加载 `core/assets/theme-init.js`（防闪白，红线 7）。
 - 显式暗黑块与自动暗黑块必须同步改，两处值一致。
 - 三子站共享令牌在 `docs/shared/style/satellite-base.css`，站内专属写各站 `assets/style.css`。
 

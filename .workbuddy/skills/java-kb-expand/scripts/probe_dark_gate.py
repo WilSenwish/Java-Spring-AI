@@ -22,8 +22,8 @@ if not BASE:
     sys.exit("找不到项目根")
 
 SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "validate_kb.py")
-PAGE = os.path.join(BASE, "java-architect-interview/chapter-05-spring-core.html")
-JS = os.path.join(BASE, "java-architect-interview/assets/theme-init.js")
+PAGE = os.path.join(BASE, "core/chapter-05-spring-core.html")
+JS = os.path.join(BASE, "core/assets/theme-init.js")
 
 
 def md5(p):

@@ -125,13 +125,13 @@ if (argv[0] === '--path') {
 } else {
   const pages = [
     'index.html',
-    'java-architect-interview/chapter-questions-eight-part.html',
-    'java-architect-interview/chapter-05-spring-core.html',
-    'java-architect-interview/chapter-07-mysql-deep.html',
-    'java-architect-interview/chapter-11-middleware-engineering.html',
-    'java-architect-interview/chapter-questions-scenario.html',
-    'java-architect-interview/nav-server-security-checkpoint.html',
-    'java-architect-interview/chapter-05-spring-core.html'
+    'core/chapter-questions-eight-part.html',
+    'core/chapter-05-spring-core.html',
+    'core/chapter-07-mysql-deep.html',
+    'core/chapter-11-middleware-engineering.html',
+    'core/chapter-questions-scenario.html',
+    'core/nav-server-security-checkpoint.html',
+    'core/chapter-05-spring-core.html'
   ];
   cfg = { viewports: [[320, 720], [375, 812], [414, 896]], urls: pages.map(toFileUrl) };
 }

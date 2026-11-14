@@ -7,7 +7,7 @@ Writes <project-root>/docs/search-index.json.（脚本位于 docs/scripts/）
   python3 docs/scripts/build_search_index.py --check  # compare hash + records, exit 1 on drift
 
 Indexed:
-  - interview.html and java-architect-interview/*.html that contain .content-card
+  - interview.html and core/*.html that contain .content-card
     (chapter index is a link catalog and is skipped)
   - the three satellite sites named in the search plan
 
@@ -286,7 +286,7 @@ def collect_paths(root):
     interview = os.path.join(root, "interview.html")
     if os.path.isfile(interview):
         paths.append(interview)
-    chapter = os.path.join(root, "java-architect-interview")
+    chapter = os.path.join(root, "core")
     if os.path.isdir(chapter):
         for name in sorted(os.listdir(chapter)):
             if name.endswith(".html") and name != "index.html":

@@ -48,7 +48,7 @@ if not os.path.isfile(GATE):
     sys.exit(2)
 
 IDX = os.path.join(B, "index.html")
-OV = os.path.join(B, "java-architect-interview", "nav-overview-priority.html")
+OV = os.path.join(B, "core", "nav-overview-priority.html")
 for _p, _n in ((IDX, "根 index.html"), (OV, "nav-overview-priority.html")):
     if not os.path.isfile(_p):
         print("SKIP 环境缺失（退出码 3）：%s 不存在于 %s" % (_n, _p))
@@ -70,10 +70,10 @@ def run_gate(sandbox):
 
 def mk_sandbox(sandbox):
     """从当前项目复制干净的根 index + overview 进沙箱（含 AGENTS.md 以满足定位回退）。"""
-    os.makedirs(os.path.join(sandbox, "java-architect-interview"), exist_ok=True)
+    os.makedirs(os.path.join(sandbox, "core"), exist_ok=True)
     write(os.path.join(sandbox, "AGENTS.md"), "probe sandbox\n")
     write(os.path.join(sandbox, "index.html"), read(IDX))
-    write(os.path.join(sandbox, "java-architect-interview", "nav-overview-priority.html"), read(OV))
+    write(os.path.join(sandbox, "core", "nav-overview-priority.html"), read(OV))
 
 
 def main():
@@ -82,12 +82,12 @@ def main():
     try:
         # ---- 轮 1：徽标缺陷（剥 ov-badges 包裹）----
         mk_sandbox(sandbox)
-        ov = read(os.path.join(sandbox, "java-architect-interview", "nav-overview-priority.html"))
+        ov = read(os.path.join(sandbox, "core", "nav-overview-priority.html"))
         mutated = ov.replace('class="ov-badges"', 'class="ov-badges-missing"', 1)
         if mutated == ov:
             print("[1] 跳过：overview 未找到 `class=\"ov-badges\"`（无法构造徽标缺陷）")
         else:
-            write(os.path.join(sandbox, "java-architect-interview", "nav-overview-priority.html"), mutated)
+            write(os.path.join(sandbox, "core", "nav-overview-priority.html"), mutated)
             code, out = run_gate(sandbox)
             caught = (code == 1) and ("缺 .ov-badges 包裹" in out)
             ok &= caught

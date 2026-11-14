@@ -47,10 +47,10 @@ BASE = find_root(__file__)
 
 SCRIPT = os.path.join(BASE, ".workbuddy/skills/java-kb-expand/scripts/audit_l1_counts.py")
 PY3 = sys.executable
-CORE = os.path.join(BASE, "java-architect-interview/chapter-core-methodology.html")
+CORE = os.path.join(BASE, "core/chapter-core-methodology.html")
 
 # 容器用例目标：章节 index 的 card-footer（2026-10-27：原 card-foot 精确类名已不存在）
-_cands = glob.glob(os.path.join(BASE, "java-architect-interview/*.html"))
+_cands = glob.glob(os.path.join(BASE, "core/*.html"))
 FOOT = next(
     (p for p in _cands
      if '<div class="card-footer">' in io.open(p, encoding="utf-8").read()),

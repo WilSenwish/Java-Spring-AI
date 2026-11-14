@@ -130,7 +130,7 @@
 ## <a id="7"></a>7. 首页 index.html
 
 
-- **定位**：章节站入口导航页（`java-architect-interview/index.html`）。卡片顺序**允许人工编排**，不以文件名自然序强制重排；Agent 改卡时**保持现有 DOM 顺序**，除非用户明确要求调整位置。
+- **定位**：章节站入口导航页（`core/index.html`）。卡片顺序**允许人工编排**，不以文件名自然序强制重排；Agent 改卡时**保持现有 DOM 顺序**，除非用户明确要求调整位置。
 - **当前卡片顺序**（手工编排，改动须同步本条；以页面 DOM 为准）：
   1. 全站题目优先级排序总览（`nav-overview-priority`）
   2. 知识点速查手册（`nav-knowledge-quick-list`）

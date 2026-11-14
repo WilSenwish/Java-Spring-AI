@@ -121,7 +121,7 @@ SCANNERS = {".css": scan_css, ".html": scan_html, ".js": scan_js}
 
 # ---------- RETINT 键集 ----------
 def retint_keys():
-    p = os.path.join(BASE, "java-architect-interview", "assets", "theme-init.js")
+    p = os.path.join(BASE, "core", "assets", "theme-init.js")
     js = open(p, encoding="utf-8").read()
     keys = set()
     for name in ("RETINT_FILL_DARK", "RETINT_STROKE_DARK"):

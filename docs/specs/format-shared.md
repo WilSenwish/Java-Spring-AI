@@ -34,8 +34,8 @@
   </body>
   </html>
   ```
-  例外：根 `index.html`、章节站 `java-architect-interview/index.html` **不**放顶/底章节导航。
-- 任何新页都必须引入 `assets/theme-init.js`（在 CSS 前）与 `assets/design-system.css`，不得另起一整套全局样式；页面特有样式以内联 `<style>` 覆盖。相对路径：根 `index.html` → `java-architect-interview/assets/…`；章节站 → `assets/…`。
+  例外：根 `index.html`、章节站 `core/index.html` **不**放顶/底章节导航。
+- 任何新页都必须引入 `assets/theme-init.js`（在 CSS 前）与 `assets/design-system.css`，不得另起一整套全局样式；页面特有样式以内联 `<style>` 覆盖。相对路径：根 `index.html` → `core/assets/…`；章节站 → `assets/…`。
 
 ## 2. 设计系统 · 设计令牌（CSS 变量）
 
@@ -149,7 +149,7 @@
 
 ## 4. 资源按需载入规则
 
-- `java-architect-interview/assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部** + **阅读进度**（顶栏细条 + 浮动环，方案 A；见 §9）+ **小屏本篇目录抽屉**（左下 `.toc-fab` + 复用 `.sidebar-toc`；见 §4.1 / §8）+ **听本页**（左下 `.kb-listen`，样式随脚本注入，见 §9）+ **全站搜索**（无顶栏时右上「搜索」按钮；三子站 `.toolbar` 内直接放搜索框；索引为 `docs/search-index.json`，改纳入范围的正文后运行 `python3 docs/scripts/build_search_index.py`，见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
+- `core/assets/theme-init.js`：主题同步初始化 + **全站主题切换器** + **返回顶部 / 去到底部** + **阅读进度**（顶栏细条 + 浮动环，方案 A；见 §9）+ **小屏本篇目录抽屉**（左下 `.toc-fab` + 复用 `.sidebar-toc`；见 §4.1 / §8）+ **听本页**（左下 `.kb-listen`，样式随脚本注入，见 §9）+ **全站搜索**（无顶栏时右上「搜索」按钮；三子站 `.toolbar` 内直接放搜索框；索引为 `docs/search-index.json`，改纳入范围的正文后运行 `python3 docs/scripts/build_search_index.py`，见 §9）；**所有用户可见 HTML 均须在 `design-system.css` 之前引入**。
 - `assets/nav.js`：全站导航交互脚本；职责含：
   1. **侧栏 TOC 滚动高亮**：按 `a[href^="#"]` 解析目标，兼容卡片 / 分组锚点 / 章节 `h2`；当前高亮条目所属 `.toc-group` 内的 `a.toc-group-title` **同步加 `.active`**（分组标题高亮同步）；小屏下调用 `kbToc.syncExpandedFromActive` 展开当前组。
   2. **阅读进度 / 主题切换 / 回顶 / 去底兜底**（主注入在 `theme-init.js`；本脚本以 `__kbReadingProgressBound` 等标记防双重绑定）。
@@ -185,7 +185,7 @@
 - **放置（硬约束）**：
   - 顶栏：`body` 内**第一个**子块，外包 `<div class="site-page-nav site-page-nav--top">`。
   - 底栏：正文与 `<footer>`（若有）之后、**所有** `<script>` 之前，外包 `<div class="site-page-nav site-page-nav--bottom">`。
-  - **无导航页**：仅根 `index.html`、章节站 `java-architect-interview/index.html`；导图 `index.html` 与其余内容页均须有顶底导航。
+  - **无导航页**：仅根 `index.html`、章节站 `core/index.html`；导图 `index.html` 与其余内容页均须有顶底导航。
 - **顶底内容必须一致**：`.chapter-nav-top` 与 `.chapter-nav` 的内侧 HTML（链接集合与文案）须相同，仅外层 class 不同。
 - **顶底高度与间距对称**：壳层 `.site-page-nav--top` / `--bottom` 使用相同的上下 `padding`；内层导航条相同 `min-height` / `padding`；**内容 ↔ 导航块**的间隔只由壳层承担（正文首屏如 `.map-hero` / `.ov-hero` 勿再叠加大 `padding-top`）。样式以 `assets/design-system.css` 为准，小屏断点亦须对称。
 - **箭头**：统一字面量 `←` / `→`（禁止 `&#8592;` / `&#8594;`）；外链箭头仍用 `&#8599;`。
@@ -268,7 +268,7 @@ index.html                                # 章节索引
 ### 8.1 适用范围
 
 - 根目录 `index.html`
-- 章节站全部页面（`java-architect-interview/**/*.html`，含 index / chapter-* / nav-*）
+- 章节站全部页面（`core/**/*.html`，含 index / chapter-* / nav-*）
 
 ### 8.2 断点约定
 
@@ -494,7 +494,7 @@ index.html                                # 章节索引
 站点无构建步骤，但仍用 **Prettier 3** 统一用户可见 HTML 的缩进与标签换行。覆盖范围（清单真源：`scripts/_site_html.py`）：
 
 - 根：`index.html`、`interview.html`
-- 章节主站：`java-architect-interview/*.html`
+- 章节主站：`core/*.html`
 - 三子站（递归）：`java-design-patterns-principles/**`、`Software-Engineering-Core-Philosophical-Principles-and-Methodologies/**`、`Software-Engineering-Laws-Theories-Principles-and-Patterns/**`
 
 `docs/facts/`、`tmp/`、压缩资源、`rk/` 不在格式化范围。导图站已下线。

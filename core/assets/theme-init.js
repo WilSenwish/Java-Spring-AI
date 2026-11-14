@@ -1528,7 +1528,7 @@
 
     function siteRoot() {
       var nodes = document.getElementsByTagName('script');
-      var mark = 'java-architect-interview/assets/theme-init.js';
+      var mark = 'core/assets/theme-init.js';
       for (var i = 0; i < nodes.length; i++) {
         var src = nodes[i].src || '';
         var at = src.indexOf(mark);

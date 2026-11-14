@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""三子站基础门禁（非 java-architect-interview KB 计数体系）。
+"""三子站基础门禁（非 core KB 计数体系）。
 
 覆盖目录（见 `_site_html.SATELLITE_DIRS`）：
   - java-design-patterns-principles/

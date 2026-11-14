@@ -17,8 +17,8 @@ import audit_cross_axis_dedup as M
 BASE = require_root(__file__)
 GATE = os.path.join(SCRIPTS, "audit_cross_axis_dedup.py")
 SSOT = os.path.join(BASE, "docs", "kb-counts.json")
-A_HOST = os.path.join(BASE, "java-architect-interview", "chapter-question-ai-engineering-deep.html")
-C_HOST = os.path.join(BASE, "java-architect-interview", "chapter-12-ai-engineering.html")
+A_HOST = os.path.join(BASE, "core", "chapter-question-ai-engineering-deep.html")
+C_HOST = os.path.join(BASE, "core", "chapter-12-ai-engineering.html")
 SRC, DST = "A19.03", "C12.40"
 
 # 兼容空数组与已有豁免台账：按锚点定位 cross_axis_dedup 的 exempt 数组整体

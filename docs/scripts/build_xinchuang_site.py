@@ -4,7 +4,7 @@
 
 设计约束（对齐 AGENTS.md 红线）：
   1. 自包含：站点只引用自身 assets/ 下的 CSS/JS，不引用 docs/ 或
-     java-architect-interview/ 的任何资源；xinchuang/ 可整体拷贝单独部署。
+     core/ 的任何资源；xinchuang/ 可整体拷贝单独部署。
   2. 视觉复用：基础样式由 docs/shared/style/satellite-base.css 复制而来
      （Catppuccin Latte/Mocha 官方色，已通过 docs/scripts/audit_catppuccin.py），
      仅改写文件头注释，保证与 Laws 子站同款 toolbar / hero / toc / 卡片 / 表格 / 暗色令牌。

@@ -4,7 +4,7 @@
 
 范围（相对项目根）：
   - 根：`index.html`、`interview.html`
-  - 章节主站：`java-architect-interview/*.html`（仅顶层，不含 shared/tmp）
+  - 章节主站：`core/*.html`（仅顶层，不含 shared/tmp）
   - 三子站（递归 `**/*.html`，跳过 tmp/node_modules）：
       java-design-patterns-principles/
       Software-Engineering-Core-Philosophical-Principles-and-Methodologies/
@@ -26,7 +26,7 @@ SATELLITE_DIRS = (
     "Software-Engineering-Laws-Theories-Principles-and-Patterns",
 )
 
-CHAPTER_DIR = "java-architect-interview"
+CHAPTER_DIR = "core"
 ROOT_HTML = ("index.html", "interview.html")
 
 _SKIP_PARTS = {"tmp", "node_modules", ".git", "shared"}

@@ -6,7 +6,7 @@ java-kb-expand · 全量校验脚本（通用版）
 运行位置：**本文件（`.workbuddy/skills/java-kb-expand/scripts/validate_kb.py`）原地运行**
 （项目根由「向上查找同时含 AGENTS.md + index.html 的祖先目录」推导，路径全部绝对化）。
 **勿再复制到 `tmp/` 运行**——曾因 tmp 副本按自身层级推导，把 BASE 解析成
-`<项目根>/java-architect-interview`，报出 `docs/kb-counts.json 不存在` 之类假故障
+`<项目根>/core`，报出 `docs/kb-counts.json 不存在` 之类假故障
 （2026-09-16 实测）。按需填 EXPECT 字典（本轮权威计数）与 NEW_IDS（新增/改动题号列表），
 然后运行：python3 validate_kb.py
 
@@ -46,7 +46,7 @@ java-kb-expand · 全量校验脚本（通用版）
   6) 新卡在 overview / 根 index / 宿主章节页落位
 
 设计要点（来自实战坑位）：
-  - 章节导航页（java-architect-interview/index.html）不枚举单题 ID，落位检查跳过它。
+  - 章节导航页（core/index.html）不枚举单题 ID，落位检查跳过它。
   - 宿主章节页按题号前缀自动扫描：Cxx/Sxx/Mxx -> 其所在 chapter-*.html（grep 全站定位，不写死文件）。
   - 文件夹路径如有变动，仅改 BASE 一处即可。
 """
@@ -57,10 +57,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _kbroot import find_root  # noqa: E402  项目根唯一实现（禁写死路径）
 BASE = find_root(__file__)
 
-CHAPTER_DIR = f"{BASE}/java-architect-interview"
-# 2026-09-21：导图站（java-architect-interview-mind/）已整体下线，不再扫描。
+CHAPTER_DIR = f"{BASE}/core"
+# 2026-09-21：导图站（core-mind/）已整体下线，不再扫描。
 # 真源计数 / 互链 / 落位校验均已同步清理。
-# 2026-09-15：docs/ 已由 java-architect-interview/docs 迁至项目根 docs/，
+# 2026-09-15：docs/ 已由 core/docs 迁至项目根 docs/，
 # 此处写死旧路径会导致脚本启动即 FileNotFoundError（全量校验护栏失效）。优先新路径，兼容旧布局。
 COUNTS_JSON = f"{BASE}/docs/kb-counts.json"
 if not os.path.isfile(COUNTS_JSON):
@@ -340,9 +340,9 @@ def run_kb_count_markup_check():
     # 禁止本地计数（一律升格进 kb-counts.json counts|struct）
     for path in all_chapter_files() + [
         os.path.join(BASE, "index.html"),
-        os.path.join(BASE, "java-architect-interview/index.html"),
-        os.path.join(BASE, "java-architect-interview/nav-overview-priority.html"),
-        os.path.join(BASE, "java-architect-interview/nav-server-security-checkpoint.html"),
+        os.path.join(BASE, "core/index.html"),
+        os.path.join(BASE, "core/nav-overview-priority.html"),
+        os.path.join(BASE, "core/nav-server-security-checkpoint.html"),
     ]:
         if not os.path.isfile(path):
             continue
@@ -367,7 +367,7 @@ def run_kb_count_markup_check():
 _COVERAGE_DEFAULTS = {
     "scan": [
         "index.html",
-        "java-architect-interview/*.html",
+        "core/*.html",
     ],
     "containers": [
         [r'<div class="card-footer">(.*?)</div>', "card-footer"],

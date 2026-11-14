@@ -10,7 +10,7 @@ java-kb-expand · 新增卡片 7 文件同步脚本骨架
   - 先备份全部目标文件到 tmp/kb_<task>_backup/
   - 用精确字符串替换 + 断言（命中数=预期），规避 Edit 对 overview 大数字的"竞态未落盘"
   - 全程守卫 data-page-node-id == 0
-  - 章节导航页（java-architect-interview/index.html）不枚举单题 ID，只改统计与 card-footer
+  - 章节导航页（core/index.html）不枚举单题 ID，只改统计与 card-footer
 
 本骨架仅给结构与辅助函数；具体锚点字符串请先用 Grep/Read 定位真实文本再填。
 """
@@ -54,7 +54,7 @@ os.makedirs(BACKUP, exist_ok=True)
 #   [7] 三级计数同改：ov-stat-num（struct.ov.subgroup_*）、ov-type-count（struct.ov.type_*）、
 #       组标题题数（p0/p1/p2）。漏 ov-type-count → FAIL [overview类型计数]
 #       （ov-type 为每个难度子组内的「篇章/核心原理/场景题」三分块，易被整体忽略）
-# 章节 index（java-architect-interview/index.html）
+# 章节 index（core/index.html）
 #   [8] c{NN}.n / c{NN}.expert / c{NN}.architect（struct.chap.idx.*）；不枚举单题 ID
 # 收尾
 #   [10] sync_counts.py bump（counts 与 struct.* 一并传参）→ check 全 PASS
@@ -86,7 +86,7 @@ os.makedirs(BACKUP, exist_ok=True)
 # 场景题 Sxx 的宿主章节页 = 其 group-N 对应的篇章（如 group-4 微服务架构 -> chapter-10-microservice-cloud.html）
 NEW_ID = "C13.13"          # 新增题号
 NEW_CARD_HTML = """<!-- TODO: 完整卡片 HTML（含双编码 data-priority + 可见徽标）-->"""
-CHAPTER_FILE = f"{BASE}/java-architect-interview/chapter-13-network-io.html"
+CHAPTER_FILE = f"{BASE}/core/chapter-13-network-io.html"
 ANCHOR_INSERT_CARD = "<!-- ============ 章节间导航 ============ -->"  # TODO: 卡片插在此锚点前
 
 # 计数增量（形式1/2/3 新增卡时填；形式4 补增量时全 0）
@@ -100,9 +100,9 @@ OV_BEFORE = [_cfg["counts"][k] for k in OV_KEYS]
 
 FILES = {
     "chapter": CHAPTER_FILE,
-    "overview": f"{BASE}/java-architect-interview/nav-overview-priority.html",
+    "overview": f"{BASE}/core/nav-overview-priority.html",
     "root": f"{BASE}/index.html",   # 注意：BASE 已含项目根 "arch-codex"，根 index 即 {BASE}/index.html
-    "chap_idx": f"{BASE}/java-architect-interview/index.html",
+    "chap_idx": f"{BASE}/core/index.html",
 }
 
 def read(p): return open(p, encoding="utf-8").read()

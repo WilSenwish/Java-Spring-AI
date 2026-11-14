@@ -13,7 +13,7 @@
  * 用法:
  *   node audit_chart_contrast.js dark                      # 全站深色（两个站目录）
  *   node audit_chart_contrast.js light --json out.json     # 浅色 + 落盘原始结果
- *   node audit_chart_contrast.js dark --dirs java-architect-interview/chapter-05-spring-core.html
+ *   node audit_chart_contrast.js dark --dirs core/chapter-05-spring-core.html
  *   node audit_chart_contrast.js dark --limit 5
  * 退出码: 0 = 无 <3 的节点；1 = 存在不可读节点
  *
@@ -165,7 +165,7 @@ function collectPages(dirs) {
 (async () => {
   const argv = process.argv.slice(2);
   const mode = argv[0] || 'dark';
-  let dirs = ['java-architect-interview'];
+  let dirs = ['core'];
   let limit = 0, jsonOut = null;
   for (let i = 1; i < argv.length; i++) {
     if (argv[i] === '--dirs') dirs = argv[++i].split(',');

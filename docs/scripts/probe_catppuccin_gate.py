@@ -36,10 +36,10 @@ if not BASE:
     raise SystemExit("定位失败：未找到项目根")
 
 AUDIT = os.path.join(BASE, "docs", "scripts", "audit_catppuccin.py")
-CSS_TARGET = os.path.join(BASE, "java-architect-interview", "assets", "design-system.css")
+CSS_TARGET = os.path.join(BASE, "core", "assets", "design-system.css")
 
 _chapters = sorted(glob.glob(os.path.join(
-    BASE, "java-architect-interview", "chapter-*.html")))
+    BASE, "core", "chapter-*.html")))
 if not os.path.isfile(AUDIT) or not os.path.isfile(CSS_TARGET) or not _chapters:
     raise SystemExit("缺夹具：audit 脚本 / design-system.css / 章节 HTML 之一缺失，无法验证")
 

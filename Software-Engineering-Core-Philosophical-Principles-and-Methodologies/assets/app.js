@@ -317,7 +317,7 @@
   }
 })();
 
-/* ---------- 小屏目录抽屉（与 java-architect-interview 同机制：左下 FAB + 左侧抽屉） ---------- */
+/* ---------- 小屏目录抽屉（与 core 同机制：左下 FAB + 左侧抽屉） ---------- */
 (function () {
   function initMobileTocDrawer() {
     if (!document.body) return;
