@@ -101,7 +101,7 @@ OV_BEFORE = [_cfg["counts"][k] for k in OV_KEYS]
 FILES = {
     "chapter": CHAPTER_FILE,
     "overview": f"{BASE}/java-architect-interview/nav-overview-priority.html",
-    "root": f"{BASE}/index.html",   # 注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
+    "root": f"{BASE}/index.html",   # 注意：BASE 已含项目根 "arch-codex"，根 index 即 {BASE}/index.html
     "chap_idx": f"{BASE}/java-architect-interview/index.html",
 }
 

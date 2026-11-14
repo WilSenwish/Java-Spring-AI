@@ -693,7 +693,7 @@ agent_created: true
    - **① `stat-number` 全部字段**（题目总数 ≠ 合计；合计 = 题数 + 方法论 + 工程化）。
    - **② 散文式数字**（已由 P27+ 与 sync_counts check 覆盖；章节 index `card-desc`/`card-footer` 等若新增散文数字须同步登记 position）。
    - **③ mind 页 summary 编号 ↔ 章节页 content-card id 逐一对齐**。
-2. 刷新 `Java Spring AI/.workbuddy/memory/MEMORY.md` 权威计数（若计数变更）+ 追加 `2026-09-03.md` 等价当日日志（按实际日期）记录入库/补增量。
+2. 刷新 `arch-codex/.workbuddy/memory/MEMORY.md` 权威计数（若计数变更）+ 追加 `2026-09-03.md` 等价当日日志（按实际日期）记录入库/补增量。
 3. 按红线交付：仅给绝对路径 + 文字结论，绝不预览。
 
 ## 形式候选定义（通用，非固定字母）
@@ -757,7 +757,7 @@ agent_created: true
   - **删除类改动的连带面**：删挂网 / 层带时须同步注销 SSOT `positions`（曾用 P424–P428）、`struct…layer_hang_*`、`guard.derived.items` 与 `sources.rules[id=derived]`，并改写 `probe_count_drift_gate` 的 derived 夹具，否则真源 / probe 假绿或基线红。
 - **历史设计/登记文档的重编号残留不要机械替换（2026-09-18 实测）**：`docs/plans/*.md`、`方法论篇章重构建议.md`、`方法论篇章落地追踪.md` 中的旧卡号属**规划期编号与映射记录**，且规划期编号与最终编号**并不同构**（如 id-map 的 `M01.07` 指「稳态与闭环反馈」、建议文档 §元认知层指「定性定量」，落地后才是「技术债管理」）；机械替换会制造语义错误并摧毁可追溯性。**这类残留应保留**，只清站点（HTML）内的悬空引用。散文里的「原 M01.07」「（升法）」类批注才属须清除的内部标记。
 - **`</spa` 误判**：截断检测用负向前瞻排除合法 `</span>`（正则 `</spa(?!n>)`）。
-- **路径双层**：`Java Spring AI/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
+- **路径双层**：`arch-codex/index.html` 是项目根全量快照，与子目录 `java-architect-interview/index.html` 是不同文件，全局核对须覆盖根那一层。
 - **Bash 内置 `grep` 受 `_zshz` 干扰**：交叉验证用 `Grep` 工具或 `git grep`。
 - **校验提取正则必须覆盖新编号空间（2026-09-04 实测）**：升层重编号后若用旧模式（如 `M0[1-7]\.\d{2}`）提取 after 集合做多重集断言，会"看不见" M08+ 的新号而误报不一致（替换其实已成功）；after 一律用宽模式 `M\d{2}\.\d{2}`。
 - **Mermaid 被格式化压成一行（2026-09-15）**：每个 `<div class="mermaid">` 必须带上一行 `<!-- prettier-ignore -->`；统一用 `npm run format:html`。缺 ignore 时 Prettier 会塌缩图源码，`validate_kb` 会拦。

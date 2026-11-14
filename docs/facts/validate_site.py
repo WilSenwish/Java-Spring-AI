@@ -6,7 +6,7 @@
 import os, re, sys
 from html.parser import HTMLParser
 
-ROOT = "/Users/chenjunbing/Develop/Project/Personal/Java Spring AI/java-architect-interview"
+ROOT = "/Users/chenjunbing/Develop/Project/Personal/arch-codex/java-architect-interview"
 
 # ---------- 1. 标签配平 ----------
 VOID = {"area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"}

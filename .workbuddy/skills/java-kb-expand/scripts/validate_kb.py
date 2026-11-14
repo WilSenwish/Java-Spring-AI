@@ -150,7 +150,7 @@ NEW_IDS = ["C06.15","C07.16","C08.12","C09.17","C10.29","C10.30","C11.26","C11.2
       "C12.66",
       "C12.67"]
 
-# 3 份聚合页（固定路径）。注意：BASE 已含项目根 "Java Spring AI"，根 index 即 {BASE}/index.html
+# 3 份聚合页（固定路径）。注意：BASE 已含项目根 "arch-codex"，根 index 即 {BASE}/index.html
 # 三权威源已降为二：根 index + 章节 index + overview（导图站已于 2026-09-21 下线）
 AGG_FILES = {
     "overview": f"{CHAPTER_DIR}/nav-overview-priority.html",

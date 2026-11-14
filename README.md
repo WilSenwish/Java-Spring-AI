@@ -1,15 +1,15 @@
-# Java-Spring-AI
+# Arch Codex
 
-> **Java 架构师级工程能力知识库** · 纯静态 HTML 站 · GitHub Pages 发布 · 单一真源驱动全站计数
+> **架构师知识法典** · 纯静态 HTML 站 · GitHub Pages 发布 · 单一真源驱动全站计数 · 9 大编号体系 · 700+ 精编卡片
 
-仓库地址：<https://github.com/WilSenwish/Java-Spring-AI> · 部署形态：GitHub Pages（无后端、无构建步骤）
+仓库地址：<https://github.com/WilSenwish/arch-codex> · Pages 站点：<https://wilsenwish.github.io/arch-codex/> · 部署形态：GitHub Pages（无后端、无构建步骤）
 
 ---
 
 ## 目录结构（4 个 KB 子站 + xinchuang/ 独立站点 + 2 索引 + 工具链 + rk/ 随笔）
 
 ```
-Java-Spring-AI/
+arch-codex/
 ├── index.html                              # 根索引（全站聚合，三权威源之一）
 ├── interview.html                          # 独立能力索引页
 ├── java-architect-interview/              # ① 章节主站 · 28 HTML
@@ -55,36 +55,37 @@ Java-Spring-AI/
 
 ---
 
-## 题库速览（2026-09-21 · `docs/kb-counts.json` 真源）
+## 题库速览（2026-11-14 · `docs/kb-counts.json` 真源）
 
 ### 对外总量（C + A + E + S + D = `total`）
 
 | 域 | 编号 | 数量 |
 |---|---|---|
-| 篇章 | `C01.01 ~ C15.xx` | 274 |
+| 篇章 | `C01.01 ~ C15.xx` | 336 |
 | AI 工程纵深 | `A01.01 ~ Axx.xx` | 112 |
 | 核心原理 | `E01.01 ~ Exx.xx` | 74 |
 | 场景题 | `S01.01 ~ Sxx.xx` | 74 |
-| 垂直领域 | `D01.01 ~ Dxx.xx` | 80 |
-| **合计** | | **614** |
+| 垂直领域 | `D01.01 ~ Dxx.xx` | 90 |
+| **合计** | | **686** |
 
-> **口径说明**：方法论 / 工程化 / 踩坑为**专篇卡**，独立计数、不进 `total`。真源：`docs/kb-counts.json`（改数走 `sync_counts.py bump`）。
+> **口径说明**：方法论 / 工程化 / 踩坑 / 混合部署为**专篇卡**，独立计数、不进 `total`。真源：`docs/kb-counts.json`（改数走 `sync_counts.py bump`）。
 
 ### 专篇卡
 
-| 域 | 编号 | 数量 | 组数 |
-|---|---|---|---|
-| 方法论 | `M01.01 ~ M16.xx` | 185 | 16 |
-| 工程化要点 | `G01.01 ~ G11.xx` | 74 | 11 |
-| 生产踩坑 | `K01.01 ~ K10.xx` | 71 | 10 |
+| 域 | 编号 | 数量 |
+|---|---|---|
+| 方法论 | `M01.01 ~ M16.xx` | 205 |
+| 工程化要点 | `G01.01 ~ G13.xx` | 88 |
+| 生产踩坑 | `K01.01 ~ K12.xx` | 82 |
+| 混合部署 | `H01.01 ~ H02.xx` | 8 |
 
 ### 优先级 × 难度（求和 = `total`）
 
 | 优先级 | 题数 | | 难度 | 题数 |
 |---|---|---|---|---|
-| P0 | 139 | | 专家 | 79 |
-| P1 | 382 | | 架构 | 297 |
-| P2 | 93 | | 高级 | 238 |
+| P0 | 158 | | 专家 | 90 |
+| P1 | 420 | | 架构 | 334 |
+| P2 | 108 | | 高级 | 262 |
 
 ---
 

@@ -445,7 +445,7 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
   以**退出码 3** 明确报「夹具缺失待重建」，**不得**抛异常、**不得**静默退出 0。
 - 退出码约定：`0` 通过 / `1` 门禁失效 / `2` 定位失败 / `3` 环境缺失（当前 `probe_index_badge_gate.py`
   已自包含，正常跑为 `0`；仅当 `index.html` 或 `nav-overview-priority.html` 缺失才退 `3`）。
-### 5.2 项目根 `Java Spring AI/index.html`（全量快照）
+### 5.2 项目根 `arch-codex/index.html`（全量快照）
 - **Hero 统计块**（`.dir-hero`；项数以页面与 SSOT 为准；改数走 `sync_counts.py`，勿手改）：
   - 次行 `.dir-stats.dir-stats-sub`（6 项，各带 `stat-tag`）：M 核心方法论 / G 工程化要点 / K 生产踩坑 / C 深度 Q&A / E 核心原理速查 / S 真实场景题。
   - 口径：M/G/K 为专篇键，**各自单独计数，禁止「题数+M+G+K」式合计**；「全站 N 题」仅指 `total`（C+A+E+S+D）。禁止 `kb-count-local`。

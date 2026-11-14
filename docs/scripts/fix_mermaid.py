@@ -11,7 +11,7 @@ import subprocess
 import os
 import sys
 
-BASE_DIR = '/Users/chenjunbing/Develop/Project/Personal/Java Spring AI'
+BASE_DIR = '/Users/chenjunbing/Develop/Project/Personal/arch-codex'
 OLD_COMMIT = '85a7bcd'
 MERMAID_PATTERN = re.compile(r'<div class="mermaid">(.*?)</div>', re.DOTALL)
 
