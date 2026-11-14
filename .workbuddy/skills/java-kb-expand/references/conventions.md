@@ -1100,6 +1100,7 @@ C/D/E/F 用例是「兜底与正文段不可被关掉」的证据；probe_truth_
 - 导图页居中组：全部章节 / 导图总览 / 本导图对应章节（`nav-mind`）；首篇左已是导图总览时，居中去掉「导图总览」。
 - 顶部/底部按钮 `padding`/`font-size`/`gap` 须同步一致，避免高度差。
 - 两站共用 `java-architect-interview/assets/design-system.css`、`theme-init.js` 与 `nav.js`，一处修改惠及全部。
+- **速查篇 `nav-knowledge-quick-list.html`**：章节级汇总卡粒度（C 段一章一卡，其余按维度一卡一主题），**无 `data-kb-pos`、不进计数门禁**——形式1/2/3 新卡入库须在对应汇总卡补 1–2 条 `cheat-bullet`，漏改无门禁报警（2026-11-14 C01.13 曾漏）。
 
 ## 7.1 手机小屏强制（MOBILE-MANDATORY）
 

@@ -666,7 +666,7 @@ agent_created: true
      assert t2.count('data-layer="extension"') == _before + 1
      ```
    - ⚠️ **关键词断言数要按实际出现次数写**：正文与「高频追问」里常重复同一术语（如 `partial-key cuckoo hashing` 出现 2 次），写 `== 1` 会误失败；先跑一次拿到真实计数再固化。
-3. 按 `references/conventions.md` §4 的「7 文件同步清单」落盘；若仅补增量（不新增卡），只改章节页 + 对应 mind 页，4 份聚合页不动。
+3. 按 SKILL.md 下方「全量同步必改点」表格落盘——**清单必须含 `nav-knowledge-quick-list.html` 速查篇**（新卡入库后在对应章节汇总卡补 1–2 条要点 bullet；2026-11-14 C01.13 曾漏，长官实测）；mind 页已下线不再同步。若仅补增量（形式4，不新增卡），聚合页与速查篇不动。
 4. 环境 Python：`/Users/chenjunbing/.workbuddy/binaries/python/versions/3.13.12/bin/python3`。
 
 ### Step 5 · 全量校验 + 记忆
@@ -700,9 +700,9 @@ agent_created: true
 
 每轮用 `OPT-A/B/C…` 是用户选择的标签，不全局固定。常用形式：
 
-- **形式1 · 新增篇章题**（`Cxx.xx`，架构/P1 等）：需全量同步 7 文件（章节页 + 4 聚合 + 2 mind），计数 +1。
-- **形式2 · 新增场景题**（`Sxx.xx`，归 `group-N`）：需全量同步 7 文件，计数 +1。
-- **形式3 · 新增核心原理题**（`Exx.xx`）：需全量同步 7 文件，计数 +1。
+- **形式1 · 新增篇章题**（`Cxx.xx`，架构/P1 等）：需全量同步（章节页 + 3 聚合页 + 速查篇 `nav-knowledge-quick-list.html`；mind 已下线），计数 +1。
+- **形式2 · 新增场景题**（`Sxx.xx`，归 `group-N`）：需全量同步（同形式1，含速查篇），计数 +1。
+- **形式3 · 新增核心原理题**（`Exx.xx`）：需全量同步（同形式1，含速查篇），计数 +1。
 - **形式4 · 补入现有卡**（不新增计数）：把增量作为现有卡的新 `content-layer`（如 `data-layer="extension"`）+ 对应 mind 节点描述补一句；只改 2 文件，4 聚合页不动。
 - **形式5 · 不入库**：判定同源重复、增量微小，仅记录核查结论。
 
@@ -719,12 +719,14 @@ agent_created: true
 | `nav-overview-priority.html` | 新增 ov-item（插入见 `conventions.md` §5.1.1）；`ov-stat-num` **全部** `ov_stat_order` 项须同步（当前 12）；子组/组标题/`ov-nav-cnt`/页头「全站 N 道」+N；类型含 C/E/S/A/D |
 | `index.html`（根） | 类型计数 /「全站」=total（C+A+E+S+D）/ M·G·K 各自统计卡；`dir-count` + `dir-group-count` +N；新增 q-item li |
 | `java-architect-interview/index.html` | stat-number +N（C/E/S 与 M/G/K 分卡）；「全站」仅=total；章节 card-footer +N（**不枚举单题 ID**）；**M/G/K 三张专篇卡的 `card-tags` 已移除**（不呈现等级徽标，2026-09-16） |
-| `mind-xx-*.html` | 主干范围 `C10.01–C10.N` 扩尾；插 map-card（summary/body/tags）；meta；`map-note` 并入清单 |
+| `nav-knowledge-quick-list.html`（速查篇） | **章节级汇总卡粒度**（C 段一章一卡；M/L/E/S/A/H/D/G/K/SEC 按维度一卡一主题）：新卡入库后在对应汇总卡补 1–2 条 `cheat-bullet` 要点；该文件**无 `data-kb-pos`、不进计数门禁**，漏改无门禁报警，必须人工纳入清单（2026-11-14 C01.13 实测漏） |
+| ~~`mind-xx-*.html`~~ | **导图站已下线（SKILL.md:598），勿再同步 mind 文件**，全项目 `mind-*.html`=0 |
 
 ## 坑位速查（高频踩坑）
 
 - **Edit 大数字竞态**：overview 的 `ov-stat-num` 用 `Edit` 报成功却未落盘，改用 Python 脚本替换。
 - **章节导航页不枚举单题 ID**：`java-architect-interview/index.html` 只列章节卡片与统计，不含 `Cxx.xx`/`Sxx.xx` 条目——校验时"落位=False"属预期。
+- **新卡漏同步速查篇（2026-11-14 长官实测）**：`nav-knowledge-quick-list.html` 为章节级汇总卡粒度，且**无 `data-kb-pos`、不进任何计数门禁**——C01.13 入库时 3 聚合页全同步，速查篇漏补，门禁全绿也查不出。**形式1/2/3 落盘清单必须含速查篇**：在对应章节汇总卡补 1–2 条 `<div class="cheat-bullet"><strong>标签</strong>：…</div>`；改后跑 `npm run format:html`（稳态）+ 红线词检查；速查篇自身完整性三查 = 卡 ID 唯一 / TOC href 全命中 / HTML 标签平衡（html.parser 栈）。
 - **9 子组标题按 优先级×难度**（P0/P1/P2 各含 专家/架构/高级），不是难度×类型；同步前先算真实 9 宫格再对齐「子组标题 + ov-stat-num」两处。
 - **overview 新卡落位排序（2026-09-13 硬约束）**：P0→P2 → 专家→架构→高级 → 子组内 **C→E→S** → **题号升序**。详见 `conventions.md` §5.1.1。`validate_kb.py` 校验子组内 `ov-num` 单调；曾因「插在同 priority 某 E 卡后」导致 E10 跑到 E09 前。三类占比见 §5.1.2（**不要求各桶均分**，按内容定级）。
 - **全站分组/页头页尾计数（2026-09-13 全站固化）**：见 `conventions.md` §5.1.3。高频坑：① 场景卡插在 `</section>` 外导致 `group-count` 表面正确、结构孤儿；② overview `ov-nav-cnt`/组 h2 与 `ov-stat` 脱节；③ mind `card-foot`/mermaid「章节·原理·场景」未随并入清单更新；④ overview 难度子组未拆 C/E/S `ov-type` 或 `ov-type-count` 漂移。`validate_kb` 3b2/3c + `sync_counts` P47–P62 覆盖导航/组标题/聚合统计；改后必跑 `validate_kb.py`。
