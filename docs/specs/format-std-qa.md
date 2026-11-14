@@ -49,12 +49,16 @@
         <h1 class="chapter-title">主标题</h1>
         <p class="chapter-subtitle">钩子副题（约一两句；禁止「演进罗列：直击考点」句式）</p>
         <div class="chapter-meta">
-          <span>题目数：N</span> <span class="meta-divider">|</span>
-          <span>高级 ×a</span> <span class="meta-divider">|</span>
-          <span>架构 ×b</span>   <span class="meta-divider">|</span>
-          <span>专家 ×c</span>   <span class="meta-divider">|</span>
-          <span>预计复习：XX 分钟</span>
+          <span>卡片合计：<span class="kb-count" data-kb-count="struct.chap.idx.cNN.n" data-kb-pos="PXXX">N</span></span> <span class="meta-divider">|</span>
+          <span>专家 ×<span class="kb-count" data-kb-count="struct.chap.idx.cNN.expert" data-kb-pos="PXXX">a</span></span> <span class="meta-divider">|</span>
+          <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.cNN.architect" data-kb-pos="PXXX">b</span></span> <span class="meta-divider">|</span>
+          <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.cNN.senior" data-kb-pos="PXXX">c</span></span> <span class="meta-divider">|</span>
+          <span>预计阅读时间：XX 分钟</span>
         </div>
+        <!-- 统一格式：卡片合计：N | 专家 ×N | 架构 ×N | 高级 ×N | 预计阅读时间：T 分钟（顺序固定 专家→架构→高级） -->
+        <!-- 轴章节计数键：C=struct.chap.idx.cNN.{n,expert,architect,senior}；E=basics / struct.chap.idx.special.basics.*； -->
+        <!--   S=scenarios / struct.chap.idx.special.scenarios.*；A=struct.chap.idx.ca.*；H=struct.hybrid.idx.h01.*；D=domain_questions / struct.chap.idx.special.domain.* -->
+        <!-- G/K 无难度分级：保留原「N 组 · M 卡」等，末尾补「| 预计阅读时间：T 分钟」（T 不包裹 kb-count） -->
         <!-- 篇章导读：知识链（含阶段说明）+ 工程化要点 + 本篇思维模式 -->
         <div class="chapter-lead">
           <div class="chapter-lead-block">
@@ -98,7 +102,7 @@
 
 要点：
 - 每章**正文几乎不使用 `h2/h3` 分隔**（正文以 `content-card` 为唯一单元，通常仅侧栏 `h3 本篇目录` 与末尾 `h2 参考资料` 两个标题）。
-- `chapter-header` 的难度分布（`×a/×b/×c`）必须与下方各卡片的 `data-difficulty` 统计一致；`题目数：N` 必须等于 `content-card` 数量。
+- `chapter-header` 的难度分布（`专家 ×a / 架构 ×b / 高级 ×c`，顺序固定）必须与下方各卡片的 `data-difficulty` 统计一致；`卡片合计：N` 必须等于 `content-card` 数量。
 - `chapter-subtitle` 只做钩子；**核心知识链（含阶段说明）+ 工程化要点（分点）+ 本篇思维模式** 放在 `chapter-lead`（每章恰好一处）。知识链要对齐 mind ①②③ 并写清因果，禁止只剩箭头关键词；工程化要点用 `<ul class="chapter-lead-points">`，建议 **7～8 条**，每条写清发布/观测/回滚/门禁/容量等可执行口径，忌口号化短句；思维模式用命名条目（`<strong>模式名</strong>：口径`），建议 **6 条**，写本领域落地口径，禁止每章复制同一句「见方法论」。顶部/底部导航须同文（详见 `format-shared.md` §4.2）：箭头用字面量 `←`/`→`；`nav-center` 顺序固定为 **核心方法论 → 全部章节 → 本章思维导图**。
 
 ## 3. `content-card` 卡片规范
