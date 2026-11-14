@@ -6,7 +6,7 @@
   - 根：`index.html`、`interview.html`
   - 章节主站：`core/*.html`（仅顶层，不含 shared/tmp）
   - 三子站（递归 `**/*.html`，跳过 tmp/node_modules）：
-      java-design-patterns-principles/
+      Software-Engineering-Principles-and-Design-Patterns/
       Software-Engineering-Core-Philosophical-Principles-and-Methodologies/
       Software-Engineering-Laws-Theories-Principles-and-Patterns/
 
@@ -21,7 +21,7 @@ from _kbroot import require_root
 
 # 子站目录名（相对根；与磁盘目录一一对应）
 SATELLITE_DIRS = (
-    "java-design-patterns-principles",
+    "Software-Engineering-Principles-and-Design-Patterns",
     "Software-Engineering-Core-Philosophical-Principles-and-Methodologies",
     "Software-Engineering-Laws-Theories-Principles-and-Patterns",
 )

@@ -495,7 +495,7 @@ index.html                                # 章节索引
 
 - 根：`index.html`、`interview.html`
 - 章节主站：`core/*.html`
-- 三子站（递归）：`java-design-patterns-principles/**`、`Software-Engineering-Core-Philosophical-Principles-and-Methodologies/**`、`Software-Engineering-Laws-Theories-Principles-and-Patterns/**`
+- 三子站（递归）：`Software-Engineering-Principles-and-Design-Patterns/**`、`Software-Engineering-Core-Philosophical-Principles-and-Methodologies/**`、`Software-Engineering-Laws-Theories-Principles-and-Patterns/**`
 
 `docs/facts/`、`tmp/`、压缩资源、`rk/` 不在格式化范围。导图站已下线。
 

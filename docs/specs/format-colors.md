@@ -1,6 +1,6 @@
 # format-colors — 站点配色规约（Catppuccin Latte / Mocha）
 
-> 适用范围：根 `index.html`、`interview.html`、`core/`（章节站）、三个子站（`Software-Engineering-*` / `java-design-patterns-principles`）及其共享样式。
+> 适用范围：根 `index.html`、`interview.html`、`core/`（章节站）、三个子站（`Software-Engineering-*` / `Software-Engineering-Principles-and-Design-Patterns`）及其共享样式。
 > **唯一色源（SSOT）**：`docs/catppuccin-tokens.json`。本文色表仅为速查，若与 JSON 冲突以 JSON 为准。
 > 门禁：`python3 docs/scripts/scripts/audit_catppuccin.py`（交付前必须 ALL PASS，见 §7）。
 

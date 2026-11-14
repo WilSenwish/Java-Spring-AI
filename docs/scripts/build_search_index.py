@@ -57,7 +57,7 @@ VOID_TAGS = {
 
 SATELLITES = (
     (
-        "java-design-patterns-principles",
+        "Software-Engineering-Principles-and-Design-Patterns",
         "设计模式",
     ),
     (

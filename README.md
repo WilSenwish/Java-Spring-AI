@@ -34,7 +34,7 @@ arch-codex/
 │   ├── nav-overview-ai-component-stack.html #   AI 应用组件分层检索视图导航
 │   ├── assets/                              #   design-system.css · nav.js · theme-init.js
 │   └── index.html                           # 章节索引
-├── java-design-patterns-principles/        # ② 设计原则 & 超越 GoF 23
+├── Software-Engineering-Principles-and-Design-Patterns/        # ② 设计原则 & 超越 GoF 23
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/  # ③ 软件工程 定律/理论/原则/模式
 ├── Software-Engineering-Core-Philosophical-Principles-and-Methodologies/  # ④ 软件工程「道—法—术—器—势」
 ├── rk/                                      # 两篇随笔（高项/系规），见 rk/README.md
@@ -127,7 +127,7 @@ arch-codex/
 | 工程化要点 | `core/chapter-engineering-practices.html` | 11 组工程化实践（88 卡） |
 | 生产踩坑 | `core/chapter-production-pitfalls.html` | 10 组真实故障复盘（82 卡） |
 | 混合部署 | `core/chapter-hybrid-deployment.html` | 多云/混合云部署模式（8 卡） |
-| 设计原则 & GoF 23 | `java-design-patterns-principles/` | 设计原则 + 超越 GoF 23 |
+| 设计原则 & GoF 23 | `Software-Engineering-Principles-and-Design-Patterns/` | 设计原则 + 超越 GoF 23 |
 | 软件定律 / 理论 / 原则 / 模式 | `Software-Engineering-Laws-Theories-Principles-and-Patterns/` | 24 条 + 7 类 + 13 类 + 6 类索引 |
 | 软件工程「道法术器势」| `Software-Engineering-Core-Philosophical-Principles-and-Methodologies/` | 核心哲学原理完整篇 |
 | 信创（信息技术应用创新）研究专题 | `xinchuang/index.html` | 独立静态站点 · 政策 / 产业 / 技术 / 工程 / 安全 / 经济 多视角 |

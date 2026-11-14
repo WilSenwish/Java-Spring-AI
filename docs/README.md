@@ -52,7 +52,7 @@
 │   ├── nav-overview-lifecycle.html         # 生产生命周期检索视图导航
 │   ├── nav-overview-ai-component-stack.html # AI 应用组件分层检索视图导航
 │   └── assets/                             # design-system.css · nav.js · theme-init.js
-├── java-design-patterns-principles/        # 子站② 设计原则 & 超越 GoF 23
+├── Software-Engineering-Principles-and-Design-Patterns/        # 子站② 设计原则 & 超越 GoF 23
 ├── Software-Engineering-Laws-Theories-Principles-and-Patterns/          # 子站③ 定律 / 理论 / 原则 / 模式索引
 ├── Software-Engineering-Core-Philosophical-Principles-and-Methodologies/ # 子站④ 「道—法—术—器—势」哲学篇
 ├── xinchuang/                              # 信创独立站点（12 篇 md 源 + 自包含 HTML，非 KB 站群）

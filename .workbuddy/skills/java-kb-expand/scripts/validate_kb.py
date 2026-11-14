@@ -17,7 +17,7 @@ java-kb-expand · 全量校验脚本（通用版）
   0c2) **真源审计**：已在 SSOT `positions` 登记的键，其真值（独立重算）须 = SSOT 值 = DOM 显示值（反向完备性：声明了 ⇒ 必须正确）
   0c3) **未登记计数扫描**：全站正文里出现的每个计数锚点（data-kb-count + data-kb-pos）都必须已在 SSOT `positions` 登记（正向完备性：正文有 ⇒ 必须登记；与 0c2 双向闭合，漏登记的计数门禁零覆盖）
   0d) **页头难度分布**：chapter-meta 的「题目数 / 高级×N / 架构×N / 专家×N」须与本页实体卡片逐项一致（2026-09-15 补，防新增卡漏同步页头）
-  0s) **三子站基础门禁**：java-design-patterns-principles / Software-Engineering-Core-… / Software-Engineering-Laws-…（data-page-node-id / 禁用词 / viewport / charset / Mermaid-ignore）；见 validate_satellite_sites.py
+  0s) **三子站基础门禁**：Software-Engineering-Principles-and-Design-Patterns / Software-Engineering-Core-… / Software-Engineering-Laws-…（data-page-node-id / 禁用词 / viewport / charset / Mermaid-ignore）；见 validate_satellite_sites.py
   1) 全部目标 HTML 文件 data-page-node-id 全 0（红线）
   1b) 手机小屏强制：design-system.css / 根·章节 index 含 MOBILE-MANDATORY；全站 HTML 含 viewport
   1c) 主题 / 暗黑模式：站点 HTML 含 theme-init.js；design-system.css 含 data-theme="dark" 令牌块

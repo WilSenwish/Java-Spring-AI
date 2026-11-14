@@ -3,7 +3,7 @@
 """三子站基础门禁（非 core KB 计数体系）。
 
 覆盖目录（见 `_site_html.SATELLITE_DIRS`）：
-  - java-design-patterns-principles/
+  - Software-Engineering-Principles-and-Design-Patterns/
   - Software-Engineering-Core-Philosophical-Principles-and-Methodologies/
   - Software-Engineering-Laws-Theories-Principles-and-Patterns/
 
@@ -18,7 +18,7 @@
 
 用法：
   python3 validate_satellite_sites.py
-  python3 validate_satellite_sites.py --only java-design-patterns-principles
+  python3 validate_satellite_sites.py --only Software-Engineering-Principles-and-Design-Patterns
 
 退出码：0=全过；1=有 FAIL。
 """
