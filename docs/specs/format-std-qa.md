@@ -49,10 +49,10 @@
         <h1 class="chapter-title">主标题</h1>
         <p class="chapter-subtitle">钩子副题（约一两句；禁止「演进罗列：直击考点」句式）</p>
         <div class="chapter-meta">
-          <span>卡片合计：<span class="kb-count" data-kb-count="struct.chap.idx.cNN.n" data-kb-pos="PXXX">N</span></span> <span class="meta-divider">|</span>
-          <span>专家 ×<span class="kb-count" data-kb-count="struct.chap.idx.cNN.expert" data-kb-pos="PXXX">a</span></span> <span class="meta-divider">|</span>
-          <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.cNN.architect" data-kb-pos="PXXX">b</span></span> <span class="meta-divider">|</span>
-          <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.cNN.senior" data-kb-pos="PXXX">c</span></span> <span class="meta-divider">|</span>
+          <span>卡片合计：<span class="kb-count" data-kb-count="struct.chap.idx.c01.n" data-kb-pos="PXXX">N</span></span> <span class="meta-divider">|</span>
+          <span>专家 ×<span class="kb-count" data-kb-count="struct.chap.idx.c01.expert" data-kb-pos="PXXX">a</span></span> <span class="meta-divider">|</span>
+          <span>架构 ×<span class="kb-count" data-kb-count="struct.chap.idx.c01.architect" data-kb-pos="PXXX">b</span></span> <span class="meta-divider">|</span>
+          <span>高级 ×<span class="kb-count" data-kb-count="struct.chap.idx.c01.senior" data-kb-pos="PXXX">c</span></span> <span class="meta-divider">|</span>
           <span>预计阅读时间：XX 分钟</span>
         </div>
         <!-- 统一格式：卡片合计：N | 专家 ×N | 架构 ×N | 高级 ×N | 预计阅读时间：T 分钟（顺序固定 专家→架构→高级） -->
